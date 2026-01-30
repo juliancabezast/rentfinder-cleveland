@@ -31,6 +31,7 @@ import NotFound from "./pages/NotFound";
 // Public pages (no auth required)
 import PublicProperties from "./pages/public/PublicProperties";
 import PublicPropertyDetail from "./pages/public/PublicPropertyDetail";
+import PrivacyPolicy from "./pages/public/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
             {/* Public property listings (no auth required) */}
             <Route path="/p/properties" element={<PublicProperties />} />
             <Route path="/p/properties/:id" element={<PublicPropertyDetail />} />
+            <Route path="/p/privacy-policy" element={<PrivacyPolicy />} />
 
             {/* Public auth routes */}
             <Route path="/auth/login" element={<Login />} />
