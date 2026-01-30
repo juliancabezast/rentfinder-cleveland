@@ -17,6 +17,7 @@ import Dashboard from "./pages/dashboard";
 import PropertiesList from "./pages/properties/PropertiesList";
 import PropertyDetail from "./pages/properties/PropertyDetail";
 import LeadsList from "./pages/leads/LeadsList";
+import LeadDetail from "./pages/leads/LeadDetail";
 import ShowingsList from "./pages/showings/ShowingsList";
 import CallsList from "./pages/calls/CallsList";
 import Reports from "./pages/reports/Reports";
@@ -80,11 +81,22 @@ const App = () => (
             />
 
             <Route
-              path="/leads/*"
+              path="/leads"
               element={
                 <ProtectedRoute>
                   <MainLayout>
                     <LeadsList />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/leads/:id"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <LeadDetail />
                   </MainLayout>
                 </ProtectedRoute>
               }
