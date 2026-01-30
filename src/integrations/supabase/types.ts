@@ -14,6 +14,184 @@ export type Database = {
   }
   public: {
     Tables: {
+      calls: {
+        Row: {
+          agent_type: string
+          bland_call_id: string | null
+          cost_bland: number | null
+          cost_openai: number | null
+          cost_total: number | null
+          cost_twilio: number | null
+          created_at: string | null
+          detected_language: string | null
+          direction: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          key_questions: Json | null
+          lead_id: string | null
+          organization_id: string
+          phone_number: string
+          property_id: string | null
+          recording_disclosure_played: boolean | null
+          recording_url: string | null
+          score_change: number | null
+          sentiment: string | null
+          started_at: string
+          status: string
+          summary: string | null
+          transcript: string | null
+          twilio_call_sid: string | null
+          unanswered_questions: Json | null
+        }
+        Insert: {
+          agent_type: string
+          bland_call_id?: string | null
+          cost_bland?: number | null
+          cost_openai?: number | null
+          cost_total?: number | null
+          cost_twilio?: number | null
+          created_at?: string | null
+          detected_language?: string | null
+          direction: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          key_questions?: Json | null
+          lead_id?: string | null
+          organization_id: string
+          phone_number: string
+          property_id?: string | null
+          recording_disclosure_played?: boolean | null
+          recording_url?: string | null
+          score_change?: number | null
+          sentiment?: string | null
+          started_at: string
+          status: string
+          summary?: string | null
+          transcript?: string | null
+          twilio_call_sid?: string | null
+          unanswered_questions?: Json | null
+        }
+        Update: {
+          agent_type?: string
+          bland_call_id?: string | null
+          cost_bland?: number | null
+          cost_openai?: number | null
+          cost_total?: number | null
+          cost_twilio?: number | null
+          created_at?: string | null
+          detected_language?: string | null
+          direction?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          key_questions?: Json | null
+          lead_id?: string | null
+          organization_id?: string
+          phone_number?: string
+          property_id?: string | null
+          recording_disclosure_played?: boolean | null
+          recording_url?: string | null
+          score_change?: number | null
+          sentiment?: string | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+          transcript?: string | null
+          twilio_call_sid?: string | null
+          unanswered_questions?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communications: {
+        Row: {
+          body: string
+          channel: string
+          cost_twilio: number | null
+          delivered_at: string | null
+          direction: string
+          id: string
+          lead_id: string | null
+          opened_at: string | null
+          organization_id: string
+          recipient: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          twilio_message_sid: string | null
+        }
+        Insert: {
+          body: string
+          channel: string
+          cost_twilio?: number | null
+          delivered_at?: string | null
+          direction: string
+          id?: string
+          lead_id?: string | null
+          opened_at?: string | null
+          organization_id: string
+          recipient: string
+          sent_at?: string | null
+          status: string
+          subject?: string | null
+          twilio_message_sid?: string | null
+        }
+        Update: {
+          body?: string
+          channel?: string
+          cost_twilio?: number | null
+          delivered_at?: string | null
+          direction?: string
+          id?: string
+          lead_id?: string | null
+          opened_at?: string | null
+          organization_id?: string
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          twilio_message_sid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investor_property_access: {
         Row: {
           granted_at: string | null
@@ -120,6 +298,20 @@ export type Database = {
           triggered_by?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_score_history_call"
+            columns: ["related_call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_score_history_showing"
+            columns: ["related_showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_score_history_changed_by_user_id_fkey"
             columns: ["changed_by_user_id"]
@@ -659,6 +851,111 @@ export type Database = {
             columns: ["read_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      showings: {
+        Row: {
+          agent_report: string | null
+          agent_report_photo_url: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          confirmation_attempts: number | null
+          confirmed_at: string | null
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          last_confirmation_attempt_at: string | null
+          lead_id: string
+          leasing_agent_id: string | null
+          organization_id: string
+          property_id: string
+          prospect_interest_level: string | null
+          rescheduled_to_id: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_report?: string | null
+          agent_report_photo_url?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          confirmation_attempts?: number | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          last_confirmation_attempt_at?: string | null
+          lead_id: string
+          leasing_agent_id?: string | null
+          organization_id: string
+          property_id: string
+          prospect_interest_level?: string | null
+          rescheduled_to_id?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_report?: string | null
+          agent_report_photo_url?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          confirmation_attempts?: number | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          last_confirmation_attempt_at?: string | null
+          lead_id?: string
+          leasing_agent_id?: string | null
+          organization_id?: string
+          property_id?: string
+          prospect_interest_level?: string | null
+          rescheduled_to_id?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showings_leasing_agent_id_fkey"
+            columns: ["leasing_agent_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showings_rescheduled_to_id_fkey"
+            columns: ["rescheduled_to_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
             referencedColumns: ["id"]
           },
         ]
