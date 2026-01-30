@@ -43,6 +43,9 @@ export const DEFAULT_SETTINGS = {
   // Voice settings
   bland_voice_id: "default",
   voice_language_primary: "en",
+
+  // Security settings
+  photo_upload_restricted: false,
 } as const;
 
 export type SettingsKey = keyof typeof DEFAULT_SETTINGS;

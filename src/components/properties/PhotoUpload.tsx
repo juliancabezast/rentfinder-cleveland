@@ -1,10 +1,12 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Upload, X, GripVertical, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, GripVertical, Image as ImageIcon, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface PhotoUploadProps {
   photos: string[];
@@ -17,8 +19,53 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
   onChange,
   propertyId,
 }) => {
+  const { userRecord, organization } = useAuth();
+  const { canUploadPhotos } = usePermissions();
   const [uploading, setUploading] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [canManagePhotos, setCanManagePhotos] = useState(true);
+  const [checkingPermission, setCheckingPermission] = useState(true);
+
+  // Check if the user has permission based on organization settings
+  useEffect(() => {
+    const checkPermission = async () => {
+      setCheckingPermission(true);
+      
+      // Super admins and admins always have permission
+      if (userRecord?.role === 'super_admin' || userRecord?.role === 'admin') {
+        setCanManagePhotos(true);
+        setCheckingPermission(false);
+        return;
+      }
+
+      // Editors need to check the organization setting
+      if (userRecord?.role === 'editor' && organization?.id) {
+        try {
+          const { data } = await supabase
+            .from('organization_settings')
+            .select('value')
+            .eq('organization_id', organization.id)
+            .eq('key', 'photo_upload_restricted')
+            .single();
+
+          // If restricted is true, editors cannot manage photos
+          setCanManagePhotos(!data?.value);
+        } catch (error) {
+          // If setting doesn't exist, default to allowing editors
+          setCanManagePhotos(true);
+        }
+      } else {
+        // Viewers and leasing agents cannot manage photos
+        setCanManagePhotos(false);
+      }
+      
+      setCheckingPermission(false);
+    };
+
+    if (userRecord) {
+      checkPermission();
+    }
+  }, [organization?.id, userRecord?.role, userRecord]);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
@@ -98,6 +145,59 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
   const handleDragEnd = () => {
     setDraggedIndex(null);
   };
+
+  // Show loading state while checking permissions
+  if (checkingPermission) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Show message if user doesn't have permission
+  if (!canUploadPhotos || !canManagePhotos) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8 border-2 border-dashed border-border rounded-lg bg-muted/30">
+          <Lock className="h-12 w-12 mx-auto mb-2 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground font-medium">You don't have permission to manage photos.</p>
+          <p className="text-sm text-muted-foreground">Contact an administrator for access.</p>
+        </div>
+        
+        {/* Still show existing photos in read-only mode */}
+        {photos.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">
+              Photos ({photos.length})
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {photos.map((photo, index) => (
+                <div
+                  key={photo}
+                  className={cn(
+                    'relative aspect-video rounded-lg overflow-hidden border',
+                    index === 0 && 'ring-2 ring-primary'
+                  )}
+                >
+                  <img
+                    src={photo}
+                    alt={`Property photo ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {index === 0 && (
+                    <span className="absolute top-1 left-1 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
+                      Main
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

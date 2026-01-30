@@ -1515,6 +1515,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_property_photos: {
+        Args: { _auth_user_id: string }
+        Returns: boolean
+      }
       check_coming_soon_expiring: { Args: never; Returns: number }
       get_user_id: { Args: { _auth_user_id: string }; Returns: string }
       get_user_organization_id: {
