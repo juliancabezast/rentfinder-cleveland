@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      investor_property_access: {
+        Row: {
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          investor_id: string
+          organization_id: string
+          property_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          investor_id: string
+          organization_id: string
+          property_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          investor_id?: string
+          organization_id?: string
+          property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investor_property_access_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_property_access_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_property_access_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_property_access_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_credentials: {
         Row: {
           bland_api_key: string | null
@@ -189,6 +245,181 @@ export type Database = {
         }
         Relationships: []
       }
+      properties: {
+        Row: {
+          address: string
+          alternative_property_ids: string[] | null
+          amenities: Json | null
+          application_fee: number | null
+          bathrooms: number
+          bedrooms: number
+          city: string
+          coming_soon_date: string | null
+          created_at: string | null
+          deposit_amount: number | null
+          description: string | null
+          doorloop_property_id: string | null
+          hud_inspection_ready: boolean | null
+          id: string
+          investor_id: string | null
+          listed_date: string | null
+          organization_id: string
+          pet_policy: string | null
+          photos: Json | null
+          property_type: string | null
+          rent_price: number
+          section_8_accepted: boolean | null
+          special_notes: string | null
+          square_feet: number | null
+          state: string
+          status: string
+          unit_number: string | null
+          updated_at: string | null
+          video_tour_url: string | null
+          virtual_tour_url: string | null
+          zip_code: string
+        }
+        Insert: {
+          address: string
+          alternative_property_ids?: string[] | null
+          amenities?: Json | null
+          application_fee?: number | null
+          bathrooms: number
+          bedrooms: number
+          city?: string
+          coming_soon_date?: string | null
+          created_at?: string | null
+          deposit_amount?: number | null
+          description?: string | null
+          doorloop_property_id?: string | null
+          hud_inspection_ready?: boolean | null
+          id?: string
+          investor_id?: string | null
+          listed_date?: string | null
+          organization_id: string
+          pet_policy?: string | null
+          photos?: Json | null
+          property_type?: string | null
+          rent_price: number
+          section_8_accepted?: boolean | null
+          special_notes?: string | null
+          square_feet?: number | null
+          state?: string
+          status?: string
+          unit_number?: string | null
+          updated_at?: string | null
+          video_tour_url?: string | null
+          virtual_tour_url?: string | null
+          zip_code: string
+        }
+        Update: {
+          address?: string
+          alternative_property_ids?: string[] | null
+          amenities?: Json | null
+          application_fee?: number | null
+          bathrooms?: number
+          bedrooms?: number
+          city?: string
+          coming_soon_date?: string | null
+          created_at?: string | null
+          deposit_amount?: number | null
+          description?: string | null
+          doorloop_property_id?: string | null
+          hud_inspection_ready?: boolean | null
+          id?: string
+          investor_id?: string | null
+          listed_date?: string | null
+          organization_id?: string
+          pet_policy?: string | null
+          photos?: Json | null
+          property_type?: string | null
+          rent_price?: number
+          section_8_accepted?: boolean | null
+          special_notes?: string | null
+          square_feet?: number | null
+          state?: string
+          status?: string
+          unit_number?: string | null
+          updated_at?: string | null
+          video_tour_url?: string | null
+          virtual_tour_url?: string | null
+          zip_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          organization_id: string
+          property_id: string
+          read_at: string | null
+          read_by: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          organization_id: string
+          property_id: string
+          read_at?: string | null
+          read_by?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          organization_id?: string
+          property_id?: string
+          read_at?: string | null
+          read_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_alerts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_alerts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_alerts_read_by_fkey"
+            columns: ["read_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           auth_user_id: string | null
@@ -247,6 +478,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_coming_soon_expiring: { Args: never; Returns: number }
       get_user_organization_id: {
         Args: { _auth_user_id: string }
         Returns: string
@@ -263,6 +495,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _auth_user_id: string }; Returns: boolean }
+      user_has_property_access: {
+        Args: { _auth_user_id: string; _property_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "editor" | "viewer" | "leasing_agent"
