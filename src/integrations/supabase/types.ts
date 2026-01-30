@@ -14,16 +14,229 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      organization_settings: {
+        Row: {
+          category: string
+          description: string | null
+          id: string
+          key: string
+          organization_id: string
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          category: string
+          description?: string | null
+          id?: string
+          key: string
+          organization_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          category?: string
+          description?: string | null
+          id?: string
+          key?: string
+          organization_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          accent_color: string | null
+          address: string | null
+          billing_email: string | null
+          bland_api_key: string | null
+          city: string | null
+          created_at: string | null
+          default_language: string | null
+          doorloop_api_key: string | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          max_calls_per_month: number | null
+          max_properties: number | null
+          max_users: number | null
+          name: string
+          openai_api_key: string | null
+          owner_email: string
+          persona_api_key: string | null
+          phone: string | null
+          plan: string
+          primary_color: string | null
+          slug: string
+          state: string | null
+          stripe_customer_id: string | null
+          subscription_status: string
+          timezone: string | null
+          trial_ends_at: string | null
+          twilio_account_sid: string | null
+          twilio_auth_token: string | null
+          twilio_phone_number: string | null
+          updated_at: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          address?: string | null
+          billing_email?: string | null
+          bland_api_key?: string | null
+          city?: string | null
+          created_at?: string | null
+          default_language?: string | null
+          doorloop_api_key?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          max_calls_per_month?: number | null
+          max_properties?: number | null
+          max_users?: number | null
+          name: string
+          openai_api_key?: string | null
+          owner_email: string
+          persona_api_key?: string | null
+          phone?: string | null
+          plan?: string
+          primary_color?: string | null
+          slug: string
+          state?: string | null
+          stripe_customer_id?: string | null
+          subscription_status?: string
+          timezone?: string | null
+          trial_ends_at?: string | null
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          twilio_phone_number?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          address?: string | null
+          billing_email?: string | null
+          bland_api_key?: string | null
+          city?: string | null
+          created_at?: string | null
+          default_language?: string | null
+          doorloop_api_key?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          max_calls_per_month?: number | null
+          max_properties?: number | null
+          max_users?: number | null
+          name?: string
+          openai_api_key?: string | null
+          owner_email?: string
+          persona_api_key?: string | null
+          phone?: string | null
+          plan?: string
+          primary_color?: string | null
+          slug?: string
+          state?: string | null
+          stripe_customer_id?: string | null
+          subscription_status?: string
+          timezone?: string | null
+          trial_ends_at?: string | null
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          twilio_phone_number?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          auth_user_id: string | null
+          avatar_url: string | null
+          commission_rate: number | null
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean | null
+          organization_id: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          avatar_url?: string | null
+          commission_rate?: number | null
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          avatar_url?: string | null
+          commission_rate?: number | null
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_organization_id: {
+        Args: { _auth_user_id: string }
+        Returns: string
+      }
+      get_user_role: {
+        Args: { _auth_user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _auth_user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      is_super_admin: { Args: { _auth_user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "editor" | "viewer" | "leasing_agent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +363,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "editor", "viewer", "leasing_agent"],
+    },
   },
 } as const
