@@ -23,6 +23,7 @@ import CallsList from "./pages/calls/CallsList";
 import Reports from "./pages/reports/Reports";
 import InsightGenerator from "./pages/insights/InsightGenerator";
 import UsersList from "./pages/users/UsersList";
+import UserDetail from "./pages/users/UserDetail";
 import Settings from "./pages/settings/Settings";
 import SystemLogs from "./pages/SystemLogs";
 import CostDashboard from "./pages/costs/CostDashboard";
@@ -157,11 +158,22 @@ const App = () => (
             />
 
             <Route
-              path="/users/*"
+              path="/users"
               element={
                 <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
                   <MainLayout>
                     <UsersList />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/users/:id"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+                  <MainLayout>
+                    <UserDetail />
                   </MainLayout>
                 </ProtectedRoute>
               }
