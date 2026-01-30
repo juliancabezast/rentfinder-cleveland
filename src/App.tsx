@@ -13,7 +13,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
 // Protected pages
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard";
 import PropertiesList from "./pages/properties/PropertiesList";
 import LeadsList from "./pages/leads/LeadsList";
 import ShowingsList from "./pages/showings/ShowingsList";
