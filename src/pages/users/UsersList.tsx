@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Users } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -140,16 +141,34 @@ const UsersList: React.FC = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Skeleton className="h-12 w-12 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-12">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
+              <div className="rounded-full bg-muted p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium mb-1">
                 {searchQuery || roleFilter !== 'all'
-                  ? 'No users found matching your criteria'
-                  : 'No team members yet. Invite your first user!'}
+                  ? 'No users found'
+                  : 'No team members yet'}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {searchQuery || roleFilter !== 'all'
+                  ? 'Try adjusting your search criteria'
+                  : 'Invite your first team member to get started.'}
               </p>
             </div>
           ) : (

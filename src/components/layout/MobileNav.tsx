@@ -58,7 +58,7 @@ export const MobileNav: React.FC = () => {
   );
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border z-50">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border z-50 safe-area-inset-bottom">
       <div className="flex items-center justify-around h-full px-2">
         {mainNavItems.map((item) => (
           <NavLink
@@ -66,12 +66,12 @@ export const MobileNav: React.FC = () => {
             to={item.href}
             className={cn(
               'flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
-              'text-muted-foreground'
+              'text-muted-foreground min-w-[60px] min-h-[44px]'
             )}
             activeClassName="text-primary"
           >
             <item.icon className="h-5 w-5" />
-            <span>{item.title}</span>
+            <span className="truncate">{item.title}</span>
           </NavLink>
         ))}
 
@@ -80,7 +80,8 @@ export const MobileNav: React.FC = () => {
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex flex-col items-center justify-center gap-1 h-auto px-3 py-2 text-muted-foreground"
+                className="flex flex-col items-center justify-center gap-1 h-auto px-3 py-2 text-muted-foreground min-w-[60px] min-h-[44px]"
+                aria-label="More options"
               >
                 <MoreHorizontal className="h-5 w-5" />
                 <span className="text-xs font-medium">More</span>
