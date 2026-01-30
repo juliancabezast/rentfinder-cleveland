@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      organization_credentials: {
+        Row: {
+          bland_api_key: string | null
+          created_at: string | null
+          doorloop_api_key: string | null
+          id: string
+          openai_api_key: string | null
+          organization_id: string
+          persona_api_key: string | null
+          twilio_account_sid: string | null
+          twilio_auth_token: string | null
+          twilio_phone_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bland_api_key?: string | null
+          created_at?: string | null
+          doorloop_api_key?: string | null
+          id?: string
+          openai_api_key?: string | null
+          organization_id: string
+          persona_api_key?: string | null
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          twilio_phone_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bland_api_key?: string | null
+          created_at?: string | null
+          doorloop_api_key?: string | null
+          id?: string
+          openai_api_key?: string | null
+          organization_id?: string
+          persona_api_key?: string | null
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          twilio_phone_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_credentials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_settings: {
         Row: {
           category: string
@@ -60,11 +110,9 @@ export type Database = {
           accent_color: string | null
           address: string | null
           billing_email: string | null
-          bland_api_key: string | null
           city: string | null
           created_at: string | null
           default_language: string | null
-          doorloop_api_key: string | null
           id: string
           is_active: boolean | null
           logo_url: string | null
@@ -72,9 +120,7 @@ export type Database = {
           max_properties: number | null
           max_users: number | null
           name: string
-          openai_api_key: string | null
           owner_email: string
-          persona_api_key: string | null
           phone: string | null
           plan: string
           primary_color: string | null
@@ -84,9 +130,6 @@ export type Database = {
           subscription_status: string
           timezone: string | null
           trial_ends_at: string | null
-          twilio_account_sid: string | null
-          twilio_auth_token: string | null
-          twilio_phone_number: string | null
           updated_at: string | null
           zip_code: string | null
         }
@@ -94,11 +137,9 @@ export type Database = {
           accent_color?: string | null
           address?: string | null
           billing_email?: string | null
-          bland_api_key?: string | null
           city?: string | null
           created_at?: string | null
           default_language?: string | null
-          doorloop_api_key?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
@@ -106,9 +147,7 @@ export type Database = {
           max_properties?: number | null
           max_users?: number | null
           name: string
-          openai_api_key?: string | null
           owner_email: string
-          persona_api_key?: string | null
           phone?: string | null
           plan?: string
           primary_color?: string | null
@@ -118,9 +157,6 @@ export type Database = {
           subscription_status?: string
           timezone?: string | null
           trial_ends_at?: string | null
-          twilio_account_sid?: string | null
-          twilio_auth_token?: string | null
-          twilio_phone_number?: string | null
           updated_at?: string | null
           zip_code?: string | null
         }
@@ -128,11 +164,9 @@ export type Database = {
           accent_color?: string | null
           address?: string | null
           billing_email?: string | null
-          bland_api_key?: string | null
           city?: string | null
           created_at?: string | null
           default_language?: string | null
-          doorloop_api_key?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
@@ -140,9 +174,7 @@ export type Database = {
           max_properties?: number | null
           max_users?: number | null
           name?: string
-          openai_api_key?: string | null
           owner_email?: string
-          persona_api_key?: string | null
           phone?: string | null
           plan?: string
           primary_color?: string | null
@@ -152,9 +184,6 @@ export type Database = {
           subscription_status?: string
           timezone?: string | null
           trial_ends_at?: string | null
-          twilio_account_sid?: string | null
-          twilio_auth_token?: string | null
-          twilio_phone_number?: string | null
           updated_at?: string | null
           zip_code?: string | null
         }
