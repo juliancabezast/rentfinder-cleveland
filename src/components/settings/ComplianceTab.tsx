@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, AlertTriangle, Shield } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Save, AlertTriangle, Shield, ImageIcon } from 'lucide-react';
 import { useOrganizationSettings, DEFAULT_SETTINGS } from '@/hooks/useOrganizationSettings';
 import { toast } from '@/hooks/use-toast';
 
@@ -15,12 +16,14 @@ export const ComplianceTab: React.FC = () => {
   const [recordingDisclosure, setRecordingDisclosure] = useState('');
   const [autoPurgeDays, setAutoPurgeDays] = useState(180);
   const [tcpaConsentLanguage, setTcpaConsentLanguage] = useState('');
+  const [photoUploadRestricted, setPhotoUploadRestricted] = useState(false);
 
   useEffect(() => {
     if (!loading) {
       setRecordingDisclosure(getSetting('recording_disclosure_text', DEFAULT_SETTINGS.recording_disclosure_text));
       setAutoPurgeDays(getSetting('auto_purge_leads_days', DEFAULT_SETTINGS.auto_purge_leads_days));
       setTcpaConsentLanguage(getSetting('tcpa_consent_language', DEFAULT_SETTINGS.tcpa_consent_language));
+      setPhotoUploadRestricted(getSetting('photo_upload_restricted', false));
     }
   }, [loading, getSetting]);
 
@@ -31,15 +34,20 @@ export const ComplianceTab: React.FC = () => {
         { key: 'recording_disclosure_text', value: recordingDisclosure, category: 'compliance' },
         { key: 'auto_purge_leads_days', value: autoPurgeDays, category: 'compliance' },
         { key: 'tcpa_consent_language', value: tcpaConsentLanguage, category: 'compliance' },
+        { key: 'photo_upload_restricted', value: photoUploadRestricted, category: 'security' },
       ]);
 
-      toast({ title: 'Settings saved', description: 'Compliance settings have been updated.' });
+      toast({ title: 'Settings saved', description: 'Compliance and security settings have been updated.' });
     } catch (error) {
       console.error('Error saving settings:', error);
       toast({ title: 'Error', description: 'Failed to save settings.', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
+  };
+
+  const handlePhotoRestrictionChange = (checked: boolean) => {
+    setPhotoUploadRestricted(checked);
   };
 
   if (loading) {
@@ -55,6 +63,46 @@ export const ComplianceTab: React.FC = () => {
           Consult with legal counsel before making changes.
         </div>
       </div>
+
+      {/* Photo Upload Permissions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            Photo Upload Permissions
+          </CardTitle>
+          <CardDescription>
+            Control who can upload and manage property photos
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="photoRestricted">Restrict to Admins Only</Label>
+              <p className="text-sm text-muted-foreground">
+                When enabled, only administrators can upload, update, or delete property photos.
+                When disabled, editors can also manage photos.
+              </p>
+            </div>
+            <Switch
+              id="photoRestricted"
+              checked={photoUploadRestricted}
+              onCheckedChange={handlePhotoRestrictionChange}
+            />
+          </div>
+          
+          <div className="rounded-lg bg-muted p-4 text-sm">
+            <p className="font-medium mb-2">Current permissions:</p>
+            <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+              <li>Super Admin: Always allowed</li>
+              <li>Admin: Always allowed</li>
+              <li>Editor: {photoUploadRestricted ? <span className="text-destructive">Not allowed</span> : <span className="text-green-600">Allowed</span>}</li>
+              <li>Viewer: Not allowed</li>
+              <li>Leasing Agent: Not allowed</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
