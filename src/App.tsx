@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Login from "./pages/auth/Login";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import LandingPage from "./pages/LandingPage";
 
 // Protected pages
 import Dashboard from "./pages/dashboard";
@@ -54,8 +55,8 @@ const App = () => (
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
 
-            {/* Redirect root to dashboard */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            {/* Landing page - public homepage */}
+            <Route path="/" element={<LandingPage />} />
 
             {/* Protected routes with MainLayout */}
             <Route
