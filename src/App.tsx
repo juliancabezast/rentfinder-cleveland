@@ -23,7 +23,7 @@ import Reports from "./pages/reports/Reports";
 import InsightGenerator from "./pages/insights/InsightGenerator";
 import UsersList from "./pages/users/UsersList";
 import Settings from "./pages/settings/Settings";
-import SystemLogs from "./pages/logs/SystemLogs";
+import SystemLogs from "./pages/SystemLogs";
 import CostDashboard from "./pages/costs/CostDashboard";
 import NotFound from "./pages/NotFound";
 
