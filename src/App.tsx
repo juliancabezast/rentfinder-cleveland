@@ -28,6 +28,10 @@ import SystemLogs from "./pages/SystemLogs";
 import CostDashboard from "./pages/costs/CostDashboard";
 import NotFound from "./pages/NotFound";
 
+// Public pages (no auth required)
+import PublicProperties from "./pages/public/PublicProperties";
+import PublicPropertyDetail from "./pages/public/PublicPropertyDetail";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -38,6 +42,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public property listings (no auth required) */}
+            <Route path="/p/properties" element={<PublicProperties />} />
+            <Route path="/p/properties/:id" element={<PublicPropertyDetail />} />
+
             {/* Public auth routes */}
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
