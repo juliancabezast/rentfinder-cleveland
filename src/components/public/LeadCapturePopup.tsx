@@ -92,42 +92,35 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
 
     setLoading(true);
     try {
-      const now = new Date().toISOString();
       const cleanPhone = formatPhoneForStorage(formData.phone);
 
-      // Create the lead
-      const { data: leadData, error: leadError } = await supabase
-        .from("leads")
-        .insert({
-          organization_id: organizationId,
-          full_name: formData.name || null,
-          phone: cleanPhone,
-          source: "website",
-          source_detail: propertyAddress || "Public listing page",
-          interested_property_id: propertyId || null,
-          call_consent: true,
-          call_consent_at: now,
-          sms_consent: true,
-          sms_consent_at: now,
-          status: "new",
-          lead_score: 50,
-        })
-        .select("id")
-        .single();
+      // Call Edge Function to capture lead with IP address for TCPA compliance
+      const response = await fetch(
+        "https://glzzzthgotfwoiaranmp.supabase.co/functions/v1/capture-lead",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsenp6dGhnb3Rmd29pYXJhbm1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NjM5NTksImV4cCI6MjA4NTMzOTk1OX0.zis7q1VXP1IKbL8Zc9B5oe9MPcSyVJbXVCNDYE7d690`,
+          },
+          body: JSON.stringify({
+            organization_id: organizationId,
+            full_name: formData.name || null,
+            phone: cleanPhone,
+            source: source,
+            source_detail: propertyAddress || "Public listing page",
+            interested_property_id: propertyId || null,
+            consent_text: CONSENT_TEXT,
+            user_agent: navigator.userAgent,
+          }),
+        }
+      );
 
-      if (leadError) throw leadError;
+      const result = await response.json();
 
-      // Log consent (TCPA compliance) - single entry for both call and SMS
-      await supabase.from("consent_log").insert({
-        organization_id: organizationId,
-        lead_id: leadData.id,
-        consent_type: "automated_calls",
-        granted: true,
-        method: "web_form",
-        evidence_text: CONSENT_TEXT,
-        ip_address: null, // Would need edge function to capture server-side
-        user_agent: navigator.userAgent,
-      });
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to submit");
+      }
 
       // Mark popup as shown in localStorage (persist across sessions)
       localStorage.setItem("leadCaptureSubmitted", "true");
