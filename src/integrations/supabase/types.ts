@@ -70,6 +70,249 @@ export type Database = {
           },
         ]
       }
+      lead_score_history: {
+        Row: {
+          change_amount: number
+          changed_by_agent: string | null
+          changed_by_user_id: string | null
+          created_at: string | null
+          id: string
+          lead_id: string
+          new_score: number
+          organization_id: string
+          previous_score: number
+          reason_code: string
+          reason_text: string
+          related_call_id: string | null
+          related_showing_id: string | null
+          triggered_by: string
+        }
+        Insert: {
+          change_amount: number
+          changed_by_agent?: string | null
+          changed_by_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          new_score: number
+          organization_id: string
+          previous_score: number
+          reason_code: string
+          reason_text: string
+          related_call_id?: string | null
+          related_showing_id?: string | null
+          triggered_by: string
+        }
+        Update: {
+          change_amount?: number
+          changed_by_agent?: string | null
+          changed_by_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          new_score?: number
+          organization_id?: string
+          previous_score?: number
+          reason_code?: string
+          reason_text?: string
+          related_call_id?: string | null
+          related_showing_id?: string | null
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_score_history_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_score_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_score_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          assigned_leasing_agent_id: string | null
+          budget_max: number | null
+          budget_min: number | null
+          call_consent: boolean | null
+          call_consent_at: string | null
+          contact_preference: string | null
+          created_at: string | null
+          do_not_contact: boolean | null
+          doorloop_prospect_id: string | null
+          email: string | null
+          first_name: string | null
+          full_name: string | null
+          has_voucher: boolean | null
+          hemlane_lead_id: string | null
+          housing_authority: string | null
+          human_control_reason: string | null
+          human_controlled_at: string | null
+          human_controlled_by: string | null
+          id: string
+          identity_verified: boolean | null
+          interested_property_id: string | null
+          interested_zip_codes: string[] | null
+          is_human_controlled: boolean | null
+          is_priority: boolean | null
+          last_contact_at: string | null
+          last_name: string | null
+          lead_score: number | null
+          lost_reason: string | null
+          move_in_date: string | null
+          next_follow_up_at: string | null
+          organization_id: string
+          persona_verification_id: string | null
+          phone: string
+          phone_verified: boolean | null
+          preferred_language: string | null
+          priority_reason: string | null
+          sms_consent: boolean | null
+          sms_consent_at: string | null
+          source: string
+          source_detail: string | null
+          status: string
+          updated_at: string | null
+          voucher_amount: number | null
+          voucher_status: string | null
+        }
+        Insert: {
+          assigned_leasing_agent_id?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          call_consent?: boolean | null
+          call_consent_at?: string | null
+          contact_preference?: string | null
+          created_at?: string | null
+          do_not_contact?: boolean | null
+          doorloop_prospect_id?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          has_voucher?: boolean | null
+          hemlane_lead_id?: string | null
+          housing_authority?: string | null
+          human_control_reason?: string | null
+          human_controlled_at?: string | null
+          human_controlled_by?: string | null
+          id?: string
+          identity_verified?: boolean | null
+          interested_property_id?: string | null
+          interested_zip_codes?: string[] | null
+          is_human_controlled?: boolean | null
+          is_priority?: boolean | null
+          last_contact_at?: string | null
+          last_name?: string | null
+          lead_score?: number | null
+          lost_reason?: string | null
+          move_in_date?: string | null
+          next_follow_up_at?: string | null
+          organization_id: string
+          persona_verification_id?: string | null
+          phone: string
+          phone_verified?: boolean | null
+          preferred_language?: string | null
+          priority_reason?: string | null
+          sms_consent?: boolean | null
+          sms_consent_at?: string | null
+          source: string
+          source_detail?: string | null
+          status?: string
+          updated_at?: string | null
+          voucher_amount?: number | null
+          voucher_status?: string | null
+        }
+        Update: {
+          assigned_leasing_agent_id?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          call_consent?: boolean | null
+          call_consent_at?: string | null
+          contact_preference?: string | null
+          created_at?: string | null
+          do_not_contact?: boolean | null
+          doorloop_prospect_id?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          has_voucher?: boolean | null
+          hemlane_lead_id?: string | null
+          housing_authority?: string | null
+          human_control_reason?: string | null
+          human_controlled_at?: string | null
+          human_controlled_by?: string | null
+          id?: string
+          identity_verified?: boolean | null
+          interested_property_id?: string | null
+          interested_zip_codes?: string[] | null
+          is_human_controlled?: boolean | null
+          is_priority?: boolean | null
+          last_contact_at?: string | null
+          last_name?: string | null
+          lead_score?: number | null
+          lost_reason?: string | null
+          move_in_date?: string | null
+          next_follow_up_at?: string | null
+          organization_id?: string
+          persona_verification_id?: string | null
+          phone?: string
+          phone_verified?: boolean | null
+          preferred_language?: string | null
+          priority_reason?: string | null
+          sms_consent?: boolean | null
+          sms_consent_at?: string | null
+          source?: string
+          source_detail?: string | null
+          status?: string
+          updated_at?: string | null
+          voucher_amount?: number | null
+          voucher_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_assigned_leasing_agent_id_fkey"
+            columns: ["assigned_leasing_agent_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_human_controlled_by_fkey"
+            columns: ["human_controlled_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_interested_property_id_fkey"
+            columns: ["interested_property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_credentials: {
         Row: {
           bland_api_key: string | null
@@ -479,6 +722,7 @@ export type Database = {
     }
     Functions: {
       check_coming_soon_expiring: { Args: never; Returns: number }
+      get_user_id: { Args: { _auth_user_id: string }; Returns: string }
       get_user_organization_id: {
         Args: { _auth_user_id: string }
         Returns: string
@@ -495,6 +739,20 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _auth_user_id: string }; Returns: boolean }
+      log_score_change: {
+        Args: {
+          _change_amount: number
+          _changed_by_agent?: string
+          _changed_by_user_id?: string
+          _lead_id: string
+          _reason_code: string
+          _reason_text: string
+          _related_call_id?: string
+          _related_showing_id?: string
+          _triggered_by: string
+        }
+        Returns: number
+      }
       user_has_property_access: {
         Args: { _auth_user_id: string; _property_id: string }
         Returns: boolean
