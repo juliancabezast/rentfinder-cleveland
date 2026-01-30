@@ -19,11 +19,14 @@ import {
 import {
   Table,
   TableBody,
+  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertTriangle,
   AlertCircle,
@@ -32,12 +35,16 @@ import {
   Download,
   RefreshCw,
   XCircle,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Check,
+  ExternalLink,
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogEntry } from "@/components/logs/LogEntry";
-import { SERVICE_CONFIG, LEVEL_CONFIG, type LogLevel } from "@/lib/systemLogger";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 type SystemLog = Tables<"system_logs">;
@@ -69,6 +76,224 @@ const RESOLUTION_STATUSES = [
   { value: "resolved", label: "Resolved" },
 ];
 
+const levelColors: Record<string, string> = {
+  info: "bg-muted text-muted-foreground",
+  warning: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  error: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  critical: "bg-destructive text-destructive-foreground",
+};
+
+const serviceIcons: Record<string, string> = {
+  twilio: "📞",
+  bland_ai: "🤖",
+  openai: "🧠",
+  persona: "🪪",
+  doorloop: "🚪",
+  system: "⚙️",
+  authentication: "🔐",
+  lead: "👤",
+  showing: "🏠",
+};
+
+interface LogEntryProps {
+  log: SystemLog;
+  onResolve: () => void;
+}
+
+const LogEntry: React.FC<LogEntryProps> = ({ log, onResolve }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState("");
+  const [copied, setCopied] = useState(false);
+  const { userRecord } = useAuth();
+  const { toast } = useToast();
+
+  const handleCopyDetails = async () => {
+    const text = JSON.stringify(log.details, null, 2);
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleResolve = async () => {
+    if (!userRecord?.id) return;
+
+    setIsResolving(true);
+    try {
+      const { error } = await supabase
+        .from("system_logs")
+        .update({
+          is_resolved: true,
+          resolved_at: new Date().toISOString(),
+          resolved_by: userRecord.id,
+          resolution_notes: resolutionNotes || null,
+        })
+        .eq("id", log.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Log resolved",
+        description: "The log entry has been marked as resolved.",
+      });
+
+      onResolve();
+    } catch (error) {
+      console.error("Error resolving log:", error);
+      toast({
+        title: "Error",
+        description: "Failed to resolve log entry.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  const details = log.details as Record<string, unknown> | null;
+
+  return (
+    <>
+      <TableRow
+        className="cursor-pointer hover:bg-muted/50"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <TableCell>
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </TableCell>
+        <TableCell className="font-mono text-xs">
+          {log.created_at ? format(new Date(log.created_at), "MMM d, HH:mm:ss") : "-"}
+        </TableCell>
+        <TableCell>
+          <Badge className={levelColors[log.level] || "bg-muted"}>
+            {log.level.toUpperCase()}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          <span className="flex items-center gap-1">
+            <span>{serviceIcons[log.category] || "📋"}</span>
+            <span className="capitalize text-xs">{log.category.replace("_", " ")}</span>
+          </span>
+        </TableCell>
+        <TableCell className="font-medium text-xs">{log.event_type}</TableCell>
+        <TableCell className="max-w-[300px] truncate text-sm">{log.message}</TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            {log.related_lead_id && (
+              <Link
+                to={`/leads/${log.related_lead_id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-primary hover:underline text-xs"
+              >
+                Lead <ExternalLink className="inline h-3 w-3" />
+              </Link>
+            )}
+            {log.related_call_id && (
+              <Link
+                to={`/calls?id=${log.related_call_id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-primary hover:underline text-xs"
+              >
+                Call <ExternalLink className="inline h-3 w-3" />
+              </Link>
+            )}
+            {log.related_showing_id && (
+              <Link
+                to={`/showings?id=${log.related_showing_id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-primary hover:underline text-xs"
+              >
+                Showing <ExternalLink className="inline h-3 w-3" />
+              </Link>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          {log.is_resolved ? (
+            <span className="text-xs text-muted-foreground">Resolved</span>
+          ) : (
+            <Badge variant="outline" className="text-orange-600 border-orange-600">
+              Unresolved
+            </Badge>
+          )}
+        </TableCell>
+      </TableRow>
+
+      {isExpanded && (
+        <TableRow>
+          <TableCell colSpan={8} className="bg-muted/30 p-4">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium mb-1">Full Message</h4>
+                <p className="text-sm text-muted-foreground">{log.message}</p>
+              </div>
+
+              {details && Object.keys(details).length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="text-sm font-medium">Details</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyDetails();
+                      }}
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <pre className="bg-background p-3 rounded-md text-xs overflow-auto max-h-48">
+                    {JSON.stringify(details, null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {log.is_resolved && log.resolution_notes && (
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Resolution Notes</h4>
+                  <p className="text-sm text-muted-foreground">{log.resolution_notes}</p>
+                </div>
+              )}
+
+              {!log.is_resolved && (
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium mb-2">Mark as Resolved</h4>
+                  <Textarea
+                    placeholder="Add resolution notes (optional)..."
+                    value={resolutionNotes}
+                    onChange={(e) => setResolutionNotes(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="mb-2"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleResolve();
+                    }}
+                    disabled={isResolving}
+                  >
+                    {isResolving ? "Resolving..." : "Mark as Resolved"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+};
+
 const SystemLogs: React.FC = () => {
   const { toast } = useToast();
   const [logs, setLogs] = useState<SystemLog[]>([]);
@@ -80,7 +305,7 @@ const SystemLogs: React.FC = () => {
   const [serviceFilter, setServiceFilter] = useState("all");
   const [resolutionFilter, setResolutionFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [dateRange, setDateRange] = useState("7"); // days
+  const [dateRange, setDateRange] = useState("7");
 
   // Stats
   const [stats, setStats] = useState({
@@ -110,10 +335,10 @@ const SystemLogs: React.FC = () => {
       if (serviceFilter !== "all") {
         query = query.eq("category", serviceFilter);
       }
-      if (resolutionFilter === "unresolved") {
-        query = query.eq("is_resolved", false);
-      } else if (resolutionFilter === "resolved") {
+      if (resolutionFilter === "resolved") {
         query = query.eq("is_resolved", true);
+      } else if (resolutionFilter === "unresolved") {
+        query = query.eq("is_resolved", false);
       }
       if (searchQuery) {
         query = query.ilike("message", `%${searchQuery}%`);
@@ -133,16 +358,18 @@ const SystemLogs: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [levelFilter, serviceFilter, resolutionFilter, searchQuery, dateRange, toast]);
+  }, [dateRange, levelFilter, serviceFilter, resolutionFilter, searchQuery, toast]);
 
   const fetchStats = useCallback(async () => {
     try {
-      const last24h = subDays(new Date(), 1).toISOString();
+      const startDate = startOfDay(subDays(new Date(), 1));
+      const endDate = endOfDay(new Date());
 
       const { data, error } = await supabase
         .from("system_logs")
         .select("level")
-        .gte("created_at", last24h);
+        .gte("created_at", startDate.toISOString())
+        .lte("created_at", endDate.toISOString());
 
       if (error) throw error;
 
@@ -152,6 +379,7 @@ const SystemLogs: React.FC = () => {
           counts[log.level as keyof typeof counts]++;
         }
       });
+
       setStats(counts);
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -163,7 +391,6 @@ const SystemLogs: React.FC = () => {
     fetchStats();
   }, [fetchLogs, fetchStats]);
 
-  // Real-time subscription
   useEffect(() => {
     const channel = supabase
       .channel("system-logs-realtime")
@@ -176,10 +403,6 @@ const SystemLogs: React.FC = () => {
         },
         (payload) => {
           const newLog = payload.new as SystemLog;
-          setLogs((prev) => [newLog, ...prev].slice(0, 500));
-          fetchStats();
-
-          // Toast for critical errors
           if (newLog.level === "critical") {
             toast({
               title: "Critical Error",
@@ -187,17 +410,8 @@ const SystemLogs: React.FC = () => {
               variant: "destructive",
             });
           }
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "system_logs",
-        },
-        () => {
           fetchLogs();
+          fetchStats();
         }
       )
       .subscribe();
@@ -230,9 +444,7 @@ const SystemLogs: React.FC = () => {
         log.resolution_notes ? `"${log.resolution_notes.replace(/"/g, '""')}"` : "",
       ]);
 
-      const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join(
-        "\n"
-      );
+      const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
 
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
@@ -289,8 +501,8 @@ const SystemLogs: React.FC = () => {
         </Card>
         <Card>
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="rounded-full bg-warning/20 p-3">
-              <AlertTriangle className="h-5 w-5 text-warning" />
+            <div className="rounded-full bg-yellow-500/20 p-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.warning}</p>
@@ -394,9 +606,7 @@ const SystemLogs: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Log Entries</CardTitle>
-          <CardDescription>
-            Showing {logs.length} log entries
-          </CardDescription>
+          <CardDescription>Showing {logs.length} log entries</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -411,7 +621,7 @@ const SystemLogs: React.FC = () => {
               <p className="text-muted-foreground">No log entries found</p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-hidden">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
