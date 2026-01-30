@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { PriorityLeadCard, PriorityLeadCardSkeleton } from "@/components/dashboard/PriorityLeadCard";
 import { ShowingCard, ShowingCardSkeleton } from "@/components/dashboard/ShowingCard";
 import { ActivityFeed, ActivityFeedSkeleton } from "@/components/dashboard/ActivityFeed";
@@ -299,47 +300,51 @@ export const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {userRecord?.full_name?.split(" ")[0] || "Admin"}
-        </h1>
-        <p className="text-muted-foreground">
-          Here's what's happening with your properties today.
-        </p>
-      </div>
+      {/* Welcome Header - Modern greeting */}
+      <DashboardGreeting />
 
-      {/* Stats Grid */}
+      {/* Stats Grid - With stagger animations */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Properties"
-          value={stats?.totalProperties || 0}
-          subtitle={`${stats?.propertiesByStatus?.available || 0} available`}
-          icon={Building}
-          loading={loading}
-        />
-        <StatCard
-          title="Active Leads"
-          value={stats?.activeLeads || 0}
-          subtitle={`+${stats?.newLeadsThisWeek || 0} this week`}
-          icon={Users}
-          trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
-          loading={loading}
-        />
-        <StatCard
-          title="Showings Today"
-          value={stats?.showingsToday || 0}
-          subtitle={format(new Date(), "EEEE, MMM d")}
-          icon={Calendar}
-          loading={loading}
-        />
-        <StatCard
-          title="Conversion Rate"
-          value={`${stats?.conversionRate || 0}%`}
-          subtitle="This month"
-          icon={TrendingUp}
-          loading={loading}
-        />
+        <div className="animate-fade-up stagger-1">
+          <StatCard
+            title="Total Properties"
+            value={stats?.totalProperties || 0}
+            subtitle={`${stats?.propertiesByStatus?.available || 0} available`}
+            icon={Building}
+            impact={stats?.propertiesByStatus?.available && stats.propertiesByStatus.available > 5 ? "high" : "medium"}
+            loading={loading}
+          />
+        </div>
+        <div className="animate-fade-up stagger-2">
+          <StatCard
+            title="Active Leads"
+            value={stats?.activeLeads || 0}
+            subtitle="this week"
+            icon={Users}
+            trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
+            impact={stats?.activeLeads && stats.activeLeads > 20 ? "high" : stats?.activeLeads && stats.activeLeads > 10 ? "medium" : "low"}
+            loading={loading}
+          />
+        </div>
+        <div className="animate-fade-up stagger-3">
+          <StatCard
+            title="Showings Today"
+            value={stats?.showingsToday || 0}
+            subtitle={format(new Date(), "EEEE, MMM d")}
+            icon={Calendar}
+            loading={loading}
+          />
+        </div>
+        <div className="animate-fade-up stagger-4">
+          <StatCard
+            title="Conversion Rate"
+            value={`${stats?.conversionRate || 0}%`}
+            subtitle="This month"
+            icon={TrendingUp}
+            impact={stats?.conversionRate && stats.conversionRate >= 15 ? "high" : stats?.conversionRate && stats.conversionRate >= 8 ? "medium" : "low"}
+            loading={loading}
+          />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
