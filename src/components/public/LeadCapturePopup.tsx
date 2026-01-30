@@ -173,55 +173,21 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="rounded-full bg-primary/10 p-2">
-              <Home className="h-5 w-5 text-primary" />
+        <DialogHeader className="text-center">
+          <div className="flex justify-center mb-3">
+            <div className="rounded-full bg-success/20 p-3">
+              <Phone className="h-6 w-6 text-success" />
             </div>
           </div>
-          <DialogTitle className="text-xl">
-            {propertyAddress
-              ? "Interested in this property?"
-              : "Find Your Perfect Home"}
+          <DialogTitle className="text-2xl">
+            We have an agent available right now!
           </DialogTitle>
-          <DialogDescription>
-            {propertyAddress ? (
-              <>Let us know and we'll reach out to schedule a showing.</>
-            ) : (
-              <>
-                Enter your info and we'll help you find Section 8 friendly
-                rentals that fit your needs.
-              </>
-            )}
+          <DialogDescription className="text-base">
+            Want us to call you and help you find a home today?
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                placeholder="John"
-                value={formData.firstName}
-                onChange={(e) =>
-                  setFormData((f) => ({ ...f, firstName: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                placeholder="Doe"
-                value={formData.lastName}
-                onChange={(e) =>
-                  setFormData((f) => ({ ...f, lastName: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="phone">
               Phone Number <span className="text-destructive">*</span>
@@ -232,7 +198,7 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
                 id="phone"
                 type="tel"
                 placeholder="(216) 555-1234"
-                className="pl-10"
+                className="pl-10 h-12 text-lg"
                 required
                 value={formData.phone}
                 onChange={(e) =>
@@ -243,69 +209,55 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email (Optional)</Label>
+            <Label htmlFor="firstName">Name (Optional)</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="john@example.com"
-              value={formData.email}
+              id="firstName"
+              placeholder="Your name"
+              value={formData.firstName}
               onChange={(e) =>
-                setFormData((f) => ({ ...f, email: e.target.value }))
+                setFormData((f) => ({ ...f, firstName: e.target.value }))
               }
             />
           </div>
 
-          {/* TCPA Consent Checkboxes */}
-          <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-              Communication Preferences
-            </p>
-
-            <div className="flex items-start space-x-3">
-              <Checkbox
-                id="smsConsent"
-                checked={formData.smsConsent}
-                onCheckedChange={(c) =>
-                  setFormData((f) => ({ ...f, smsConsent: c === true }))
-                }
-              />
-              <Label htmlFor="smsConsent" className="text-sm font-normal leading-snug">
-                I consent to receive text messages about this property and other
-                rental opportunities. Message & data rates may apply. Reply STOP
-                to unsubscribe.
-              </Label>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <Checkbox
-                id="callConsent"
-                checked={formData.callConsent}
-                onCheckedChange={(c) =>
-                  setFormData((f) => ({ ...f, callConsent: c === true }))
-                }
-              />
-              <Label htmlFor="callConsent" className="text-sm font-normal leading-snug">
-                I consent to receive automated calls about this property and
-                other rental opportunities.
-              </Label>
-            </div>
-
-            {!formData.smsConsent && !formData.callConsent && (
-              <p className="text-xs text-destructive">
-                Please select at least one contact method to continue.
-              </p>
-            )}
+          {/* TCPA Consent - Single Combined Checkbox */}
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="consent"
+              checked={formData.smsConsent && formData.callConsent}
+              onCheckedChange={(c) =>
+                setFormData((f) => ({
+                  ...f,
+                  smsConsent: c === true,
+                  callConsent: c === true,
+                }))
+              }
+              className="mt-1"
+            />
+            <Label htmlFor="consent" className="text-sm font-normal leading-snug text-muted-foreground">
+              I agree to receive calls and texts about rental properties.
+              By checking this box, I consent to automated calls and
+              text messages. Message and data rates may apply.{" "}
+              <a href="#" className="text-primary underline hover:no-underline">
+                View our Privacy Policy
+              </a>.
+            </Label>
           </div>
 
-          <Button type="submit" className="w-full" disabled={!isValid || loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Get in Touch
-          </Button>
+          {!(formData.smsConsent && formData.callConsent) && (
+            <p className="text-xs text-destructive">
+              Please agree to receive communications to continue.
+            </p>
+          )}
 
-          <p className="text-xs text-center text-muted-foreground">
-            We respect your privacy. Your information will only be used to
-            assist with your housing search.
-          </p>
+          <Button 
+            type="submit" 
+            className="w-full h-12 text-lg bg-success hover:bg-success/90 text-success-foreground" 
+            disabled={!isValid || loading}
+          >
+            {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+            Call Me Now!
+          </Button>
         </form>
       </DialogContent>
     </Dialog>
