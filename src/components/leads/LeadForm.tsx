@@ -106,6 +106,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
 
     setLoading(true);
     try {
+      // Base lead data
       const leadData = {
         organization_id: userRecord.organization_id,
         first_name: formData.first_name || null,
@@ -133,6 +134,10 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         sms_consent_at: formData.sms_consent ? new Date().toISOString() : null,
         call_consent: formData.call_consent,
         call_consent_at: formData.call_consent ? new Date().toISOString() : null,
+        // If creating a new lead and user is a leasing_agent, auto-assign to themselves
+        assigned_leasing_agent_id: !lead && userRecord.role === "leasing_agent" 
+          ? userRecord.id 
+          : (lead?.assigned_leasing_agent_id ?? null),
       };
 
       if (lead) {
