@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Phone, Home, CheckCircle2 } from "lucide-react";
+import { Loader2, Phone, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,6 +23,25 @@ interface LeadCapturePopupProps {
   source?: string;
 }
 
+// US phone validation regex
+const US_PHONE_REGEX = /^(\+1)?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
+
+// Format phone to digits only for storage
+const formatPhoneForStorage = (phone: string): string => {
+  return phone.replace(/\D/g, "").replace(/^1/, ""); // Remove non-digits and leading 1
+};
+
+// Validate US phone number
+const isValidUSPhone = (phone: string): boolean => {
+  const digits = phone.replace(/\D/g, "");
+  // Must be 10 digits (or 11 if starts with 1)
+  return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
+};
+
+// TCPA consent text - exact text shown to user (used as evidence)
+const CONSENT_TEXT =
+  "I agree to receive calls and texts about rental properties. By checking this box, I consent to automated calls and text messages. Message and data rates may apply.";
+
 export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
   open,
   onOpenChange,
@@ -34,48 +53,62 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
     phone: "",
-    email: "",
-    smsConsent: false,
-    callConsent: false,
+    consent: false,
   });
 
-  // TCPA compliance - consent checkbox must be checked
+  // Validate phone on change
+  const handlePhoneChange = (value: string) => {
+    setFormData((f) => ({ ...f, phone: value }));
+    if (value && !isValidUSPhone(value)) {
+      setPhoneError("Please enter a valid US phone number");
+    } else {
+      setPhoneError(null);
+    }
+  };
+
+  // TCPA compliance - consent checkbox MUST be checked
   const isValid =
-    formData.phone.length >= 10 &&
-    (formData.smsConsent || formData.callConsent);
+    isValidUSPhone(formData.phone) && formData.consent;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Double-check consent is granted (legally required)
+    if (!formData.consent) {
+      toast({
+        title: "Consent Required",
+        description: "You must agree to receive communications to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!isValid) return;
 
     setLoading(true);
     try {
       const now = new Date().toISOString();
+      const cleanPhone = formatPhoneForStorage(formData.phone);
 
       // Create the lead
       const { data: leadData, error: leadError } = await supabase
         .from("leads")
         .insert({
           organization_id: organizationId,
-          first_name: formData.firstName || null,
-          last_name: formData.lastName || null,
-          full_name:
-            [formData.firstName, formData.lastName].filter(Boolean).join(" ") ||
-            null,
-          phone: formData.phone,
-          email: formData.email || null,
-          source: source,
+          full_name: formData.name || null,
+          phone: cleanPhone,
+          source: "website",
           source_detail: propertyAddress || "Public listing page",
           interested_property_id: propertyId || null,
-          sms_consent: formData.smsConsent,
-          sms_consent_at: formData.smsConsent ? now : null,
-          call_consent: formData.callConsent,
-          call_consent_at: formData.callConsent ? now : null,
+          call_consent: true,
+          call_consent_at: now,
+          sms_consent: true,
+          sms_consent_at: now,
           status: "new",
           lead_score: 50,
         })
@@ -84,40 +117,20 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
 
       if (leadError) throw leadError;
 
-      // Log consent (TCPA compliance)
-      const consentRecords = [];
-      
-      if (formData.smsConsent) {
-        consentRecords.push({
-          organization_id: organizationId,
-          lead_id: leadData.id,
-          consent_type: "sms_marketing",
-          granted: true,
-          method: "web_form",
-          evidence_text:
-            "I consent to receive text messages about this property and other rental opportunities. Message & data rates may apply. Reply STOP to unsubscribe.",
-          ip_address: null, // Would need edge function to capture
-          user_agent: navigator.userAgent,
-        });
-      }
+      // Log consent (TCPA compliance) - single entry for both call and SMS
+      await supabase.from("consent_log").insert({
+        organization_id: organizationId,
+        lead_id: leadData.id,
+        consent_type: "automated_calls",
+        granted: true,
+        method: "web_form",
+        evidence_text: CONSENT_TEXT,
+        ip_address: null, // Would need edge function to capture server-side
+        user_agent: navigator.userAgent,
+      });
 
-      if (formData.callConsent) {
-        consentRecords.push({
-          organization_id: organizationId,
-          lead_id: leadData.id,
-          consent_type: "automated_calls",
-          granted: true,
-          method: "web_form",
-          evidence_text:
-            "I consent to receive automated calls about this property and other rental opportunities.",
-          ip_address: null,
-          user_agent: navigator.userAgent,
-        });
-      }
-
-      if (consentRecords.length > 0) {
-        await supabase.from("consent_log").insert(consentRecords);
-      }
+      // Mark popup as shown in localStorage (persist across sessions)
+      localStorage.setItem("leadCaptureSubmitted", "true");
 
       setSubmitted(true);
     } catch (error) {
@@ -138,13 +151,11 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
     setTimeout(() => {
       setSubmitted(false);
       setFormData({
-        firstName: "",
-        lastName: "",
+        name: "",
         phone: "",
-        email: "",
-        smsConsent: false,
-        callConsent: false,
+        consent: false,
       });
+      setPhoneError(null);
     }, 300);
   };
 
@@ -156,10 +167,9 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
             <div className="rounded-full bg-success/20 p-4 mb-4">
               <CheckCircle2 className="h-10 w-10 text-success" />
             </div>
-            <DialogTitle className="text-xl mb-2">Thank You!</DialogTitle>
-            <DialogDescription className="text-base">
-              We've received your information and will be in touch soon to help
-              you find your perfect home.
+            <DialogTitle className="text-xl mb-2">Great!</DialogTitle>
+            <DialogDescription className="text-base text-foreground">
+              You'll receive a call in about 30 seconds.
             </DialogDescription>
             <Button className="mt-6" onClick={handleClose}>
               Continue Browsing
@@ -198,61 +208,68 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
                 id="phone"
                 type="tel"
                 placeholder="(216) 555-1234"
-                className="pl-10 h-12 text-lg"
+                className={`pl-10 h-12 text-lg ${phoneError ? "border-destructive" : ""}`}
                 required
                 value={formData.phone}
-                onChange={(e) =>
-                  setFormData((f) => ({ ...f, phone: e.target.value }))
-                }
+                onChange={(e) => handlePhoneChange(e.target.value)}
               />
             </div>
+            {phoneError && (
+              <p className="text-xs text-destructive">{phoneError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="firstName">Name (Optional)</Label>
+            <Label htmlFor="name">Name (Optional)</Label>
             <Input
-              id="firstName"
+              id="name"
               placeholder="Your name"
-              value={formData.firstName}
+              value={formData.name}
               onChange={(e) =>
-                setFormData((f) => ({ ...f, firstName: e.target.value }))
+                setFormData((f) => ({ ...f, name: e.target.value }))
               }
             />
           </div>
 
-          {/* TCPA Consent - Single Combined Checkbox */}
+          {/* TCPA Consent - REQUIRED checkbox */}
           <div className="flex items-start space-x-3">
             <Checkbox
               id="consent"
-              checked={formData.smsConsent && formData.callConsent}
+              checked={formData.consent}
               onCheckedChange={(c) =>
-                setFormData((f) => ({
-                  ...f,
-                  smsConsent: c === true,
-                  callConsent: c === true,
-                }))
+                setFormData((f) => ({ ...f, consent: c === true }))
               }
               className="mt-1"
+              required
             />
-            <Label htmlFor="consent" className="text-sm font-normal leading-snug text-muted-foreground">
-              I agree to receive calls and texts about rental properties.
-              By checking this box, I consent to automated calls and
-              text messages. Message and data rates may apply.{" "}
-              <a href="#" className="text-primary underline hover:no-underline">
-                View our Privacy Policy
-              </a>.
+            <Label
+              htmlFor="consent"
+              className="text-sm font-normal leading-snug text-muted-foreground"
+            >
+              I agree to receive calls and texts about rental properties. By
+              checking this box, I consent to automated calls and text messages.
+              Message and data rates may apply. View our{" "}
+              <a
+                href="/p/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline hover:no-underline"
+              >
+                Privacy Policy
+              </a>
+              .
             </Label>
           </div>
 
-          {!(formData.smsConsent && formData.callConsent) && (
+          {!formData.consent && (
             <p className="text-xs text-destructive">
-              Please agree to receive communications to continue.
+              You must agree to receive communications to continue.
             </p>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full h-12 text-lg bg-success hover:bg-success/90 text-success-foreground" 
+          <Button
+            type="submit"
+            className="w-full h-12 text-lg bg-success hover:bg-success/90 text-success-foreground"
             disabled={!isValid || loading}
           >
             {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
@@ -264,15 +281,17 @@ export const LeadCapturePopup: React.FC<LeadCapturePopupProps> = ({
   );
 };
 
-// Auto-popup hook
+// Auto-popup hook - respects localStorage for submitted users
 export const useLeadCapturePopup = (delaySeconds: number = 15) => {
   const [showPopup, setShowPopup] = useState(false);
   const [hasShown, setHasShown] = useState(false);
 
   useEffect(() => {
-    // Check if already shown in this session
-    const alreadyShown = sessionStorage.getItem("leadCaptureShown");
-    if (alreadyShown) {
+    // Check if user already submitted (localStorage) or shown this session
+    const alreadySubmitted = localStorage.getItem("leadCaptureSubmitted");
+    const alreadyShownSession = sessionStorage.getItem("leadCaptureShown");
+
+    if (alreadySubmitted || alreadyShownSession) {
       setHasShown(true);
       return;
     }
