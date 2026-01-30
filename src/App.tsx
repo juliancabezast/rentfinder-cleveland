@@ -15,6 +15,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 // Protected pages
 import Dashboard from "./pages/dashboard";
 import PropertiesList from "./pages/properties/PropertiesList";
+import PropertyDetail from "./pages/properties/PropertyDetail";
 import LeadsList from "./pages/leads/LeadsList";
 import ShowingsList from "./pages/showings/ShowingsList";
 import CallsList from "./pages/calls/CallsList";
@@ -57,11 +58,22 @@ const App = () => (
             />
 
             <Route
-              path="/properties/*"
+              path="/properties"
               element={
                 <ProtectedRoute>
                   <MainLayout>
                     <PropertiesList />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/properties/:id"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <PropertyDetail />
                   </MainLayout>
                 </ProtectedRoute>
               }
