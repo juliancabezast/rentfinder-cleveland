@@ -2,14 +2,17 @@ import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
-const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_LIMIT = 5;
+
+// Duration in ms: success=3000, error=manual (no auto-dismiss), info=5000
+const DEFAULT_DURATION = 5000;
 
 type ToasterToast = ToastProps & {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
+  duration?: number;
 };
 
 const actionTypes = {
@@ -52,8 +55,13 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
-const addToRemoveQueue = (toastId: string) => {
+const addToRemoveQueue = (toastId: string, duration: number = DEFAULT_DURATION) => {
   if (toastTimeouts.has(toastId)) {
+    return;
+  }
+
+  // Don't auto-dismiss if duration is 0 or Infinity (for errors that need manual dismiss)
+  if (duration === 0 || duration === Infinity) {
     return;
   }
 
@@ -63,7 +71,7 @@ const addToRemoveQueue = (toastId: string) => {
       type: "REMOVE_TOAST",
       toastId: toastId,
     });
-  }, TOAST_REMOVE_DELAY);
+  }, duration);
 
   toastTimeouts.set(toastId, timeout);
 };
@@ -85,13 +93,12 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action;
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
-        addToRemoveQueue(toastId);
+        const toast = state.toasts.find((t) => t.id === toastId);
+        addToRemoveQueue(toastId, toast?.duration);
       } else {
         state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id);
+          addToRemoveQueue(toast.id, toast.duration);
         });
       }
 
@@ -134,8 +141,19 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
-function toast({ ...props }: Toast) {
+function toast({ duration, variant, ...props }: Toast) {
   const id = genId();
+
+  // Determine duration based on variant
+  // success: 3s, error/destructive: no auto-dismiss, default: 5s
+  let autoDismissDuration = duration;
+  if (autoDismissDuration === undefined) {
+    if (variant === "destructive") {
+      autoDismissDuration = Infinity; // Errors require manual dismiss
+    } else {
+      autoDismissDuration = DEFAULT_DURATION;
+    }
+  }
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -149,6 +167,8 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
+      variant,
+      duration: autoDismissDuration,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss();
@@ -156,12 +176,27 @@ function toast({ ...props }: Toast) {
     },
   });
 
+  // Auto-dismiss based on duration
+  if (autoDismissDuration !== Infinity && autoDismissDuration > 0) {
+    addToRemoveQueue(id, autoDismissDuration);
+  }
+
   return {
     id: id,
     dismiss,
     update,
   };
 }
+
+// Convenience methods with proper durations
+toast.success = (props: Omit<Toast, "variant">) =>
+  toast({ ...props, duration: 3000 });
+
+toast.error = (props: Omit<Toast, "variant">) =>
+  toast({ ...props, variant: "destructive", duration: Infinity });
+
+toast.info = (props: Omit<Toast, "variant">) =>
+  toast({ ...props, duration: 5000 });
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);

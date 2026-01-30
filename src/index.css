@@ -135,6 +135,24 @@
   html {
     font-family: 'Montserrat', sans-serif;
     scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Safe area for mobile devices with notches */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  /* Ensure minimum touch target size */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Exception for inline and icon buttons */
+  .inline-button, button.h-auto, a.h-auto {
+    min-height: unset;
+    min-width: unset;
   }
 }
 
