@@ -1,18 +1,438 @@
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  Search,
+  Download,
+  RefreshCw,
+  XCircle,
+} from "lucide-react";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { LogEntry } from "@/components/logs/LogEntry";
+import { SERVICE_CONFIG, LEVEL_CONFIG, type LogLevel } from "@/lib/systemLogger";
+import type { Tables } from "@/integrations/supabase/types";
+
+type SystemLog = Tables<"system_logs">;
+
+const SERVICES = [
+  { value: "all", label: "All Services" },
+  { value: "twilio", label: "Twilio" },
+  { value: "bland_ai", label: "Bland.ai" },
+  { value: "openai", label: "OpenAI" },
+  { value: "persona", label: "Persona" },
+  { value: "doorloop", label: "Doorloop" },
+  { value: "lead", label: "Lead" },
+  { value: "showing", label: "Showing" },
+  { value: "authentication", label: "Authentication" },
+  { value: "system", label: "System" },
+];
+
+const LEVELS = [
+  { value: "all", label: "All Levels" },
+  { value: "info", label: "Info" },
+  { value: "warning", label: "Warning" },
+  { value: "error", label: "Error" },
+  { value: "critical", label: "Critical" },
+];
+
+const RESOLUTION_STATUSES = [
+  { value: "all", label: "All Status" },
+  { value: "unresolved", label: "Unresolved" },
+  { value: "resolved", label: "Resolved" },
+];
 
 const SystemLogs: React.FC = () => {
+  const { toast } = useToast();
+  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  // Filters
+  const [levelFilter, setLevelFilter] = useState("all");
+  const [serviceFilter, setServiceFilter] = useState("all");
+  const [resolutionFilter, setResolutionFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateRange, setDateRange] = useState("7"); // days
+
+  // Stats
+  const [stats, setStats] = useState({
+    info: 0,
+    warning: 0,
+    error: 0,
+    critical: 0,
+  });
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const startDate = startOfDay(subDays(new Date(), parseInt(dateRange)));
+      const endDate = endOfDay(new Date());
+
+      let query = supabase
+        .from("system_logs")
+        .select("*")
+        .gte("created_at", startDate.toISOString())
+        .lte("created_at", endDate.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      if (levelFilter !== "all") {
+        query = query.eq("level", levelFilter);
+      }
+      if (serviceFilter !== "all") {
+        query = query.eq("category", serviceFilter);
+      }
+      if (resolutionFilter === "unresolved") {
+        query = query.eq("is_resolved", false);
+      } else if (resolutionFilter === "resolved") {
+        query = query.eq("is_resolved", true);
+      }
+      if (searchQuery) {
+        query = query.ilike("message", `%${searchQuery}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setLogs(data || []);
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch system logs.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [levelFilter, serviceFilter, resolutionFilter, searchQuery, dateRange, toast]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const last24h = subDays(new Date(), 1).toISOString();
+
+      const { data, error } = await supabase
+        .from("system_logs")
+        .select("level")
+        .gte("created_at", last24h);
+
+      if (error) throw error;
+
+      const counts = { info: 0, warning: 0, error: 0, critical: 0 };
+      (data || []).forEach((log) => {
+        if (log.level in counts) {
+          counts[log.level as keyof typeof counts]++;
+        }
+      });
+      setStats(counts);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLogs();
+    fetchStats();
+  }, [fetchLogs, fetchStats]);
+
+  // Real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel("system-logs-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "system_logs",
+        },
+        (payload) => {
+          const newLog = payload.new as SystemLog;
+          setLogs((prev) => [newLog, ...prev].slice(0, 500));
+          fetchStats();
+
+          // Toast for critical errors
+          if (newLog.level === "critical") {
+            toast({
+              title: "Critical Error",
+              description: newLog.message,
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "system_logs",
+        },
+        () => {
+          fetchLogs();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchLogs, fetchStats, toast]);
+
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      const headers = [
+        "Timestamp",
+        "Level",
+        "Service",
+        "Event Type",
+        "Message",
+        "Status",
+        "Resolution Notes",
+      ];
+
+      const rows = logs.map((log) => [
+        format(new Date(log.created_at!), "yyyy-MM-dd HH:mm:ss"),
+        log.level,
+        log.category,
+        log.event_type,
+        `"${log.message.replace(/"/g, '""')}"`,
+        log.is_resolved ? "Resolved" : "Unresolved",
+        log.resolution_notes ? `"${log.resolution_notes.replace(/"/g, '""')}"` : "",
+      ]);
+
+      const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join(
+        "\n"
+      );
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `system-logs-${format(new Date(), "yyyy-MM-dd")}.csv`;
+      link.click();
+
+      toast({ title: "Export complete", description: `Exported ${logs.length} log entries.` });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export logs.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">System Logs</h1>
+          <p className="text-muted-foreground">
+            Monitor integration events and system errors
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchLogs} disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={handleExportCSV} disabled={exporting}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="flex items-center gap-4 pt-6">
+            <div className="rounded-full bg-muted p-3">
+              <Info className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.info}</p>
+              <p className="text-sm text-muted-foreground">Info (24h)</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 pt-6">
+            <div className="rounded-full bg-warning/20 p-3">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.warning}</p>
+              <p className="text-sm text-muted-foreground">Warnings (24h)</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 pt-6">
+            <div className="rounded-full bg-orange-500/20 p-3">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.error}</p>
+              <p className="text-sm text-muted-foreground">Errors (24h)</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className={stats.critical > 0 ? "border-destructive" : ""}>
+          <CardContent className="flex items-center gap-4 pt-6">
+            <div className="rounded-full bg-destructive/20 p-3">
+              <XCircle className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-destructive">{stats.critical}</p>
+              <p className="text-sm text-muted-foreground">Critical (24h)</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <Select value={levelFilter} onValueChange={setLevelFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Level" />
+              </SelectTrigger>
+              <SelectContent>
+                {LEVELS.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={serviceFilter} onValueChange={setServiceFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Service" />
+              </SelectTrigger>
+              <SelectContent>
+                {SERVICES.map((service) => (
+                  <SelectItem key={service.value} value={service.value}>
+                    {service.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={resolutionFilter} onValueChange={setResolutionFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {RESOLUTION_STATUSES.map((status) => (
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Date Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Last 24 Hours</SelectItem>
+                <SelectItem value="7">Last 7 Days</SelectItem>
+                <SelectItem value="30">Last 30 Days</SelectItem>
+                <SelectItem value="90">Last 90 Days</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search message..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Logs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>System Logs</CardTitle>
-          <CardDescription>Review system events and operational alerts.</CardDescription>
+          <CardTitle>Log Entries</CardTitle>
+          <CardDescription>
+            Showing {logs.length} log entries
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground py-8 text-center">
-            System logs viewer coming soon...
-          </p>
+          {loading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="text-center py-12">
+              <Info className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+              <p className="text-muted-foreground">No log entries found</p>
+            </div>
+          ) : (
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8"></TableHead>
+                    <TableHead className="w-32">Timestamp</TableHead>
+                    <TableHead className="w-24">Level</TableHead>
+                    <TableHead className="w-28">Service</TableHead>
+                    <TableHead className="w-32">Event</TableHead>
+                    <TableHead>Message</TableHead>
+                    <TableHead className="w-24">Related</TableHead>
+                    <TableHead className="w-28">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log) => (
+                    <LogEntry key={log.id} log={log} onResolve={fetchLogs} />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
