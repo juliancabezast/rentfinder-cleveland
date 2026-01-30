@@ -92,11 +92,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
               key={item.href}
               to={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                 collapsed && 'justify-center px-2'
               )}
-              activeClassName="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+              activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
             >
               <item.icon className="h-5 w-5 shrink-0" />
               {!collapsed && <span>{item.title}</span>}

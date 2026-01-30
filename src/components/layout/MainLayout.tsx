@@ -58,7 +58,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
+    <div className="min-h-screen flex w-full main-gradient-bg">
       {/* Desktop Sidebar */}
       <Sidebar collapsed={sidebarCollapsed} onCollapse={setSidebarCollapsed} />
 
@@ -68,7 +68,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           {/* Organization Logo/Name */}
           <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-sidebar-primary flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
               </div>
               <span className="font-semibold text-sm">
@@ -86,10 +86,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                     'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                   )}
-                  activeClassName="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                  activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
                   <span>{item.title}</span>
@@ -104,9 +104,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <div className="flex-1 flex flex-col min-h-screen">
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 overflow-auto">
-          {children}
+        {/* Page Content with gradient overlay for depth */}
+        <main className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
 
