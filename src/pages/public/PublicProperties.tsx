@@ -22,9 +22,6 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Property = Tables<"properties">;
 
-// Default organization ID - in production, this would come from the subdomain or URL
-const DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000000";
-
 const PublicProperties: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
