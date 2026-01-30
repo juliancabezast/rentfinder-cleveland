@@ -14,6 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_tasks: {
+        Row: {
+          action_type: string
+          agent_type: string
+          attempt_number: number | null
+          completed_at: string | null
+          context: Json | null
+          created_at: string | null
+          executed_at: string | null
+          id: string
+          lead_id: string
+          max_attempts: number | null
+          organization_id: string
+          pause_reason: string | null
+          paused_at: string | null
+          paused_by: string | null
+          result_call_id: string | null
+          result_communication_id: string | null
+          scheduled_for: string
+          status: string
+        }
+        Insert: {
+          action_type: string
+          agent_type: string
+          attempt_number?: number | null
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          executed_at?: string | null
+          id?: string
+          lead_id: string
+          max_attempts?: number | null
+          organization_id: string
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_by?: string | null
+          result_call_id?: string | null
+          result_communication_id?: string | null
+          scheduled_for: string
+          status?: string
+        }
+        Update: {
+          action_type?: string
+          agent_type?: string
+          attempt_number?: number | null
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          executed_at?: string | null
+          id?: string
+          lead_id?: string
+          max_attempts?: number | null
+          organization_id?: string
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_by?: string | null
+          result_call_id?: string | null
+          result_communication_id?: string | null
+          scheduled_for?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tasks_paused_by_fkey"
+            columns: ["paused_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tasks_result_call_id_fkey"
+            columns: ["result_call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tasks_result_communication_id_fkey"
+            columns: ["result_communication_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calls: {
         Row: {
           agent_type: string
@@ -188,6 +287,263 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consent_log: {
+        Row: {
+          call_id: string | null
+          consent_type: string
+          created_at: string | null
+          evidence_text: string | null
+          evidence_url: string | null
+          granted: boolean
+          id: string
+          ip_address: string | null
+          lead_id: string
+          method: string
+          organization_id: string
+          user_agent: string | null
+          withdrawal_method: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          call_id?: string | null
+          consent_type: string
+          created_at?: string | null
+          evidence_text?: string | null
+          evidence_url?: string | null
+          granted: boolean
+          id?: string
+          ip_address?: string | null
+          lead_id: string
+          method: string
+          organization_id: string
+          user_agent?: string | null
+          withdrawal_method?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          call_id?: string | null
+          consent_type?: string
+          created_at?: string | null
+          evidence_text?: string | null
+          evidence_url?: string | null
+          granted?: boolean
+          id?: string
+          ip_address?: string | null
+          lead_id?: string
+          method?: string
+          organization_id?: string
+          user_agent?: string | null
+          withdrawal_method?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_log_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consent_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consent_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_records: {
+        Row: {
+          call_id: string | null
+          communication_id: string | null
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          organization_id: string
+          period_end: string
+          period_start: string
+          recorded_at: string
+          service: string
+          total_cost: number
+          unit_cost: number
+          usage_quantity: number
+          usage_unit: string
+        }
+        Insert: {
+          call_id?: string | null
+          communication_id?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id: string
+          period_end: string
+          period_start: string
+          recorded_at?: string
+          service: string
+          total_cost: number
+          unit_cost: number
+          usage_quantity: number
+          usage_unit: string
+        }
+        Update: {
+          call_id?: string | null
+          communication_id?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id?: string
+          period_end?: string
+          period_start?: string
+          recorded_at?: string
+          service?: string
+          total_cost?: number
+          unit_cost?: number
+          usage_quantity?: number
+          usage_unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_records_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_records_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_records_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_records_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      faq_documents: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          is_active: boolean | null
+          organization_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faq_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investor_insights: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          data_points: Json
+          headline: string
+          id: string
+          insight_type: string
+          is_highlighted: boolean | null
+          narrative: string
+          organization_id: string
+          period_end: string
+          period_start: string
+          property_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          data_points: Json
+          headline: string
+          id?: string
+          insight_type: string
+          is_highlighted?: boolean | null
+          narrative: string
+          organization_id: string
+          period_end: string
+          period_start: string
+          property_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          data_points?: Json
+          headline?: string
+          id?: string
+          insight_type?: string
+          is_highlighted?: boolean | null
+          narrative?: string
+          organization_id?: string
+          period_end?: string
+          period_start?: string
+          property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investor_insights_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_insights_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -960,6 +1316,147 @@ export type Database = {
           },
         ]
       }
+      system_logs: {
+        Row: {
+          category: string
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          is_resolved: boolean | null
+          level: string
+          message: string
+          notification_sent: boolean | null
+          notification_sent_at: string | null
+          organization_id: string | null
+          related_call_id: string | null
+          related_lead_id: string | null
+          related_showing_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          is_resolved?: boolean | null
+          level: string
+          message: string
+          notification_sent?: boolean | null
+          notification_sent_at?: string | null
+          organization_id?: string | null
+          related_call_id?: string | null
+          related_lead_id?: string | null
+          related_showing_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          is_resolved?: boolean | null
+          level?: string
+          message?: string
+          notification_sent?: boolean | null
+          notification_sent_at?: string | null
+          organization_id?: string | null
+          related_call_id?: string | null
+          related_lead_id?: string | null
+          related_showing_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_logs_related_call_id_fkey"
+            columns: ["related_call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_logs_related_lead_id_fkey"
+            columns: ["related_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_logs_related_showing_id_fkey"
+            columns: ["related_showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_logs_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_settings: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          organization_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          organization_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          organization_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           auth_user_id: string | null
@@ -1048,6 +1545,10 @@ export type Database = {
           _related_showing_id?: string
           _triggered_by: string
         }
+        Returns: number
+      }
+      pause_lead_agent_tasks: {
+        Args: { _lead_id: string; _reason: string; _user_id: string }
         Returns: number
       }
       user_has_property_access: {
