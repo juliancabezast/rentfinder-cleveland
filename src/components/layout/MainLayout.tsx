@@ -21,6 +21,8 @@ import {
   Settings,
   FileText,
   DollarSign,
+  MapPin,
+  Shield,
 } from 'lucide-react';
 
 interface NavItem {
@@ -30,15 +32,23 @@ interface NavItem {
   permission?: keyof ReturnType<typeof usePermissions>;
 }
 
-const navItems: NavItem[] = [
+const mainNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Leads', href: '/leads', icon: Users },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
+];
+
+const analyticsNavItems: NavItem[] = [
+  { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
+  { title: 'Voucher Intel', href: '/analytics/voucher-intel', icon: Shield, permission: 'canViewAllReports' },
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Insight Generator', href: '/insights', icon: Sparkles, permission: 'canAccessInsightGenerator' },
+];
+
+const adminNavItems: NavItem[] = [
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
@@ -61,9 +71,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location.pathname]);
 
-  const filteredNavItems = navItems.filter(
+  const filterItems = (items: NavItem[]) => items.filter(
     (item) => !item.permission || permissions[item.permission]
   );
+
+  const allNavItems = [...mainNavItems, ...analyticsNavItems, ...adminNavItems];
+  const filteredNavItems = filterItems(allNavItems);
 
   return (
     <div className="min-h-screen flex w-full main-gradient-bg">

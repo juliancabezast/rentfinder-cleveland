@@ -17,9 +17,12 @@ import {
   DollarSign,
   ChevronLeft,
   ChevronRight,
+  MapPin,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 interface NavItem {
   title: string;
@@ -28,15 +31,28 @@ interface NavItem {
   permission?: keyof ReturnType<typeof usePermissions>;
 }
 
-const navItems: NavItem[] = [
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const mainNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Leads', href: '/leads', icon: Users },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
+];
+
+const analyticsNavItems: NavItem[] = [
+  { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
+  { title: 'Voucher Intel', href: '/analytics/voucher-intel', icon: Shield, permission: 'canViewAllReports' },
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Insight Generator', href: '/insights', icon: Sparkles, permission: 'canAccessInsightGenerator' },
+];
+
+const adminNavItems: NavItem[] = [
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
@@ -52,7 +68,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   const { organization } = useAuth();
   const permissions = usePermissions();
 
-  const filteredNavItems = navItems.filter(
+  const filterItems = (items: NavItem[]) => items.filter(
+    (item) => !item.permission || permissions[item.permission]
+  );
+
+  const filteredMainItems = filterItems(mainNavItems);
+  const filteredAnalyticsItems = filterItems(analyticsNavItems);
+  const filteredAdminItems = filterItems(adminNavItems);
+
+  const filteredNavItems = mainNavItems.filter(
     (item) => !item.permission || permissions[item.permission]
   );
 
@@ -88,7 +112,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
       {/* Navigation */}
       <ScrollArea className="flex-1 py-4">
         <nav className="px-2 space-y-1">
-          {filteredNavItems.map((item) => (
+          {/* Main Navigation */}
+          {filteredMainItems.map((item) => (
             <NavLink
               key={item.href}
               to={item.href}
@@ -103,6 +128,60 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
               {!collapsed && <span>{item.title}</span>}
             </NavLink>
           ))}
+
+          {/* Analytics Section */}
+          {filteredAnalyticsItems.length > 0 && (
+            <>
+              <Separator className="my-3 bg-sidebar-border" />
+              {!collapsed && (
+                <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                  Analytics
+                </p>
+              )}
+              {filteredAnalyticsItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                    'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    collapsed && 'justify-center px-2'
+                  )}
+                  activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                >
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  {!collapsed && <span>{item.title}</span>}
+                </NavLink>
+              ))}
+            </>
+          )}
+
+          {/* Admin Section */}
+          {filteredAdminItems.length > 0 && (
+            <>
+              <Separator className="my-3 bg-sidebar-border" />
+              {!collapsed && (
+                <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                  Admin
+                </p>
+              )}
+              {filteredAdminItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                    'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    collapsed && 'justify-center px-2'
+                  )}
+                  activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                >
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  {!collapsed && <span>{item.title}</span>}
+                </NavLink>
+              ))}
+            </>
+          )}
         </nav>
       </ScrollArea>
 

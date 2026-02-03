@@ -30,6 +30,8 @@ import Settings from "./pages/settings/Settings";
 import SystemLogs from "./pages/SystemLogs";
 import CostDashboard from "./pages/costs/CostDashboard";
 import FaqDocuments from "./pages/documents/FaqDocuments";
+import LeadHeatMap from "./pages/analytics/LeadHeatMap";
+import VoucherIntelligence from "./pages/analytics/VoucherIntelligence";
 import NotFound from "./pages/NotFound";
 
 // Public pages (no auth required)
@@ -232,6 +234,29 @@ const App = () => (
                 <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor', 'leasing_agent']}>
                   <MainLayout>
                     <FaqDocuments />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Analytics Pages */}
+            <Route
+              path="/analytics/heat-map"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
+                  <MainLayout>
+                    <LeadHeatMap />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/analytics/voucher-intel"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
+                  <MainLayout>
+                    <VoucherIntelligence />
                   </MainLayout>
                 </ProtectedRoute>
               }
