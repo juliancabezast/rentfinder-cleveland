@@ -22,7 +22,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, Json } from "@/integrations/supabase/types";
+import type { Tables } from "@/integrations/supabase/types";
 
 type Property = Tables<"properties">;
 
@@ -71,6 +71,48 @@ const PublicPropertyDetail: React.FC = () => {
     fetchProperty();
   }, [id]);
 
+  // Dynamic SEO meta tags
+  useEffect(() => {
+    if (property) {
+      const propertyType = property.property_type || 'Apartment';
+      const title = `${property.bedrooms}BR ${propertyType} for Rent — ${property.address}, ${property.city} OH ${property.zip_code} | Rent Finder Cleveland`;
+      document.title = title;
+
+      // Update meta description
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content',
+          `${property.bedrooms} bedroom ${propertyType.toLowerCase()} for rent at ${property.address}, ${property.city}, Ohio ${property.zip_code}. $${property.rent_price}/month. ${property.section_8_accepted ? 'Section 8 accepted.' : ''} Schedule a showing on Rent Finder Cleveland.`
+        );
+      }
+
+      // Update OG tags
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) ogTitle.setAttribute('content', title);
+
+      const ogDesc = document.querySelector('meta[property="og:description"]');
+      if (ogDesc) ogDesc.setAttribute('content',
+        `$${property.rent_price}/mo · ${property.bedrooms}BR/${property.bathrooms}BA · ${property.address}, ${property.city} OH · ${property.section_8_accepted ? 'Section 8 Welcome' : ''}`
+      );
+
+      // Set og:url
+      const ogUrl = document.querySelector('meta[property="og:url"]');
+      if (ogUrl) ogUrl.setAttribute('content', `https://rentfindercleveland.com/p/properties/${property.id}`);
+
+      // Set first photo as og:image if available
+      const photos = property.photos as string[];
+      if (photos && photos.length > 0) {
+        const ogImage = document.querySelector('meta[property="og:image"]');
+        if (ogImage) ogImage.setAttribute('content', photos[0]);
+      }
+    }
+
+    // Cleanup: restore defaults on unmount
+    return () => {
+      document.title = 'Rent Finder Cleveland | Find Apartments & Rental Homes in Cleveland, Ohio';
+    };
+  }, [property]);
+
   if (loading) {
     return (
       <PublicLayout>
@@ -93,7 +135,7 @@ const PublicPropertyDetail: React.FC = () => {
     return (
       <PublicLayout>
         <div className="container mx-auto px-4 py-16 text-center">
-          <Home className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+          <Home className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" aria-hidden="true" />
           <h1 className="text-2xl font-bold mb-2">Property Not Found</h1>
           <p className="text-muted-foreground mb-6">
             This property may no longer be available.
@@ -109,6 +151,7 @@ const PublicPropertyDetail: React.FC = () => {
   const photos = Array.isArray(property.photos) ? (property.photos as string[]) : [];
   const amenities = property.amenities as Record<string, boolean> | null;
   const isComingSoon = property.status === "coming_soon";
+  const propertyType = property.property_type || 'apartment';
 
   const nextPhoto = () => {
     setCurrentPhotoIndex((i) => (i + 1) % photos.length);
@@ -118,17 +161,86 @@ const PublicPropertyDetail: React.FC = () => {
     setCurrentPhotoIndex((i) => (i - 1 + photos.length) % photos.length);
   };
 
+  // Generate JSON-LD for this property
+  const propertyJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Apartment",
+    "name": `${property.bedrooms}BR ${propertyType} at ${property.address}`,
+    "description": property.description || `${property.bedrooms} bedroom rental in ${property.city}, Ohio`,
+    "url": `https://rentfindercleveland.com/p/properties/${property.id}`,
+    "image": photos[0] || '',
+    "numberOfRooms": property.bedrooms,
+    "numberOfBathroomsTotal": property.bathrooms,
+    ...(property.square_feet && {
+      "floorSize": {
+        "@type": "QuantitativeValue",
+        "value": property.square_feet,
+        "unitCode": "FTK"
+      }
+    }),
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": property.address,
+      "addressLocality": property.city,
+      "addressRegion": "OH",
+      "postalCode": property.zip_code,
+      "addressCountry": "US"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": property.rent_price,
+      "priceCurrency": "USD",
+      "availability": property.status === 'available' ? "https://schema.org/InStock" : "https://schema.org/PreOrder"
+    },
+    "amenityFeature": (amenities ? Object.keys(amenities).filter(k => amenities[k]) : []).map(a => ({
+      "@type": "LocationFeatureSpecification",
+      "name": a.replace(/_/g, ' ')
+    }))
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Rent Finder Cleveland", "item": "https://rentfindercleveland.com" },
+      { "@type": "ListItem", "position": 2, "name": "Cleveland Apartments for Rent", "item": "https://rentfindercleveland.com/p/properties" },
+      { "@type": "ListItem", "position": 3, "name": property.address }
+    ]
+  };
+
   return (
     <PublicLayout organizationName={organizationName}>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(propertyJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+
       <div className="container mx-auto px-4 py-8">
-        {/* Back Link */}
-        <Link
-          to="/p/properties"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Properties
-        </Link>
+        {/* Breadcrumbs */}
+        <nav className="mb-6" aria-label="Breadcrumb">
+          <ol className="flex items-center gap-2 text-sm text-muted-foreground">
+            <li>
+              <Link to="/" className="hover:text-primary transition-colors">
+                Rent Finder Cleveland
+              </Link>
+            </li>
+            <li>/</li>
+            <li>
+              <Link to="/p/properties" className="hover:text-primary transition-colors">
+                Cleveland Apartments
+              </Link>
+            </li>
+            <li>/</li>
+            <li className="text-foreground font-medium truncate max-w-[200px]">
+              {property.address}
+            </li>
+          </ol>
+        </nav>
 
         {/* Photo Gallery */}
         <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-8">
@@ -136,20 +248,23 @@ const PublicPropertyDetail: React.FC = () => {
             <>
               <img
                 src={photos[currentPhotoIndex]}
-                alt={`Property photo ${currentPhotoIndex + 1}`}
+                alt={`${property.bedrooms} bedroom ${propertyType} for rent at ${property.address}, ${property.city} Ohio - Photo ${currentPhotoIndex + 1} of ${photos.length}`}
                 className="w-full h-full object-cover"
+                loading={currentPhotoIndex === 0 ? "eager" : "lazy"}
               />
               {photos.length > 1 && (
                 <>
                   <button
                     onClick={prevPhoto}
                     className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2"
+                    aria-label="Previous photo"
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </button>
                   <button
                     onClick={nextPhoto}
                     className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2"
+                    aria-label="Next photo"
                   >
                     <ChevronRight className="h-6 w-6" />
                   </button>
@@ -161,6 +276,7 @@ const PublicPropertyDetail: React.FC = () => {
                         className={`w-2 h-2 rounded-full transition-colors ${
                           i === currentPhotoIndex ? "bg-white" : "bg-white/50"
                         }`}
+                        aria-label={`View photo ${i + 1}`}
                       />
                     ))}
                   </div>
@@ -169,7 +285,7 @@ const PublicPropertyDetail: React.FC = () => {
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
-              <Home className="h-24 w-24 text-primary/30" />
+              <Home className="h-24 w-24 text-primary/30" aria-hidden="true" />
             </div>
           )}
 
@@ -177,12 +293,12 @@ const PublicPropertyDetail: React.FC = () => {
           <div className="absolute top-4 left-4 flex flex-wrap gap-2">
             {isComingSoon ? (
               <Badge className="bg-warning text-warning-foreground text-sm">
-                <Calendar className="mr-1 h-4 w-4" />
+                <Calendar className="mr-1 h-4 w-4" aria-hidden="true" />
                 Coming Soon
               </Badge>
             ) : (
               <Badge className="bg-success text-success-foreground text-sm">
-                <CheckCircle2 className="mr-1 h-4 w-4" />
+                <CheckCircle2 className="mr-1 h-4 w-4" aria-hidden="true" />
                 Available Now
               </Badge>
             )}
@@ -193,7 +309,7 @@ const PublicPropertyDetail: React.FC = () => {
             )}
             {property.hud_inspection_ready && (
               <Badge className="bg-accent text-accent-foreground text-sm">
-                <Shield className="mr-1 h-4 w-4" />
+                <Shield className="mr-1 h-4 w-4" aria-hidden="true" />
                 HUD Inspection Ready
               </Badge>
             )}
@@ -202,80 +318,82 @@ const PublicPropertyDetail: React.FC = () => {
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <article className="lg:col-span-2 space-y-8">
             {/* Price & Details */}
-            <div>
+            <header>
               <p className="text-4xl font-bold text-primary mb-2">
                 ${property.rent_price.toLocaleString()}
                 <span className="text-lg font-normal text-muted-foreground">
                   /month
                 </span>
               </p>
-              <p className="text-lg font-medium">{property.address}</p>
+              <h1 className="text-lg font-medium">
+                {property.bedrooms} Bedroom {propertyType} for Rent — {property.address}
+              </h1>
               <p className="text-muted-foreground">
                 {property.city}, {property.state} {property.zip_code}
               </p>
 
               <div className="flex flex-wrap gap-6 mt-4">
                 <span className="flex items-center gap-2 text-lg">
-                  <Bed className="h-5 w-5 text-primary" />
+                  <Bed className="h-5 w-5 text-primary" aria-hidden="true" />
                   {property.bedrooms} {property.bedrooms === 1 ? "Bedroom" : "Bedrooms"}
                 </span>
                 <span className="flex items-center gap-2 text-lg">
-                  <Bath className="h-5 w-5 text-primary" />
+                  <Bath className="h-5 w-5 text-primary" aria-hidden="true" />
                   {property.bathrooms} {property.bathrooms === 1 ? "Bathroom" : "Bathrooms"}
                 </span>
                 {property.square_feet && (
                   <span className="flex items-center gap-2 text-lg">
-                    <Square className="h-5 w-5 text-primary" />
+                    <Square className="h-5 w-5 text-primary" aria-hidden="true" />
                     {property.square_feet.toLocaleString()} sq ft
                   </span>
                 )}
               </div>
-            </div>
+            </header>
 
             <Separator />
 
             {/* Description */}
             {property.description && (
-              <div>
-                <h2 className="text-xl font-semibold mb-3">About This Property</h2>
+              <section aria-labelledby="description-heading">
+                <h2 id="description-heading" className="text-xl font-semibold mb-3">About This Property</h2>
                 <p className="text-muted-foreground whitespace-pre-line">
                   {property.description}
                 </p>
-              </div>
+              </section>
             )}
 
             {/* Amenities */}
             {amenities && Object.keys(amenities).length > 0 && (
-              <div>
-                <h2 className="text-xl font-semibold mb-3">Amenities</h2>
+              <section aria-labelledby="amenities-heading">
+                <h2 id="amenities-heading" className="text-xl font-semibold mb-3">Amenities</h2>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {Object.entries(amenities)
                     .filter(([_, value]) => value)
                     .map(([key]) => (
                       <div key={key} className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-accent" />
+                        <Sparkles className="h-4 w-4 text-accent" aria-hidden="true" />
                         <span className="capitalize">
                           {key.replace(/_/g, " ")}
                         </span>
                       </div>
                     ))}
                 </div>
-              </div>
+              </section>
             )}
 
             {/* Pet Policy */}
             {property.pet_policy && (
-              <div>
-                <h2 className="text-xl font-semibold mb-3">Pet Policy</h2>
+              <section aria-labelledby="pet-policy-heading">
+                <h2 id="pet-policy-heading" className="text-xl font-semibold mb-3">Pet Policy</h2>
                 <p className="text-muted-foreground">{property.pet_policy}</p>
-              </div>
+              </section>
             )}
 
             {/* Details */}
-            <div>
-              <h2 className="text-xl font-semibold mb-3">Details</h2>
+            <section aria-labelledby="details-heading">
+              <h2 id="details-heading" className="text-xl font-semibold mb-3">Details</h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 {property.property_type && (
                   <div className="flex justify-between">
@@ -296,11 +414,11 @@ const PublicPropertyDetail: React.FC = () => {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+            </section>
+          </article>
 
           {/* Sidebar - Contact Card */}
-          <div className="lg:col-span-1">
+          <aside className="lg:col-span-1">
             <Card className="sticky top-24">
               <CardHeader>
                 <CardTitle className="text-lg">Interested in this property?</CardTitle>
@@ -311,7 +429,7 @@ const PublicPropertyDetail: React.FC = () => {
                   size="lg"
                   onClick={() => setShowLeadCapture(true)}
                 >
-                  <Phone className="mr-2 h-5 w-5" />
+                  <Phone className="mr-2 h-5 w-5" aria-hidden="true" />
                   Contact Us About This Property
                 </Button>
 
@@ -322,7 +440,7 @@ const PublicPropertyDetail: React.FC = () => {
                 {property.section_8_accepted && (
                   <div className="rounded-lg bg-primary/5 p-4 text-sm">
                     <p className="font-medium text-primary flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" />
+                      <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                       Section 8 Welcome
                     </p>
                     <p className="text-muted-foreground mt-1">
@@ -335,7 +453,7 @@ const PublicPropertyDetail: React.FC = () => {
                 {property.hud_inspection_ready && (
                   <div className="rounded-lg bg-accent/10 p-4 text-sm">
                     <p className="font-medium text-accent-foreground flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-accent" />
+                      <Shield className="h-4 w-4 text-accent" aria-hidden="true" />
                       HUD Inspection Ready
                     </p>
                     <p className="text-muted-foreground mt-1">
@@ -346,7 +464,7 @@ const PublicPropertyDetail: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-          </div>
+          </aside>
         </div>
       </div>
 

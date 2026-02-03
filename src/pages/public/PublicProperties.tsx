@@ -6,7 +6,6 @@ import {
   useLeadCapturePopup,
 } from "@/components/public/LeadCapturePopup";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -37,6 +36,22 @@ const PublicProperties: React.FC = () => {
   // Lead capture
   const { showPopup, setShowPopup, triggerPopup } = useLeadCapturePopup(15);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+
+  // Set page title for SEO
+  useEffect(() => {
+    document.title = "Apartments for Rent in Cleveland, Ohio | Section 8 Welcome | Rent Finder Cleveland";
+    
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', 
+        'Browse available apartments and rental homes in Cleveland, Ohio. Section 8 vouchers accepted. Filter by bedrooms, price, and zip code. Schedule a showing instantly with Rent Finder Cleveland.'
+      );
+    }
+
+    return () => {
+      document.title = 'Rent Finder Cleveland | Find Apartments & Rental Homes in Cleveland, Ohio';
+    };
+  }, []);
 
   // Fetch organization info
   useEffect(() => {
@@ -134,29 +149,37 @@ const PublicProperties: React.FC = () => {
 
   return (
     <PublicLayout organizationName={organizationName}>
-      {/* Hero Section */}
+      {/* Hero Section with SEO Content */}
       <section className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground py-16 md:py-24">
         <div className="container mx-auto px-4 text-center">
           <Badge className="mb-4 bg-accent text-accent-foreground">
-            <CheckCircle2 className="mr-1 h-3 w-3" />
+            <CheckCircle2 className="mr-1 h-3 w-3" aria-hidden="true" />
             Section 8 Friendly
           </Badge>
+          
+          {/* SEO-optimized H1 */}
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Find Your Next Home
+            Apartments for Rent in Cleveland, Ohio
           </h1>
-          <p className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-8">
-            Browse our available rental properties in Cleveland. All properties
-            welcome Section 8 voucher holders.
+          
+          <p className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-4">
+            Browse available rental properties in Cleveland. All listings on Rent Finder Cleveland 
+            welcome Section 8 vouchers. Filter by bedrooms, price range, and zip code to find your 
+            perfect Cleveland apartment.
+          </p>
+          
+          <p className="text-base text-primary-foreground/70 max-w-xl mx-auto mb-8">
+            Schedule a showing instantly — our AI agent is available 24/7 in English and Spanish.
           </p>
 
           {/* Quick Stats */}
           <div className="flex flex-wrap justify-center gap-6 mt-8">
             <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-              <Building2 className="h-5 w-5" />
+              <Building2 className="h-5 w-5" aria-hidden="true" />
               <span>{properties.length} Properties</span>
             </div>
             <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-              <Home className="h-5 w-5" />
+              <Home className="h-5 w-5" aria-hidden="true" />
               <span>Section 8 Welcome</span>
             </div>
           </div>
@@ -164,23 +187,24 @@ const PublicProperties: React.FC = () => {
       </section>
 
       {/* Filter Bar */}
-      <section className="sticky top-16 z-40 bg-card border-b shadow-sm py-4">
+      <section className="sticky top-16 z-40 bg-card border-b shadow-sm py-4" aria-label="Property filters">
         <div className="container mx-auto px-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {/* Search by Zip */}
             <div className="relative lg:col-span-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <Input
                 placeholder="Search by zip code..."
                 className="pl-10"
                 value={zipCode}
                 onChange={(e) => setZipCode(e.target.value)}
+                aria-label="Search by zip code"
               />
             </div>
 
             {/* Bedrooms */}
             <Select value={bedroomFilter} onValueChange={setBedroomFilter}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Filter by bedrooms">
                 <SelectValue placeholder="Bedrooms" />
               </SelectTrigger>
               <SelectContent>
@@ -198,6 +222,7 @@ const PublicProperties: React.FC = () => {
               placeholder="Min Price"
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
+              aria-label="Minimum price"
             />
 
             {/* Max Price */}
@@ -206,13 +231,14 @@ const PublicProperties: React.FC = () => {
               placeholder="Max Price"
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
+              aria-label="Maximum price"
             />
           </div>
         </div>
       </section>
 
       {/* Properties Grid */}
-      <section className="py-12">
+      <section className="py-12" aria-label="Available properties">
         <div className="container mx-auto px-4">
           {loading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -226,7 +252,7 @@ const PublicProperties: React.FC = () => {
             </div>
           ) : filteredProperties.length === 0 ? (
             <div className="text-center py-16">
-              <Home className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+              <Home className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" aria-hidden="true" />
               <h2 className="text-xl font-medium mb-2">No properties found</h2>
               <p className="text-muted-foreground">
                 Try adjusting your filters or check back soon for new listings.
@@ -235,7 +261,7 @@ const PublicProperties: React.FC = () => {
           ) : (
             <>
               <p className="text-sm text-muted-foreground mb-6">
-                Showing {filteredProperties.length} properties
+                Showing {filteredProperties.length} {filteredProperties.length === 1 ? 'property' : 'properties'} in Cleveland, Ohio
               </p>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredProperties.map((property) => (
