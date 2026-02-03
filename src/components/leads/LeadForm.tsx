@@ -147,13 +147,53 @@ export const LeadForm: React.FC<LeadFormProps> = ({
           .eq("id", lead.id);
         if (error) throw error;
         toast({ title: "Success", description: "Lead updated successfully." });
+        onSuccess();
       } else {
-        const { error } = await supabase.from("leads").insert(leadData);
+        // Create new lead
+        const { data: newLead, error } = await supabase
+          .from("leads")
+          .insert(leadData)
+          .select("id")
+          .single();
         if (error) throw error;
+        
         toast({ title: "Success", description: "Lead created successfully." });
+        
+        // Trigger smart matching for the new lead
+        if (newLead?.id) {
+          try {
+            const { data: matchData } = await supabase.functions.invoke('match-properties', {
+              body: {
+                organization_id: userRecord.organization_id,
+                lead_id: newLead.id,
+              },
+            });
+            
+            const matches = matchData?.matches || [];
+            const highScoreMatches = matches.filter((m: any) => m.match_score > 70);
+            
+            if (highScoreMatches.length > 0) {
+              toast({
+                title: `✨ Found ${highScoreMatches.length} matching properties!`,
+                description: "View the lead details to see property recommendations.",
+              });
+              
+              // Auto-populate interested_property_id with top match if lead didn't specify
+              if (!formData.interested_property_id && matches.length > 0) {
+                await supabase
+                  .from("leads")
+                  .update({ interested_property_id: matches[0].property_id })
+                  .eq("id", newLead.id);
+              }
+            }
+          } catch (matchError) {
+            // Don't fail the lead creation if matching fails
+            console.error("Error running property matching:", matchError);
+          }
+        }
+        
+        onSuccess();
       }
-
-      onSuccess();
     } catch (error) {
       console.error("Error saving lead:", error);
       toast({
