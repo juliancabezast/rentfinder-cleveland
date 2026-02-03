@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,80 +7,106 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Auth pages
+// Auth pages (not lazy-loaded for faster initial auth check)
 import Login from "./pages/auth/Login";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import LandingPage from "./pages/LandingPage";
 
-// Protected pages
-import Dashboard from "./pages/dashboard";
-import PropertiesList from "./pages/properties/PropertiesList";
-import PropertyDetail from "./pages/properties/PropertyDetail";
-import LeadsList from "./pages/leads/LeadsList";
-import LeadDetail from "./pages/leads/LeadDetail";
-import ShowingsList from "./pages/showings/ShowingsList";
-import ShowingRoute from "./pages/showings/ShowingRoute";
-import CallsList from "./pages/calls/CallsList";
-import CallDetail from "./pages/calls/CallDetail";
-import Reports from "./pages/reports/Reports";
-import InsightGenerator from "./pages/insights/InsightGenerator";
-import UsersList from "./pages/users/UsersList";
-import UserDetail from "./pages/users/UserDetail";
-import Settings from "./pages/settings/Settings";
-import SystemLogs from "./pages/SystemLogs";
-import CostDashboard from "./pages/costs/CostDashboard";
-import FaqDocuments from "./pages/documents/FaqDocuments";
-import LeadHeatMap from "./pages/analytics/LeadHeatMap";
-import VoucherIntelligence from "./pages/analytics/VoucherIntelligence";
-import CompetitorRadar from "./pages/analytics/CompetitorRadar";
-import NotFound from "./pages/NotFound";
+// Lazy-loaded protected pages for code splitting (Phase 12.3)
+const Dashboard = lazy(() => import("./pages/dashboard"));
+const PropertiesList = lazy(() => import("./pages/properties/PropertiesList"));
+const PropertyDetail = lazy(() => import("./pages/properties/PropertyDetail"));
+const LeadsList = lazy(() => import("./pages/leads/LeadsList"));
+const LeadDetail = lazy(() => import("./pages/leads/LeadDetail"));
+const ShowingsList = lazy(() => import("./pages/showings/ShowingsList"));
+const ShowingRoute = lazy(() => import("./pages/showings/ShowingRoute"));
+const CallsList = lazy(() => import("./pages/calls/CallsList"));
+const CallDetail = lazy(() => import("./pages/calls/CallDetail"));
+const Reports = lazy(() => import("./pages/reports/Reports"));
+const InsightGenerator = lazy(() => import("./pages/insights/InsightGenerator"));
+const UsersList = lazy(() => import("./pages/users/UsersList"));
+const UserDetail = lazy(() => import("./pages/users/UserDetail"));
+const Settings = lazy(() => import("./pages/settings/Settings"));
+const SystemLogs = lazy(() => import("./pages/SystemLogs"));
+const CostDashboard = lazy(() => import("./pages/costs/CostDashboard"));
+const FaqDocuments = lazy(() => import("./pages/documents/FaqDocuments"));
+const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
+const VoucherIntelligence = lazy(() => import("./pages/analytics/VoucherIntelligence"));
+const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
+const ReferralsList = lazy(() => import("./pages/referrals/ReferralsList"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Public pages (no auth required)
-import PublicProperties from "./pages/public/PublicProperties";
-import PublicPropertyDetail from "./pages/public/PublicPropertyDetail";
-import PrivacyPolicy from "./pages/public/PrivacyPolicy";
-import ReferralPage from "./pages/public/ReferralPage";
+// Public pages (lazy-loaded)
+const PublicProperties = lazy(() => import("./pages/public/PublicProperties"));
+const PublicPropertyDetail = lazy(() => import("./pages/public/PublicPropertyDetail"));
+const PrivacyPolicy = lazy(() => import("./pages/public/PrivacyPolicy"));
+const ReferralPage = lazy(() => import("./pages/public/ReferralPage"));
 
-// Referrals
-import ReferralsList from "./pages/referrals/ReferralsList";
+// Page loading skeleton
+const PageSkeleton = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="space-y-4 w-full max-w-xl px-4">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-4 w-64" />
+      <div className="grid gap-4 grid-cols-2">
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24" />
+      </div>
+      <Skeleton className="h-64 w-full" />
+    </div>
+  </div>
+);
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public property listings (no auth required) */}
-            <Route path="/p/properties" element={<PublicProperties />} />
-            <Route path="/p/properties/:id" element={<PublicPropertyDetail />} />
-            <Route path="/p/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/p/refer/:referralCode" element={<ReferralPage />} />
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<PageSkeleton />}>
+              <Routes>
+                {/* Public property listings (no auth required) */}
+                <Route path="/p/properties" element={<PublicProperties />} />
+                <Route path="/p/properties/:id" element={<PublicPropertyDetail />} />
+                <Route path="/p/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/p/refer/:referralCode" element={<ReferralPage />} />
 
-            {/* Public auth routes */}
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
+                {/* Public auth routes */}
+                <Route path="/auth/login" element={<Login />} />
+                <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                <Route path="/auth/reset-password" element={<ResetPassword />} />
 
-            {/* Landing page - public homepage */}
-            <Route path="/" element={<LandingPage />} />
+                {/* Landing page - public homepage */}
+                <Route path="/" element={<LandingPage />} />
 
-            {/* Protected routes with MainLayout */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Dashboard />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
+                {/* Protected routes with MainLayout */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <Dashboard />
+                      </MainLayout>
+                    </ProtectedRoute>
+                  }
+                />
 
             <Route
               path="/properties"
@@ -305,10 +332,12 @@ const App = () => (
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+        </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

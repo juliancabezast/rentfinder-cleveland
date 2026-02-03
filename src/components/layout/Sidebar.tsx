@@ -88,13 +88,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
 
   return (
     <aside
+      aria-label="Main navigation"
       className={cn(
         'hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 border-r border-sidebar-border z-40',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Organization Logo/Name */}
-      <div className="h-16 flex items-center px-4 border-b border-sidebar-border flex-shrink-0">
+      <header className="h-16 flex items-center px-4 border-b border-sidebar-border flex-shrink-0">
         {organization?.logo_url ? (
           <img
             src={organization.logo_url}
@@ -103,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
           />
         ) : (
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0" aria-hidden="true">
               <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
             </div>
             {!collapsed && (
@@ -113,11 +114,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             )}
           </div>
         )}
-      </div>
+      </header>
 
       {/* Navigation - Scrollable */}
       <ScrollArea className="flex-1 py-4">
-        <nav className="px-2 space-y-1">
+        <nav aria-label="Primary" className="px-2 space-y-1">
           {/* Main Navigation */}
           {filteredMainItems.map((item) => (
             <NavLink
