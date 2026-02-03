@@ -349,7 +349,7 @@ export const AdminDashboard = () => {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Priority Leads */}
-        <Card>
+        <Card variant="glass">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Priority Leads</CardTitle>
             <Button
@@ -386,7 +386,7 @@ export const AdminDashboard = () => {
         </Card>
 
         {/* Today's Showings */}
-        <Card>
+        <Card variant="glass">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Today's Showings</CardTitle>
             <Button
@@ -423,7 +423,7 @@ export const AdminDashboard = () => {
         </Card>
 
         {/* Property Alerts */}
-        <Card>
+        <Card variant="glass">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Bell className="h-5 w-5" />

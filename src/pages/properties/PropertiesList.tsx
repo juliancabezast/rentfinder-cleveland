@@ -128,7 +128,7 @@ const PropertiesList: React.FC = () => {
     : null;
 
   const PropertyCardSkeleton = () => (
-    <Card className="overflow-hidden">
+    <Card variant="glass" className="overflow-hidden">
       <Skeleton className="aspect-video w-full" />
       <CardContent className="p-4 space-y-3">
         <Skeleton className="h-6 w-24" />
@@ -156,17 +156,16 @@ const PropertiesList: React.FC = () => {
           </p>
         </div>
         {permissions.canCreateProperty && (
-          <Button onClick={() => setFormOpen(true)} className="min-h-[44px]">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Property
+          <Button onClick={() => setFormOpen(true)} className="min-h-[44px] bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add Property</span>
           </Button>
         )}
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 sm:flex-row">
+      <div className="glass-card rounded-xl p-4 mb-6">
+        <div className="flex flex-col gap-4 sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -190,8 +189,7 @@ const PropertiesList: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Properties Grid */}
       {loading ? (
@@ -201,7 +199,7 @@ const PropertiesList: React.FC = () => {
           ))}
         </div>
       ) : filteredProperties.length === 0 ? (
-        <Card>
+        <Card variant="glass">
           <CardContent className="p-0">
             <EmptyState
               icon={Building2}

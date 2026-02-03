@@ -103,9 +103,9 @@ const ResetPassword: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          <Card>
+      <div className="min-h-screen flex items-center justify-center main-gradient-bg p-4">
+        <div className="w-full max-w-md animate-fade-up">
+          <Card variant="glass">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
                 <CheckCircle2 className="h-6 w-6 text-success" />
@@ -127,17 +127,17 @@ const ResetPassword: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center main-gradient-bg p-4">
+      <div className="w-full max-w-md animate-fade-up">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground mb-4 shadow-lg shadow-primary/25">
             <Building2 className="h-8 w-8" />
           </div>
           <h1 className="text-2xl font-bold text-primary">Rent Finder Cleveland</h1>
         </div>
 
-        <Card>
+        <Card variant="glass">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">Reset your password</CardTitle>
             <CardDescription className="text-center">
@@ -235,7 +235,7 @@ const ResetPassword: React.FC = () => {
             <CardFooter>
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
                 disabled={isLoading || passwordStrength < 60}
               >
                 {isLoading ? (

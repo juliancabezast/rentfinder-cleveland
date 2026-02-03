@@ -61,8 +61,8 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center main-gradient-bg p-4">
+      <div className="w-full max-w-md animate-fade-up">
         {/* Back to Home */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild>
@@ -75,14 +75,14 @@ const Login: React.FC = () => {
 
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground mb-4 shadow-lg shadow-primary/25">
             <Building2 className="h-8 w-8" />
           </div>
           <h1 className="text-2xl font-bold text-primary">Rent Finder Cleveland</h1>
           <p className="text-muted-foreground mt-1">AI-Powered Lead Management</p>
         </div>
 
-        <Card>
+        <Card variant="glass">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
             <CardDescription className="text-center">
@@ -137,7 +137,7 @@ const Login: React.FC = () => {
             <CardFooter className="flex flex-col gap-4">
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -153,7 +153,14 @@ const Login: React.FC = () => {
           </form>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
+        {/* Decorative dots */}
+        <div className="flex justify-center gap-2 mt-6 mb-4">
+          <span className="w-2 h-2 rounded-full bg-primary/20"></span>
+          <span className="w-2 h-2 rounded-full bg-primary/20"></span>
+          <span className="w-2 h-2 rounded-full bg-primary/20"></span>
+        </div>
+
+        <p className="text-center text-sm text-muted-foreground">
           © {new Date().getFullYear()} Rent Finder Cleveland. All rights reserved.
         </p>
       </div>

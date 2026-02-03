@@ -24,19 +24,19 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center py-12 text-center",
+        "flex flex-col items-center justify-center py-12 text-center animate-fade-up",
         className
       )}
     >
-      <div className="rounded-full bg-muted p-4 mb-4">
-        <Icon className="h-8 w-8 text-muted-foreground" />
+      <div className="rounded-full bg-gradient-to-br from-primary/10 to-accent/10 p-4 mb-4">
+        <Icon className="h-8 w-8 text-primary/60" />
       </div>
       <h3 className="text-lg font-medium mb-1">{title}</h3>
       <p className="text-sm text-muted-foreground max-w-sm mb-4">
         {description}
       </p>
       {action && (
-        <Button onClick={action.onClick} className="mt-2">
+        <Button onClick={action.onClick} className="mt-2 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
           {action.label}
         </Button>
       )}

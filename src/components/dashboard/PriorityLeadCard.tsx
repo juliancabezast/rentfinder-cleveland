@@ -42,15 +42,15 @@ export const PriorityLeadCard = ({
     );
   }
 
-  const getScoreColor = (score: number | null) => {
-    if (!score) return "bg-muted";
-    if (score >= 70) return "bg-green-500";
-    if (score >= 40) return "bg-yellow-500";
-    return "bg-red-500";
+  const getScoreClasses = (score: number | null) => {
+    if (!score) return "bg-muted text-muted-foreground border-muted";
+    if (score >= 70) return "bg-emerald-500/15 text-emerald-700 border-emerald-500/30";
+    if (score >= 40) return "bg-amber-500/15 text-amber-700 border-amber-500/30";
+    return "bg-rose-500/15 text-rose-700 border-rose-500/30";
   };
 
   return (
-    <Card className="border-l-4 border-l-accent">
+    <Card variant="glass" className="border-l-4 border-l-accent">
       <CardContent className="p-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -59,12 +59,14 @@ export const PriorityLeadCard = ({
               <h4 className="font-semibold truncate">
                 {lead.full_name || "Unknown"}
               </h4>
-              <Badge
-                variant="outline"
-                className={cn("shrink-0", getScoreColor(lead.lead_score))}
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border shrink-0",
+                  getScoreClasses(lead.lead_score)
+                )}
               >
-                Score: {lead.lead_score ?? "N/A"}
-              </Badge>
+                {lead.lead_score ?? "?"}
+              </div>
             </div>
             {lead.property_address && (
               <p className="text-sm text-muted-foreground truncate mt-1">
