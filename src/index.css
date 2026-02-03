@@ -52,6 +52,9 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 10%;
     
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    
     /* UI Elements */
     --border: 0 5% 88%;
     --input: 0 5% 88%;
@@ -126,6 +129,9 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 10%;
     
+    --info: 217 80% 50%;
+    --info-foreground: 0 0% 100%;
+    
     --border: 280 15% 22%;
     --input: 280 15% 22%;
     --ring: 40 100% 59%;
@@ -160,6 +166,13 @@
     font-family: 'Montserrat', sans-serif;
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Skip to main content link for accessibility */
+  .skip-to-content {
+    @apply absolute -top-10 left-4 bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium;
+    @apply focus:top-4 transition-all;
+    z-index: 9999;
   }
 
   /* Safe area for mobile devices with notches */

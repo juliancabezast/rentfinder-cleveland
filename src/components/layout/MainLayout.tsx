@@ -86,6 +86,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen flex w-full main-gradient-bg">
+      {/* Skip to main content - Accessibility */}
+      <a href="#main-content" className="skip-to-content">
+        Skip to main content
+      </a>
+      
       {/* Desktop Sidebar */}
       <Sidebar collapsed={sidebarCollapsed} onCollapse={setSidebarCollapsed} />
 
@@ -135,7 +140,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
 
         {/* Page Content with gradient overlay for depth */}
-        <main className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
+        <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
           <div className="max-w-7xl mx-auto animate-fade-up">
             {children}
           </div>

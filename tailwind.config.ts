@@ -12,14 +12,34 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: {
+        DEFAULT: "1rem",
+        sm: "1.5rem",
+        lg: "2rem",
+      },
       screens: {
+        sm: "640px",
+        md: "768px",
+        lg: "1024px",
+        xl: "1280px",
         "2xl": "1400px",
       },
     },
     extend: {
       fontFamily: {
-        sans: ["Montserrat", "sans-serif"],
+        sans: ["Montserrat", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+      },
+      // Phase 1.2: Modular Scale Typography (1.25 Major Third)
+      fontSize: {
+        xs: ["clamp(0.64rem, 0.58rem + 0.29vw, 0.8rem)", { lineHeight: "1.4" }],
+        sm: ["clamp(0.8rem, 0.73rem + 0.36vw, 1rem)", { lineHeight: "1.5" }],
+        base: ["clamp(1rem, 0.91rem + 0.45vw, 1.25rem)", { lineHeight: "1.6" }],
+        lg: ["clamp(1.125rem, 1.03rem + 0.5vw, 1.375rem)", { lineHeight: "1.5" }],
+        xl: ["clamp(1.25rem, 1.14rem + 0.57vw, 1.563rem)", { lineHeight: "1.4" }],
+        "2xl": ["clamp(1.563rem, 1.43rem + 0.71vw, 1.953rem)", { lineHeight: "1.3" }],
+        "3xl": ["clamp(1.953rem, 1.78rem + 0.89vw, 2.441rem)", { lineHeight: "1.2" }],
+        "4xl": ["clamp(2.441rem, 2.23rem + 1.11vw, 3.052rem)", { lineHeight: "1.1" }],
+        "5xl": ["clamp(3.052rem, 2.79rem + 1.39vw, 3.815rem)", { lineHeight: "1.1" }],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -46,6 +66,10 @@ export default {
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -85,6 +109,20 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
+      },
+      // Phase 3.4: Organized z-index scale
+      zIndex: {
+        dropdown: "10",
+        sticky: "20",
+        fixed: "30",
+        overlay: "40",
+        modal: "50",
+        popover: "60",
+        tooltip: "70",
+        toast: "80",
+        max: "9999",
       },
       keyframes: {
         "accordion-down": {
