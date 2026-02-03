@@ -222,10 +222,11 @@ export const IntegrationHealth: React.FC = () => {
             {integrations.map((integration) => (
               <Tooltip key={integration.key}>
                 <TooltipTrigger asChild>
-                  <div
+                  <button
+                    type="button"
                     className={`
                       inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                      border transition-colors cursor-default
+                      border transition-colors cursor-default focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
                       ${
                         integration.status === "connected"
                           ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/50 dark:border-emerald-800 dark:text-emerald-400"
@@ -236,12 +237,18 @@ export const IntegrationHealth: React.FC = () => {
                           : "bg-muted/50 border-muted text-muted-foreground"
                       }
                     `}
+                    aria-label={`${integration.label}: ${
+                      integration.status === "connected" ? "Connected" :
+                      integration.status === "warning" ? "Needs attention" :
+                      integration.status === "error" ? "Connection failed" : "Not configured"
+                    }`}
                   >
                     <span
                       className={`w-2 h-2 rounded-full ${getStatusColor(integration.status)}`}
+                      aria-hidden="true"
                     />
                     {integration.label}
-                  </div>
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="text-xs">

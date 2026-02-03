@@ -175,19 +175,38 @@
     z-index: 9999;
   }
 
+  /* Respect prefers-reduced-motion for accessibility (Phase 10.4) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Focus visible styles for keyboard navigation (Phase 10.2) */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
   /* Safe area for mobile devices with notches */
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
   
-  /* Ensure minimum touch target size */
+  /* Ensure minimum touch target size (WCAG 2.5.5) */
   button, a, [role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
   
   /* Exception for inline and icon buttons */
-  .inline-button, button.h-auto, a.h-auto {
+  .inline-button, button.h-auto, a.h-auto,
+  button[class*="h-5"], button[class*="h-6"], button[class*="h-7"],
+  a[class*="inline"], span[role="button"] {
     min-height: unset;
     min-width: unset;
   }
