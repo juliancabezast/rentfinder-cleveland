@@ -29,7 +29,6 @@ import type { AppRole } from '@/types/auth';
 
 interface User {
   id: string;
-  email: string;
   full_name: string;
   role: AppRole;
   avatar_url: string | null;
@@ -52,9 +51,10 @@ const UsersList: React.FC = () => {
 
     setLoading(true);
     try {
+      // Only select non-sensitive columns for list view - email/phone only fetched in detail view
       let query = supabase
         .from('users')
-        .select('id, email, full_name, role, avatar_url, is_active, created_at')
+        .select('id, full_name, role, avatar_url, is_active, created_at')
         .eq('organization_id', userRecord.organization_id)
         .order('created_at', { ascending: false });
 
@@ -80,10 +80,7 @@ const UsersList: React.FC = () => {
 
   const filteredUsers = users.filter((user) => {
     const searchLower = searchQuery.toLowerCase();
-    return (
-      user.full_name.toLowerCase().includes(searchLower) ||
-      user.email.toLowerCase().includes(searchLower)
-    );
+    return user.full_name.toLowerCase().includes(searchLower);
   });
 
   const getInitials = (name: string) => {
@@ -119,7 +116,7 @@ const UsersList: React.FC = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or email..."
+                placeholder="Search by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -193,8 +190,8 @@ const UsersList: React.FC = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {user.email}
+                      <p className="text-xs text-muted-foreground">
+                        {user.role === 'viewer' ? 'Investor' : user.role === 'leasing_agent' ? 'Leasing Agent' : ''}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <RoleBadge role={user.role} />
