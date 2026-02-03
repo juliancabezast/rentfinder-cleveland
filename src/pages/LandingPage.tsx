@@ -150,34 +150,34 @@ const LandingPage: React.FC = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
+            {/* Logo - left */}
             <Link to="/" className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
               </div>
-              <span className="font-bold text-xl text-foreground">Rent Finder</span>
+              <span className="font-bold text-xl text-foreground leading-none">Rent Finder</span>
             </Link>
 
-            {/* Nav Links - Hidden on mobile */}
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            {/* Nav Links - center - MUST have items-center and h-full */}
+            <div className="hidden md:flex items-center gap-8 h-full">
+              <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center h-full">
                 Features
               </a>
-              <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center h-full">
                 How It Works
               </a>
-              <a href="#testimonials" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="#testimonials" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center h-full">
                 Testimonials
               </a>
-              <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center h-full">
                 FAQ
               </a>
-              <Link to="/p/properties" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/p/properties" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center h-full">
                 Browse Listings
               </Link>
             </div>
 
-            {/* Auth Buttons */}
+            {/* Auth Buttons - right */}
             <div className="flex items-center gap-3">
               <Button variant="ghost" asChild>
                 <Link to="/auth/login">Log In</Link>
