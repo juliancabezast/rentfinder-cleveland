@@ -810,6 +810,9 @@ export type Database = {
           updated_at: string | null
           voucher_amount: number | null
           voucher_status: string | null
+          whatsapp_consent: boolean | null
+          whatsapp_consent_at: string | null
+          whatsapp_number: string | null
         }
         Insert: {
           assigned_leasing_agent_id?: string | null
@@ -856,6 +859,9 @@ export type Database = {
           updated_at?: string | null
           voucher_amount?: number | null
           voucher_status?: string | null
+          whatsapp_consent?: boolean | null
+          whatsapp_consent_at?: string | null
+          whatsapp_number?: string | null
         }
         Update: {
           assigned_leasing_agent_id?: string | null
@@ -902,6 +908,9 @@ export type Database = {
           updated_at?: string | null
           voucher_amount?: number | null
           voucher_status?: string | null
+          whatsapp_consent?: boolean | null
+          whatsapp_consent_at?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: [
           {
@@ -946,6 +955,7 @@ export type Database = {
           twilio_account_sid: string | null
           twilio_auth_token: string | null
           twilio_phone_number: string | null
+          twilio_whatsapp_number: string | null
           updated_at: string | null
         }
         Insert: {
@@ -959,6 +969,7 @@ export type Database = {
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_phone_number?: string | null
+          twilio_whatsapp_number?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -972,6 +983,7 @@ export type Database = {
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_phone_number?: string | null
+          twilio_whatsapp_number?: string | null
           updated_at?: string | null
         }
         Relationships: [

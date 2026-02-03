@@ -34,7 +34,13 @@ const INTEGRATION_KEYS: IntegrationKey[] = [
   {
     key: 'twilio_phone_number',
     label: 'Twilio Phone Number',
-    description: 'Your Twilio phone number (e.g., +12165550100)',
+    description: 'Your Twilio phone number for SMS (e.g., +12165550100)',
+    testable: false,
+  },
+  {
+    key: 'twilio_whatsapp_number',
+    label: 'Twilio WhatsApp Number',
+    description: 'Your Twilio WhatsApp-enabled number (e.g., +12165550100)',
     testable: false,
   },
   {
@@ -76,6 +82,7 @@ const mapKeyToService = (key: string): string => {
     twilio_account_sid: "twilio",
     twilio_auth_token: "twilio",
     twilio_phone_number: "twilio",
+    twilio_whatsapp_number: "twilio",
     bland_api_key: "bland_ai",
     openai_api_key: "openai",
     persona_api_key: "persona",
