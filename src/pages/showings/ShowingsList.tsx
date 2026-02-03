@@ -79,6 +79,7 @@ const ShowingsList: React.FC = () => {
   const [selectedShowingForReport, setSelectedShowingForReport] = useState<{
     id: string;
     leadId: string;
+    propertyAddress?: string;
   } | null>(null);
 
   const fetchShowings = async () => {
@@ -153,9 +154,13 @@ const ShowingsList: React.FC = () => {
     fetchShowings();
   }, [userRecord?.organization_id, statusFilter, dateFilter]);
 
-  const handleOpenReport = (e: React.MouseEvent, showingId: string, leadId: string) => {
+  const handleOpenReport = (e: React.MouseEvent, showing: ShowingWithDetails) => {
     e.stopPropagation();
-    setSelectedShowingForReport({ id: showingId, leadId });
+    setSelectedShowingForReport({ 
+      id: showing.id, 
+      leadId: showing.lead_id,
+      propertyAddress: showing.property_address
+    });
     setReportDialogOpen(true);
   };
 
@@ -310,7 +315,7 @@ const ShowingsList: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => handleOpenReport(e, showing.id, showing.lead_id)}
+                        onClick={(e) => handleOpenReport(e, showing)}
                       >
                         <FileText className="h-4 w-4 mr-1" />
                         Submit Report
@@ -345,6 +350,7 @@ const ShowingsList: React.FC = () => {
           onOpenChange={setReportDialogOpen}
           showingId={selectedShowingForReport.id}
           leadId={selectedShowingForReport.leadId}
+          propertyAddress={selectedShowingForReport.propertyAddress}
           onSuccess={fetchShowings}
         />
       )}

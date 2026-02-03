@@ -7,12 +7,14 @@ import { AlertTriangle, Eye, EyeOff, Save, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { sendTestEmail } from '@/lib/notificationService';
 
 interface IntegrationKey {
   key: string;
   label: string;
   description: string;
   testable: boolean;
+  isSecretEnv?: boolean; // Stored in Supabase secrets, not organization_credentials
 }
 
 const INTEGRATION_KEYS: IntegrationKey[] = [
@@ -57,6 +59,13 @@ const INTEGRATION_KEYS: IntegrationKey[] = [
     label: 'Doorloop API Key',
     description: 'API key for property management sync',
     testable: true,
+  },
+  {
+    key: 'resend_api_key',
+    label: 'Resend API Key',
+    description: 'API key for sending email notifications',
+    testable: true,
+    isSecretEnv: true,
   },
 ];
 
@@ -185,10 +194,44 @@ export const IntegrationKeysTab: React.FC = () => {
 
   const testConnection = async (key: string) => {
     setTesting(key);
-    // Simulate test - in real implementation, call an edge function
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    toast({ title: 'Connection test', description: 'Test functionality not yet implemented.' });
-    setTesting(null);
+    try {
+      if (key === 'resend_api_key') {
+        // Test Resend by sending a test email
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('owner_email')
+          .eq('id', userRecord?.organization_id)
+          .single();
+
+        if (!org?.owner_email) {
+          throw new Error('Organization owner email not found');
+        }
+
+        const result = await sendTestEmail({
+          adminEmail: org.owner_email,
+          organizationId: userRecord?.organization_id || '',
+        });
+
+        if (result.success) {
+          toast({ title: 'Test email sent!', description: `Check ${org.owner_email} for the test message.` });
+        } else {
+          throw new Error(result.error || 'Failed to send test email');
+        }
+      } else {
+        // Simulate test for other integrations
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        toast({ title: 'Connection test', description: 'Test functionality not yet implemented for this integration.' });
+      }
+    } catch (error) {
+      console.error('Test connection error:', error);
+      toast({
+        title: 'Test failed',
+        description: error instanceof Error ? error.message : 'Connection test failed',
+        variant: 'destructive',
+      });
+    } finally {
+      setTesting(null);
+    }
   };
 
   if (loading) {
