@@ -39,6 +39,7 @@ import {
   MessageSquare,
   PhoneCall,
   Eye,
+  CalendarPlus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +51,7 @@ import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
 import { LeadForm } from "@/components/leads/LeadForm";
 import { HumanTakeoverModal } from "@/components/leads/HumanTakeoverModal";
 import { ReleaseControlModal } from "@/components/leads/ReleaseControlModal";
+import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -91,6 +93,7 @@ const LeadDetail: React.FC = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [takeoverOpen, setTakeoverOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
+  const [scheduleShowingOpen, setScheduleShowingOpen] = useState(false);
 
   const fetchLead = async () => {
     if (!id) return;
@@ -324,7 +327,18 @@ const LeadDetail: React.FC = () => {
             <div className="flex flex-col items-center gap-4">
               <ScoreDisplay score={lead.lead_score || 50} size="lg" />
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {permissions.canScheduleShowing && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setScheduleShowingOpen(true)}
+                    className="bg-accent/10 hover:bg-accent/20 text-accent-foreground"
+                  >
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Schedule Showing
+                  </Button>
+                )}
                 {permissions.canEditLeadInfo && (
                   <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                     <Edit className="mr-2 h-4 w-4" />
@@ -633,6 +647,14 @@ const LeadDetail: React.FC = () => {
         onOpenChange={setReleaseOpen}
         leadId={lead.id}
         leadName={leadName}
+        onSuccess={fetchLead}
+      />
+
+      <ScheduleShowingDialog
+        open={scheduleShowingOpen}
+        onOpenChange={setScheduleShowingOpen}
+        preselectedLeadId={lead.id}
+        preselectedLeadName={leadName}
         onSuccess={fetchLead}
       />
     </div>

@@ -21,6 +21,7 @@ import LeadsList from "./pages/leads/LeadsList";
 import LeadDetail from "./pages/leads/LeadDetail";
 import ShowingsList from "./pages/showings/ShowingsList";
 import CallsList from "./pages/calls/CallsList";
+import CallDetail from "./pages/calls/CallDetail";
 import Reports from "./pages/reports/Reports";
 import InsightGenerator from "./pages/insights/InsightGenerator";
 import UsersList from "./pages/users/UsersList";
@@ -126,11 +127,22 @@ const App = () => (
             />
 
             <Route
-              path="/calls/*"
+              path="/calls"
               element={
                 <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
                   <MainLayout>
                     <CallsList />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/calls/:id"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
+                  <MainLayout>
+                    <CallDetail />
                   </MainLayout>
                 </ProtectedRoute>
               }

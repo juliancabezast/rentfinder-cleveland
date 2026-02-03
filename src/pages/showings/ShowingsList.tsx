@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Clock, MapPin, User, CalendarDays } from "lucide-react";
+import { Calendar, Clock, MapPin, User, CalendarDays, Plus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,12 +23,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay, endOfDay, addDays, parseISO } from "date-fns";
+import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
+import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
 
 interface ShowingWithDetails {
   id: string;
   scheduled_at: string;
   status: string;
   duration_minutes: number | null;
+  lead_id: string;
   property_address?: string;
   property_city?: string;
   lead_name?: string;
@@ -70,6 +73,14 @@ const ShowingsList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("week");
 
+  // Dialog states
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [selectedShowingForReport, setSelectedShowingForReport] = useState<{
+    id: string;
+    leadId: string;
+  } | null>(null);
+
   const fetchShowings = async () => {
     if (!userRecord?.organization_id) return;
 
@@ -79,7 +90,7 @@ const ShowingsList: React.FC = () => {
         .from("showings")
         .select(
           `
-          id, scheduled_at, status, duration_minutes,
+          id, scheduled_at, status, duration_minutes, lead_id,
           properties(address, city),
           leads(full_name, phone)
         `
@@ -119,6 +130,7 @@ const ShowingsList: React.FC = () => {
           scheduled_at: s.scheduled_at,
           status: s.status,
           duration_minutes: s.duration_minutes,
+          lead_id: s.lead_id,
           property_address: s.properties?.address,
           property_city: s.properties?.city,
           lead_name: s.leads?.full_name,
@@ -141,6 +153,12 @@ const ShowingsList: React.FC = () => {
     fetchShowings();
   }, [userRecord?.organization_id, statusFilter, dateFilter]);
 
+  const handleOpenReport = (e: React.MouseEvent, showingId: string, leadId: string) => {
+    e.stopPropagation();
+    setSelectedShowingForReport({ id: showingId, leadId });
+    setReportDialogOpen(true);
+  };
+
   const ShowingCardSkeleton = () => (
     <Card>
       <CardContent className="p-4">
@@ -157,6 +175,9 @@ const ShowingsList: React.FC = () => {
     </Card>
   );
 
+  const canSubmitReport = (status: string) =>
+    status === "scheduled" || status === "confirmed";
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -170,39 +191,46 @@ const ShowingsList: React.FC = () => {
             Manage property showings and appointments
           </p>
         </div>
+        <Button
+          onClick={() => setScheduleDialogOpen(true)}
+          className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Schedule Showing
+        </Button>
       </div>
 
       {/* Filters */}
       <div className="glass-card rounded-xl p-4 mb-6">
         <div className="flex flex-col gap-4 sm:flex-row">
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
-                <Calendar className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Date range" />
-              </SelectTrigger>
-              <SelectContent>
-                {DATE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
+              <Calendar className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Date range" />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </div>
 
       {/* Showings List */}
       {loading ? (
@@ -276,19 +304,49 @@ const ShowingsList: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Status */}
-                  <Badge
-                    className={
-                      statusColors[showing.status] || "bg-muted text-muted-foreground"
-                    }
-                  >
-                    {showing.status.replace("_", " ")}
-                  </Badge>
+                  {/* Actions and Status */}
+                  <div className="flex items-center gap-2">
+                    {canSubmitReport(showing.status) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => handleOpenReport(e, showing.id, showing.lead_id)}
+                      >
+                        <FileText className="h-4 w-4 mr-1" />
+                        Submit Report
+                      </Button>
+                    )}
+                    <Badge
+                      className={
+                        statusColors[showing.status] || "bg-muted text-muted-foreground"
+                      }
+                    >
+                      {showing.status.replace("_", " ")}
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Schedule Showing Dialog */}
+      <ScheduleShowingDialog
+        open={scheduleDialogOpen}
+        onOpenChange={setScheduleDialogOpen}
+        onSuccess={fetchShowings}
+      />
+
+      {/* Showing Report Dialog */}
+      {selectedShowingForReport && (
+        <ShowingReportDialog
+          open={reportDialogOpen}
+          onOpenChange={setReportDialogOpen}
+          showingId={selectedShowingForReport.id}
+          leadId={selectedShowingForReport.leadId}
+          onSuccess={fetchShowings}
+        />
       )}
     </div>
   );

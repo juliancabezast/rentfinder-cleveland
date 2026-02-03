@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Phone, PhoneIncoming, PhoneOutgoing, Clock, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,7 @@ const statusColors: Record<string, string> = {
 };
 
 const CallsList: React.FC = () => {
+  const navigate = useNavigate();
   const { userRecord } = useAuth();
   const { toast } = useToast();
 
@@ -246,7 +248,11 @@ const CallsList: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredCalls.map((call) => (
-                    <TableRow key={call.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableRow
+                      key={call.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/calls/${call.id}`)}
+                    >
                       <TableCell>
                         {call.direction === "inbound" ? (
                           <PhoneIncoming className="h-4 w-4 text-green-600" />
