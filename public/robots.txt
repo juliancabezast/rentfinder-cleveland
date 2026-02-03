@@ -1,8 +1,40 @@
+# Rent Finder Cleveland - robots.txt
+# https://rentfindercleveland.com
+
+User-agent: *
+Allow: /
+Allow: /p/properties
+Allow: /p/properties/*
+Allow: /p/privacy-policy
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /leads
+Disallow: /leads/*
+Disallow: /showings
+Disallow: /showings/*
+Disallow: /calls
+Disallow: /calls/*
+Disallow: /settings
+Disallow: /users
+Disallow: /users/*
+Disallow: /reports
+Disallow: /costs
+Disallow: /analytics
+Disallow: /analytics/*
+Disallow: /referrals
+Disallow: /documents
+Disallow: /insights
+Disallow: /logs
+Disallow: /auth
+
+# Specific bots
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Bingbot
 Allow: /
+Crawl-delay: 2
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +42,5 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
-Allow: /
+# Sitemap
+Sitemap: https://rentfindercleveland.com/sitemap.xml
