@@ -18,6 +18,7 @@ import {
   MapPin,
   Shield,
   Target,
+  Map,
 } from 'lucide-react';
 import {
   Sheet,
@@ -52,6 +53,7 @@ const analyticsNavItems: NavItem[] = [
 ];
 
 const moreNavItems: NavItem[] = [
+  { title: 'My Route', href: '/showings/route', icon: Map, permission: 'canViewOwnRoute' },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },

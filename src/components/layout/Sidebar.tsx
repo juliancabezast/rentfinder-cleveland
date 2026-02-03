@@ -20,6 +20,7 @@ import {
   MapPin,
   Shield,
   Target,
+  Map,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,6 +43,7 @@ const mainNavItems: NavItem[] = [
   { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Leads', href: '/leads', icon: Users },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
+  { title: 'My Route', href: '/showings/route', icon: Map, permission: 'canViewOwnRoute' },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
 ];

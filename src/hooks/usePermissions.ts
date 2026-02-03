@@ -40,6 +40,7 @@ export interface Permissions {
   canScheduleShowing: boolean;
   canSubmitShowingReport: boolean;
   canCancelRescheduleShowing: boolean;
+  canViewOwnRoute: boolean;
 
   // Calls & Communications
   canViewAllCallLogs: boolean;
@@ -122,6 +123,7 @@ const createPermissions = (role: AppRole | null): Permissions => {
     canScheduleShowing: isEditorOrAbove || isLeasingAgent,
     canSubmitShowingReport: isEditorOrAbove || isLeasingAgent,
     canCancelRescheduleShowing: isEditorOrAbove || isLeasingAgent,
+    canViewOwnRoute: isEditorOrAbove || isLeasingAgent,
 
     // Calls & Communications
     canViewAllCallLogs: isEditorOrAbove,

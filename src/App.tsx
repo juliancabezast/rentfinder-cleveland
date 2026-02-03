@@ -20,6 +20,7 @@ import PropertyDetail from "./pages/properties/PropertyDetail";
 import LeadsList from "./pages/leads/LeadsList";
 import LeadDetail from "./pages/leads/LeadDetail";
 import ShowingsList from "./pages/showings/ShowingsList";
+import ShowingRoute from "./pages/showings/ShowingRoute";
 import CallsList from "./pages/calls/CallsList";
 import CallDetail from "./pages/calls/CallDetail";
 import Reports from "./pages/reports/Reports";
@@ -120,11 +121,22 @@ const App = () => (
             />
 
             <Route
-              path="/showings/*"
+              path="/showings"
               element={
                 <ProtectedRoute>
                   <MainLayout>
                     <ShowingsList />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/showings/route"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <ShowingRoute />
                   </MainLayout>
                 </ProtectedRoute>
               }
