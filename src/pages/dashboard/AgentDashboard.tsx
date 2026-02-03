@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { ShowingCard, ShowingCardSkeleton } from "@/components/dashboard/ShowingCard";
 import { PriorityLeadCard, PriorityLeadCardSkeleton } from "@/components/dashboard/PriorityLeadCard";
+import { DailyRouteCard } from "@/components/showings/DailyRouteCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,7 +14,6 @@ import {
   CheckCircle,
   DollarSign,
   ChevronRight,
-  Phone,
   FileText,
 } from "lucide-react";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
@@ -33,10 +32,22 @@ interface TodayShowing {
   id: string;
   scheduled_at: string;
   status: string;
-  property_address?: string;
-  lead_name?: string;
-  lead_phone?: string;
-  duration_minutes?: number;
+  duration_minutes: number | null;
+  property: {
+    address: string;
+    unit_number: string | null;
+    city: string;
+    bedrooms: number;
+    bathrooms: number;
+    rent_price: number;
+  } | null;
+  lead: {
+    id: string;
+    full_name: string | null;
+    phone: string;
+    lead_score: number | null;
+    is_priority: boolean | null;
+  } | null;
 }
 
 interface AssignedLead {
@@ -90,8 +101,8 @@ export const AgentDashboard = () => {
             .from("showings")
             .select(`
               id, scheduled_at, status, duration_minutes,
-              properties(address, city),
-              leads(full_name, phone)
+              properties:property_id (address, unit_number, city, bedrooms, bathrooms, rent_price),
+              leads:lead_id (id, full_name, phone, lead_score, is_priority)
             `)
             .eq("organization_id", userRecord.organization_id)
             .eq("leasing_agent_id", userRecord.id)
@@ -149,18 +160,21 @@ export const AgentDashboard = () => {
             : undefined,
         });
 
-        // Process today's showings
+        // Process today's showings for route card
         setTodayShowings(
           (showingsTodayResult.data || []).map((s: any) => ({
             id: s.id,
             scheduled_at: s.scheduled_at,
             status: s.status,
             duration_minutes: s.duration_minutes,
-            property_address: s.properties
-              ? `${s.properties.address}, ${s.properties.city}`
-              : undefined,
-            lead_name: s.leads?.full_name,
-            lead_phone: s.leads?.phone,
+            property: s.properties,
+            lead: s.leads ? {
+              id: s.leads.id,
+              full_name: s.leads.full_name,
+              phone: s.leads.phone,
+              lead_score: s.leads.lead_score,
+              is_priority: s.leads.is_priority,
+            } : null,
           }))
         );
 
@@ -200,13 +214,19 @@ export const AgentDashboard = () => {
     fetchAgentData();
   }, [userRecord?.id, userRecord?.organization_id, userRecord?.commission_rate]);
 
+  // Refresh function for route card
+  const refreshShowings = () => {
+    // Refetch data by triggering useEffect
+    if (userRecord?.id && userRecord?.organization_id) {
+      setLoading(true);
+      // This will trigger the useEffect
+      setTodayShowings([]);
+    }
+  };
+
   const handleGetDirections = (address: string) => {
     const encoded = encodeURIComponent(address);
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, "_blank");
-  };
-
-  const handleSubmitReport = (showingId: string) => {
-    navigate(`/showings/${showingId}/report`);
   };
 
   const handleTakeControl = async (leadId: string) => {
@@ -306,46 +326,12 @@ export const AgentDashboard = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Today's Showings */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Today's Showings</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/showings")}
-            >
-              View All <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="max-h-[450px]">
-              <div className="space-y-3">
-                {loading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <ShowingCardSkeleton key={i} />
-                  ))
-                ) : todayShowings.length > 0 ? (
-                  todayShowings.map((showing) => (
-                    <ShowingCard
-                      key={showing.id}
-                      showing={showing}
-                      onGetDirections={handleGetDirections}
-                      onSubmitReport={handleSubmitReport}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <Calendar className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                    <p className="text-sm text-muted-foreground">
-                      No showings scheduled for today.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        {/* Today's Route */}
+        <DailyRouteCard
+          showings={todayShowings}
+          loading={loading}
+          onRefresh={refreshShowings}
+        />
 
         {/* Assigned Leads */}
         <Card>
