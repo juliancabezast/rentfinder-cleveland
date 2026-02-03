@@ -38,8 +38,6 @@ import {
   Calendar,
   Home,
   MessageSquare,
-  PhoneCall,
-  Eye,
   CalendarPlus,
   Shield,
   CheckCircle,
@@ -57,6 +55,7 @@ import { LeadForm } from "@/components/leads/LeadForm";
 import { HumanTakeoverModal } from "@/components/leads/HumanTakeoverModal";
 import { ReleaseControlModal } from "@/components/leads/ReleaseControlModal";
 import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
+import { LeadActivityTimeline } from "@/components/leads/LeadActivityTimeline";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -98,9 +97,6 @@ const LeadDetail: React.FC = () => {
 
   const [lead, setLead] = useState<LeadWithRelations | null>(null);
   const [scoreHistory, setScoreHistory] = useState<ScoreHistory[]>([]);
-  const [calls, setCalls] = useState<Tables<"calls">[]>([]);
-  const [showings, setShowings] = useState<Tables<"showings">[]>([]);
-  const [communications, setCommunications] = useState<Tables<"communications">[]>([]);
   const [consentLogs, setConsentLogs] = useState<ConsentLog[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -146,31 +142,13 @@ const LeadDetail: React.FC = () => {
       });
 
       // Fetch related data in parallel
-      const [historyRes, callsRes, showingsRes, commsRes, consentRes] = await Promise.all([
+      const [historyRes, consentRes] = await Promise.all([
         supabase
           .from("lead_score_history")
           .select("*")
           .eq("lead_id", id)
           .order("created_at", { ascending: false })
           .limit(20),
-        supabase
-          .from("calls")
-          .select("*")
-          .eq("lead_id", id)
-          .order("started_at", { ascending: false })
-          .limit(10),
-        supabase
-          .from("showings")
-          .select("*")
-          .eq("lead_id", id)
-          .order("scheduled_at", { ascending: false })
-          .limit(10),
-        supabase
-          .from("communications")
-          .select("*")
-          .eq("lead_id", id)
-          .order("sent_at", { ascending: false })
-          .limit(10),
         supabase
           .from("consent_log")
           .select("*")
@@ -179,9 +157,6 @@ const LeadDetail: React.FC = () => {
       ]);
 
       setScoreHistory(historyRes.data || []);
-      setCalls(callsRes.data || []);
-      setShowings(showingsRes.data || []);
-      setCommunications(commsRes.data || []);
       setConsentLogs(consentRes.data || []);
     } catch (error) {
       console.error("Error fetching lead:", error);
@@ -721,103 +696,7 @@ const LeadDetail: React.FC = () => {
 
         {/* Activity Tab */}
         <TabsContent value="activity">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-3">
-                {/* Calls */}
-                <div>
-                  <h4 className="font-medium flex items-center gap-2 mb-3">
-                    <PhoneCall className="h-4 w-4" />
-                    Calls ({calls.length})
-                  </h4>
-                  {calls.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No calls yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {calls.slice(0, 5).map((call) => (
-                        <div
-                          key={call.id}
-                          className="text-sm p-2 rounded bg-muted/50 cursor-pointer hover:bg-muted"
-                          onClick={() => navigate(`/calls/${call.id}`)}
-                        >
-                          <div className="flex justify-between">
-                            <span className="capitalize">{call.direction}</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {call.status}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {call.started_at &&
-                              format(new Date(call.started_at), "MMM d, h:mm a")}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Showings */}
-                <div>
-                  <h4 className="font-medium flex items-center gap-2 mb-3">
-                    <Eye className="h-4 w-4" />
-                    Showings ({showings.length})
-                  </h4>
-                  {showings.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No showings yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {showings.slice(0, 5).map((showing) => (
-                        <div
-                          key={showing.id}
-                          className="text-sm p-2 rounded bg-muted/50"
-                        >
-                          <div className="flex justify-between">
-                            <span>
-                              {showing.scheduled_at &&
-                                format(new Date(showing.scheduled_at), "MMM d")}
-                            </span>
-                            <Badge variant="secondary" className="text-xs">
-                              {showing.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Communications */}
-                <div>
-                  <h4 className="font-medium flex items-center gap-2 mb-3">
-                    <MessageSquare className="h-4 w-4" />
-                    Messages ({communications.length})
-                  </h4>
-                  {communications.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No messages yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {communications.slice(0, 5).map((comm) => (
-                        <div key={comm.id} className="text-sm p-2 rounded bg-muted/50">
-                          <div className="flex justify-between">
-                            <span className="capitalize">{comm.channel}</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {comm.status}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {comm.body?.substring(0, 50)}...
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <LeadActivityTimeline leadId={lead.id} />
         </TabsContent>
       </Tabs>
 
