@@ -1302,6 +1302,91 @@ export type Database = {
           },
         ]
       }
+      referrals: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          organization_id: string
+          referral_channel: string | null
+          referral_code: string
+          referral_message_sent_at: string | null
+          referred_email: string | null
+          referred_lead_id: string | null
+          referred_name: string | null
+          referred_phone: string
+          referrer_lead_id: string
+          referrer_name: string | null
+          referrer_phone: string | null
+          reward_amount: number | null
+          reward_paid_at: string | null
+          reward_type: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          organization_id: string
+          referral_channel?: string | null
+          referral_code: string
+          referral_message_sent_at?: string | null
+          referred_email?: string | null
+          referred_lead_id?: string | null
+          referred_name?: string | null
+          referred_phone: string
+          referrer_lead_id: string
+          referrer_name?: string | null
+          referrer_phone?: string | null
+          reward_amount?: number | null
+          reward_paid_at?: string | null
+          reward_type?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          organization_id?: string
+          referral_channel?: string | null
+          referral_code?: string
+          referral_message_sent_at?: string | null
+          referred_email?: string | null
+          referred_lead_id?: string | null
+          referred_name?: string | null
+          referred_phone?: string
+          referrer_lead_id?: string
+          referrer_name?: string | null
+          referrer_phone?: string | null
+          reward_amount?: number | null
+          reward_paid_at?: string | null
+          reward_type?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referred_lead_id_fkey"
+            columns: ["referred_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_lead_id_fkey"
+            columns: ["referrer_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       showings: {
         Row: {
           agent_report: string | null

@@ -25,6 +25,7 @@ import {
   Shield,
   Target,
   Map,
+  Gift,
 } from 'lucide-react';
 
 interface NavItem {
@@ -53,6 +54,7 @@ const analyticsNavItems: NavItem[] = [
 ];
 
 const adminNavItems: NavItem[] = [
+  { title: 'Referrals', href: '/referrals', icon: Gift, permission: 'canViewReferrals' },
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },

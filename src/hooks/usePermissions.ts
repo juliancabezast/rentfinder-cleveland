@@ -73,6 +73,11 @@ export interface Permissions {
 
   // Consent
   canViewConsentLog: boolean;
+
+  // Referrals
+  canViewReferrals: boolean;
+  canManageReferralProgram: boolean;
+  canMarkRewardsPaid: boolean;
 }
 
 const createPermissions = (role: AppRole | null): Permissions => {
@@ -156,6 +161,11 @@ const createPermissions = (role: AppRole | null): Permissions => {
 
     // Consent
     canViewConsentLog: isEditorOrAbove || isLeasingAgent,
+
+    // Referrals
+    canViewReferrals: isEditorOrAbove,
+    canManageReferralProgram: isAdminOrAbove,
+    canMarkRewardsPaid: isAdminOrAbove,
   };
 };
 

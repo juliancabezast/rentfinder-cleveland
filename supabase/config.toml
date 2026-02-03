@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-message]
 verify_jwt = false
+
+[functions.trigger-referral-campaign]
+verify_jwt = false
