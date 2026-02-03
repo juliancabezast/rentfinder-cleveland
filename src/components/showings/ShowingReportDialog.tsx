@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,12 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { sendNoShowNotification, DEFAULT_NOTIFICATION_PREFS } from "@/lib/notificationService";
 
 interface ShowingReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   showingId: string;
   leadId: string;
+  propertyAddress?: string;
   onSuccess?: () => void;
 }
 
@@ -49,14 +52,31 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
   onOpenChange,
   showingId,
   leadId,
+  propertyAddress,
   onSuccess,
 }) => {
+  const { userRecord } = useAuth();
   const [status, setStatus] = useState<string>("");
   const [interestLevel, setInterestLevel] = useState<string>("");
   const [agentReport, setAgentReport] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [leadData, setLeadData] = useState<{ full_name: string | null; phone: string } | null>(null);
+  const [showingData, setShowingData] = useState<{ scheduled_at: string } | null>(null);
+
+  // Fetch lead and showing data for notifications
+  useEffect(() => {
+    if (open && leadId && showingId) {
+      Promise.all([
+        supabase.from("leads").select("full_name, phone").eq("id", leadId).single(),
+        supabase.from("showings").select("scheduled_at").eq("id", showingId).single(),
+      ]).then(([leadRes, showingRes]) => {
+        if (leadRes.data) setLeadData(leadRes.data);
+        if (showingRes.data) setShowingData(showingRes.data);
+      });
+    }
+  }, [open, leadId, showingId]);
 
   const resetForm = () => {
     setStatus("");
@@ -140,6 +160,47 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
 
       if (status === "no_show") {
         updateData.agent_report = agentReport;
+
+        // Send no-show notification email (fire-and-forget)
+        if (userRecord?.organization_id && leadData && showingData) {
+          // Check notification preferences
+          const { data: settingsData } = await supabase
+            .from("organization_settings")
+            .select("value")
+            .eq("organization_id", userRecord.organization_id)
+            .eq("key", "email_notification_preferences")
+            .single();
+
+          const prefs = settingsData?.value as typeof DEFAULT_NOTIFICATION_PREFS | null;
+          const shouldNotify = prefs?.no_show !== false; // Default to true
+
+          if (shouldNotify) {
+            const { data: orgData } = await supabase
+              .from("organizations")
+              .select("owner_email")
+              .eq("id", userRecord.organization_id)
+              .single();
+
+            const notificationEmail = (prefs?.notification_email as string) || orgData?.owner_email;
+            
+            if (notificationEmail) {
+              sendNoShowNotification({
+                adminEmail: notificationEmail,
+                organizationId: userRecord.organization_id,
+                showing: {
+                  id: showingId,
+                  scheduled_at: showingData.scheduled_at,
+                },
+                lead: {
+                  id: leadId,
+                  full_name: leadData.full_name,
+                  phone: leadData.phone,
+                },
+                propertyAddress: propertyAddress || "Unknown property",
+              });
+            }
+          }
+        }
       }
 
       if (status === "cancelled") {
