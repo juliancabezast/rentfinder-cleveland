@@ -203,9 +203,21 @@
             "@type": "Answer",
             "text": "Yes, Rent Finder Cleveland lists each property's pet policy clearly. You can filter for pet friendly apartments in Cleveland and see specific pet deposit and breed restriction information for each listing."
           }
-        }
-      ]
+      }
+    ]
     }
+    </script>
+    
+    <!-- Cache-control meta tags to prevent stale HTML -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Auto-reload script to handle stale Vite chunks after new deployments -->
+    <script>
+      window.addEventListener('vite:preloadError', () => {
+        window.location.reload();
+      });
     </script>
   </head>
 
