@@ -44,6 +44,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
+import { CallQualityScore } from "@/components/calls/CallQualityScore";
 
 type Call = Tables<"calls">;
 
@@ -518,6 +519,12 @@ const CallDetail: React.FC = () => {
               </CollapsibleContent>
             </Card>
           </Collapsible>
+
+          {/* Agent Quality Score */}
+          <CallQualityScore 
+            score={call.agent_quality_score ?? null}
+            details={call.agent_quality_details as any}
+          />
         </div>
       </div>
     </div>

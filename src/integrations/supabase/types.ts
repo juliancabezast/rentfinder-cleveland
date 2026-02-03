@@ -115,6 +115,8 @@ export type Database = {
       }
       calls: {
         Row: {
+          agent_quality_details: Json | null
+          agent_quality_score: number | null
           agent_type: string
           bland_call_id: string | null
           cost_bland: number | null
@@ -144,6 +146,8 @@ export type Database = {
           unanswered_questions: Json | null
         }
         Insert: {
+          agent_quality_details?: Json | null
+          agent_quality_score?: number | null
           agent_type: string
           bland_call_id?: string | null
           cost_bland?: number | null
@@ -173,6 +177,8 @@ export type Database = {
           unanswered_questions?: Json | null
         }
         Update: {
+          agent_quality_details?: Json | null
+          agent_quality_score?: number | null
           agent_type?: string
           bland_call_id?: string | null
           cost_bland?: number | null
@@ -284,6 +290,73 @@ export type Database = {
           },
           {
             foreignKeyName: "communications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitor_mentions: {
+        Row: {
+          advantage_mentioned: string | null
+          call_id: string | null
+          competitor_address: string | null
+          competitor_name: string | null
+          competitor_price: number | null
+          confidence: number | null
+          created_at: string | null
+          id: string
+          lead_chose_competitor: boolean | null
+          lead_id: string | null
+          organization_id: string
+          transcript_excerpt: string | null
+        }
+        Insert: {
+          advantage_mentioned?: string | null
+          call_id?: string | null
+          competitor_address?: string | null
+          competitor_name?: string | null
+          competitor_price?: number | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          lead_chose_competitor?: boolean | null
+          lead_id?: string | null
+          organization_id: string
+          transcript_excerpt?: string | null
+        }
+        Update: {
+          advantage_mentioned?: string | null
+          call_id?: string | null
+          competitor_address?: string | null
+          competitor_name?: string | null
+          competitor_price?: number | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          lead_chose_competitor?: boolean | null
+          lead_id?: string | null
+          organization_id?: string
+          transcript_excerpt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_mentions_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_mentions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_mentions_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
