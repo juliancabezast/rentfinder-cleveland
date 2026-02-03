@@ -129,6 +129,7 @@ export type Database = {
           duration_seconds: number | null
           ended_at: string | null
           id: string
+          is_demo: boolean | null
           key_questions: Json | null
           lead_id: string | null
           organization_id: string
@@ -160,6 +161,7 @@ export type Database = {
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
+          is_demo?: boolean | null
           key_questions?: Json | null
           lead_id?: string | null
           organization_id: string
@@ -191,6 +193,7 @@ export type Database = {
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
+          is_demo?: boolean | null
           key_questions?: Json | null
           lead_id?: string | null
           organization_id?: string
@@ -239,6 +242,7 @@ export type Database = {
           delivered_at: string | null
           direction: string
           id: string
+          is_demo: boolean | null
           lead_id: string | null
           opened_at: string | null
           organization_id: string
@@ -255,6 +259,7 @@ export type Database = {
           delivered_at?: string | null
           direction: string
           id?: string
+          is_demo?: boolean | null
           lead_id?: string | null
           opened_at?: string | null
           organization_id: string
@@ -271,6 +276,7 @@ export type Database = {
           delivered_at?: string | null
           direction?: string
           id?: string
+          is_demo?: boolean | null
           lead_id?: string | null
           opened_at?: string | null
           organization_id?: string
@@ -819,6 +825,7 @@ export type Database = {
           changed_by_user_id: string | null
           created_at: string | null
           id: string
+          is_demo: boolean | null
           lead_id: string
           new_score: number
           organization_id: string
@@ -835,6 +842,7 @@ export type Database = {
           changed_by_user_id?: string | null
           created_at?: string | null
           id?: string
+          is_demo?: boolean | null
           lead_id: string
           new_score: number
           organization_id: string
@@ -851,6 +859,7 @@ export type Database = {
           changed_by_user_id?: string | null
           created_at?: string | null
           id?: string
+          is_demo?: boolean | null
           lead_id?: string
           new_score?: number
           organization_id?: string
@@ -923,6 +932,7 @@ export type Database = {
           identity_verified: boolean | null
           interested_property_id: string | null
           interested_zip_codes: string[] | null
+          is_demo: boolean | null
           is_human_controlled: boolean | null
           is_priority: boolean | null
           last_contact_at: string | null
@@ -972,6 +982,7 @@ export type Database = {
           identity_verified?: boolean | null
           interested_property_id?: string | null
           interested_zip_codes?: string[] | null
+          is_demo?: boolean | null
           is_human_controlled?: boolean | null
           is_priority?: boolean | null
           last_contact_at?: string | null
@@ -1021,6 +1032,7 @@ export type Database = {
           identity_verified?: boolean | null
           interested_property_id?: string | null
           interested_zip_codes?: string[] | null
+          is_demo?: boolean | null
           is_human_controlled?: boolean | null
           is_priority?: boolean | null
           last_contact_at?: string | null
@@ -1273,6 +1285,7 @@ export type Database = {
           hud_inspection_ready: boolean | null
           id: string
           investor_id: string | null
+          is_demo: boolean | null
           listed_date: string | null
           managed_by: string | null
           organization_id: string
@@ -1308,6 +1321,7 @@ export type Database = {
           hud_inspection_ready?: boolean | null
           id?: string
           investor_id?: string | null
+          is_demo?: boolean | null
           listed_date?: string | null
           managed_by?: string | null
           organization_id: string
@@ -1343,6 +1357,7 @@ export type Database = {
           hud_inspection_ready?: boolean | null
           id?: string
           investor_id?: string | null
+          is_demo?: boolean | null
           listed_date?: string | null
           managed_by?: string | null
           organization_id?: string
@@ -1534,6 +1549,7 @@ export type Database = {
           created_at: string | null
           duration_minutes: number | null
           id: string
+          is_demo: boolean | null
           last_confirmation_attempt_at: string | null
           lead_id: string
           leasing_agent_id: string | null
@@ -1556,6 +1572,7 @@ export type Database = {
           created_at?: string | null
           duration_minutes?: number | null
           id?: string
+          is_demo?: boolean | null
           last_confirmation_attempt_at?: string | null
           lead_id: string
           leasing_agent_id?: string | null
@@ -1578,6 +1595,7 @@ export type Database = {
           created_at?: string | null
           duration_minutes?: number | null
           id?: string
+          is_demo?: boolean | null
           last_confirmation_attempt_at?: string | null
           lead_id?: string
           leasing_agent_id?: string | null
