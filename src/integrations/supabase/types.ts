@@ -1054,10 +1054,12 @@ export type Database = {
           id: string
           investor_id: string | null
           listed_date: string | null
+          managed_by: string | null
           organization_id: string
           pet_policy: string | null
           photos: Json | null
           property_type: string | null
+          published_on: string[] | null
           rent_price: number
           section_8_accepted: boolean | null
           special_notes: string | null
@@ -1087,10 +1089,12 @@ export type Database = {
           id?: string
           investor_id?: string | null
           listed_date?: string | null
+          managed_by?: string | null
           organization_id: string
           pet_policy?: string | null
           photos?: Json | null
           property_type?: string | null
+          published_on?: string[] | null
           rent_price: number
           section_8_accepted?: boolean | null
           special_notes?: string | null
@@ -1120,10 +1124,12 @@ export type Database = {
           id?: string
           investor_id?: string | null
           listed_date?: string | null
+          managed_by?: string | null
           organization_id?: string
           pet_policy?: string | null
           photos?: Json | null
           property_type?: string | null
+          published_on?: string[] | null
           rent_price?: number
           section_8_accepted?: boolean | null
           special_notes?: string | null

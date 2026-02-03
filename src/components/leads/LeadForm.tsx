@@ -283,16 +283,16 @@ export const LeadForm: React.FC<LeadFormProps> = ({
           <div className="space-y-2">
             <Label>Interested Property</Label>
             <Select
-              value={formData.interested_property_id}
+              value={formData.interested_property_id || "none"}
               onValueChange={(v) =>
-                setFormData((f) => ({ ...f, interested_property_id: v }))
+                setFormData((f) => ({ ...f, interested_property_id: v === "none" ? "" : v }))
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select property" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {properties.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.address}
@@ -369,7 +369,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
             <div className="space-y-2">
               <Label>Voucher Status</Label>
               <Select
-                value={formData.voucher_status}
+                value={formData.voucher_status || "unknown"}
                 onValueChange={(v) =>
                   setFormData((f) => ({ ...f, voucher_status: v }))
                 }
