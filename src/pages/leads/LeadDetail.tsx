@@ -57,6 +57,7 @@ import { ReleaseControlModal } from "@/components/leads/ReleaseControlModal";
 import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
 import { LeadActivityTimeline } from "@/components/leads/LeadActivityTimeline";
 import { SmartMatches } from "@/components/leads/SmartMatches";
+import { MessagingCenter } from "@/components/leads/MessagingCenter";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -87,6 +88,7 @@ const CONSENT_TYPE_ICONS: Record<string, React.ElementType> = {
   automated_calls: Bot,
   data_processing: Shield,
   email_marketing: Mail,
+  whatsapp_marketing: MessageSquare,
 };
 
 const LeadDetail: React.FC = () => {
@@ -497,6 +499,21 @@ const LeadDetail: React.FC = () => {
           {/* Smart Matches - Full Width */}
           <SmartMatches leadId={lead.id} leadName={leadName} />
 
+          {/* Messaging Center */}
+          <MessagingCenter
+            lead={{
+              id: lead.id,
+              phone: lead.phone,
+              whatsapp_number: (lead as any).whatsapp_number,
+              full_name: lead.full_name,
+              sms_consent: lead.sms_consent ?? false,
+              whatsapp_consent: (lead as any).whatsapp_consent ?? false,
+              sms_consent_at: lead.sms_consent_at,
+              whatsapp_consent_at: (lead as any).whatsapp_consent_at,
+            }}
+            onConsentUpdate={fetchLead}
+          />
+
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Score History */}
             <Card>
@@ -542,7 +559,7 @@ const LeadDetail: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                   <span className="text-sm font-medium">SMS Consent</span>
                   {lead.sms_consent ? (
@@ -570,6 +587,25 @@ const LeadDetail: React.FC = () => {
                       <span className="text-xs">
                         {lead.call_consent_at
                           ? format(new Date(lead.call_consent_at), "MMM d, yyyy")
+                          : "Granted"}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <XCircle className="h-4 w-4" />
+                      <span className="text-xs">Not granted</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <span className="text-sm font-medium">WhatsApp Consent</span>
+                  {(lead as any).whatsapp_consent ? (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-xs">
+                        {(lead as any).whatsapp_consent_at
+                          ? format(new Date((lead as any).whatsapp_consent_at), "MMM d, yyyy")
                           : "Granted"}
                       </span>
                     </div>
