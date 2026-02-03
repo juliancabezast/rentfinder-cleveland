@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Menu, User, LogOut } from 'lucide-react';
 import { NotificationsDropdown } from './NotificationsDropdown';
+import { IntegrationStatusMini } from '@/components/dashboard/IntegrationStatusMini';
 
 const routeTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -95,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <h1 className="text-lg font-bold text-foreground">{getPageTitle()}</h1>
       </div>
 
-      {/* Right side - Live indicator + Notifications + User menu */}
+      {/* Right side - Live indicator + Integration Status + Notifications + User menu */}
       <div className="flex items-center gap-3">
         {/* Live System Indicator */}
         <div className="flex items-center gap-1.5">
@@ -105,6 +106,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </span>
           <span className="text-xs text-green-600 font-medium hidden sm:inline">Live</span>
         </div>
+
+        {/* Integration Status Mini */}
+        <IntegrationStatusMini />
 
         <NotificationsDropdown />
 

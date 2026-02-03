@@ -181,7 +181,7 @@ const CostDashboard: React.FC = () => {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-          {data && (
+          {data?.overview && (
             <Badge variant="secondary" className="text-lg px-4 py-2 font-semibold">
               {formatCurrency(data.overview.totalSpend)}
             </Badge>
