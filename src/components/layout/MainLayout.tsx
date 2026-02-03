@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { NavLink } from '@/components/NavLink';
 import { cn } from '@/lib/utils';
+import { PAIpAssistant } from '@/components/shared/PAIpAssistant';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   LayoutDashboard,
@@ -149,6 +150,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
       {/* Mobile Bottom Navigation */}
       <MobileNav />
+
+      {/* pAIp AI Assistant */}
+      <PAIpAssistant />
     </div>
   );
 };

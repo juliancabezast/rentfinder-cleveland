@@ -13,7 +13,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Sparkles, Trash2, AlertTriangle, Building, Users, Phone, Calendar, BarChart3, Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Sparkles, Trash2, AlertTriangle, Building, Users, Phone, Calendar, BarChart3, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -35,12 +36,21 @@ interface DemoStats {
   scoreHistory: number;
 }
 
+interface DemoItem {
+  id: string;
+  type: 'property' | 'lead' | 'call' | 'showing';
+  name: string;
+  details: string;
+}
+
 export const DemoDataTab: React.FC = () => {
   const { userRecord } = useAuth();
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [demoDataIds, setDemoDataIds] = useState<DemoDataIds | null>(null);
+  const [demoItems, setDemoItems] = useState<DemoItem[]>([]);
   const [stats, setStats] = useState<DemoStats>({
     properties: 0,
     leads: 0,
@@ -78,14 +88,170 @@ export const DemoDataTab: React.FC = () => {
           showings: ids.showing_ids?.length || 0,
           scoreHistory: ids.score_history_ids?.length || 0,
         });
+
+        // Fetch detailed info for demo items
+        await fetchDemoItemDetails(ids);
       } else {
         setDemoDataIds(null);
+        setDemoItems([]);
         setStats({ properties: 0, leads: 0, calls: 0, showings: 0, scoreHistory: 0 });
       }
     } catch (error) {
       console.error('Error fetching demo data status:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDemoItemDetails = async (ids: DemoDataIds) => {
+    const items: DemoItem[] = [];
+
+    try {
+      // Fetch properties
+      if (ids.property_ids?.length) {
+        const { data: properties } = await supabase
+          .from('properties')
+          .select('id, address, city, bedrooms, bathrooms, rent_price')
+          .in('id', ids.property_ids);
+        
+        properties?.forEach(p => {
+          items.push({
+            id: p.id,
+            type: 'property',
+            name: `${p.address}`,
+            details: `${p.bedrooms}BR/${p.bathrooms}BA - $${p.rent_price}/mo`,
+          });
+        });
+      }
+
+      // Fetch leads
+      if (ids.lead_ids?.length) {
+        const { data: leads } = await supabase
+          .from('leads')
+          .select('id, full_name, phone, status, lead_score')
+          .in('id', ids.lead_ids);
+        
+        leads?.forEach(l => {
+          items.push({
+            id: l.id,
+            type: 'lead',
+            name: l.full_name || 'Unknown',
+            details: `Score: ${l.lead_score || 0} - ${l.status}`,
+          });
+        });
+      }
+
+      // Fetch showings
+      if (ids.showing_ids?.length) {
+        const { data: showings } = await supabase
+          .from('showings')
+          .select('id, scheduled_at, status, lead:leads(full_name)')
+          .in('id', ids.showing_ids);
+        
+        showings?.forEach(s => {
+          const leadName = (s.lead as any)?.full_name || 'Unknown';
+          items.push({
+            id: s.id,
+            type: 'showing',
+            name: `Showing with ${leadName}`,
+            details: `${new Date(s.scheduled_at).toLocaleDateString()} - ${s.status}`,
+          });
+        });
+      }
+
+      // Fetch calls
+      if (ids.call_ids?.length) {
+        const { data: calls } = await supabase
+          .from('calls')
+          .select('id, phone_number, duration_seconds, status')
+          .in('id', ids.call_ids);
+        
+        calls?.forEach(c => {
+          items.push({
+            id: c.id,
+            type: 'call',
+            name: `Call from ${c.phone_number}`,
+            details: `${Math.floor((c.duration_seconds || 0) / 60)}min - ${c.status}`,
+          });
+        });
+      }
+
+      setDemoItems(items);
+    } catch (error) {
+      console.error('Error fetching demo item details:', error);
+    }
+  };
+
+  const removeIndividualItem = async (item: DemoItem) => {
+    if (!userRecord?.organization_id || !demoDataIds) return;
+
+    setRemovingId(item.id);
+    try {
+      // Delete the item based on type
+      switch (item.type) {
+        case 'property':
+          // First delete related data
+          await supabase.from('showings').delete().eq('property_id', item.id);
+          await supabase.from('calls').delete().eq('property_id', item.id);
+          // Then delete the property
+          await supabase.from('properties').delete().eq('id', item.id);
+          demoDataIds.property_ids = demoDataIds.property_ids.filter(id => id !== item.id);
+          break;
+        case 'lead':
+          // Delete related score history first
+          await supabase.from('lead_score_history').delete().eq('lead_id', item.id);
+          await supabase.from('showings').delete().eq('lead_id', item.id);
+          await supabase.from('calls').delete().eq('lead_id', item.id);
+          await supabase.from('communications').delete().eq('lead_id', item.id);
+          // Delete lead
+          await supabase.from('leads').delete().eq('id', item.id);
+          demoDataIds.lead_ids = demoDataIds.lead_ids.filter(id => id !== item.id);
+          break;
+        case 'showing':
+          await supabase.from('showings').delete().eq('id', item.id);
+          demoDataIds.showing_ids = demoDataIds.showing_ids.filter(id => id !== item.id);
+          break;
+        case 'call':
+          // Delete related score history first
+          await supabase.from('lead_score_history').delete().eq('related_call_id', item.id);
+          await supabase.from('calls').delete().eq('id', item.id);
+          demoDataIds.call_ids = demoDataIds.call_ids.filter(id => id !== item.id);
+          break;
+      }
+
+      // Update the stored IDs
+      await supabase.from('organization_settings').upsert({
+        organization_id: userRecord.organization_id,
+        key: 'demo_data_ids',
+        value: demoDataIds as unknown as Json,
+        category: 'demo',
+        description: 'IDs of demo data records for cleanup',
+        updated_by: userRecord.id,
+      });
+
+      // Update local state
+      setDemoItems(prev => prev.filter(i => i.id !== item.id));
+      setStats({
+        properties: demoDataIds.property_ids.length,
+        leads: demoDataIds.lead_ids.length,
+        calls: demoDataIds.call_ids.length,
+        showings: demoDataIds.showing_ids.length,
+        scoreHistory: demoDataIds.score_history_ids.length,
+      });
+
+      toast({
+        title: 'Usuario eliminado exitosamente',
+        description: `${item.name} ha sido eliminado.`,
+      });
+    } catch (error) {
+      console.error('Error removing item:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar el elemento. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -393,6 +559,9 @@ export const DemoDataTab: React.FC = () => {
         scoreHistory: ids.score_history_ids.length,
       });
 
+      // Refresh demo items list
+      await fetchDemoItemDetails(ids);
+
       toast({
         title: '✨ Demo data seeded!',
         description: 'Created 1 property, 2 leads, 1 call, 1 showing, and 5 score history entries.',
@@ -479,6 +648,7 @@ export const DemoDataTab: React.FC = () => {
         .eq('key', 'demo_data_ids');
 
       setDemoDataIds(null);
+      setDemoItems([]);
       setStats({ properties: 0, leads: 0, calls: 0, showings: 0, scoreHistory: 0 });
 
       toast({
@@ -508,6 +678,24 @@ export const DemoDataTab: React.FC = () => {
       </Card>
     );
   }
+
+  const getTypeIcon = (type: DemoItem['type']) => {
+    switch (type) {
+      case 'property': return <Building className="h-4 w-4" />;
+      case 'lead': return <Users className="h-4 w-4" />;
+      case 'showing': return <Calendar className="h-4 w-4" />;
+      case 'call': return <Phone className="h-4 w-4" />;
+    }
+  };
+
+  const getTypeLabel = (type: DemoItem['type']) => {
+    switch (type) {
+      case 'property': return 'Propiedad';
+      case 'lead': return 'Lead';
+      case 'showing': return 'Showing';
+      case 'call': return 'Llamada';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -568,6 +756,77 @@ export const DemoDataTab: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Demo Items Table */}
+          {demoItems.length > 0 && (
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-base">Demo Items</CardTitle>
+                <CardDescription>Click the delete button to remove individual items</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Details</TableHead>
+                      <TableHead className="w-[80px]">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {demoItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            {getTypeIcon(item.type)}
+                            <span className="text-sm">{getTypeLabel(item.type)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{item.details}</TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                disabled={removingId === item.id}
+                              >
+                                {removingId === item.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <X className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción eliminará "{item.name}" y todos sus datos relacionados. Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => removeIndividualItem(item)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4">
