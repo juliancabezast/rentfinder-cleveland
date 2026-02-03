@@ -113,54 +113,38 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Create user record
-      const { data: newUser, error: userError } = await supabase
-        .from('users')
-        .insert({
-          organization_id: userRecord.organization_id,
+      // Call the edge function to invite user securely
+      const { data, error } = await supabase.functions.invoke('invite-user', {
+        body: {
           email: email.toLowerCase().trim(),
-          full_name: fullName.trim(),
           role,
-          commission_rate: role === 'leasing_agent' ? parseFloat(commissionRate) : null,
-          is_active: true,
-        })
-        .select()
-        .single();
-
-      if (userError) throw userError;
-
-      // If viewer, create property access records
-      if (role === 'viewer' && selectedProperties.length > 0 && newUser) {
-        const accessRecords = selectedProperties.map((propertyId) => ({
-          organization_id: userRecord.organization_id!,
-          investor_id: newUser.id,
-          property_id: propertyId,
-          granted_by: userRecord.id,
-        }));
-
-        const { error: accessError } = await supabase
-          .from('investor_property_access')
-          .insert(accessRecords);
-
-        if (accessError) {
-          console.error('Error creating property access:', accessError);
-        }
-      }
-
-      // Send invite email via Supabase Auth
-      const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+          full_name: fullName.trim(),
+          commission_rate: role === 'leasing_agent' ? parseFloat(commissionRate) : undefined,
+          property_ids: role === 'viewer' ? selectedProperties : undefined,
+        },
       });
 
-      // Note: This may fail if not using service role key, but user is still created
-      if (inviteError) {
-        console.warn('Could not send invite email (requires service role):', inviteError);
+      if (error) {
+        throw new Error(error.message || 'Failed to invite user');
       }
 
-      toast({
-        title: 'User Invited',
-        description: `${fullName} has been invited to the team.`,
-      });
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      // Show appropriate toast based on response
+      if (data?.warning) {
+        toast({
+          title: 'Usuario creado',
+          description: data.warning,
+          variant: 'default',
+        });
+      } else {
+        toast({
+          title: 'Invitación enviada exitosamente',
+          description: `${fullName} ha sido invitado al equipo.`,
+        });
+      }
 
       // Reset form
       setEmail('');

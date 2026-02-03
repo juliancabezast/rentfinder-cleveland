@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.paip-chat]
 verify_jwt = false
+
+[functions.invite-user]
+verify_jwt = false
