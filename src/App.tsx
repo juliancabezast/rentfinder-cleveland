@@ -40,6 +40,10 @@ import NotFound from "./pages/NotFound";
 import PublicProperties from "./pages/public/PublicProperties";
 import PublicPropertyDetail from "./pages/public/PublicPropertyDetail";
 import PrivacyPolicy from "./pages/public/PrivacyPolicy";
+import ReferralPage from "./pages/public/ReferralPage";
+
+// Referrals
+import ReferralsList from "./pages/referrals/ReferralsList";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +59,7 @@ const App = () => (
             <Route path="/p/properties" element={<PublicProperties />} />
             <Route path="/p/properties/:id" element={<PublicPropertyDetail />} />
             <Route path="/p/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/p/refer/:referralCode" element={<ReferralPage />} />
 
             {/* Public auth routes */}
             <Route path="/auth/login" element={<Login />} />
@@ -236,6 +241,17 @@ const App = () => (
                 <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
                   <MainLayout>
                     <CostDashboard />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/referrals"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
+                  <MainLayout>
+                    <ReferralsList />
                   </MainLayout>
                 </ProtectedRoute>
               }
