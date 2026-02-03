@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileNav } from './MobileNav';
@@ -52,6 +53,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { organization } = useAuth();
   const permissions = usePermissions();
+  const location = useLocation();
+
+  // Scroll to top on page navigation
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location.pathname]);
 
   const filteredNavItems = navItems.filter(
     (item) => !item.permission || permissions[item.permission]
@@ -106,7 +113,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Page Content with gradient overlay for depth */}
         <main className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto animate-fade-up">
             {children}
           </div>
         </main>

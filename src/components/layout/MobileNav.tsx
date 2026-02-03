@@ -58,20 +58,27 @@ export const MobileNav: React.FC = () => {
   );
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border z-50 safe-area-inset-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/80 dark:bg-card/80 backdrop-blur-xl border-t border-white/30 z-50 safe-area-inset-bottom">
       <div className="flex items-center justify-around h-full px-2">
         {mainNavItems.map((item) => (
           <NavLink
             key={item.href}
             to={item.href}
             className={cn(
-              'flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+              'flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors relative',
               'text-muted-foreground min-w-[60px] min-h-[44px]'
             )}
             activeClassName="text-primary"
           >
-            <item.icon className="h-5 w-5" />
-            <span className="truncate">{item.title}</span>
+            {({ isActive }: { isActive: boolean }) => (
+              <>
+                <item.icon className="h-5 w-5" />
+                <span className="truncate">{item.title}</span>
+                {isActive && (
+                  <span className="absolute bottom-1 w-1 h-1 rounded-full bg-accent" />
+                )}
+              </>
+            )}
           </NavLink>
         ))}
 

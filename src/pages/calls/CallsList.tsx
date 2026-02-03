@@ -156,9 +156,8 @@ const CallsList: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="glass-card rounded-xl p-4 mb-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -208,11 +207,10 @@ const CallsList: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Calls Table */}
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>Recent Calls</CardTitle>
           <CardDescription>
@@ -233,7 +231,7 @@ const CallsList: React.FC = () => {
               }
             />
           ) : (
-            <div className="rounded-md border overflow-x-auto">
+            <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0 rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>

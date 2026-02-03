@@ -81,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6">
+    <header className="h-16 glass-card sticky top-0 z-40 flex items-center justify-between px-4 lg:px-6">
       {/* Left side - Menu button (mobile) + Page title */}
       <div className="flex items-center gap-3">
         <Button
@@ -92,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-semibold text-foreground">{getPageTitle()}</h1>
+        <h1 className="text-lg font-bold text-foreground">{getPageTitle()}</h1>
       </div>
 
       {/* Right side - Notifications + User menu */}

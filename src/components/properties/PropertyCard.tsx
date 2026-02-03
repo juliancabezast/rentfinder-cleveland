@@ -46,18 +46,18 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit }) 
     : property.address;
 
   return (
-    <Card className="overflow-hidden hover:shadow-card-hover transition-shadow group">
+    <Card variant="glass" className="overflow-hidden group hover:shadow-modern-lg transition-all duration-300 group-hover:scale-[1.02]">
       <Link to={`/properties/${property.id}`}>
         {/* Photo */}
-        <div className="relative aspect-video bg-muted">
+        <div className="relative aspect-video overflow-hidden">
           {mainPhoto ? (
             <img
               src={mainPhoto}
               alt={fullAddress}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
               <Home className="h-12 w-12 text-muted-foreground/50" />
             </div>
           )}
@@ -113,7 +113,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit }) 
           <Button
             variant="ghost"
             size="sm"
-            className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity"
+            className="mt-3 w-full opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300"
             onClick={(e) => {
               e.preventDefault();
               onEdit(property);

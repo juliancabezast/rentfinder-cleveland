@@ -173,9 +173,8 @@ const ShowingsList: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 sm:flex-row">
+      <div className="glass-card rounded-xl p-4 mb-6">
+        <div className="flex flex-col gap-4 sm:flex-row">
             <Select value={dateFilter} onValueChange={setDateFilter}>
               <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
                 <Calendar className="h-4 w-4 mr-2" />
@@ -203,8 +202,7 @@ const ShowingsList: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Showings List */}
       {loading ? (
@@ -214,7 +212,7 @@ const ShowingsList: React.FC = () => {
           ))}
         </div>
       ) : showings.length === 0 ? (
-        <Card>
+        <Card variant="glass">
           <CardContent className="p-0">
             <EmptyState
               icon={CalendarDays}
@@ -232,7 +230,8 @@ const ShowingsList: React.FC = () => {
           {showings.map((showing) => (
             <Card
               key={showing.id}
-              className="hover:shadow-md transition-shadow cursor-pointer"
+              variant="glass"
+              className="hover:shadow-modern-lg transition-all duration-300 cursor-pointer"
               onClick={() => navigate(`/showings/${showing.id}`)}
             >
               <CardContent className="p-4">

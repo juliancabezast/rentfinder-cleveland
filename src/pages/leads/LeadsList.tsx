@@ -240,16 +240,16 @@ const LeadsList: React.FC = () => {
             Manage your lead pipeline ({totalCount} total)
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
           {permissions.canCreateLead && (
             <>
               <Button variant="outline" onClick={() => setImportOpen(true)}>
-                <Upload className="mr-2 h-4 w-4" />
-                Import CSV
+                <Upload className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Import CSV</span>
               </Button>
-              <Button onClick={() => setFormOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Lead
+              <Button onClick={() => setFormOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Add Lead</span>
               </Button>
             </>
           )}
@@ -257,9 +257,8 @@ const LeadsList: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="glass-card rounded-xl p-4 mb-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
             {/* Search */}
             <div className="relative sm:col-span-2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -344,11 +343,10 @@ const LeadsList: React.FC = () => {
               </Label>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Table */}
-      <Card>
+      <Card variant="glass">
         <CardContent className="p-0">
           {loading ? (
             <div className="p-6 space-y-4">
@@ -365,7 +363,7 @@ const LeadsList: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
               <Table>
                 <TableHeader>
                   <TableRow>
