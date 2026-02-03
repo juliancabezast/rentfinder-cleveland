@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Eye, EyeOff, Save, Check, X } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertTriangle, Eye, EyeOff, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { sendTestEmail } from '@/lib/notificationService';
+import { formatDistanceToNow } from 'date-fns';
 
 interface IntegrationKey {
   key: string;
@@ -69,6 +70,26 @@ const INTEGRATION_KEYS: IntegrationKey[] = [
   },
 ];
 
+// Map integration key names to service identifiers
+const mapKeyToService = (key: string): string => {
+  const map: Record<string, string> = {
+    twilio_account_sid: "twilio",
+    twilio_auth_token: "twilio",
+    twilio_phone_number: "twilio",
+    bland_api_key: "bland_ai",
+    openai_api_key: "openai",
+    persona_api_key: "persona",
+    doorloop_api_key: "doorloop",
+    resend_api_key: "resend",
+  };
+  return map[key] || key;
+};
+
+interface TestStatus {
+  success: boolean;
+  testedAt: string;
+}
+
 export const IntegrationKeysTab: React.FC = () => {
   const { userRecord } = useAuth();
   const [credentials, setCredentials] = useState<Record<string, string>>({});
@@ -78,30 +99,70 @@ export const IntegrationKeysTab: React.FC = () => {
   const [saving, setSaving] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [testStatuses, setTestStatuses] = useState<Record<string, TestStatus>>({});
 
   useEffect(() => {
     const fetchCredentials = async () => {
       if (!userRecord?.organization_id) return;
 
       try {
-        const { data, error } = await supabase
-          .from('organization_credentials')
-          .select('*')
-          .eq('organization_id', userRecord.organization_id)
-          .single();
+        // Fetch credentials and test statuses in parallel
+        const [credsResult, logsResult] = await Promise.all([
+          supabase
+            .from('organization_credentials')
+            .select('*')
+            .eq('organization_id', userRecord.organization_id)
+            .single(),
+          supabase
+            .from('system_logs')
+            .select('*')
+            .eq('organization_id', userRecord.organization_id)
+            .eq('event_type', 'integration_test')
+            .order('created_at', { ascending: false })
+            .limit(20),
+        ]);
 
-        if (error && error.code !== 'PGRST116') throw error;
+        if (credsResult.error && credsResult.error.code !== 'PGRST116') throw credsResult.error;
 
-        if (data) {
+        if (credsResult.data) {
           const creds: Record<string, string> = {};
           INTEGRATION_KEYS.forEach((key) => {
-            const value = data[key.key as keyof typeof data];
+            if (key.isSecretEnv) return; // Skip env secrets
+            const value = credsResult.data[key.key as keyof typeof credsResult.data];
             if (value && typeof value === 'string') {
               creds[key.key] = value;
             }
           });
           setCredentials(creds);
         }
+
+        // Parse test statuses from logs
+        const statuses: Record<string, TestStatus> = {};
+        (logsResult.data || []).forEach((log) => {
+          const details = log.details as { service?: string; success?: boolean } | null;
+          if (details?.service) {
+            const keyForService = Object.entries({
+              twilio: ['twilio_account_sid', 'twilio_auth_token'],
+              bland_ai: ['bland_api_key'],
+              openai: ['openai_api_key'],
+              persona: ['persona_api_key'],
+              doorloop: ['doorloop_api_key'],
+              resend: ['resend_api_key'],
+            }).find(([svc]) => svc === details.service);
+
+            if (keyForService) {
+              keyForService[1].forEach((key) => {
+                if (!statuses[key]) {
+                  statuses[key] = {
+                    success: details.success === true,
+                    testedAt: log.created_at!,
+                  };
+                }
+              });
+            }
+          }
+        });
+        setTestStatuses(statuses);
       } catch (error) {
         console.error('Error fetching credentials:', error);
       } finally {
@@ -195,32 +256,25 @@ export const IntegrationKeysTab: React.FC = () => {
   const testConnection = async (key: string) => {
     setTesting(key);
     try {
-      if (key === 'resend_api_key') {
-        // Test Resend by sending a test email
-        const { data: org } = await supabase
-          .from('organizations')
-          .select('owner_email')
-          .eq('id', userRecord?.organization_id)
-          .single();
+      const service = mapKeyToService(key);
+      
+      // Use edge function for real testing
+      const { data, error } = await supabase.functions.invoke('test-integration', {
+        body: { service, organization_id: userRecord?.organization_id },
+      });
 
-        if (!org?.owner_email) {
-          throw new Error('Organization owner email not found');
-        }
+      if (error) throw error;
 
-        const result = await sendTestEmail({
-          adminEmail: org.owner_email,
-          organizationId: userRecord?.organization_id || '',
-        });
+      // Update local test status
+      setTestStatuses((prev) => ({
+        ...prev,
+        [key]: { success: data.success, testedAt: new Date().toISOString() },
+      }));
 
-        if (result.success) {
-          toast({ title: 'Test email sent!', description: `Check ${org.owner_email} for the test message.` });
-        } else {
-          throw new Error(result.error || 'Failed to send test email');
-        }
+      if (data.success) {
+        toast({ title: '✅ Connection successful', description: data.message });
       } else {
-        // Simulate test for other integrations
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        toast({ title: 'Connection test', description: 'Test functionality not yet implemented for this integration.' });
+        toast({ title: '❌ Connection failed', description: data.message, variant: 'destructive' });
       }
     } catch (error) {
       console.error('Test connection error:', error);
@@ -232,6 +286,15 @@ export const IntegrationKeysTab: React.FC = () => {
     } finally {
       setTesting(null);
     }
+  };
+
+  const getStatusIndicator = (key: string) => {
+    const status = testStatuses[key];
+    if (!status) return null;
+    
+    return (
+      <span className={`w-2 h-2 rounded-full ${status.success ? 'bg-emerald-500' : 'bg-red-500'}`} />
+    );
   };
 
   if (loading) {
@@ -259,7 +322,32 @@ export const IntegrationKeysTab: React.FC = () => {
           {INTEGRATION_KEYS.map((integration) => (
             <div key={integration.key} className="space-y-2 pb-4 border-b last:border-0 last:pb-0">
               <div className="flex items-center justify-between">
-                <Label htmlFor={integration.key}>{integration.label}</Label>
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-2">
+                          {getStatusIndicator(integration.key)}
+                          <Label htmlFor={integration.key} className="cursor-pointer">
+                            {integration.label}
+                          </Label>
+                        </span>
+                      </TooltipTrigger>
+                      {testStatuses[integration.key] && (
+                        <TooltipContent>
+                          <p className="text-xs">
+                            {testStatuses[integration.key].success ? '✅ Connected' : '❌ Failed'}
+                            <br />
+                            Tested {formatDistanceToNow(new Date(testStatuses[integration.key].testedAt), { addSuffix: true })}
+                          </p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                  {integration.isSecretEnv && (
+                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">ENV</span>
+                  )}
+                </div>
                 {credentials[integration.key] && !editingKeys.has(integration.key) && (
                   <Button
                     variant="ghost"
