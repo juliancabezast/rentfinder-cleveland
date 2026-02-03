@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.test-integration]
 verify_jwt = false
+
+[functions.match-properties]
+verify_jwt = false

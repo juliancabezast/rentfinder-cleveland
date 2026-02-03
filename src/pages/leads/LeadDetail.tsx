@@ -56,6 +56,7 @@ import { HumanTakeoverModal } from "@/components/leads/HumanTakeoverModal";
 import { ReleaseControlModal } from "@/components/leads/ReleaseControlModal";
 import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
 import { LeadActivityTimeline } from "@/components/leads/LeadActivityTimeline";
+import { SmartMatches } from "@/components/leads/SmartMatches";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -491,7 +492,12 @@ const LeadDetail: React.FC = () => {
                 )}
               </CardContent>
             </Card>
+          </div>
 
+          {/* Smart Matches - Full Width */}
+          <SmartMatches leadId={lead.id} leadName={leadName} />
+
+          <div className="grid gap-6 lg:grid-cols-2">
             {/* Score History */}
             <Card>
               <CardHeader>
