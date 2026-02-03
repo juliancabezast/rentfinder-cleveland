@@ -89,12 +89,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 border-r border-sidebar-border',
+        'hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 border-r border-sidebar-border z-40',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Organization Logo/Name */}
-      <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
+      <div className="h-16 flex items-center px-4 border-b border-sidebar-border flex-shrink-0">
         {organization?.logo_url ? (
           <img
             src={organization.logo_url}
@@ -115,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         )}
       </div>
 
-      {/* Navigation */}
+      {/* Navigation - Scrollable */}
       <ScrollArea className="flex-1 py-4">
         <nav className="px-2 space-y-1">
           {/* Main Navigation */}
@@ -191,26 +191,43 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         </nav>
       </ScrollArea>
 
-      {/* Collapse Button */}
-      <div className="p-3 border-t border-sidebar-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onCollapse(!collapsed)}
-          className={cn(
-            'w-full text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-            collapsed && 'px-2'
+      {/* Live Indicator + Collapse Button - Fixed at bottom */}
+      <div className="flex-shrink-0 border-t border-sidebar-border">
+        {/* Live System Indicator */}
+        <div className={cn(
+          "flex items-center gap-2 px-4 py-2",
+          collapsed && "justify-center px-2"
+        )}>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </span>
+          {!collapsed && (
+            <span className="text-xs text-sidebar-foreground/60">System Live</span>
           )}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <>
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Collapse
-            </>
-          )}
-        </Button>
+        </div>
+        
+        {/* Collapse Button */}
+        <div className="p-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onCollapse(!collapsed)}
+            className={cn(
+              'w-full text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              collapsed && 'px-2'
+            )}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <>
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Collapse
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </aside>
   );
