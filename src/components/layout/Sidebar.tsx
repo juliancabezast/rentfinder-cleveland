@@ -125,11 +125,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
               key={item.href}
               to={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
+                'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
                 collapsed && 'justify-center px-2'
               )}
-              activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+              activeClassName="!bg-amber-400 !text-gray-900 font-semibold shadow-lg shadow-amber-400/30 hover:!bg-amber-400 hover:!text-gray-900"
             >
               <item.icon className="h-5 w-5 shrink-0" />
               {!collapsed && <span>{item.title}</span>}
@@ -150,11 +150,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                    'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
+                    'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
                     collapsed && 'justify-center px-2'
                   )}
-                  activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                  activeClassName="!bg-amber-400 !text-gray-900 font-semibold shadow-lg shadow-amber-400/30 hover:!bg-amber-400 hover:!text-gray-900"
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
                   {!collapsed && <span>{item.title}</span>}
@@ -177,11 +177,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                    'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
+                    'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
                     collapsed && 'justify-center px-2'
                   )}
-                  activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                  activeClassName="!bg-amber-400 !text-gray-900 font-semibold shadow-lg shadow-amber-400/30 hover:!bg-amber-400 hover:!text-gray-900"
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
                   {!collapsed && <span>{item.title}</span>}
