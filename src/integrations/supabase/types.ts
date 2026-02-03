@@ -677,6 +677,81 @@ export type Database = {
           },
         ]
       }
+      investor_reports: {
+        Row: {
+          created_at: string | null
+          delivered: boolean | null
+          html_content: string
+          id: string
+          insights: Json | null
+          investor_id: string
+          metrics: Json
+          narrative_summary: string | null
+          opened: boolean | null
+          organization_id: string
+          period_month: number
+          period_year: number
+          property_ids: string[]
+          resend_email_id: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivered?: boolean | null
+          html_content: string
+          id?: string
+          insights?: Json | null
+          investor_id: string
+          metrics?: Json
+          narrative_summary?: string | null
+          opened?: boolean | null
+          organization_id: string
+          period_month: number
+          period_year: number
+          property_ids: string[]
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string | null
+          delivered?: boolean | null
+          html_content?: string
+          id?: string
+          insights?: Json | null
+          investor_id?: string
+          metrics?: Json
+          narrative_summary?: string | null
+          opened?: boolean | null
+          organization_id?: string
+          period_month?: number
+          period_year?: number
+          property_ids?: string[]
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investor_reports_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_predictions: {
         Row: {
           based_on_leads_count: number | null

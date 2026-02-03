@@ -9,6 +9,7 @@ import CommunicationsTab from '@/components/settings/CommunicationsTab';
 import ShowingsTab from '@/components/settings/ShowingsTab';
 import ComplianceTab from '@/components/settings/ComplianceTab';
 import IntegrationKeysTab from '@/components/settings/IntegrationKeysTab';
+import InvestorReportsTab from '@/components/settings/InvestorReportsTab';
 import DemoDataTab from '@/components/settings/DemoDataTab';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -80,6 +81,14 @@ const Settings: React.FC = () => {
           </TabsTrigger>
           {isAdmin && (
             <TabsTrigger
+              value="investor-reports"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              Investor Reports
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger
               value="demo-data"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
@@ -119,6 +128,12 @@ const Settings: React.FC = () => {
         <TabsContent value="integrations">
           <IntegrationKeysTab />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="investor-reports">
+            <InvestorReportsTab />
+          </TabsContent>
+        )}
 
         {isAdmin && (
           <TabsContent value="demo-data">

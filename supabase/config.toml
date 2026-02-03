@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.batch-predictions]
 verify_jwt = false
+
+[functions.generate-investor-report]
+verify_jwt = false
+
+[functions.generate-all-investor-reports]
+verify_jwt = false

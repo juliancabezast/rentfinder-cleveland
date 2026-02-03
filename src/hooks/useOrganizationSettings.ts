@@ -46,6 +46,11 @@ export const DEFAULT_SETTINGS = {
 
   // Security settings
   photo_upload_restricted: false,
+
+  // Investor reports settings
+  investor_reports_enabled: true,
+  investor_reports_send_day: 1,
+  investor_reports_footer: "",
 } as const;
 
 export type SettingsKey = keyof typeof DEFAULT_SETTINGS;

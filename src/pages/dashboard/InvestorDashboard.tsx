@@ -3,8 +3,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PropertyMetricCard, PropertyMetricCardSkeleton } from "@/components/dashboard/PropertyMetricCard";
 import { InsightCard, InsightCardSkeleton } from "@/components/dashboard/InsightCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { InvestorReportsSection } from "@/components/dashboard/InvestorReportsSection";
+import { Card, CardContent } from "@/components/ui/card";
 import { Building, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -220,6 +220,9 @@ export const InvestorDashboard = () => {
           </Card>
         )}
       </div>
+
+      {/* Monthly Reports Section */}
+      <InvestorReportsSection />
     </div>
   );
 };
