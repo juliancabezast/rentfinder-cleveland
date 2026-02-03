@@ -71,9 +71,14 @@ const InsightGenerator: React.FC = () => {
     setLoading(true);
 
     try {
+      // Select only columns needed for list view - avoid fetching sensitive financial data
       let query = supabase
         .from("leads")
-        .select("*", { count: "exact" })
+        .select(
+          `id, full_name, phone, source, status, lead_score, interested_property_id,
+           has_voucher, preferred_language, created_at, last_contact_at`,
+          { count: "exact" }
+        )
         .eq("organization_id", userRecord.organization_id);
 
       // Apply filters
@@ -198,6 +203,8 @@ const InsightGenerator: React.FC = () => {
     setIsExporting(true);
 
     try {
+      // Export intentionally fetches all columns including financial data (budget_min, budget_max)
+      // This is authorized for admin/editor roles as enforced by RLS policies
       let query = supabase
         .from("leads")
         .select("*")

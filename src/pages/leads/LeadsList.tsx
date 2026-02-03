@@ -144,11 +144,26 @@ const LeadsList: React.FC = () => {
 
     setLoading(true);
     try {
+      // Select only columns needed for list view - avoid fetching sensitive financial data
       let query = supabase
         .from("leads")
         .select(
           `
-          *,
+          id,
+          full_name,
+          first_name,
+          last_name,
+          phone,
+          email,
+          status,
+          source,
+          lead_score,
+          is_priority,
+          is_human_controlled,
+          created_at,
+          last_contact_at,
+          interested_property_id,
+          preferred_language,
           properties:interested_property_id (address, unit_number),
           lead_predictions (conversion_probability, predicted_outcome)
         `,
