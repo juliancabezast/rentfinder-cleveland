@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -40,6 +41,10 @@ import {
   PhoneCall,
   Eye,
   CalendarPlus,
+  Shield,
+  CheckCircle,
+  XCircle,
+  Ban,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -56,6 +61,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
 type ScoreHistory = Tables<"lead_score_history">;
+type ConsentLog = Tables<"consent_log">;
 
 interface LeadWithRelations extends Lead {
   properties?: { id: string; address: string; unit_number: string | null } | null;
@@ -75,6 +81,14 @@ const LEAD_STATUSES = [
   { value: "converted", label: "Converted" },
 ];
 
+const CONSENT_TYPE_ICONS: Record<string, React.ElementType> = {
+  sms_marketing: MessageSquare,
+  call_recording: Phone,
+  automated_calls: Bot,
+  data_processing: Shield,
+  email_marketing: Mail,
+};
+
 const LeadDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -87,6 +101,7 @@ const LeadDetail: React.FC = () => {
   const [calls, setCalls] = useState<Tables<"calls">[]>([]);
   const [showings, setShowings] = useState<Tables<"showings">[]>([]);
   const [communications, setCommunications] = useState<Tables<"communications">[]>([]);
+  const [consentLogs, setConsentLogs] = useState<ConsentLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modals
@@ -131,7 +146,7 @@ const LeadDetail: React.FC = () => {
       });
 
       // Fetch related data in parallel
-      const [historyRes, callsRes, showingsRes, commsRes] = await Promise.all([
+      const [historyRes, callsRes, showingsRes, commsRes, consentRes] = await Promise.all([
         supabase
           .from("lead_score_history")
           .select("*")
@@ -156,12 +171,18 @@ const LeadDetail: React.FC = () => {
           .eq("lead_id", id)
           .order("sent_at", { ascending: false })
           .limit(10),
+        supabase
+          .from("consent_log")
+          .select("*")
+          .eq("lead_id", id)
+          .order("created_at", { ascending: false }),
       ]);
 
       setScoreHistory(historyRes.data || []);
       setCalls(callsRes.data || []);
       setShowings(showingsRes.data || []);
       setCommunications(commsRes.data || []);
+      setConsentLogs(consentRes.data || []);
     } catch (error) {
       console.error("Error fetching lead:", error);
       toast({
@@ -361,261 +382,444 @@ const LeadDetail: React.FC = () => {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Contact Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Language</span>
-              <span>{lead.preferred_language === "es" ? "Spanish" : "English"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Contact Preference</span>
-              <span className="capitalize">{lead.contact_preference || "Any"}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">SMS Consent</span>
-              <Badge variant={lead.sms_consent ? "default" : "secondary"}>
-                {lead.sms_consent ? "Yes" : "No"}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Call Consent</span>
-              <Badge variant={lead.call_consent ? "default" : "secondary"}>
-                {lead.call_consent ? "Yes" : "No"}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Tabbed Content */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="consent">Consent Log</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+        </TabsList>
 
-        {/* Interest Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Interest</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {lead.properties && (
-              <div className="flex items-start justify-between">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Property
-                </span>
-                <Link
-                  to={`/properties/${lead.properties.id}`}
-                  className="text-primary hover:underline text-right"
-                >
-                  {lead.properties.address}
-                  {lead.properties.unit_number && ` #${lead.properties.unit_number}`}
-                </Link>
-              </div>
-            )}
-            {lead.interested_zip_codes && lead.interested_zip_codes.length > 0 && (
-              <div className="flex items-start justify-between">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Zip Codes
-                </span>
-                <span>{lead.interested_zip_codes.join(", ")}</span>
-              </div>
-            )}
-            {(lead.budget_min || lead.budget_max) && (
-              <div className="flex items-start justify-between">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Budget
-                </span>
-                <span>
-                  ${lead.budget_min?.toLocaleString() || "0"} - $
-                  {lead.budget_max?.toLocaleString() || "∞"}
-                </span>
-              </div>
-            )}
-            {lead.move_in_date && (
-              <div className="flex items-start justify-between">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Move-in Date
-                </span>
-                <span>{format(new Date(lead.move_in_date), "MMM d, yyyy")}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Contact Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Contact Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Language</span>
+                  <span>{lead.preferred_language === "es" ? "Spanish" : "English"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Contact Preference</span>
+                  <span className="capitalize">{lead.contact_preference || "Any"}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">SMS Consent</span>
+                  <Badge variant={lead.sms_consent ? "default" : "secondary"}>
+                    {lead.sms_consent ? "Yes" : "No"}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Call Consent</span>
+                  <Badge variant={lead.call_consent ? "default" : "secondary"}>
+                    {lead.call_consent ? "Yes" : "No"}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Section 8 Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Home className="h-5 w-5" />
-              Section 8
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Has Voucher</span>
-              <Badge variant={lead.has_voucher ? "default" : "secondary"}>
-                {lead.has_voucher ? "Yes" : "No"}
-              </Badge>
-            </div>
-            {lead.has_voucher && (
-              <>
-                {lead.voucher_amount && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Amount</span>
-                    <span>${lead.voucher_amount.toLocaleString()}</span>
-                  </div>
-                )}
-                {lead.voucher_status && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className="capitalize">{lead.voucher_status.replace("_", " ")}</span>
-                  </div>
-                )}
-                {lead.housing_authority && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Housing Authority</span>
-                    <span>{lead.housing_authority}</span>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Score History */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Score History</CardTitle>
-            <CardDescription>Recent changes to lead score</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {scoreHistory.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No score changes yet.</p>
-            ) : (
-              <div className="space-y-4 max-h-64 overflow-y-auto">
-                {scoreHistory.map((entry) => (
-                  <div key={entry.id} className="flex items-start gap-3 text-sm">
-                    <div className="w-16 shrink-0">
-                      <ScoreChange change={entry.change_amount} />
-                    </div>
-                    <div className="flex-1">
-                      <p>{entry.reason_text}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {entry.created_at &&
-                          format(new Date(entry.created_at), "MMM d, yyyy 'at' h:mm a")}{" "}
-                        • {entry.triggered_by.replace("_", " ")}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Activity Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-3">
-            {/* Calls */}
-            <div>
-              <h4 className="font-medium flex items-center gap-2 mb-3">
-                <PhoneCall className="h-4 w-4" />
-                Calls ({calls.length})
-              </h4>
-              {calls.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No calls yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {calls.slice(0, 5).map((call) => (
-                    <div
-                      key={call.id}
-                      className="text-sm p-2 rounded bg-muted/50 cursor-pointer hover:bg-muted"
-                      onClick={() => navigate(`/calls/${call.id}`)}
+            {/* Interest Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Interest</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {lead.properties && (
+                  <div className="flex items-start justify-between">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Property
+                    </span>
+                    <Link
+                      to={`/properties/${lead.properties.id}`}
+                      className="text-primary hover:underline text-right"
                     >
-                      <div className="flex justify-between">
-                        <span className="capitalize">{call.direction}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {call.status}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {call.started_at &&
-                          format(new Date(call.started_at), "MMM d, h:mm a")}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                      {lead.properties.address}
+                      {lead.properties.unit_number && ` #${lead.properties.unit_number}`}
+                    </Link>
+                  </div>
+                )}
+                {lead.interested_zip_codes && lead.interested_zip_codes.length > 0 && (
+                  <div className="flex items-start justify-between">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Zip Codes
+                    </span>
+                    <span>{lead.interested_zip_codes.join(", ")}</span>
+                  </div>
+                )}
+                {(lead.budget_min || lead.budget_max) && (
+                  <div className="flex items-start justify-between">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Budget
+                    </span>
+                    <span>
+                      ${lead.budget_min?.toLocaleString() || "0"} - $
+                      {lead.budget_max?.toLocaleString() || "∞"}
+                    </span>
+                  </div>
+                )}
+                {lead.move_in_date && (
+                  <div className="flex items-start justify-between">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Move-in Date
+                    </span>
+                    <span>{format(new Date(lead.move_in_date), "MMM d, yyyy")}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* Showings */}
-            <div>
-              <h4 className="font-medium flex items-center gap-2 mb-3">
-                <Eye className="h-4 w-4" />
-                Showings ({showings.length})
-              </h4>
-              {showings.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No showings yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {showings.slice(0, 5).map((showing) => (
-                    <div
-                      key={showing.id}
-                      className="text-sm p-2 rounded bg-muted/50"
-                    >
-                      <div className="flex justify-between">
-                        <span>
-                          {showing.scheduled_at &&
-                            format(new Date(showing.scheduled_at), "MMM d")}
-                        </span>
-                        <Badge variant="secondary" className="text-xs">
-                          {showing.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+            {/* Section 8 Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Home className="h-5 w-5" />
+                  Section 8
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Has Voucher</span>
+                  <Badge variant={lead.has_voucher ? "default" : "secondary"}>
+                    {lead.has_voucher ? "Yes" : "No"}
+                  </Badge>
                 </div>
-              )}
-            </div>
+                {lead.has_voucher && (
+                  <>
+                    {lead.voucher_amount && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Amount</span>
+                        <span>${lead.voucher_amount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {lead.voucher_status && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status</span>
+                        <span className="capitalize">{lead.voucher_status.replace("_", " ")}</span>
+                      </div>
+                    )}
+                    {lead.housing_authority && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Housing Authority</span>
+                        <span>{lead.housing_authority}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* Communications */}
-            <div>
-              <h4 className="font-medium flex items-center gap-2 mb-3">
-                <MessageSquare className="h-4 w-4" />
-                Messages ({communications.length})
-              </h4>
-              {communications.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No messages yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {communications.slice(0, 5).map((comm) => (
-                    <div key={comm.id} className="text-sm p-2 rounded bg-muted/50">
-                      <div className="flex justify-between">
-                        <span className="capitalize">{comm.channel}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {comm.status}
-                        </Badge>
+            {/* Score History */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Score History</CardTitle>
+                <CardDescription>Recent changes to lead score</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {scoreHistory.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No score changes yet.</p>
+                ) : (
+                  <div className="space-y-4 max-h-64 overflow-y-auto">
+                    {scoreHistory.map((entry) => (
+                      <div key={entry.id} className="flex items-start gap-3 text-sm">
+                        <div className="w-16 shrink-0">
+                          <ScoreChange change={entry.change_amount} />
+                        </div>
+                        <div className="flex-1">
+                          <p>{entry.reason_text}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {entry.created_at &&
+                              format(new Date(entry.created_at), "MMM d, yyyy 'at' h:mm a")}{" "}
+                            • {entry.triggered_by.replace("_", " ")}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 truncate">
-                        {comm.body?.substring(0, 50)}...
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        {/* Consent Log Tab */}
+        <TabsContent value="consent" className="space-y-6">
+          {/* Consent Summary Card */}
+          <Card variant="glass">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Consent Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <span className="text-sm font-medium">SMS Consent</span>
+                  {lead.sms_consent ? (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-xs">
+                        {lead.sms_consent_at
+                          ? format(new Date(lead.sms_consent_at), "MMM d, yyyy")
+                          : "Granted"}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <XCircle className="h-4 w-4" />
+                      <span className="text-xs">Not granted</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <span className="text-sm font-medium">Call Consent</span>
+                  {lead.call_consent ? (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-xs">
+                        {lead.call_consent_at
+                          ? format(new Date(lead.call_consent_at), "MMM d, yyyy")
+                          : "Granted"}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <XCircle className="h-4 w-4" />
+                      <span className="text-xs">Not granted</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <span className="text-sm font-medium">Do Not Contact</span>
+                  {lead.do_not_contact ? (
+                    <div className="flex items-center gap-2 text-destructive">
+                      <Ban className="h-4 w-4" />
+                      <span className="text-xs">Active</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-xs">Clear</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Consent Timeline */}
+          <Card variant="glass">
+            <CardHeader>
+              <CardTitle className="text-lg">Consent History</CardTitle>
+              <CardDescription>
+                Complete audit trail of consent changes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {consentLogs.length === 0 ? (
+                <div className="text-center py-8">
+                  <Shield className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <p className="text-sm text-muted-foreground">
+                    No consent records for this lead yet. Consent will be logged when the
+                    lead interacts via phone, web form, or SMS.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {consentLogs.map((log) => {
+                    const Icon = CONSENT_TYPE_ICONS[log.consent_type] || Shield;
+                    const isWithdrawn = log.withdrawn_at !== null;
+                    const isGranted = log.granted && !isWithdrawn;
+
+                    return (
+                      <div
+                        key={log.id}
+                        className={`relative pl-6 pb-4 border-l-2 ${
+                          isGranted
+                            ? "border-green-500"
+                            : isWithdrawn
+                            ? "border-red-500"
+                            : "border-muted"
+                        }`}
+                      >
+                        <div
+                          className={`absolute -left-2.5 w-5 h-5 rounded-full flex items-center justify-center ${
+                            isGranted
+                              ? "bg-green-100 text-green-600 dark:bg-green-900"
+                              : isWithdrawn
+                              ? "bg-red-100 text-red-600 dark:bg-red-900"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          <Icon className="h-3 w-3" />
+                        </div>
+
+                        <div className="ml-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`font-medium capitalize ${
+                                isWithdrawn ? "line-through text-muted-foreground" : ""
+                              }`}
+                            >
+                              {log.consent_type.replace("_", " ")}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={
+                                isGranted
+                                  ? "border-green-500 text-green-600"
+                                  : isWithdrawn
+                                  ? "border-red-500 text-red-600"
+                                  : ""
+                              }
+                            >
+                              {isWithdrawn ? "Withdrawn" : log.granted ? "Granted" : "Denied"}
+                            </Badge>
+                          </div>
+
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Method: <span className="capitalize">{log.method}</span>
+                          </p>
+
+                          {log.evidence_text && (
+                            <p className="text-sm text-muted-foreground mt-1 truncate max-w-md">
+                              Evidence: {log.evidence_text.substring(0, 100)}
+                              {log.evidence_text.length > 100 ? "..." : ""}
+                            </p>
+                          )}
+
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {log.created_at &&
+                              format(new Date(log.created_at), "MMM d, yyyy 'at' h:mm a")}
+                            {isWithdrawn &&
+                              log.withdrawn_at &&
+                              ` • Withdrawn ${format(
+                                new Date(log.withdrawn_at),
+                                "MMM d, yyyy"
+                              )}`}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Activity Tab */}
+        <TabsContent value="activity">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-3">
+                {/* Calls */}
+                <div>
+                  <h4 className="font-medium flex items-center gap-2 mb-3">
+                    <PhoneCall className="h-4 w-4" />
+                    Calls ({calls.length})
+                  </h4>
+                  {calls.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No calls yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {calls.slice(0, 5).map((call) => (
+                        <div
+                          key={call.id}
+                          className="text-sm p-2 rounded bg-muted/50 cursor-pointer hover:bg-muted"
+                          onClick={() => navigate(`/calls/${call.id}`)}
+                        >
+                          <div className="flex justify-between">
+                            <span className="capitalize">{call.direction}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {call.status}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {call.started_at &&
+                              format(new Date(call.started_at), "MMM d, h:mm a")}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Showings */}
+                <div>
+                  <h4 className="font-medium flex items-center gap-2 mb-3">
+                    <Eye className="h-4 w-4" />
+                    Showings ({showings.length})
+                  </h4>
+                  {showings.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No showings yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {showings.slice(0, 5).map((showing) => (
+                        <div
+                          key={showing.id}
+                          className="text-sm p-2 rounded bg-muted/50"
+                        >
+                          <div className="flex justify-between">
+                            <span>
+                              {showing.scheduled_at &&
+                                format(new Date(showing.scheduled_at), "MMM d")}
+                            </span>
+                            <Badge variant="secondary" className="text-xs">
+                              {showing.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Communications */}
+                <div>
+                  <h4 className="font-medium flex items-center gap-2 mb-3">
+                    <MessageSquare className="h-4 w-4" />
+                    Messages ({communications.length})
+                  </h4>
+                  {communications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No messages yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {communications.slice(0, 5).map((comm) => (
+                        <div key={comm.id} className="text-sm p-2 rounded bg-muted/50">
+                          <div className="flex justify-between">
+                            <span className="capitalize">{comm.channel}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {comm.status}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {comm.body?.substring(0, 50)}...
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Modals */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>

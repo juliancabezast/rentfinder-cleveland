@@ -69,6 +69,9 @@ export interface Permissions {
   canViewDocuments: boolean;
   canCreateEditDocuments: boolean;
   canDeleteDocuments: boolean;
+
+  // Consent
+  canViewConsentLog: boolean;
 }
 
 const createPermissions = (role: AppRole | null): Permissions => {
@@ -148,6 +151,9 @@ const createPermissions = (role: AppRole | null): Permissions => {
     canViewDocuments: isEditorOrAbove || isLeasingAgent,
     canCreateEditDocuments: isEditorOrAbove,
     canDeleteDocuments: isAdminOrAbove,
+
+    // Consent
+    canViewConsentLog: isEditorOrAbove || isLeasingAgent,
   };
 };
 
