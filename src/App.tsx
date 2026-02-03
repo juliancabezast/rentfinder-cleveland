@@ -32,6 +32,7 @@ import CostDashboard from "./pages/costs/CostDashboard";
 import FaqDocuments from "./pages/documents/FaqDocuments";
 import LeadHeatMap from "./pages/analytics/LeadHeatMap";
 import VoucherIntelligence from "./pages/analytics/VoucherIntelligence";
+import CompetitorRadar from "./pages/analytics/CompetitorRadar";
 import NotFound from "./pages/NotFound";
 
 // Public pages (no auth required)
@@ -257,6 +258,17 @@ const App = () => (
                 <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
                   <MainLayout>
                     <VoucherIntelligence />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/analytics/competitor-radar"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
+                  <MainLayout>
+                    <CompetitorRadar />
                   </MainLayout>
                 </ProtectedRoute>
               }
