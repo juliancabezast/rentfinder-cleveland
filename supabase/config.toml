@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.generate-all-investor-reports]
 verify_jwt = false
+
+[functions.paip-chat]
+verify_jwt = false
