@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +39,7 @@ import {
   UserX,
   AlertTriangle,
   ArrowUpDown,
+  Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +49,7 @@ import { format } from "date-fns";
 import { ScoreDisplay } from "@/components/leads/ScoreDisplay";
 import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
 import { LeadForm } from "@/components/leads/LeadForm";
+import { CsvImportDialog } from "@/components/leads/CsvImportDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -82,6 +81,7 @@ const LEAD_SOURCES = [
   { value: "manual", label: "Manual" },
   { value: "sms", label: "SMS" },
   { value: "campaign", label: "Campaign" },
+  { value: "csv_import", label: "CSV Import" },
 ];
 
 const ITEMS_PER_PAGE = 20;
@@ -91,6 +91,7 @@ type SortDirection = "asc" | "desc";
 
 const LeadsList: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { userRecord } = useAuth();
   const permissions = usePermissions();
   const { toast } = useToast();
@@ -100,19 +101,33 @@ const LeadsList: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Filters
+  // Initialize filters from URL params
+  const filterParam = searchParams.get("filter");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [priorityOnly, setPriorityOnly] = useState(false);
-  const [humanControlledOnly, setHumanControlledOnly] = useState(false);
+  const [priorityOnly, setPriorityOnly] = useState(filterParam === "priority");
+  const [humanControlledOnly, setHumanControlledOnly] = useState(filterParam === "human_controlled");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Sorting
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
-  // Dialog
+  // Dialogs
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
+  // Handle URL filter changes
+  useEffect(() => {
+    const filter = searchParams.get("filter");
+    if (filter === "priority") {
+      setPriorityOnly(true);
+      setHumanControlledOnly(false);
+    } else if (filter === "human_controlled") {
+      setHumanControlledOnly(true);
+      setPriorityOnly(false);
+    }
+  }, [searchParams]);
 
   const fetchLeads = async () => {
     if (!userRecord?.organization_id) return;
@@ -225,12 +240,20 @@ const LeadsList: React.FC = () => {
             Manage your lead pipeline ({totalCount} total)
           </p>
         </div>
-        {permissions.canCreateLead && (
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Lead
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {permissions.canCreateLead && (
+            <>
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Import CSV
+              </Button>
+              <Button onClick={() => setFormOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Lead
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -253,7 +276,7 @@ const LeadsList: React.FC = () => {
 
             {/* Status */}
             <Select
-              value={statusFilter}
+              value={statusFilter || "all"}
               onValueChange={(v) => {
                 setStatusFilter(v);
                 setCurrentPage(1);
@@ -273,7 +296,7 @@ const LeadsList: React.FC = () => {
 
             {/* Source */}
             <Select
-              value={sourceFilter}
+              value={sourceFilter || "all"}
               onValueChange={(v) => {
                 setSourceFilter(v);
                 setCurrentPage(1);
@@ -476,6 +499,13 @@ const LeadsList: React.FC = () => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* CSV Import Dialog */}
+      <CsvImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onSuccess={fetchLeads}
+      />
     </div>
   );
 };
