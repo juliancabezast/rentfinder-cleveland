@@ -9,8 +9,13 @@ import CommunicationsTab from '@/components/settings/CommunicationsTab';
 import ShowingsTab from '@/components/settings/ShowingsTab';
 import ComplianceTab from '@/components/settings/ComplianceTab';
 import IntegrationKeysTab from '@/components/settings/IntegrationKeysTab';
+import DemoDataTab from '@/components/settings/DemoDataTab';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Settings: React.FC = () => {
+  const { userRecord } = useAuth();
+  const isAdmin = userRecord?.role === 'super_admin' || userRecord?.role === 'admin';
+
   return (
     <div className="space-y-6">
       <div>
@@ -73,6 +78,14 @@ const Settings: React.FC = () => {
           >
             Integrations
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger
+              value="demo-data"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              Demo Data
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="organization">
@@ -106,6 +119,12 @@ const Settings: React.FC = () => {
         <TabsContent value="integrations">
           <IntegrationKeysTab />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="demo-data">
+            <DemoDataTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

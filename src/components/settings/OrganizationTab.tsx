@@ -32,16 +32,16 @@ export const OrganizationTab: React.FC = () => {
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [timezone, setTimezone] = useState('America/New_York');
-  const [primaryColor, setPrimaryColor] = useState('#3b82f6');
-  const [accentColor, setAccentColor] = useState('#10b981');
+  const [primaryColor, setPrimaryColor] = useState('#370d4b');
+  const [accentColor, setAccentColor] = useState('#ffb22c');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (organization) {
       setName(organization.name || '');
       setTimezone(organization.timezone || 'America/New_York');
-      setPrimaryColor(organization.primary_color || '#3b82f6');
-      setAccentColor(organization.accent_color || '#10b981');
+      setPrimaryColor(organization.primary_color || '#370d4b');
+      setAccentColor(organization.accent_color || '#ffb22c');
       setLogoUrl(organization.logo_url);
     }
     // Fetch full org details
@@ -61,8 +61,8 @@ export const OrganizationTab: React.FC = () => {
         setState(data.state || '');
         setZipCode(data.zip_code || '');
         setTimezone(data.timezone || 'America/New_York');
-        setPrimaryColor(data.primary_color || '#3b82f6');
-        setAccentColor(data.accent_color || '#10b981');
+        setPrimaryColor(data.primary_color || '#370d4b');
+        setAccentColor(data.accent_color || '#ffb22c');
         setLogoUrl(data.logo_url);
       }
     };
@@ -275,7 +275,7 @@ export const OrganizationTab: React.FC = () => {
                 <Input
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
-                  placeholder="#3b82f6"
+                  placeholder="#370d4b"
                   className="flex-1"
                 />
               </div>
@@ -293,7 +293,7 @@ export const OrganizationTab: React.FC = () => {
                 <Input
                   value={accentColor}
                   onChange={(e) => setAccentColor(e.target.value)}
-                  placeholder="#10b981"
+                  placeholder="#ffb22c"
                   className="flex-1"
                 />
               </div>

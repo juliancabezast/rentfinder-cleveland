@@ -56,10 +56,11 @@ const SERVICES = [
   { value: "openai", label: "OpenAI" },
   { value: "persona", label: "Persona" },
   { value: "doorloop", label: "Doorloop" },
-  { value: "lead", label: "Lead" },
-  { value: "showing", label: "Showing" },
+  { value: "google_sheets", label: "Google Sheets" },
+  { value: "supabase", label: "Supabase" },
   { value: "authentication", label: "Authentication" },
-  { value: "system", label: "System" },
+  { value: "automation", label: "Automation" },
+  { value: "general", label: "General" },
 ];
 
 const LEVELS = [
@@ -89,10 +90,11 @@ const serviceIcons: Record<string, string> = {
   openai: "🧠",
   persona: "🪪",
   doorloop: "🚪",
-  system: "⚙️",
+  google_sheets: "📊",
+  supabase: "⚡",
   authentication: "🔐",
-  lead: "👤",
-  showing: "🏠",
+  automation: "⚙️",
+  general: "📋",
 };
 
 interface LogEntryProps {
