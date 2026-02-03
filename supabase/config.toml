@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.trigger-referral-campaign]
 verify_jwt = false
+
+[functions.predict-conversion]
+verify_jwt = false
+
+[functions.batch-predictions]
+verify_jwt = false

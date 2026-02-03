@@ -677,6 +677,66 @@ export type Database = {
           },
         ]
       }
+      lead_predictions: {
+        Row: {
+          based_on_leads_count: number | null
+          conversion_probability: number | null
+          created_at: string | null
+          expires_at: string | null
+          factors: Json
+          id: string
+          lead_id: string
+          model_version: string | null
+          organization_id: string
+          predicted_at: string | null
+          predicted_days_to_convert: number | null
+          predicted_outcome: string | null
+        }
+        Insert: {
+          based_on_leads_count?: number | null
+          conversion_probability?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          factors?: Json
+          id?: string
+          lead_id: string
+          model_version?: string | null
+          organization_id: string
+          predicted_at?: string | null
+          predicted_days_to_convert?: number | null
+          predicted_outcome?: string | null
+        }
+        Update: {
+          based_on_leads_count?: number | null
+          conversion_probability?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          factors?: Json
+          id?: string
+          lead_id?: string
+          model_version?: string | null
+          organization_id?: string
+          predicted_at?: string | null
+          predicted_days_to_convert?: number | null
+          predicted_outcome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_predictions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_predictions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_score_history: {
         Row: {
           change_amount: number

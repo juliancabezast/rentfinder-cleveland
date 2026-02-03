@@ -50,12 +50,14 @@ import { ScoreDisplay } from "@/components/leads/ScoreDisplay";
 import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
 import { LeadForm } from "@/components/leads/LeadForm";
 import { CsvImportDialog } from "@/components/leads/CsvImportDialog";
+import { PredictionBadge } from "@/components/leads/PredictionCard";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
 
 interface LeadWithProperty extends Lead {
   properties?: { address: string; unit_number: string | null } | null;
+  lead_predictions?: { conversion_probability: number; predicted_outcome: string } | null;
 }
 
 const LEAD_STATUSES = [
@@ -84,9 +86,16 @@ const LEAD_SOURCES = [
   { value: "csv_import", label: "CSV Import" },
 ];
 
+const PREDICTION_OUTCOMES = [
+  { value: "all", label: "All Predictions" },
+  { value: "likely_convert", label: "Likely to Convert" },
+  { value: "needs_nurturing", label: "Needs Nurturing" },
+  { value: "likely_lost", label: "Likely Lost" },
+];
+
 const ITEMS_PER_PAGE = 20;
 
-type SortField = "full_name" | "lead_score" | "status" | "created_at" | "last_contact_at";
+type SortField = "full_name" | "lead_score" | "status" | "created_at" | "last_contact_at" | "conversion_probability";
 type SortDirection = "asc" | "desc";
 
 const LeadsList: React.FC = () => {
@@ -105,6 +114,7 @@ const LeadsList: React.FC = () => {
   const filterParam = searchParams.get("filter");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [predictionFilter, setPredictionFilter] = useState("all");
   const [priorityOnly, setPriorityOnly] = useState(filterParam === "priority");
   const [humanControlledOnly, setHumanControlledOnly] = useState(filterParam === "human_controlled");
   const [searchQuery, setSearchQuery] = useState("");
@@ -139,7 +149,8 @@ const LeadsList: React.FC = () => {
         .select(
           `
           *,
-          properties:interested_property_id (address, unit_number)
+          properties:interested_property_id (address, unit_number),
+          lead_predictions (conversion_probability, predicted_outcome)
         `,
           { count: "exact" }
         )
@@ -164,8 +175,9 @@ const LeadsList: React.FC = () => {
         );
       }
 
-      // Apply sorting
-      query = query.order(sortField, { ascending: sortDirection === "asc" });
+      // Apply sorting (handle special case for prediction sort)
+      const sortFieldToUse = sortField === "conversion_probability" ? "lead_score" : sortField;
+      query = query.order(sortFieldToUse, { ascending: sortDirection === "asc" });
 
       // Apply pagination
       const from = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -176,8 +188,33 @@ const LeadsList: React.FC = () => {
 
       if (error) throw error;
 
-      setLeads(data || []);
-      setTotalCount(count || 0);
+      // Process leads to extract prediction from array format
+      const processedLeads = (data || []).map((lead: any) => ({
+        ...lead,
+        lead_predictions: Array.isArray(lead.lead_predictions) && lead.lead_predictions.length > 0
+          ? lead.lead_predictions[0]
+          : null,
+      }));
+
+      // Filter by prediction outcome if needed
+      let filteredLeads = processedLeads;
+      if (predictionFilter !== "all") {
+        filteredLeads = processedLeads.filter((lead: any) =>
+          lead.lead_predictions?.predicted_outcome === predictionFilter
+        );
+      }
+
+      // Sort by conversion probability if that's the sort field
+      if (sortField === "conversion_probability") {
+        filteredLeads.sort((a: any, b: any) => {
+          const probA = a.lead_predictions?.conversion_probability || 0;
+          const probB = b.lead_predictions?.conversion_probability || 0;
+          return sortDirection === "asc" ? probA - probB : probB - probA;
+        });
+      }
+
+      setLeads(filteredLeads);
+      setTotalCount(predictionFilter !== "all" ? filteredLeads.length : count || 0);
     } catch (error) {
       console.error("Error fetching leads:", error);
       toast({
@@ -196,6 +233,7 @@ const LeadsList: React.FC = () => {
     userRecord?.organization_id,
     statusFilter,
     sourceFilter,
+    predictionFilter,
     priorityOnly,
     humanControlledOnly,
     searchQuery,
@@ -313,6 +351,26 @@ const LeadsList: React.FC = () => {
               </SelectContent>
             </Select>
 
+            {/* Prediction Filter */}
+            <Select
+              value={predictionFilter || "all"}
+              onValueChange={(v) => {
+                setPredictionFilter(v);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Prediction" />
+              </SelectTrigger>
+              <SelectContent>
+                {PREDICTION_OUTCOMES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {/* Priority Toggle */}
             <div className="flex items-center gap-2">
               <Switch
@@ -327,8 +385,6 @@ const LeadsList: React.FC = () => {
                 Priority Only
               </Label>
             </div>
-
-            {/* Human Controlled Toggle */}
             <div className="flex items-center gap-2">
               <Switch
                 id="human"
@@ -370,6 +426,7 @@ const LeadsList: React.FC = () => {
                     <SortableHeader field="full_name">Name</SortableHeader>
                     <TableHead>Phone</TableHead>
                     <SortableHeader field="lead_score">Score</SortableHeader>
+                    <SortableHeader field="conversion_probability">Prediction</SortableHeader>
                     <SortableHeader field="status">Status</SortableHeader>
                     <TableHead>Property</TableHead>
                     <SortableHeader field="created_at">Created</SortableHeader>
@@ -415,6 +472,12 @@ const LeadsList: React.FC = () => {
                           score={lead.lead_score || 50}
                           size="sm"
                           showPriorityBadge={false}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <PredictionBadge 
+                          probability={lead.lead_predictions?.conversion_probability ? Number(lead.lead_predictions.conversion_probability) : null}
+                          outcome={lead.lead_predictions?.predicted_outcome}
                         />
                       </TableCell>
                       <TableCell>

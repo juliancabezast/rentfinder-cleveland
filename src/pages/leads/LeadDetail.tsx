@@ -58,6 +58,7 @@ import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDial
 import { LeadActivityTimeline } from "@/components/leads/LeadActivityTimeline";
 import { SmartMatches } from "@/components/leads/SmartMatches";
 import { MessagingCenter } from "@/components/leads/MessagingCenter";
+import { PredictionCard, type LeadPrediction } from "@/components/leads/PredictionCard";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -101,6 +102,8 @@ const LeadDetail: React.FC = () => {
   const [lead, setLead] = useState<LeadWithRelations | null>(null);
   const [scoreHistory, setScoreHistory] = useState<ScoreHistory[]>([]);
   const [consentLogs, setConsentLogs] = useState<ConsentLog[]>([]);
+  const [prediction, setPrediction] = useState<LeadPrediction | null>(null);
+  const [predictionLoading, setPredictionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Modals
@@ -145,7 +148,7 @@ const LeadDetail: React.FC = () => {
       });
 
       // Fetch related data in parallel
-      const [historyRes, consentRes] = await Promise.all([
+      const [historyRes, consentRes, predictionRes] = await Promise.all([
         supabase
           .from("lead_score_history")
           .select("*")
@@ -157,10 +160,26 @@ const LeadDetail: React.FC = () => {
           .select("*")
           .eq("lead_id", id)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("lead_predictions")
+          .select("*")
+          .eq("lead_id", id)
+          .single(),
       ]);
 
       setScoreHistory(historyRes.data || []);
       setConsentLogs(consentRes.data || []);
+      
+      // Handle prediction - might not exist yet
+      if (predictionRes.data && !predictionRes.error) {
+        const predData = predictionRes.data;
+        setPrediction({
+          ...predData,
+          conversion_probability: Number(predData.conversion_probability),
+          factors: (predData.factors || []) as unknown as LeadPrediction["factors"],
+          predicted_outcome: predData.predicted_outcome as LeadPrediction["predicted_outcome"],
+        });
+      }
     } catch (error) {
       console.error("Error fetching lead:", error);
       toast({
@@ -197,6 +216,41 @@ const LeadDetail: React.FC = () => {
         description: "Failed to update status.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleRefreshPrediction = async () => {
+    if (!lead || !userRecord?.organization_id) return;
+
+    setPredictionLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("predict-conversion", {
+        body: {
+          organization_id: userRecord.organization_id,
+          lead_id: lead.id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.prediction) {
+        setPrediction({
+          ...data.prediction,
+          conversion_probability: Number(data.prediction.conversion_probability),
+          factors: (data.prediction.factors || []) as unknown as LeadPrediction["factors"],
+          predicted_outcome: data.prediction.predicted_outcome as LeadPrediction["predicted_outcome"],
+        });
+        toast({ title: "Prediction updated" });
+      }
+    } catch (error) {
+      console.error("Error refreshing prediction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate prediction.",
+        variant: "destructive",
+      });
+    } finally {
+      setPredictionLoading(false);
     }
   };
 
@@ -400,6 +454,14 @@ const LeadDetail: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Prediction Card */}
+            <PredictionCard
+              prediction={prediction}
+              loading={predictionLoading}
+              onRefresh={handleRefreshPrediction}
+              refreshing={predictionLoading}
+            />
 
             {/* Interest Info */}
             <Card>
