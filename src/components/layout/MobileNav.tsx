@@ -15,6 +15,8 @@ import {
   Settings,
   FileText,
   DollarSign,
+  MapPin,
+  Shield,
 } from 'lucide-react';
 import {
   Sheet,
@@ -24,6 +26,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 interface NavItem {
   title: string;
@@ -39,11 +42,16 @@ const mainNavItems: NavItem[] = [
   { title: 'Showings', href: '/showings', icon: CalendarDays },
 ];
 
+const analyticsNavItems: NavItem[] = [
+  { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
+  { title: 'Voucher Intel', href: '/analytics/voucher-intel', icon: Shield, permission: 'canViewAllReports' },
+  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
+  { title: 'Insight Generator', href: '/insights', icon: Sparkles, permission: 'canAccessInsightGenerator' },
+];
+
 const moreNavItems: NavItem[] = [
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
-  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
-  { title: 'Insight Generator', href: '/insights', icon: Sparkles, permission: 'canAccessInsightGenerator' },
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
@@ -54,9 +62,12 @@ export const MobileNav: React.FC = () => {
   const [moreOpen, setMoreOpen] = useState(false);
   const permissions = usePermissions();
 
-  const filteredMoreItems = moreNavItems.filter(
+  const filterItems = (items: NavItem[]) => items.filter(
     (item) => !item.permission || permissions[item.permission]
   );
+
+  const filteredAnalyticsItems = filterItems(analyticsNavItems);
+  const filteredMoreItems = filterItems(moreNavItems);
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/80 dark:bg-card/80 backdrop-blur-xl border-t border-white/30 z-50 safe-area-inset-bottom">
@@ -99,22 +110,62 @@ export const MobileNav: React.FC = () => {
               <SheetHeader>
                 <SheetTitle>More Options</SheetTitle>
               </SheetHeader>
-              <div className="grid grid-cols-3 gap-4 py-6">
-                {filteredMoreItems.map((item) => (
-                  <NavLink
-                    key={item.href}
-                    to={item.href}
-                    onClick={() => setMoreOpen(false)}
-                    className={cn(
-                      'flex flex-col items-center justify-center gap-2 p-4 rounded-lg text-sm font-medium transition-colors',
-                      'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    )}
-                    activeClassName="bg-primary/10 text-primary"
-                  >
-                    <item.icon className="h-6 w-6" />
-                    <span className="text-center">{item.title}</span>
-                  </NavLink>
-                ))}
+              <div className="py-4 space-y-4">
+                {/* Analytics Section */}
+                {filteredAnalyticsItems.length > 0 && (
+                  <div>
+                    <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Analytics
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {filteredAnalyticsItems.map((item) => (
+                        <NavLink
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => setMoreOpen(false)}
+                          className={cn(
+                            'flex flex-col items-center justify-center gap-2 p-3 rounded-lg text-sm font-medium transition-colors',
+                            'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          )}
+                          activeClassName="bg-primary/10 text-primary"
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span className="text-center text-xs">{item.title}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {filteredMoreItems.length > 0 && filteredAnalyticsItems.length > 0 && (
+                  <Separator />
+                )}
+
+                {/* Admin / Other Section */}
+                {filteredMoreItems.length > 0 && (
+                  <div>
+                    <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Admin & More
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {filteredMoreItems.map((item) => (
+                        <NavLink
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => setMoreOpen(false)}
+                          className={cn(
+                            'flex flex-col items-center justify-center gap-2 p-3 rounded-lg text-sm font-medium transition-colors',
+                            'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          )}
+                          activeClassName="bg-primary/10 text-primary"
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span className="text-center text-xs">{item.title}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </SheetContent>
           </Sheet>
