@@ -29,6 +29,7 @@ import UserDetail from "./pages/users/UserDetail";
 import Settings from "./pages/settings/Settings";
 import SystemLogs from "./pages/SystemLogs";
 import CostDashboard from "./pages/costs/CostDashboard";
+import FaqDocuments from "./pages/documents/FaqDocuments";
 import NotFound from "./pages/NotFound";
 
 // Public pages (no auth required)
@@ -220,6 +221,17 @@ const App = () => (
                 <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
                   <MainLayout>
                     <CostDashboard />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/documents"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor', 'leasing_agent']}>
+                  <MainLayout>
+                    <FaqDocuments />
                   </MainLayout>
                 </ProtectedRoute>
               }

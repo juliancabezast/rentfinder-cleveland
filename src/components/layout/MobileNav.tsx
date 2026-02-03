@@ -41,6 +41,7 @@ const mainNavItems: NavItem[] = [
 
 const moreNavItems: NavItem[] = [
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
+  { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Insight Generator', href: '/insights', icon: Sparkles, permission: 'canAccessInsightGenerator' },
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
