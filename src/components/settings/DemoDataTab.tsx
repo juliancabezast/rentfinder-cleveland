@@ -14,7 +14,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Sparkles, Trash2, AlertTriangle, Building, Users, Phone, Calendar, BarChart3, Loader2, X } from 'lucide-react';
+import { Sparkles, Trash2, AlertTriangle, Building, Users, Phone, Calendar, BarChart3, Loader2, X, Skull, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -40,8 +40,11 @@ export const DemoDataTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [purging, setPurging] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [demoItems, setDemoItems] = useState<DemoItem[]>([]);
+  
+  // Demo-flagged counts (is_demo = true)
   const [stats, setStats] = useState<DemoStats>({
     properties: 0,
     leads: 0,
@@ -50,61 +53,75 @@ export const DemoDataTab: React.FC = () => {
     scoreHistory: 0,
     communications: 0,
   });
+  
+  // Total org counts (all records regardless of is_demo flag)
+  const [orgTotalStats, setOrgTotalStats] = useState<DemoStats>({
+    properties: 0,
+    leads: 0,
+    calls: 0,
+    showings: 0,
+    scoreHistory: 0,
+    communications: 0,
+  });
 
-  // Fetch demo data counts from database using is_demo flag
+  // Fetch demo data counts AND total org counts from database
   const fetchDemoDataCounts = useCallback(async () => {
     if (!userRecord?.organization_id) return;
 
     setLoading(true);
     try {
-      // Query counts from each table where is_demo = true
+      const orgId = userRecord.organization_id;
+      
+      // Query counts for DEMO records (is_demo = true)
       const [
-        propertiesResult,
-        leadsResult,
-        callsResult,
-        showingsResult,
-        scoreHistoryResult,
-        communicationsResult,
+        propertiesDemoResult,
+        leadsDemoResult,
+        callsDemoResult,
+        showingsDemoResult,
+        scoreHistoryDemoResult,
+        communicationsDemoResult,
       ] = await Promise.all([
-        supabase
-          .from('properties')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', userRecord.organization_id)
-          .eq('is_demo', true),
-        supabase
-          .from('leads')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', userRecord.organization_id)
-          .eq('is_demo', true),
-        supabase
-          .from('calls')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', userRecord.organization_id)
-          .eq('is_demo', true),
-        supabase
-          .from('showings')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', userRecord.organization_id)
-          .eq('is_demo', true),
-        supabase
-          .from('lead_score_history')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', userRecord.organization_id)
-          .eq('is_demo', true),
-        supabase
-          .from('communications')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', userRecord.organization_id)
-          .eq('is_demo', true),
+        supabase.from('properties').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
+        supabase.from('leads').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
+        supabase.from('calls').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
+        supabase.from('showings').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
+        supabase.from('lead_score_history').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
+        supabase.from('communications').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
+      ]);
+
+      // Query TOTAL counts for all records in the org (no is_demo filter)
+      const [
+        propertiesTotalResult,
+        leadsTotalResult,
+        callsTotalResult,
+        showingsTotalResult,
+        scoreHistoryTotalResult,
+        communicationsTotalResult,
+      ] = await Promise.all([
+        supabase.from('properties').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
+        supabase.from('leads').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
+        supabase.from('calls').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
+        supabase.from('showings').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
+        supabase.from('lead_score_history').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
+        supabase.from('communications').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
       ]);
 
       setStats({
-        properties: propertiesResult.count || 0,
-        leads: leadsResult.count || 0,
-        calls: callsResult.count || 0,
-        showings: showingsResult.count || 0,
-        scoreHistory: scoreHistoryResult.count || 0,
-        communications: communicationsResult.count || 0,
+        properties: propertiesDemoResult.count || 0,
+        leads: leadsDemoResult.count || 0,
+        calls: callsDemoResult.count || 0,
+        showings: showingsDemoResult.count || 0,
+        scoreHistory: scoreHistoryDemoResult.count || 0,
+        communications: communicationsDemoResult.count || 0,
+      });
+
+      setOrgTotalStats({
+        properties: propertiesTotalResult.count || 0,
+        leads: leadsTotalResult.count || 0,
+        calls: callsTotalResult.count || 0,
+        showings: showingsTotalResult.count || 0,
+        scoreHistory: scoreHistoryTotalResult.count || 0,
+        communications: communicationsTotalResult.count || 0,
       });
 
       // Fetch demo item details for the table
@@ -277,7 +294,7 @@ export const DemoDataTab: React.FC = () => {
           pet_policy: 'Cats allowed with $200 pet deposit. No dogs over 50 lbs.',
           photos: JSON.stringify([]),
           listed_date: new Date().toISOString().split('T')[0],
-          is_demo: true, // IMPORTANT: Flag as demo data
+          is_demo: true,
         })
         .select()
         .single();
@@ -315,7 +332,7 @@ export const DemoDataTab: React.FC = () => {
           phone_verified: true,
           last_contact_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
           created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          is_demo: true, // IMPORTANT: Flag as demo data
+          is_demo: true,
         })
         .select()
         .single();
@@ -354,7 +371,7 @@ export const DemoDataTab: React.FC = () => {
           phone_verified: true,
           last_contact_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
           created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          is_demo: true, // IMPORTANT: Flag as demo data
+          is_demo: true,
         })
         .select()
         .single();
@@ -392,7 +409,7 @@ export const DemoDataTab: React.FC = () => {
           cost_openai: 0.0089,
           cost_total: 0.4140,
           recording_disclosure_played: true,
-          is_demo: true, // IMPORTANT: Flag as demo data
+          is_demo: true,
         })
         .select()
         .single();
@@ -485,7 +502,7 @@ export const DemoDataTab: React.FC = () => {
           scheduled_at: showingDate.toISOString(),
           status: 'confirmed',
           confirmed_at: new Date().toISOString(),
-          is_demo: true, // IMPORTANT: Flag as demo data
+          is_demo: true,
         });
 
       if (showingError) throw showingError;
@@ -592,7 +609,83 @@ export const DemoDataTab: React.FC = () => {
     }
   };
 
+  // PURGE ALL ORG DATA - deletes EVERYTHING regardless of is_demo flag
+  const purgeAllOrgData = async () => {
+    if (!userRecord?.organization_id) return;
+
+    setPurging(true);
+    const orgId = userRecord.organization_id;
+    let totalDeleted = 0;
+
+    try {
+      // Delete in correct FK order - children first, then parents
+      
+      // First wave: tables with no critical FK dependencies
+      const [consentResult, insightsResult, costResult, scoreResult, commResult, tasksResult] = await Promise.all([
+        supabase.from('consent_log').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('investor_insights').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('cost_records').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('lead_score_history').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('communications').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('agent_tasks').delete({ count: 'exact' }).eq('organization_id', orgId),
+      ]);
+      totalDeleted += (consentResult.count || 0) + (insightsResult.count || 0) + (costResult.count || 0) + 
+                      (scoreResult.count || 0) + (commResult.count || 0) + (tasksResult.count || 0);
+
+      // Second wave: showings, calls, property_alerts, investor_property_access, referrals, competitor_mentions
+      const [showingsResult, callsResult, alertsResult, accessResult, referralsResult, competitorResult] = await Promise.all([
+        supabase.from('showings').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('calls').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('property_alerts').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('investor_property_access').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('referrals').delete({ count: 'exact' }).eq('organization_id', orgId),
+        supabase.from('competitor_mentions').delete({ count: 'exact' }).eq('organization_id', orgId),
+      ]);
+      totalDeleted += (showingsResult.count || 0) + (callsResult.count || 0) + (alertsResult.count || 0) + 
+                      (accessResult.count || 0) + (referralsResult.count || 0) + (competitorResult.count || 0);
+
+      // Third wave: leads (after all lead-dependent records are gone)
+      const { count: leadsCount } = await supabase.from('leads').delete({ count: 'exact' }).eq('organization_id', orgId);
+      totalDeleted += leadsCount || 0;
+
+      // Fourth wave: properties (after all property-dependent records are gone)
+      const { count: propsCount } = await supabase.from('properties').delete({ count: 'exact' }).eq('organization_id', orgId);
+      totalDeleted += propsCount || 0;
+
+      // Finally: system_logs
+      const { count: logsCount } = await supabase.from('system_logs').delete({ count: 'exact' }).eq('organization_id', orgId);
+      totalDeleted += logsCount || 0;
+
+      // Refresh counts from database
+      await fetchDemoDataCounts();
+
+      toast({
+        title: '☠️ Purge complete',
+        description: `Se eliminaron ${totalDeleted} registros de tu organización.`,
+      });
+    } catch (error) {
+      console.error('Error purging org data:', error);
+      toast({
+        title: 'Error',
+        description: 'Falló la purga. Algunos registros pueden haber sido eliminados.',
+        variant: 'destructive',
+      });
+    } finally {
+      setPurging(false);
+    }
+  };
+
   const totalDemoCount = stats.properties + stats.leads + stats.calls + stats.showings + stats.scoreHistory + stats.communications;
+  const totalOrgCount = orgTotalStats.properties + orgTotalStats.leads + orgTotalStats.calls + orgTotalStats.showings + orgTotalStats.scoreHistory + orgTotalStats.communications;
+  
+  // Orphan records = total - demo flagged
+  const orphanStats = {
+    properties: orgTotalStats.properties - stats.properties,
+    leads: orgTotalStats.leads - stats.leads,
+    calls: orgTotalStats.calls - stats.calls,
+    showings: orgTotalStats.showings - stats.showings,
+  };
+  const totalOrphanCount = orphanStats.properties + orphanStats.leads + orphanStats.calls + orphanStats.showings;
 
   if (loading) {
     return (
@@ -643,41 +736,66 @@ export const DemoDataTab: React.FC = () => {
             </AlertDescription>
           </Alert>
 
-          {/* Current Status - Always shows live counts from database */}
-          <div className="grid gap-4 sm:grid-cols-5">
-            <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
-              <Building className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-2xl font-bold">{stats.properties}</p>
-                <p className="text-xs text-muted-foreground">Properties</p>
+          {/* Orphan Data Warning */}
+          {totalOrphanCount > 0 && (
+            <Alert variant="destructive" className="bg-red-50 border-red-300 text-red-800 dark:bg-red-950/50 dark:border-red-800 dark:text-red-200">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>⚠️ Orphan Data Detected</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p>
+                  There are <strong>{totalOrphanCount}</strong> records without the <code>is_demo</code> flag that won't be removed by "Remove All Demo Data":
+                </p>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                  {orphanStats.properties > 0 && <li>{orphanStats.properties} unflagged properties</li>}
+                  {orphanStats.leads > 0 && <li>{orphanStats.leads} unflagged leads</li>}
+                  {orphanStats.calls > 0 && <li>{orphanStats.calls} unflagged calls</li>}
+                  {orphanStats.showings > 0 && <li>{orphanStats.showings} unflagged showings</li>}
+                </ul>
+                <p className="text-sm font-medium mt-2">
+                  Use "Purge ALL Org Data" below to delete everything including orphan records.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Current Status - Demo Counts */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Demo-Flagged Records (is_demo = true)</h3>
+            <div className="grid gap-4 sm:grid-cols-5">
+              <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
+                <Building className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.properties}</p>
+                  <p className="text-xs text-muted-foreground">Properties</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-2xl font-bold">{stats.leads}</p>
-                <p className="text-xs text-muted-foreground">Leads</p>
+              <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.leads}</p>
+                  <p className="text-xs text-muted-foreground">Leads</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
-              <Phone className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-2xl font-bold">{stats.calls}</p>
-                <p className="text-xs text-muted-foreground">Calls</p>
+              <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
+                <Phone className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.calls}</p>
+                  <p className="text-xs text-muted-foreground">Calls</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-2xl font-bold">{stats.showings}</p>
-                <p className="text-xs text-muted-foreground">Showings</p>
+              <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.showings}</p>
+                  <p className="text-xs text-muted-foreground">Showings</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
-              <BarChart3 className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-2xl font-bold">{stats.scoreHistory}</p>
-                <p className="text-xs text-muted-foreground">Score History</p>
+              <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
+                <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.scoreHistory}</p>
+                  <p className="text-xs text-muted-foreground">Score History</p>
+                </div>
               </div>
             </div>
           </div>
@@ -795,25 +913,118 @@ export const DemoDataTab: React.FC = () => {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esto eliminará TODOS los registros demo de todas las tablas (propiedades, leads, llamadas, showings, historial de puntaje). Esta acción no se puede deshacer.
+                  <AlertDialogDescription className="space-y-2">
+                    <p>
+                      Esto eliminará TODOS los registros demo de todas las tablas (propiedades, leads, llamadas, showings, historial de puntaje). Esta acción no se puede deshacer.
+                    </p>
+                    {totalOrphanCount > 0 && (
+                      <p className="text-amber-600 dark:text-amber-400 font-medium">
+                        ⚠️ Nota: Hay {totalOrphanCount} registros huérfanos sin el flag is_demo que NO serán eliminados. Usa "Purge ALL Org Data" si quieres eliminar todo.
+                      </p>
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction onClick={removeDemoData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Eliminar Todo
+                    Eliminar Todo Demo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Purge ALL Org Data Button */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  disabled={purging}
+                  className="bg-red-900 hover:bg-red-800 text-white"
+                >
+                  {purging ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Purging...
+                    </>
+                  ) : (
+                    <>
+                      <Skull className="mr-2 h-4 w-4" />
+                      Purge ALL Org Data
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="border-red-500">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-red-600 flex items-center gap-2">
+                    <Skull className="h-5 w-5" />
+                    ⚠️ ACCIÓN IRREVERSIBLE
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3">
+                    <p className="text-red-600 dark:text-red-400 font-bold">
+                      Esto eliminará ABSOLUTAMENTE TODOS los registros de tu organización:
+                    </p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>{orgTotalStats.properties} propiedades</li>
+                      <li>{orgTotalStats.leads} leads</li>
+                      <li>{orgTotalStats.calls} llamadas</li>
+                      <li>{orgTotalStats.showings} showings</li>
+                      <li>{orgTotalStats.scoreHistory} registros de score history</li>
+                      <li>{orgTotalStats.communications} comunicaciones</li>
+                      <li>+ registros relacionados (consent_log, alerts, tasks, etc.)</li>
+                    </ul>
+                    <p className="font-bold text-red-600 dark:text-red-400">
+                      Total: {totalOrgCount}+ registros serán eliminados permanentemente.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Esta acción NO SE PUEDE DESHACER. Solo los usuarios y configuración de la organización se preservarán.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={purgeAllOrgData} 
+                    className="bg-red-900 text-white hover:bg-red-800"
+                  >
+                    Sí, PURGAR TODO
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </div>
 
-          {totalDemoCount > 0 && (
-            <p className="text-sm text-muted-foreground">
-              ✅ Demo data is currently active ({totalDemoCount} total records). The demo property will appear in "Browse Listings" and the demo leads will appear in your lead list.
-            </p>
-          )}
+          {/* Status Summary */}
+          <div className="space-y-2 pt-4 border-t">
+            <h4 className="text-sm font-medium text-muted-foreground">Estado de la organización</h4>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Demo flagged:</span>
+                <span className="font-medium">{totalDemoCount}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Orphan (sin flag):</span>
+                <span className={`font-medium ${totalOrphanCount > 0 ? 'text-red-600' : ''}`}>
+                  {totalOrphanCount}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Total organización:</span>
+                <span className="font-medium">{totalOrgCount}</span>
+              </div>
+            </div>
+            
+            {totalOrgCount === 0 ? (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2 mt-2">
+                <CheckCircle className="h-4 w-4" />
+                Tu organización está limpia. No hay registros de datos.
+              </p>
+            ) : totalDemoCount > 0 ? (
+              <p className="text-sm text-muted-foreground mt-2">
+                ✅ Demo data is currently active ({totalDemoCount} demo records). The demo property will appear in "Browse Listings" and the demo leads will appear in your lead list.
+              </p>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
     </div>
