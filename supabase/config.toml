@@ -60,3 +60,19 @@ verify_jwt = false
 
 [functions.agent-notification-dispatcher]
 verify_jwt = false
+
+# Sprint 3 Edge Functions
+[functions.agent-recapture]
+verify_jwt = false
+
+[functions.agent-showing-confirmation]
+verify_jwt = false
+
+[functions.agent-noshow-followup]
+verify_jwt = false
+
+[functions.agent-post-showing]
+verify_jwt = false
+
+[functions.agent-sms-inbound]
+verify_jwt = false
