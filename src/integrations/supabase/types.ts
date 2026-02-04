@@ -1850,6 +1850,10 @@ export type Database = {
       }
       check_coming_soon_expiring: { Args: never; Returns: number }
       get_dashboard_summary: { Args: never; Returns: Json }
+      get_lead_funnel: {
+        Args: { _date_from?: string; _date_to?: string }
+        Returns: Json
+      }
       get_user_id: { Args: { _auth_user_id: string }; Returns: string }
       get_user_organization_id: {
         Args: { _auth_user_id: string }
