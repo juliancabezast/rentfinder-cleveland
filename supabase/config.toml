@@ -115,3 +115,10 @@ verify_jwt = false
 
 [functions.agent-resend-processor]
 verify_jwt = false
+
+# Sprint 7 Edge Functions
+[functions.agent-insight-generator]
+verify_jwt = false
+
+[functions.agent-report-generator]
+verify_jwt = false
