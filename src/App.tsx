@@ -23,21 +23,18 @@ const PropertyDetail = lazy(() => import("./pages/properties/PropertyDetail"));
 const LeadsList = lazy(() => import("./pages/leads/LeadsList"));
 const LeadDetail = lazy(() => import("./pages/leads/LeadDetail"));
 const ShowingsList = lazy(() => import("./pages/showings/ShowingsList"));
-const ShowingRoute = lazy(() => import("./pages/showings/ShowingRoute"));
 const CallsList = lazy(() => import("./pages/calls/CallsList"));
 const CallDetail = lazy(() => import("./pages/calls/CallDetail"));
 const Reports = lazy(() => import("./pages/reports/Reports"));
-const InsightGenerator = lazy(() => import("./pages/insights/InsightGenerator"));
+const KnowledgeHub = lazy(() => import("./pages/insights/KnowledgeHub"));
 const UsersList = lazy(() => import("./pages/users/UsersList"));
 const UserDetail = lazy(() => import("./pages/users/UserDetail"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
 const SystemLogs = lazy(() => import("./pages/SystemLogs"));
 const CostDashboard = lazy(() => import("./pages/costs/CostDashboard"));
-const FaqDocuments = lazy(() => import("./pages/documents/FaqDocuments"));
 const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
 const VoucherIntelligence = lazy(() => import("./pages/analytics/VoucherIntelligence"));
 const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
-const ReferralsList = lazy(() => import("./pages/referrals/ReferralsList"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Public pages (lazy-loaded)
@@ -163,15 +160,10 @@ const App = () => (
               }
             />
 
+            {/* Redirect old /showings/route to new tabbed location */}
             <Route
               path="/showings/route"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <ShowingRoute />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/showings?tab=route" replace />}
             />
 
             <Route
@@ -207,15 +199,26 @@ const App = () => (
               }
             />
 
+            {/* Knowledge Hub (formerly Insight Generator + Documents) */}
             <Route
-              path="/insights"
+              path="/knowledge"
               element={
                 <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
                   <MainLayout>
-                    <InsightGenerator />
+                    <KnowledgeHub />
                   </MainLayout>
                 </ProtectedRoute>
               }
+            />
+
+            {/* Redirect old routes to new Knowledge Hub */}
+            <Route
+              path="/insights"
+              element={<Navigate to="/knowledge?tab=chat" replace />}
+            />
+            <Route
+              path="/documents"
+              element={<Navigate to="/knowledge?tab=documents" replace />}
             />
 
             <Route
@@ -268,28 +271,6 @@ const App = () => (
                 <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
                   <MainLayout>
                     <CostDashboard />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/referrals"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
-                  <MainLayout>
-                    <ReferralsList />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/documents"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor', 'leasing_agent']}>
-                  <MainLayout>
-                    <FaqDocuments />
                   </MainLayout>
                 </ProtectedRoute>
               }

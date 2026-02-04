@@ -5,7 +5,6 @@ import {
   Search,
   Edit,
   Trash2,
-  Power,
   PowerOff,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,9 +13,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +62,7 @@ const CATEGORIES = [
   { value: "general", label: "General", color: "bg-muted text-muted-foreground" },
 ];
 
-const FaqDocuments: React.FC = () => {
+export const DocumentsTab: React.FC = () => {
   const { userRecord } = useAuth();
   const permissions = usePermissions();
 
@@ -169,7 +165,6 @@ const FaqDocuments: React.FC = () => {
     setSubmitting(true);
     try {
       if (editingDoc) {
-        // Update
         const { error } = await supabase
           .from("faq_documents")
           .update({
@@ -184,7 +179,6 @@ const FaqDocuments: React.FC = () => {
         if (error) throw error;
         toast.success("Document updated");
       } else {
-        // Create
         const { error } = await supabase.from("faq_documents").insert({
           organization_id: userRecord.organization_id,
           title: formTitle.trim(),
@@ -234,13 +228,9 @@ const FaqDocuments: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Add Button */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            FAQ Documents
-          </h1>
           <p className="text-muted-foreground">
             Knowledge base used by AI agents to answer prospect questions
           </p>
@@ -486,5 +476,3 @@ const FaqDocuments: React.FC = () => {
     </div>
   );
 };
-
-export default FaqDocuments;

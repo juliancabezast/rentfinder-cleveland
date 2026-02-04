@@ -10,16 +10,14 @@ import {
   MoreHorizontal,
   Phone,
   BarChart3,
-  Sparkles,
   UserCog,
   Settings,
-  FileText,
   DollarSign,
   MapPin,
   Shield,
   Target,
-  Map,
-  Gift,
+  FileText,
+  Brain,
 } from 'lucide-react';
 import {
   Sheet,
@@ -38,6 +36,7 @@ interface NavItem {
   permission?: keyof ReturnType<typeof usePermissions>;
 }
 
+// Main bottom bar items (most used)
 const mainNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Properties', href: '/properties', icon: Building2 },
@@ -45,23 +44,22 @@ const mainNavItems: NavItem[] = [
   { title: 'Showings', href: '/showings', icon: CalendarDays },
 ];
 
+// Analytics items in the More sheet
 const analyticsNavItems: NavItem[] = [
+  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Voucher Intel', href: '/analytics/voucher-intel', icon: Shield, permission: 'canViewAllReports' },
   { title: 'Competitor Radar', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
-  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
-  { title: 'Insight Generator', href: '/insights', icon: Sparkles, permission: 'canAccessInsightGenerator' },
+  { title: 'Knowledge Hub', href: '/knowledge', icon: Brain, permission: 'canAccessInsightGenerator' },
 ];
 
+// Admin/More items
 const moreNavItems: NavItem[] = [
-  { title: 'My Route', href: '/showings/route', icon: Map, permission: 'canViewOwnRoute' },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
-  { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
-  { title: 'Referrals', href: '/referrals', icon: Gift, permission: 'canViewReferrals' },
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
-  { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
+  { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
 ];
 
 export const MobileNav: React.FC = () => {
@@ -74,6 +72,8 @@ export const MobileNav: React.FC = () => {
 
   const filteredAnalyticsItems = filterItems(analyticsNavItems);
   const filteredMoreItems = filterItems(moreNavItems);
+
+  const hasMoreItems = filteredAnalyticsItems.length > 0 || filteredMoreItems.length > 0;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/80 dark:bg-card/80 backdrop-blur-xl border-t border-white/30 z-50 safe-area-inset-bottom">
@@ -100,7 +100,7 @@ export const MobileNav: React.FC = () => {
           </NavLink>
         ))}
 
-        {filteredMoreItems.length > 0 && (
+        {hasMoreItems && (
           <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
             <SheetTrigger asChild>
               <Button
@@ -147,11 +147,11 @@ export const MobileNav: React.FC = () => {
                   <Separator />
                 )}
 
-                {/* Admin / Other Section */}
+                {/* Admin Section */}
                 {filteredMoreItems.length > 0 && (
                   <div>
                     <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Admin & More
+                      Admin
                     </p>
                     <div className="grid grid-cols-3 gap-3">
                       {filteredMoreItems.map((item) => (
