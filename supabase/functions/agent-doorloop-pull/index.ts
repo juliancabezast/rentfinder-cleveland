@@ -7,16 +7,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SUPABASE_URL = "https://glzzzthgotfwoiaranmp.supabase.co";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const DOORLOOP_API_BASE = "https://api.doorloop.com/api";
+const DOORLOOP_API_BASE = "https://app.doorloop.com/api";
 
-interface DoorloopProspect {
+interface DoorloopTenant {
   id: string;
   firstName?: string;
   lastName?: string;
   email?: string;
   phone?: string;
+  type?: string; // "PROSPECT_TENANT" or "LEASE_TENANT"
   status?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -24,18 +25,10 @@ interface DoorloopProspect {
 
 interface DoorloopApplication {
   id: string;
-  prospectId?: string;
+  tenantId?: string;
   status?: string;
   propertyId?: string;
   unitId?: string;
-}
-
-interface DoorloopLease {
-  id: string;
-  status?: string;
-  propertyId?: string;
-  unitId?: string;
-  tenantIds?: string[];
 }
 
 serve(async (req) => {
@@ -77,34 +70,37 @@ serve(async (req) => {
         console.log(`[Esther] Syncing org ${organization_id}`);
 
         const headers = {
-          "Authorization": `Bearer ${doorloop_api_key}`,
+          "Authorization": `bearer ${doorloop_api_key}`,
           "Content-Type": "application/json",
         };
 
-        // 1. Fetch prospects from Doorloop
-        let prospectsPage = 1;
-        let hasMoreProspects = true;
+        // 1. Fetch tenants from Doorloop (filter for PROSPECT_TENANT type)
+        let tenantsPage = 1;
+        let hasMoreTenants = true;
 
-        while (hasMoreProspects) {
-          const prospectsResponse = await fetch(
-            `${DOORLOOP_API_BASE}/prospects?page=${prospectsPage}&limit=100`,
+        while (hasMoreTenants) {
+          const tenantsResponse = await fetch(
+            `${DOORLOOP_API_BASE}/tenants?page=${tenantsPage}&limit=100`,
             { headers }
           );
 
-          if (!prospectsResponse.ok) {
-            if (prospectsResponse.status === 429) {
+          if (!tenantsResponse.ok) {
+            if (tenantsResponse.status === 429) {
               // Rate limited, wait and retry
               await new Promise(resolve => setTimeout(resolve, 5000));
               continue;
             }
-            throw new Error(`Doorloop prospects API error: ${prospectsResponse.status}`);
+            throw new Error(`Doorloop tenants API error: ${tenantsResponse.status}`);
           }
 
-          const prospectsData = await prospectsResponse.json();
-          const prospects: DoorloopProspect[] = prospectsData.data || [];
+          const tenantsData = await tenantsResponse.json();
+          const allTenants: DoorloopTenant[] = tenantsData.data || [];
+          
+          // Filter for prospects only (type === "PROSPECT_TENANT")
+          const prospects = allTenants.filter(t => t.type === "PROSPECT_TENANT");
 
-          if (prospects.length === 0) {
-            hasMoreProspects = false;
+          if (allTenants.length === 0) {
+            hasMoreTenants = false;
             break;
           }
 
@@ -158,27 +154,27 @@ serve(async (req) => {
             }
           }
 
-          prospectsPage++;
-          if (prospects.length < 100) {
-            hasMoreProspects = false;
+          tenantsPage++;
+          if (allTenants.length < 100) {
+            hasMoreTenants = false;
           }
         }
 
-        // 2. Fetch applications from Doorloop
-        const appsResponse = await fetch(`${DOORLOOP_API_BASE}/applications?limit=100`, { headers });
+        // 2. Fetch rental applications from Doorloop
+        const appsResponse = await fetch(`${DOORLOOP_API_BASE}/rental-applications?page=1&limit=100`, { headers });
         
         if (appsResponse.ok) {
           const appsData = await appsResponse.json();
           const applications: DoorloopApplication[] = appsData.data || [];
 
           for (const app of applications) {
-            if (app.prospectId) {
-              // Find lead with this prospect ID
+            if (app.tenantId) {
+              // Find lead with this tenant ID (stored as doorloop_prospect_id)
               const { data: lead } = await supabase
                 .from("leads")
                 .select("id, status")
                 .eq("organization_id", organization_id)
-                .eq("doorloop_prospect_id", app.prospectId)
+                .eq("doorloop_prospect_id", app.tenantId)
                 .maybeSingle();
 
               if (lead) {
@@ -191,7 +187,7 @@ serve(async (req) => {
                 }
 
                 if (newStatus !== lead.status) {
-                  const updateData: Record<string, any> = {
+                  const updateData: Record<string, unknown> = {
                     status: newStatus,
                     updated_at: new Date().toISOString(),
                   };
@@ -220,33 +216,46 @@ serve(async (req) => {
           }
         }
 
-        // 3. Fetch leases from Doorloop
-        const leasesResponse = await fetch(`${DOORLOOP_API_BASE}/leases?limit=100`, { headers });
+        // 3. Fetch lease tenants from Doorloop (tenants with active leases)
+        const leaseTenantsResponse = await fetch(`${DOORLOOP_API_BASE}/lease-tenants?page=1&limit=100`, { headers });
         
-        if (leasesResponse.ok) {
-          const leasesData = await leasesResponse.json();
-          const leases: DoorloopLease[] = leasesData.data || [];
+        if (leaseTenantsResponse.ok) {
+          const leaseTenantsData = await leaseTenantsResponse.json();
+          const leaseTenants: DoorloopTenant[] = leaseTenantsData.data || [];
 
-          for (const lease of leases) {
-            if (lease.status === "active" || lease.status === "signed") {
-              // Try to find associated lead via property matching
-              // This is a simplified approach - real implementation might need more sophisticated matching
-              const { data: leads } = await supabase
+          for (const tenant of leaseTenants) {
+            // A tenant appearing in lease-tenants means they converted
+            // Match by doorloop_prospect_id
+            const { data: lead } = await supabase
+              .from("leads")
+              .select("id, status")
+              .eq("organization_id", organization_id)
+              .eq("doorloop_prospect_id", tenant.id)
+              .maybeSingle();
+
+            if (lead && lead.status !== "converted") {
+              // Update lead to converted with score 100
+              await supabase
                 .from("leads")
-                .select("id, status")
-                .eq("organization_id", organization_id)
-                .eq("status", "in_application");
+                .update({
+                  status: "converted",
+                  lead_score: 100,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", lead.id);
 
-              // For now, we'll log leases for manual review
               await supabase.from("doorloop_sync_log").insert({
                 organization_id,
                 entity_type: "lease",
                 sync_direction: "pull",
-                doorloop_id: lease.id,
+                doorloop_id: tenant.id,
+                local_id: lead.id,
                 status: "success",
-                action_taken: `Lease ${lease.status} detected`,
-                details: { lease },
+                action_taken: `Tenant ${tenant.id} has active lease - marked lead as converted`,
+                details: { tenant },
               });
+
+              leadsUpdated++;
             }
           }
         }
