@@ -2149,6 +2149,15 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _auth_user_id: string }; Returns: boolean }
+      joseph_compliance_check: {
+        Args: {
+          p_action_type: string
+          p_agent_key?: string
+          p_lead_id: string
+          p_organization_id: string
+        }
+        Returns: Json
+      }
       log_agent_activity: {
         Args: {
           p_action: string
@@ -2193,6 +2202,20 @@ export type Database = {
       user_has_property_access: {
         Args: { _auth_user_id: string; _property_id: string }
         Returns: boolean
+      }
+      zacchaeus_record_cost: {
+        Args: {
+          p_call_id?: string
+          p_communication_id?: string
+          p_lead_id?: string
+          p_organization_id: string
+          p_service: string
+          p_total_cost: number
+          p_unit_cost: number
+          p_usage_quantity: number
+          p_usage_unit: string
+        }
+        Returns: string
       }
     }
     Enums: {

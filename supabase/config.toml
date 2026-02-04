@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.invite-user]
 verify_jwt = false
+
+[functions.agent-task-dispatcher]
+verify_jwt = false
+
+[functions.agent-health-checker]
+verify_jwt = false
