@@ -199,11 +199,18 @@ async function testSingleService(
           message = "Missing Doorloop API key";
           break;
         }
-        const resp = await fetch("https://api.doorloop.com/api/v1/properties?$top=1", {
-          headers: { Authorization: `Bearer ${key}` },
+        const resp = await fetch("https://app.doorloop.com/api/accounts", {
+          headers: { Authorization: `bearer ${key}` },
         });
         success = resp.ok;
-        message = success ? "Doorloop connection successful" : `Doorloop error: ${resp.status}`;
+        if (success) {
+          const data = await resp.json();
+          const accountName = data?.data?.[0]?.name || "Connected";
+          message = `Doorloop connection successful — Account: ${accountName}`;
+        } else {
+          const errorText = await resp.text();
+          message = `Doorloop error: ${resp.status} — ${errorText.substring(0, 200)}`;
+        }
         break;
       }
 
@@ -324,11 +331,17 @@ async function runFullHealthCheck(
             message = "Not configured";
             break;
           }
-          const resp = await fetch("https://api.doorloop.com/api/v1/properties?$top=1", {
-            headers: { Authorization: `Bearer ${key}` },
+          const resp = await fetch("https://app.doorloop.com/api/accounts", {
+            headers: { Authorization: `bearer ${key}` },
           });
           healthy = resp.ok;
-          message = healthy ? "Connected" : `Error: ${resp.status}`;
+          if (healthy) {
+            const data = await resp.json();
+            const accountName = data?.data?.[0]?.name || "Connected";
+            message = `Connected — ${accountName}`;
+          } else {
+            message = `Error: ${resp.status}`;
+          }
           break;
         }
       }

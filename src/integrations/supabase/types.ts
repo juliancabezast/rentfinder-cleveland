@@ -2814,7 +2814,7 @@ export type Database = {
         Returns: number
       }
       map_doorloop_status: {
-        Args: { p_doorloop_status: string }
+        Args: { doorloop_status: string }
         Returns: string
       }
       pause_lead_agent_tasks: {
