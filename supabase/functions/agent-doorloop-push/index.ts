@@ -7,9 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SUPABASE_URL = "https://glzzzthgotfwoiaranmp.supabase.co";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const DOORLOOP_API_BASE = "https://api.doorloop.com/api";
+const DOORLOOP_API_BASE = "https://app.doorloop.com/api";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -79,7 +79,7 @@ serve(async (req) => {
     }
 
     const headers = {
-      "Authorization": `Bearer ${doorloopApiKey}`,
+      "Authorization": `bearer ${doorloopApiKey}`,
       "Content-Type": "application/json",
     };
 
@@ -97,11 +97,12 @@ serve(async (req) => {
       }
     }
 
-    const prospectData = {
+    const tenantData = {
       firstName: lead.first_name || "",
       lastName: lead.last_name || "",
       email: lead.email || "",
       phone: lead.phone,
+      type: "PROSPECT_TENANT",
       notes: `Source: ${lead.source}, Score: ${lead.lead_score || "N/A"}${propertyNote}`,
     };
 
@@ -109,23 +110,23 @@ serve(async (req) => {
     let action = "create";
 
     if (doorloopProspectId) {
-      // UPDATE existing prospect
+      // UPDATE existing prospect (tenant with type PROSPECT_TENANT)
       action = "update";
-      console.log(`[Mordecai] Updating Doorloop prospect ${doorloopProspectId}`);
+      console.log(`[Mordecai] Updating Doorloop tenant ${doorloopProspectId}`);
 
       const updateResponse = await fetch(
-        `${DOORLOOP_API_BASE}/prospects/${doorloopProspectId}`,
+        `${DOORLOOP_API_BASE}/tenants/${doorloopProspectId}`,
         {
           method: "PUT",
           headers,
-          body: JSON.stringify(prospectData),
+          body: JSON.stringify(tenantData),
         }
       );
 
       if (!updateResponse.ok) {
         const errorText = await updateResponse.text();
         
-        // If prospect not found, create new one
+        // If tenant not found, create new one
         if (updateResponse.status === 404) {
           doorloopProspectId = null;
           action = "create";
@@ -136,13 +137,13 @@ serve(async (req) => {
     }
 
     if (!doorloopProspectId) {
-      // CREATE new prospect
-      console.log(`[Mordecai] Creating new Doorloop prospect`);
+      // CREATE new prospect (tenant with type PROSPECT_TENANT)
+      console.log(`[Mordecai] Creating new Doorloop tenant (prospect)`);
 
-      const createResponse = await fetch(`${DOORLOOP_API_BASE}/prospects`, {
+      const createResponse = await fetch(`${DOORLOOP_API_BASE}/tenants`, {
         method: "POST",
         headers,
-        body: JSON.stringify(prospectData),
+        body: JSON.stringify(tenantData),
       });
 
       if (!createResponse.ok) {
