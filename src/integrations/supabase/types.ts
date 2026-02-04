@@ -802,6 +802,56 @@ export type Database = {
           },
         ]
       }
+      doorloop_sync_log: {
+        Row: {
+          action_taken: string | null
+          created_at: string | null
+          details: Json | null
+          doorloop_id: string | null
+          entity_type: string
+          error_message: string | null
+          id: string
+          local_id: string | null
+          organization_id: string
+          status: string
+          sync_direction: string
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string | null
+          details?: Json | null
+          doorloop_id?: string | null
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          local_id?: string | null
+          organization_id: string
+          status: string
+          sync_direction: string
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string | null
+          details?: Json | null
+          doorloop_id?: string | null
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          local_id?: string | null
+          organization_id?: string
+          status?: string
+          sync_direction?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doorloop_sync_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faq_documents: {
         Row: {
           category: string
@@ -1246,6 +1296,9 @@ export type Database = {
           source_detail: string | null
           status: string
           updated_at: string | null
+          verification_completed_at: string | null
+          verification_started_at: string | null
+          verification_status: string | null
           voucher_amount: number | null
           voucher_status: string | null
           whatsapp_consent: boolean | null
@@ -1296,6 +1349,9 @@ export type Database = {
           source_detail?: string | null
           status?: string
           updated_at?: string | null
+          verification_completed_at?: string | null
+          verification_started_at?: string | null
+          verification_status?: string | null
           voucher_amount?: number | null
           voucher_status?: string | null
           whatsapp_consent?: boolean | null
@@ -1346,6 +1402,9 @@ export type Database = {
           source_detail?: string | null
           status?: string
           updated_at?: string | null
+          verification_completed_at?: string | null
+          verification_started_at?: string | null
+          verification_status?: string | null
           voucher_amount?: number | null
           voucher_status?: string | null
           whatsapp_consent?: boolean | null
@@ -2403,6 +2462,7 @@ export type Database = {
         Returns: boolean
       }
       check_coming_soon_expiring: { Args: never; Returns: number }
+      format_lead_for_sheets: { Args: { p_lead_id: string }; Returns: Json }
       get_dashboard_summary: { Args: never; Returns: Json }
       get_lead_full_context: { Args: { p_lead_id: string }; Returns: Json }
       get_lead_funnel: {
@@ -2477,6 +2537,10 @@ export type Database = {
           _triggered_by: string
         }
         Returns: number
+      }
+      map_doorloop_status: {
+        Args: { p_doorloop_status: string }
+        Returns: string
       }
       pause_lead_agent_tasks: {
         Args: { _lead_id: string; _reason: string; _user_id: string }
