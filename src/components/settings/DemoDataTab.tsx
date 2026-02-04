@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Sparkles, Trash2, AlertTriangle, Building, Users, Phone, Calendar, BarChart3, Loader2, X, Skull, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface DemoStats {
   properties: number;
@@ -245,17 +245,10 @@ export const DemoDataTab: React.FC = () => {
       // Refresh counts from database
       await fetchDemoDataCounts();
 
-      toast({
-        title: 'Item eliminado',
-        description: `${item.name} ha sido eliminado.`,
-      });
+      toast.success(`${item.name} ha sido eliminado`);
     } catch (error) {
       console.error('Error removing item:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo eliminar el elemento. Intenta de nuevo.',
-        variant: 'destructive',
-      });
+      toast.error('No se pudo eliminar el elemento. Intenta de nuevo');
     } finally {
       setRemovingId(null);
     }
@@ -510,17 +503,10 @@ export const DemoDataTab: React.FC = () => {
       // Refresh counts from database
       await fetchDemoDataCounts();
 
-      toast({
-        title: '✨ Demo data seeded!',
-        description: 'Created 1 property, 2 leads, 1 call, 1 showing, and 5 score history entries.',
-      });
+      toast.success('✨ Demo data seeded! — Created 1 property, 2 leads, 1 call, 1 showing, and 5 score history entries');
     } catch (error) {
       console.error('Error seeding demo data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to seed demo data. Some records may have been created.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to seed demo data. Some records may have been created');
     } finally {
       setSeeding(false);
     }
@@ -587,23 +573,13 @@ export const DemoDataTab: React.FC = () => {
       await fetchDemoDataCounts();
 
       if (totalDeleted > 0) {
-        toast({
-          title: '🗑️ Demo data removed',
-          description: `Se eliminaron ${totalDeleted} registros demo.`,
-        });
+        toast.success(`🗑️ Se eliminaron ${totalDeleted} registros demo`);
       } else {
-        toast({
-          title: 'No demo data found',
-          description: 'No hay datos demo para eliminar.',
-        });
+        toast.info('No hay datos demo para eliminar');
       }
     } catch (error) {
       console.error('Error removing demo data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to remove all demo data.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to remove all demo data');
     } finally {
       setRemoving(false);
     }
@@ -659,17 +635,10 @@ export const DemoDataTab: React.FC = () => {
       // Refresh counts from database
       await fetchDemoDataCounts();
 
-      toast({
-        title: '☠️ Purge complete',
-        description: `Se eliminaron ${totalDeleted} registros de tu organización.`,
-      });
+      toast.success(`☠️ Purge complete — Se eliminaron ${totalDeleted} registros de tu organización`);
     } catch (error) {
       console.error('Error purging org data:', error);
-      toast({
-        title: 'Error',
-        description: 'Falló la purga. Algunos registros pueden haber sido eliminados.',
-        variant: 'destructive',
-      });
+      toast.error('Falló la purga. Algunos registros pueden haber sido eliminados');
     } finally {
       setPurging(false);
     }

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Save, AlertTriangle, Shield, ImageIcon } from 'lucide-react';
 import { useOrganizationSettings, DEFAULT_SETTINGS } from '@/hooks/useOrganizationSettings';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const ComplianceTab: React.FC = () => {
   const { getSetting, updateMultipleSettings, loading } = useOrganizationSettings();
@@ -37,10 +37,10 @@ export const ComplianceTab: React.FC = () => {
         { key: 'photo_upload_restricted', value: photoUploadRestricted, category: 'security' },
       ]);
 
-      toast({ title: 'Settings saved', description: 'Compliance and security settings have been updated.' });
+      toast.success('Compliance and security settings have been updated');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast({ title: 'Error', description: 'Failed to save settings.', variant: 'destructive' });
+      toast.error('Failed to save settings');
     } finally {
       setSaving(false);
     }

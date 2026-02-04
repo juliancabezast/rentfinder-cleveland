@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Save } from 'lucide-react';
 import { useOrganizationSettings, DEFAULT_SETTINGS } from '@/hooks/useOrganizationSettings';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const LeadCaptureTab: React.FC = () => {
   const { getSetting, updateMultipleSettings, loading } = useOrganizationSettings();
@@ -34,10 +34,10 @@ export const LeadCaptureTab: React.FC = () => {
         { key: 'popup_message', value: popupMessage, category: 'lead_capture' },
       ]);
 
-      toast({ title: 'Settings saved', description: 'Lead capture settings have been updated.' });
+      toast.success('Lead capture settings have been updated');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast({ title: 'Error', description: 'Failed to save settings.', variant: 'destructive' });
+      toast.error('Failed to save settings');
     } finally {
       setSaving(false);
     }

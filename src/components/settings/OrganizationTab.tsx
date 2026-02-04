@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 const TIMEZONES = [
   { value: 'America/New_York', label: 'Eastern Time (ET)' },
@@ -88,10 +88,10 @@ export const OrganizationTab: React.FC = () => {
         .getPublicUrl(fileName);
 
       setLogoUrl(publicUrl);
-      toast({ title: 'Logo uploaded', description: 'Save changes to apply.' });
+      toast.success('Logo uploaded — Save changes to apply');
     } catch (error) {
       console.error('Error uploading logo:', error);
-      toast({ title: 'Upload failed', variant: 'destructive' });
+      toast.error('Upload failed');
     }
   };
 
@@ -120,10 +120,10 @@ export const OrganizationTab: React.FC = () => {
 
       if (error) throw error;
 
-      toast({ title: 'Settings saved', description: 'Organization settings have been updated.' });
+      toast.success('Organization settings have been updated');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast({ title: 'Error', description: 'Failed to save settings.', variant: 'destructive' });
+      toast.error('Failed to save settings');
     } finally {
       setSaving(false);
     }

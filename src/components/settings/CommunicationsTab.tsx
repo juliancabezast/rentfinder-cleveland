@@ -12,7 +12,7 @@ import { Save, Plus, Trash2, Mail, Bell, MessageSquare, Phone, Bot, AlertTriangl
 import { useOrganizationSettings, DEFAULT_SETTINGS } from '@/hooks/useOrganizationSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { DEFAULT_NOTIFICATION_PREFS, type NotificationPreferences } from '@/lib/notificationService';
 
 // WhatsApp icon component
@@ -191,10 +191,10 @@ export const CommunicationsTab: React.FC = () => {
         { key: 'email_notification_preferences', value: notificationPrefs as any, category: 'communications' },
       ]);
 
-      toast({ title: 'Settings saved', description: 'Communication settings have been updated.' });
+      toast.success('Communication settings have been updated');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast({ title: 'Error', description: 'Failed to save settings.', variant: 'destructive' });
+      toast.error('Failed to save settings');
     } finally {
       setSaving(false);
     }

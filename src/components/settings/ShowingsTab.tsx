@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Save, Clock } from 'lucide-react';
 import { useOrganizationSettings, DEFAULT_SETTINGS } from '@/hooks/useOrganizationSettings';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const ShowingsTab: React.FC = () => {
   const { getSetting, updateMultipleSettings, loading } = useOrganizationSettings();
@@ -29,10 +29,10 @@ export const ShowingsTab: React.FC = () => {
         { key: 'buffer_minutes', value: bufferMinutes, category: 'showings' },
       ]);
 
-      toast({ title: 'Settings saved', description: 'Showing settings have been updated.' });
+      toast.success('Showing settings have been updated');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast({ title: 'Error', description: 'Failed to save settings.', variant: 'destructive' });
+      toast.error('Failed to save settings');
     } finally {
       setSaving(false);
     }

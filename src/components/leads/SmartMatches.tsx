@@ -14,7 +14,7 @@ import {
 import { Sparkles, RefreshCw, MapPin, Eye, MessageSquare, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface PropertyMatch {
@@ -77,7 +77,6 @@ const CircularProgress: React.FC<{ score: number; size?: number }> = ({ score, s
 
 export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) => {
   const { userRecord } = useAuth();
-  const { toast } = useToast();
   const [matches, setMatches] = useState<PropertyMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -106,11 +105,7 @@ export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) 
       setMatches(data?.matches || []);
     } catch (error) {
       console.error('Error fetching matches:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch property matches.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch property matches');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -128,10 +123,7 @@ export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) 
 
   const handleSendSuggestion = async () => {
     // TODO: Implement SMS/email sending via Twilio
-    toast({
-      title: 'Coming Soon',
-      description: 'Property suggestions via SMS will be available soon.',
-    });
+    toast.info('Property suggestions via SMS will be available soon');
     setSuggestDialogOpen(false);
     setSelectedProperty(null);
   };

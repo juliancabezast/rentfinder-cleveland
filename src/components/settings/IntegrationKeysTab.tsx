@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { AlertTriangle, Eye, EyeOff, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
 interface IntegrationKey {
@@ -251,10 +251,10 @@ export const IntegrationKeysTab: React.FC = () => {
 
       setCredentials((prev) => ({ ...prev, [key]: newValues[key] }));
       cancelEditing(key);
-      toast({ title: 'Key saved', description: 'Integration key has been updated.' });
+      toast.success('Integration key has been updated');
     } catch (error) {
       console.error('Error saving key:', error);
-      toast({ title: 'Error', description: 'Failed to save key.', variant: 'destructive' });
+      toast.error('Failed to save key');
     } finally {
       setSaving(null);
     }
@@ -279,17 +279,13 @@ export const IntegrationKeysTab: React.FC = () => {
       }));
 
       if (data.success) {
-        toast({ title: '✅ Connection successful', description: data.message });
+        toast.success(`✅ Connection successful — ${data.message}`);
       } else {
-        toast({ title: '❌ Connection failed', description: data.message, variant: 'destructive' });
+        toast.error(`❌ Connection failed — ${data.message}`);
       }
     } catch (error) {
       console.error('Test connection error:', error);
-      toast({
-        title: 'Test failed',
-        description: error instanceof Error ? error.message : 'Connection test failed',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Connection test failed');
     } finally {
       setTesting(null);
     }
