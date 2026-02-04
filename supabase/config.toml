@@ -86,3 +86,19 @@ verify_jwt = false
 
 [functions.agent-paip-assistant]
 verify_jwt = false
+
+# Sprint 5 Edge Functions
+[functions.agent-persona-verification]
+verify_jwt = false
+
+[functions.agent-doorloop-pull]
+verify_jwt = false
+
+[functions.agent-doorloop-push]
+verify_jwt = false
+
+[functions.agent-sheets-backup]
+verify_jwt = false
+
+[functions.persona-webhook]
+verify_jwt = false
