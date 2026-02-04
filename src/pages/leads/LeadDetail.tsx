@@ -51,6 +51,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ScoreDisplay, ScoreChange } from "@/components/leads/ScoreDisplay";
 import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
+import { DoorloopStatusBadge } from "@/components/leads/DoorloopStatusBadge";
 import { LeadForm } from "@/components/leads/LeadForm";
 import { HumanTakeoverModal } from "@/components/leads/HumanTakeoverModal";
 import { ReleaseControlModal } from "@/components/leads/ReleaseControlModal";
@@ -331,6 +332,10 @@ const LeadDetail: React.FC = () => {
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl font-bold">{leadName}</h1>
                 <LeadStatusBadge status={lead.status} />
+                <DoorloopStatusBadge 
+                  leadId={lead.id} 
+                  doorloopProspectId={lead.doorloop_prospect_id} 
+                />
                 {lead.is_priority && (
                   <Badge className="bg-amber-500 hover:bg-amber-600">Priority</Badge>
                 )}
