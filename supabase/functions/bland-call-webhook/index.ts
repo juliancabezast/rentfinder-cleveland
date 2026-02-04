@@ -125,6 +125,67 @@ serve(async (req) => {
 
     const callId = callRecord.id;
 
+    // Handle campaign voice calls (Joshua)
+    const agentType = metadata?.agent_type;
+    const campaignId = metadata?.campaign_id;
+    const campaignRecipientId = metadata?.campaign_recipient_id;
+    const taskId = metadata?.task_id;
+
+    if (agentType === "campaign_voice" && campaignRecipientId) {
+      // Update campaign recipient with call result
+      await supabase
+        .from("campaign_recipients")
+        .update({
+          status: callStatus === "completed" ? "delivered" : "failed",
+          delivered_at: callStatus === "completed" ? new Date().toISOString() : null,
+          call_id: callId,
+          error_message: callStatus !== "completed" ? `Call status: ${callStatus}` : null,
+        })
+        .eq("id", campaignRecipientId);
+
+      // Update campaign delivered_count
+      if (callStatus === "completed" && campaignId) {
+        const { data: campaign } = await supabase
+          .from("campaigns")
+          .select("delivered_count")
+          .eq("id", campaignId)
+          .single();
+
+        await supabase
+          .from("campaigns")
+          .update({ delivered_count: (campaign?.delivered_count || 0) + 1 })
+          .eq("id", campaignId);
+
+        // Check if campaign is complete
+        const { count: pendingCount } = await supabase
+          .from("campaign_recipients")
+          .select("*", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .in("status", ["pending", "queued", "sent"]);
+
+        if (pendingCount === 0) {
+          await supabase
+            .from("campaigns")
+            .update({ status: "completed", completed_at: new Date().toISOString() })
+            .eq("id", campaignId);
+        }
+      }
+
+      // Complete the task
+      if (taskId) {
+        await supabase
+          .from("agent_tasks")
+          .update({
+            status: "completed",
+            completed_at: new Date().toISOString(),
+            result_call_id: callId,
+          })
+          .eq("id", taskId);
+      }
+
+      console.log(`Campaign voice call processed: recipient ${campaignRecipientId}, status ${callStatus}`);
+    }
+
     // Extract lead info from analysis or variables
     const extractedData: Record<string, any> = {};
     
