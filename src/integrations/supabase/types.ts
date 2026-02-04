@@ -2242,6 +2242,11 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_zip_code_analytics: { Args: { _days?: number }; Returns: Json }
+      habakkuk_check_alerts: { Args: never; Returns: Json }
+      handle_sms_opt_out: {
+        Args: { p_keyword: string; p_organization_id: string; p_phone: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _auth_user_id: string
@@ -2296,6 +2301,17 @@ export type Database = {
         Returns: number
       }
       reset_agent_daily_counters: { Args: never; Returns: undefined }
+      schedule_next_recapture: {
+        Args: {
+          p_current_attempt: number
+          p_lead_id: string
+          p_organization_id: string
+          p_task_id?: string
+        }
+        Returns: string
+      }
+      schedule_showing_confirmations: { Args: never; Returns: number }
+      schedule_stale_leads_for_recapture: { Args: never; Returns: number }
       seed_agents_for_organization: {
         Args: { p_org_id: string }
         Returns: undefined
