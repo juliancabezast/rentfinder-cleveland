@@ -307,12 +307,6 @@ export const AdminDashboard = () => {
     }
   };
 
-  const gridClassName = cn(
-    "grid gap-6",
-    prefs.layout === "comfortable"
-      ? "grid-cols-1 lg:grid-cols-2"
-      : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
-  );
 
   return (
     <div className="space-y-6">
@@ -377,169 +371,210 @@ export const AdminDashboard = () => {
 
       {/* Voice Quality Widget */}
       {isWidgetVisible("ai_agent_performance") && (
-        <div className={gridClassName}>
-          <div className="animate-fade-up stagger-5">
-            <VoiceQualityWidget />
-          </div>
+        <div className="animate-fade-up stagger-5">
+          <VoiceQualityWidget />
         </div>
       )}
 
-      <div className={gridClassName}>
-        {/* Priority Leads */}
-        {isWidgetVisible("priority_leads") && (
-          <Card variant="glass">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Priority Leads</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/leads?filter=priority")}
-              >
-                View All <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="max-h-[400px]">
-                <div className="space-y-3">
-                  {loading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <PriorityLeadCardSkeleton key={i} />
-                    ))
-                  ) : priorityLeads.length > 0 ? (
-                    priorityLeads.map((lead) => (
-                      <PriorityLeadCard
-                        key={lead.id}
-                        lead={lead}
-                        onTakeControl={handleTakeControl}
-                      />
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      All leads are progressing normally. Priority leads will appear here when a lead scores 85+.
-                    </p>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        )}
+      {/* Main Widget Grid - auto-fill to avoid gaps */}
+      {(() => {
+        const widgetIds = ["priority_leads", "today_showings", "property_alerts", "recent_activity"];
+        const visibleWidgets = widgetIds.filter((id) => isWidgetVisible(id));
+        const visibleCount = visibleWidgets.length;
 
-        {/* Today's Showings */}
-        {isWidgetVisible("today_showings") && (
-          <Card variant="glass">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Today's Showings</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/showings")}
-              >
-                View All <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="max-h-[400px]">
-                <div className="space-y-3">
-                  {loading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <ShowingCardSkeleton key={i} variant="compact" />
-                    ))
-                  ) : todayShowings.length > 0 ? (
-                    todayShowings.map((showing) => (
-                      <ShowingCard
-                        key={showing.id}
-                        showing={showing}
-                        variant="compact"
-                      />
-                    ))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <p className="text-sm text-muted-foreground mb-3">
-                        No showings scheduled for today.
-                      </p>
+        if (visibleCount === 0) return null;
+
+        // Build grid classes based on visible count
+        const getGridClass = () => {
+          if (visibleCount === 1) return "grid gap-6 grid-cols-1";
+          return cn(
+            "grid gap-6",
+            prefs.layout === "comfortable"
+              ? "grid-cols-1 lg:grid-cols-2"
+              : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+          );
+        };
+
+        // Should last item span full width? (odd count, 2-column layout)
+        const shouldLastSpanFull = visibleCount > 1 && visibleCount % 2 === 1 && prefs.layout === "comfortable";
+
+        const renderWidget = (widgetId: string, isLast: boolean) => {
+          const spanFull = isLast && shouldLastSpanFull;
+          const wrapperClass = spanFull ? "lg:col-span-2" : "";
+
+          switch (widgetId) {
+            case "priority_leads":
+              return (
+                <div key={widgetId} className={wrapperClass}>
+                  <Card variant="glass" className="h-full">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg">Priority Leads</CardTitle>
                       <Button
+                        variant="ghost"
                         size="sm"
-                        className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                        onClick={() => navigate("/showings")}
+                        onClick={() => navigate("/leads?filter=priority")}
                       >
-                        Schedule Showing
+                        View All <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Property Alerts */}
-        {isWidgetVisible("property_alerts") && (
-          <Card variant="glass">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Property Alerts
-                {alerts.length > 0 && (
-                  <Badge variant="destructive">{alerts.length}</Badge>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="max-h-[300px]">
-                <div className="space-y-3">
-                  {loading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 rounded-lg border">
-                        <div className="flex-1 space-y-1">
-                          <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
-                          <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
-                        </div>
-                      </div>
-                    ))
-                  ) : alerts.length > 0 ? (
-                    alerts.map((alert) => (
-                      <div
-                        key={alert.id}
-                        className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50"
-                      >
-                        <Bell className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{alert.message}</p>
-                          {alert.property_address && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {alert.property_address}
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="max-h-[400px]">
+                        <div className="space-y-3">
+                          {loading ? (
+                            Array.from({ length: 3 }).map((_, i) => (
+                              <PriorityLeadCardSkeleton key={i} />
+                            ))
+                          ) : priorityLeads.length > 0 ? (
+                            priorityLeads.map((lead) => (
+                              <PriorityLeadCard
+                                key={lead.id}
+                                lead={lead}
+                                onTakeControl={handleTakeControl}
+                              />
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-8">
+                              All leads are progressing normally. Priority leads will appear here when a lead scores 85+.
                             </p>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleMarkAlertRead(alert.id)}
-                        >
-                          Dismiss
-                        </Button>
-                      </div>
-                    ))
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            case "today_showings":
+              return (
+                <div key={widgetId} className={wrapperClass}>
+                  <Card variant="glass" className="h-full">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg">Today's Showings</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate("/showings")}
+                      >
+                        View All <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="max-h-[400px]">
+                        <div className="space-y-3">
+                          {loading ? (
+                            Array.from({ length: 3 }).map((_, i) => (
+                              <ShowingCardSkeleton key={i} variant="compact" />
+                            ))
+                          ) : todayShowings.length > 0 ? (
+                            todayShowings.map((showing) => (
+                              <ShowingCard
+                                key={showing.id}
+                                showing={showing}
+                                variant="compact"
+                              />
+                            ))
+                          ) : (
+                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                              <p className="text-sm text-muted-foreground mb-3">
+                                No showings scheduled for today.
+                              </p>
+                              <Button
+                                size="sm"
+                                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                                onClick={() => navigate("/showings")}
+                              >
+                                Schedule Showing
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            case "property_alerts":
+              return (
+                <div key={widgetId} className={wrapperClass}>
+                  <Card variant="glass" className="h-full">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Bell className="h-5 w-5" />
+                        Property Alerts
+                        {alerts.length > 0 && (
+                          <Badge variant="destructive">{alerts.length}</Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="max-h-[300px]">
+                        <div className="space-y-3">
+                          {loading ? (
+                            Array.from({ length: 3 }).map((_, i) => (
+                              <div key={i} className="flex items-start gap-3 p-3 rounded-lg border">
+                                <div className="flex-1 space-y-1">
+                                  <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+                                  <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
+                                </div>
+                              </div>
+                            ))
+                          ) : alerts.length > 0 ? (
+                            alerts.map((alert) => (
+                              <div
+                                key={alert.id}
+                                className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50"
+                              >
+                                <Bell className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium">{alert.message}</p>
+                                  {alert.property_address && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {alert.property_address}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleMarkAlertRead(alert.id)}
+                                >
+                                  Dismiss
+                                </Button>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-8">
+                              No unread alerts.
+                            </p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            case "recent_activity":
+              return (
+                <div key={widgetId} className={wrapperClass}>
+                  {loading ? (
+                    <ActivityFeedSkeleton />
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No unread alerts.
-                    </p>
+                    <ActivityFeed activities={activities} />
                   )}
                 </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        )}
+              );
+            default:
+              return null;
+          }
+        };
 
-        {/* Activity Feed */}
-        {isWidgetVisible("recent_activity") && (
-          loading ? (
-            <ActivityFeedSkeleton />
-          ) : (
-            <ActivityFeed activities={activities} />
-          )
-        )}
-      </div>
+        return (
+          <div className={getGridClass()}>
+            {visibleWidgets.map((widgetId, index) =>
+              renderWidget(widgetId, index === visibleWidgets.length - 1)
+            )}
+          </div>
+        );
+      })()}
 
       {/* Dashboard Customizer Sheet */}
       <DashboardCustomizer
