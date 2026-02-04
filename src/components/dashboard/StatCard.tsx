@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LucideIcon, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react";
@@ -19,6 +19,71 @@ interface StatCardProps {
   onClick?: () => void;
 }
 
+// Parse value to extract numeric part and suffix (e.g., "85%" -> { num: 85, suffix: "%" })
+const parseValue = (value: string | number): { num: number | null; suffix: string } => {
+  if (typeof value === "number") {
+    return { num: value, suffix: "" };
+  }
+  const match = value.match(/^([\d.]+)(.*)$/);
+  if (match) {
+    const num = parseFloat(match[1]);
+    return isNaN(num) ? { num: null, suffix: "" } : { num, suffix: match[2] };
+  }
+  return { num: null, suffix: "" };
+};
+
+// easeOutCubic easing function
+const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
+
+// Hook for count-up animation
+const useCountUp = (targetValue: string | number, duration: number = 600) => {
+  const { num: target, suffix } = parseValue(targetValue);
+  const [displayValue, setDisplayValue] = useState<string | number>(targetValue);
+  const hasAnimated = useRef(false);
+  const animationRef = useRef<number>();
+
+  useEffect(() => {
+    // Only animate once on first valid target, and only for numeric values
+    if (target === null || hasAnimated.current) {
+      setDisplayValue(targetValue);
+      return;
+    }
+
+    hasAnimated.current = true;
+    const startTime = performance.now();
+    const isInteger = Number.isInteger(target);
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = easeOutCubic(progress);
+      const currentValue = target * easedProgress;
+
+      const formatted = isInteger 
+        ? Math.round(currentValue).toString() 
+        : currentValue.toFixed(1);
+      
+      setDisplayValue(formatted + suffix);
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(targetValue);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [target, suffix, duration, targetValue]);
+
+  return displayValue;
+};
+
 export const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
@@ -30,6 +95,8 @@ export const StatCard: React.FC<StatCardProps> = ({
   className,
   onClick,
 }) => {
+  const animatedValue = useCountUp(value);
+
   const impactConfig = {
     high: { label: "High impact", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
     medium: { label: "Medium impact", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
@@ -83,7 +150,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         {/* Value and impact badge */}
         <div className="flex items-baseline gap-2 mb-2">
           <span className="text-3xl font-bold tracking-tight text-foreground">
-            {value}
+            {animatedValue}
           </span>
           {impact && (
             <span className={cn(
