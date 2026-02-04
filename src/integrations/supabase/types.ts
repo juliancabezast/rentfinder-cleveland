@@ -232,6 +232,13 @@ export type Database = {
             referencedRelation: "properties"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "calls_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
+          },
         ]
       }
       communications: {
@@ -625,6 +632,13 @@ export type Database = {
             referencedRelation: "properties"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "investor_insights_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
+          },
         ]
       }
       investor_property_access: {
@@ -680,6 +694,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_property_access_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
           },
         ]
       }
@@ -1082,6 +1103,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_interested_property_id_fkey"
+            columns: ["interested_property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
+          },
+          {
             foreignKeyName: "leads_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1444,6 +1472,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "property_alerts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
+          },
+          {
             foreignKeyName: "property_alerts_read_by_fkey"
             columns: ["read_by"]
             isOneToOne: false
@@ -1635,6 +1670,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
           },
           {
             foreignKeyName: "showings_rescheduled_to_id_fkey"
@@ -1841,7 +1883,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      property_performance: {
+        Row: {
+          active_leads: number | null
+          address: string | null
+          avg_lead_score: number | null
+          city: string | null
+          days_on_market: number | null
+          investor_id: string | null
+          lead_to_showing_rate: number | null
+          listed_date: string | null
+          organization_id: string | null
+          photos: Json | null
+          property_id: string | null
+          rent_price: number | null
+          showing_completion_rate: number | null
+          showings_completed: number | null
+          showings_no_show: number | null
+          showings_scheduled: number | null
+          status: string | null
+          total_leads: number | null
+          unit_number: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_manage_property_photos: {
