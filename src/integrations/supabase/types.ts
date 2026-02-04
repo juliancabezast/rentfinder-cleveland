@@ -1934,6 +1934,7 @@ export type Database = {
         Args: { _date_from?: string; _date_to?: string }
         Returns: Json
       }
+      get_source_performance: { Args: { _days?: number }; Returns: Json }
       get_user_id: { Args: { _auth_user_id: string }; Returns: string }
       get_user_organization_id: {
         Args: { _auth_user_id: string }
@@ -1943,6 +1944,7 @@ export type Database = {
         Args: { _auth_user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_zip_code_analytics: { Args: { _days?: number }; Returns: Json }
       has_role: {
         Args: {
           _auth_user_id: string
