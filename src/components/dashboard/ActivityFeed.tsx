@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Phone,
   Calendar,
@@ -10,6 +11,7 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  Activity,
 } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -91,9 +93,11 @@ export const ActivityFeed = ({
           <CardTitle className="text-lg">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No recent activity to display.
-          </p>
+          <EmptyState
+            icon={Activity}
+            title="No recent activity"
+            description="Activity from leads, calls, and showings will appear here"
+          />
         </CardContent>
       </Card>
     );

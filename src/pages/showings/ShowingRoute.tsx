@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   Globe,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   format,
   startOfDay,
@@ -315,19 +316,12 @@ const ShowingRoute: React.FC = () => {
                 ))}
               </div>
             ) : showings.length === 0 ? (
-              <div className="text-center py-12">
-                <Calendar className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  No showings scheduled for this day.
-                </p>
-                <Button
-                  variant="link"
-                  className="mt-2"
-                  onClick={() => navigate("/showings")}
-                >
-                  View all showings
-                </Button>
-              </div>
+              <EmptyState
+                icon={Calendar}
+                title="No showings scheduled"
+                description="Use the arrows to check other days"
+                action={{ label: "View all showings", onClick: () => navigate("/showings") }}
+              />
             ) : (
               <ScrollArea className="h-[calc(100vh-400px)] min-h-[400px]">
                 <div className="relative pl-8">
@@ -542,9 +536,12 @@ const ShowingRoute: React.FC = () => {
             {loading ? (
               <Skeleton className="w-full h-[400px] rounded-xl" />
             ) : showings.length === 0 ? (
-              <div className="w-full h-[400px] rounded-xl bg-muted/50 flex items-center justify-center">
-                <p className="text-muted-foreground">No route to display</p>
-              </div>
+              <EmptyState
+                icon={MapPin}
+                title="No route to display"
+                description="Routes are generated from your daily showings"
+                className="h-[400px]"
+              />
             ) : mapUrl ? (
               <div className="space-y-4">
                 {/* Embedded Google Maps */}
