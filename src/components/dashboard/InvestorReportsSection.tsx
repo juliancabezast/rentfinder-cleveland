@@ -16,25 +16,30 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import type { Json } from "@/integrations/supabase/types";
 
-interface ReportMetrics {
-  total_leads?: number;
-  showings_completed?: number;
-  conversions?: number;
-  avg_lead_score?: number;
+interface ReportHighlight {
+  metric?: string;
+  value?: string;
+  trend?: string;
+  change?: string;
 }
 
 interface InvestorReport {
   id: string;
-  period_month: number;
-  period_year: number;
-  subject: string;
-  html_content: string;
-  narrative_summary: string | null;
-  metrics: Json;
+  title: string;
+  summary: string;
+  sections: Json;
+  highlights: Json;
+  report_type: string;
+  period_start: string;
+  period_end: string;
   status: string;
   sent_at: string | null;
-  delivered: boolean;
+  sent_to_email: string | null;
+  resend_email_id: string | null;
   created_at: string;
+  investor_id: string | null;
+  property_id: string | null;
+  organization_id: string;
 }
 
 export const InvestorReportsSection: React.FC = () => {
@@ -42,7 +47,6 @@ export const InvestorReportsSection: React.FC = () => {
   const [reports, setReports] = useState<InvestorReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<InvestorReport | null>(null);
-  const [viewMode, setViewMode] = useState<"summary" | "html">("summary");
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -53,14 +57,13 @@ export const InvestorReportsSection: React.FC = () => {
           .from("investor_reports")
           .select("*")
           .eq("investor_id", userRecord.id)
-          .order("period_year", { ascending: false })
-          .order("period_month", { ascending: false })
+          .order("created_at", { ascending: false })
           .limit(12);
 
         if (error) throw error;
-        setReports(data || []);
-      } catch (error) {
-        console.error("Error fetching reports:", error);
+        setReports((data || []) as InvestorReport[]);
+      } catch {
+        // Error logged server-side
       } finally {
         setLoading(false);
       }
@@ -69,15 +72,21 @@ export const InvestorReportsSection: React.FC = () => {
     fetchReports();
   }, [userRecord?.id]);
 
-  const getMonthName = (month: number) => {
-    return new Date(2000, month - 1).toLocaleString("en", { month: "long" });
+  const getReportPeriod = (report: InvestorReport) => {
+    try {
+      const start = new Date(report.period_start);
+      const end = new Date(report.period_end);
+      return `${start.toLocaleString("en", { month: "short" })} - ${end.toLocaleString("en", { month: "short", year: "numeric" })}`;
+    } catch {
+      return report.report_type;
+    }
   };
 
-  const getMetrics = (metrics: Json): ReportMetrics => {
-    if (typeof metrics === "object" && metrics !== null && !Array.isArray(metrics)) {
-      return metrics as ReportMetrics;
+  const getHighlights = (highlights: Json): ReportHighlight[] => {
+    if (Array.isArray(highlights)) {
+      return highlights as ReportHighlight[];
     }
-    return {};
+    return [];
   };
 
   if (loading) {
@@ -127,7 +136,7 @@ export const InvestorReportsSection: React.FC = () => {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {reports.map((report) => {
-          const metrics = getMetrics(report.metrics);
+          const highlights = getHighlights(report.highlights);
           return (
             <Card
               key={report.id}
@@ -137,7 +146,7 @@ export const InvestorReportsSection: React.FC = () => {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">
-                    {getMonthName(report.period_month)} {report.period_year}
+                    {report.title || getReportPeriod(report)}
                   </CardTitle>
                   {report.status === "sent" ? (
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
@@ -158,26 +167,22 @@ export const InvestorReportsSection: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-primary">
-                      {metrics.total_leads ?? 0}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Leads</div>
+                {highlights.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    {highlights.slice(0, 3).map((h, idx) => (
+                      <div key={idx}>
+                        <div className="text-2xl font-bold text-primary">
+                          {h.value || "—"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{h.metric}</div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <div className="text-2xl font-bold text-green-600">
-                      {metrics.showings_completed ?? 0}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Showings</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-purple-600">
-                      {metrics.conversions ?? 0}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Converted</div>
-                  </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {report.summary}
+                  </p>
+                )}
                 <Button variant="outline" size="sm" className="w-full">
                   <Eye className="h-4 w-4 mr-2" />
                   View Report
@@ -192,90 +197,55 @@ export const InvestorReportsSection: React.FC = () => {
       <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>
-                {selectedReport && `${getMonthName(selectedReport.period_month)} ${selectedReport.period_year} Report`}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant={viewMode === "summary" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("summary")}
-                >
-                  Summary
-                </Button>
-                <Button
-                  variant={viewMode === "html" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("html")}
-                >
-                  Email Preview
-                </Button>
-              </div>
+            <DialogTitle>
+              {selectedReport?.title || "Report Details"}
             </DialogTitle>
           </DialogHeader>
 
           <ScrollArea className="max-h-[70vh]">
-            {viewMode === "summary" ? (
-              <div className="space-y-4 pr-4">
-                {selectedReport && (
-                  <>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      {selectedReport.sent_at && (
-                        <span>
-                          Sent: {format(new Date(selectedReport.sent_at), "PPp")}
-                        </span>
-                      )}
-                      {selectedReport.delivered && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700">
-                          Delivered
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="prose prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap font-sans text-sm bg-muted/50 p-4 rounded-lg">
-                        {selectedReport.narrative_summary || "No summary available."}
-                      </pre>
-                    </div>
-                    <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
-                      {(() => {
-                        const metrics = getMetrics(selectedReport.metrics);
-                        return (
-                          <>
-                            <div className="text-center">
-                              <div className="text-2xl font-bold">{metrics.total_leads ?? 0}</div>
-                              <div className="text-xs text-muted-foreground">Total Leads</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-2xl font-bold">{metrics.showings_completed ?? 0}</div>
-                              <div className="text-xs text-muted-foreground">Showings</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-2xl font-bold">{metrics.conversions ?? 0}</div>
-                              <div className="text-xs text-muted-foreground">Conversions</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-2xl font-bold">{metrics.avg_lead_score ?? 0}</div>
-                              <div className="text-xs text-muted-foreground">Avg Score</div>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                {selectedReport && (
-                  <iframe
-                    srcDoc={selectedReport.html_content}
-                    className="w-full h-[600px] border-0"
-                    title="Report Preview"
-                  />
-                )}
-              </div>
-            )}
+            <div className="space-y-4 pr-4">
+              {selectedReport && (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Period: {getReportPeriod(selectedReport)}</span>
+                    {selectedReport.sent_at && (
+                      <span>
+                        • Sent: {format(new Date(selectedReport.sent_at), "PPp")}
+                      </span>
+                    )}
+                    {selectedReport.sent_to_email && (
+                      <Badge variant="outline" className="bg-green-50 text-green-700">
+                        Delivered
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="prose prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans text-sm bg-muted/50 p-4 rounded-lg">
+                      {selectedReport.summary || "No summary available."}
+                    </pre>
+                  </div>
+                  {(() => {
+                    const highlights = getHighlights(selectedReport.highlights);
+                    if (highlights.length === 0) return null;
+                    return (
+                      <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+                        {highlights.slice(0, 4).map((h, idx) => (
+                          <div key={idx} className="text-center">
+                            <div className="text-2xl font-bold">{h.value || "—"}</div>
+                            <div className="text-xs text-muted-foreground">{h.metric}</div>
+                            {h.trend && h.change && (
+                              <div className={`text-xs ${h.trend === "up" ? "text-green-600" : h.trend === "down" ? "text-red-600" : "text-muted-foreground"}`}>
+                                {h.change}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
+            </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>

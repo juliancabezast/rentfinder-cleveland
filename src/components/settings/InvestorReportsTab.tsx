@@ -49,15 +49,21 @@ import type { Json } from "@/integrations/supabase/types";
 
 interface InvestorReport {
   id: string;
-  investor_id: string;
-  period_month: number;
-  period_year: number;
-  subject: string;
-  html_content: string;
+  title: string;
+  summary: string;
+  sections: Json;
+  highlights: Json;
+  report_type: string;
+  period_start: string;
+  period_end: string;
   status: string;
   sent_at: string | null;
-  delivered: boolean;
+  sent_to_email: string | null;
+  resend_email_id: string | null;
   created_at: string;
+  investor_id: string | null;
+  property_id: string | null;
+  organization_id: string;
   users?: { full_name: string | null; email: string | null };
 }
 
@@ -69,7 +75,7 @@ interface Investor {
 
 const InvestorReportsTab: React.FC = () => {
   const { userRecord } = useAuth();
-  const { getSetting, updateSetting, updateMultipleSettings, loading: settingsLoading } = useOrganizationSettings();
+  const { getSetting, updateMultipleSettings, loading: settingsLoading } = useOrganizationSettings();
   
   const [reports, setReports] = useState<InvestorReport[]>([]);
   const [investors, setInvestors] = useState<Investor[]>([]);
@@ -108,7 +114,7 @@ const InvestorReportsTab: React.FC = () => {
           .order("created_at", { ascending: false })
           .limit(50);
 
-        setReports(reportsData || []);
+        setReports((reportsData || []) as InvestorReport[]);
 
         // Fetch investors with property access
         const { data: accessData } = await supabase
@@ -131,8 +137,8 @@ const InvestorReportsTab: React.FC = () => {
         setReportsEnabled(getSetting("investor_reports_enabled", true));
         setSendDay(getSetting("investor_reports_send_day", 1));
         setFooterText(getSetting("investor_reports_footer", ""));
-      } catch (error) {
-        console.error("Error fetching data:", error);
+      } catch {
+        // Error logged server-side
       } finally {
         setLoading(false);
       }
@@ -150,8 +156,7 @@ const InvestorReportsTab: React.FC = () => {
         { key: "investor_reports_footer", value: footerText, category: "investor_reports" },
       ]);
       toast.success("Settings saved");
-    } catch (error) {
-      console.error("Error saving settings:", error);
+    } catch {
       toast.error("Failed to save settings");
     } finally {
       setSaving(false);
@@ -209,9 +214,8 @@ const InvestorReportsTab: React.FC = () => {
         .order("created_at", { ascending: false })
         .limit(50);
 
-      setReports(reportsData || []);
-    } catch (error) {
-      console.error("Error generating reports:", error);
+      setReports((reportsData || []) as InvestorReport[]);
+    } catch {
       toast.error("Failed to generate reports");
     } finally {
       setGenerating(false);
@@ -219,16 +223,17 @@ const InvestorReportsTab: React.FC = () => {
   };
 
   const handleResendReport = async (report: InvestorReport) => {
-    if (!userRecord?.organization_id) return;
+    if (!userRecord?.organization_id || !report.investor_id) return;
 
     setResending(report.id);
     try {
+      const periodStart = new Date(report.period_start);
       const { data, error } = await supabase.functions.invoke("generate-investor-report", {
         body: {
           organization_id: userRecord.organization_id,
           investor_id: report.investor_id,
-          month: report.period_month,
-          year: report.period_year,
+          month: periodStart.getMonth() + 1,
+          year: periodStart.getFullYear(),
           send_email: true,
         },
       });
@@ -247,21 +252,26 @@ const InvestorReportsTab: React.FC = () => {
       } else {
         toast.error(data.email_error || "Failed to send email");
       }
-    } catch (error) {
-      console.error("Error resending report:", error);
+    } catch {
       toast.error("Failed to resend report");
     } finally {
       setResending(null);
     }
   };
 
-  const getMonthName = (month: number) => {
-    return new Date(2000, month - 1).toLocaleString("en", { month: "long" });
+  const getReportPeriod = (report: InvestorReport) => {
+    try {
+      const start = new Date(report.period_start);
+      const end = new Date(report.period_end);
+      return `${start.toLocaleString("en", { month: "short" })} - ${end.toLocaleString("en", { month: "short", year: "numeric" })}`;
+    } catch {
+      return report.report_type;
+    }
   };
 
   const months = Array.from({ length: 12 }, (_, i) => ({
     value: i + 1,
-    label: getMonthName(i + 1),
+    label: new Date(2000, i).toLocaleString("en", { month: "long" }),
   }));
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
@@ -375,7 +385,7 @@ const InvestorReportsTab: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getMonthName(report.period_month)} {report.period_year}
+                      {getReportPeriod(report)}
                     </TableCell>
                     <TableCell>
                       {report.status === "sent" ? (
@@ -498,13 +508,13 @@ const InvestorReportsTab: React.FC = () => {
             <Button onClick={handleGenerateReports} disabled={generating}>
               {generating ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Generate & Send
+                  <Play className="mr-2 h-4 w-4" />
+                  Generate
                 </>
               )}
             </Button>
@@ -516,21 +526,22 @@ const InvestorReportsTab: React.FC = () => {
       <Dialog open={!!previewReport} onOpenChange={() => setPreviewReport(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>
-              {previewReport &&
-                `${getMonthName(previewReport.period_month)} ${previewReport.period_year} Report`}
-            </DialogTitle>
+            <DialogTitle>{previewReport?.title || "Report Preview"}</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh]">
-            <div className="border rounded-lg overflow-hidden">
-              {previewReport && (
-                <iframe
-                  srcDoc={previewReport.html_content}
-                  className="w-full h-[600px] border-0"
-                  title="Report Preview"
-                />
-              )}
-            </div>
+            {previewReport && (
+              <div className="space-y-4 pr-4">
+                <div className="text-sm text-muted-foreground">
+                  Period: {getReportPeriod(previewReport)}
+                  {previewReport.sent_at && ` • Sent: ${format(new Date(previewReport.sent_at), "PPp")}`}
+                </div>
+                <div className="prose prose-sm max-w-none">
+                  <pre className="whitespace-pre-wrap font-sans text-sm bg-muted/50 p-4 rounded-lg">
+                    {previewReport.summary}
+                  </pre>
+                </div>
+              </div>
+            )}
           </ScrollArea>
         </DialogContent>
       </Dialog>
