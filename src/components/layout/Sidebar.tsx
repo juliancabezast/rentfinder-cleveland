@@ -32,6 +32,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: keyof ReturnType<typeof usePermissions>;
+  end?: boolean;
 }
 
 interface NavGroup {
@@ -43,7 +44,7 @@ const mainNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Leads', href: '/leads', icon: Users },
-  { title: 'Showings', href: '/showings', icon: CalendarDays },
+  { title: 'Showings', href: '/showings', icon: CalendarDays, end: true },
   { title: 'My Route', href: '/showings/route', icon: Map, permission: 'canViewOwnRoute' },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
@@ -124,6 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             <NavLink
               key={item.href}
               to={item.href}
+              end={item.end}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
                 'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
