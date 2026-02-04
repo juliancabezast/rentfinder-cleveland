@@ -646,6 +646,82 @@ export type Database = {
           },
         ]
       }
+      conversion_predictions: {
+        Row: {
+          action_reasoning: string | null
+          confidence_level: string | null
+          conversion_probability: number
+          created_at: string | null
+          data_points_used: number | null
+          id: string
+          is_current: boolean | null
+          lead_id: string
+          model_used: string | null
+          negative_factors: Json | null
+          organization_id: string
+          positive_factors: Json | null
+          predicted_days_to_convert: number | null
+          recommended_action: string | null
+          superseded_by: string | null
+        }
+        Insert: {
+          action_reasoning?: string | null
+          confidence_level?: string | null
+          conversion_probability: number
+          created_at?: string | null
+          data_points_used?: number | null
+          id?: string
+          is_current?: boolean | null
+          lead_id: string
+          model_used?: string | null
+          negative_factors?: Json | null
+          organization_id: string
+          positive_factors?: Json | null
+          predicted_days_to_convert?: number | null
+          recommended_action?: string | null
+          superseded_by?: string | null
+        }
+        Update: {
+          action_reasoning?: string | null
+          confidence_level?: string | null
+          conversion_probability?: number
+          created_at?: string | null
+          data_points_used?: number | null
+          id?: string
+          is_current?: boolean | null
+          lead_id?: string
+          model_used?: string | null
+          negative_factors?: Json | null
+          organization_id?: string
+          positive_factors?: Json | null
+          predicted_days_to_convert?: number | null
+          recommended_action?: string | null
+          superseded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversion_predictions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversion_predictions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversion_predictions_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "conversion_predictions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_records: {
         Row: {
           call_id: string | null
@@ -2121,6 +2197,111 @@ export type Database = {
           },
         ]
       }
+      transcript_analyses: {
+        Row: {
+          call_id: string
+          competitor_mentions: Json | null
+          created_at: string | null
+          feature_requests: Json | null
+          id: string
+          lead_id: string | null
+          location_feedback: Json | null
+          loss_risk_level: string | null
+          loss_risk_reasons: Json | null
+          mentioned_timeline: string | null
+          model_used: string | null
+          objections: Json | null
+          organization_id: string
+          pricing_feedback: Json | null
+          property_id: string | null
+          raw_analysis: Json | null
+          tokens_used: number | null
+          wants_application: boolean | null
+          wants_callback: boolean | null
+          wants_showing: boolean | null
+        }
+        Insert: {
+          call_id: string
+          competitor_mentions?: Json | null
+          created_at?: string | null
+          feature_requests?: Json | null
+          id?: string
+          lead_id?: string | null
+          location_feedback?: Json | null
+          loss_risk_level?: string | null
+          loss_risk_reasons?: Json | null
+          mentioned_timeline?: string | null
+          model_used?: string | null
+          objections?: Json | null
+          organization_id: string
+          pricing_feedback?: Json | null
+          property_id?: string | null
+          raw_analysis?: Json | null
+          tokens_used?: number | null
+          wants_application?: boolean | null
+          wants_callback?: boolean | null
+          wants_showing?: boolean | null
+        }
+        Update: {
+          call_id?: string
+          competitor_mentions?: Json | null
+          created_at?: string | null
+          feature_requests?: Json | null
+          id?: string
+          lead_id?: string | null
+          location_feedback?: Json | null
+          loss_risk_level?: string | null
+          loss_risk_reasons?: Json | null
+          mentioned_timeline?: string | null
+          model_used?: string | null
+          objections?: Json | null
+          organization_id?: string
+          pricing_feedback?: Json | null
+          property_id?: string | null
+          raw_analysis?: Json | null
+          tokens_used?: number | null
+          wants_application?: boolean | null
+          wants_callback?: boolean | null
+          wants_showing?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcript_analyses_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcript_analyses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcript_analyses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcript_analyses_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcript_analyses_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
+          },
+        ]
+      }
       users: {
         Row: {
           auth_user_id: string | null
@@ -2223,6 +2404,7 @@ export type Database = {
       }
       check_coming_soon_expiring: { Args: never; Returns: number }
       get_dashboard_summary: { Args: never; Returns: Json }
+      get_lead_full_context: { Args: { p_lead_id: string }; Returns: Json }
       get_lead_funnel: {
         Args: { _date_from?: string; _date_to?: string }
         Returns: Json
@@ -2300,7 +2482,32 @@ export type Database = {
         Args: { _lead_id: string; _reason: string; _user_id: string }
         Returns: number
       }
+      rebekah_find_alternatives: {
+        Args: {
+          p_lead_id?: string
+          p_limit?: number
+          p_organization_id: string
+          p_property_id: string
+        }
+        Returns: Json
+      }
+      rebekah_match_properties: {
+        Args: {
+          p_exclude_property_id?: string
+          p_lead_id?: string
+          p_limit?: number
+          p_max_rent?: number
+          p_min_bedrooms?: number
+          p_min_rent?: number
+          p_organization_id: string
+          p_property_type?: string
+          p_section_8?: boolean
+          p_zip_codes?: string[]
+        }
+        Returns: Json
+      }
       reset_agent_daily_counters: { Args: never; Returns: undefined }
+      schedule_conversion_predictions: { Args: never; Returns: number }
       schedule_next_recapture: {
         Args: {
           p_current_attempt: number
