@@ -429,9 +429,23 @@ const LeadsList: React.FC = () => {
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <UserX className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium">No leads found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your filters or add a new lead.
+              <p className="text-muted-foreground mb-4">
+                {searchQuery || statusFilter !== "all" || sourceFilter !== "all" || predictionFilter !== "all" || priorityOnly || humanControlledOnly
+                  ? "Try adjusting your filters."
+                  : "Import leads via CSV or create one manually."}
               </p>
+              {permissions.canCreateLead && !searchQuery && statusFilter === "all" && sourceFilter === "all" && (
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setImportOpen(true)}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import CSV
+                  </Button>
+                  <Button onClick={() => setFormOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Lead
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">

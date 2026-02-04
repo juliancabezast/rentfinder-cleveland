@@ -415,7 +415,7 @@ export const AdminDashboard = () => {
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-8">
-                      No priority leads at the moment.
+                      All leads are progressing normally. Priority leads will appear here when a lead scores 85+.
                     </p>
                   )}
                 </div>
@@ -453,9 +453,18 @@ export const AdminDashboard = () => {
                       />
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No showings scheduled for today.
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        No showings scheduled for today.
+                      </p>
+                      <Button
+                        size="sm"
+                        className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                        onClick={() => navigate("/showings")}
+                      >
+                        Schedule Showing
+                      </Button>
+                    </div>
                   )}
                 </div>
               </ScrollArea>
