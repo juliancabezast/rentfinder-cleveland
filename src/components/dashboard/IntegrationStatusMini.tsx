@@ -5,32 +5,33 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-type ServiceStatus = "ok" | "warning" | "error" | "unknown";
+type ServiceStatus = "ok" | "warning" | "error" | "disabled";
 
 interface ServiceInfo {
   name: string;
   shortName: string;
   status: ServiceStatus;
   category: string;
-  eventTypeFilter?: string; // For splitting Twilio into Voice/SMS
+  eventTypeFilter?: string;
+  credentialKey?: string; // Key to check in organization_credentials
 }
 
 const SERVICES_CONFIG: Omit<ServiceInfo, "status">[] = [
-  { name: "Twilio Voice", shortName: "Voice", category: "twilio", eventTypeFilter: "voice" },
-  { name: "Twilio SMS", shortName: "SMS", category: "twilio", eventTypeFilter: "sms" },
-  { name: "Bland.ai", shortName: "Bland", category: "bland_ai" },
-  { name: "OpenAI", shortName: "OpenAI", category: "openai" },
-  { name: "Persona", shortName: "Persona", category: "persona" },
-  { name: "Doorloop", shortName: "Doorloop", category: "doorloop" },
-  { name: "Google Sheets", shortName: "Sheets", category: "google_sheets" },
-  { name: "Gmail", shortName: "Gmail", category: "gmail" },
-  { name: "Supabase", shortName: "Supabase", category: "authentication" },
+  { name: "Twilio Voice", shortName: "Voice", category: "twilio", eventTypeFilter: "voice", credentialKey: "twilio_account_sid" },
+  { name: "Twilio SMS", shortName: "SMS", category: "twilio", eventTypeFilter: "sms", credentialKey: "twilio_account_sid" },
+  { name: "Bland.ai", shortName: "Bland", category: "bland_ai", credentialKey: "bland_api_key" },
+  { name: "OpenAI", shortName: "OpenAI", category: "openai", credentialKey: "openai_api_key" },
+  { name: "Persona", shortName: "Persona", category: "persona", credentialKey: "persona_api_key" },
+  { name: "Doorloop", shortName: "Doorloop", category: "doorloop", credentialKey: "doorloop_api_key" },
+  { name: "Google Sheets", shortName: "Sheets", category: "google_sheets", credentialKey: null }, // No credential check - assume enabled if org exists
+  { name: "Gmail", shortName: "Gmail", category: "gmail", credentialKey: null }, // No credential check - assume enabled if org exists
+  { name: "Supabase", shortName: "Supabase", category: "authentication", credentialKey: null }, // Always available
 ];
 
 export const IntegrationStatusMini: React.FC = () => {
   const { userRecord } = useAuth();
   const [services, setServices] = useState<ServiceInfo[]>(
-    SERVICES_CONFIG.map((s) => ({ ...s, status: "unknown" as ServiceStatus }))
+    SERVICES_CONFIG.map((s) => ({ ...s, status: "disabled" as ServiceStatus }))
   );
   const [checking, setChecking] = useState(false);
 
@@ -40,6 +41,13 @@ export const IntegrationStatusMini: React.FC = () => {
     setChecking(true);
     try {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+      // Fetch organization credentials to check which integrations are configured
+      const { data: credentials } = await supabase
+        .from("organization_credentials")
+        .select("*")
+        .eq("organization_id", userRecord.organization_id)
+        .single();
 
       // Fetch recent system logs for all categories
       const { data: logs } = await supabase
@@ -51,6 +59,22 @@ export const IntegrationStatusMini: React.FC = () => {
         .limit(200);
 
       const updatedServices: ServiceInfo[] = SERVICES_CONFIG.map((config) => {
+        // Check if this service has credentials configured
+        let isConfigured = false;
+        
+        if (config.credentialKey === null) {
+          // Services without credential keys (Google Sheets, Gmail, Supabase) are always considered configured
+          isConfigured = true;
+        } else if (credentials && config.credentialKey) {
+          const credValue = credentials[config.credentialKey as keyof typeof credentials];
+          isConfigured = credValue !== null && credValue !== undefined && credValue !== "";
+        }
+
+        // If not configured, show as error (red)
+        if (!isConfigured) {
+          return { ...config, status: "error" as ServiceStatus };
+        }
+
         // Filter logs for this service
         let serviceLogs = logs?.filter((log) => log.category === config.category) || [];
 
@@ -68,26 +92,29 @@ export const IntegrationStatusMini: React.FC = () => {
           });
         }
 
-        if (serviceLogs.length === 0) {
-          // No logs found - unknown status
-          return { ...config, status: "unknown" as ServiceStatus };
-        }
-
-        const latestLog = serviceLogs[0];
-        const recentErrors = serviceLogs.filter(
-          (log) =>
-            (log.level === "error" || log.level === "critical") &&
-            new Date(log.created_at!) > new Date(oneHourAgo)
+        // Check for recent errors/warnings in logs
+        const recentLogs = serviceLogs.filter(
+          (log) => new Date(log.created_at!) > new Date(oneHourAgo)
         );
-
-        // Determine status
-        let status: ServiceStatus = "ok";
         
-        if (latestLog.level === "error" || latestLog.level === "critical") {
+        const hasRecentCritical = recentLogs.some(
+          (log) => log.level === "critical" || log.level === "error"
+        );
+        const hasRecentWarning = recentLogs.some((log) => log.level === "warning");
+        
+        // Also check if the most recent log (regardless of time) is an error
+        const latestLog = serviceLogs[0];
+        const latestIsError = latestLog && (latestLog.level === "error" || latestLog.level === "critical");
+
+        // Determine status based on new logic
+        let status: ServiceStatus = "ok"; // Default to green if configured and no errors
+        
+        if (hasRecentCritical || latestIsError) {
           status = "error";
-        } else if (latestLog.level === "warning" || recentErrors.length > 0) {
+        } else if (hasRecentWarning) {
           status = "warning";
         }
+        // Otherwise stays "ok" (green) - configured with no issues
 
         return { ...config, status };
       });
@@ -112,13 +139,15 @@ export const IntegrationStatusMini: React.FC = () => {
         return "bg-amber-500";
       case "error":
         return "bg-red-500";
+      case "disabled":
+        return "bg-gray-300";
       default:
         return "bg-gray-300";
     }
   };
 
-  // Check if all services are healthy for the "Live" indicator
-  const allHealthy = services.every((s) => s.status === "ok" || s.status === "unknown");
+  // Check overall health for the "Live" indicator
+  const allHealthy = services.every((s) => s.status === "ok");
   const hasErrors = services.some((s) => s.status === "error");
 
   return (
@@ -126,7 +155,7 @@ export const IntegrationStatusMini: React.FC = () => {
       {/* Live System Indicator */}
       <div className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-border/50">
         <span className="relative flex h-2 w-2">
-          {allHealthy && !hasErrors ? (
+          {allHealthy ? (
             <>
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -139,7 +168,7 @@ export const IntegrationStatusMini: React.FC = () => {
         </span>
         <span className={cn(
           "text-[10px] font-medium",
-          allHealthy && !hasErrors ? "text-green-600" : hasErrors ? "text-red-600" : "text-amber-600"
+          allHealthy ? "text-green-600" : hasErrors ? "text-red-600" : "text-amber-600"
         )}>
           Live
         </span>
@@ -151,7 +180,7 @@ export const IntegrationStatusMini: React.FC = () => {
           <div
             key={service.name}
             className="flex items-center gap-1 shrink-0"
-            title={`${service.name}: ${service.status}`}
+            title={`${service.name}: ${service.status === "ok" ? "healthy" : service.status}`}
           >
             <span
               className={cn("h-1.5 w-1.5 rounded-full shrink-0", getStatusColor(service.status))}
@@ -171,7 +200,7 @@ export const IntegrationStatusMini: React.FC = () => {
         onClick={checkStatus}
         disabled={checking}
       >
-        <RefreshCw className={cn("h-3 w-3", checking && "animate-spin")} />
+        <RefreshCw className={cn("h-3 w-3 transition-transform", checking && "animate-spin")} />
       </Button>
     </div>
   );
