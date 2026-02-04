@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Target, 
+  Crosshair,
   TrendingDown, 
   Award,
   Building2,
@@ -170,7 +171,10 @@ const CompetitorRadar: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Competitor Radar</h1>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Crosshair className="h-6 w-6" />
+            Competitor Radar
+          </h1>
           <p className="text-muted-foreground">
             Track what competitors are offering and why leads choose them
           </p>
