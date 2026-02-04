@@ -222,28 +222,36 @@ const PropertiesList: React.FC = () => {
         </Card>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredProperties.map((property) => (
-            <PropertyCard
+          {filteredProperties.map((property, index) => (
+            <div
               key={property.id}
-              property={{
-                id: property.id,
-                address: property.address,
-                unit_number: property.unit_number,
-                city: property.city,
-                state: property.state,
-                zip_code: property.zip_code,
-                bedrooms: property.bedrooms,
-                bathrooms: property.bathrooms,
-                square_feet: property.square_feet,
-                rent_price: property.rent_price,
-                status: property.status,
-                section_8_accepted: property.section_8_accepted,
-                photos: Array.isArray(property.photos)
-                  ? (property.photos as string[])
-                  : null,
+              className="animate-fade-up"
+              style={{
+                animationDelay: `${Math.min(index * 0.05, 0.3)}s`,
+                animationFillMode: "both",
               }}
-              onEdit={() => handleEdit(property)}
-            />
+            >
+              <PropertyCard
+                property={{
+                  id: property.id,
+                  address: property.address,
+                  unit_number: property.unit_number,
+                  city: property.city,
+                  state: property.state,
+                  zip_code: property.zip_code,
+                  bedrooms: property.bedrooms,
+                  bathrooms: property.bathrooms,
+                  square_feet: property.square_feet,
+                  rent_price: property.rent_price,
+                  status: property.status,
+                  section_8_accepted: property.section_8_accepted,
+                  photos: Array.isArray(property.photos)
+                    ? (property.photos as string[])
+                    : null,
+                }}
+                onEdit={() => handleEdit(property)}
+              />
+            </div>
           ))}
         </div>
       )}

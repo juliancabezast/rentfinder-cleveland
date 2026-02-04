@@ -260,11 +260,15 @@ const ShowingsList: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {showings.map((showing) => (
+          {showings.map((showing, index) => (
             <Card
               key={showing.id}
               variant="glass"
-              className="hover:shadow-modern-lg transition-all duration-300 cursor-pointer"
+              className="hover:shadow-modern-lg transition-all duration-300 cursor-pointer animate-fade-up"
+              style={{
+                animationDelay: `${Math.min(index * 0.05, 0.3)}s`,
+                animationFillMode: "both",
+              }}
               onClick={() => navigate(`/showings/${showing.id}`)}
             >
               <CardContent className="p-4">
