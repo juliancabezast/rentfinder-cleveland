@@ -242,10 +242,14 @@ const CallsList: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCalls.map((call) => (
+                  {filteredCalls.map((call, index) => (
                     <TableRow
                       key={call.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="cursor-pointer hover:bg-muted/50 animate-fade-up"
+                      style={{
+                        animationDelay: `${Math.min(index * 0.03, 0.3)}s`,
+                        animationFillMode: "both",
+                      }}
                       onClick={() => navigate(`/calls/${call.id}`)}
                     >
                       <TableCell>

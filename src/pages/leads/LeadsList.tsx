@@ -464,10 +464,14 @@ const LeadsList: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leads.map((lead) => (
+                  {leads.map((lead, index) => (
                     <TableRow
                       key={lead.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="cursor-pointer hover:bg-muted/50 animate-fade-up"
+                      style={{
+                        animationDelay: `${Math.min(index * 0.03, 0.3)}s`,
+                        animationFillMode: "both",
+                      }}
                       onClick={() => navigate(`/leads/${lead.id}`)}
                     >
                       <TableCell>
