@@ -34,6 +34,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useReportsData, exportReportToCSV } from "@/hooks/useReportsData";
+import { LeadFunnelCard } from "@/components/reports/LeadFunnelCard";
 import { cn } from "@/lib/utils";
 
 // Chart colors from CSS variables (HSL to actual colors)
@@ -43,18 +44,6 @@ const CHART_COLORS = [
   "hsl(142, 71%, 45%)", // Success green
   "hsl(38, 92%, 50%)", // Warning amber
   "hsl(0, 84%, 60%)", // Destructive red
-];
-
-const FUNNEL_GRADIENT = [
-  "hsl(280, 73%, 85%)",
-  "hsl(280, 73%, 75%)",
-  "hsl(280, 73%, 65%)",
-  "hsl(280, 73%, 55%)",
-  "hsl(280, 73%, 45%)",
-  "hsl(280, 73%, 35%)",
-  "hsl(280, 73%, 30%)",
-  "hsl(280, 73%, 25%)",
-  "hsl(280, 73%, 17%)",
 ];
 
 const SHOWING_COLORS = {
@@ -170,47 +159,11 @@ const Reports: React.FC = () => {
         />
       </div>
 
+      {/* Lead Funnel - New RPC-powered component */}
+      <LeadFunnelCard />
+
       {/* Charts Grid */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Chart 1: Lead Funnel */}
-        <Card variant="glass" className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg">Lead Funnel</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-[300px] w-full" />
-            ) : data?.leadFunnel.some(f => f.count > 0) ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={data.leadFunnel}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                    {data.leadFunnel.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={FUNNEL_GRADIENT[index]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                No data for this period
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Chart 2: Leads by Source */}
         <Card variant="glass">
