@@ -374,7 +374,7 @@ export const AgentDashboard = () => {
         </Card>
 
         {/* Recent Reports */}
-        <Card className="lg:col-span-2">
+        <Card variant="glass" className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg">Recent Showing Reports</CardTitle>
           </CardHeader>

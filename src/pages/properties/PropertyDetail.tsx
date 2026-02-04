@@ -585,7 +585,7 @@ const PropertyDetail: React.FC = () => {
 
           {/* Special Notes (Internal) */}
           {property.special_notes && permissions.canEditProperty && (
-            <Card className="border-warning/50">
+            <Card variant="glass" className="border-warning/50">
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-warning" />

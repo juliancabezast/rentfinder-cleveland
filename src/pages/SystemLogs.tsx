@@ -527,7 +527,7 @@ const SystemLogs: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className={stats.critical > 0 ? "border-destructive" : ""}>
+        <Card variant="glass" className={stats.critical > 0 ? "border-destructive" : ""}>
           <CardContent className="flex items-center gap-4 pt-6">
             <div className="rounded-full bg-destructive/20 p-3">
               <XCircle className="h-5 w-5 text-destructive" />
