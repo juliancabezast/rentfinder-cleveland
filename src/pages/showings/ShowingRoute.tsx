@@ -285,9 +285,9 @@ const ShowingRoute: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 lg:min-h-[500px]">
         {/* Left Panel - Route Timeline */}
-        <Card variant="glass" className="lg:row-span-2">
+        <Card variant="glass" className="h-full">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <MapPin className="h-5 w-5" />
@@ -531,7 +531,7 @@ const ShowingRoute: React.FC = () => {
         </Card>
 
         {/* Right Panel - Map */}
-        <Card variant="glass" className="lg:sticky lg:top-4">
+        <Card variant="glass" className="h-full">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Globe className="h-5 w-5" />
