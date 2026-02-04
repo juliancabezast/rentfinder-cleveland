@@ -15,7 +15,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   BarChart3,
-  Link2,
   Mic,
   Zap,
   Calendar,
@@ -44,15 +43,6 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     defaultOrder: 1,
     minRole: "editor",
     span: "full",
-  },
-  {
-    id: "integration_status",
-    label: "Integration Status",
-    icon: <Link2 className="h-4 w-4" />,
-    defaultVisible: true,
-    defaultOrder: 2,
-    minRole: "admin",
-    span: "half",
   },
   {
     id: "ai_agent_performance",

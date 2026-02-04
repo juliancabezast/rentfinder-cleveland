@@ -6,7 +6,6 @@ import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { PriorityLeadCard, PriorityLeadCardSkeleton } from "@/components/dashboard/PriorityLeadCard";
 import { ShowingCard, ShowingCardSkeleton } from "@/components/dashboard/ShowingCard";
 import { ActivityFeed, ActivityFeedSkeleton } from "@/components/dashboard/ActivityFeed";
-import { IntegrationHealth } from "@/components/dashboard/IntegrationHealth";
 import VoiceQualityWidget from "@/components/dashboard/VoiceQualityWidget";
 import {
   DashboardCustomizer,
@@ -396,19 +395,12 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Integration Health & Voice Quality */}
-      {(isWidgetVisible("integration_status") || isWidgetVisible("ai_agent_performance")) && (
+      {/* Voice Quality Widget */}
+      {isWidgetVisible("ai_agent_performance") && (
         <div className={gridClassName}>
-          {isWidgetVisible("integration_status") && (
-            <div className="animate-fade-up stagger-5">
-              <IntegrationHealth />
-            </div>
-          )}
-          {isWidgetVisible("ai_agent_performance") && (
-            <div className="animate-fade-up stagger-6">
-              <VoiceQualityWidget />
-            </div>
-          )}
+          <div className="animate-fade-up stagger-5">
+            <VoiceQualityWidget />
+          </div>
         </div>
       )}
 
