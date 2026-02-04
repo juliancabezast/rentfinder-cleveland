@@ -139,6 +139,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
       )}>
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
+        
+        {/* Gradient accent line */}
+        <div 
+          className="h-0.5 w-full"
+          style={{ background: 'linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 50%, transparent 100%)' }}
+        />
 
         {/* Page Content with gradient overlay for depth */}
         <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
