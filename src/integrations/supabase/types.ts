@@ -1271,60 +1271,57 @@ export type Database = {
       investor_reports: {
         Row: {
           created_at: string | null
-          delivered: boolean | null
-          html_content: string
+          highlights: Json | null
           id: string
-          insights: Json | null
-          investor_id: string
-          metrics: Json
-          narrative_summary: string | null
-          opened: boolean | null
+          investor_id: string | null
           organization_id: string
-          period_month: number
-          period_year: number
-          property_ids: string[]
+          period_end: string
+          period_start: string
+          property_id: string | null
+          report_type: string
           resend_email_id: string | null
+          sections: Json
           sent_at: string | null
-          status: string | null
-          subject: string
+          sent_to_email: string | null
+          status: string
+          summary: string
+          title: string
         }
         Insert: {
           created_at?: string | null
-          delivered?: boolean | null
-          html_content: string
+          highlights?: Json | null
           id?: string
-          insights?: Json | null
-          investor_id: string
-          metrics?: Json
-          narrative_summary?: string | null
-          opened?: boolean | null
+          investor_id?: string | null
           organization_id: string
-          period_month: number
-          period_year: number
-          property_ids: string[]
+          period_end: string
+          period_start: string
+          property_id?: string | null
+          report_type: string
           resend_email_id?: string | null
+          sections: Json
           sent_at?: string | null
-          status?: string | null
-          subject: string
+          sent_to_email?: string | null
+          status?: string
+          summary: string
+          title: string
         }
         Update: {
           created_at?: string | null
-          delivered?: boolean | null
-          html_content?: string
+          highlights?: Json | null
           id?: string
-          insights?: Json | null
-          investor_id?: string
-          metrics?: Json
-          narrative_summary?: string | null
-          opened?: boolean | null
+          investor_id?: string | null
           organization_id?: string
-          period_month?: number
-          period_year?: number
-          property_ids?: string[]
+          period_end?: string
+          period_start?: string
+          property_id?: string | null
+          report_type?: string
           resend_email_id?: string | null
+          sections?: Json
           sent_at?: string | null
-          status?: string | null
-          subject?: string
+          sent_to_email?: string | null
+          status?: string
+          summary?: string
+          title?: string
         }
         Relationships: [
           {
@@ -1340,6 +1337,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_reports_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_reports_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
           },
         ]
       }
@@ -2726,6 +2737,15 @@ export type Database = {
       }
       get_org_setting: {
         Args: { p_default?: Json; p_key: string; p_organization_id: string }
+        Returns: Json
+      }
+      get_property_performance: {
+        Args: {
+          p_end_date: string
+          p_organization_id: string
+          p_property_id: string
+          p_start_date: string
+        }
         Returns: Json
       }
       get_source_performance: { Args: { _days?: number }; Returns: Json }

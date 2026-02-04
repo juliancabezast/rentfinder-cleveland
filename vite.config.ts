@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  esbuild: {
+    // Strip console.log and debugger statements in production builds
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
   build: {
     target: 'es2020',
     rollupOptions: {
