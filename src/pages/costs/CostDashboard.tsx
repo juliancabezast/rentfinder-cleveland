@@ -213,28 +213,28 @@ const CostDashboard: React.FC = () => {
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Total Spend"
-              value={formatCurrency(data?.overview.totalSpend ?? 0)}
+              value={formatCurrency(data?.overview?.totalSpend ?? 0)}
               icon={DollarSign}
               subtitle="this period"
               loading={loading}
             />
             <StatCard
               title="Cost per Lead"
-              value={data?.overview.costPerLead !== null ? formatCurrency(data.overview.costPerLead) : "N/A"}
+              value={data?.overview?.costPerLead != null ? formatCurrency(data.overview.costPerLead) : "N/A"}
               icon={Users}
               subtitle="total spend / leads"
               loading={loading}
             />
             <StatCard
               title="Cost per Showing"
-              value={data?.overview.costPerShowing !== null ? formatCurrency(data.overview.costPerShowing) : "N/A"}
+              value={data?.overview?.costPerShowing != null ? formatCurrency(data.overview.costPerShowing) : "N/A"}
               icon={Calendar}
               subtitle="total spend / showings"
               loading={loading}
             />
             <StatCard
               title="Most Expensive"
-              value={data?.overview.mostExpensiveService ?? "N/A"}
+              value={data?.overview?.mostExpensiveService ?? "N/A"}
               icon={TrendingUp}
               subtitle="highest spend service"
               loading={loading}
@@ -251,7 +251,7 @@ const CostDashboard: React.FC = () => {
               <CardContent>
                 {loading ? (
                   <Skeleton className="h-[300px] w-full" />
-                ) : data?.overview.spendOverTime.length ? (
+                ) : data?.overview?.spendOverTime?.length ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart
                       data={data.overview.spendOverTime}
@@ -328,7 +328,7 @@ const CostDashboard: React.FC = () => {
               <CardContent>
                 {loading ? (
                   <Skeleton className="h-[300px] w-full" />
-                ) : data?.overview.serviceBreakdown.length ? (
+                ) : data?.overview?.serviceBreakdown?.length ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
