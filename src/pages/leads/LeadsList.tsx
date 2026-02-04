@@ -37,6 +37,7 @@ import {
   Plus,
   Search,
   UserX,
+  Users,
   AlertTriangle,
   ArrowUpDown,
   Upload,
@@ -288,7 +289,10 @@ const LeadsList: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Users className="h-6 w-6" />
+            Leads
+          </h1>
           <p className="text-muted-foreground">
             Manage your lead pipeline ({totalCount} total)
           </p>

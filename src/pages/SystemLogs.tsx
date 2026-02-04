@@ -40,6 +40,7 @@ import {
   Copy,
   Check,
   ExternalLink,
+  FileText,
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -471,7 +472,10 @@ const SystemLogs: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">System Logs</h1>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <FileText className="h-6 w-6" />
+            System Logs
+          </h1>
           <p className="text-muted-foreground">
             Monitor integration events and system errors
           </p>

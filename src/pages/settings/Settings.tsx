@@ -20,12 +20,12 @@ const Settings: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <SettingsIcon className="h-6 w-6" />
           Settings
         </h1>
         <p className="text-muted-foreground">
-          Configure organization settings and preferences
+          Configure your organization preferences
         </p>
       </div>
 
