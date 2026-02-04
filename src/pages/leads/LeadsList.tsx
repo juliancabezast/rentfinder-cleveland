@@ -45,7 +45,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ScoreDisplay } from "@/components/leads/ScoreDisplay";
 import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
@@ -104,7 +104,6 @@ const LeadsList: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { userRecord } = useAuth();
   const permissions = usePermissions();
-  const { toast } = useToast();
 
   const [leads, setLeads] = useState<LeadWithProperty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -233,11 +232,7 @@ const LeadsList: React.FC = () => {
       setTotalCount(predictionFilter !== "all" ? filteredLeads.length : count || 0);
     } catch (error) {
       console.error("Error fetching leads:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load leads.",
-        variant: "destructive",
-      });
+      toast.error("Failed to load leads");
     } finally {
       setLoading(false);
     }

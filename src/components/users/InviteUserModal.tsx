@@ -19,7 +19,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { AppRole } from '@/types/auth';
 
 interface Property {

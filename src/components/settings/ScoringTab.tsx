@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Save, AlertTriangle } from 'lucide-react';
 import { useOrganizationSettings, DEFAULT_SETTINGS } from '@/hooks/useOrganizationSettings';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const ScoringTab: React.FC = () => {
   const { getSetting, updateMultipleSettings, loading } = useOrganizationSettings();
@@ -38,7 +38,7 @@ export const ScoringTab: React.FC = () => {
 
   const handleSave = async () => {
     if (jsonError) {
-      toast({ title: 'Error', description: 'Please fix the JSON errors before saving.', variant: 'destructive' });
+      toast.error('Please fix the JSON errors before saving');
       return;
     }
 
@@ -57,10 +57,10 @@ export const ScoringTab: React.FC = () => {
         { key: 'custom_scoring_rules', value: customRules, category: 'scoring' },
       ]);
 
-      toast({ title: 'Settings saved', description: 'Scoring settings have been updated.' });
+      toast.success('Scoring settings have been updated');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast({ title: 'Error', description: 'Failed to save settings.', variant: 'destructive' });
+      toast.error('Failed to save settings');
     } finally {
       setSaving(false);
     }

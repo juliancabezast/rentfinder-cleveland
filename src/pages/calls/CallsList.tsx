@@ -30,7 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -73,7 +73,6 @@ const statusColors: Record<string, string> = {
 const CallsList: React.FC = () => {
   const navigate = useNavigate();
   const { userRecord } = useAuth();
-  const { toast } = useToast();
 
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,11 +109,7 @@ const CallsList: React.FC = () => {
       setCalls(data || []);
     } catch (error) {
       console.error("Error fetching calls:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load call logs.",
-        variant: "destructive",
-      });
+      toast.error("Failed to load call logs");
     } finally {
       setLoading(false);
     }
