@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_activity_log: {
+        Row: {
+          action: string
+          agent_key: string
+          cost_incurred: number | null
+          created_at: string | null
+          details: Json | null
+          execution_ms: number | null
+          id: string
+          message: string
+          organization_id: string
+          related_call_id: string | null
+          related_lead_id: string | null
+          related_property_id: string | null
+          related_showing_id: string | null
+          related_task_id: string | null
+          status: string
+        }
+        Insert: {
+          action: string
+          agent_key: string
+          cost_incurred?: number | null
+          created_at?: string | null
+          details?: Json | null
+          execution_ms?: number | null
+          id?: string
+          message: string
+          organization_id: string
+          related_call_id?: string | null
+          related_lead_id?: string | null
+          related_property_id?: string | null
+          related_showing_id?: string | null
+          related_task_id?: string | null
+          status: string
+        }
+        Update: {
+          action?: string
+          agent_key?: string
+          cost_incurred?: number | null
+          created_at?: string | null
+          details?: Json | null
+          execution_ms?: number | null
+          id?: string
+          message?: string
+          organization_id?: string
+          related_call_id?: string | null
+          related_lead_id?: string | null
+          related_property_id?: string | null
+          related_showing_id?: string | null
+          related_task_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_activity_log_related_call_id_fkey"
+            columns: ["related_call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_activity_log_related_lead_id_fkey"
+            columns: ["related_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_activity_log_related_property_id_fkey"
+            columns: ["related_property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_activity_log_related_property_id_fkey"
+            columns: ["related_property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
+          },
+          {
+            foreignKeyName: "agent_activity_log_related_showing_id_fkey"
+            columns: ["related_showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_activity_log_related_task_id_fkey"
+            columns: ["related_task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_tasks: {
         Row: {
           action_type: string
@@ -109,6 +213,98 @@ export type Database = {
             columns: ["result_communication_id"]
             isOneToOne: false
             referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agents_registry: {
+        Row: {
+          agent_key: string
+          avg_execution_ms: number | null
+          biblical_name: string
+          category: string
+          created_at: string | null
+          description: string
+          display_role: string
+          edge_function_name: string | null
+          executions_today: number | null
+          executions_total: number | null
+          failures_today: number | null
+          failures_total: number | null
+          id: string
+          is_enabled: boolean | null
+          last_error_at: string | null
+          last_error_message: string | null
+          last_execution_at: string | null
+          last_success_at: string | null
+          organization_id: string
+          required_services: string[] | null
+          sprint: number
+          status: string
+          successes_today: number | null
+          successes_total: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_key: string
+          avg_execution_ms?: number | null
+          biblical_name: string
+          category: string
+          created_at?: string | null
+          description: string
+          display_role: string
+          edge_function_name?: string | null
+          executions_today?: number | null
+          executions_total?: number | null
+          failures_today?: number | null
+          failures_total?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          last_error_at?: string | null
+          last_error_message?: string | null
+          last_execution_at?: string | null
+          last_success_at?: string | null
+          organization_id: string
+          required_services?: string[] | null
+          sprint?: number
+          status?: string
+          successes_today?: number | null
+          successes_total?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_key?: string
+          avg_execution_ms?: number | null
+          biblical_name?: string
+          category?: string
+          created_at?: string | null
+          description?: string
+          display_role?: string
+          edge_function_name?: string | null
+          executions_today?: number | null
+          executions_total?: number | null
+          failures_today?: number | null
+          failures_total?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          last_error_at?: string | null
+          last_error_message?: string | null
+          last_execution_at?: string | null
+          last_success_at?: string | null
+          organization_id?: string
+          required_services?: string[] | null
+          sprint?: number
+          status?: string
+          successes_today?: number | null
+          successes_total?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agents_registry_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1953,6 +2149,24 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _auth_user_id: string }; Returns: boolean }
+      log_agent_activity: {
+        Args: {
+          p_action: string
+          p_agent_key: string
+          p_call_id?: string
+          p_cost?: number
+          p_details?: Json
+          p_execution_ms?: number
+          p_lead_id?: string
+          p_message: string
+          p_organization_id: string
+          p_property_id?: string
+          p_showing_id?: string
+          p_status: string
+          p_task_id?: string
+        }
+        Returns: string
+      }
       log_score_change: {
         Args: {
           _change_amount: number
@@ -1970,6 +2184,11 @@ export type Database = {
       pause_lead_agent_tasks: {
         Args: { _lead_id: string; _reason: string; _user_id: string }
         Returns: number
+      }
+      reset_agent_daily_counters: { Args: never; Returns: undefined }
+      seed_agents_for_organization: {
+        Args: { p_org_id: string }
+        Returns: undefined
       }
       user_has_property_access: {
         Args: { _auth_user_id: string; _property_id: string }
