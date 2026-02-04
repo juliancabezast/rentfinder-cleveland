@@ -44,3 +44,19 @@ verify_jwt = false
 
 [functions.agent-health-checker]
 verify_jwt = false
+
+# Sprint 2 Edge Functions
+[functions.twilio-inbound-webhook]
+verify_jwt = false
+
+[functions.bland-call-webhook]
+verify_jwt = false
+
+[functions.agent-scoring]
+verify_jwt = false
+
+[functions.agent-welcome-sequence]
+verify_jwt = false
+
+[functions.agent-notification-dispatcher]
+verify_jwt = false

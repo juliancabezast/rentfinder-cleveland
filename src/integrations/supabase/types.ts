@@ -1314,6 +1314,103 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          email_sent: boolean | null
+          id: string
+          is_read: boolean | null
+          message: string
+          organization_id: string
+          read_at: string | null
+          related_lead_id: string | null
+          related_property_id: string | null
+          related_showing_id: string | null
+          sms_sent: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          email_sent?: boolean | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          organization_id: string
+          read_at?: string | null
+          related_lead_id?: string | null
+          related_property_id?: string | null
+          related_showing_id?: string | null
+          sms_sent?: boolean | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          email_sent?: boolean | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          organization_id?: string
+          read_at?: string | null
+          related_lead_id?: string | null
+          related_property_id?: string | null
+          related_showing_id?: string | null
+          sms_sent?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_related_lead_id_fkey"
+            columns: ["related_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_related_property_id_fkey"
+            columns: ["related_property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_related_property_id_fkey"
+            columns: ["related_property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
+          },
+          {
+            foreignKeyName: "notifications_related_showing_id_fkey"
+            columns: ["related_showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_credentials: {
         Row: {
           bland_api_key: string | null
@@ -2128,6 +2225,10 @@ export type Database = {
       get_dashboard_summary: { Args: never; Returns: Json }
       get_lead_funnel: {
         Args: { _date_from?: string; _date_to?: string }
+        Returns: Json
+      }
+      get_org_setting: {
+        Args: { p_default?: Json; p_key: string; p_organization_id: string }
         Returns: Json
       }
       get_source_performance: { Args: { _days?: number }; Returns: Json }
