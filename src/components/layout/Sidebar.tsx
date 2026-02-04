@@ -10,18 +10,16 @@ import {
   CalendarDays,
   Phone,
   BarChart3,
-  Sparkles,
   UserCog,
   Settings,
-  FileText,
   DollarSign,
   ChevronLeft,
   ChevronRight,
   MapPin,
   Shield,
   Target,
-  Map,
-  Gift,
+  FileText,
+  Brain,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,35 +33,30 @@ interface NavItem {
   end?: boolean;
 }
 
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-const mainNavItems: NavItem[] = [
+// OPERATIONS section
+const operationsNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Leads', href: '/leads', icon: Users },
-  { title: 'Showings', href: '/showings', icon: CalendarDays, end: true },
-  { title: 'My Route', href: '/showings/route', icon: Map, permission: 'canViewOwnRoute' },
+  { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
-  { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
 ];
 
+// ANALYTICS section
 const analyticsNavItems: NavItem[] = [
+  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Voucher Intel', href: '/analytics/voucher-intel', icon: Shield, permission: 'canViewAllReports' },
   { title: 'Competitor Radar', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
-  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
-  { title: 'Insight Generator', href: '/insights', icon: Sparkles, permission: 'canAccessInsightGenerator' },
+  { title: 'Knowledge Hub', href: '/knowledge', icon: Brain, permission: 'canAccessInsightGenerator' },
 ];
 
+// ADMIN section
 const adminNavItems: NavItem[] = [
-  { title: 'Referrals', href: '/referrals', icon: Gift, permission: 'canViewReferrals' },
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
-  { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
+  { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
 ];
 
 interface SidebarProps {
@@ -79,13 +72,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
     (item) => !item.permission || permissions[item.permission]
   );
 
-  const filteredMainItems = filterItems(mainNavItems);
+  const filteredOperationsItems = filterItems(operationsNavItems);
   const filteredAnalyticsItems = filterItems(analyticsNavItems);
   const filteredAdminItems = filterItems(adminNavItems);
 
-  const filteredNavItems = mainNavItems.filter(
-    (item) => !item.permission || permissions[item.permission]
+  const renderNavItem = (item: NavItem) => (
+    <NavLink
+      key={item.href}
+      to={item.href}
+      end={item.end}
+      className={cn(
+        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
+        'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
+        collapsed && 'justify-center px-2'
+      )}
+      activeClassName="!bg-amber-400 !text-gray-900 font-semibold shadow-lg shadow-amber-400/30 hover:!bg-amber-400 hover:!text-gray-900"
+    >
+      <item.icon className="h-5 w-5 shrink-0" />
+      {!collapsed && <span>{item.title}</span>}
+    </NavLink>
   );
+
+  const renderSection = (label: string, items: NavItem[], showSeparator: boolean = true) => {
+    if (items.length === 0) return null;
+    
+    return (
+      <>
+        {showSeparator && <Separator className="my-3 bg-sidebar-border" />}
+        {!collapsed && (
+          <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+            {label}
+          </p>
+        )}
+        {items.map(renderNavItem)}
+      </>
+    );
+  };
 
   return (
     <aside
@@ -120,77 +142,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
       {/* Navigation - Scrollable */}
       <ScrollArea className="flex-1 py-4">
         <nav aria-label="Primary" className="px-2 space-y-1">
-          {/* Main Navigation */}
-          {filteredMainItems.map((item) => (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              end={item.end}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
-                'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
-                collapsed && 'justify-center px-2'
-              )}
-              activeClassName="!bg-amber-400 !text-gray-900 font-semibold shadow-lg shadow-amber-400/30 hover:!bg-amber-400 hover:!text-gray-900"
-            >
-              <item.icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>{item.title}</span>}
-            </NavLink>
-          ))}
-
-          {/* Analytics Section */}
-          {filteredAnalyticsItems.length > 0 && (
-            <>
-              <Separator className="my-3 bg-sidebar-border" />
-              {!collapsed && (
-                <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-                  Analytics
-                </p>
-              )}
-              {filteredAnalyticsItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
-                    'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
-                    collapsed && 'justify-center px-2'
-                  )}
-                  activeClassName="!bg-amber-400 !text-gray-900 font-semibold shadow-lg shadow-amber-400/30 hover:!bg-amber-400 hover:!text-gray-900"
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.title}</span>}
-                </NavLink>
-              ))}
-            </>
+          {/* OPERATIONS Section */}
+          {!collapsed && (
+            <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+              Operations
+            </p>
           )}
+          {filteredOperationsItems.map(renderNavItem)}
 
-          {/* Admin Section */}
-          {filteredAdminItems.length > 0 && (
-            <>
-              <Separator className="my-3 bg-sidebar-border" />
-              {!collapsed && (
-                <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-                  Admin
-                </p>
-              )}
-              {filteredAdminItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
-                    'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
-                    collapsed && 'justify-center px-2'
-                  )}
-                  activeClassName="!bg-amber-400 !text-gray-900 font-semibold shadow-lg shadow-amber-400/30 hover:!bg-amber-400 hover:!text-gray-900"
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.title}</span>}
-                </NavLink>
-              ))}
-            </>
-          )}
+          {/* ANALYTICS Section */}
+          {renderSection('Analytics', filteredAnalyticsItems)}
+
+          {/* ADMIN Section */}
+          {renderSection('Admin', filteredAdminItems)}
         </nav>
       </ScrollArea>
 

@@ -68,7 +68,6 @@ interface ShowingWithDetails {
   } | null;
 }
 
-// Rough driving time/distance estimates
 const ESTIMATED_DRIVE_TIME = 12;
 const ESTIMATED_DRIVE_DISTANCE = 3.2;
 
@@ -127,7 +126,11 @@ const getStatusConfig = (status: string, scheduledAt: string, durationMinutes: n
   }
 };
 
-const ShowingRoute: React.FC = () => {
+interface MyRouteTabProps {
+  onRefresh?: () => void;
+}
+
+export const MyRouteTab: React.FC<MyRouteTabProps> = ({ onRefresh }) => {
   const navigate = useNavigate();
   const { userRecord } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -161,7 +164,6 @@ const ShowingRoute: React.FC = () => {
         .in("status", ["scheduled", "confirmed", "completed", "no_show"])
         .order("scheduled_at", { ascending: true });
 
-      // Leasing agents only see their own showings
       if (userRecord.role === "leasing_agent") {
         query.eq("leasing_agent_id", userRecord.id);
       }
@@ -232,33 +234,14 @@ const ShowingRoute: React.FC = () => {
     return `${property.address}${property.unit_number ? `, ${property.unit_number}` : ""}, ${property.city}, ${property.state}`;
   };
 
-  // Build Google Maps iframe URL
-  const getMapIframeUrl = () => {
-    if (showings.length === 0) return null;
-    
-    const addresses = showings
-      .filter((s) => s.property)
-      .map((s) => getFullAddress(s.property));
-    
-    if (addresses.length === 0) return null;
-    
-    return `https://www.google.com/maps/dir/${addresses.map(encodeURIComponent).join("/")}`;
-  };
-
-  const mapUrl = getMapIframeUrl();
-
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Date Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">My Route</h1>
-          <p className="text-muted-foreground">
-            Your scheduled showings for {format(selectedDate, "EEEE, MMMM d, yyyy")}
-          </p>
-        </div>
+        <p className="text-muted-foreground">
+          Your scheduled showings for {format(selectedDate, "EEEE, MMMM d, yyyy")}
+        </p>
         
-        {/* Date Navigation */}
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -320,12 +303,10 @@ const ShowingRoute: React.FC = () => {
                 icon={Calendar}
                 title="No showings scheduled"
                 description="Use the arrows to check other days"
-                action={{ label: "View all showings", onClick: () => navigate("/showings") }}
               />
             ) : (
-              <ScrollArea className="h-[calc(100vh-400px)] min-h-[400px]">
+              <ScrollArea className="h-[calc(100vh-500px)] min-h-[400px]">
                 <div className="relative pl-8">
-                  {/* Vertical Timeline Line */}
                   <div className="absolute left-[15px] top-4 bottom-4 w-0.5 bg-border" />
 
                   <div className="space-y-2">
@@ -339,9 +320,7 @@ const ShowingRoute: React.FC = () => {
 
                       return (
                         <div key={showing.id}>
-                          {/* Showing Stop */}
                           <div className="relative flex gap-4 pb-4">
-                            {/* Number Circle */}
                             <div
                               className={cn(
                                 "absolute -left-8 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground z-10",
@@ -352,9 +331,7 @@ const ShowingRoute: React.FC = () => {
                               {index + 1}
                             </div>
 
-                            {/* Content */}
                             <div className="flex-1 min-w-0 bg-muted/30 rounded-xl p-4 border border-border/50">
-                              {/* Time and Address */}
                               <div className="flex items-start justify-between gap-2 mb-3">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -378,7 +355,6 @@ const ShowingRoute: React.FC = () => {
 
                               <Separator className="my-3" />
 
-                              {/* Lead Info */}
                               <div className="space-y-2 mb-3">
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium">
@@ -412,7 +388,6 @@ const ShowingRoute: React.FC = () => {
                                 </div>
                               </div>
 
-                              {/* Property Details */}
                               {showing.property && (
                                 <div className="bg-background/50 rounded-lg p-2 mb-3 text-sm">
                                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
@@ -433,7 +408,6 @@ const ShowingRoute: React.FC = () => {
                                 </div>
                               )}
 
-                              {/* Action Buttons */}
                               <div className="flex gap-2 flex-wrap">
                                 <Button
                                   size="sm"
@@ -465,7 +439,7 @@ const ShowingRoute: React.FC = () => {
                                     Email
                                   </Button>
                                 )}
-                                {(showing.status === "confirmed" || showing.status === "scheduled") && (
+                                {(showing.status === "scheduled" || showing.status === "confirmed") && (
                                   <Button
                                     variant="secondary"
                                     size="sm"
@@ -473,18 +447,17 @@ const ShowingRoute: React.FC = () => {
                                     onClick={() => handleSubmitReport(showing)}
                                   >
                                     <FileText className="h-4 w-4 mr-1" />
-                                    Submit Report
+                                    Report
                                   </Button>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          {/* Driving Time Between Stops */}
                           {index < showings.length - 1 && (
-                            <div className="relative flex items-center gap-2 py-2 pl-2 text-sm text-muted-foreground">
-                              <Car className="h-4 w-4" />
-                              <span>~{ESTIMATED_DRIVE_TIME} min · {ESTIMATED_DRIVE_DISTANCE} miles</span>
+                            <div className="flex items-center gap-2 pl-1 py-2 text-xs text-muted-foreground">
+                              <Car className="h-3 w-3" />
+                              <span>~{ESTIMATED_DRIVE_TIME} min • {ESTIMATED_DRIVE_DISTANCE} mi</span>
                             </div>
                           )}
                         </div>
@@ -492,142 +465,75 @@ const ShowingRoute: React.FC = () => {
                     })}
                   </div>
                 </div>
-
-                {/* Route Summary */}
-                <div className="mt-6 p-4 rounded-xl bg-muted/50 border">
-                  <h3 className="font-medium mb-2">Route Summary</h3>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-2xl font-bold">{showings.length}</p>
-                      <p className="text-xs text-muted-foreground">Showings</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">~{totalDriveTime}</p>
-                      <p className="text-xs text-muted-foreground">Minutes Driving</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">{totalDistance.toFixed(1)}</p>
-                      <p className="text-xs text-muted-foreground">Miles Total</p>
-                    </div>
-                  </div>
-                  <Button
-                    className="w-full mt-4"
-                    onClick={handleExportToGoogleMaps}
-                    disabled={showings.length === 0}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Export to Google Maps
-                  </Button>
-                </div>
               </ScrollArea>
             )}
           </CardContent>
         </Card>
 
-        {/* Right Panel - Map */}
-        <Card variant="glass" className="h-full">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Route Map
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="w-full h-[400px] rounded-xl" />
-            ) : showings.length === 0 ? (
-              <EmptyState
-                icon={MapPin}
-                title="No route to display"
-                description="Routes are generated from your daily showings"
-                className="h-[400px]"
-              />
-            ) : mapUrl ? (
-              <div className="space-y-4">
-                {/* Embedded Google Maps */}
-                <iframe
-                  src={mapUrl}
-                  width="100%"
-                  height="400"
-                  style={{ border: 0, borderRadius: "12px" }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="Route Map"
-                />
-                
-                {/* Address Cards */}
-                <div className="space-y-2">
-                  {showings.map((showing, index) => {
-                    const statusConfig = getStatusConfig(
-                      showing.status,
-                      showing.scheduled_at,
-                      showing.duration_minutes
-                    );
-                    
-                    return (
-                      <div
-                        key={showing.id}
-                        className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 border border-border/50"
-                      >
-                        <div
-                          className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0",
-                            statusConfig.bgColor
-                          )}
-                        >
-                          {index + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {showing.property?.address || "Unknown"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(showing.scheduled_at), "h:mm a")} · {showing.lead?.full_name}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 h-8 w-8"
-                          onClick={() => handleNavigate(getFullAddress(showing.property))}
-                        >
-                          <Navigation className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
+        {/* Right Panel - Summary & Map */}
+        <div className="space-y-4">
+          {/* Summary Card */}
+          <Card variant="glass">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Route Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <p className="text-2xl font-bold">{showings.length}</p>
+                  <p className="text-sm text-muted-foreground">Stops</p>
+                </div>
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <p className="text-2xl font-bold">{totalDriveTime}</p>
+                  <p className="text-sm text-muted-foreground">Est. Drive (min)</p>
                 </div>
               </div>
-            ) : (
-              <div className="w-full h-[400px] rounded-xl bg-muted/50 flex items-center justify-center">
-                <p className="text-muted-foreground">Unable to load map</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              
+              {showings.length > 0 && (
+                <Button
+                  className="w-full mt-4"
+                  variant="outline"
+                  onClick={handleExportToGoogleMaps}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Full Route in Google Maps
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Map placeholder */}
+          {showings.length > 0 && (
+            <Card variant="glass" className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="aspect-video bg-muted flex items-center justify-center">
+                  <div className="text-center p-4">
+                    <MapPin className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Click "Open Full Route" above to view in Google Maps
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
-      {/* Report Dialog */}
+      {/* Showing Report Dialog */}
       {selectedShowing && (
         <ShowingReportDialog
           open={reportDialogOpen}
           onOpenChange={setReportDialogOpen}
           showingId={selectedShowing.id}
           leadId={selectedShowing.lead?.id || ""}
-          propertyAddress={
-            selectedShowing.property
-              ? `${selectedShowing.property.address}, ${selectedShowing.property.city}`
-              : undefined
-          }
+          propertyAddress={getFullAddress(selectedShowing.property)}
           onSuccess={() => {
-            setReportDialogOpen(false);
             fetchShowings();
+            onRefresh?.();
           }}
         />
       )}
     </div>
   );
 };
-
-export default ShowingRoute;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Lightbulb } from "lucide-react";
+import { Brain, FileText, MessageSquare, Download } from "lucide-react";
 import { toast } from "sonner";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,8 +16,8 @@ import {
 } from "@/components/insights/LeadsResultsTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Tables } from "@/integrations/supabase/types";
+import { DocumentsTab } from "@/components/insights/DocumentsTab";
 
 type SortField = "full_name" | "lead_score" | "created_at" | "last_contact_at";
 type SortDirection = "asc" | "desc";
@@ -25,9 +25,8 @@ type Lead = Tables<"leads">;
 
 const PAGE_SIZE = 25;
 
-const InsightGenerator: React.FC = () => {
+const KnowledgeHub: React.FC = () => {
   const { userRecord } = useAuth();
-  const isMobile = useIsMobile();
 
   // Filters state
   const [filters, setFilters] = useState<InsightFiltersState>(getDefaultFilters());
@@ -71,7 +70,6 @@ const InsightGenerator: React.FC = () => {
     setLoading(true);
 
     try {
-      // Select only columns needed for list view - avoid fetching sensitive financial data
       let query = supabase
         .from("leads")
         .select(
@@ -118,14 +116,12 @@ const InsightGenerator: React.FC = () => {
         query = query.eq("is_priority", true);
       }
 
-      // Get paginated results
       const { data, count, error } = await query
         .order(sortField, { ascending: sortDirection === "asc" })
         .range((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE - 1);
 
       if (error) throw error;
 
-      // Fetch property addresses for the leads that have interested_property_id
       const propertyIds = (data || [])
         .filter((l: Lead) => l.interested_property_id)
         .map((l: Lead) => l.interested_property_id as string);
@@ -142,7 +138,6 @@ const InsightGenerator: React.FC = () => {
         }
       }
 
-      // Merge property addresses into leads
       const leadsWithProperties: LeadResult[] = (data || []).map((lead: Lead) => ({
         id: lead.id,
         full_name: lead.full_name,
@@ -170,7 +165,6 @@ const InsightGenerator: React.FC = () => {
     }
   }, [userRecord?.organization_id, appliedFilters, sortField, sortDirection, currentPage]);
 
-  // Initial load and when filters/sort/page changes
   useEffect(() => {
     fetchLeads();
   }, [fetchLeads]);
@@ -203,14 +197,11 @@ const InsightGenerator: React.FC = () => {
     setIsExporting(true);
 
     try {
-      // Export intentionally fetches all columns including financial data (budget_min, budget_max)
-      // This is authorized for admin/editor roles as enforced by RLS policies
       let query = supabase
         .from("leads")
         .select("*")
         .eq("organization_id", userRecord.organization_id);
 
-      // Apply all current filters
       if (appliedFilters.dateRange?.from) {
         query = query.gte("created_at", appliedFilters.dateRange.from.toISOString());
       }
@@ -247,7 +238,6 @@ const InsightGenerator: React.FC = () => {
         query = query.eq("is_priority", true);
       }
 
-      // Fetch ALL leads matching filters (no pagination)
       const { data: allLeads, error } = await query.order("created_at", {
         ascending: false,
       });
@@ -259,7 +249,6 @@ const InsightGenerator: React.FC = () => {
         return;
       }
 
-      // Fetch property addresses
       const propertyIds = allLeads
         .filter((l: Lead) => l.interested_property_id)
         .map((l: Lead) => l.interested_property_id as string);
@@ -276,7 +265,6 @@ const InsightGenerator: React.FC = () => {
         }
       }
 
-      // Fetch latest call summaries for each lead
       const leadIds = allLeads.map((l: Lead) => l.id);
       const { data: calls } = await supabase
         .from("calls")
@@ -284,7 +272,6 @@ const InsightGenerator: React.FC = () => {
         .in("lead_id", leadIds)
         .order("started_at", { ascending: false });
 
-      // Build map of lead_id -> latest summary
       const callSummaryMap = new Map<string, string>();
       if (calls) {
         calls.forEach((call) => {
@@ -294,7 +281,6 @@ const InsightGenerator: React.FC = () => {
         });
       }
 
-      // Generate CSV
       const headers = [
         "full_name",
         "phone",
@@ -359,75 +345,72 @@ const InsightGenerator: React.FC = () => {
     }
   };
 
-  // Data Explorer content
-  const DataExplorer = (
-    <div className="space-y-4">
-      <InsightFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        properties={properties}
-        onApply={handleApplyFilters}
-        onClear={handleClearFilters}
-        onExport={handleExport}
-        isExporting={isExporting}
-      />
-
-      <LeadsResultsTable
-        leads={leads}
-        loading={loading}
-        totalCount={totalCount}
-        currentPage={currentPage}
-        pageSize={PAGE_SIZE}
-        onPageChange={setCurrentPage}
-        sortField={sortField}
-        sortDirection={sortDirection}
-        onSort={handleSort}
-      />
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Lightbulb className="h-6 w-6" />
-          Insight Generator
+          <Brain className="h-6 w-6" />
+          Knowledge Hub
         </h1>
         <p className="text-muted-foreground">
-          Explore your data and ask questions with AI
+          Manage documents, explore data, and get AI-powered insights
         </p>
       </div>
 
-      {/* Mobile: Tabs layout */}
-      {isMobile ? (
-        <Tabs defaultValue="explorer" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="explorer">Data Explorer</TabsTrigger>
-            <TabsTrigger value="chat">AI Chat</TabsTrigger>
-          </TabsList>
+      {/* Tabs */}
+      <Tabs defaultValue="documents" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="documents" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Documents</span>
+          </TabsTrigger>
+          <TabsTrigger value="chat" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">AI Chat</span>
+          </TabsTrigger>
+          <TabsTrigger value="export" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export</span>
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="explorer" className="space-y-4">
-            {DataExplorer}
-          </TabsContent>
+        <TabsContent value="documents">
+          <DocumentsTab />
+        </TabsContent>
 
-          <TabsContent value="chat">
-            <div className="h-[calc(100vh-220px)]">
-              <AIChat />
-            </div>
-          </TabsContent>
-        </Tabs>
-      ) : (
-        /* Desktop: Side-by-side layout */
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-3">{DataExplorer}</div>
-          <div className="lg:col-span-2 h-[calc(100vh-180px)] sticky top-24">
+        <TabsContent value="chat">
+          <div className="h-[calc(100vh-280px)] min-h-[500px]">
             <AIChat />
           </div>
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="export" className="space-y-4">
+          <InsightFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            properties={properties}
+            onApply={handleApplyFilters}
+            onClear={handleClearFilters}
+            onExport={handleExport}
+            isExporting={isExporting}
+          />
+
+          <LeadsResultsTable
+            leads={leads}
+            loading={loading}
+            totalCount={totalCount}
+            currentPage={currentPage}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
 
-export default InsightGenerator;
+export default KnowledgeHub;
