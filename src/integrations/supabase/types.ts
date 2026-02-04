@@ -437,6 +437,187 @@ export type Database = {
           },
         ]
       }
+      campaign_recipients: {
+        Row: {
+          call_id: string | null
+          campaign_id: string
+          channel: string | null
+          communication_id: string | null
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          lead_id: string
+          organization_id: string
+          sent_at: string | null
+          status: string
+          task_id: string | null
+        }
+        Insert: {
+          call_id?: string | null
+          campaign_id: string
+          channel?: string | null
+          communication_id?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id: string
+          organization_id: string
+          sent_at?: string | null
+          status?: string
+          task_id?: string | null
+        }
+        Update: {
+          call_id?: string | null
+          campaign_id?: string
+          channel?: string | null
+          communication_id?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string
+          organization_id?: string
+          sent_at?: string | null
+          status?: string
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recipients_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          campaign_type: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          delivered_count: number | null
+          description: string | null
+          email_body: string | null
+          email_subject: string | null
+          failed_count: number | null
+          id: string
+          max_per_hour: number | null
+          max_total: number | null
+          name: string
+          organization_id: string
+          scheduled_at: string | null
+          sent_count: number | null
+          sms_template: string | null
+          started_at: string | null
+          status: string
+          target_count: number | null
+          target_criteria: Json
+          updated_at: string | null
+          voice_script: string | null
+        }
+        Insert: {
+          campaign_type: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivered_count?: number | null
+          description?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          failed_count?: number | null
+          id?: string
+          max_per_hour?: number | null
+          max_total?: number | null
+          name: string
+          organization_id: string
+          scheduled_at?: string | null
+          sent_count?: number | null
+          sms_template?: string | null
+          started_at?: string | null
+          status?: string
+          target_count?: number | null
+          target_criteria?: Json
+          updated_at?: string | null
+          voice_script?: string | null
+        }
+        Update: {
+          campaign_type?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivered_count?: number | null
+          description?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          failed_count?: number | null
+          id?: string
+          max_per_hour?: number | null
+          max_total?: number | null
+          name?: string
+          organization_id?: string
+          scheduled_at?: string | null
+          sent_count?: number | null
+          sms_template?: string | null
+          started_at?: string | null
+          status?: string
+          target_count?: number | null
+          target_criteria?: Json
+          updated_at?: string | null
+          voice_script?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communications: {
         Row: {
           body: string
@@ -845,6 +1026,67 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "doorloop_sync_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_events: {
+        Row: {
+          communication_id: string | null
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          lead_id: string | null
+          organization_id: string | null
+          recipient_email: string | null
+          resend_email_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          communication_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          lead_id?: string | null
+          organization_id?: string | null
+          recipient_email?: string | null
+          resend_email_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          communication_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          lead_id?: string | null
+          organization_id?: string | null
+          recipient_email?: string | null
+          resend_email_id?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1266,6 +1508,7 @@ export type Database = {
           first_name: string | null
           full_name: string | null
           has_voucher: boolean | null
+          hemlane_email_id: string | null
           hemlane_lead_id: string | null
           housing_authority: string | null
           human_control_reason: string | null
@@ -1319,6 +1562,7 @@ export type Database = {
           first_name?: string | null
           full_name?: string | null
           has_voucher?: boolean | null
+          hemlane_email_id?: string | null
           hemlane_lead_id?: string | null
           housing_authority?: string | null
           human_control_reason?: string | null
@@ -1372,6 +1616,7 @@ export type Database = {
           first_name?: string | null
           full_name?: string | null
           has_voucher?: boolean | null
+          hemlane_email_id?: string | null
           hemlane_lead_id?: string | null
           housing_authority?: string | null
           human_control_reason?: string | null
@@ -2457,6 +2702,16 @@ export type Database = {
       }
     }
     Functions: {
+      build_campaign_audience: {
+        Args: { p_criteria: Json; p_organization_id: string }
+        Returns: {
+          email: string
+          lead_id: string
+          lead_name: string
+          lead_score: number
+          phone: string
+        }[]
+      }
       can_manage_property_photos: {
         Args: { _auth_user_id: string }
         Returns: boolean

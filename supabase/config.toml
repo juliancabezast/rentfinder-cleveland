@@ -102,3 +102,16 @@ verify_jwt = false
 
 [functions.persona-webhook]
 verify_jwt = false
+
+# Sprint 6 Edge Functions
+[functions.agent-hemlane-parser]
+verify_jwt = false
+
+[functions.agent-campaign-orchestrator]
+verify_jwt = false
+
+[functions.agent-campaign-voice]
+verify_jwt = false
+
+[functions.agent-resend-processor]
+verify_jwt = false
