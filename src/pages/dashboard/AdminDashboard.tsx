@@ -28,7 +28,7 @@ import {
   ChevronRight,
   Settings2,
 } from "lucide-react";
-import { format, startOfDay, endOfDay, startOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -127,35 +127,18 @@ export const AdminDashboard = () => {
         const today = new Date();
         const todayStart = startOfDay(today).toISOString();
         const todayEnd = endOfDay(today).toISOString();
-        const weekStart = startOfWeek(today).toISOString();
-        const monthStart = startOfMonth(today).toISOString();
-        const monthEnd = endOfMonth(today).toISOString();
 
-        // Fetch all data in parallel
+        // Single RPC for all stats + parallel queries for list data
         const [
-          propertiesResult,
-          leadsResult,
-          newLeadsResult,
+          summaryResult,
           showingsTodayResult,
           priorityLeadsResult,
           alertsResult,
           recentCallsResult,
-          convertedResult,
         ] = await Promise.all([
-          supabase
-            .from("properties")
-            .select("status")
-            .eq("organization_id", userRecord.organization_id),
-          supabase
-            .from("leads")
-            .select("id", { count: "exact" })
-            .eq("organization_id", userRecord.organization_id)
-            .not("status", "in", '("lost","converted")'),
-          supabase
-            .from("leads")
-            .select("id", { count: "exact" })
-            .eq("organization_id", userRecord.organization_id)
-            .gte("created_at", weekStart),
+          // Single RPC replaces 8 parallel queries for stats
+          supabase.rpc('get_dashboard_summary'),
+          // Keep list queries for UI cards
           supabase
             .from("showings")
             .select(`
@@ -194,34 +177,31 @@ export const AdminDashboard = () => {
             .eq("organization_id", userRecord.organization_id)
             .order("started_at", { ascending: false })
             .limit(10),
-          supabase
-            .from("leads")
-            .select("id", { count: "exact" })
-            .eq("organization_id", userRecord.organization_id)
-            .eq("status", "converted")
-            .gte("updated_at", monthStart)
-            .lte("updated_at", monthEnd),
         ]);
 
-        const propertiesByStatus: Record<string, number> = {};
-        (propertiesResult.data || []).forEach((p) => {
-          propertiesByStatus[p.status] = (propertiesByStatus[p.status] || 0) + 1;
-        });
+        // Map RPC response to stats state
+        const summary = summaryResult.data as {
+          properties: { total: number; available: number; coming_soon: number; in_leasing: number; rented: number };
+          leads: { active: number; new_this_week: number; converted_this_month: number; total_this_month: number };
+          showings: { today: number };
+          conversion_rate: number;
+        } | null;
 
-        const totalLeadsMonth = newLeadsResult.count || 0;
-        const convertedMonth = convertedResult.count || 0;
-        const conversionRate = totalLeadsMonth > 0
-          ? Math.round((convertedMonth / totalLeadsMonth) * 100)
-          : 0;
-
-        setStats({
-          totalProperties: propertiesResult.data?.length || 0,
-          propertiesByStatus,
-          activeLeads: leadsResult.count || 0,
-          newLeadsThisWeek: newLeadsResult.count || 0,
-          showingsToday: showingsTodayResult.data?.length || 0,
-          conversionRate,
-        });
+        if (summary) {
+          setStats({
+            totalProperties: summary.properties.total,
+            propertiesByStatus: {
+              available: summary.properties.available,
+              coming_soon: summary.properties.coming_soon,
+              in_leasing_process: summary.properties.in_leasing,
+              rented: summary.properties.rented,
+            },
+            activeLeads: summary.leads.active,
+            newLeadsThisWeek: summary.leads.new_this_week,
+            showingsToday: summary.showings.today,
+            conversionRate: summary.conversion_rate,
+          });
+        }
 
         setTodayShowings(
           (showingsTodayResult.data || []).map((s: any) => ({
