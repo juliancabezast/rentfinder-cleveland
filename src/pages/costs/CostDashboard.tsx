@@ -220,14 +220,14 @@ const CostDashboard: React.FC = () => {
             />
             <StatCard
               title="Cost per Lead"
-              value={data?.overview?.costPerLead != null ? formatCurrency(data.overview.costPerLead) : "N/A"}
+              value={data?.overview?.costPerLead != null ? formatCurrency(data!.overview.costPerLead) : "N/A"}
               icon={Users}
               subtitle="total spend / leads"
               loading={loading}
             />
             <StatCard
               title="Cost per Showing"
-              value={data?.overview?.costPerShowing != null ? formatCurrency(data.overview.costPerShowing) : "N/A"}
+              value={data?.overview?.costPerShowing != null ? formatCurrency(data!.overview.costPerShowing) : "N/A"}
               icon={Calendar}
               subtitle="total spend / showings"
               loading={loading}
