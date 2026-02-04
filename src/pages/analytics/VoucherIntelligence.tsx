@@ -545,7 +545,7 @@ export const VoucherIntelligence: React.FC = () => {
       {/* Insight Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         {insights.map((insight, i) => (
-          <Card key={i} className="bg-muted/30">
+          <Card variant="glass" key={i}>
             <CardContent className="pt-6">
               <div className="flex items-start gap-3">
                 <div className={`p-2 rounded-full ${
