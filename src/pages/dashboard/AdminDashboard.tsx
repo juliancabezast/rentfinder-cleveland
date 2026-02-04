@@ -27,7 +27,10 @@ import {
   Bell,
   ChevronRight,
   Settings2,
+  Zap,
+  Activity,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -433,9 +436,12 @@ export const AdminDashboard = () => {
                               />
                             ))
                           ) : (
-                            <p className="text-sm text-muted-foreground text-center py-8">
-                              All leads are progressing normally. Priority leads will appear here when a lead scores 85+.
-                            </p>
+                            <EmptyState
+                              icon={Zap}
+                              title="No priority leads"
+                              description="Leads with score 85+ will appear here"
+                              action={{ label: "View all leads", onClick: () => navigate("/leads") }}
+                            />
                           )}
                         </div>
                       </ScrollArea>
@@ -473,18 +479,12 @@ export const AdminDashboard = () => {
                               />
                             ))
                           ) : (
-                            <div className="flex flex-col items-center justify-center py-8 text-center">
-                              <p className="text-sm text-muted-foreground mb-3">
-                                No showings scheduled for today.
-                              </p>
-                              <Button
-                                size="sm"
-                                className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                                onClick={() => navigate("/showings")}
-                              >
-                                Schedule Showing
-                              </Button>
-                            </div>
+                            <EmptyState
+                              icon={Calendar}
+                              title="No showings today"
+                              description="Schedule a showing from the leads page"
+                              action={{ label: "View showings", onClick: () => navigate("/showings") }}
+                            />
                           )}
                         </div>
                       </ScrollArea>
@@ -542,9 +542,11 @@ export const AdminDashboard = () => {
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-muted-foreground text-center py-8">
-                              No unread alerts.
-                            </p>
+                            <EmptyState
+                              icon={Bell}
+                              title="No unread alerts"
+                              description="Property alerts will appear here"
+                            />
                           )}
                         </div>
                       </ScrollArea>

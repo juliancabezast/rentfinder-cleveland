@@ -83,30 +83,18 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
 
     // Validation
     if (!email || !fullName || !role) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields.',
-        variant: 'destructive',
-      });
+      toast.error('Please fill in all required fields');
       return;
     }
 
     if (role === 'leasing_agent' && !commissionRate) {
-      toast({
-        title: 'Validation Error',
-        description: 'Commission rate is required for leasing agents.',
-        variant: 'destructive',
-      });
+      toast.error('Commission rate is required for leasing agents');
       return;
     }
 
     // Prevent creating super_admin
     if (role === 'super_admin') {
-      toast({
-        title: 'Permission Denied',
-        description: 'You cannot create super admin users.',
-        variant: 'destructive',
-      });
+      toast.error('You cannot create super admin users');
       return;
     }
 
@@ -134,16 +122,9 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
 
       // Show appropriate toast based on response
       if (data?.warning) {
-        toast({
-          title: 'Usuario creado',
-          description: data.warning,
-          variant: 'default',
-        });
+        toast.info(`Usuario creado — ${data.warning}`);
       } else {
-        toast({
-          title: 'Invitación enviada exitosamente',
-          description: `${fullName} ha sido invitado al equipo.`,
-        });
+        toast.success(`Invitación enviada — ${fullName} ha sido invitado al equipo`);
       }
 
       // Reset form
@@ -157,11 +138,7 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
     } catch (error: unknown) {
       console.error('Error inviting user:', error);
       const message = error instanceof Error ? error.message : 'Failed to invite user';
-      toast({
-        title: 'Error',
-        description: message,
-        variant: 'destructive',
-      });
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
