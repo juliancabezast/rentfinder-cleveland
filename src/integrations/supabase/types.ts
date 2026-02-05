@@ -983,6 +983,48 @@ export type Database = {
           },
         ]
       }
+      demo_requests: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          message: string | null
+          notes: string | null
+          phone: string
+          portfolio_size: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          message?: string | null
+          notes?: string | null
+          phone: string
+          portfolio_size?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          message?: string | null
+          notes?: string | null
+          phone?: string
+          portfolio_size?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       doorloop_sync_log: {
         Row: {
           action_taken: string | null

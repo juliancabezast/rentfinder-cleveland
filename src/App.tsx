@@ -39,8 +39,6 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
 
 // Public pages (lazy-loaded)
-const PublicProperties = lazy(() => import("./pages/public/PublicProperties"));
-const PublicPropertyDetail = lazy(() => import("./pages/public/PublicPropertyDetail"));
 const PrivacyPolicy = lazy(() => import("./pages/public/PrivacyPolicy"));
 const ReferralPage = lazy(() => import("./pages/public/ReferralPage"));
 
@@ -80,9 +78,7 @@ const App = () => (
           <BrowserRouter>
             <Suspense fallback={<PageSkeleton />}>
               <Routes>
-                {/* Public property listings (no auth required) */}
-                <Route path="/p/properties" element={<PublicProperties />} />
-                <Route path="/p/properties/:id" element={<PublicPropertyDetail />} />
+                {/* Public pages (no auth required) */}
                 <Route path="/p/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/p/refer/:referralCode" element={<ReferralPage />} />
 
