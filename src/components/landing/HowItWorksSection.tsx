@@ -33,7 +33,7 @@ const HowItWorksSection: React.FC = () => {
   return (
     <section
       id="how-it-works"
-      className="py-20 sm:py-32"
+      className="py-20 sm:py-32 overflow-hidden"
       aria-labelledby="how-it-works-heading"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,40 +49,71 @@ const HowItWorksSection: React.FC = () => {
           </h2>
         </div>
 
-        {/* ─── DESKTOP PIPELINE (md+) ─── */}
-        <div className="hidden md:block relative">
+        {/* ── DESKTOP PIPELINE (md+) ── */}
+        <div className="hidden md:block" style={{ position: "relative", minHeight: 280 }}>
+
           {/* ── Pipeline track ── */}
           <div
-            className="absolute left-[12.5%] right-[12.5%] top-[40px] h-2 rounded-full"
             style={{
-              background: "linear-gradient(90deg, #370d4b 0%, #5a1d7a 50%, #370d4b 100%)",
+              position: "absolute",
+              top: 42,
+              left: "12.5%",
+              right: "12.5%",
+              height: 8,
+              borderRadius: 4,
+              background: "linear-gradient(90deg, #EF4444 0%, #F59E0B 35%, #ffb22c 55%, #22C55E 100%)",
+              opacity: 0.18,
+              zIndex: 1,
             }}
           />
-
           {/* Track glow layer */}
           <div
-            className="absolute left-[12.5%] right-[12.5%] top-[38px] h-3 rounded-full opacity-30 blur-sm"
             style={{
-              background: "linear-gradient(90deg, #EF4444, #F59E0B, #ffb22c, #22C55E)",
+              position: "absolute",
+              top: 40,
+              left: "12.5%",
+              right: "12.5%",
+              height: 12,
+              borderRadius: 6,
+              background: "linear-gradient(90deg, rgba(239,68,68,0.1), rgba(255,178,44,0.08), rgba(34,197,94,0.1))",
+              filter: "blur(4px)",
+              zIndex: 0,
             }}
           />
-
           {/* Particle container with overflow hidden */}
-          <div className="absolute left-[12.5%] right-[12.5%] top-[36px] h-4 overflow-hidden">
+          <div
+            style={{
+              position: "absolute",
+              top: 42,
+              left: "12.5%",
+              right: "12.5%",
+              height: 8,
+              borderRadius: 4,
+              overflow: "hidden",
+              zIndex: 2,
+            }}
+          >
             {[0].map((delay, idx) => (
               <div
-                key={idx}
-                className="absolute top-1/2 -translate-y-1/2 w-20 h-5 rounded-full pointer-events-none"
+                key={`particle-${idx}`}
                 style={{
-                  animation: `pipeFlow 3.5s linear infinite`,
+                  position: "absolute",
+                  top: -6,
+                  width: 50,
+                  height: 20,
+                  borderRadius: 10,
+                  background: "radial-gradient(ellipse at center, currentColor 0%, transparent 70%)",
+                  animation: `pipeFlow 4s ease-in-out infinite`,
                   animationDelay: `${delay}s`,
                 }}
               >
                 {/* Inner glow that shifts color via separate animation */}
                 <div
-                  className="w-full h-full rounded-full"
                   style={{
-                    animation: `colorShift 3.5s linear infinite`,
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: 10,
+                    animation: `colorShift 4s ease-in-out infinite`,
                     animationDelay: `${delay}s`,
                   }}
                 />
@@ -98,33 +129,62 @@ const HowItWorksSection: React.FC = () => {
             { color: "#22C55E", glow: "rgba(34,197,94,0.4)" },
           ].map((node, i) => (
             <div
-              key={i}
-              className="absolute w-4 h-4 rounded-full z-10"
+              key={`node-${i}`}
               style={{
-                left: `calc(12.5% + ${(i / 3) * 75}%)`,
-                top: "38px",
-                transform: "translateX(-50%)",
+                position: "absolute",
+                top: 35,
+                left: `calc(${12.5 + i * 25}% - 11px)`,
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
                 background: node.color,
-                boxShadow: `0 0 8px ${node.glow}`,
-                animation: `nodePulse 2s ease-in-out infinite`,
+                border: "3px solid white",
+                boxShadow: `0 2px 8px ${node.glow}`,
+                zIndex: 5,
+                animation: "nodePulse 3s ease-in-out infinite",
                 animationDelay: `${i * 0.5}s`,
               }}
             />
           ))}
 
           {/* ── Steps grid ── */}
-          <div className="relative grid grid-cols-4 gap-6 pt-16">
+          <div className="relative grid grid-cols-4 gap-6" style={{ zIndex: 10 }}>
             {STEPS.map((item, index) => (
-              <div key={index} className="relative text-center group">
+              <div key={index} className="relative flex flex-col items-center text-center">
                 {/* Icon */}
-                <div className="relative inline-flex mb-4">
+                <div className="relative inline-flex mb-6">
                   <div
-                    className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary transition-transform duration-300 group-hover:scale-105"
-                    aria-hidden="true"
+                    className="flex items-center justify-center text-primary"
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 16,
+                      background: "white",
+                      border: "1px solid rgba(55,13,75,0.08)",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                    }}
                   >
                     {item.icon}
                   </div>
-                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -8,
+                      right: -8,
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      background: "#ffb22c",
+                      color: "white",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 2px 6px rgba(255,178,44,0.4)",
+                      border: "2px solid white",
+                    }}
+                  >
                     {item.step}
                   </span>
                 </div>
@@ -132,19 +192,26 @@ const HowItWorksSection: React.FC = () => {
                 {/* Arrow between cards */}
                 {index < 3 && (
                   <div
-                    className="absolute top-8 -right-3 text-muted-foreground/50"
-                    style={{ animation: "arrowPush 2s ease-in-out infinite", animationDelay: `${index * 0.3}s` }}
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -18,
+                      zIndex: 15,
+                      color: "#ffb22c",
+                      animation: "arrowPush 2.5s ease-in-out infinite",
+                      animationDelay: `${index * 0.3}s`,
+                    }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    <svg width="36" height="36" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M6 3l5 5-5 5V3z" />
                     </svg>
                   </div>
                 )}
 
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-1.5">
                   {item.title}
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-[220px]">
                   {item.desc}
                 </p>
               </div>
@@ -152,38 +219,35 @@ const HowItWorksSection: React.FC = () => {
           </div>
         </div>
 
-        {/* ─── MOBILE PIPELINE (< md) ─── */}
+        {/* ── MOBILE PIPELINE (< md) ── */}
         <div className="md:hidden relative">
           {/* Vertical pipeline track */}
-          <div className="absolute left-8 top-0 bottom-0 w-1.5 overflow-hidden">
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{ background: "linear-gradient(180deg, #370d4b, #5a1d7a)" }}
-            />
+          <div className="absolute left-6 top-4 bottom-4 w-[6px] z-0">
+            <div className="absolute inset-0 rounded-full" style={{ background: "linear-gradient(180deg, #EF4444 0%, #F59E0B 35%, #ffb22c 55%, #22C55E 100%)", opacity: 0.18 }} />
             <div className="pipeline-particle-v pipeline-particle-v-1" />
             <div className="pipeline-particle-v pipeline-particle-v-2" />
           </div>
 
           {/* Steps */}
-          <div className="relative space-y-10 pl-20">
+          <div className="relative flex flex-col gap-10 z-[2]">
             {STEPS.map((item, index) => (
-              <div key={index} className="relative">
+              <div key={index} className="flex items-start gap-5 pl-1">
                 {/* Icon on the pipeline */}
-                <div className="absolute -left-[52px] top-0">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <div className="relative flex-shrink-0">
+                  <div className="w-[52px] h-[52px] rounded-xl bg-white border border-primary/10 shadow-lg flex items-center justify-center text-primary">
                     {item.icon}
                   </div>
-                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#ffb22c] text-white text-[10px] font-bold flex items-center justify-center shadow ring-2 ring-white">
                     {item.step}
                   </span>
                 </div>
 
                 {/* Text */}
                 <div className="pt-1">
-                  <h3 className="text-lg font-semibold text-foreground mb-1">
+                  <h3 className="text-base font-semibold text-foreground mb-1">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {item.desc}
                   </p>
                 </div>
@@ -209,8 +273,8 @@ const HowItWorksSection: React.FC = () => {
         }
 
         @keyframes nodePulse {
-          0%, 100% { transform: translateX(-50%) scale(1); filter: brightness(1); }
-          50%      { transform: translateX(-50%) scale(1.18); filter: brightness(1.2); }
+          0%, 100% { transform: scale(1); filter: brightness(1); }
+          50%      { transform: scale(1.18); filter: brightness(1.2); }
         }
 
         @keyframes arrowPush {
