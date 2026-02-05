@@ -1,11 +1,35 @@
 import React from "react";
-import { PublicLayout } from "@/components/public/PublicLayout";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Building2, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const PrivacyPolicy: React.FC = () => {
   return (
-    <PublicLayout>
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Simple Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="rounded-lg bg-primary p-2">
+              <Building2 className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <span className="text-xl font-bold text-primary">
+              Rent Finder Cleveland
+            </span>
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto px-4 py-12 max-w-4xl">
+        <Button variant="ghost" asChild className="mb-6">
+          <Link to="/">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Link>
+        </Button>
+        
         <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
 
         <Card>
@@ -128,8 +152,15 @@ const PrivacyPolicy: React.FC = () => {
             </section>
           </CardContent>
         </Card>
-      </div>
-    </PublicLayout>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t bg-card py-8">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>© {new Date().getFullYear()} Rent Finder Cleveland. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
   );
 };
 
