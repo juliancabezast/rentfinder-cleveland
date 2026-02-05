@@ -1807,6 +1807,7 @@ export type Database = {
           email_sent: boolean | null
           id: string
           is_read: boolean | null
+          link: string | null
           message: string
           organization_id: string
           read_at: string | null
@@ -1824,6 +1825,7 @@ export type Database = {
           email_sent?: boolean | null
           id?: string
           is_read?: boolean | null
+          link?: string | null
           message: string
           organization_id: string
           read_at?: string | null
@@ -1841,6 +1843,7 @@ export type Database = {
           email_sent?: boolean | null
           id?: string
           is_read?: boolean | null
+          link?: string | null
           message?: string
           organization_id?: string
           read_at?: string | null

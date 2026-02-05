@@ -1,6 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
+async function getOrgAdminEmail(organizationId: string): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from("organizations")
+      .select("owner_email")
+      .eq("id", organizationId)
+      .single();
+    return data?.owner_email || null;
+  } catch {
+    return null;
+  }
+}
+
 export type LogLevel = "info" | "warning" | "error" | "critical";
 
 export type LogCategory =
@@ -57,7 +70,36 @@ export async function logSystemEvent(params: LogEventParams): Promise<{ success:
     // In production, critical errors would trigger email to admin@rentfindercleveland.com
     if (params.level === "critical") {
       console.warn("CRITICAL ERROR LOGGED:", params.message, params.details);
-      // TODO: Implement email notification via edge function
+
+      try {
+        const adminEmail = params.organization_id
+          ? await getOrgAdminEmail(params.organization_id)
+          : "admin@rentfindercleveland.com";
+
+        if (adminEmail) {
+          await supabase.functions.invoke("send-notification-email", {
+            body: {
+              to: adminEmail,
+              subject: `🚨 CRITICAL: ${params.event_type} - ${params.category}`,
+              html: `
+                <h2>Critical System Alert</h2>
+                <p><strong>${params.message}</strong></p>
+                <table style="border-collapse: collapse; margin: 16px 0;">
+                  <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Category:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${params.category}</td></tr>
+                  <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Event:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${params.event_type}</td></tr>
+                  <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Time:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${new Date().toISOString()}</td></tr>
+                  ${params.details ? `<tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Details:</strong></td><td style="padding: 8px; border: 1px solid #ddd;"><pre style="margin: 0; white-space: pre-wrap;">${JSON.stringify(params.details, null, 2)}</pre></td></tr>` : ""}
+                </table>
+                <p>Review this in your <a href="https://cleveland-lease-buddy.lovable.app/system-logs">System Logs</a>.</p>
+              `,
+              notification_type: "critical_error",
+              organization_id: params.organization_id,
+            },
+          });
+        }
+      } catch (emailErr) {
+        console.error("Failed to send critical error email:", emailErr);
+      }
     }
 
     return { success: true };
