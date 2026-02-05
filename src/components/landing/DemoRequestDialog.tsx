@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -71,13 +70,17 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
     setErrors({});
 
     try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-demo-request`,
+        `${supabaseUrl}/functions/v1/submit-demo-request`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Authorization": `Bearer ${supabaseKey}`,
+            "apikey": supabaseKey,
           },
           body: JSON.stringify({
             full_name: formData.fullName.trim(),
@@ -87,9 +90,10 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
         }
       );
 
+      const data = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to submit. Please try again.");
+        throw new Error(data.error || "Failed to submit. Please try again.");
       }
 
       setSubmitted(true);

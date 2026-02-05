@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
 
 const PHRASES = [
   "Never Sleeps",
@@ -16,54 +15,38 @@ const PHRASES = [
 
 const RotatingHeroText: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIsAnimating(true);
+      // Start fade out
+      setIsVisible(false);
       
+      // After fade out (500ms), change text and fade in
       setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % PHRASES.length);
-        setIsAnimating(false);
-      }, 500); // Half of the animation duration
-    }, 3000); // Hold each phrase for 3 seconds
+        setIsVisible(true);
+      }, 500);
+    }, 4000); // 3.5s visible + 0.5s transition
 
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <span className="relative inline-block overflow-hidden align-bottom" style={{ height: "1.2em", minWidth: "280px" }}>
+    <span 
+      className="inline-block align-baseline"
+      style={{ 
+        minWidth: "clamp(200px, 40vw, 340px)",
+      }}
+    >
       <span
-        className={cn(
-          "absolute left-0 right-0 text-accent font-bold transition-all duration-500 ease-out",
-          isAnimating
-            ? "-translate-y-full opacity-0"
-            : "translate-y-0 opacity-100"
-        )}
+        className="inline-block transition-opacity duration-500 ease-in-out font-bold"
         style={{
-          background: "linear-gradient(90deg, hsl(var(--accent)) 0%, hsl(40, 100%, 60%) 100%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
+          opacity: isVisible ? 1 : 0,
+          color: "hsl(40, 100%, 58%)", // #ffb22c accent color
         }}
       >
         {PHRASES[currentIndex]}
-      </span>
-      <span
-        className={cn(
-          "absolute left-0 right-0 text-accent font-bold transition-all duration-500 ease-out",
-          isAnimating
-            ? "translate-y-0 opacity-100"
-            : "translate-y-full opacity-0"
-        )}
-        style={{
-          background: "linear-gradient(90deg, hsl(var(--accent)) 0%, hsl(40, 100%, 60%) 100%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-        }}
-      >
-        {PHRASES[(currentIndex + 1) % PHRASES.length]}
       </span>
     </span>
   );
