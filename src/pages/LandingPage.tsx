@@ -30,6 +30,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { DemoRequestDialog } from "@/components/landing/DemoRequestDialog";
  import AustinChatWidget from "@/components/landing/AustinChatWidget";
+ import SocialProofToast from "@/components/landing/SocialProofToast";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -465,6 +466,9 @@ const LandingPage: React.FC = () => {
  
        {/* Austin Chat Widget */}
        <AustinChatWidget />
+ 
+       {/* Social Proof Toast */}
+       <SocialProofToast />
     </div>
   );
 };
