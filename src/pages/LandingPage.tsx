@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,6 @@ import {
   Bot,
   BarChart3,
   Shield,
-  Clock,
   Users,
   Building2,
   ArrowRight,
@@ -25,24 +24,24 @@ import {
   Zap,
   MessageSquare,
   Calendar,
-  Globe,
   Loader2,
   HelpCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { DemoRequestDialog } from "@/components/landing/DemoRequestDialog";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { session, loading } = useAuth();
+  const [showDemoDialog, setShowDemoDialog] = useState(false);
 
-  // Si el usuario YA está autenticado, redirigir al dashboard automáticamente
+  // Redirect authenticated users to dashboard
   React.useEffect(() => {
     if (session && !loading) {
       navigate("/dashboard");
     }
   }, [session, loading, navigate]);
 
-  // Si está cargando, mostrar loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -55,17 +54,17 @@ const LandingPage: React.FC = () => {
     {
       icon: <Bot className="h-6 w-6" />,
       title: "AI Voice Agents",
-      description: "24/7 intelligent agents that answer calls, qualify leads, and schedule showings in English and Spanish.",
+      description: "24/7 intelligent agents that answer calls, qualify leads, and schedule showings automatically.",
     },
     {
       icon: <Phone className="h-6 w-6" />,
       title: "Smart Follow-ups",
-      description: "Automated call and SMS sequences that nurture leads until they're ready to tour.",
+      description: "Automated call and SMS sequences that nurture leads through your entire funnel.",
     },
     {
       icon: <BarChart3 className="h-6 w-6" />,
       title: "Lead Scoring",
-      description: "AI-powered scoring with explainable reasons so you know exactly who to prioritize.",
+      description: "AI-powered scoring with explainable reasons so your team knows exactly who to prioritize.",
     },
     {
       icon: <Calendar className="h-6 w-6" />,
@@ -80,7 +79,7 @@ const LandingPage: React.FC = () => {
     {
       icon: <Users className="h-6 w-6" />,
       title: "Section 8 Ready",
-      description: "Specialized handling for voucher holders with verification and inspection tracking.",
+      description: "Specialized handling for voucher holders with verification and housing authority tracking.",
     },
   ];
 
@@ -93,55 +92,50 @@ const LandingPage: React.FC = () => {
 
   const testimonials = [
     {
-      quote: "We went from missing calls to never missing a lead. Our showing rate doubled in the first month.",
+      quote: "We went from missing 40% of calls to responding to every lead in under 30 seconds. Our vacancy time dropped by half.",
       author: "Sarah M.",
-      role: "Property Manager, Cleveland Heights",
+      role: "Property Manager, 85 units in Cleveland Heights",
       rating: 5,
     },
     {
-      quote: "The AI handles Spanish-speaking callers perfectly. We've expanded our reach significantly.",
+      quote: "The AI follow-up sequences are incredible. Leads that would have gone cold are now showing up for tours.",
       author: "Marcus T.",
       role: "Portfolio Owner, Lakewood",
       rating: 5,
     },
     {
-      quote: "Finally, a system that understands Section 8. Our voucher-holder placements are up 40%.",
+      quote: "Finally, a system that understands Section 8. Our voucher-holder placements are up 40% and the compliance tracking gives us peace of mind.",
       author: "Linda K.",
-      role: "Housing Coordinator",
+      role: "Housing Coordinator, 200+ units",
       rating: 5,
     },
   ];
 
   const faqItems = [
     {
-      question: "How does Rent Finder Cleveland work?",
-      answer: "Rent Finder Cleveland uses AI voice agents to answer calls 24/7 in English and Spanish, qualify rental leads automatically, schedule property showings, and follow up with prospects until they're ready to sign a lease. Property managers can track everything from a real-time dashboard — from lead scoring to showing reports to cost analytics.",
+      question: "What is Rent Finder Cleveland?",
+      answer: "Rent Finder Cleveland is an AI leasing assistant that automates lead management for property managers in Cleveland. Our platform handles inbound calls, qualifies leads, schedules showings, and follows up automatically — so you never miss a prospect.",
     },
     {
-      question: "Does Rent Finder Cleveland accept Section 8 vouchers?",
-      answer: "Yes! Rent Finder Cleveland specializes in Section 8 housing in Cleveland, Ohio. Our platform tracks voucher amounts, housing authority details (including CMHA), HUD inspection readiness, and voucher expiration dates for every property. We help connect voucher holders with approved rentals across Greater Cleveland.",
+      question: "How does the AI voice agent work?",
+      answer: "When a prospect calls your Twilio number, our AI answers instantly, qualifies them by asking about their timeline, budget, and requirements, captures their information, and schedules a showing — all without human intervention. Works 24/7, including nights and weekends.",
     },
     {
-      question: "What areas in Cleveland does Rent Finder serve?",
-      answer: "Rent Finder Cleveland serves the entire Greater Cleveland metropolitan area including downtown Cleveland, Ohio City, Tremont, Detroit Shoreway, Lakewood, Cleveland Heights, Parma, Brooklyn, Euclid, East Cleveland, Shaker Heights, Garfield Heights, and all surrounding neighborhoods. We cover Cleveland zip codes from 44101 through 44144.",
+      question: "Is Rent Finder TCPA compliant?",
+      answer: "Absolutely. We have built-in consent tracking, recording disclosures at the start of every call, opt-out handling via STOP keywords, working hours enforcement, and a complete audit trail for every communication. Your compliance is our priority.",
     },
     {
-      question: "Is Rent Finder Cleveland available in Spanish?",
-      answer: "¡Sí! Rent Finder Cleveland provides full bilingual support in English and Spanish. Our AI voice agents detect the caller's language automatically and handle the entire conversation — from property questions to showing scheduling — in their preferred language.",
+      question: "Does it work with Section 8 voucher holders?",
+      answer: "Yes! We specialize in Section 8 housing. Our platform tracks voucher amounts, housing authority details, HUD inspection readiness, and voucher expiration dates for every lead so you can match them to the right properties.",
     },
     {
-      question: "How much does Rent Finder Cleveland cost for property managers?",
-      answer: "Rent Finder Cleveland offers a 14-day free trial with no credit card required. Our plans scale from Starter (up to 10 properties) to Enterprise (unlimited properties with custom integrations). Every plan includes AI voice agents, lead scoring, showing management, and real-time analytics. Contact us for custom pricing.",
+      question: "How much does Rent Finder cost?",
+      answer: "We offer a 14-day free trial with no credit card required. After that, plans scale from Starter (up to 10 properties) to Enterprise (unlimited properties with custom integrations). Contact us for detailed pricing.",
     },
     {
-      question: "Can I find pet friendly apartments in Cleveland on Rent Finder?",
-      answer: "Yes! Every property listing on Rent Finder Cleveland includes detailed pet policy information. You can find pet friendly apartments in Cleveland with specific details about pet deposits, breed restrictions, and weight limits. Our AI agents can also answer pet-related questions during calls.",
+      question: "Can I integrate it with my existing tools?",
+      answer: "Yes! Rent Finder integrates with Doorloop for property management, Twilio for communications, and offers an API for custom integrations. We're constantly adding new integrations based on customer feedback.",
     },
-  ];
-
-  const neighborhoods = [
-    'Ohio City', 'Tremont', 'Lakewood', 'Cleveland Heights', 'Parma',
-    'Downtown Cleveland', 'Detroit Shoreway', 'Brooklyn', 'Euclid', 'Shaker Heights'
   ];
 
   return (
@@ -155,10 +149,10 @@ const LandingPage: React.FC = () => {
               <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
               </div>
-              <span className="font-bold text-xl text-foreground leading-none">Rent Finder</span>
+              <span className="font-bold text-xl text-foreground leading-none">Rent Finder Cleveland</span>
             </Link>
 
-            {/* Nav Links - center - MUST have items-center and h-full */}
+            {/* Nav Links - center */}
             <div className="hidden md:flex items-center gap-8 h-full">
               <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center h-full">
                 Features
@@ -172,9 +166,6 @@ const LandingPage: React.FC = () => {
               <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center h-full">
                 FAQ
               </a>
-              <Link to="/p/properties" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center h-full">
-                Browse Listings
-              </Link>
             </div>
 
             {/* Auth Buttons - right */}
@@ -182,11 +173,9 @@ const LandingPage: React.FC = () => {
               <Button variant="ghost" asChild>
                 <Link to="/auth/login">Log In</Link>
               </Button>
-              <Button asChild className="hidden sm:flex">
-                <Link to="/auth/login">
-                  Get Started
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+              <Button className="hidden sm:flex" onClick={() => setShowDemoDialog(true)}>
+                Get Started
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -207,29 +196,26 @@ const LandingPage: React.FC = () => {
               <div className="text-center max-w-4xl mx-auto">
                 <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm">
                   <Sparkles className="h-4 w-4 mr-2" aria-hidden="true" />
-                  AI-Powered Lead Management
+                  AI-Powered Leasing Automation
                 </Badge>
                 
-                {/* H1 with primary keyword */}
+                {/* H1 with target keyword */}
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground tracking-tight">
+                  The{" "}
                   <span className="text-primary bg-gradient-to-r from-primary to-primary/70 bg-clip-text">
-                    Rent Finder Cleveland
+                    AI Leasing Assistant
                   </span>
-                  {" "}— Find Your Next Home, Faster
+                  {" "}That Never Sleeps
                 </h1>
                 
                 <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-                  The smartest way to find apartments for rent in Cleveland, Ohio. 
-                  AI-powered search, instant showings, Section 8 approved properties, 
-                  and 24/7 bilingual support. Built for Cleveland renters and property managers.
+                  Rent Finder Cleveland automates lead qualification, follow-ups, and showing scheduling for property managers. Respond to every lead in under 30 seconds, 24/7.
                 </p>
 
                 <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" asChild className="text-base px-8">
-                    <Link to="/auth/login">
-                      Start Free Trial
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Link>
+                  <Button size="lg" className="text-base px-8" onClick={() => setShowDemoDialog(true)}>
+                    Start Your Free Trial
+                    <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                   <Button size="lg" variant="outline" className="text-base px-8">
                     <PlayCircle className="mr-2 h-5 w-5" />
@@ -248,8 +234,8 @@ const LandingPage: React.FC = () => {
                     14-day free trial
                   </div>
                   <div className="flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-primary" aria-hidden="true" />
-                    English & Spanish
+                    <Shield className="h-5 w-5 text-primary" aria-hidden="true" />
+                    TCPA Compliant
                   </div>
                 </div>
               </div>
@@ -275,10 +261,10 @@ const LandingPage: React.FC = () => {
                 Features
               </Badge>
               <h2 id="features-heading" className="text-3xl sm:text-4xl font-bold text-foreground">
-                Why Cleveland Property Managers Choose Rent Finder
+                Why Property Managers Choose Rent Finder Cleveland
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                From first call to signed lease, Rent Finder Cleveland automates your entire rental lead lifecycle so you can fill vacancies faster across Cleveland, Ohio.
+                From first call to signed lease, our AI leasing assistant automates your entire rental lead lifecycle so you can fill vacancies faster.
               </p>
             </div>
 
@@ -304,16 +290,16 @@ const LandingPage: React.FC = () => {
                 How It Works
               </Badge>
               <h2 id="how-it-works-heading" className="text-3xl sm:text-4xl font-bold text-foreground">
-                How Rent Finder Cleveland Works — From Lead to Lease
+                From Lead to Lease in 4 Simple Steps
               </h2>
             </div>
 
             <div className="grid md:grid-cols-4 gap-8">
               {[
-                { step: "1", icon: <Phone className="h-6 w-6" />, title: "Lead Calls In", desc: "AI answers 24/7, qualifies the prospect, and captures their needs" },
-                { step: "2", icon: <MessageSquare className="h-6 w-6" />, title: "Smart Nurturing", desc: "Automated follow-ups via call and SMS until they're ready to tour" },
-                { step: "3", icon: <Calendar className="h-6 w-6" />, title: "Showing Booked", desc: "AI schedules, confirms, and sends reminders with directions" },
-                { step: "4", icon: <CheckCircle2 className="h-6 w-6" />, title: "Lease Signed", desc: "Track the full journey from first call to move-in day" },
+                { step: "1", icon: <Phone className="h-6 w-6" />, title: "Lead Calls In", desc: "Your AI agent answers 24/7, qualifies the prospect, and captures their needs" },
+                { step: "2", icon: <MessageSquare className="h-6 w-6" />, title: "Smart Nurturing", desc: "Automated follow-ups via call and SMS keep leads warm until they're ready" },
+                { step: "3", icon: <Calendar className="h-6 w-6" />, title: "Showing Booked", desc: "AI schedules, confirms, and sends reminders automatically" },
+                { step: "4", icon: <CheckCircle2 className="h-6 w-6" />, title: "Lease Signed", desc: "Track the full journey from first call to signed lease in your dashboard" },
               ].map((item, index) => (
                 <div key={index} className="relative">
                   <div className="text-center">
@@ -346,7 +332,7 @@ const LandingPage: React.FC = () => {
                 Testimonials
               </Badge>
               <h2 id="testimonials-heading" className="text-3xl sm:text-4xl font-bold text-foreground">
-                Trusted by Cleveland Property Managers and Landlords
+                Trusted by Cleveland Property Managers
               </h2>
             </div>
 
@@ -380,7 +366,7 @@ const LandingPage: React.FC = () => {
                 FAQ
               </Badge>
               <h2 id="faq-heading" className="text-3xl sm:text-4xl font-bold text-foreground">
-                Frequently Asked Questions About Rent Finder Cleveland
+                Frequently Asked Questions
               </h2>
             </div>
 
@@ -416,20 +402,15 @@ const LandingPage: React.FC = () => {
               <div className="relative text-center max-w-2xl mx-auto">
                 <Zap className="h-12 w-12 text-primary mx-auto mb-6" aria-hidden="true" />
                 <h2 id="cta-heading" className="text-3xl sm:text-4xl font-bold text-foreground">
-                  Start Finding Renters in Cleveland Today
+                  Start Filling Vacancies Faster Today
                 </h2>
                 <p className="mt-4 text-lg text-muted-foreground">
-                  Join property managers across Cleveland, Ohio who are filling vacancies 3x faster with Rent Finder Cleveland's AI-powered platform.
+                  Join property managers across Cleveland who are converting 3x more leads with AI-powered leasing automation.
                 </p>
-                <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" asChild className="text-base px-8">
-                    <Link to="/auth/login">
-                      Start Your Free Trial
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Link>
-                  </Button>
-                  <Button size="lg" variant="outline" className="text-base px-8">
-                    Schedule a Demo
+                <div className="mt-8 flex justify-center">
+                  <Button size="lg" className="text-base px-8" onClick={() => setShowDemoDialog(true)}>
+                    Start Your Free Trial
+                    <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </div>
               </div>
@@ -439,27 +420,9 @@ const LandingPage: React.FC = () => {
       </main>
 
       {/* ============ FOOTER ============ */}
-      <footer className="py-8 border-t border-border">
+      <footer className="py-12 border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Neighborhood Links for Local SEO */}
-          <div className="mb-8 pb-8 border-b border-border">
-            <p className="text-sm font-medium text-foreground mb-4">
-              Find apartments in popular Cleveland neighborhoods:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {neighborhoods.map((neighborhood) => (
-                <Link
-                  key={neighborhood}
-                  to={`/p/properties?area=${encodeURIComponent(neighborhood)}`}
-                  className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-muted text-sm text-muted-foreground hover:text-primary hover:bg-muted/80 transition-colors leading-none"
-                >
-                  Apartments in {neighborhood}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 min-h-[48px]">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Link to="/" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                 <Building2 className="h-4 w-4 text-primary-foreground" aria-hidden="true" />
@@ -467,12 +430,16 @@ const LandingPage: React.FC = () => {
               <span className="font-semibold text-foreground">Rent Finder Cleveland</span>
             </Link>
             
-            <nav className="flex items-center gap-6 text-sm text-muted-foreground" aria-label="Footer navigation">
-              <Link to="/p/privacy-policy" className="hover:text-foreground transition-colors">
+            <nav className="flex items-center gap-6 text-sm" aria-label="Footer navigation">
+              <Link to="/p/privacy-policy" className="text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy
               </Link>
-              <span className="cursor-pointer hover:text-foreground transition-colors">Terms of Service</span>
-              <span className="cursor-pointer hover:text-foreground transition-colors">Contact</span>
+              <Link to="/p/terms-of-service" className="text-muted-foreground hover:text-foreground transition-colors">
+                Terms of Service
+              </Link>
+              <a href="tel:2166308857" className="text-muted-foreground hover:text-foreground transition-colors">
+                Contact
+              </a>
             </nav>
             
             <p className="text-sm text-muted-foreground">
@@ -482,15 +449,18 @@ const LandingPage: React.FC = () => {
 
           {/* SEO Footer Text */}
           <p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-4xl mx-auto leading-relaxed">
-            Rent Finder Cleveland is Cleveland, Ohio's leading AI-powered apartment finder and 
-            rental property management platform. Find apartments for rent in Cleveland including 
-            Section 8 approved rentals, pet friendly apartments, and HUD housing. Serving Ohio City, 
-            Tremont, Lakewood, Cleveland Heights, Parma, Downtown Cleveland, Detroit Shoreway, 
-            Euclid, Shaker Heights, and all Greater Cleveland neighborhoods. 
-            Available in English and Spanish.
+            Rent Finder Cleveland is an AI-powered leasing automation platform for property managers in Cleveland, Ohio and across the United States. Automate lead qualification, follow-ups, and showing scheduling with intelligent voice agents and TCPA-compliant communications.
+          </p>
+
+          {/* Compliance Text */}
+          <p className="mt-4 text-xs text-muted-foreground/50 text-center max-w-4xl mx-auto leading-relaxed">
+            Rent Finder Cleveland operates in compliance with federal and state regulations including the Fair Housing Act, TCPA (Telephone Consumer Protection Act), and Ohio Revised Code. All automated communications require prior express consent. Cleveland, Ohio, United States.
           </p>
         </div>
       </footer>
+
+      {/* Demo Request Dialog */}
+      <DemoRequestDialog open={showDemoDialog} onOpenChange={setShowDemoDialog} />
     </div>
   );
 };
