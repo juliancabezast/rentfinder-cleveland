@@ -7,6 +7,8 @@
  * This prevents information disclosure via browser console in production
  */
 
+import { logSystemEvent } from './systemLogger';
+
 const isDevelopment = import.meta.env.DEV;
 
 type ErrorContext = string;
@@ -29,8 +31,20 @@ export function logError(context: ErrorContext, error: unknown, additionalInfo?:
     // In production, log minimal info to console
     console.error(`Error in ${context}`);
     
-    // TODO: Send to server-side logging/monitoring service
-    // sendToMonitoring({ context, error, additionalInfo });
+    // Send to server-side system_logs table
+    logSystemEvent({
+      level: 'error',
+      category: 'system',
+      event_type: `frontend_error_${context.toLowerCase().replace(/\s+/g, '_')}`,
+      message: error instanceof Error ? error.message : String(error),
+      details: {
+        context,
+        stack: error instanceof Error ? error.stack : undefined,
+        ...additionalInfo,
+      },
+    }).catch(() => {
+      // Silently fail - we don't want logging failures to cascade
+    });
   }
 }
 
@@ -50,7 +64,7 @@ export function logWarn(context: ErrorContext, message: string, data?: unknown):
  */
 export function logInfo(context: ErrorContext, message: string, data?: unknown): void {
   if (isDevelopment) {
-    console.log(`[${context}]`, message, data || '');
+    console.info(`[${context}]`, message, data || '');
   }
 }
 

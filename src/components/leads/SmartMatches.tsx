@@ -82,6 +82,7 @@ export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) 
   const [refreshing, setRefreshing] = useState(false);
   const [suggestDialogOpen, setSuggestDialogOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<PropertyMatch | null>(null);
+  const [sending, setSending] = useState(false);
 
   const fetchMatches = async (isRefresh = false) => {
     if (!userRecord?.organization_id) return;
@@ -122,10 +123,36 @@ export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) 
   };
 
   const handleSendSuggestion = async () => {
-    // TODO: Implement SMS/email sending via Twilio
-    toast.info('Property suggestions via SMS will be available soon');
-    setSuggestDialogOpen(false);
-    setSelectedProperty(null);
+    if (!selectedProperty || !userRecord?.organization_id) return;
+
+    setSending(true);
+    try {
+      const messageBody = `Hi! We found a property that matches what you're looking for:\n\n📍 ${selectedProperty.address}\n🛏️ ${selectedProperty.bedrooms} BR · $${selectedProperty.rent_price.toLocaleString()}/mo\n\nWould you like to schedule a showing? Reply YES or call us anytime!`;
+
+      const { data, error } = await supabase.functions.invoke('send-message', {
+        body: {
+          lead_id: leadId,
+          channel: 'sms',
+          body: messageBody,
+          organization_id: userRecord.organization_id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(`Property suggestion sent to ${leadName}`);
+      } else {
+        throw new Error(data?.error || 'Failed to send suggestion');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to send suggestion';
+      toast.error(message);
+    } finally {
+      setSending(false);
+      setSuggestDialogOpen(false);
+      setSelectedProperty(null);
+    }
   };
 
   if (loading) {
@@ -261,9 +288,13 @@ export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) 
                 <Button variant="outline" onClick={() => setSuggestDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleSendSuggestion}>
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Send Suggestion
+                <Button onClick={handleSendSuggestion} disabled={sending}>
+                  {sending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                  )}
+                  {sending ? 'Sending...' : 'Send Suggestion'}
                 </Button>
               </div>
             </div>
