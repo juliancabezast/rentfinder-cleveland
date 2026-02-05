@@ -3,9 +3,8 @@
 
 User-agent: *
 Allow: /
-Allow: /p/properties
-Allow: /p/properties/*
 Allow: /p/privacy-policy
+ Allow: /p/terms-of-service
 Disallow: /dashboard
 Disallow: /dashboard/*
 Disallow: /leads
