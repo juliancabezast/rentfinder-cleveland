@@ -1,11 +1,12 @@
- import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
  import { X, Send, Phone } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Label } from "@/components/ui/label";
- import { supabase } from "@/integrations/supabase/client";
  import { toast } from "sonner";
  import { cn } from "@/lib/utils";
+
+const BOT_AVATAR_URL = "https://api.dicebear.com/9.x/bottts/svg?seed=austin&backgroundColor=370d4b";
  
  type Message = {
    id: string;
@@ -166,15 +167,26 @@
  
      setIsSubmitting(true);
      try {
-       const { error } = await supabase.functions.invoke("submit-demo-request", {
-         body: {
-           full_name: formData.fullName.trim(),
-           email: formData.email.trim().toLowerCase(),
-           phone: formData.phone.trim().replace(/\D/g, ""),
-         },
-       });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-demo-request`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            full_name: formData.fullName.trim(),
+            email: formData.email.trim().toLowerCase(),
+            phone: formData.phone.trim().replace(/\D/g, ""),
+          }),
+        }
+      );
  
-       if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to submit");
+      }
  
        setFormSubmitted(true);
        setMessages((prev) => [
@@ -215,10 +227,16 @@
              className="group relative flex flex-col items-center gap-1 focus:outline-none"
              aria-label="Open chat with Austin"
            >
-             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 p-0.5 shadow-lg hover:scale-105 transition-transform">
-               <div className="w-full h-full rounded-full bg-primary flex items-center justify-center overflow-hidden">
+              {/* Pulsing rings */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="absolute w-14 h-14 rounded-full bg-accent/40 animate-[ping_2s_ease-out_infinite]" />
+                <span className="absolute w-14 h-14 rounded-full bg-accent/30 animate-[ping_2s_ease-out_0.3s_infinite]" />
+                <span className="absolute w-14 h-14 rounded-full bg-accent/20 animate-[ping_2s_ease-out_0.6s_infinite]" />
+              </div>
+              <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 p-0.5 shadow-lg hover:scale-105 transition-transform z-10">
+                <div className="w-full h-full rounded-full bg-primary flex items-center justify-center overflow-hidden p-1">
                  <img
-                   src="https://api.dicebear.com/7.x/avataaars/svg?seed=Austin&backgroundColor=b6e3f4&clothingColor=3c4f5c&hairColor=2c1b18"
+                    src={BOT_AVATAR_URL}
                    alt="Austin"
                    className="w-full h-full object-cover"
                  />
@@ -243,16 +261,16 @@
          >
            {/* Header */}
            <div className="flex items-center gap-3 px-4 py-3 bg-primary text-primary-foreground">
-             <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 p-1">
                <img
-                 src="https://api.dicebear.com/7.x/avataaars/svg?seed=Austin&backgroundColor=b6e3f4&clothingColor=3c4f5c&hairColor=2c1b18"
+                  src={BOT_AVATAR_URL}
                  alt="Austin"
                  className="w-full h-full object-cover"
                />
              </div>
              <div className="flex-1">
                <p className="font-semibold text-sm">Austin</p>
-               <p className="text-xs text-primary-foreground/80">Rent Finder Assistant</p>
+                <p className="text-xs text-primary-foreground/80">AI Leasing Assistant</p>
              </div>
              <button
                onClick={handleClose}

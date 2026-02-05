@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, Rocket } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 
 interface DemoRequestDialogProps {
@@ -71,20 +71,36 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
     setErrors({});
 
     try {
-      const { error } = await supabase.functions.invoke("submit-demo-request", {
-        body: {
-          full_name: formData.fullName.trim(),
-          email: formData.email.trim().toLowerCase(),
-          phone: formData.phone.trim().replace(/\D/g, ""),
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-demo-request`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            full_name: formData.fullName.trim(),
+            email: formData.email.trim().toLowerCase(),
+            phone: formData.phone.trim().replace(/\D/g, ""),
+          }),
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to submit. Please try again.");
+      }
 
       setSubmitted(true);
+      
+      // Auto-close after 2 seconds
+      setTimeout(() => {
+        handleClose();
+      }, 2000);
     } catch (err) {
       console.error("Demo request error:", err);
-      setErrors({ form: "Something went wrong. Please try again." });
+      setErrors({ form: err instanceof Error ? err.message : "Something went wrong. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -108,13 +124,10 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
             <div className="rounded-full bg-success/20 p-4 mb-4">
               <CheckCircle2 className="h-10 w-10 text-success" />
             </div>
-            <DialogTitle className="text-xl mb-2">You're on the list!</DialogTitle>
+            <DialogTitle className="text-xl mb-2">Thanks!</DialogTitle>
             <DialogDescription className="text-base text-foreground">
-              We'll reach out within 24 hours to get you started with your free trial.
+              We'll reach out within 24 hours to get you started.
             </DialogDescription>
-            <Button className="mt-6" onClick={handleClose}>
-              Got it
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
