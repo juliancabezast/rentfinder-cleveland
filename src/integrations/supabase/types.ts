@@ -1138,6 +1138,59 @@ export type Database = {
           },
         ]
       }
+      integration_health: {
+        Row: {
+          consecutive_failures: number | null
+          created_at: string | null
+          details: Json | null
+          id: string
+          last_checked_at: string
+          last_healthy_at: string | null
+          message: string | null
+          organization_id: string
+          response_ms: number | null
+          service: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          consecutive_failures?: number | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          last_checked_at?: string
+          last_healthy_at?: string | null
+          message?: string | null
+          organization_id: string
+          response_ms?: number | null
+          service: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          consecutive_failures?: number | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          last_checked_at?: string
+          last_healthy_at?: string | null
+          message?: string | null
+          organization_id?: string
+          response_ms?: number | null
+          service?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_health_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investor_insights: {
         Row: {
           confidence_score: number | null
