@@ -20,6 +20,7 @@ import {
   Target,
   FileText,
   Brain,
+  Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -54,6 +55,7 @@ const analyticsNavItems: NavItem[] = [
 // ADMIN section
 const adminNavItems: NavItem[] = [
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
+  { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
