@@ -37,6 +37,7 @@ const VoucherIntelligence = lazy(() => import("./pages/analytics/VoucherIntellig
 const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
+ const DemoRequests = lazy(() => import("./pages/DemoRequests"));
 
 // Public pages (lazy-loaded)
 const PrivacyPolicy = lazy(() => import("./pages/public/PrivacyPolicy"));
@@ -286,6 +287,17 @@ const App = () => (
               }
             />
 
+             <Route
+               path="/demo-requests"
+               element={
+                 <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+                   <MainLayout>
+                     <DemoRequests />
+                   </MainLayout>
+                 </ProtectedRoute>
+               }
+             />
+ 
             {/* Analytics Pages */}
             <Route
               path="/analytics/heat-map"
