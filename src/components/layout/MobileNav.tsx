@@ -18,6 +18,7 @@ import {
   Target,
   FileText,
   Brain,
+  Bot,
 } from 'lucide-react';
 import {
   Sheet,
@@ -57,6 +58,7 @@ const analyticsNavItems: NavItem[] = [
 const moreNavItems: NavItem[] = [
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
+  { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
