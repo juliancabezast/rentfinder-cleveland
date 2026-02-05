@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DemoRequestDialog } from "@/components/landing/DemoRequestDialog";
+ import AustinChatWidget from "@/components/landing/AustinChatWidget";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -461,6 +462,9 @@ const LandingPage: React.FC = () => {
 
       {/* Demo Request Dialog */}
       <DemoRequestDialog open={showDemoDialog} onOpenChange={setShowDemoDialog} />
+ 
+       {/* Austin Chat Widget */}
+       <AustinChatWidget />
     </div>
   );
 };
