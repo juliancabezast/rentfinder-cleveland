@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://rentfindercleveland.com/</loc>
+     <lastmod>2026-02-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Privacy Policy -->
+  <url>
+    <loc>https://rentfindercleveland.com/p/privacy-policy</loc>
+     <lastmod>2026-02-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+   <!-- Terms of Service -->
+   <url>
+     <loc>https://rentfindercleveland.com/p/terms-of-service</loc>
+     <lastmod>2026-02-05</lastmod>
+     <changefreq>yearly</changefreq>
+     <priority>0.3</priority>
+   </url>
+   
+  <!-- Login Page -->
+  <url>
+    <loc>https://rentfindercleveland.com/auth/login</loc>
+     <lastmod>2026-02-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  
+</urlset>

@@ -1,0 +1,124 @@
+project_id = "glzzzthgotfwoiaranmp"
+
+[functions.check-coming-soon]
+verify_jwt = false
+
+[functions.capture-lead]
+verify_jwt = false
+
+[functions.send-notification-email]
+verify_jwt = false
+
+[functions.test-integration]
+verify_jwt = false
+
+[functions.match-properties]
+verify_jwt = false
+
+[functions.send-message]
+verify_jwt = false
+
+[functions.trigger-referral-campaign]
+verify_jwt = false
+
+[functions.predict-conversion]
+verify_jwt = false
+
+[functions.batch-predictions]
+verify_jwt = false
+
+[functions.generate-investor-report]
+verify_jwt = false
+
+[functions.generate-all-investor-reports]
+verify_jwt = false
+
+[functions.paip-chat]
+verify_jwt = false
+
+[functions.invite-user]
+verify_jwt = false
+
+[functions.agent-task-dispatcher]
+verify_jwt = false
+
+[functions.agent-health-checker]
+verify_jwt = false
+
+# Sprint 2 Edge Functions
+[functions.twilio-inbound-webhook]
+verify_jwt = false
+
+[functions.bland-call-webhook]
+verify_jwt = false
+
+[functions.agent-scoring]
+verify_jwt = false
+
+[functions.agent-welcome-sequence]
+verify_jwt = false
+
+[functions.agent-notification-dispatcher]
+verify_jwt = false
+
+# Sprint 3 Edge Functions
+[functions.agent-recapture]
+verify_jwt = false
+
+[functions.agent-showing-confirmation]
+verify_jwt = false
+
+[functions.agent-noshow-followup]
+verify_jwt = false
+
+[functions.agent-post-showing]
+verify_jwt = false
+
+[functions.agent-sms-inbound]
+verify_jwt = false
+
+# Sprint 4 Edge Functions
+[functions.agent-transcript-analyst]
+verify_jwt = false
+
+[functions.agent-conversion-predictor]
+verify_jwt = false
+
+[functions.agent-paip-assistant]
+verify_jwt = false
+
+# Sprint 5 Edge Functions
+[functions.agent-persona-verification]
+verify_jwt = false
+
+[functions.agent-doorloop-pull]
+verify_jwt = false
+
+[functions.agent-doorloop-push]
+verify_jwt = false
+
+[functions.agent-sheets-backup]
+verify_jwt = false
+
+[functions.persona-webhook]
+verify_jwt = false
+
+# Sprint 6 Edge Functions
+[functions.agent-hemlane-parser]
+verify_jwt = false
+
+[functions.agent-campaign-orchestrator]
+verify_jwt = false
+
+[functions.agent-campaign-voice]
+verify_jwt = false
+
+[functions.agent-resend-processor]
+verify_jwt = false
+
+# Sprint 7 Edge Functions
+[functions.agent-insight-generator]
+verify_jwt = false
+
+[functions.agent-report-generator]
+verify_jwt = false

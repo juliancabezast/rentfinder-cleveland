@@ -1,0 +1,356 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+ * Rent Finder Cleveland Design System - Modern 2026
+ * Primary: #370d4b (Deep Purple - headers, primary buttons)
+ * Accent: #ffb22c (Gold - CTAs, highlights, active states)
+ * Background: Gradient (purple → amber → green tints)
+ * Surface: Glassmorphism cards
+ * Success: #22C55E (Green - positive states)
+ * Error: #EF4444 (Red - errors, alerts)
+ * Warning: #F59E0B (Amber - warnings)
+ */
+
+@layer base {
+  :root {
+    /* Primary - Deep Purple */
+    --primary: 280 73% 17%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Accent - Gold */
+    --accent: 40 100% 59%;
+    --accent-foreground: 280 73% 17%;
+    
+    /* Backgrounds - Slightly tinted for gradient base */
+    --background: 270 20% 98%;
+    --foreground: 0 0% 10%;
+    
+    /* Cards & Surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    
+    /* Secondary - Lighter purple tint */
+    --secondary: 280 30% 94%;
+    --secondary-foreground: 280 73% 17%;
+    
+    /* Muted - Subdued elements */
+    --muted: 0 5% 90%;
+    --muted-foreground: 0 0% 42%;
+    
+    /* Semantic States */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+    
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    
+    /* UI Elements */
+    --border: 0 5% 88%;
+    --input: 0 5% 88%;
+    --ring: 280 73% 17%;
+    
+    --radius: 0.75rem;
+    
+    /* Sidebar */
+    --sidebar-background: 280 73% 17%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 40 100% 59%;
+    --sidebar-primary-foreground: 280 73% 17%;
+    --sidebar-accent: 280 60% 25%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 280 50% 25%;
+    --sidebar-ring: 40 100% 59%;
+    
+    /* Chart Colors */
+    --chart-1: 280 73% 17%;
+    --chart-2: 40 100% 59%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 84% 60%;
+
+    /* Modern Design System - Gradients & Effects */
+    --gradient-primary: linear-gradient(135deg, #faf8ff 0%, #fff9e6 50%, #f0fdf4 100%);
+    --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%);
+    --gradient-accent: linear-gradient(135deg, #370d4b 0%, #5a1d7a 100%);
+    --gradient-success: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+    
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-shadow: 0 8px 32px rgba(55, 13, 75, 0.08);
+    
+    /* Modern Shadows */
+    --shadow-xs: 0 1px 2px rgba(55, 13, 75, 0.03);
+    --shadow-sm: 0 2px 8px rgba(55, 13, 75, 0.04);
+    --shadow-md: 0 4px 16px rgba(55, 13, 75, 0.06);
+    --shadow-lg: 0 8px 32px rgba(55, 13, 75, 0.08);
+    --shadow-xl: 0 16px 48px rgba(55, 13, 75, 0.12);
+  }
+
+  .dark {
+    --primary: 40 100% 59%;
+    --primary-foreground: 280 73% 17%;
+    
+    --accent: 280 60% 40%;
+    --accent-foreground: 0 0% 100%;
+    
+    --background: 280 30% 8%;
+    --foreground: 0 0% 95%;
+    
+    --card: 280 25% 12%;
+    --card-foreground: 0 0% 95%;
+    
+    --popover: 280 25% 12%;
+    --popover-foreground: 0 0% 95%;
+    
+    --secondary: 280 20% 18%;
+    --secondary-foreground: 0 0% 95%;
+    
+    --muted: 280 15% 20%;
+    --muted-foreground: 0 0% 65%;
+    
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+    
+    --info: 217 80% 50%;
+    --info-foreground: 0 0% 100%;
+    
+    --border: 280 15% 22%;
+    --input: 280 15% 22%;
+    --ring: 40 100% 59%;
+    
+    --sidebar-background: 280 30% 8%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 40 100% 59%;
+    --sidebar-primary-foreground: 280 73% 17%;
+    --sidebar-accent: 280 25% 18%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 280 20% 20%;
+    --sidebar-ring: 40 100% 59%;
+
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, #1a0d24 0%, #2d1f3d 50%, #1a2e1a 100%);
+    --gradient-card: linear-gradient(145deg, rgba(45,31,61,0.9) 0%, rgba(35,25,45,0.8) 100%);
+    --glass-bg: rgba(45, 31, 61, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  
+  html {
+    font-family: 'Montserrat', sans-serif;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Skip to main content link for accessibility */
+  .skip-to-content {
+    @apply absolute -top-10 left-4 bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium;
+    @apply focus:top-4 transition-all;
+    z-index: 9999;
+  }
+
+  /* Respect prefers-reduced-motion for accessibility (Phase 10.4) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Focus visible styles for keyboard navigation (Phase 10.2) */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Safe area for mobile devices with notches */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  /* Ensure minimum touch target size (WCAG 2.5.5) */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Exception for inline and icon buttons */
+  .inline-button, button.h-auto, a.h-auto,
+  button[class*="h-5"], button[class*="h-6"], button[class*="h-7"],
+  a[class*="inline"], span[role="button"] {
+    min-height: unset;
+    min-width: unset;
+  }
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+  
+  .bg-gradient-primary {
+    @apply bg-gradient-to-r from-primary to-primary/80;
+  }
+  
+  .bg-gradient-accent {
+    @apply bg-gradient-to-r from-accent to-accent/80;
+  }
+  
+  /* Modern gradient background */
+  .main-gradient-bg {
+    background: var(--gradient-primary);
+    min-height: 100vh;
+  }
+
+  /* Glassmorphism card */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .glass-card-hover {
+    @apply transition-all duration-300;
+  }
+
+  .glass-card-hover:hover {
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-2px);
+  }
+
+  /* Modern shadows */
+  .shadow-modern-xs { box-shadow: var(--shadow-xs); }
+  .shadow-modern-sm { box-shadow: var(--shadow-sm); }
+  .shadow-modern-md { box-shadow: var(--shadow-md); }
+  .shadow-modern-lg { box-shadow: var(--shadow-lg); }
+  .shadow-modern-xl { box-shadow: var(--shadow-xl); }
+
+  /* Legacy shadow utilities */
+  .shadow-card {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .shadow-card-hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Stagger animations */
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+  .stagger-5 { animation-delay: 0.25s; }
+  .stagger-6 { animation-delay: 0.3s; }
+
+  /* Fade up animation */
+  .animate-fade-up {
+    animation: fadeUp 0.5s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+    opacity: 0;
+  }
+}
+
+/* Modern table styles */
+.modern-table {
+  @apply w-full;
+}
+
+.modern-table thead {
+  @apply bg-muted/30;
+}
+
+.modern-table th {
+  @apply text-xs font-semibold text-muted-foreground uppercase tracking-wider py-4 px-4 text-left;
+}
+
+.modern-table td {
+  @apply py-4 px-4 text-sm border-b border-muted/30;
+}
+
+.modern-table tbody tr {
+  @apply hover:bg-muted/20 transition-colors;
+}
+
+.modern-table tbody tr:last-child td {
+  @apply border-b-0;
+}
+
+/* Keyframe animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.4) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

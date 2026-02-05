@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "Bash(git clone:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(grep:*)",
+      "Bash(npm run dev:*)",
+      "Bash(source:*)",
+      "Bash(ls:*)",
+      "Bash(mdfind:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
