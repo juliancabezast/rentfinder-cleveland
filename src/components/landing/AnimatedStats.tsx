@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 
 interface StatItem {
   value: string;
@@ -12,8 +13,17 @@ interface AnimatedStatsProps {
 // Easing function: easeOutCubic
 const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
+// Sequential timing config
+const STAT_CONFIG = [
+  { duration: 1500, pauseAfter: 400 }, // 85%
+  { duration: 1000, pauseAfter: 400 }, // 3x
+  { duration: 1500, pauseAfter: 400 }, // 60%
+  { duration: 800, pauseAfter: 0 },    // 24/7
+];
+
 const AnimatedStats: React.FC<AnimatedStatsProps> = ({ stats }) => {
-  const [isVisible, setIsVisible] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [completedIndices, setCompletedIndices] = useState<number[]>([]);
   const [hasAnimated, setHasAnimated] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -21,8 +31,9 @@ const AnimatedStats: React.FC<AnimatedStatsProps> = ({ stats }) => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
-          setIsVisible(true);
           setHasAnimated(true);
+          // Start the sequential animation
+          setActiveIndex(0);
         }
       },
       { threshold: 0.3 }
@@ -35,6 +46,17 @@ const AnimatedStats: React.FC<AnimatedStatsProps> = ({ stats }) => {
     return () => observer.disconnect();
   }, [hasAnimated]);
 
+  const handleStatComplete = (index: number) => {
+    setCompletedIndices((prev) => [...prev, index]);
+    
+    // Schedule next stat after pause
+    if (index < stats.length - 1) {
+      setTimeout(() => {
+        setActiveIndex(index + 1);
+      }, STAT_CONFIG[index].pauseAfter);
+    }
+  };
+
   return (
     <div
       ref={containerRef}
@@ -45,8 +67,10 @@ const AnimatedStats: React.FC<AnimatedStatsProps> = ({ stats }) => {
           key={index}
           value={stat.value}
           label={stat.label}
-          delay={index * 200}
-          isVisible={isVisible}
+          duration={STAT_CONFIG[index]?.duration || 1500}
+          isActive={activeIndex === index}
+          isCompleted={completedIndices.includes(index)}
+          onComplete={() => handleStatComplete(index)}
         />
       ))}
     </div>
@@ -56,70 +80,101 @@ const AnimatedStats: React.FC<AnimatedStatsProps> = ({ stats }) => {
 interface AnimatedStatItemProps {
   value: string;
   label: string;
-  delay: number;
-  isVisible: boolean;
+  duration: number;
+  isActive: boolean;
+  isCompleted: boolean;
+  onComplete: () => void;
 }
 
 const AnimatedStatItem: React.FC<AnimatedStatItemProps> = ({
   value,
   label,
-  delay,
-  isVisible,
+  duration,
+  isActive,
+  isCompleted,
+  onComplete,
 }) => {
   const [displayValue, setDisplayValue] = useState("0");
-  const [hasStarted, setHasStarted] = useState(false);
+  const [showGlow, setShowGlow] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const hasStarted = useRef(false);
 
   useEffect(() => {
-    if (!isVisible || hasStarted) return;
+    if (!isActive || hasStarted.current) return;
+    hasStarted.current = true;
+    setIsVisible(true);
 
-    const timeout = setTimeout(() => {
-      setHasStarted(true);
-
-      // Handle special case: "24/7"
-      if (value === "24/7") {
-        const sequence = ["2", "24", "24/", "24/7"];
-        let i = 0;
-        const typeInterval = setInterval(() => {
-          setDisplayValue(sequence[i]);
-          i++;
-          if (i >= sequence.length) clearInterval(typeInterval);
-        }, 400);
-        return;
-      }
-
-      // Handle percentage or multiplier (e.g., "85%", "3x", "60%")
-      const numMatch = value.match(/^(\d+)/);
-      if (!numMatch) {
-        setDisplayValue(value);
-        return;
-      }
-
-      const targetNum = parseInt(numMatch[1], 10);
-      const suffix = value.replace(/^\d+/, ""); // e.g., "%", "x"
-      const duration = 2000;
-      const startTime = performance.now();
-
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = easeOutCubic(progress);
-        const currentValue = Math.round(easedProgress * targetNum);
-        setDisplayValue(`${currentValue}${suffix}`);
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
+    // Handle special case: "24/7" with typewriter effect
+    if (value === "24/7") {
+      const sequence = ["2", "24", "24/", "24/7"];
+      let i = 0;
+      const typeInterval = setInterval(() => {
+        setDisplayValue(sequence[i]);
+        i++;
+        if (i >= sequence.length) {
+          clearInterval(typeInterval);
+          setShowGlow(true);
+          setTimeout(() => setShowGlow(false), 600);
+          onComplete();
         }
-      };
+      }, duration / sequence.length);
+      return;
+    }
 
-      requestAnimationFrame(animate);
-    }, delay);
+    // Handle percentage or multiplier (e.g., "85%", "3x", "60%")
+    const numMatch = value.match(/^(\d+)/);
+    if (!numMatch) {
+      setDisplayValue(value);
+      onComplete();
+      return;
+    }
 
-    return () => clearTimeout(timeout);
-  }, [isVisible, hasStarted, value, delay]);
+    const targetNum = parseInt(numMatch[1], 10);
+    const suffix = value.replace(/^\d+/, ""); // e.g., "%", "x"
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = easeOutCubic(progress);
+      const currentValue = Math.round(easedProgress * targetNum);
+      setDisplayValue(`${currentValue}${suffix}`);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Animation complete - show glow
+        setShowGlow(true);
+        setTimeout(() => setShowGlow(false), 600);
+        onComplete();
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isActive, value, duration, onComplete]);
+
+  const shouldShow = isVisible || isCompleted;
 
   return (
-    <div className="text-center">
-      <p className="text-3xl sm:text-4xl font-bold text-primary">{displayValue}</p>
+    <div 
+      className={cn(
+        "text-center transition-all duration-500 ease-out",
+        shouldShow 
+          ? "opacity-100 translate-y-0" 
+          : "opacity-0 translate-y-5"
+      )}
+    >
+      <p 
+        className={cn(
+          "text-3xl sm:text-4xl font-bold text-primary transition-all duration-300",
+          showGlow && "drop-shadow-[0_0_20px_rgba(255,178,44,0.6)]"
+        )}
+        style={{
+          textShadow: showGlow ? "0 0 20px rgba(255, 178, 44, 0.5)" : "none",
+        }}
+      >
+        {displayValue}
+      </p>
       <p className="mt-1 text-sm text-muted-foreground">{label}</p>
     </div>
   );
