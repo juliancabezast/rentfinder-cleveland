@@ -11,6 +11,7 @@ interface ServiceHealth {
   healthy: boolean;
   message: string;
   tested_at: string;
+  execution_ms?: number;
 }
 
 interface HealthReport {
@@ -225,6 +226,46 @@ async function testSingleService(
   // Log result
   await logResult(supabase, organizationId, service, success, message, Date.now() - startTime);
 
+  // Write to integration_health for single service test
+  const testedAt = new Date().toISOString();
+  const upsertData: Record<string, unknown> = {
+    organization_id: organizationId,
+    service: service,
+    status: success ? "healthy" : "down",
+    message: message,
+    response_ms: Date.now() - startTime,
+    last_checked_at: testedAt,
+    details: { raw_message: message },
+    updated_at: testedAt,
+  };
+
+  if (success) {
+    upsertData.last_healthy_at = testedAt;
+    upsertData.consecutive_failures = 0;
+  }
+
+  await supabase
+    .from("integration_health")
+    .upsert(upsertData, { onConflict: "organization_id,service" });
+
+  // If unhealthy, increment consecutive_failures
+  if (!success) {
+    const { data: current } = await supabase
+      .from("integration_health")
+      .select("consecutive_failures")
+      .eq("organization_id", organizationId)
+      .eq("service", service)
+      .single();
+
+    if (current) {
+      await supabase
+        .from("integration_health")
+        .update({ consecutive_failures: (current.consecutive_failures || 0) + 1 })
+        .eq("organization_id", organizationId)
+        .eq("service", service);
+    }
+  }
+
   return { success, message };
 }
 
@@ -353,7 +394,8 @@ async function runFullHealthCheck(
     serviceHealth[service] = {
       healthy,
       message,
-      tested_at: new Date().toISOString()
+      tested_at: new Date().toISOString(),
+      execution_ms: Date.now() - testStart
     };
 
     // Log individual service test
@@ -361,6 +403,47 @@ async function runFullHealthCheck(
   });
 
   await Promise.all(testPromises);
+
+  // Write results to integration_health for real-time frontend updates
+  for (const [serviceName, health] of Object.entries(serviceHealth)) {
+    const upsertData: Record<string, unknown> = {
+      organization_id: organizationId,
+      service: serviceName,
+      status: health.healthy ? "healthy" : "down",
+      message: health.message,
+      response_ms: health.execution_ms || null,
+      last_checked_at: health.tested_at,
+      details: { raw_message: health.message },
+      updated_at: new Date().toISOString(),
+    };
+
+    if (health.healthy) {
+      upsertData.last_healthy_at = health.tested_at;
+      upsertData.consecutive_failures = 0;
+    }
+
+    await supabase
+      .from("integration_health")
+      .upsert(upsertData, { onConflict: "organization_id,service" });
+
+    // If unhealthy, increment consecutive_failures
+    if (!health.healthy) {
+      const { data: current } = await supabase
+        .from("integration_health")
+        .select("consecutive_failures")
+        .eq("organization_id", organizationId)
+        .eq("service", serviceName)
+        .single();
+
+      if (current) {
+        await supabase
+          .from("integration_health")
+          .update({ consecutive_failures: (current.consecutive_failures || 0) + 1 })
+          .eq("organization_id", organizationId)
+          .eq("service", serviceName);
+      }
+    }
+  }
 
   // Now update agent statuses based on service health
   const agentsAffected = await updateAgentStatuses(supabase, organizationId, serviceHealth);
@@ -370,7 +453,7 @@ async function runFullHealthCheck(
   // Log the full health check completion
   await supabase.rpc("log_agent_activity", {
     p_organization_id: organizationId,
-    p_agent_key: "health_checker",
+    p_agent_key: "health_monitor",
     p_action: "full_health_check",
     p_status: "success",
     p_message: `Health check complete: ${Object.values(serviceHealth).filter(s => s.healthy).length}/${services.length} services healthy, ${agentsAffected} agents affected`,
@@ -459,7 +542,7 @@ async function updateAgentStatuses(
       // Log the status change
       await supabase.rpc("log_agent_activity", {
         p_organization_id: organizationId,
-        p_agent_key: "health_checker",
+        p_agent_key: "health_monitor",
         p_action: "agent_status_changed",
         p_status: newStatus === "degraded" ? "failure" : "success",
         p_message: newStatus === "degraded"
