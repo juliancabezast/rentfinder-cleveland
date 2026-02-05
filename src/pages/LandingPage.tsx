@@ -22,15 +22,18 @@ import {
   PlayCircle,
   Star,
   Zap,
-  MessageSquare,
-  Calendar,
   Loader2,
   HelpCircle,
+  Calendar,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DemoRequestDialog } from "@/components/landing/DemoRequestDialog";
- import AustinChatWidget from "@/components/landing/AustinChatWidget";
- import SocialProofToast from "@/components/landing/SocialProofToast";
+import AustinChatWidget from "@/components/landing/AustinChatWidget";
+import SocialProofToast from "@/components/landing/SocialProofToast";
+import AnimatedStats from "@/components/landing/AnimatedStats";
+import RotatingHeroText from "@/components/landing/RotatingHeroText";
+import FloatingBackground from "@/components/landing/FloatingBackground";
+import HowItWorksSection from "@/components/landing/HowItWorksSection";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -188,11 +191,8 @@ const LandingPage: React.FC = () => {
         {/* ============ HERO SECTION ============ */}
         <article>
           <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
-            {/* Background blobs */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-              <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-              <div className="absolute top-1/2 -left-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
-            </div>
+            {/* Floating background with glass elements */}
+            <FloatingBackground />
 
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center max-w-4xl mx-auto">
@@ -207,7 +207,7 @@ const LandingPage: React.FC = () => {
                   <span className="text-primary bg-gradient-to-r from-primary to-primary/70 bg-clip-text">
                     AI Leasing Assistant
                   </span>
-                  {" "}That Never Sleeps
+                  {" "}That <RotatingHeroText />
                 </h1>
                 
                 <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -242,15 +242,8 @@ const LandingPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Stats row */}
-              <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-                {stats.map((stat, index) => (
-                  <div key={index} className="text-center">
-                    <p className="text-3xl sm:text-4xl font-bold text-primary">{stat.value}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
+              {/* Animated Stats row */}
+              <AnimatedStats stats={stats} />
             </div>
           </section>
         </article>
@@ -284,47 +277,8 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* ============ HOW IT WORKS ============ */}
-        <section id="how-it-works" className="py-20 sm:py-32" aria-labelledby="how-it-works-heading">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <Badge variant="outline" className="mb-4">
-                How It Works
-              </Badge>
-              <h2 id="how-it-works-heading" className="text-3xl sm:text-4xl font-bold text-foreground">
-                From Lead to Lease in 4 Simple Steps
-              </h2>
-            </div>
-
-            <div className="grid md:grid-cols-4 gap-8">
-              {[
-                { step: "1", icon: <Phone className="h-6 w-6" />, title: "Lead Calls In", desc: "Your AI agent answers 24/7, qualifies the prospect, and captures their needs" },
-                { step: "2", icon: <MessageSquare className="h-6 w-6" />, title: "Smart Nurturing", desc: "Automated follow-ups via call and SMS keep leads warm until they're ready" },
-                { step: "3", icon: <Calendar className="h-6 w-6" />, title: "Showing Booked", desc: "AI schedules, confirms, and sends reminders automatically" },
-                { step: "4", icon: <CheckCircle2 className="h-6 w-6" />, title: "Lease Signed", desc: "Track the full journey from first call to signed lease in your dashboard" },
-              ].map((item, index) => (
-                <div key={index} className="relative">
-                  <div className="text-center">
-                    <div className="relative inline-flex">
-                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto" aria-hidden="true">
-                        {item.icon}
-                      </div>
-                      <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
-                        {item.step}
-                      </span>
-                    </div>
-                    <h3 className="mt-4 text-lg font-semibold text-foreground">{item.title}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
-                  </div>
-
-                  {index < 3 && (
-                    <div className="hidden md:block absolute top-8 left-[60%] w-[80%] border-t-2 border-dashed border-border" aria-hidden="true" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* ============ HOW IT WORKS - Interactive ============ */}
+        <HowItWorksSection />
 
         {/* ============ TESTIMONIALS ============ */}
         <section id="testimonials" className="py-20 sm:py-32 bg-muted/30" aria-labelledby="testimonials-heading">
@@ -466,9 +420,9 @@ const LandingPage: React.FC = () => {
  
        {/* Austin Chat Widget */}
        <AustinChatWidget />
- 
-       {/* Social Proof Toast */}
-       <SocialProofToast />
+
+      {/* Social Proof Toast */}
+      <SocialProofToast />
     </div>
   );
 };
