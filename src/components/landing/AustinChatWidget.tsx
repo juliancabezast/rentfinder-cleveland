@@ -291,7 +291,7 @@ export const AustinChatWidget: React.FC = () => {
             </div>
             <button
               onClick={handleClose}
-              className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+              className="w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-lg transition-colors"
               aria-label="Close chat"
             >
               <X className="h-5 w-5" />

@@ -378,17 +378,17 @@ const LandingPage: React.FC = () => {
       {/* ============ FOOTER ============ */}
       <footer className="py-6 px-8 border-t border-border">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             {/* Left: Logo */}
             <Link to="/" className="flex items-center gap-2 shrink-0">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                 <Building2 className="h-4 w-4 text-primary-foreground" aria-hidden="true" />
               </div>
-              <span className="font-semibold text-foreground leading-none">Rent Finder Cleveland</span>
+              <span className="font-semibold text-foreground">Rent Finder Cleveland</span>
             </Link>
-            
+
             {/* Center: Links */}
-            <nav className="flex items-center gap-6 text-sm leading-none" aria-label="Footer navigation">
+            <nav className="flex items-center gap-6 text-sm" aria-label="Footer navigation">
               <Link to="/p/privacy-policy" className="text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy
               </Link>
@@ -399,9 +399,9 @@ const LandingPage: React.FC = () => {
                 Contact
               </a>
             </nav>
-            
+
             {/* Right: Copyright */}
-            <p className="text-sm text-muted-foreground leading-none shrink-0">
+            <p className="text-sm text-muted-foreground shrink-0">
               © {new Date().getFullYear()} Rent Finder Cleveland. All rights reserved.
             </p>
           </div>
