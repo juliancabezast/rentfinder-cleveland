@@ -12,13 +12,13 @@ interface StatusBadgeProps {
 
 const leadStatusConfig: Record<string, { label: string; dotColor: string }> = {
   new: { label: "New", dotColor: "bg-blue-500" },
-  contacted: { label: "Contacted", dotColor: "bg-indigo-500" },
-  engaged: { label: "Engaged", dotColor: "bg-violet-500" },
-  nurturing: { label: "Nurturing", dotColor: "bg-amber-500" },
+  contacted: { label: "Contacted", dotColor: "bg-purple-500" },
+  engaged: { label: "Engaged", dotColor: "bg-amber-500" },
+  nurturing: { label: "Nurturing", dotColor: "bg-indigo-500" },
   qualified: { label: "Qualified", dotColor: "bg-emerald-500" },
   showing_scheduled: { label: "Showing Scheduled", dotColor: "bg-cyan-500" },
   showed: { label: "Showed", dotColor: "bg-teal-500" },
-  in_application: { label: "In Application", dotColor: "bg-purple-500" },
+  in_application: { label: "In Application", dotColor: "bg-orange-500" },
   lost: { label: "Lost", dotColor: "bg-gray-400" },
   converted: { label: "Converted", dotColor: "bg-green-500" },
 };
