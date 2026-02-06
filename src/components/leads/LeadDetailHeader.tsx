@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,11 +42,22 @@ interface LeadDetailHeaderProps {
     first_name?: string | null;
     last_name?: string | null;
     phone: string;
+    email?: string | null;
     status: string;
     lead_score?: number | null;
     is_human_controlled?: boolean;
     doorloop_prospect_id?: string | null;
     ai_brief?: string | null;
+    preferred_language?: string | null;
+    contact_preference?: string | null;
+    source?: string | null;
+    budget_min?: number | null;
+    budget_max?: number | null;
+    move_in_date?: string | null;
+    bedrooms_needed?: number | null;
+    has_voucher?: boolean | null;
+    voucher_amount?: number | null;
+    housing_authority?: string | null;
   };
   property?: Property | null;
   permissions: {
@@ -60,6 +70,18 @@ interface LeadDetailHeaderProps {
   onTakeControl: () => void;
   onBriefGenerated: () => void;
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  inbound_call: "Inbound Call",
+  web_form: "Web Form",
+  referral: "Referral",
+  zillow: "Zillow",
+  craigslist: "Craigslist",
+  walk_in: "Walk-in",
+  hemlane: "Hemlane",
+  manual: "Manual Entry",
+  campaign: "Campaign",
+};
 
 // Small score circle (40px)
 const SmallScoreCircle: React.FC<{ score: number }> = ({ score }) => {
@@ -96,6 +118,9 @@ const SmallScoreCircle: React.FC<{ score: number }> = ({ score }) => {
     </div>
   );
 };
+
+// Standard button styling
+const headerButtonClass = "bg-white border border-[#d1d5db] text-[#374151] hover:bg-[#f3f4f6] h-9";
 
 export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   lead,
@@ -174,12 +199,32 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
     }
   };
 
-  // Truncate brief to ~3 lines
-  const truncatedBrief = lead.ai_brief
-    ? lead.ai_brief.length > 200
-      ? lead.ai_brief.slice(0, 200) + "..."
-      : lead.ai_brief
-    : null;
+  const formatBudget = () => {
+    if (!lead.budget_min && !lead.budget_max) return null;
+    const min = lead.budget_min ? `$${lead.budget_min.toLocaleString()}` : "$0";
+    const max = lead.budget_max ? `$${lead.budget_max.toLocaleString()}` : "∞";
+    return `${min}-${max}`;
+  };
+
+  const formatMoveIn = () => {
+    if (!lead.move_in_date) return null;
+    return new Date(lead.move_in_date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // Profile fields for Row 2
+  const profileFields = [
+    { label: "Language", value: lead.preferred_language === "es" ? "Spanish" : "English" },
+    { label: "Contact", value: lead.contact_preference ? lead.contact_preference.charAt(0).toUpperCase() + lead.contact_preference.slice(1) : null },
+    { label: "Source", value: SOURCE_LABELS[lead.source || ""] || lead.source },
+    { label: "Budget", value: formatBudget() },
+    { label: "Move-in", value: formatMoveIn() },
+    { label: "Bedrooms", value: lead.bedrooms_needed ? `${lead.bedrooms_needed} BR` : null },
+    { label: "Voucher", value: lead.has_voucher ? (lead.voucher_amount ? `$${lead.voucher_amount.toLocaleString()}` : "Yes") : null },
+    { label: "Authority", value: lead.has_voucher && lead.housing_authority ? lead.housing_authority : null },
+  ].filter(f => f.value);
 
   return (
     <>
@@ -197,13 +242,13 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
             <SmallScoreCircle score={lead.lead_score || 50} />
           </div>
 
-          {/* Right: Action buttons - all same outline style */}
+          {/* Right: Action buttons - all same style */}
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCallViaAgentOpen(true)}
-              className="border-[#d1d5db] bg-white hover:bg-gray-50"
+              className={headerButtonClass}
             >
               <Phone className="mr-2 h-4 w-4" />
               Call via Agent
@@ -213,7 +258,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={onScheduleShowing}
-                className="border-[#d1d5db] bg-white hover:bg-gray-50"
+                className={headerButtonClass}
               >
                 <CalendarPlus className="mr-2 h-4 w-4" />
                 Schedule Showing
@@ -224,7 +269,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={onEdit}
-                className="border-[#d1d5db] bg-white hover:bg-gray-50"
+                className={headerButtonClass}
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
@@ -235,7 +280,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={onTakeControl}
-                className="border-destructive text-destructive hover:bg-destructive/10"
+                className="bg-white border-[#ef4444] text-[#ef4444] hover:bg-red-50 h-9"
               >
                 <AlertTriangle className="mr-2 h-4 w-4" />
                 Take Control
@@ -244,7 +289,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
           </div>
         </div>
 
-        {/* Row 2: Property of interest + AI Brief */}
+        {/* Row 2: Property + AI Brief */}
         <div className="flex flex-col lg:flex-row lg:items-start gap-4 pt-2 border-t border-[#e5e7eb]">
           {/* Left: Property of interest */}
           <div className="flex-1 min-w-0">
@@ -268,10 +313,10 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
           {/* Right: AI Brief preview */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2">
-              <Sparkles className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+              <Sparkles className="h-4 w-4 text-[#ffb22c] mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                {truncatedBrief ? (
-                  <p className="text-sm text-muted-foreground line-clamp-3">{truncatedBrief}</p>
+                {lead.ai_brief ? (
+                  <p className="text-sm text-muted-foreground line-clamp-3">{lead.ai_brief}</p>
                 ) : (
                   <p className="text-sm text-muted-foreground italic">No brief yet</p>
                 )}
@@ -286,12 +331,24 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                 {generatingBrief ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Sparkles className="h-4 w-4 text-accent" />
+                  <Sparkles className="h-4 w-4 text-[#ffb22c]" />
                 )}
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Row 3: Profile fields inline */}
+        {profileFields.length > 0 && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 border-t border-[#e5e7eb]">
+            {profileFields.map((field, i) => (
+              <div key={i} className="text-xs">
+                <span className="text-muted-foreground">{field.label}:</span>{" "}
+                <span className="text-foreground">{field.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Call via Agent Confirmation Dialog */}

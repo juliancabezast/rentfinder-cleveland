@@ -40,7 +40,7 @@ import { PredictionCard, type LeadPrediction } from "@/components/leads/Predicti
 import { UpcomingAgentActions } from "@/components/leads/UpcomingAgentActions";
 import { AIBriefSection } from "@/components/leads/AIBriefSection";
 import { LeadDetailHeader } from "@/components/leads/LeadDetailHeader";
-import { LeadProfileCard } from "@/components/leads/LeadProfileCard";
+import { InteractionHistoryCard } from "@/components/leads/InteractionHistoryCard";
 import { UpcomingActionsPreview } from "@/components/leads/UpcomingActionsPreview";
 import { ScoreHistoryPreview } from "@/components/leads/ScoreHistoryPreview";
 import type { Tables } from "@/integrations/supabase/types";
@@ -330,8 +330,13 @@ const LeadDetail: React.FC = () => {
         {/* TAB 1: Overview - 2x2 Grid */}
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Top-left: Lead Profile */}
-            <LeadProfileCard lead={lead} />
+            {/* Top-left: Interaction History (replaces Lead Profile) */}
+            <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold">Interaction History</h3>
+              </div>
+              <InteractionHistoryCard leadId={lead.id} onSeeAll={() => setActiveTab("activity")} />
+            </div>
 
             {/* Top-right: Conversion Prediction */}
             <div className="bg-white border border-[#e5e7eb] rounded-lg">

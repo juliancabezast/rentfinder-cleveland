@@ -139,17 +139,20 @@ ${communications?.map(c => `- ${c.sent_at}: ${c.channel} ${c.direction} (${c.sta
         messages: [
           {
             role: "system",
-            content: `You are an expert property management assistant. Generate a concise, actionable brief about a rental lead. 
-Include:
-1. Lead summary (2-3 sentences)
-2. Key engagement highlights
-3. Current status assessment
-4. Recommended next action
-Keep it under 300 words. Be specific and actionable. Use professional but friendly tone.`,
+            content: `You are an expert property management assistant. Generate a 2-3 sentence ACTION-ORIENTED recommendation for the team.
+
+CRITICAL RULES:
+- Do NOT mention the lead's name, contact info, property details, or budget - the team already sees that information elsewhere
+- Focus ONLY on: what should we do next, any risks or opportunities, and any special handling notes (language preference, urgency level, etc.)
+- No markdown formatting - plain text only
+- Maximum 50 words
+- Be direct and actionable
+
+Example good output: "Lead shows high urgency — confirm showing ASAP and prepare application link. Spanish-speaking, ensure bilingual agent handles follow-up."`,
           },
           {
             role: "user",
-            content: `Generate a brief for this lead:\n\n${context}`,
+            content: `Based on this lead's interaction history, generate an action-oriented recommendation:\n\n${context}`,
           },
         ],
       }),
