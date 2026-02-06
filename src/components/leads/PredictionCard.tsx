@@ -135,7 +135,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
 }) => {
   if (loading) {
     return (
-      <Card>
+      <Card className="border-0 shadow-none bg-transparent">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Skeleton className="h-4 w-4" />
@@ -163,7 +163,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
 
   if (!prediction) {
     return (
-      <Card>
+      <Card className="border-0 shadow-none bg-transparent">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -201,7 +201,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
   });
 
   return (
-    <Card>
+    <Card className="border-0 shadow-none bg-transparent">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />

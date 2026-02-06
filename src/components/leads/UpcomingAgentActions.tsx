@@ -146,7 +146,7 @@ export const UpcomingAgentActions: React.FC<UpcomingAgentActionsProps> = ({
 
   if (isLoading) {
     return (
-      <Card variant="glass">
+      <Card className="border-0 shadow-none bg-transparent">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
@@ -172,7 +172,7 @@ export const UpcomingAgentActions: React.FC<UpcomingAgentActionsProps> = ({
 
   return (
     <>
-      <Card variant="glass">
+      <Card className="border-0 shadow-none bg-transparent">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />

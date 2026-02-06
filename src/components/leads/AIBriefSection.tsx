@@ -59,7 +59,7 @@ export const AIBriefSection: React.FC<AIBriefSectionProps> = ({
   const hasBrief = !!aiBrief;
 
   return (
-    <Card variant="glass">
+    <Card className="border-0 shadow-none bg-transparent">
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-accent" />

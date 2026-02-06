@@ -172,8 +172,8 @@ export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) 
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0">
+      <Card className="border-0 shadow-none bg-transparent">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 px-0 pt-0">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-accent" />
@@ -197,7 +197,7 @@ export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) 
             <span className="ml-2 hidden sm:inline">Refresh</span>
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 pb-0">
           {matches.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />

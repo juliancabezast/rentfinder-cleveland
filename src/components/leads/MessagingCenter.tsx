@@ -234,7 +234,7 @@ export const MessagingCenter: React.FC<MessagingCenterProps> = ({
   };
 
   return (
-    <Card variant="glass">
+    <Card className="border-0 shadow-none bg-transparent">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
