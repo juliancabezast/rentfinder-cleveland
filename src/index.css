@@ -344,6 +344,20 @@
   }
 }
 
+/* Toast progress bar animation */
+@keyframes toast-progress-shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-toast-progress {
+  animation: toast-progress-shrink linear forwards;
+}
+
 .animate-shimmer {
   background: linear-gradient(
     90deg,
