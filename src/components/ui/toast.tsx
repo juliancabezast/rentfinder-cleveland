@@ -41,29 +41,11 @@ const toastVariants = cva(
   },
 );
 
-// Progress bar component for toast auto-dismiss
+// CSS-animated progress bar component for toast auto-dismiss
 const ToastProgress = React.forwardRef<
   HTMLDivElement,
   { duration: number; variant?: "default" | "destructive" | null }
 >(({ duration, variant }, ref) => {
-  const [progress, setProgress] = React.useState(100);
-
-  React.useEffect(() => {
-    if (duration === Infinity || duration === 0) return;
-
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
-      setProgress(remaining);
-      if (remaining <= 0) {
-        clearInterval(interval);
-      }
-    }, 16); // ~60fps
-
-    return () => clearInterval(interval);
-  }, [duration]);
-
   if (duration === Infinity || duration === 0) return null;
 
   const isDestructive = variant === "destructive";
@@ -71,12 +53,16 @@ const ToastProgress = React.forwardRef<
   return (
     <div
       ref={ref}
-      className="absolute bottom-0 left-0 h-1 transition-all ease-linear"
-      style={{
-        width: `${progress}%`,
-        backgroundColor: isDestructive ? "hsl(0 84% 60%)" : "hsl(142 71% 45%)",
-      }}
-    />
+      className="absolute bottom-0 left-0 right-0 h-[3px] overflow-hidden"
+    >
+      <div
+        className="h-full animate-toast-progress"
+        style={{
+          backgroundColor: isDestructive ? "#ef4444" : "#22c55e",
+          animationDuration: `${duration}ms`,
+        }}
+      />
+    </div>
   );
 });
 ToastProgress.displayName = "ToastProgress";
