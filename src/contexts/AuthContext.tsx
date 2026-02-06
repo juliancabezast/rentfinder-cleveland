@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .select('*')
         .eq('auth_user_id', authUserId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (userError) {
         console.error('Error fetching user record:', userError);
@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             .from('organizations')
             .select('id, name, slug, logo_url, primary_color, accent_color, timezone, default_language, plan, subscription_status, is_active')
             .eq('id', userData.organization_id)
-            .single();
+            .maybeSingle();
 
           if (orgError) {
             console.error('Error fetching organization:', orgError);

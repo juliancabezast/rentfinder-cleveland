@@ -154,7 +154,29 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
         .from("users")
         .select("organization_id")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
+
+      if (profileError) {
+        console.error(
+          "Profile fetch error:",
+          profileError.message,
+          profileError.details,
+          profileError.hint,
+          profileError.code,
+        );
+        toast({ title: "Error", description: profileError.message, variant: "destructive" });
+        return;
+      }
+
+      if (!profile?.organization_id) {
+        console.error("Profile missing organization_id:", profile);
+        toast({
+          title: "Error",
+          description: "Your profile is missing organization_id",
+          variant: "destructive",
+        });
+        return;
+      }
 
       if (profileError) {
         console.error(
