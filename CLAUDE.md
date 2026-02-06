@@ -136,3 +136,10 @@ new → contacted → engaged → nurturing → qualified → showing_scheduled 
 - Edge functions use Deno, not Node.js
 - Supabase client in edge functions: use `_shared/supabase.ts`
 - For cron-triggered agents, DB settings `app.settings.supabase_url` and `app.settings.service_role_key` must be set
+
+## Database Rules
+- NEVER run `npx supabase db push` or any supabase CLI database commands - they are not configured in this environment.
+- If SQL migrations or database schema changes are needed, tell the user: "This requires a database change. Please run this SQL in the Supabase Dashboard SQL Editor: [provide the SQL]"
+- Only edit frontend files (src/, public/, etc.) and push to GitHub.
+- After pushing to GitHub, remind the user to trigger a rebuild in Lovable if the live site does not update automatically.
+
