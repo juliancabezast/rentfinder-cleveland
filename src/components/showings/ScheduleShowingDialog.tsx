@@ -432,17 +432,22 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
             <div className="space-y-2">
               <Label>Leasing Agent</Label>
-              <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+              <Select 
+                value={selectedAgentId || "none"} 
+                onValueChange={(val) => setSelectedAgentId(val === "none" ? "" : val)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Optional" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {agents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
-                      {agent.full_name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="none">None</SelectItem>
+                  {agents
+                    .filter((agent) => agent.id && agent.id.trim() !== "")
+                    .map((agent) => (
+                      <SelectItem key={agent.id} value={agent.id}>
+                        {agent.full_name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
