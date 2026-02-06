@@ -37,12 +37,20 @@ serve(async (req) => {
       .from("leads")
       .select(`
         *,
-        properties:interested_property_id (address, city, bedrooms, bathrooms, rent_amount)
+        properties:interested_property_id (address, city, bedrooms, bathrooms, rent_price)
       `)
       .eq("id", lead_id)
-      .single();
+      .maybeSingle();
 
-    if (leadError || !lead) {
+    if (leadError) {
+      console.error("Error fetching lead:", leadError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch lead: " + leadError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!lead) {
       return new Response(
         JSON.stringify({ error: "Lead not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -104,7 +112,7 @@ Lead Information:
 ${lead.properties ? `Interested Property:
 - Address: ${lead.properties.address}, ${lead.properties.city}
 - Bedrooms: ${lead.properties.bedrooms}, Bathrooms: ${lead.properties.bathrooms}
-- Rent: $${lead.properties.rent_amount}/month` : "No specific property interest recorded."}
+- Rent: $${lead.properties.rent_price}/month` : "No specific property interest recorded."}
 
 Recent Calls (${calls?.length || 0}):
 ${calls?.map(c => `- ${c.direction} call on ${c.started_at}: ${c.status}, ${c.duration_seconds || 0}s, Sentiment: ${c.sentiment || "N/A"}${c.summary ? `, Summary: ${c.summary.substring(0, 100)}...` : ""}`).join("\n") || "No calls recorded."}
