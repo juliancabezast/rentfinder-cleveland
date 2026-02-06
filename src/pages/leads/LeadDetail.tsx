@@ -524,22 +524,22 @@ const LeadDetail: React.FC = () => {
 
       {/* Tabbed Content */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid bg-muted/50">
+        <TabsList className="h-auto p-0 bg-transparent justify-start gap-6 border-b border-border rounded-none">
           <TabsTrigger 
             value="overview"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-none border-b-2 border-transparent pb-2 pt-0 px-0 data-[state=active]:border-accent data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors"
           >
             Overview
           </TabsTrigger>
           <TabsTrigger 
             value="consent"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-none border-b-2 border-transparent pb-2 pt-0 px-0 data-[state=active]:border-accent data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors"
           >
             Consent Log
           </TabsTrigger>
           <TabsTrigger 
             value="activity"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-none border-b-2 border-transparent pb-2 pt-0 px-0 data-[state=active]:border-accent data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors"
           >
             Activity
           </TabsTrigger>
