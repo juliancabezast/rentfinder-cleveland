@@ -23,7 +23,7 @@ const routeTitles: Record<string, string> = {
   '/showings': 'Showings',
   '/calls': 'Call Logs',
   '/reports': 'Reports',
-  '/insights': 'Insight Generator',
+  '/knowledge': 'Knowledge Hub',
   '/users': 'User Management',
   '/settings': 'Settings',
   '/logs': 'System Logs',
@@ -129,7 +129,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <a href="/profile" className="cursor-pointer">
+              <a href="/settings" className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
                 My Profile
               </a>

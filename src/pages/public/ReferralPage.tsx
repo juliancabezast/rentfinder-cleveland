@@ -144,7 +144,7 @@ const ReferralPage: React.FC = () => {
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">{error}</p>
             <Button asChild variant="outline">
-              <Link to="/p/properties">Browse Available Properties</Link>
+              <Link to="/">Browse Available Properties</Link>
             </Button>
           </CardContent>
         </Card>
@@ -170,7 +170,7 @@ const ReferralPage: React.FC = () => {
               Thank you for your interest! We'll be in touch within 24 hours.
             </p>
             <Button asChild className="w-full mt-4">
-              <Link to="/p/properties">Browse Available Properties</Link>
+              <Link to="/">Browse Available Properties</Link>
             </Button>
           </CardContent>
         </Card>
@@ -276,7 +276,7 @@ const ReferralPage: React.FC = () => {
 
           {/* Browse Properties Link */}
           <Button asChild variant="link" className="w-full">
-            <Link to="/p/properties">Browse Available Properties →</Link>
+            <Link to="/">Browse Available Properties →</Link>
           </Button>
         </CardContent>
       </Card>

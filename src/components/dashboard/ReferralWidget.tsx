@@ -116,7 +116,7 @@ export const ReferralWidget: React.FC<ReferralWidgetProps> = ({ variant = "compa
           variant="link"
           size="sm"
           className="px-0 mt-2"
-          onClick={() => navigate("/referrals")}
+          onClick={() => navigate("/settings")}
         >
           View All <ChevronRight className="h-4 w-4 ml-1" />
         </Button>
