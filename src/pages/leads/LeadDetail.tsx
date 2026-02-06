@@ -128,6 +128,7 @@ const LeadDetail: React.FC = () => {
         `
         )
         .eq("id", id)
+        .eq("organization_id", userRecord?.organization_id)
         .single();
 
       if (leadError) throw leadError;

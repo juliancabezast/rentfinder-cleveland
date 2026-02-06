@@ -91,6 +91,7 @@ const CallDetail: React.FC = () => {
           .from("calls")
           .select("*")
           .eq("id", id)
+          .eq("organization_id", userRecord?.organization_id)
           .single();
 
         if (error) throw error;
