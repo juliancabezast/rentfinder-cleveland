@@ -60,6 +60,8 @@ import { LeadActivityTimeline } from "@/components/leads/LeadActivityTimeline";
 import { SmartMatches } from "@/components/leads/SmartMatches";
 import { MessagingCenter } from "@/components/leads/MessagingCenter";
 import { PredictionCard, type LeadPrediction } from "@/components/leads/PredictionCard";
+import { UpcomingAgentActions } from "@/components/leads/UpcomingAgentActions";
+import { AIBriefSection } from "@/components/leads/AIBriefSection";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -69,6 +71,7 @@ type ConsentLog = Tables<"consent_log">;
 interface LeadWithRelations extends Lead {
   properties?: { id: string; address: string; unit_number: string | null } | null;
   human_controller?: { full_name: string } | null;
+  ai_brief_user?: { full_name: string } | null;
 }
 
 const LEAD_STATUSES = [
@@ -143,9 +146,21 @@ const LeadDetail: React.FC = () => {
         humanControllerName = userData?.full_name || null;
       }
 
+      // Fetch AI brief generator name if needed
+      let aiBriefUserName: string | null = null;
+      if (leadData.ai_brief_generated_by) {
+        const { data: briefUserData } = await supabase
+          .from("users")
+          .select("full_name")
+          .eq("id", leadData.ai_brief_generated_by)
+          .single();
+        aiBriefUserName = briefUserData?.full_name || null;
+      }
+
       setLead({
         ...leadData,
         human_controller: humanControllerName ? { full_name: humanControllerName } : null,
+        ai_brief_user: aiBriefUserName ? { full_name: aiBriefUserName } : null,
       });
 
       // Fetch related data in parallel
@@ -804,8 +819,22 @@ const LeadDetail: React.FC = () => {
         </TabsContent>
 
         {/* Activity Tab */}
-        <TabsContent value="activity">
+        <TabsContent value="activity" className="space-y-6">
+          {/* AI Brief Section */}
+          <AIBriefSection
+            leadId={lead.id}
+            aiBrief={lead.ai_brief}
+            aiBriefGeneratedAt={lead.ai_brief_generated_at}
+            aiBriefGeneratedBy={lead.ai_brief_generated_by}
+            generatedByName={lead.ai_brief_user?.full_name}
+            onBriefUpdated={fetchLead}
+          />
+
+          {/* Activity Timeline */}
           <LeadActivityTimeline leadId={lead.id} />
+
+          {/* Upcoming Agent Actions */}
+          <UpcomingAgentActions leadId={lead.id} />
         </TabsContent>
       </Tabs>
 

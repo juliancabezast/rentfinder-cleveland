@@ -122,3 +122,9 @@ verify_jwt = false
 
 [functions.agent-report-generator]
 verify_jwt = false
+
+[functions.generate-lead-brief]
+verify_jwt = false
+
+[functions.submit-demo-request]
+verify_jwt = false

@@ -1601,6 +1601,9 @@ export type Database = {
       }
       leads: {
         Row: {
+          ai_brief: string | null
+          ai_brief_generated_at: string | null
+          ai_brief_generated_by: string | null
           assigned_leasing_agent_id: string | null
           budget_max: number | null
           budget_min: number | null
@@ -1655,6 +1658,9 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          ai_brief?: string | null
+          ai_brief_generated_at?: string | null
+          ai_brief_generated_by?: string | null
           assigned_leasing_agent_id?: string | null
           budget_max?: number | null
           budget_min?: number | null
@@ -1709,6 +1715,9 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          ai_brief?: string | null
+          ai_brief_generated_at?: string | null
+          ai_brief_generated_by?: string | null
           assigned_leasing_agent_id?: string | null
           budget_max?: number | null
           budget_min?: number | null
@@ -1763,6 +1772,13 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_ai_brief_generated_by_fkey"
+            columns: ["ai_brief_generated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_assigned_leasing_agent_id_fkey"
             columns: ["assigned_leasing_agent_id"]
@@ -2826,6 +2842,10 @@ export type Database = {
         Returns: boolean
       }
       check_coming_soon_expiring: { Args: never; Returns: number }
+      execute_agent_task_now: {
+        Args: { p_executed_by: string; p_task_id: string }
+        Returns: Json
+      }
       format_lead_for_sheets: { Args: { p_lead_id: string }; Returns: Json }
       get_dashboard_summary: { Args: never; Returns: Json }
       get_lead_full_context: { Args: { p_lead_id: string }; Returns: Json }

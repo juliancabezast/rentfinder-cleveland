@@ -53,6 +53,17 @@ const VOUCHER_STATUSES = [
   { value: "unknown", label: "Unknown" },
 ];
 
+const LEAD_SOURCES = [
+  { value: "manual", label: "Manual Entry" },
+  { value: "campaign", label: "Campaign Outreach" },
+  { value: "inbound_call", label: "Inbound Call" },
+  { value: "website", label: "Website" },
+  { value: "referral", label: "Referral" },
+  { value: "hemlane_email", label: "Hemlane Email" },
+  { value: "sms", label: "SMS" },
+  { value: "csv_import", label: "CSV Import" },
+];
+
 export const LeadForm: React.FC<LeadFormProps> = ({
   lead,
   onSuccess,
@@ -70,6 +81,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
     email: lead?.email || "",
     preferred_language: lead?.preferred_language || "en",
     status: lead?.status || "new",
+    source: lead?.source || "manual",
     interested_property_id: lead?.interested_property_id || "",
     budget_min: lead?.budget_min?.toString() || "",
     budget_max: lead?.budget_max?.toString() || "",
@@ -118,7 +130,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         email: formData.email || null,
         preferred_language: formData.preferred_language,
         status: formData.status,
-        source: lead ? lead.source : "manual",
+        source: formData.source,
         interested_property_id: formData.interested_property_id || null,
         budget_min: formData.budget_min ? parseFloat(formData.budget_min) : null,
         budget_max: formData.budget_max ? parseFloat(formData.budget_max) : null,
@@ -301,7 +313,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
       {/* Status & Interest */}
       <div className="space-y-4">
         <h3 className="font-medium">Status & Interest</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <Label>Status</Label>
             <Select
@@ -313,6 +325,24 @@ export const LeadForm: React.FC<LeadFormProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {LEAD_STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Source</Label>
+            <Select
+              value={formData.source}
+              onValueChange={(v) => setFormData((f) => ({ ...f, source: v }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LEAD_SOURCES.map((s) => (
                   <SelectItem key={s.value} value={s.value}>
                     {s.label}
                   </SelectItem>
