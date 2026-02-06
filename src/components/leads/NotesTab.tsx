@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type NoteType =
   | "general"
@@ -63,7 +64,7 @@ const NOTE_TYPE_COLORS: Record<NoteType, string> = {
 };
 
 export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }) => {
-  // Auth in this component is derived from supabase.auth.getUser()
+  const { userRecord, loading: authLoading } = useAuth();
   const [notes, setNotes] = useState<LeadNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -128,85 +129,26 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
   const handleAddNote = async () => {
     if (!newContent.trim()) return;
 
+    // Use centralized auth - never show organization_id error toast
+    if (authLoading) {
+      return; // Wait for auth to complete
+    }
+
+    if (!userRecord?.organization_id || !userRecord?.id) {
+      console.error("Profile not ready:", { userRecord, authLoading });
+      // Don't show error toast - the auth context handles profile creation
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) {
-        console.error("Auth getUser error:", userError);
-        toast({ title: "Error", description: userError.message, variant: "destructive" });
-        return;
-      }
-
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to add notes",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("users")
-        .select("organization_id")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error(
-          "Profile fetch error:",
-          profileError.message,
-          profileError.details,
-          profileError.hint,
-          profileError.code,
-        );
-        toast({ title: "Error", description: profileError.message, variant: "destructive" });
-        return;
-      }
-
-      if (!profile?.organization_id) {
-        console.error("Profile missing organization_id:", profile);
-        toast({
-          title: "Error",
-          description: "Your profile is missing organization_id",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (profileError) {
-        console.error(
-          "Profile fetch error:",
-          profileError.message,
-          profileError.details,
-          profileError.hint,
-          profileError.code,
-        );
-        toast({ title: "Error", description: profileError.message, variant: "destructive" });
-        return;
-      }
-
-      if (!profile?.organization_id) {
-        console.error("Profile missing organization_id:", profile);
-        toast({
-          title: "Error",
-          description: "Your profile is missing organization_id",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const noteContent = newContent.trim();
       const selectedNoteType = newNoteType;
 
       const { error: insertError } = await supabase.from("lead_notes").insert({
-        organization_id: profile.organization_id,
+        organization_id: userRecord.organization_id,
         lead_id: leadId,
-        created_by: user.id,
+        created_by: userRecord.id,
         content: noteContent,
         note_type: selectedNoteType,
       });
@@ -282,7 +224,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
   const pinnedNotes = notes.filter((n) => n.is_pinned);
   const unpinnedNotes = notes.filter((n) => !n.is_pinned);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-24 w-full" />
@@ -357,7 +299,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
           {/* Add button */}
           <Button
             onClick={handleAddNote}
-            disabled={!newContent.trim() || submitting}
+            disabled={!newContent.trim() || submitting || !userRecord?.organization_id}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
