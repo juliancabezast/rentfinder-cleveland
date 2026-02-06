@@ -63,11 +63,13 @@ export const LeadHeatMap: React.FC = () => {
           .select('id, interested_zip_codes, interested_property_id, budget_min, budget_max, has_voucher, status, voucher_amount')
           .eq('organization_id', userRecord.organization_id)
           .gte('created_at', startDate || '')
-          .lte('created_at', endDate || ''),
+          .lte('created_at', endDate || '')
+          .limit(2000),
         supabase
           .from('properties')
           .select('id, address, zip_code, status')
-          .eq('organization_id', userRecord.organization_id),
+          .eq('organization_id', userRecord.organization_id)
+          .limit(500),
       ]);
 
       if (leadsRes.data) setLeads(leadsRes.data);

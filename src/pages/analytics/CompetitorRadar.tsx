@@ -67,7 +67,8 @@ const CompetitorRadar: React.FC = () => {
           .eq("organization_id", userRecord.organization_id)
           .gte("created_at", startOfDay(dateRange.from).toISOString())
           .lte("created_at", endOfDay(dateRange.to).toISOString())
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(1000);
 
         if (error) throw error;
 

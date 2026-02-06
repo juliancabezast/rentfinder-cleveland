@@ -85,11 +85,13 @@ export const VoucherIntelligence: React.FC = () => {
           .select('id, has_voucher, voucher_amount, voucher_status, housing_authority, status, interested_property_id')
           .eq('organization_id', userRecord.organization_id)
           .gte('created_at', startDate || '')
-          .lte('created_at', endDate || ''),
+          .lte('created_at', endDate || '')
+          .limit(2000),
         supabase
           .from('properties')
           .select('id, address, rent_price, section_8_accepted, hud_inspection_ready')
-          .eq('organization_id', userRecord.organization_id),
+          .eq('organization_id', userRecord.organization_id)
+          .limit(500),
       ]);
 
       if (leadsRes.data) setLeads(leadsRes.data);

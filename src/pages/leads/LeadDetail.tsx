@@ -204,7 +204,7 @@ const LeadDetail: React.FC = () => {
 
   useEffect(() => {
     fetchLead();
-  }, [id]);
+  }, [id, userRecord?.organization_id]);
 
   const handleRefreshPrediction = async () => {
     if (!lead || !userRecord?.organization_id) return;
