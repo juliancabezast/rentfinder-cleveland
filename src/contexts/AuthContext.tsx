@@ -78,8 +78,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Step 4: If still no profile, create one with the first available organization
       if (!userData) {
-        console.log('No profile found, attempting to create one...');
-        
         const { data: org, error: orgError } = await supabase
           .from('organizations')
           .select('id')
@@ -110,13 +108,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Retry after a delay if we haven't exceeded max retries
             if (retryCountRef.current < maxRetries) {
               retryCountRef.current += 1;
-              console.log(`Retrying profile fetch (${retryCountRef.current}/${maxRetries})...`);
+              console.error(`Retrying profile fetch (${retryCountRef.current}/${maxRetries})`);
               setTimeout(() => fetchUserRecord(authUser), 2000);
               return;
             }
           } else {
             userData = newProfile;
-            console.log('Created new user profile:', newProfile?.id);
           }
         } else {
           console.error('No organization found to create profile');
