@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Prevent Vite dev server from ever reading Edge Function source files
+    fs: {
+      deny: ["supabase/functions/**"],
+    },
   },
   plugins: [
     react(),
@@ -25,6 +29,8 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: 'es2020',
     rollupOptions: {
+      // Never bundle Supabase Edge Functions into the frontend build
+      external: [/supabase\/functions/],
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
