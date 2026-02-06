@@ -5,7 +5,6 @@ const PHRASES = [
   "Qualifies Leads",
   "Books Showings",
   "Follows Up",
-  "Speaks Spanish",
   "Tracks Costs",
   "Scores Leads",
   "Confirms Appointments",

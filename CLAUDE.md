@@ -105,7 +105,30 @@ new → contacted → engaged → nurturing → qualified → showing_scheduled 
 ## Workflow Shortcuts
 - **"go"** - Commit all changes with a descriptive message and push to origin. Always do both steps without asking.
 - **"lovable"** - Do a git pull from the remote repository before doing anything else. No confirmation needed.
-- **"md"** - Generate a comprehensive markdown file documenting all work done in this session. Include: what was changed, what files were modified, what was added, what was fixed, and any important notes. Save it inside ~/Desktop/md/ with a sequential number filename. Check existing files in ~/Desktop/md/ to find the highest number, then use the next one (e.g., if last file is 5.md, create 6.md). Create the folder if it doesn't exist. No confirmation needed.
+- **"md"** - Generate exhaustively comprehensive project documentation (1500+ lines minimum). Check `~/Desktop/md/` for existing `PROJECT_COMPLETE_Rent_Finder_Cleveland_MD*.md` files, find the highest number, and create the next version. Use `PROJECT.md` as source of truth. Must include ALL sections with full detail:
+  1. **Project Overview**: Vision, SaaS model, multi-app architecture (3 domains), core problems, target users (5 roles)
+  2. **Current State**: Completion status per phase, ALL codebase statistics (LOC, tables, RLS policies, functions, triggers, migrations, edge functions, pages, components, hooks, cron jobs)
+  3. **Tech Stack**: Core platform, ALL external integrations with their edge functions
+  4. **Design System**: Full color codes with hex values and usage, typography scale, responsive breakpoints
+  5. **Database Schema**: ALL 32 tables with purpose and RLS status, full SQL CREATE statements for key tables (organizations, users, properties, leads), ALL 19 database functions with descriptions, ALL 12 triggers
+  6. **User Roles & Permissions**: Complete permission matrix for all 5 roles across all features
+  7. **Lead Lifecycle**: All 10 statuses with definitions, automatic transitions, lost reasons
+  8. **Lead Scoring System**: Full 0-100 scale, all positive/negative indicators with points, priority triggers, Fair Housing compliance rules
+  9. **Human Takeover System**: Complete flow, modal requirements, visual indicators, release process
+  10. **AI Agents Architecture**: ALL 30 agents with biblical name, edge function name, line count, purpose (organized by category), ALL auxiliary functions, complete cron schedule
+  11. **Compliance**: Joseph compliance check (9 agents), Zacchaeus cost tracking (16 functions), Fair Housing, TCPA, call recording
+  12. **Frontend Architecture**: ALL 30 pages with line counts, ALL 62 components by category, ALL 7 hooks, navigation structure
+  13. **Multi-Tenancy**: Data isolation, organization structure, ALL configurable settings with defaults
+  14. **Cost Dashboard**: Per-interaction recording, cost calculation methods per service with rates
+  15. **Integrations**: Doorloop sync, Google Sheets backup, Persona verification, Resend email
+  16. **Public Pages**: URL structure, lead capture popup with TCPA consent
+  17. **Notifications & Alerts**: All alerts with recipients and channels
+  18. **Investor Dashboard**: Metrics, storytelling, insight types
+  19. **Fallbacks & Reliability**: Service-specific fallback plans for every integration
+  20. **Production Deployment Checklist**: Pre-launch, testing, post-launch items
+  21. **What Remains**: Outstanding items for production
+  22. **Latest Session Update**: Current session work
+  No confirmation needed.
 
 ## Important Notes
 - Never hardcode organization-specific values; always use organization_settings
