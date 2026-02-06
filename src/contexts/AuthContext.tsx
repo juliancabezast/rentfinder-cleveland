@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthContextType, UserRecord, Organization } from '@/types/auth';
@@ -23,11 +23,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
 
-  const fetchUserRecord = useCallback(async (authUserId: string) => {
+  const fetchUserRecord = useCallback(async (authUser: SupabaseUser) => {
+    const authUserId = authUser.id;
+    const authEmail = authUser.email;
+    
     try {
-      // Fetch user record from users table
-      const { data: userData, error: userError } = await supabase
+      setProfileLoading(true);
+      
+      // Step 1: Try to get profile by auth_user_id
+      let { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('auth_user_id', authUserId)
@@ -35,11 +43,88 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .maybeSingle();
 
       if (userError) {
-        console.error('Error fetching user record:', userError);
-        return;
+        console.error('Error fetching user record by auth_user_id:', userError);
+      }
+
+      // Step 2: If no profile found, try matching by ID directly (for older records)
+      if (!userData) {
+        const { data: byId, error: idError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUserId)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (idError) {
+          console.error('Error fetching user record by id:', idError);
+        }
+        userData = byId;
+      }
+
+      // Step 3: If still no profile, try matching by email
+      if (!userData && authEmail) {
+        const { data: byEmail, error: emailError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', authEmail)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (emailError) {
+          console.error('Error fetching user record by email:', emailError);
+        }
+        userData = byEmail;
+      }
+
+      // Step 4: If still no profile, create one with the first available organization
+      if (!userData) {
+        console.log('No profile found, attempting to create one...');
+        
+        const { data: org, error: orgError } = await supabase
+          .from('organizations')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+
+        if (orgError) {
+          console.error('Error fetching organization:', orgError);
+        }
+
+        if (org) {
+          const { data: newProfile, error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: authUserId,
+              auth_user_id: authUserId,
+              email: authEmail || '',
+              organization_id: org.id,
+              full_name: authUser.user_metadata?.full_name || authEmail || 'User',
+              role: 'admin',
+              is_active: true,
+            })
+            .select()
+            .maybeSingle();
+
+          if (insertError) {
+            console.error('Error creating user profile:', insertError);
+            // Retry after a delay if we haven't exceeded max retries
+            if (retryCountRef.current < maxRetries) {
+              retryCountRef.current += 1;
+              console.log(`Retrying profile fetch (${retryCountRef.current}/${maxRetries})...`);
+              setTimeout(() => fetchUserRecord(authUser), 2000);
+              return;
+            }
+          } else {
+            userData = newProfile;
+            console.log('Created new user profile:', newProfile?.id);
+          }
+        } else {
+          console.error('No organization found to create profile');
+        }
       }
 
       if (userData) {
+        retryCountRef.current = 0; // Reset retry count on success
         setUserRecord(userData as UserRecord);
 
         // Fetch organization if user has one
@@ -59,6 +144,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error in fetchUserRecord:', error);
+    } finally {
+      setProfileLoading(false);
     }
   }, []);
 
@@ -72,7 +159,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (currentSession?.user) {
           // Use setTimeout to prevent potential deadlocks with Supabase client
           setTimeout(() => {
-            fetchUserRecord(currentSession.user.id);
+            fetchUserRecord(currentSession.user);
           }, 0);
         } else {
           setUserRecord(null);
@@ -89,7 +176,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        fetchUserRecord(currentSession.user.id);
+        fetchUserRecord(currentSession.user);
       }
       
       setLoading(false);
