@@ -127,14 +127,34 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
   }, [leadId]);
 
   const handleAddNote = async () => {
-    if (!newContent.trim() || !userRecord?.organization_id) return;
+    if (!newContent.trim()) return;
+
+    // Get current user's profile to ensure we have correct IDs
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in to add notes");
+      return;
+    }
 
     setSubmitting(true);
     try {
+      // Fetch the user's profile to get the organization_id and users table id
+      const { data: profile, error: profileError } = await supabase
+        .from("users")
+        .select("id, organization_id")
+        .eq("auth_user_id", user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        console.error("Error fetching profile:", profileError);
+        toast.error("Could not find your profile");
+        return;
+      }
+
       const { error } = await supabase.from("lead_notes").insert({
         lead_id: leadId,
-        organization_id: userRecord.organization_id,
-        created_by: userRecord.id,
+        organization_id: profile.organization_id,
+        created_by: profile.id,
         content: newContent.trim(),
         note_type: newNoteType,
         is_pinned: false,
