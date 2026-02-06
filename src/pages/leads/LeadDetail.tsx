@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,8 @@ import { LeadDetailHeader } from "@/components/leads/LeadDetailHeader";
 import { InteractionHistoryCard } from "@/components/leads/InteractionHistoryCard";
 import { UpcomingActionsPreview } from "@/components/leads/UpcomingActionsPreview";
 import { ScoreHistoryPreview } from "@/components/leads/ScoreHistoryPreview";
+import { NotesTab } from "@/components/leads/NotesTab";
+import { PinnedNotesPreview } from "@/components/leads/PinnedNotesPreview";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -90,12 +92,27 @@ const LeadDetail: React.FC = () => {
   const [predictionLoading, setPredictionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [notesCount, setNotesCount] = useState(0);
 
   // Modals
   const [editOpen, setEditOpen] = useState(false);
   const [takeoverOpen, setTakeoverOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [scheduleShowingOpen, setScheduleShowingOpen] = useState(false);
+
+  // Fetch notes count for header badge
+  const fetchNotesCount = useCallback(async () => {
+    if (!id) return;
+    const { count } = await supabase
+      .from("lead_notes")
+      .select("id", { count: "exact", head: true })
+      .eq("lead_id", id);
+    setNotesCount(count || 0);
+  }, [id]);
+
+  useEffect(() => {
+    fetchNotesCount();
+  }, [fetchNotesCount]);
 
   const fetchLead = async () => {
     if (!id) return;
@@ -305,6 +322,8 @@ const LeadDetail: React.FC = () => {
         onEdit={() => setEditOpen(true)}
         onTakeControl={() => setTakeoverOpen(true)}
         onBriefGenerated={fetchLead}
+        notesCount={notesCount}
+        onNotesClick={() => setActiveTab("notes")}
       />
 
       {/* 5 Tabs */}
@@ -318,6 +337,9 @@ const LeadDetail: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger value="activity" className={tabTriggerClass}>
             Activity
+          </TabsTrigger>
+          <TabsTrigger value="notes" className={tabTriggerClass}>
+            Notes
           </TabsTrigger>
           <TabsTrigger value="matching" className={tabTriggerClass}>
             Matching
@@ -370,6 +392,9 @@ const LeadDetail: React.FC = () => {
               <ScoreHistoryPreview history={scoreHistory} />
             </div>
           </div>
+
+          {/* Pinned Notes Preview (if any) */}
+          <PinnedNotesPreview leadId={lead.id} onSeeAll={() => setActiveTab("notes")} />
         </TabsContent>
 
         {/* TAB 2: Messages - Full width MessagingCenter */}
@@ -416,14 +441,19 @@ const LeadDetail: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* TAB 4: Matching */}
+        {/* TAB 4: Notes */}
+        <TabsContent value="notes">
+          <NotesTab leadId={lead.id} onNotesCountChange={setNotesCount} />
+        </TabsContent>
+
+        {/* TAB 5: Matching */}
         <TabsContent value="matching">
           <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
             <SmartMatches leadId={lead.id} leadName={leadName} />
           </div>
         </TabsContent>
 
-        {/* TAB 5: Consent Log */}
+        {/* TAB 6: Consent Log */}
         <TabsContent value="consent" className="space-y-4">
           {/* Consent Summary */}
           <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
