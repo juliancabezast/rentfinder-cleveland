@@ -17,6 +17,8 @@ const ToastViewport = React.forwardRef<
       "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:top-0 sm:right-0 sm:flex-col md:max-w-[420px]",
       // On mobile: top-center, on desktop: top-right
       "left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0",
+      // 8px vertical gap between stacked toasts
+      "gap-2",
       className,
     )}
     {...props}
@@ -39,11 +41,63 @@ const toastVariants = cva(
   },
 );
 
+// Progress bar component for toast auto-dismiss
+const ToastProgress = React.forwardRef<
+  HTMLDivElement,
+  { duration: number; variant?: "default" | "destructive" | null }
+>(({ duration, variant }, ref) => {
+  const [progress, setProgress] = React.useState(100);
+
+  React.useEffect(() => {
+    if (duration === Infinity || duration === 0) return;
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+      setProgress(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 16); // ~60fps
+
+    return () => clearInterval(interval);
+  }, [duration]);
+
+  if (duration === Infinity || duration === 0) return null;
+
+  const isDestructive = variant === "destructive";
+
+  return (
+    <div
+      ref={ref}
+      className="absolute bottom-0 left-0 h-1 transition-all ease-linear"
+      style={{
+        width: `${progress}%`,
+        backgroundColor: isDestructive ? "hsl(0 84% 60%)" : "hsl(142 71% 45%)",
+      }}
+    />
+  );
+});
+ToastProgress.displayName = "ToastProgress";
+
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & VariantProps<typeof toastVariants>
->(({ className, variant, ...props }, ref) => {
-  return <ToastPrimitives.Root ref={ref} className={cn(toastVariants({ variant }), className)} {...props} />;
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & 
+    VariantProps<typeof toastVariants> & 
+    { duration?: number }
+>(({ className, variant, duration = 5000, ...props }, ref) => {
+  return (
+    <ToastPrimitives.Root 
+      ref={ref} 
+      className={cn(toastVariants({ variant }), className)} 
+      duration={duration}
+      {...props}
+    >
+      {props.children}
+      <ToastProgress duration={duration} variant={variant} />
+    </ToastPrimitives.Root>
+  );
 });
 Toast.displayName = ToastPrimitives.Root.displayName;
 
@@ -110,4 +164,5 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+  ToastProgress,
 };

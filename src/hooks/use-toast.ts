@@ -4,8 +4,9 @@ import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 5;
 
-// Duration in ms: success=3000, error=manual (no auto-dismiss), info=5000
+// Duration in ms: all toasts auto-dismiss after 5 seconds
 const DEFAULT_DURATION = 5000;
+const ERROR_DURATION = 5000;
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -144,12 +145,11 @@ type Toast = Omit<ToasterToast, "id">;
 function toast({ duration, variant, ...props }: Toast) {
   const id = genId();
 
-  // Determine duration based on variant
-  // success: 3s, error/destructive: no auto-dismiss, default: 5s
+  // Determine duration based on variant - all auto-dismiss after 5 seconds
   let autoDismissDuration = duration;
   if (autoDismissDuration === undefined) {
     if (variant === "destructive") {
-      autoDismissDuration = Infinity; // Errors require manual dismiss
+      autoDismissDuration = ERROR_DURATION;
     } else {
       autoDismissDuration = DEFAULT_DURATION;
     }
@@ -193,7 +193,7 @@ toast.success = (props: Omit<Toast, "variant">) =>
   toast({ ...props, duration: 3000 });
 
 toast.error = (props: Omit<Toast, "variant">) =>
-  toast({ ...props, variant: "destructive", duration: Infinity });
+  toast({ ...props, variant: "destructive", duration: ERROR_DURATION });
 
 toast.info = (props: Omit<Toast, "variant">) =>
   toast({ ...props, duration: 5000 });

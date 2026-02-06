@@ -2883,8 +2883,200 @@ export type Database = {
           },
         ]
       }
+      user_activity_log: {
+        Row: {
+          action: string
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          organization_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_activity_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_feature_toggles: {
+        Row: {
+          created_at: string | null
+          feature_key: string
+          id: string
+          is_enabled: boolean
+          organization_id: string
+          reason: string | null
+          toggled_at: string | null
+          toggled_by: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          feature_key: string
+          id?: string
+          is_enabled?: boolean
+          organization_id: string
+          reason?: string | null
+          toggled_at?: string | null
+          toggled_by?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          feature_key?: string
+          id?: string
+          is_enabled?: boolean
+          organization_id?: string
+          reason?: string | null
+          toggled_at?: string | null
+          toggled_by?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_feature_toggles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_feature_toggles_toggled_by_fkey"
+            columns: ["toggled_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_feature_toggles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notifications_custom: {
+        Row: {
+          created_at: string | null
+          delivery_method: string[]
+          email_sent: boolean | null
+          email_sent_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          organization_id: string
+          priority: string
+          read_at: string | null
+          recipient_user_id: string
+          sent_by: string
+          sms_sent: boolean | null
+          sms_sent_at: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_method?: string[]
+          email_sent?: boolean | null
+          email_sent_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          organization_id: string
+          priority?: string
+          read_at?: string | null
+          recipient_user_id: string
+          sent_by: string
+          sms_sent?: boolean | null
+          sms_sent_at?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string | null
+          delivery_method?: string[]
+          email_sent?: boolean | null
+          email_sent_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          organization_id?: string
+          priority?: string
+          read_at?: string | null
+          recipient_user_id?: string
+          sent_by?: string
+          sms_sent?: boolean | null
+          sms_sent_at?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_custom_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notifications_custom_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notifications_custom_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
+          auth_id: string | null
           auth_user_id: string | null
           avatar_url: string | null
           commission_rate: number | null
@@ -2892,13 +3084,19 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          invite_accepted_at: string | null
+          invited_at: string | null
+          invited_by: string | null
           is_active: boolean | null
+          last_login_at: string | null
           organization_id: string | null
+          password_changed_at: string | null
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string | null
         }
         Insert: {
+          auth_id?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
           commission_rate?: number | null
@@ -2906,13 +3104,19 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          invite_accepted_at?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           is_active?: boolean | null
+          last_login_at?: string | null
           organization_id?: string | null
+          password_changed_at?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
         }
         Update: {
+          auth_id?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
           commission_rate?: number | null
@@ -2920,13 +3124,25 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          invite_accepted_at?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           is_active?: boolean | null
+          last_login_at?: string | null
           organization_id?: string | null
+          password_changed_at?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "users_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "users_organization_id_fkey"
             columns: ["organization_id"]
@@ -2994,6 +3210,15 @@ export type Database = {
         Returns: boolean
       }
       check_coming_soon_expiring: { Args: never; Returns: number }
+      create_default_feature_toggles: {
+        Args: {
+          p_created_by: string
+          p_organization_id: string
+          p_role: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       execute_agent_task_now: {
         Args: { p_executed_by: string; p_task_id: string }
         Returns: Json
@@ -3082,6 +3307,17 @@ export type Database = {
           _triggered_by: string
         }
         Returns: number
+      }
+      log_user_activity: {
+        Args: {
+          p_action: string
+          p_category: string
+          p_description?: string
+          p_ip_address?: string
+          p_metadata?: Json
+          p_user_id: string
+        }
+        Returns: string
       }
       map_doorloop_status: {
         Args: { doorloop_status: string }
