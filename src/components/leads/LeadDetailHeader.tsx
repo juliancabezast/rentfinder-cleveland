@@ -19,6 +19,7 @@ import {
   Loader2,
   Sparkles,
   Building2,
+  StickyNote,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,6 +70,8 @@ interface LeadDetailHeaderProps {
   onEdit: () => void;
   onTakeControl: () => void;
   onBriefGenerated: () => void;
+  notesCount?: number;
+  onNotesClick?: () => void;
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -130,6 +133,8 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   onEdit,
   onTakeControl,
   onBriefGenerated,
+  notesCount = 0,
+  onNotesClick,
 }) => {
   const { userRecord } = useAuth();
   const [callViaAgentOpen, setCallViaAgentOpen] = useState(false);
@@ -310,10 +315,10 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
             </div>
           </div>
 
-          {/* Right: AI Brief preview */}
+          {/* Right: AI Brief preview + Notes indicator */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2">
-              <Sparkles className="h-4 w-4 text-[#ffb22c] mt-0.5 shrink-0" />
+              <Sparkles className="h-4 w-4 text-accent mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 {lead.ai_brief ? (
                   <p className="text-sm text-muted-foreground line-clamp-3">{lead.ai_brief}</p>
@@ -331,9 +336,24 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                 {generatingBrief ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Sparkles className="h-4 w-4 text-[#ffb22c]" />
+                  <Sparkles className="h-4 w-4 text-accent" />
                 )}
               </Button>
+              {/* Notes indicator */}
+              {onNotesClick && (
+                <button
+                  onClick={onNotesClick}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
+                  title="View notes"
+                >
+                  <StickyNote className="h-4 w-4 text-muted-foreground" />
+                  {notesCount > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
+                      {notesCount}
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
