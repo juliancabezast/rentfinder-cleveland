@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
@@ -13,8 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -46,11 +44,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, addDays, startOfDay } from "date-fns";
 import { ScoreDisplay } from "@/components/leads/ScoreDisplay";
 import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
 import { LeadForm } from "@/components/leads/LeadForm";
 import { CsvImportDialog } from "@/components/leads/CsvImportDialog";
+import LeadFilterPills, { ActiveFilters, FilterCounts } from "@/components/leads/LeadFilterPills";
 import type { Tables } from "@/integrations/supabase/types";
 
 // Biblical agent name mapping
@@ -122,6 +121,22 @@ const ITEMS_PER_PAGE = 20;
 type SortField = "full_name" | "lead_score" | "status" | "created_at" | "last_contact_at";
 type SortDirection = "asc" | "desc";
 
+const DEFAULT_FILTERS: ActiveFilters = {
+  priority: false,
+  humanControlled: false,
+  moveInSoon: false,
+  section8: false,
+  hasShowing: false,
+};
+
+const DEFAULT_COUNTS: FilterCounts = {
+  priority: 0,
+  humanControlled: 0,
+  moveInSoon: 0,
+  section8: 0,
+  hasShowing: 0,
+};
+
 const LeadsList: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -137,8 +152,12 @@ const LeadsList: React.FC = () => {
   const filterParam = searchParams.get("filter");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [priorityOnly, setPriorityOnly] = useState(filterParam === "priority");
-  const [humanControlledOnly, setHumanControlledOnly] = useState(filterParam === "human_controlled");
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>(() => {
+    if (filterParam === "priority") return { ...DEFAULT_FILTERS, priority: true };
+    if (filterParam === "human_controlled") return { ...DEFAULT_FILTERS, humanControlled: true };
+    return DEFAULT_FILTERS;
+  });
+  const [filterCounts, setFilterCounts] = useState<FilterCounts>(DEFAULT_COUNTS);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Sorting
@@ -149,23 +168,96 @@ const LeadsList: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
+  // IDs of leads with active showings (for filter)
+  const [leadsWithShowings, setLeadsWithShowings] = useState<Set<string>>(new Set());
+
   // Handle URL filter changes
   useEffect(() => {
     const filter = searchParams.get("filter");
     if (filter === "priority") {
-      setPriorityOnly(true);
-      setHumanControlledOnly(false);
+      setActiveFilters({ ...DEFAULT_FILTERS, priority: true });
     } else if (filter === "human_controlled") {
-      setHumanControlledOnly(true);
-      setPriorityOnly(false);
+      setActiveFilters({ ...DEFAULT_FILTERS, humanControlled: true });
     }
   }, [searchParams]);
+
+  // Fetch filter counts (runs once on load and when base filters change)
+  const fetchFilterCounts = useCallback(async () => {
+    if (!userRecord?.organization_id) return;
+
+    const orgId = userRecord.organization_id;
+    const today = startOfDay(new Date());
+    const in20Days = addDays(today, 20);
+
+    try {
+      // Parallel count queries
+      const [priorityRes, humanRes, moveInRes, section8Res, showingsRes] = await Promise.all([
+        // Priority count
+        supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .eq("is_priority", true),
+        // Human controlled count
+        supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .eq("is_human_controlled", true),
+        // Move-in soon count
+        supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .gte("move_in_date", today.toISOString().split("T")[0])
+          .lte("move_in_date", in20Days.toISOString().split("T")[0]),
+        // Section 8 count (has_voucher = true OR voucher_status = 'active')
+        supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .or("has_voucher.eq.true,voucher_status.eq.active"),
+        // Get lead IDs with active showings
+        supabase
+          .from("showings")
+          .select("lead_id")
+          .eq("organization_id", orgId)
+          .in("status", ["scheduled", "confirmed"]),
+      ]);
+
+      // Process showings to get unique lead IDs
+      const showingLeadIds = new Set<string>();
+      if (showingsRes.data) {
+        showingsRes.data.forEach((s) => {
+          if (s.lead_id) showingLeadIds.add(s.lead_id);
+        });
+      }
+      setLeadsWithShowings(showingLeadIds);
+
+      setFilterCounts({
+        priority: priorityRes.count || 0,
+        humanControlled: humanRes.count || 0,
+        moveInSoon: moveInRes.count || 0,
+        section8: section8Res.count || 0,
+        hasShowing: showingLeadIds.size,
+      });
+    } catch (error) {
+      console.error("Error fetching filter counts:", error);
+    }
+  }, [userRecord?.organization_id]);
+
+  useEffect(() => {
+    fetchFilterCounts();
+  }, [fetchFilterCounts]);
 
   const fetchLeads = async () => {
     if (!userRecord?.organization_id) return;
 
     setLoading(true);
     try {
+      const today = startOfDay(new Date());
+      const in20Days = addDays(today, 20);
+
       // Select only columns needed for list view
       let query = supabase
         .from("leads")
@@ -181,6 +273,9 @@ const LeadsList: React.FC = () => {
           lead_score,
           is_priority,
           is_human_controlled,
+          has_voucher,
+          voucher_status,
+          move_in_date,
           created_at,
           last_contact_at,
           interested_property_id,
@@ -191,19 +286,31 @@ const LeadsList: React.FC = () => {
         )
         .eq("organization_id", userRecord.organization_id);
 
-      // Apply filters
+      // Apply dropdown filters
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
       }
       if (sourceFilter !== "all") {
         query = query.eq("source", sourceFilter);
       }
-      if (priorityOnly) {
+
+      // Apply toggle filters
+      if (activeFilters.priority) {
         query = query.eq("is_priority", true);
       }
-      if (humanControlledOnly) {
+      if (activeFilters.humanControlled) {
         query = query.eq("is_human_controlled", true);
       }
+      if (activeFilters.moveInSoon) {
+        query = query
+          .gte("move_in_date", today.toISOString().split("T")[0])
+          .lte("move_in_date", in20Days.toISOString().split("T")[0]);
+      }
+      if (activeFilters.section8) {
+        query = query.or("has_voucher.eq.true,voucher_status.eq.active");
+      }
+
+      // Search filter
       if (searchQuery) {
         query = query.or(
           `full_name.ilike.%${searchQuery}%,first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`
@@ -222,7 +329,13 @@ const LeadsList: React.FC = () => {
 
       if (error) throw error;
 
-      const leadsData = data || [];
+      let leadsData = data || [];
+
+      // If "Has Showing" filter is active, filter client-side
+      if (activeFilters.hasShowing) {
+        leadsData = leadsData.filter((l: any) => leadsWithShowings.has(l.id));
+      }
+
       const leadIds = leadsData.map((l: any) => l.id);
 
       // Fetch next actions for all leads in a single query
@@ -252,7 +365,8 @@ const LeadsList: React.FC = () => {
       }));
 
       setLeads(processedLeads);
-      setTotalCount(count || 0);
+      // Adjust count for client-side filtering
+      setTotalCount(activeFilters.hasShowing ? processedLeads.length : (count || 0));
     } catch (error) {
       console.error("Error fetching leads:", error);
       toast.error("Failed to load leads");
@@ -267,13 +381,18 @@ const LeadsList: React.FC = () => {
     userRecord?.organization_id,
     statusFilter,
     sourceFilter,
-    priorityOnly,
-    humanControlledOnly,
+    activeFilters,
+    leadsWithShowings,
     searchQuery,
     sortField,
     sortDirection,
     currentPage,
   ]);
+
+  const handleToggleFilter = (filter: keyof ActiveFilters) => {
+    setActiveFilters((prev) => ({ ...prev, [filter]: !prev[filter] }));
+    setCurrentPage(1);
+  };
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -331,92 +450,72 @@ const LeadsList: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="glass-card rounded-xl p-4 mb-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-            {/* Search */}
-            <div className="relative sm:col-span-2">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or phone..."
-                className="pl-9"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-
-            {/* Status */}
-            <Select
-              value={statusFilter || "all"}
-              onValueChange={(v) => {
-                setStatusFilter(v);
+      <div className="glass-card rounded-xl p-4 mb-6 space-y-4">
+        {/* Row 1: Search + Dropdowns */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Search */}
+          <div className="relative sm:col-span-2">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by name..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {LEAD_STATUSES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Source */}
-            <Select
-              value={sourceFilter || "all"}
-              onValueChange={(v) => {
-                setSourceFilter(v);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Source" />
-              </SelectTrigger>
-              <SelectContent>
-                {LEAD_SOURCES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-
-            {/* Priority Toggle */}
-            <div className="flex items-center gap-2">
-              <Switch
-                id="priority"
-                checked={priorityOnly}
-                onCheckedChange={(c) => {
-                  setPriorityOnly(c);
-                  setCurrentPage(1);
-                }}
-              />
-              <Label htmlFor="priority" className="text-sm">
-                Priority Only
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="human"
-                checked={humanControlledOnly}
-                onCheckedChange={(c) => {
-                  setHumanControlledOnly(c);
-                  setCurrentPage(1);
-                }}
-              />
-              <Label htmlFor="human" className="text-sm">
-                Human Controlled
-              </Label>
-            </div>
+            />
           </div>
+
+          {/* Status */}
+          <Select
+            value={statusFilter || "all"}
+            onValueChange={(v) => {
+              setStatusFilter(v);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {LEAD_STATUSES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Source */}
+          <Select
+            value={sourceFilter || "all"}
+            onValueChange={(v) => {
+              setSourceFilter(v);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Source" />
+            </SelectTrigger>
+            <SelectContent>
+              {LEAD_SOURCES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        {/* Row 2: Toggle Pills */}
+        <LeadFilterPills
+          activeFilters={activeFilters}
+          filterCounts={filterCounts}
+          onToggleFilter={handleToggleFilter}
+          loading={loading}
+        />
+      </div>
 
       {/* Table */}
       <Card variant="glass">
@@ -432,11 +531,11 @@ const LeadsList: React.FC = () => {
               <UserX className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium">No leads found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchQuery || statusFilter !== "all" || sourceFilter !== "all" || priorityOnly || humanControlledOnly
+                {searchQuery || statusFilter !== "all" || sourceFilter !== "all" || Object.values(activeFilters).some(Boolean)
                   ? "Try adjusting your filters."
                   : "Import leads via CSV or create one manually."}
               </p>
-              {permissions.canCreateLead && !searchQuery && statusFilter === "all" && sourceFilter === "all" && (
+              {permissions.canCreateLead && !searchQuery && statusFilter === "all" && sourceFilter === "all" && !Object.values(activeFilters).some(Boolean) && (
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setImportOpen(true)}>
                     <Upload className="h-4 w-4 mr-2" />
