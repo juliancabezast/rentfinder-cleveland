@@ -51,14 +51,44 @@ import { ScoreDisplay } from "@/components/leads/ScoreDisplay";
 import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
 import { LeadForm } from "@/components/leads/LeadForm";
 import { CsvImportDialog } from "@/components/leads/CsvImportDialog";
-import { PredictionBadge } from "@/components/leads/PredictionCard";
 import type { Tables } from "@/integrations/supabase/types";
 
+// Biblical agent name mapping
+const AGENT_BIBLICAL_NAMES: Record<string, string> = {
+  "task-dispatcher": "Nehemiah",
+  "health-checker": "Raphael",
+  "notification-dispatcher": "Uriel",
+  "welcome-sequence": "Lydia",
+  "scoring": "Daniel",
+  "twilio-inbound": "Aaron",
+  "bland-call-webhook": "Deborah",
+  "recapture": "Naomi",
+  "showing-confirmation": "Abigail",
+  "noshow-followup": "Elijah",
+  "post-showing": "Priscilla",
+  "sms-inbound": "Phoebe",
+  "hemlane-parser": "Ruth",
+  "compliance-check": "Joseph",
+  "cost-tracker": "Zacchaeus",
+  "transcript-analyst": "Solomon",
+  "conversion-predictor": "Samuel",
+  "insight-generator": "Isaiah",
+  "report-generator": "Luke",
+  "sheets-backup": "Matthew",
+  "doorloop-pull": "Esther",
+  "doorloop-push": "Esther",
+  "smart-matcher": "Rebekah",
+  "paip-assistant": "PAIp",
+  "campaign-orchestrator": "Gideon",
+  "campaign-voice": "Gideon",
+};
+
 type Lead = Tables<"leads">;
+type AgentTask = Tables<"agent_tasks">;
 
 interface LeadWithProperty extends Lead {
   properties?: { address: string; unit_number: string | null } | null;
-  lead_predictions?: { conversion_probability: number; predicted_outcome: string } | null;
+  nextAction?: AgentTask | null;
 }
 
 const LEAD_STATUSES = [
@@ -87,16 +117,9 @@ const LEAD_SOURCES = [
   { value: "csv_import", label: "CSV Import" },
 ];
 
-const PREDICTION_OUTCOMES = [
-  { value: "all", label: "All Predictions" },
-  { value: "likely_convert", label: "Likely to Convert" },
-  { value: "needs_nurturing", label: "Needs Nurturing" },
-  { value: "likely_lost", label: "Likely Lost" },
-];
-
 const ITEMS_PER_PAGE = 20;
 
-type SortField = "full_name" | "lead_score" | "status" | "created_at" | "last_contact_at" | "conversion_probability";
+type SortField = "full_name" | "lead_score" | "status" | "created_at" | "last_contact_at";
 type SortDirection = "asc" | "desc";
 
 const LeadsList: React.FC = () => {
@@ -114,7 +137,6 @@ const LeadsList: React.FC = () => {
   const filterParam = searchParams.get("filter");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [predictionFilter, setPredictionFilter] = useState("all");
   const [priorityOnly, setPriorityOnly] = useState(filterParam === "priority");
   const [humanControlledOnly, setHumanControlledOnly] = useState(filterParam === "human_controlled");
   const [searchQuery, setSearchQuery] = useState("");
@@ -144,7 +166,7 @@ const LeadsList: React.FC = () => {
 
     setLoading(true);
     try {
-      // Select only columns needed for list view - avoid fetching sensitive financial data
+      // Select only columns needed for list view
       let query = supabase
         .from("leads")
         .select(
@@ -153,7 +175,6 @@ const LeadsList: React.FC = () => {
           full_name,
           first_name,
           last_name,
-          phone,
           email,
           status,
           source,
@@ -164,8 +185,7 @@ const LeadsList: React.FC = () => {
           last_contact_at,
           interested_property_id,
           preferred_language,
-          properties:interested_property_id (address, unit_number),
-          lead_predictions (conversion_probability, predicted_outcome)
+          properties:interested_property_id (address, unit_number)
         `,
           { count: "exact" }
         )
@@ -186,13 +206,12 @@ const LeadsList: React.FC = () => {
       }
       if (searchQuery) {
         query = query.or(
-          `full_name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`
+          `full_name.ilike.%${searchQuery}%,first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`
         );
       }
 
-      // Apply sorting (handle special case for prediction sort)
-      const sortFieldToUse = sortField === "conversion_probability" ? "lead_score" : sortField;
-      query = query.order(sortFieldToUse, { ascending: sortDirection === "asc" });
+      // Apply sorting
+      query = query.order(sortField, { ascending: sortDirection === "asc" });
 
       // Apply pagination
       const from = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -203,33 +222,37 @@ const LeadsList: React.FC = () => {
 
       if (error) throw error;
 
-      // Process leads to extract prediction from array format
-      const processedLeads = (data || []).map((lead: any) => ({
+      const leadsData = data || [];
+      const leadIds = leadsData.map((l: any) => l.id);
+
+      // Fetch next actions for all leads in a single query
+      let nextActionsMap: Record<string, AgentTask> = {};
+      if (leadIds.length > 0) {
+        const { data: tasksData } = await supabase
+          .from("agent_tasks")
+          .select("*")
+          .in("lead_id", leadIds)
+          .in("status", ["pending", "in_progress", "paused_human_control"])
+          .order("scheduled_for", { ascending: true });
+
+        // Group by lead_id and take first (earliest) for each
+        if (tasksData) {
+          for (const task of tasksData) {
+            if (!nextActionsMap[task.lead_id]) {
+              nextActionsMap[task.lead_id] = task;
+            }
+          }
+        }
+      }
+
+      // Merge next actions into leads
+      const processedLeads = leadsData.map((lead: any) => ({
         ...lead,
-        lead_predictions: Array.isArray(lead.lead_predictions) && lead.lead_predictions.length > 0
-          ? lead.lead_predictions[0]
-          : null,
+        nextAction: nextActionsMap[lead.id] || null,
       }));
 
-      // Filter by prediction outcome if needed
-      let filteredLeads = processedLeads;
-      if (predictionFilter !== "all") {
-        filteredLeads = processedLeads.filter((lead: any) =>
-          lead.lead_predictions?.predicted_outcome === predictionFilter
-        );
-      }
-
-      // Sort by conversion probability if that's the sort field
-      if (sortField === "conversion_probability") {
-        filteredLeads.sort((a: any, b: any) => {
-          const probA = a.lead_predictions?.conversion_probability || 0;
-          const probB = b.lead_predictions?.conversion_probability || 0;
-          return sortDirection === "asc" ? probA - probB : probB - probA;
-        });
-      }
-
-      setLeads(filteredLeads);
-      setTotalCount(predictionFilter !== "all" ? filteredLeads.length : count || 0);
+      setLeads(processedLeads);
+      setTotalCount(count || 0);
     } catch (error) {
       console.error("Error fetching leads:", error);
       toast.error("Failed to load leads");
@@ -244,7 +267,6 @@ const LeadsList: React.FC = () => {
     userRecord?.organization_id,
     statusFilter,
     sourceFilter,
-    predictionFilter,
     priorityOnly,
     humanControlledOnly,
     searchQuery,
@@ -365,25 +387,6 @@ const LeadsList: React.FC = () => {
               </SelectContent>
             </Select>
 
-            {/* Prediction Filter */}
-            <Select
-              value={predictionFilter || "all"}
-              onValueChange={(v) => {
-                setPredictionFilter(v);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Prediction" />
-              </SelectTrigger>
-              <SelectContent>
-                {PREDICTION_OUTCOMES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
             {/* Priority Toggle */}
             <div className="flex items-center gap-2">
@@ -429,7 +432,7 @@ const LeadsList: React.FC = () => {
               <UserX className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium">No leads found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchQuery || statusFilter !== "all" || sourceFilter !== "all" || predictionFilter !== "all" || priorityOnly || humanControlledOnly
+                {searchQuery || statusFilter !== "all" || sourceFilter !== "all" || priorityOnly || humanControlledOnly
                   ? "Try adjusting your filters."
                   : "Import leads via CSV or create one manually."}
               </p>
@@ -452,15 +455,12 @@ const LeadsList: React.FC = () => {
                 <TableHeader>
                   <TableRow>
                     <SortableHeader field="full_name">Name</SortableHeader>
-                    <TableHead>Phone</TableHead>
                     <SortableHeader field="lead_score">Score</SortableHeader>
-                    <SortableHeader field="conversion_probability">Prediction</SortableHeader>
                     <SortableHeader field="status">Status</SortableHeader>
                     <TableHead>Property</TableHead>
                     <SortableHeader field="created_at">Created</SortableHeader>
-                    <SortableHeader field="last_contact_at">
-                      Last Contact
-                    </SortableHeader>
+                    <SortableHeader field="last_contact_at">Last Contact</SortableHeader>
+                    <TableHead>Next Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -496,9 +496,6 @@ const LeadsList: React.FC = () => {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {lead.phone}
-                      </TableCell>
                       <TableCell>
                         <ScoreDisplay
                           score={lead.lead_score || 50}
@@ -507,35 +504,41 @@ const LeadsList: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <PredictionBadge 
-                          probability={lead.lead_predictions?.conversion_probability ? Number(lead.lead_predictions.conversion_probability) : null}
-                          outcome={lead.lead_predictions?.predicted_outcome}
-                        />
-                      </TableCell>
-                      <TableCell>
                         <LeadStatusBadge status={lead.status} />
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                      <TableCell className="max-w-[200px] truncate text-muted-foreground text-[13px]">
                         {lead.properties?.address
                           ? `${lead.properties.address}${
                               lead.properties.unit_number
                                 ? ` #${lead.properties.unit_number}`
                                 : ""
                             }`
-                          : "-"}
+                          : "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-muted-foreground text-[13px]">
                         {lead.created_at
                           ? format(new Date(lead.created_at), "MMM d, yyyy")
-                          : "-"}
+                          : "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-muted-foreground text-[13px]">
                         {lead.last_contact_at
-                          ? format(
-                              new Date(lead.last_contact_at),
-                              "MMM d, yyyy"
-                            )
-                          : "-"}
+                          ? format(new Date(lead.last_contact_at), "MMM d, yyyy")
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-[13px]">
+                        {lead.nextAction ? (
+                          <span className="text-foreground whitespace-nowrap">
+                            {format(new Date(lead.nextAction.scheduled_for), "MMM d")}
+                            <span className="text-muted-foreground"> · </span>
+                            <span className="font-medium">
+                              {AGENT_BIBLICAL_NAMES[lead.nextAction.agent_type] || lead.nextAction.agent_type}
+                            </span>
+                            <span className="text-muted-foreground"> · </span>
+                            <span className="capitalize">{lead.nextAction.action_type.replace(/_/g, " ")}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
