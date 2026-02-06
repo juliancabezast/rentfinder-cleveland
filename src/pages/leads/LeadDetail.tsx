@@ -21,7 +21,19 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -43,6 +55,8 @@ import {
   CheckCircle,
   XCircle,
   Ban,
+  User,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,6 +101,18 @@ const LEAD_STATUSES = [
   { value: "converted", label: "Converted" },
 ];
 
+const SOURCE_LABELS: Record<string, string> = {
+  inbound_call: "Inbound Call",
+  web_form: "Web Form",
+  referral: "Referral",
+  zillow: "Zillow",
+  craigslist: "Craigslist",
+  walk_in: "Walk-in",
+  hemlane: "Hemlane",
+  manual: "Manual Entry",
+  campaign: "Campaign Outreach",
+};
+
 const CONSENT_TYPE_ICONS: Record<string, React.ElementType> = {
   sms_marketing: MessageSquare,
   call_recording: Phone,
@@ -115,6 +141,8 @@ const LeadDetail: React.FC = () => {
   const [takeoverOpen, setTakeoverOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [scheduleShowingOpen, setScheduleShowingOpen] = useState(false);
+  const [callViaAgentOpen, setCallViaAgentOpen] = useState(false);
+  const [callViaAgentLoading, setCallViaAgentLoading] = useState(false);
 
   const fetchLead = async () => {
     if (!id) return;
@@ -180,7 +208,7 @@ const LeadDetail: React.FC = () => {
           .from("lead_predictions")
           .select("*")
           .eq("lead_id", id)
-          .single(),
+          .maybeSingle(),
       ]);
 
       setScoreHistory(historyRes.data || []);
@@ -270,6 +298,48 @@ const LeadDetail: React.FC = () => {
     }
   };
 
+  const handleCallViaAgent = async () => {
+    if (!lead || !userRecord) return;
+
+    setCallViaAgentLoading(true);
+    try {
+      const { error } = await supabase.from("agent_tasks").insert({
+        lead_id: lead.id,
+        organization_id: userRecord.organization_id,
+        agent_type: "recapture",
+        action_type: "call",
+        scheduled_for: new Date().toISOString(),
+        status: "pending",
+        context: {
+          manually_triggered: true,
+          triggered_by: userRecord.id,
+        },
+      });
+
+      if (error) throw error;
+
+      const leadDisplayName =
+        lead.full_name ||
+        [lead.first_name, lead.last_name].filter(Boolean).join(" ") ||
+        "this lead";
+
+      toast({
+        title: "Call queued",
+        description: `The AI agent will call ${leadDisplayName} shortly.`,
+      });
+      setCallViaAgentOpen(false);
+    } catch (error) {
+      console.error("Error creating call task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to queue call. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCallViaAgentLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -295,6 +365,14 @@ const LeadDetail: React.FC = () => {
     lead.full_name ||
     [lead.first_name, lead.last_name].filter(Boolean).join(" ") ||
     "Unknown Lead";
+
+  // Helper function for displaying field values
+  const displayValue = (value: string | number | null | undefined): React.ReactNode => {
+    if (value === null || value === undefined || value === "") {
+      return <span className="text-muted-foreground italic">Pending</span>;
+    }
+    return value;
+  };
 
   return (
     <div className="space-y-6">
@@ -401,6 +479,16 @@ const LeadDetail: React.FC = () => {
               <ScoreDisplay score={lead.lead_score || 50} size="lg" />
 
               <div className="flex flex-wrap gap-2">
+                {/* Call via Agent Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCallViaAgentOpen(true)}
+                  className="border-accent text-accent hover:bg-accent/10"
+                >
+                  <Phone className="mr-2 h-4 w-4" />
+                  Call via Agent
+                </Button>
                 {permissions.canScheduleShowing && (
                   <Button
                     variant="outline"
@@ -436,41 +524,148 @@ const LeadDetail: React.FC = () => {
 
       {/* Tabbed Content */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="consent">Consent Log</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid bg-muted/50">
+          <TabsTrigger 
+            value="overview"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger 
+            value="consent"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            Consent Log
+          </TabsTrigger>
+          <TabsTrigger 
+            value="activity"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            Activity
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Contact Info */}
-            <Card>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Lead Profile - Consolidated Card */}
+            <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle className="text-lg">Contact Information</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Lead Profile
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Language</span>
-                  <span>{lead.preferred_language === "es" ? "Spanish" : "English"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Contact Preference</span>
-                  <span className="capitalize">{lead.contact_preference || "Any"}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">SMS Consent</span>
-                  <Badge variant={lead.sms_consent ? "default" : "secondary"}>
-                    {lead.sms_consent ? "Yes" : "No"}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Call Consent</span>
-                  <Badge variant={lead.call_consent ? "default" : "secondary"}>
-                    {lead.call_consent ? "Yes" : "No"}
-                  </Badge>
+              <CardContent>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Left Column - Contact Info */}
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Name</span>
+                      <span className="font-medium">{displayValue(leadName !== "Unknown Lead" ? leadName : null)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Phone</span>
+                      <span>{displayValue(lead.phone)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Email</span>
+                      <span className="truncate max-w-[180px]">{displayValue(lead.email)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Language</span>
+                      <span>{lead.preferred_language === "es" ? "Spanish" : "English"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Contact Preference</span>
+                      <span className="capitalize">{displayValue(lead.contact_preference)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Source</span>
+                      <span>{displayValue(SOURCE_LABELS[lead.source] || lead.source)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Status</span>
+                      <LeadStatusBadge status={lead.status} />
+                    </div>
+                  </div>
+
+                  {/* Right Column - Interest & Section 8 */}
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-start">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Building2 className="h-3.5 w-3.5" />
+                        Property Interest
+                      </span>
+                      {lead.properties ? (
+                        <Link
+                          to={`/properties/${lead.properties.id}`}
+                          className="text-primary hover:underline text-right max-w-[180px] truncate"
+                        >
+                          {lead.properties.address}
+                          {lead.properties.unit_number && ` #${lead.properties.unit_number}`}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground italic">Pending</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <DollarSign className="h-3.5 w-3.5" />
+                        Budget
+                      </span>
+                      <span>
+                        {lead.budget_min || lead.budget_max ? (
+                          `$${lead.budget_min?.toLocaleString() || "0"} - $${lead.budget_max?.toLocaleString() || "∞"}`
+                        ) : (
+                          <span className="text-muted-foreground italic">Pending</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Move-in Date
+                      </span>
+                      <span>
+                        {lead.move_in_date ? (
+                          format(new Date(lead.move_in_date), "MMM d, yyyy")
+                        ) : (
+                          <span className="text-muted-foreground italic">Pending</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Bedrooms</span>
+                      <span className="text-muted-foreground italic">Pending</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Home className="h-3.5 w-3.5" />
+                        Has Voucher
+                      </span>
+                      <Badge variant={lead.has_voucher ? "default" : "secondary"}>
+                        {lead.has_voucher ? "Yes" : "No"}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Voucher Amount</span>
+                      <span>
+                        {lead.has_voucher && lead.voucher_amount ? (
+                          `$${lead.voucher_amount.toLocaleString()}`
+                        ) : (
+                          <span className="text-muted-foreground italic">Pending</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Housing Authority</span>
+                      <span className="truncate max-w-[180px]">
+                        {displayValue(lead.has_voucher ? lead.housing_authority : null)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -482,100 +677,6 @@ const LeadDetail: React.FC = () => {
               onRefresh={handleRefreshPrediction}
               refreshing={predictionLoading}
             />
-
-            {/* Interest Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Interest</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {lead.properties && (
-                  <div className="flex items-start justify-between">
-                    <span className="text-muted-foreground flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      Property
-                    </span>
-                    <Link
-                      to={`/properties/${lead.properties.id}`}
-                      className="text-primary hover:underline text-right"
-                    >
-                      {lead.properties.address}
-                      {lead.properties.unit_number && ` #${lead.properties.unit_number}`}
-                    </Link>
-                  </div>
-                )}
-                {lead.interested_zip_codes && lead.interested_zip_codes.length > 0 && (
-                  <div className="flex items-start justify-between">
-                    <span className="text-muted-foreground flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Zip Codes
-                    </span>
-                    <span>{lead.interested_zip_codes.join(", ")}</span>
-                  </div>
-                )}
-                {(lead.budget_min || lead.budget_max) && (
-                  <div className="flex items-start justify-between">
-                    <span className="text-muted-foreground flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      Budget
-                    </span>
-                    <span>
-                      ${lead.budget_min?.toLocaleString() || "0"} - $
-                      {lead.budget_max?.toLocaleString() || "∞"}
-                    </span>
-                  </div>
-                )}
-                {lead.move_in_date && (
-                  <div className="flex items-start justify-between">
-                    <span className="text-muted-foreground flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Move-in Date
-                    </span>
-                    <span>{format(new Date(lead.move_in_date), "MMM d, yyyy")}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Section 8 Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Home className="h-5 w-5" />
-                  Section 8
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Has Voucher</span>
-                  <Badge variant={lead.has_voucher ? "default" : "secondary"}>
-                    {lead.has_voucher ? "Yes" : "No"}
-                  </Badge>
-                </div>
-                {lead.has_voucher && (
-                  <>
-                    {lead.voucher_amount && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Amount</span>
-                        <span>${lead.voucher_amount.toLocaleString()}</span>
-                      </div>
-                    )}
-                    {lead.voucher_status && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Status</span>
-                        <span className="capitalize">{lead.voucher_status.replace("_", " ")}</span>
-                      </div>
-                    )}
-                    {lead.housing_authority && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Housing Authority</span>
-                        <span>{lead.housing_authority}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Smart Matches - Full Width */}
@@ -878,6 +979,30 @@ const LeadDetail: React.FC = () => {
         preselectedLeadName={leadName}
         onSuccess={fetchLead}
       />
+
+      {/* Call via Agent Confirmation Dialog */}
+      <AlertDialog open={callViaAgentOpen} onOpenChange={setCallViaAgentOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Call via AI Agent</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will trigger an AI agent to call <strong>{leadName}</strong> at{" "}
+              <strong>{lead.phone}</strong>. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={callViaAgentLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCallViaAgent}
+              disabled={callViaAgentLoading}
+              className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
+              {callViaAgentLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Queue Call
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
