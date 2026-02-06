@@ -14,8 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pin, PinOff, Trash2, Loader2, StickyNote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +63,7 @@ const NOTE_TYPE_COLORS: Record<NoteType, string> = {
 };
 
 export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }) => {
-  const { userRecord } = useAuth();
+  // Auth in this component is derived from supabase.auth.getUser()
   const [notes, setNotes] = useState<LeadNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -116,7 +115,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
       onNotesCountChange?.(notesWithAuthors.length);
     } catch (error) {
       console.error("Error fetching notes:", error);
-      toast.error("Failed to load notes");
+      toast.error({ title: "Error", description: "Failed to load notes" });
     } finally {
       setLoading(false);
     }
@@ -129,46 +128,90 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
   const handleAddNote = async () => {
     if (!newContent.trim()) return;
 
-    // Get current user's profile to ensure we have correct IDs
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("You must be logged in to add notes");
-      return;
-    }
-
     setSubmitting(true);
     try {
-      // Fetch the user's profile to get the organization_id and users table id
-      const { data: profile, error: profileError } = await supabase
-        .from("users")
-        .select("id, organization_id")
-        .eq("auth_user_id", user.id)
-        .single();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      if (profileError || !profile?.organization_id) {
-        console.error("Error fetching profile:", profileError);
-        toast.error("Could not find your profile");
+      if (userError) {
+        console.error("Auth getUser error:", userError);
+        toast({ title: "Error", description: userError.message, variant: "destructive" });
         return;
       }
 
-      const { error } = await supabase.from("lead_notes").insert({
-        lead_id: leadId,
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to add notes",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("users")
+        .select("organization_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        console.error(
+          "Profile fetch error:",
+          profileError.message,
+          profileError.details,
+          profileError.hint,
+          profileError.code,
+        );
+        toast({ title: "Error", description: profileError.message, variant: "destructive" });
+        return;
+      }
+
+      if (!profile?.organization_id) {
+        console.error("Profile missing organization_id:", profile);
+        toast({
+          title: "Error",
+          description: "Your profile is missing organization_id",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const noteContent = newContent.trim();
+      const selectedNoteType = newNoteType;
+
+      const { error: insertError } = await supabase.from("lead_notes").insert({
         organization_id: profile.organization_id,
-        created_by: profile.id,
-        content: newContent.trim(),
-        note_type: newNoteType,
-        is_pinned: false,
+        lead_id: leadId,
+        created_by: user.id,
+        content: noteContent,
+        note_type: selectedNoteType,
       });
 
-      if (error) throw error;
+      if (insertError) {
+        console.error(
+          "Note insert error:",
+          insertError.message,
+          insertError.details,
+          insertError.hint,
+          insertError.code,
+        );
+        toast({ title: "Error", description: insertError.message, variant: "destructive" });
+        return;
+      }
 
       setNewContent("");
       setNewNoteType("general");
-      toast.success("Note added");
-      fetchNotes();
+      toast.success({ title: "Note added" });
+      await fetchNotes();
     } catch (error) {
       console.error("Error adding note:", error);
-      toast.error("Failed to add note");
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add note",
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -186,10 +229,10 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
       setNotes((prev) =>
         prev.map((n) => (n.id === noteId ? { ...n, is_pinned: !currentPinned } : n))
       );
-      toast.success(currentPinned ? "Note unpinned" : "Note pinned");
+      toast.success({ title: currentPinned ? "Note unpinned" : "Note pinned" });
     } catch (error) {
       console.error("Error toggling pin:", error);
-      toast.error("Failed to update note");
+      toast.error({ title: "Error", description: "Failed to update note" });
     }
   };
 
@@ -204,10 +247,10 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
 
       setNotes((prev) => prev.filter((n) => n.id !== deleteNoteId));
       onNotesCountChange?.(notes.length - 1);
-      toast.success("Note deleted");
+      toast.success({ title: "Note deleted" });
     } catch (error) {
       console.error("Error deleting note:", error);
-      toast.error("Failed to delete note");
+      toast.error({ title: "Error", description: "Failed to delete note" });
     } finally {
       setDeleting(false);
       setDeleteNoteId(null);
