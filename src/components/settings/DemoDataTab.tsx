@@ -106,6 +106,13 @@ export const DemoDataTab: React.FC = () => {
         supabase.from('communications').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
       ]);
 
+      [propertiesDemoResult, leadsDemoResult, callsDemoResult, showingsDemoResult, scoreHistoryDemoResult, communicationsDemoResult].forEach((res, i) => {
+        if (res.error) console.error(`Error fetching demo count [${i}]:`, res.error);
+      });
+      [propertiesTotalResult, leadsTotalResult, callsTotalResult, showingsTotalResult, scoreHistoryTotalResult, communicationsTotalResult].forEach((res, i) => {
+        if (res.error) console.error(`Error fetching total count [${i}]:`, res.error);
+      });
+
       setStats({
         properties: propertiesDemoResult.count || 0,
         leads: leadsDemoResult.count || 0,

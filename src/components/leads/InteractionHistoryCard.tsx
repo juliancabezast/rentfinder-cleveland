@@ -97,6 +97,10 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
             .limit(10),
         ]);
 
+        if (callsRes.error) console.error("Error fetching calls:", callsRes.error);
+        if (commsRes.error) console.error("Error fetching communications:", commsRes.error);
+        if (showingsRes.error) console.error("Error fetching showings:", showingsRes.error);
+
         const items: InteractionItem[] = [];
 
         // Process calls

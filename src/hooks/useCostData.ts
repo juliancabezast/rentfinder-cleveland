@@ -343,9 +343,9 @@ export function useCostData(dateRange: DateRange | undefined) {
           perLead,
           perSource,
         });
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching cost data:", err);
-        setError(err.message || "Failed to fetch cost data");
+        setError(err instanceof Error ? err.message : "Failed to fetch cost data");
       } finally {
         setLoading(false);
       }

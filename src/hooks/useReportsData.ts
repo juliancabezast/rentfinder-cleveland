@@ -226,9 +226,9 @@ export function useReportsData(dateRange: DateRange | undefined) {
           showingsPerformance,
           leadScoreDistribution,
         });
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching reports data:", err);
-        setError(err.message || "Failed to fetch reports data");
+        setError(err instanceof Error ? err.message : "Failed to fetch reports data");
       } finally {
         setLoading(false);
       }

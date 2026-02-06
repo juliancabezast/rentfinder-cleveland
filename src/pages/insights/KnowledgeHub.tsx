@@ -157,7 +157,7 @@ const KnowledgeHub: React.FC = () => {
 
       setLeads(leadsWithProperties);
       setTotalCount(count || 0);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching leads:", err);
       toast.error("Failed to fetch leads");
     } finally {
@@ -337,7 +337,7 @@ const KnowledgeHub: React.FC = () => {
       URL.revokeObjectURL(url);
 
       toast.success(`Exported ${allLeads.length} leads`);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Export error:", err);
       toast.error("Failed to export leads");
     } finally {

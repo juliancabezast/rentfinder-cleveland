@@ -253,9 +253,9 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
       }
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving property:', error);
-      toast.error(error.message || 'Failed to save property');
+      toast.error(error instanceof Error ? error.message : 'Failed to save property');
     } finally {
       setSaving(false);
     }
