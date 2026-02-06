@@ -378,7 +378,7 @@ const LandingPage: React.FC = () => {
       {/* ============ FOOTER ============ */}
       <footer className="py-6 px-8 border-t border-border">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:relative">
             {/* Left: Logo */}
             <Link to="/" className="flex items-center gap-2 shrink-0">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
@@ -388,7 +388,10 @@ const LandingPage: React.FC = () => {
             </Link>
 
             {/* Center: Links */}
-            <nav className="flex items-center gap-6 text-sm" aria-label="Footer navigation">
+            <nav
+              className="flex items-center justify-center gap-6 text-sm md:absolute md:left-1/2 md:-translate-x-1/2"
+              aria-label="Footer navigation"
+            >
               <Link to="/p/privacy-policy" className="text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy
               </Link>
