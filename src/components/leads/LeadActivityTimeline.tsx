@@ -409,7 +409,7 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
 
   if (loading) {
     return (
-      <Card variant="glass">
+      <Card className="border-0 shadow-none bg-transparent">
         <CardHeader>
           <CardTitle className="text-lg">Activity Timeline</CardTitle>
         </CardHeader>
@@ -432,7 +432,7 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
   }
 
   return (
-    <Card variant="glass">
+    <Card className="border-0 shadow-none bg-transparent">
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg">Activity Timeline</CardTitle>
