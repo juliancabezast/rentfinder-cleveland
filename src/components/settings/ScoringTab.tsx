@@ -163,5 +163,3 @@ export const ScoringTab: React.FC = () => {
     </div>
   );
 };
-
-export default ScoringTab;

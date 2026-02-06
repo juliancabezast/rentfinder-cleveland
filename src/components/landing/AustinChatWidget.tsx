@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
 const BOT_AVATAR_URL = "https://api.dicebear.com/9.x/bottts/svg?seed=austin&backgroundColor=370d4b";
 
@@ -83,7 +84,7 @@ const TypingIndicator: React.FC = () => (
   </div>
 );
  
-const AustinChatWidget: React.FC = () => {
+export const AustinChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showBubble, setShowBubble] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -181,17 +182,14 @@ const AustinChatWidget: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/submit-demo-request`,
+        `${SUPABASE_URL}/functions/v1/submit-demo-request`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseKey}`,
-            "apikey": supabaseKey,
+            "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+            "apikey": SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
             full_name: formData.fullName.trim(),
@@ -416,5 +414,3 @@ const AustinChatWidget: React.FC = () => {
     </>
   );
 };
-
-export default AustinChatWidget;

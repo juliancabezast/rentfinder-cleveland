@@ -21,7 +21,7 @@ const STAT_CONFIG = [
   { duration: 800, pauseAfter: 0 },    // 24/7
 ];
 
-const AnimatedStats: React.FC<AnimatedStatsProps> = ({ stats }) => {
+export const AnimatedStats: React.FC<AnimatedStatsProps> = ({ stats }) => {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [completedIndices, setCompletedIndices] = useState<number[]>([]);
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -179,5 +179,3 @@ const AnimatedStatItem: React.FC<AnimatedStatItemProps> = ({
     </div>
   );
 };
-
-export default AnimatedStats;

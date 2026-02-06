@@ -28,12 +28,12 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DemoRequestDialog } from "@/components/landing/DemoRequestDialog";
-import AustinChatWidget from "@/components/landing/AustinChatWidget";
-import SocialProofToast from "@/components/landing/SocialProofToast";
-import AnimatedStats from "@/components/landing/AnimatedStats";
-import RotatingHeroText from "@/components/landing/RotatingHeroText";
-import FloatingBackground from "@/components/landing/FloatingBackground";
-import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import { AustinChatWidget } from "@/components/landing/AustinChatWidget";
+import { SocialProofToast } from "@/components/landing/SocialProofToast";
+import { AnimatedStats } from "@/components/landing/AnimatedStats";
+import { RotatingHeroText } from "@/components/landing/RotatingHeroText";
+import { FloatingBackground } from "@/components/landing/FloatingBackground";
+import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();

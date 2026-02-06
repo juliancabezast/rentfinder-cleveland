@@ -263,5 +263,3 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
     </Dialog>
   );
 };
-
-export default InviteUserModal;

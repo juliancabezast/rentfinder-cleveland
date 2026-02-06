@@ -28,7 +28,7 @@ interface CategoryScore {
   score: number;
 }
 
-const VoiceQualityWidget: React.FC = () => {
+export const VoiceQualityWidget: React.FC = () => {
   const { userRecord } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -261,4 +261,3 @@ const VoiceQualityWidget: React.FC = () => {
   );
 };
 
-export default VoiceQualityWidget;

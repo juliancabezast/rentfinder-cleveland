@@ -322,5 +322,3 @@ export const OrganizationTab: React.FC = () => {
     </div>
   );
 };
-
-export default OrganizationTab;

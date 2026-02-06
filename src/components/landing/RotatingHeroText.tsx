@@ -12,7 +12,7 @@ const PHRASES = [
   "Never Gives Up",
 ];
 
-const RotatingHeroText: React.FC = () => {
+export const RotatingHeroText: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
 
@@ -50,5 +50,3 @@ const RotatingHeroText: React.FC = () => {
     </span>
   );
 };
-
-export default RotatingHeroText;

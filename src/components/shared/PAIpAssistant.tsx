@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -25,8 +26,6 @@ const WELCOME_MESSAGE = `¡Hola! Soy pAIp, tu asistente de administración. Pued
 - Encontrar información en el sistema
 
 ¿En qué te puedo ayudar?`;
-
-const SUPABASE_URL = 'https://glzzzthgotfwoiaranmp.supabase.co';
 
 export const PAIpAssistant: React.FC = () => {
   const { userRecord, organization } = useAuth();
@@ -81,7 +80,7 @@ export const PAIpAssistant: React.FC = () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsenp6dGhnb3Rmd29pYXJhbm1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NjM5NTksImV4cCI6MjA4NTMzOTk1OX0.zis7q1VXP1IKbL8Zc9B5oe9MPcSyVJbXVCNDYE7d690`,
+        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
       },
       body: JSON.stringify({
         messages: apiMessages,
@@ -393,5 +392,3 @@ export const PAIpAssistant: React.FC = () => {
     </>
   );
 };
-
-export default PAIpAssistant;

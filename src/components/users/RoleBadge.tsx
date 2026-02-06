@@ -40,5 +40,3 @@ export const RoleBadge: React.FC<RoleBadgeProps> = ({ role, className }) => {
     </Badge>
   );
 };
-
-export default RoleBadge;

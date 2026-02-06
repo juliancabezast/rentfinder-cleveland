@@ -200,5 +200,3 @@ export const ComplianceTab: React.FC = () => {
     </div>
   );
 };
-
-export default ComplianceTab;

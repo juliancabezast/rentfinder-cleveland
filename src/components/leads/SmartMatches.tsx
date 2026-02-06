@@ -304,5 +304,3 @@ export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) 
     </>
   );
 };
-
-export default SmartMatches;

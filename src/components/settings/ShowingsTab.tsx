@@ -107,5 +107,3 @@ export const ShowingsTab: React.FC = () => {
     </div>
   );
 };
-
-export default ShowingsTab;

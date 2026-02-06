@@ -1,6 +1,6 @@
 import React from "react";
 
-const FloatingBackground: React.FC = () => {
+export const FloatingBackground: React.FC = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
       {/* Existing gradient blobs */}
@@ -88,5 +88,3 @@ const FloatingBackground: React.FC = () => {
     </div>
   );
 };
-
-export default FloatingBackground;

@@ -31,7 +31,7 @@ import { useOrganizationSettings, DEFAULT_SETTINGS } from '@/hooks/useOrganizati
 import { AgentCategoryCard } from './agents/AgentCategoryCard';
 import { AgentCard } from './agents/AgentCard';
 import { ActivityFeedItem } from './agents/ActivityFeedItem';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const CATEGORY_CONFIG = [
   { key: 'voice', label: 'Voice Agents', icon: Phone },
@@ -355,5 +355,3 @@ export const AgentsTab: React.FC = () => {
     </div>
   );
 };
-
-export default AgentsTab;

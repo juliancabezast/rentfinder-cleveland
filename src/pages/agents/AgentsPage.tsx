@@ -1,5 +1,5 @@
  import React from 'react';
- import AgentsTab from '@/components/settings/AgentsTab';
+ import { AgentsTab } from '@/components/settings/AgentsTab';
  
  const AgentsPage: React.FC = () => {
    return (

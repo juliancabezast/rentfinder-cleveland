@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, Rocket } from "lucide-react";
 import { z } from "zod";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
 interface DemoRequestDialogProps {
   open: boolean;
@@ -70,17 +71,14 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
     setErrors({});
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/submit-demo-request`,
+        `${SUPABASE_URL}/functions/v1/submit-demo-request`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseKey}`,
-            "apikey": supabaseKey,
+            "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+            "apikey": SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
             full_name: formData.fullName.trim(),

@@ -29,7 +29,7 @@ const STEPS = [
   },
 ];
 
-const HowItWorksSection: React.FC = () => {
+export const HowItWorksSection: React.FC = () => {
   return (
     <section
       id="how-it-works"
@@ -308,4 +308,3 @@ const HowItWorksSection: React.FC = () => {
   );
 };
 
-export default HowItWorksSection;

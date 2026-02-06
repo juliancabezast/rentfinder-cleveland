@@ -26,7 +26,7 @@ import { X, Home } from "lucide-react";
    "7 minutes ago",
  ];
  
- const SocialProofToast: React.FC = () => {
+ export const SocialProofToast: React.FC = () => {
    const [currentIndex, setCurrentIndex] = useState(0);
    const [isVisible, setIsVisible] = useState(false);
    const [isAnimating, setIsAnimating] = useState(false);
@@ -153,4 +153,3 @@ import { X, Home } from "lucide-react";
    );
  };
  
- export default SocialProofToast;

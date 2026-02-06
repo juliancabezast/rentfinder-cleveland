@@ -6,7 +6,7 @@ import { Button } from "./button";
 interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
-  description: string;
+  description?: string;
   action?: {
     label: string;
     onClick: () => void;
@@ -32,9 +32,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <Icon className="h-8 w-8 text-primary/60" />
       </div>
       <h3 className="text-lg font-medium mb-1">{title}</h3>
-      <p className="text-sm text-muted-foreground max-w-sm mb-4">
-        {description}
-      </p>
+      {description && (
+        <p className="text-sm text-muted-foreground max-w-sm mb-4">
+          {description}
+        </p>
+      )}
       {action && (
         <Button onClick={action.onClick} className="mt-2 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
           {action.label}

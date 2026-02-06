@@ -117,5 +117,3 @@ export const LeadCaptureTab: React.FC = () => {
     </div>
   );
 };
-
-export default LeadCaptureTab;

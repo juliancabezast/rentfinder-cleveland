@@ -6,7 +6,7 @@ import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { PriorityLeadCard, PriorityLeadCardSkeleton } from "@/components/dashboard/PriorityLeadCard";
 import { ShowingCard, ShowingCardSkeleton } from "@/components/dashboard/ShowingCard";
 import { ActivityFeed, ActivityFeedSkeleton } from "@/components/dashboard/ActivityFeed";
-import VoiceQualityWidget from "@/components/dashboard/VoiceQualityWidget";
+import { VoiceQualityWidget } from "@/components/dashboard/VoiceQualityWidget";
 import {
   DashboardCustomizer,
   DashboardPrefs,
@@ -30,7 +30,7 @@ import {
   Zap,
   Activity,
 } from "lucide-react";
-import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";

@@ -1,16 +1,16 @@
 import React from 'react';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import OrganizationTab from '@/components/settings/OrganizationTab';
-import AgentsTab from '@/components/settings/AgentsTab';
-import LeadCaptureTab from '@/components/settings/LeadCaptureTab';
-import ScoringTab from '@/components/settings/ScoringTab';
-import CommunicationsTab from '@/components/settings/CommunicationsTab';
-import ShowingsTab from '@/components/settings/ShowingsTab';
-import ComplianceTab from '@/components/settings/ComplianceTab';
-import IntegrationKeysTab from '@/components/settings/IntegrationKeysTab';
-import InvestorReportsTab from '@/components/settings/InvestorReportsTab';
-import DemoDataTab from '@/components/settings/DemoDataTab';
+import { OrganizationTab } from '@/components/settings/OrganizationTab';
+import { AgentsTab } from '@/components/settings/AgentsTab';
+import { LeadCaptureTab } from '@/components/settings/LeadCaptureTab';
+import { ScoringTab } from '@/components/settings/ScoringTab';
+import { CommunicationsTab } from '@/components/settings/CommunicationsTab';
+import { ShowingsTab } from '@/components/settings/ShowingsTab';
+import { ComplianceTab } from '@/components/settings/ComplianceTab';
+import { IntegrationKeysTab } from '@/components/settings/IntegrationKeysTab';
+import { InvestorReportsTab } from '@/components/settings/InvestorReportsTab';
+import { DemoDataTab } from '@/components/settings/DemoDataTab';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Settings: React.FC = () => {

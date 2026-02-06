@@ -204,5 +204,3 @@ export const CallQualityScore: React.FC<CallQualityScoreProps> = ({ score, detai
     </Card>
   );
 };
-
-export default CallQualityScore;

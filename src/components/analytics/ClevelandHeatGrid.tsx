@@ -218,5 +218,3 @@ export const ClevelandHeatGrid: React.FC<ClevelandHeatGridProps> = ({ zipStats, 
     </>
   );
 };
-
-export default ClevelandHeatGrid;

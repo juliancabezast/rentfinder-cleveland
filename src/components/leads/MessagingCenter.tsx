@@ -429,5 +429,3 @@ export const MessagingCenter: React.FC<MessagingCenterProps> = ({
     </Card>
   );
 };
-
-export default MessagingCenter;

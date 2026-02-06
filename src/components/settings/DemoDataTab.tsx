@@ -999,5 +999,3 @@ export const DemoDataTab: React.FC = () => {
     </div>
   );
 };
-
-export default DemoDataTab;

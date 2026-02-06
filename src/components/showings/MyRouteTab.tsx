@@ -24,7 +24,7 @@ import {
   AlertTriangle,
   Globe,
 } from "lucide-react";
-import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   format,
   startOfDay,

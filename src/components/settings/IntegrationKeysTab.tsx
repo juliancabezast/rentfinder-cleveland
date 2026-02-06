@@ -429,5 +429,3 @@ export const IntegrationKeysTab: React.FC = () => {
     </div>
   );
 };
-
-export default IntegrationKeysTab;

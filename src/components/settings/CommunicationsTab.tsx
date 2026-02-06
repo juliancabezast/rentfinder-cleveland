@@ -530,5 +530,3 @@ export const CommunicationsTab: React.FC = () => {
     </div>
   );
 };
-
-export default CommunicationsTab;

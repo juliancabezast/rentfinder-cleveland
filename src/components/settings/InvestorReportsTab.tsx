@@ -73,7 +73,7 @@ interface Investor {
   email: string | null;
 }
 
-const InvestorReportsTab: React.FC = () => {
+export const InvestorReportsTab: React.FC = () => {
   const { userRecord } = useAuth();
   const { getSetting, updateMultipleSettings, loading: settingsLoading } = useOrganizationSettings();
   
@@ -548,5 +548,3 @@ const InvestorReportsTab: React.FC = () => {
     </div>
   );
 };
-
-export default InvestorReportsTab;
