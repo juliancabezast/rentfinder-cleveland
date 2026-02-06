@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => ({
     target: 'es2020',
     rollupOptions: {
       // Never bundle Supabase Edge Functions into the frontend build
-      external: [/supabase\/functions/],
+      external: [/^\.?\.?\/.*supabase\/functions/],
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
