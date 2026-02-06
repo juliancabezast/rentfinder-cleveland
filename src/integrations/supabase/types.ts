@@ -1449,6 +1449,80 @@ export type Database = {
           },
         ]
       }
+      lead_field_changes: {
+        Row: {
+          change_source: string
+          changed_by_agent: string | null
+          changed_by_user_id: string | null
+          created_at: string | null
+          field_name: string
+          id: string
+          lead_id: string
+          new_value: string | null
+          note: string | null
+          old_value: string | null
+          organization_id: string
+          related_call_id: string | null
+        }
+        Insert: {
+          change_source: string
+          changed_by_agent?: string | null
+          changed_by_user_id?: string | null
+          created_at?: string | null
+          field_name: string
+          id?: string
+          lead_id: string
+          new_value?: string | null
+          note?: string | null
+          old_value?: string | null
+          organization_id: string
+          related_call_id?: string | null
+        }
+        Update: {
+          change_source?: string
+          changed_by_agent?: string | null
+          changed_by_user_id?: string | null
+          created_at?: string | null
+          field_name?: string
+          id?: string
+          lead_id?: string
+          new_value?: string | null
+          note?: string | null
+          old_value?: string | null
+          organization_id?: string
+          related_call_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_field_changes_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_field_changes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_field_changes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_field_changes_related_call_id_fkey"
+            columns: ["related_call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_predictions: {
         Row: {
           based_on_leads_count: number | null

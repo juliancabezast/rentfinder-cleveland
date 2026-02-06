@@ -228,7 +228,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
 
   return (
     <>
-      <div className="bg-white border border-[#e5e7eb] rounded-lg p-4 space-y-3">
+      <div className="bg-[#ffffff] border border-[#e5e7eb] rounded-lg p-4 space-y-3">
         {/* Row 1: Name, badges, score, and actions */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Left: Name + badges + score */}
