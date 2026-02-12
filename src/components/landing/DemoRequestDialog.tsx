@@ -69,9 +69,9 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
       return;
     }
 
-    // Require SMS consent when phone is provided
+    // Require consent when phone is provided
     if (formData.phone.trim() && !smsConsent) {
-      setErrors({ smsConsent: "Please agree to receive SMS messages" });
+      setErrors({ smsConsent: "Please agree to receive calls and SMS messages" });
       return;
     }
 

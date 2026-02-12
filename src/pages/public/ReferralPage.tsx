@@ -77,7 +77,7 @@ const ReferralPage: React.FC = () => {
     }
 
     if (!consent) {
-      toast.error("Please agree to receive SMS messages");
+      toast.error("Please agree to receive calls and SMS messages");
       return;
     }
 

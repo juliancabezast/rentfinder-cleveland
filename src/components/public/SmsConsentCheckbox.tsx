@@ -2,15 +2,16 @@ import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
-export const SMS_CONSENT_VERSION = "1.0";
+export const SMS_CONSENT_VERSION = "1.1";
 
 export const SMS_CONSENT_LANGUAGE =
-  "I agree to receive SMS text messages from Rent Finder Cleveland / HomeGuard regarding property updates, showing reminders, and related communications. Message frequency varies. Msg&data rates may apply. Reply STOP to unsubscribe at any time. Reply HELP for help.";
+  "I agree to receive automated phone calls and SMS text messages from Rent Finder Cleveland / HomeGuard regarding property updates, showing reminders, and related communications. Calls may be recorded for quality purposes. Message frequency varies. Msg&data rates may apply. Reply STOP to unsubscribe at any time. Reply HELP for help. Consent is not required to apply for housing.";
 
 /** Builds the consent metadata payload to send to the edge function. */
-export function buildConsentPayload(smsConsent: boolean) {
+export function buildConsentPayload(granted: boolean) {
   return {
-    sms_consent: smsConsent,
+    sms_consent: granted,
+    call_consent: granted,
     consent_method: "web" as const,
     consent_source_url: window.location.href,
     consent_language: SMS_CONSENT_LANGUAGE,
