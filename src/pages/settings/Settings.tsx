@@ -13,6 +13,8 @@ import { InvestorReportsTab } from '@/components/settings/InvestorReportsTab';
 import { DemoDataTab } from '@/components/settings/DemoDataTab';
 import { useAuth } from '@/contexts/AuthContext';
 
+const TeamTab = React.lazy(() => import('@/pages/users/UsersList'));
+
 const Settings: React.FC = () => {
   const { userRecord } = useAuth();
   const isAdmin = userRecord?.role === 'super_admin' || userRecord?.role === 'admin';
@@ -32,6 +34,7 @@ const Settings: React.FC = () => {
       <Tabs defaultValue="organization" className="space-y-6">
         <TabsList className="inline-flex flex-wrap h-auto gap-1">
           <TabsTrigger value="organization">Organization</TabsTrigger>
+          {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
           <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="lead-capture">Lead Capture</TabsTrigger>
           <TabsTrigger value="scoring">Scoring</TabsTrigger>
@@ -50,6 +53,14 @@ const Settings: React.FC = () => {
         <TabsContent value="organization">
           <OrganizationTab />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="team">
+            <React.Suspense fallback={<div className="py-8 text-center text-muted-foreground">Loading...</div>}>
+              <TeamTab />
+            </React.Suspense>
+          </TabsContent>
+        )}
 
         <TabsContent value="agents">
           <AgentsTab />
