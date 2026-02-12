@@ -203,15 +203,19 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       scheduledAt.setHours(hours, minutes, 0, 0);
 
       // Create showing
-      const { error: showingError } = await supabase.from("showings").insert({
-        organization_id: userRecord.organization_id,
-        lead_id: selectedLeadId,
-        property_id: selectedPropertyId,
-        leasing_agent_id: selectedAgentId || null,
-        scheduled_at: scheduledAt.toISOString(),
-        duration_minutes: parseInt(selectedDuration),
-        status: "scheduled",
-      });
+      const { data: showingData, error: showingError } = await supabase
+        .from("showings")
+        .insert({
+          organization_id: userRecord.organization_id,
+          lead_id: selectedLeadId,
+          property_id: selectedPropertyId,
+          leasing_agent_id: selectedAgentId || null,
+          scheduled_at: scheduledAt.toISOString(),
+          duration_minutes: parseInt(selectedDuration),
+          status: "scheduled",
+        })
+        .select("id")
+        .single();
 
       if (showingError) throw showingError;
 
@@ -226,7 +230,47 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
       if (leadError) {
         console.error("Error updating lead status:", leadError);
-        // Don't fail the whole operation, just log it
+      }
+
+      // Schedule Samuel confirmation task (24h before showing)
+      if (showingData?.id) {
+        const confirmationTime = new Date(scheduledAt.getTime() - 24 * 60 * 60 * 1000);
+        const propertyAddr = selectedProperty?.address || "Property";
+
+        await supabase.from("agent_tasks").insert({
+          organization_id: userRecord.organization_id,
+          lead_id: selectedLeadId,
+          agent_type: "showing_confirmation",
+          action_type: "call",
+          scheduled_for: confirmationTime.toISOString(),
+          max_attempts: 2,
+          status: "pending",
+          context: {
+            showing_id: showingData.id,
+            property_id: selectedPropertyId,
+            property_address: propertyAddr,
+            scheduled_at: scheduledAt.toISOString(),
+            source: "admin_manual",
+          },
+        });
+
+        // System log
+        await supabase.from("system_logs").insert({
+          organization_id: userRecord.organization_id,
+          level: "info",
+          category: "showing",
+          event_type: "admin_showing_scheduled",
+          message: `Showing scheduled by admin: ${propertyAddr} on ${format(scheduledAt, "MMM d, yyyy")} at ${format(scheduledAt, "h:mm a")}`,
+          details: {
+            showing_id: showingData.id,
+            lead_id: selectedLeadId,
+            property_id: selectedPropertyId,
+            scheduled_by: userRecord.id,
+            source: "admin_manual",
+          },
+          related_lead_id: selectedLeadId,
+          related_showing_id: showingData.id,
+        });
       }
 
       toast.success(

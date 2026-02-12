@@ -8,6 +8,80 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// ── Email template ────────────────────────────────────────────────────
+function showingConfirmationEmail(data: {
+  leadName: string;
+  propertyAddress: string;
+  dateFormatted: string;
+  timeFormatted: string;
+  duration: number;
+}) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background-color:#f4f1f1;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px;">
+    <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+      <h1 style="margin:0;color:#ffb22c;font-size:20px;">Showing Confirmed</h1>
+    </div>
+    <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
+      <p style="margin:0 0 16px;color:#1a1a1a;font-size:16px;">
+        Hi <strong>${data.leadName}</strong>, your showing is confirmed!
+      </p>
+      <div style="background-color:#f8f8f8;border-left:4px solid #370d4b;padding:16px 20px;border-radius:4px;margin:16px 0;">
+        <table style="border-collapse:collapse;width:100%;">
+          <tr>
+            <td style="padding:6px 0;color:#666;font-size:14px;width:100px;">Property:</td>
+            <td style="padding:6px 0;color:#1a1a1a;font-size:14px;font-weight:600;">${data.propertyAddress}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#666;font-size:14px;">Date:</td>
+            <td style="padding:6px 0;color:#1a1a1a;font-size:14px;font-weight:600;">${data.dateFormatted}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#666;font-size:14px;">Time:</td>
+            <td style="padding:6px 0;color:#1a1a1a;font-size:14px;font-weight:600;">${data.timeFormatted}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#666;font-size:14px;">Duration:</td>
+            <td style="padding:6px 0;color:#1a1a1a;font-size:14px;font-weight:600;">${data.duration} minutes</td>
+          </tr>
+        </table>
+      </div>
+      <p style="margin:16px 0 0;color:#666;font-size:13px;line-height:1.5;">
+        You'll receive a confirmation call approximately 24 hours before your showing.
+        If you need to reschedule or cancel, please call us directly.
+      </p>
+      <hr style="margin:20px 0;border:none;border-top:1px solid #eee;" />
+      <p style="margin:0;color:#999;font-size:11px;text-align:center;">
+        Rent Finder Cleveland &bull; HomeGuard Management
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+// ── Helper: format time ───────────────────────────────────────────────
+function formatTimeHuman(t: string): string {
+  const [hStr, mStr] = t.split(":");
+  const h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${display}:${mStr} ${ampm}`;
+}
+
+function formatDateHuman(d: string): string {
+  const date = new Date(d + "T12:00:00");
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -77,16 +151,25 @@ serve(async (req: Request) => {
     const formattedPhone = cleanPhone.length === 10 ? `+1${cleanPhone}` : `+${cleanPhone}`;
 
     let leadId: string;
+    let leadEmail: string | null = email || null;
 
     const { data: existingLead } = await supabase
       .from("leads")
-      .select("id, status")
+      .select("id, status, email")
       .eq("organization_id", organization_id)
       .eq("phone", formattedPhone)
       .maybeSingle();
 
     if (existingLead) {
       leadId = existingLead.id;
+      // Use existing email if lead didn't provide one now
+      if (!leadEmail && existingLead.email) {
+        leadEmail = existingLead.email;
+      }
+      // Update email if they provided a new one and lead didn't have one
+      if (email && !existingLead.email) {
+        await supabase.from("leads").update({ email }).eq("id", leadId);
+      }
     } else {
       const { data: newLead, error: leadErr } = await supabase
         .from("leads")
@@ -94,7 +177,7 @@ serve(async (req: Request) => {
           organization_id,
           full_name: full_name.trim(),
           phone: formattedPhone,
-          email: email || null,
+          email: leadEmail,
           source: "web_schedule",
           status: "new",
           sms_consent: consent?.sms_consent ?? false,
@@ -132,6 +215,7 @@ serve(async (req: Request) => {
     // ── Build scheduled_at datetime ───────────────────────────────────
     // slot_time is "HH:MM:SS", slot_date is "YYYY-MM-DD"
     const scheduledAt = `${slot_date}T${slot_time}-05:00`; // America/New_York (EST)
+    const durationMinutes = slot.duration_minutes || 30;
 
     // ── Create showing ────────────────────────────────────────────────
     const { data: showing, error: showingErr } = await supabase
@@ -141,7 +225,7 @@ serve(async (req: Request) => {
         lead_id: leadId,
         property_id,
         scheduled_at: scheduledAt,
-        duration_minutes: slot.duration_minutes || 30,
+        duration_minutes: durationMinutes,
         status: "scheduled",
       })
       .select("id")
@@ -175,7 +259,6 @@ serve(async (req: Request) => {
     const bufferM = bufferMinutes % 60;
     const bufferTime = `${String(bufferH).padStart(2, "0")}:${String(bufferM).padStart(2, "0")}:00`;
 
-    // Try to mark the buffer slot — if it exists
     await supabase
       .from("showing_available_slots")
       .update({
@@ -214,6 +297,68 @@ serve(async (req: Request) => {
         scheduled_at: scheduledAt,
         source: "web_schedule",
       },
+    });
+
+    // ── Send confirmation email (if lead has email) ───────────────────
+    if (leadEmail) {
+      try {
+        await supabase.functions.invoke("send-notification-email", {
+          body: {
+            to: leadEmail,
+            subject: `Showing Confirmed — ${property?.address || "Property Tour"}`,
+            html: showingConfirmationEmail({
+              leadName: full_name.trim(),
+              propertyAddress,
+              dateFormatted: formatDateHuman(slot_date),
+              timeFormatted: formatTimeHuman(slot_time),
+              duration: durationMinutes,
+            }),
+            notification_type: "showing_confirmation",
+            organization_id,
+            related_entity_id: showing.id,
+            related_entity_type: "showing",
+          },
+        });
+      } catch (emailErr) {
+        // Don't fail the booking if email fails
+        console.error("Confirmation email failed:", emailErr);
+      }
+    }
+
+    // ── System log ────────────────────────────────────────────────────
+    await supabase.from("system_logs").insert({
+      organization_id,
+      level: "info",
+      category: "showing",
+      event_type: "public_showing_booked",
+      message: `Showing booked via public page: ${full_name.trim()} at ${propertyAddress} on ${formatDateHuman(slot_date)} ${formatTimeHuman(slot_time)}`,
+      details: {
+        showing_id: showing.id,
+        lead_id: leadId,
+        property_id,
+        slot_date,
+        slot_time,
+        source: "web_schedule",
+        lead_is_new: !existingLead,
+      },
+      related_lead_id: leadId,
+      related_showing_id: showing.id,
+    });
+
+    // ── Cost record (Zacchaeus) ───────────────────────────────────────
+    // Record minimal platform cost for the booking interaction
+    const now = new Date();
+    await supabase.from("cost_records").insert({
+      organization_id,
+      recorded_at: now.toISOString(),
+      period_start: now.toISOString(),
+      period_end: now.toISOString(),
+      service: "openai", // Platform processing cost
+      usage_quantity: 1,
+      usage_unit: "booking",
+      unit_cost: 0.0,
+      total_cost: 0.0,
+      lead_id: leadId,
     });
 
     // ── Return success ────────────────────────────────────────────────
