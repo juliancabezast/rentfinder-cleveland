@@ -35,6 +35,7 @@ import { format, startOfDay, endOfDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { RealTimeAgentPanel } from "@/components/dashboard/RealTimeAgentPanel";
 
 interface DashboardStats {
   totalProperties: number;
@@ -312,280 +313,290 @@ export const AdminDashboard = () => {
 
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Header with Customize Button */}
-      <div className="flex items-start justify-between gap-4">
-        <DashboardGreeting />
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setShowCustomizer(true)}
-          className="shrink-0"
-        >
-          <Settings2 className="h-4 w-4" />
-        </Button>
+    <div className="flex gap-6">
+      {/* Main Dashboard Content */}
+      <div className="flex-1 min-w-0 space-y-6">
+        {/* Welcome Header with Customize Button */}
+        <div className="flex items-start justify-between gap-4">
+          <DashboardGreeting />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowCustomizer(true)}
+            className="shrink-0"
+          >
+            <Settings2 className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Stats Grid */}
+        {isWidgetVisible("stats_cards") && (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="animate-fade-up stagger-1">
+              <StatCard
+                title="Total Properties"
+                value={stats?.totalProperties || 0}
+                subtitle={`${stats?.propertiesByStatus?.available || 0} available`}
+                icon={Building}
+                impact={stats?.propertiesByStatus?.available && stats.propertiesByStatus.available > 5 ? "high" : "medium"}
+                loading={loading}
+              />
+            </div>
+            <div className="animate-fade-up stagger-2">
+              <StatCard
+                title="Active Leads"
+                value={stats?.activeLeads || 0}
+                subtitle="this week"
+                icon={Users}
+                trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
+                impact={stats?.activeLeads && stats.activeLeads > 20 ? "high" : stats?.activeLeads && stats.activeLeads > 10 ? "medium" : "low"}
+                loading={loading}
+              />
+            </div>
+            <div className="animate-fade-up stagger-3">
+              <StatCard
+                title="Showings Today"
+                value={stats?.showingsToday || 0}
+                subtitle={format(new Date(), "EEEE, MMM d")}
+                icon={Calendar}
+                loading={loading}
+              />
+            </div>
+            <div className="animate-fade-up stagger-4">
+              <StatCard
+                title="Conversion Rate"
+                value={`${stats?.conversionRate || 0}%`}
+                subtitle="This month"
+                icon={TrendingUp}
+                impact={stats?.conversionRate && stats.conversionRate >= 15 ? "high" : stats?.conversionRate && stats.conversionRate >= 8 ? "medium" : "low"}
+                loading={loading}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Voice Quality Widget */}
+        {isWidgetVisible("ai_agent_performance") && (
+          <div className="animate-fade-up stagger-5">
+            <VoiceQualityWidget />
+          </div>
+        )}
+
+        {/* Main Widget Grid - auto-fill to avoid gaps */}
+        {(() => {
+          const widgetIds = ["priority_leads", "today_showings", "property_alerts", "recent_activity"];
+          const visibleWidgets = widgetIds.filter((id) => isWidgetVisible(id));
+          const visibleCount = visibleWidgets.length;
+
+          if (visibleCount === 0) return null;
+
+          // Build grid classes based on visible count
+          const getGridClass = () => {
+            if (visibleCount === 1) return "grid gap-6 grid-cols-1";
+            return cn(
+              "grid gap-6",
+              prefs.layout === "comfortable"
+                ? "grid-cols-1 lg:grid-cols-2"
+                : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+            );
+          };
+
+          // Should last item span full width? (odd count, 2-column layout)
+          const shouldLastSpanFull = visibleCount > 1 && visibleCount % 2 === 1 && prefs.layout === "comfortable";
+
+          const renderWidget = (widgetId: string, isLast: boolean) => {
+            const spanFull = isLast && shouldLastSpanFull;
+            const wrapperClass = spanFull ? "lg:col-span-2" : "";
+
+            switch (widgetId) {
+              case "priority_leads":
+                return (
+                  <div key={widgetId} className={wrapperClass}>
+                    <Card variant="glass" className="h-full">
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg">Priority Leads</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate("/leads?filter=priority")}
+                        >
+                          View All <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="max-h-[400px]">
+                          <div className="space-y-3">
+                            {loading ? (
+                              Array.from({ length: 3 }).map((_, i) => (
+                                <PriorityLeadCardSkeleton key={i} />
+                              ))
+                            ) : priorityLeads.length > 0 ? (
+                              priorityLeads.map((lead) => (
+                                <PriorityLeadCard
+                                  key={lead.id}
+                                  lead={lead}
+                                  onTakeControl={handleTakeControl}
+                                />
+                              ))
+                            ) : (
+                              <EmptyState
+                                icon={Zap}
+                                title="No priority leads"
+                                description="Leads with score 85+ will appear here"
+                                action={{ label: "View all leads", onClick: () => navigate("/leads") }}
+                              />
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              case "today_showings":
+                return (
+                  <div key={widgetId} className={wrapperClass}>
+                    <Card variant="glass" className="h-full">
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg">Today's Showings</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate("/showings")}
+                        >
+                          View All <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="max-h-[400px]">
+                          <div className="space-y-3">
+                            {loading ? (
+                              Array.from({ length: 3 }).map((_, i) => (
+                                <ShowingCardSkeleton key={i} variant="compact" />
+                              ))
+                            ) : todayShowings.length > 0 ? (
+                              todayShowings.map((showing) => (
+                                <ShowingCard
+                                  key={showing.id}
+                                  showing={showing}
+                                  variant="compact"
+                                />
+                              ))
+                            ) : (
+                              <EmptyState
+                                icon={Calendar}
+                                title="No showings today"
+                                description="Schedule a showing from the leads page"
+                                action={{ label: "View showings", onClick: () => navigate("/showings") }}
+                              />
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              case "property_alerts":
+                return (
+                  <div key={widgetId} className={wrapperClass}>
+                    <Card variant="glass" className="h-full">
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Bell className="h-5 w-5" />
+                          Property Alerts
+                          {alerts.length > 0 && (
+                            <Badge variant="destructive">{alerts.length}</Badge>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="max-h-[300px]">
+                          <div className="space-y-3">
+                            {loading ? (
+                              Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="flex items-start gap-3 p-3 rounded-lg border">
+                                  <div className="flex-1 space-y-1">
+                                    <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+                                    <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
+                                  </div>
+                                </div>
+                              ))
+                            ) : alerts.length > 0 ? (
+                              alerts.map((alert) => (
+                                <div
+                                  key={alert.id}
+                                  className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50"
+                                >
+                                  <Bell className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium">{alert.message}</p>
+                                    {alert.property_address && (
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {alert.property_address}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleMarkAlertRead(alert.id)}
+                                  >
+                                    Dismiss
+                                  </Button>
+                                </div>
+                              ))
+                            ) : (
+                              <EmptyState
+                                icon={Bell}
+                                title="No unread alerts"
+                                description="Property alerts will appear here"
+                              />
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              case "recent_activity":
+                return (
+                  <div key={widgetId} className={wrapperClass}>
+                    {loading ? (
+                      <ActivityFeedSkeleton />
+                    ) : (
+                      <ActivityFeed activities={activities} />
+                    )}
+                  </div>
+                );
+              default:
+                return null;
+            }
+          };
+
+          return (
+            <div className={getGridClass()}>
+              {visibleWidgets.map((widgetId, index) =>
+                renderWidget(widgetId, index === visibleWidgets.length - 1)
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Dashboard Customizer Sheet */}
+        <DashboardCustomizer
+          open={showCustomizer}
+          onOpenChange={setShowCustomizer}
+          prefs={prefs}
+          onPrefsChange={handlePrefsChange}
+          onReset={handleResetPrefs}
+        />
       </div>
 
-      {/* Stats Grid */}
-      {isWidgetVisible("stats_cards") && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="animate-fade-up stagger-1">
-            <StatCard
-              title="Total Properties"
-              value={stats?.totalProperties || 0}
-              subtitle={`${stats?.propertiesByStatus?.available || 0} available`}
-              icon={Building}
-              impact={stats?.propertiesByStatus?.available && stats.propertiesByStatus.available > 5 ? "high" : "medium"}
-              loading={loading}
-            />
-          </div>
-          <div className="animate-fade-up stagger-2">
-            <StatCard
-              title="Active Leads"
-              value={stats?.activeLeads || 0}
-              subtitle="this week"
-              icon={Users}
-              trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
-              impact={stats?.activeLeads && stats.activeLeads > 20 ? "high" : stats?.activeLeads && stats.activeLeads > 10 ? "medium" : "low"}
-              loading={loading}
-            />
-          </div>
-          <div className="animate-fade-up stagger-3">
-            <StatCard
-              title="Showings Today"
-              value={stats?.showingsToday || 0}
-              subtitle={format(new Date(), "EEEE, MMM d")}
-              icon={Calendar}
-              loading={loading}
-            />
-          </div>
-          <div className="animate-fade-up stagger-4">
-            <StatCard
-              title="Conversion Rate"
-              value={`${stats?.conversionRate || 0}%`}
-              subtitle="This month"
-              icon={TrendingUp}
-              impact={stats?.conversionRate && stats.conversionRate >= 15 ? "high" : stats?.conversionRate && stats.conversionRate >= 8 ? "medium" : "low"}
-              loading={loading}
-            />
-          </div>
+      {/* Real-Time Agent Panel - Right Side */}
+      <div className="hidden xl:block w-[380px] shrink-0">
+        <div className="sticky top-4">
+          <RealTimeAgentPanel />
         </div>
-      )}
-
-      {/* Voice Quality Widget */}
-      {isWidgetVisible("ai_agent_performance") && (
-        <div className="animate-fade-up stagger-5">
-          <VoiceQualityWidget />
-        </div>
-      )}
-
-      {/* Main Widget Grid - auto-fill to avoid gaps */}
-      {(() => {
-        const widgetIds = ["priority_leads", "today_showings", "property_alerts", "recent_activity"];
-        const visibleWidgets = widgetIds.filter((id) => isWidgetVisible(id));
-        const visibleCount = visibleWidgets.length;
-
-        if (visibleCount === 0) return null;
-
-        // Build grid classes based on visible count
-        const getGridClass = () => {
-          if (visibleCount === 1) return "grid gap-6 grid-cols-1";
-          return cn(
-            "grid gap-6",
-            prefs.layout === "comfortable"
-              ? "grid-cols-1 lg:grid-cols-2"
-              : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
-          );
-        };
-
-        // Should last item span full width? (odd count, 2-column layout)
-        const shouldLastSpanFull = visibleCount > 1 && visibleCount % 2 === 1 && prefs.layout === "comfortable";
-
-        const renderWidget = (widgetId: string, isLast: boolean) => {
-          const spanFull = isLast && shouldLastSpanFull;
-          const wrapperClass = spanFull ? "lg:col-span-2" : "";
-
-          switch (widgetId) {
-            case "priority_leads":
-              return (
-                <div key={widgetId} className={wrapperClass}>
-                  <Card variant="glass" className="h-full">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <CardTitle className="text-lg">Priority Leads</CardTitle>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate("/leads?filter=priority")}
-                      >
-                        View All <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="max-h-[400px]">
-                        <div className="space-y-3">
-                          {loading ? (
-                            Array.from({ length: 3 }).map((_, i) => (
-                              <PriorityLeadCardSkeleton key={i} />
-                            ))
-                          ) : priorityLeads.length > 0 ? (
-                            priorityLeads.map((lead) => (
-                              <PriorityLeadCard
-                                key={lead.id}
-                                lead={lead}
-                                onTakeControl={handleTakeControl}
-                              />
-                            ))
-                          ) : (
-                            <EmptyState
-                              icon={Zap}
-                              title="No priority leads"
-                              description="Leads with score 85+ will appear here"
-                              action={{ label: "View all leads", onClick: () => navigate("/leads") }}
-                            />
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                </div>
-              );
-            case "today_showings":
-              return (
-                <div key={widgetId} className={wrapperClass}>
-                  <Card variant="glass" className="h-full">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <CardTitle className="text-lg">Today's Showings</CardTitle>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate("/showings")}
-                      >
-                        View All <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="max-h-[400px]">
-                        <div className="space-y-3">
-                          {loading ? (
-                            Array.from({ length: 3 }).map((_, i) => (
-                              <ShowingCardSkeleton key={i} variant="compact" />
-                            ))
-                          ) : todayShowings.length > 0 ? (
-                            todayShowings.map((showing) => (
-                              <ShowingCard
-                                key={showing.id}
-                                showing={showing}
-                                variant="compact"
-                              />
-                            ))
-                          ) : (
-                            <EmptyState
-                              icon={Calendar}
-                              title="No showings today"
-                              description="Schedule a showing from the leads page"
-                              action={{ label: "View showings", onClick: () => navigate("/showings") }}
-                            />
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                </div>
-              );
-            case "property_alerts":
-              return (
-                <div key={widgetId} className={wrapperClass}>
-                  <Card variant="glass" className="h-full">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Bell className="h-5 w-5" />
-                        Property Alerts
-                        {alerts.length > 0 && (
-                          <Badge variant="destructive">{alerts.length}</Badge>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="max-h-[300px]">
-                        <div className="space-y-3">
-                          {loading ? (
-                            Array.from({ length: 3 }).map((_, i) => (
-                              <div key={i} className="flex items-start gap-3 p-3 rounded-lg border">
-                                <div className="flex-1 space-y-1">
-                                  <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
-                                  <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
-                                </div>
-                              </div>
-                            ))
-                          ) : alerts.length > 0 ? (
-                            alerts.map((alert) => (
-                              <div
-                                key={alert.id}
-                                className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50"
-                              >
-                                <Bell className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium">{alert.message}</p>
-                                  {alert.property_address && (
-                                    <p className="text-xs text-muted-foreground truncate">
-                                      {alert.property_address}
-                                    </p>
-                                  )}
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleMarkAlertRead(alert.id)}
-                                >
-                                  Dismiss
-                                </Button>
-                              </div>
-                            ))
-                          ) : (
-                            <EmptyState
-                              icon={Bell}
-                              title="No unread alerts"
-                              description="Property alerts will appear here"
-                            />
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                </div>
-              );
-            case "recent_activity":
-              return (
-                <div key={widgetId} className={wrapperClass}>
-                  {loading ? (
-                    <ActivityFeedSkeleton />
-                  ) : (
-                    <ActivityFeed activities={activities} />
-                  )}
-                </div>
-              );
-            default:
-              return null;
-          }
-        };
-
-        return (
-          <div className={getGridClass()}>
-            {visibleWidgets.map((widgetId, index) =>
-              renderWidget(widgetId, index === visibleWidgets.length - 1)
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Dashboard Customizer Sheet */}
-      <DashboardCustomizer
-        open={showCustomizer}
-        onOpenChange={setShowCustomizer}
-        prefs={prefs}
-        onPrefsChange={handlePrefsChange}
-        onReset={handleResetPrefs}
-      />
+      </div>
     </div>
   );
 };

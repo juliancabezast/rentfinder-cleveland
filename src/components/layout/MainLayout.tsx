@@ -148,7 +148,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Page Content with gradient overlay for depth */}
         <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
-          <div className="max-w-7xl mx-auto animate-fade-up">
+          <div className="max-w-[1600px] mx-auto animate-fade-up">
             {children}
           </div>
         </main>
