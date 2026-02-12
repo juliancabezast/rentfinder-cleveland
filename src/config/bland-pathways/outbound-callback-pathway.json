@@ -1,0 +1,386 @@
+{
+  "name": "RFC Outbound Callback — Lead Property Inquiry",
+  "description": "Outbound callback pathway for leads who requested property info. Handles: info delivery, showing scheduling, DoorLoop application, and callback scheduling. Connected to Supabase edge functions.",
+
+  "nodes": [
+    {
+      "globalConfig": {
+        "globalPrompt": "# Background\nEres un agente de leasing de Rent Finder Cleveland. Estás haciendo llamadas de regreso (outbound) a leads que pidieron info de una propiedad. La persona puede estar ocupada o indecisa; tu trabajo es ser claro, breve y moverlos al siguiente paso.\n\n# Goal\n1) Confirmar si quieren la info ahora o después.\n2) Si es ahora: dar un resumen de 1 minuto y llevarlos a agendar showing o iniciar aplicación.\n3) Si es después: agendar la devolución de llamada (callback).\n\n# Datos disponibles (variables del sistema)\nEstos datos vienen del sistema y los puedes usar directamente:\n- Nombre del lead: {{lead_first_name}} {{lead_last_name}}\n- Email del lead: {{lead_email}}\n- Teléfono del lead: {{lead_phone}}\n- Propiedad: {{property_address}}\n- Renta: {{property_rent}}/mes\n- Habitaciones: {{property_bedrooms}} bed / {{property_bathrooms}} bath\n- ID del lead: {{lead_id}}\n- ID de la propiedad: {{property_id}}\n- ID de la organización: {{organization_id}}\n\n# Integraciones\n- Showings: los horarios disponibles se consultan vía webhook al sistema. El bot puede reservar inmediatamente si está disponible.\n- Aplicación: conectado a DoorLoop, envía la aplicación al email del lead.\n- Confirmaciones: se envía email de confirmación del showing desde support@rentfindercleveland.com.\n- Callbacks: el bot crea el callback en el sistema con fecha y hora confirmada.\n\n# Zona horaria\nTodas las horas se comunican en la zona horaria de Cleveland (America/New_York).\n\n# Reglas críticas\n- No inventes precio/requisitos que no estén en las variables.\n- Si la renta es {{property_rent}}, puedes mencionarla. Si no está definida, di que la envías por email.\n- Nunca confirmes un showing sin reservarlo vía webhook.\n- Nunca prometas SMS para aplicación: DoorLoop envía por email.\n- Si el lead dice que no está interesado o pide que no le llamen más, respeta su decisión inmediatamente y termina la llamada cortésmente.\n\n# Tone\nDirecto, humano, sin corporate speak. Frases cortas. Si el lead habla en inglés, responde en inglés. Si habla en español, responde en español."
+      }
+    },
+
+    {
+      "id": "greeting",
+      "type": "Default",
+      "position": { "x": 0, "y": 0 },
+      "data": {
+        "name": "Outbound Callback Greeting",
+        "prompt": "# Objetivo\nHacer una llamada de regreso al lead por la propiedad y llevarlo a elegir: información ahora (1) o llamada después (2).\n\n# Guion (di tal cual)\nHola, {{lead_first_name}}. Te llamo de regreso porque estabas buscando información acerca de la propiedad en {{property_address}}.\n¿Quieres que te dé la información ahora mismo en 1 minuto para que podamos agendar un showing o iniciar tu aplicación, o prefieres que te llame en otro momento?\n\nDi \"yes\" o marca 1 para hacerlo ahora.\nDi \"later\" o marca 2 para hacerlo en otro momento.\n\n# Reglas\n- Sé directo y amable.\n- Si el usuario interrumpe con una pregunta, respóndela breve y luego vuelve a pedir 1 o 2.",
+        "isStart": true,
+        "conditionExamples": [],
+        "dialogueExamples": [],
+        "pathwayExamples": []
+      }
+    },
+
+    {
+      "id": "now-vs-later",
+      "type": "Default",
+      "position": { "x": 350, "y": 0 },
+      "data": {
+        "name": "Now vs Later Decision",
+        "prompt": "# Objetivo\nDetectar si el usuario eligió AHORA (yes/1) o DESPUÉS (later/2).\n\n# Instrucciones\n- Si el usuario dice: \"yes\", \"ahora\", \"de una\", \"sí\", \"listo\", o marca 1 -> ir a la ruta AHORA.\n- Si el usuario dice: \"later\", \"después\", \"no ahora\", \"otro momento\", o marca 2 -> ir a la ruta DESPUÉS.\n- Si no queda claro / silencio -> pide aclaración una sola vez: \"¿Prefieres ahora (1) o después (2)?\" y reintenta.",
+        "isStart": false,
+        "conditionExamples": [],
+        "dialogueExamples": [],
+        "pathwayExamples": []
+      }
+    },
+
+    {
+      "id": "clarify-now-later",
+      "type": "Default",
+      "position": { "x": 350, "y": 170 },
+      "data": {
+        "name": "Clarify Now vs Later",
+        "prompt": "No entendí bien. ¿Prefieres que te dé la info ahora mismo? Di \"yes\" o marca 1.\n¿O prefieres que te llame en otro momento? Di \"later\" o marca 2.",
+        "isStart": false,
+        "conditionExamples": [],
+        "dialogueExamples": [],
+        "pathwayExamples": []
+      }
+    },
+
+    {
+      "id": "now-info",
+      "type": "Default",
+      "position": { "x": 700, "y": -120 },
+      "data": {
+        "name": "Now: 1-minute Info + Next Step",
+        "prompt": "# Objetivo\nDar un resumen ultra corto (1 minuto) usando los datos disponibles y llevar al siguiente paso.\n\n# Guion recomendado\nPerfecto. En 1 minuto: lo esencial de la propiedad en {{property_address}}.\n\nEs de {{property_bedrooms}} habitaciones, {{property_bathrooms}} baños, a {{property_rent}} al mes.\n\nTe puedo ayudar con dos cosas hoy: agendar un showing para verla, o enviarte la aplicación para que avances.\n\n¿Quieres agendar un showing o prefieres iniciar la aplicación?\n\nDi \"showing\" o marca 1 para agendar showing.\nDi \"application\" o marca 2 para iniciar la aplicación.\nDi \"questions\" o marca 3 si tienes preguntas rápidas primero.\n\n# Reglas\n- Usa los datos de las variables del sistema. Si {{property_rent}} no está definida, di: \"Te mando los detalles de precio por email\" y sigue con las opciones.\n- Si preguntan por requisitos específicos que no tienes: \"Te lo mando por email ahora mismo\" y vuelve a las opciones (showing o application).",
+        "isStart": false,
+        "conditionExamples": [],
+        "dialogueExamples": [],
+        "pathwayExamples": []
+      }
+    },
+
+    {
+      "id": "choose-next-step",
+      "type": "Default",
+      "position": { "x": 1050, "y": -120 },
+      "data": {
+        "name": "Choose: Showing vs Application vs Questions",
+        "prompt": "# Objetivo\nElegir el siguiente paso: showing (1), application (2), questions (3).\n\n# Instrucciones\n- Si el usuario dice showing / tour / ver la propiedad / cita / marca 1 -> ir a SHOWING\n- Si el usuario dice application / aplicar / solicitud / marca 2 -> ir a APLICACIÓN\n- Si el usuario dice questions / dudas / pregunta / marca 3 -> ir a PREGUNTAS\n- Si no queda claro -> repite las 3 opciones una vez y vuelve a preguntar.",
+        "isStart": false,
+        "conditionExamples": [],
+        "dialogueExamples": [],
+        "pathwayExamples": []
+      }
+    },
+
+    {
+      "id": "showing-fetch-slots",
+      "type": "Webhook",
+      "position": { "x": 1400, "y": -260 },
+      "data": {
+        "name": "Showing: Offer Available Slots",
+        "url": "https://glzzzthgotfwoiaranmp.supabase.co/functions/v1/pathway-webhook",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "x-webhook-secret": "{{webhook_secret}}"
+        },
+        "body": "{\"action\":\"fetch_available_slots\",\"property_id\":\"{{property_id}}\",\"organization_id\":\"{{organization_id}}\",\"lead_id\":\"{{lead_id}}\",\"call_id\":\"{{call_id}}\"}",
+        "extractVars": [],
+        "responseData": [
+          {
+            "name": "available_slots",
+            "data": "$.slots",
+            "context": "Array of available showing time slots as human-readable strings (e.g. 'Tomorrow Friday 2/14 at 10:00 AM')"
+          },
+          {
+            "name": "slots_available",
+            "data": "$.has_slots",
+            "context": "Boolean: true if there are available slots, false if none"
+          }
+        ],
+        "text": "Perfecto. Dame un segundo mientras reviso los horarios disponibles.",
+        "prompt": "# Zona horaria\nCleveland (America/New_York).\n\n# Lógica post-webhook\n- Si slots_available es false o available_slots está vacío:\nAhorita no tengo horarios disponibles para esa propiedad.\n¿Te sirve que te llame mañana con nuevos horarios, o prefieres decirme 2 opciones de día/hora que te sirvan y yo te confirmo por correo?\n\n- Si hay slots disponibles:\nTengo estos horarios disponibles para ver la propiedad en {{property_address}}:\n(Lee los primeros 3 slots de available_slots)\n(Si hay más: \"si ninguna te sirve, tengo otras opciones.\")\n\n¿Cuál te queda mejor? Puedes decir el número o el horario.\n\n# Reglas\n- Lee máximo 3 a 5 opciones.\n- Si el usuario pide otro día/hora, ofrece opciones cercanas.\n- Si el usuario elige un slot, pasar a CONFIRMAR/RESERVAR.",
+        "responsePathways": [],
+        "isStart": false
+      }
+    },
+
+    {
+      "id": "showing-reserve",
+      "type": "Webhook",
+      "position": { "x": 1750, "y": -260 },
+      "data": {
+        "name": "Showing: Confirm & Reserve + Email Confirmation",
+        "url": "https://glzzzthgotfwoiaranmp.supabase.co/functions/v1/pathway-webhook",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "x-webhook-secret": "{{webhook_secret}}"
+        },
+        "body": "{\"action\":\"reserve_showing\",\"property_id\":\"{{property_id}}\",\"property_address\":\"{{property_address}}\",\"organization_id\":\"{{organization_id}}\",\"lead_id\":\"{{lead_id}}\",\"lead_email\":\"{{lead_email}}\",\"lead_name\":\"{{lead_first_name}} {{lead_last_name}}\",\"selected_slot\":\"{{selected_slot}}\",\"call_id\":\"{{call_id}}\"}",
+        "extractVars": [
+          ["selected_slot", "string", "The exact showing time slot the user selected from the available options, e.g. 'Tomorrow Friday 2/14 at 10:00 AM' or 'mañana a las 10'"]
+        ],
+        "responseData": [
+          {
+            "name": "reservation_success",
+            "data": "$.success",
+            "context": "Boolean: true if the showing was reserved successfully"
+          },
+          {
+            "name": "reservation_message",
+            "data": "$.message",
+            "context": "Human-readable result message"
+          },
+          {
+            "name": "confirmed_time",
+            "data": "$.confirmed_time",
+            "context": "The confirmed showing date/time in human-readable format"
+          }
+        ],
+        "text": "Perfecto, {{lead_first_name}}. Confirmo tu showing para {{selected_slot}} en {{property_address}}. Lo estoy confirmando ahora.",
+        "prompt": "# Lógica post-webhook\n- Si reservation_success es true:\nYa quedó confirmado tu showing para {{confirmed_time}}.\nTe mando un correo de confirmación con la dirección y el horario a {{lead_email}}.\n¿Ese sigue siendo tu email?\n\n- Si confirma el email o dice \"sí\":\nPerfecto. Te llega en un momento. Si necesitas reprogramar, responde ese correo.\n\n- Si reservation_success es false:\n{{reservation_message}}\nDame un momento para darte otras opciones.\n(Volver a ofrecer slots)\n\n# Reglas\n- No vuelvas a pedir teléfono/nombre; ya están.\n- Solo confirma el email si el usuario duda.",
+        "responsePathways": [
+          ["reservation_success", "==", "false", {"id": "showing-fetch-slots", "name": "Showing: Offer Available Slots"}]
+        ],
+        "isStart": false
+      }
+    },
+
+    {
+      "id": "application-doorloop",
+      "type": "Webhook",
+      "position": { "x": 1400, "y": -120 },
+      "data": {
+        "name": "Start Application (DoorLoop Email)",
+        "url": "https://glzzzthgotfwoiaranmp.supabase.co/functions/v1/pathway-webhook",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "x-webhook-secret": "{{webhook_secret}}"
+        },
+        "body": "{\"action\":\"send_application\",\"property_id\":\"{{property_id}}\",\"property_address\":\"{{property_address}}\",\"organization_id\":\"{{organization_id}}\",\"lead_id\":\"{{lead_id}}\",\"lead_email\":\"{{lead_email}}\",\"lead_name\":\"{{lead_first_name}} {{lead_last_name}}\",\"call_id\":\"{{call_id}}\"}",
+        "extractVars": [
+          ["confirmed_email", "string", "The email address the user confirmed or corrected for receiving the application"]
+        ],
+        "responseData": [
+          {
+            "name": "application_success",
+            "data": "$.success",
+            "context": "Boolean: true if DoorLoop application was sent successfully"
+          },
+          {
+            "name": "application_message",
+            "data": "$.message",
+            "context": "Result message from the application send attempt"
+          }
+        ],
+        "text": "Perfecto. Te envío la aplicación por DoorLoop a tu email ahora mismo.",
+        "prompt": "# Lógica pre-webhook\nAntes de enviar, confirma el email:\nSolo confirmo: ¿tu email es {{lead_email}}?\n\n- Si dice sí -> enviar (el webhook ya se ejecutó con el email del sistema).\n- Si corrige el email -> usar confirmed_email para la siguiente interacción y notificar que se enviará al email corregido.\n\n# Lógica post-webhook\n- Si application_success es true:\nListo. Te la acabo de enviar. Revisa tu inbox y tu spam por si acaso.\nSi te atoras en algún paso, nos puedes llamar y te guiamos.\n\n- Si application_success es false:\nEstoy viendo un error al enviarla ahora mismo.\n¿Prefieres que te llame en un rato para enviártela apenas se habilite?\n(Si dice sí -> ir a CALLBACK INTAKE)\n\n# Reglas\n- No ofrezcas SMS para aplicación.\n- Mantén el cierre corto y claro.",
+        "responsePathways": [
+          ["application_success", "==", "false", {"id": "callback-intake", "name": "Later: Callback Intake"}]
+        ],
+        "isStart": false
+      }
+    },
+
+    {
+      "id": "answer-questions",
+      "type": "Default",
+      "position": { "x": 1400, "y": 20 },
+      "data": {
+        "name": "Answer Questions Briefly",
+        "prompt": "# Objetivo\nResolver dudas rápidas sin perder el control del flujo.\n\n# Datos disponibles para responder\n- Dirección: {{property_address}}\n- Renta: {{property_rent}}/mes\n- Habitaciones: {{property_bedrooms}} bed / {{property_bathrooms}} bath\n\n# Instrucciones\n- Responde corto y claro usando los datos disponibles.\n- Si preguntan por algo que no tienes (requisitos específicos, pet policy, utilidades incluidas, etc.): \"Te lo mando por email a {{lead_email}} ahora mismo.\"\n- Luego vuelve a cerrar con las opciones:\n\"¿Quieres agendar showing (1) o iniciar aplicación (2)?\"",
+        "isStart": false,
+        "conditionExamples": [],
+        "dialogueExamples": [],
+        "pathwayExamples": []
+      }
+    },
+
+    {
+      "id": "callback-intake",
+      "type": "Default",
+      "position": { "x": 700, "y": 140 },
+      "data": {
+        "name": "Later: Callback Intake",
+        "prompt": "# Objetivo\nEntender cuándo quiere el callback (hoy, mañana, tarde, etc.) sin hacer 20 preguntas.\n\n# Zona horaria\nCleveland (America/New_York).\n\n# Guion\nPerfecto. ¿Te queda mejor hoy más tarde o mañana?\n\n- Si dice HOY:\n¿Más bien en la tarde o en la noche?\n\n- Si dice MAÑANA:\n¿En la mañana o en la tarde?\n\n- Si el usuario da un horario específico:\nPerfecto. Lo intento a esa hora.\n\n# Reglas\n- No pidas 2-3 datos: ya tienes contacto.\n- Después de tener una ventana (mañana mañana / mañana tarde / hoy tarde / hora específica) pasa a OFRECER 2 OPCIONES concretas.",
+        "isStart": false,
+        "conditionExamples": [],
+        "dialogueExamples": [],
+        "pathwayExamples": []
+      }
+    },
+
+    {
+      "id": "callback-offer-times",
+      "type": "Default",
+      "position": { "x": 1050, "y": 140 },
+      "data": {
+        "name": "Callback: Offer 2 Concrete Times",
+        "prompt": "# Objetivo\nProponer 2 horarios concretos para callback (Cleveland) y que el usuario elija uno.\n\n# Horarios default por ventana\n- mañana mañana: 10:00 AM o 11:30 AM\n- mañana tarde: 3:00 PM o 5:30 PM\n- hoy tarde: 4:00 PM o 6:00 PM\n- hoy noche: 7:00 PM o 8:00 PM\n\n# Guion\nPerfecto. Te puedo llamar en uno de estos dos horarios (hora Cleveland):\n1) (option_1)\n2) (option_2)\n¿Cuál prefieres?\n\n# Reglas\n- Si el usuario sugiere otra hora, intenta una vez acomodarlo: \"¿Te sirve (hora cercana) o (otra cercana)?\"\n- Si insiste en una hora exacta, acéptala.\n- Una vez que el usuario elige, pasar a CONFIRMAR CALLBACK.",
+        "isStart": false,
+        "conditionExamples": [],
+        "dialogueExamples": [],
+        "pathwayExamples": []
+      }
+    },
+
+    {
+      "id": "callback-confirm",
+      "type": "Webhook",
+      "position": { "x": 1400, "y": 140 },
+      "data": {
+        "name": "Callback: Confirm & Create",
+        "url": "https://glzzzthgotfwoiaranmp.supabase.co/functions/v1/pathway-webhook",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "x-webhook-secret": "{{webhook_secret}}"
+        },
+        "body": "{\"action\":\"create_callback\",\"lead_id\":\"{{lead_id}}\",\"lead_phone\":\"{{lead_phone}}\",\"property_id\":\"{{property_id}}\",\"property_address\":\"{{property_address}}\",\"organization_id\":\"{{organization_id}}\",\"callback_time\":\"{{callback_time}}\",\"callback_window\":\"{{callback_window}}\",\"call_id\":\"{{call_id}}\"}",
+        "extractVars": [
+          ["callback_time", "string", "The specific callback date and time the user confirmed, e.g. 'mañana a las 3 PM' or 'tomorrow at 10 AM'"],
+          ["callback_window", "string", "The general time window: 'today_afternoon', 'today_evening', 'tomorrow_morning', 'tomorrow_afternoon', or a specific time"]
+        ],
+        "responseData": [
+          {
+            "name": "callback_success",
+            "data": "$.success",
+            "context": "Boolean: true if callback was created in the system"
+          },
+          {
+            "name": "callback_confirmed_time",
+            "data": "$.confirmed_time",
+            "context": "The confirmed callback time in human-readable format"
+          }
+        ],
+        "text": "Perfecto. Agendando tu llamada para {{callback_time}}.",
+        "prompt": "# Lógica post-webhook\n- Si callback_success es true:\nListo, ya quedó agendado. Te llamo el {{callback_confirmed_time}} hora Cleveland.\nSi necesitas cambiarlo, nos llamas o respondes el correo.\n\n- Si callback_success es false:\nHubo un problema al agendar. Pero no te preocupes, te voy a llamar de vuelta en ese horario.\nQuedamos entonces para {{callback_time}}.\n\n# Reglas\n- No vuelvas a pedir teléfono/email.\n- Mantén cierre corto.",
+        "responsePathways": [],
+        "isStart": false
+      }
+    },
+
+    {
+      "id": "call-end",
+      "type": "End Call",
+      "position": { "x": 2100, "y": -20 },
+      "data": {
+        "name": "Call Completion",
+        "prompt": "Gracias por tu tiempo, {{lead_first_name}}. Si necesitas algo más sobre la propiedad en {{property_address}}, llámanos cuando quieras. Que tengas buen día."
+      }
+    }
+  ],
+
+  "edges": [
+    {
+      "id": "edge-greeting-to-decision",
+      "source": "greeting",
+      "target": "now-vs-later",
+      "data": { "label": "Hacer pregunta (now vs later)" }
+    },
+    {
+      "id": "edge-decision-now",
+      "source": "now-vs-later",
+      "target": "now-info",
+      "data": { "label": "Usuario dice \"yes\"/\"ahora\" o marca 1" }
+    },
+    {
+      "id": "edge-decision-later",
+      "source": "now-vs-later",
+      "target": "callback-intake",
+      "data": { "label": "Usuario dice \"later\"/\"después\" o marca 2" }
+    },
+    {
+      "id": "edge-decision-unclear",
+      "source": "now-vs-later",
+      "target": "clarify-now-later",
+      "data": { "label": "Silencio / ambiguo" }
+    },
+    {
+      "id": "edge-clarify-retry",
+      "source": "clarify-now-later",
+      "target": "now-vs-later",
+      "data": { "label": "Reintentar elección" }
+    },
+
+    {
+      "id": "edge-info-to-choose",
+      "source": "now-info",
+      "target": "choose-next-step",
+      "data": { "label": "Continuar a siguiente paso" }
+    },
+
+    {
+      "id": "edge-choose-showing",
+      "source": "choose-next-step",
+      "target": "showing-fetch-slots",
+      "data": { "label": "Quiere showing / marca 1" }
+    },
+    {
+      "id": "edge-slots-to-reserve",
+      "source": "showing-fetch-slots",
+      "target": "showing-reserve",
+      "data": { "label": "Usuario elige un horario" }
+    },
+    {
+      "id": "edge-reserve-to-end",
+      "source": "showing-reserve",
+      "target": "call-end",
+      "data": { "label": "Showing confirmado + email enviado" }
+    },
+
+    {
+      "id": "edge-choose-application",
+      "source": "choose-next-step",
+      "target": "application-doorloop",
+      "data": { "label": "Quiere application / marca 2" }
+    },
+    {
+      "id": "edge-application-to-end",
+      "source": "application-doorloop",
+      "target": "call-end",
+      "data": { "label": "Aplicación enviada (DoorLoop por email)" }
+    },
+
+    {
+      "id": "edge-choose-questions",
+      "source": "choose-next-step",
+      "target": "answer-questions",
+      "data": { "label": "Tiene preguntas / marca 3" }
+    },
+    {
+      "id": "edge-questions-back",
+      "source": "answer-questions",
+      "target": "choose-next-step",
+      "data": { "label": "Volver a elegir (showing o application)" }
+    },
+
+    {
+      "id": "edge-callback-intake-to-times",
+      "source": "callback-intake",
+      "target": "callback-offer-times",
+      "data": { "label": "Ya tengo ventana (hoy/mañana/mañana tarde/etc.)" }
+    },
+    {
+      "id": "edge-times-to-confirm",
+      "source": "callback-offer-times",
+      "target": "callback-confirm",
+      "data": { "label": "Usuario elige opción 1 o 2" }
+    },
+    {
+      "id": "edge-callback-to-end",
+      "source": "callback-confirm",
+      "target": "call-end",
+      "data": { "label": "Callback creado" }
+    }
+  ]
+}
