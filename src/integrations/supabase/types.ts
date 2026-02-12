@@ -2077,6 +2077,7 @@ export type Database = {
           openai_api_key: string | null
           organization_id: string
           persona_api_key: string | null
+          resend_api_key: string | null
           twilio_account_sid: string | null
           twilio_auth_token: string | null
           twilio_phone_number: string | null
@@ -2091,6 +2092,7 @@ export type Database = {
           openai_api_key?: string | null
           organization_id: string
           persona_api_key?: string | null
+          resend_api_key?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_phone_number?: string | null
@@ -2105,6 +2107,7 @@ export type Database = {
           openai_api_key?: string | null
           organization_id?: string
           persona_api_key?: string | null
+          resend_api_key?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_phone_number?: string | null

@@ -72,7 +72,6 @@ const INTEGRATION_KEYS: IntegrationKey[] = [
     label: 'Resend API Key',
     description: 'API key for sending email notifications',
     testable: true,
-    isSecretEnv: true,
   },
 ];
 
