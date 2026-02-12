@@ -3248,14 +3248,18 @@ export type Database = {
       }
       get_source_performance: { Args: { _days?: number }; Returns: Json }
       get_user_id: { Args: { _auth_user_id: string }; Returns: string }
+      get_user_internal_id: { Args: never; Returns: string }
+      get_user_org_id: { Args: never; Returns: string }
       get_user_organization_id: {
         Args: { _auth_user_id: string }
         Returns: string
       }
-      get_user_role: {
-        Args: { _auth_user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
+      get_user_role:
+        | { Args: never; Returns: Database["public"]["Enums"]["app_role"] }
+        | {
+            Args: { _auth_user_id: string }
+            Returns: Database["public"]["Enums"]["app_role"]
+          }
       get_zip_code_analytics: { Args: { _days?: number }; Returns: Json }
       habakkuk_check_alerts: { Args: never; Returns: Json }
       handle_sms_opt_out: {
@@ -3269,6 +3273,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
+      is_editor_or_above: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _auth_user_id: string }; Returns: boolean }
       joseph_compliance_check: {
         Args: {

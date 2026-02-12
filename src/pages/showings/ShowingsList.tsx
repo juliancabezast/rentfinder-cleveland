@@ -215,7 +215,7 @@ const ShowingsList: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="inline-flex w-full sm:w-auto">
+        <TabsList className="inline-flex w-full sm:w-auto h-auto">
           <TabsTrigger value="showings" className="flex-1 sm:flex-initial gap-2">
             <CalendarDays className="h-4 w-4" />
             <span>Showings</span>
