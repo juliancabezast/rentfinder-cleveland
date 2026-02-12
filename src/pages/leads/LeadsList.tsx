@@ -52,31 +52,49 @@ import { CsvImportDialog } from "@/components/leads/CsvImportDialog";
 import LeadFilterPills, { ActiveFilters, FilterCounts } from "@/components/leads/LeadFilterPills";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Biblical agent name mapping — 12 operational agents
+// Biblical agent name mapping — 13 operational agents + 1 webhook
+// Keys match agent_type values from agent_tasks table (underscore format from DB)
 const AGENT_BIBLICAL_NAMES: Record<string, string> = {
-  // Active agents
-  "task-dispatcher": "Nehemiah",
-  "scoring": "Daniel",
+  // Actual DB agent_keys (underscore format — from agent_tasks.agent_type)
+  main_inbound: "Aaron",
+  bland_call_webhook: "Deborah",
+  sms_inbound: "Ruth",
+  hemlane_parser: "Esther",
+  scoring: "Daniel",
+  transcript_analyst: "Isaiah",
+  task_dispatcher: "Nehemiah",
+  recapture: "Elijah",
+  showing_confirmation: "Samuel",
+  conversion_predictor: "Solomon",
+  insight_generator: "Moses",
+  report_generator: "David",
+  doorloop_pull: "Ezra",
+  cost_tracker: "Zacchaeus",
+  // Edge function names (hyphen format — in case agent_type uses this format)
   "twilio-inbound": "Aaron",
   "bland-call-webhook": "Deborah",
   "sms-inbound": "Ruth",
-  "recapture": "Elijah",
-  "showing-confirmation": "Samuel",
-  "noshow-followup": "Samuel",
-  "post-showing": "Samuel",
+  "hemlane-parser": "Esther",
   "transcript-analyst": "Isaiah",
+  "task-dispatcher": "Nehemiah",
+  "showing-confirmation": "Samuel",
   "conversion-predictor": "Solomon",
   "insight-generator": "Moses",
   "report-generator": "David",
   "doorloop-pull": "Ezra",
-  "doorloop-push": "Ezra",
   "cost-tracker": "Zacchaeus",
-  "health-checker": "Zacchaeus",
-  "hemlane-parser": "Esther",
-  // Legacy mappings (tasks created before reorganization)
-  "welcome-sequence": "Elijah",
+  // Legacy agent_type values (tasks from before reorganization)
+  no_show_followup: "Samuel",
+  no_show_follow_up: "Samuel",
+  post_showing: "Samuel",
+  "noshow-followup": "Samuel",
+  "post-showing": "Samuel",
+  campaign: "Elijah",
+  campaign_voice: "Elijah",
+  welcome_sequence: "Elijah",
   "campaign-orchestrator": "Nehemiah",
   "campaign-voice": "Elijah",
+  "welcome-sequence": "Elijah",
   "notification-dispatcher": "Nehemiah",
   "compliance-check": "Nehemiah",
   "sheets-backup": "Ezra",

@@ -22,12 +22,26 @@ interface AgentTask {
   context: Record<string, unknown> | null;
 }
 
-// Map agent_type to biblical names — 12 operational agents
+// Map agent_type to biblical names — 13 operational agents + 1 webhook
 const AGENT_NAMES: Record<string, string> = {
+  // Actual DB agent_keys
+  main_inbound: "Aaron",
+  bland_call_webhook: "Deborah",
+  sms_inbound: "Ruth",
+  hemlane_parser: "Esther",
+  scoring: "Daniel",
+  transcript_analyst: "Isaiah",
+  task_dispatcher: "Nehemiah",
   recapture: "Elijah",
+  showing_confirmation: "Samuel",
+  conversion_predictor: "Solomon",
+  insight_generator: "Moses",
+  report_generator: "David",
+  doorloop_pull: "Ezra",
+  cost_tracker: "Zacchaeus",
+  // Legacy agent_type values
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
-  showing_confirmation: "Samuel",
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",

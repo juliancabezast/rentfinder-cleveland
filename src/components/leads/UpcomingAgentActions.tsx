@@ -45,12 +45,26 @@ interface AgentTask {
   max_attempts: number | null;
 }
 
-// Map agent_type to biblical names — 12 operational agents
+// Map agent_type to biblical names — 13 operational agents + 1 webhook
 const AGENT_NAMES: Record<string, string> = {
+  // Actual DB agent_keys
+  main_inbound: "Aaron",
+  bland_call_webhook: "Deborah",
+  sms_inbound: "Ruth",
+  hemlane_parser: "Esther",
+  scoring: "Daniel",
+  transcript_analyst: "Isaiah",
+  task_dispatcher: "Nehemiah",
   recapture: "Elijah",
+  showing_confirmation: "Samuel",
+  conversion_predictor: "Solomon",
+  insight_generator: "Moses",
+  report_generator: "David",
+  doorloop_pull: "Ezra",
+  cost_tracker: "Zacchaeus",
+  // Legacy agent_type values
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
-  showing_confirmation: "Samuel",
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
@@ -58,16 +72,35 @@ const AGENT_NAMES: Record<string, string> = {
   campaign_sms: "Ruth",
 };
 
-// Agent type to color mapping
+// Agent type to color mapping (by department)
 const AGENT_COLORS: Record<string, string> = {
+  // Recepción (teal)
+  main_inbound: "bg-teal-100 text-teal-700 border-teal-200",
+  bland_call_webhook: "bg-teal-100 text-teal-700 border-teal-200",
+  sms_inbound: "bg-teal-100 text-teal-700 border-teal-200",
+  hemlane_parser: "bg-teal-100 text-teal-700 border-teal-200",
+  // Evaluación (blue)
+  scoring: "bg-blue-100 text-blue-700 border-blue-200",
+  transcript_analyst: "bg-blue-100 text-blue-700 border-blue-200",
+  // Operaciones (purple)
+  task_dispatcher: "bg-purple-100 text-purple-700 border-purple-200",
+  // Ventas (amber)
   recapture: "bg-amber-100 text-amber-700 border-amber-200",
+  showing_confirmation: "bg-amber-100 text-amber-700 border-amber-200",
+  // Inteligencia (green)
+  conversion_predictor: "bg-green-100 text-green-700 border-green-200",
+  insight_generator: "bg-green-100 text-green-700 border-green-200",
+  report_generator: "bg-green-100 text-green-700 border-green-200",
+  // Administración (slate)
+  doorloop_pull: "bg-slate-100 text-slate-700 border-slate-200",
+  cost_tracker: "bg-slate-100 text-slate-700 border-slate-200",
+  // Legacy
   no_show_followup: "bg-red-100 text-red-700 border-red-200",
   no_show_follow_up: "bg-red-100 text-red-700 border-red-200",
-  showing_confirmation: "bg-blue-100 text-blue-700 border-blue-200",
   post_showing: "bg-green-100 text-green-700 border-green-200",
-  campaign: "bg-purple-100 text-purple-700 border-purple-200",
-  campaign_voice: "bg-purple-100 text-purple-700 border-purple-200",
-  campaign_sms: "bg-purple-100 text-purple-700 border-purple-200",
+  campaign: "bg-amber-100 text-amber-700 border-amber-200",
+  campaign_voice: "bg-amber-100 text-amber-700 border-amber-200",
+  campaign_sms: "bg-amber-100 text-amber-700 border-amber-200",
   welcome_sequence: "bg-amber-100 text-amber-700 border-amber-200",
 };
 

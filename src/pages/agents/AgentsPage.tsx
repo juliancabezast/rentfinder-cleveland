@@ -53,50 +53,48 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format, formatDistanceToNow, startOfHour, addHours, isWithinInterval } from "date-fns";
 import { cn } from "@/lib/utils";
 
-// Biblical name to functional name mapping — 12 operational agents
+// Biblical name to functional name mapping — 13 operational agents + 1 webhook
+// Keys match agent_key values from agents_registry table
 const AGENT_DISPLAY_NAMES: Record<string, string> = {
-  // Dept 1: Recepción
-  aaron: "Inbound Calls",
-  twilio_inbound: "Inbound Calls",
-  deborah: "Call Processor & Smart Matcher",
-  bland_call: "Call Processor & Smart Matcher",
-  ruth: "SMS Conversational Agent",
+  // Dept 1: Recepción — actual DB agent_keys
+  main_inbound: "Inbound Calls",
+  bland_call_webhook: "Call Processor & Smart Matcher",
   sms_inbound: "SMS Conversational Agent",
+  hemlane_parser: "Hemlane Email Parser",
   // Dept 2: Evaluación
-  daniel: "Lead Scoring (AI)",
   scoring: "Lead Scoring (AI)",
-  isaiah: "Transcript Analyst",
   transcript_analyst: "Transcript Analyst",
   // Dept 3: Operaciones
-  nehemiah: "Operations Director",
   task_dispatcher: "Operations Director",
   // Dept 4: Ventas
-  elijah: "Outbound Sales & Recapture",
   recapture: "Outbound Sales & Recapture",
+  showing_confirmation: "Showing Lifecycle",
+  // Dept 5: Inteligencia
+  conversion_predictor: "Conversion Predictor",
+  insight_generator: "Insight Generator",
+  report_generator: "Report Generator",
+  // Dept 6: Administración
+  doorloop_pull: "Doorloop Bridge",
+  cost_tracker: "Health & Cost Monitor",
+  // Biblical name lookups (getDisplayName also checks biblical_name)
+  aaron: "Inbound Calls",
+  deborah: "Call Processor & Smart Matcher",
+  ruth: "SMS Conversational Agent",
+  esther: "Hemlane Email Parser",
+  daniel: "Lead Scoring (AI)",
+  isaiah: "Transcript Analyst",
+  nehemiah: "Operations Director",
+  elijah: "Outbound Sales & Recapture",
+  samuel: "Showing Lifecycle",
+  solomon: "Conversion Predictor",
+  moses: "Insight Generator",
+  david: "Report Generator",
+  ezra: "Doorloop Bridge",
+  zacchaeus: "Health & Cost Monitor",
+  // Legacy agent_type values (tasks created before reorganization)
   no_show_followup: "Showing Lifecycle",
   no_show_follow_up: "Showing Lifecycle",
-  samuel: "Showing Lifecycle",
-  showing_confirmation: "Showing Lifecycle",
   post_showing: "Showing Lifecycle",
-  // Dept 6: Inteligencia
-  solomon: "Conversion Predictor",
-  conversion_predictor: "Conversion Predictor",
-  moses: "Insight Generator",
-  insight_generator: "Insight Generator",
-  david: "Report Generator",
-  report_generator: "Report Generator",
-  // Dept 7: Administración
-  ezra: "Doorloop Bridge",
-  doorloop_pull: "Doorloop Bridge",
-  doorloop_push: "Doorloop Bridge",
-  zacchaeus: "Health & Cost Monitor",
-  cost_tracker: "Health & Cost Monitor",
-  health_checker: "Health & Cost Monitor",
-  // Legacy mappings (tasks created before reorganization)
-  naomi: "Showing Lifecycle",
-  jonah: "Showing Lifecycle",
-  abigail: "Showing Lifecycle",
-  priscilla: "Showing Lifecycle",
   campaign: "Outbound Sales & Recapture",
   campaign_voice: "Outbound Sales & Recapture",
   welcome_sequence: "Outbound Sales & Recapture",
