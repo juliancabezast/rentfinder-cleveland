@@ -186,7 +186,7 @@ const AgentsPage: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="inline-flex w-full sm:w-auto">
+        <TabsList className="inline-flex w-full sm:w-auto h-auto">
           <TabsTrigger value="overview" className="flex-1 sm:flex-initial gap-2">
             <Bot className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
