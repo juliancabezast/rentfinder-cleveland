@@ -239,7 +239,7 @@ export const AgentsTab: React.FC = () => {
           </div>
           {/* Category Tabs */}
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mt-3">
-            <TabsList className="flex-wrap h-auto p-1">
+            <TabsList className="inline-flex flex-wrap h-auto gap-1">
               <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
               {CATEGORY_CONFIG.map((cat) => (
                 <TabsTrigger key={cat.key} value={cat.key} className="text-xs">

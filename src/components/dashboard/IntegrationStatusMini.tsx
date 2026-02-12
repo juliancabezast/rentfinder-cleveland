@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import {
   Tooltip,
   TooltipContent,
@@ -122,23 +122,56 @@ export const IntegrationStatusMini: React.FC = () => {
     return () => clearInterval(interval);
   }, [orgId, fetchHealth]);
 
-  // Manual refresh - triggers the health checker edge function
-  const handleRefresh = async () => {
-    if (!orgId) return;
+  // Trigger health check (shared between manual and auto)
+  const triggerHealthCheck = useCallback(async (silent = false) => {
+    if (!orgId || isRefreshing) return;
 
     setIsRefreshing(true);
     try {
       await supabase.functions.invoke("agent-health-checker", {
         body: { organization_id: orgId, mode: "full" },
       });
-      toast.success("Pulse activated — scanning all services");
+      if (!silent) toast.success("Pulse activated — scanning all services");
     } catch (err) {
       console.error("Failed to trigger health check:", err);
-      toast.error("Failed to trigger health check");
+      if (!silent) toast.error("Failed to trigger health check");
     } finally {
       setTimeout(() => setIsRefreshing(false), 3000);
     }
-  };
+  }, [orgId, isRefreshing]);
+
+  // Manual refresh
+  const handleRefresh = () => triggerHealthCheck(false);
+
+  // Auto-trigger if last check > 60 minutes ago (on load + every 60 min)
+  const autoCheckRef = React.useRef(false);
+  useEffect(() => {
+    if (!orgId || isLoading || autoCheckRef.current) return;
+
+    // Check staleness on mount
+    let mostRecent: Date | null = null;
+    healthMap.forEach((h) => {
+      if (h.last_checked_at) {
+        const d = new Date(h.last_checked_at);
+        if (!mostRecent || d > mostRecent) mostRecent = d;
+      }
+    });
+
+    const isStale = !mostRecent || differenceInMinutes(new Date(), mostRecent) >= 60;
+    if (isStale && healthMap.size > 0) {
+      autoCheckRef.current = true;
+      triggerHealthCheck(true);
+    }
+  }, [orgId, isLoading, healthMap, triggerHealthCheck]);
+
+  // Recurring auto-check every 60 minutes while dashboard is open
+  useEffect(() => {
+    if (!orgId) return;
+    const interval = setInterval(() => {
+      triggerHealthCheck(true);
+    }, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [orgId, triggerHealthCheck]);
 
   // Get status for a service
   const getServiceStatus = (service: string): HealthStatus => {

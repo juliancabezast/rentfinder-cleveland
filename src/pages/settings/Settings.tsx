@@ -30,70 +30,20 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs defaultValue="organization" className="space-y-6">
-        <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0">
-          <TabsTrigger
-            value="organization"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Organization
-          </TabsTrigger>
-          <TabsTrigger
-            value="agents"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Agents
-          </TabsTrigger>
-          <TabsTrigger
-            value="lead-capture"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Lead Capture
-          </TabsTrigger>
-          <TabsTrigger
-            value="scoring"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Scoring
-          </TabsTrigger>
-          <TabsTrigger
-            value="communications"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Communications
-          </TabsTrigger>
-          <TabsTrigger
-            value="showings"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Showings
-          </TabsTrigger>
-          <TabsTrigger
-            value="compliance"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Compliance
-          </TabsTrigger>
-          <TabsTrigger
-            value="integrations"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Integrations
-          </TabsTrigger>
+        <TabsList className="inline-flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="organization">Organization</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
+          <TabsTrigger value="lead-capture">Lead Capture</TabsTrigger>
+          <TabsTrigger value="scoring">Scoring</TabsTrigger>
+          <TabsTrigger value="communications">Communications</TabsTrigger>
+          <TabsTrigger value="showings">Showings</TabsTrigger>
+          <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
           {isAdmin && (
-            <TabsTrigger
-              value="investor-reports"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              Investor Reports
-            </TabsTrigger>
+            <TabsTrigger value="investor-reports">Investor Reports</TabsTrigger>
           )}
           {isAdmin && (
-            <TabsTrigger
-              value="demo-data"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              Demo Data
-            </TabsTrigger>
+            <TabsTrigger value="demo-data">Demo Data</TabsTrigger>
           )}
         </TabsList>
 

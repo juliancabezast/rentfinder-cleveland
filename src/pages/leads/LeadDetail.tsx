@@ -74,9 +74,6 @@ const CONSENT_TYPE_ICONS: Record<string, React.ElementType> = {
   whatsapp_marketing: MessageSquare,
 };
 
-// Tab trigger styles (underline style)
-const tabTriggerClass =
-  "rounded-none border-b-2 border-transparent pb-2 pt-0 px-0 data-[state=active]:border-[#ffb22c] data-[state=active]:text-[#370d4b] data-[state=active]:font-semibold data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[#6b7280] hover:text-foreground transition-colors";
 
 const LeadDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -329,25 +326,13 @@ const LeadDetail: React.FC = () => {
 
       {/* 5 Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="h-auto p-0 bg-transparent justify-start gap-6 border-b border-[#e5e7eb] rounded-none w-full">
-          <TabsTrigger value="overview" className={tabTriggerClass}>
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="messages" className={tabTriggerClass}>
-            Messages
-          </TabsTrigger>
-          <TabsTrigger value="activity" className={tabTriggerClass}>
-            Activity
-          </TabsTrigger>
-          <TabsTrigger value="notes" className={tabTriggerClass}>
-            Notes
-          </TabsTrigger>
-          <TabsTrigger value="matching" className={tabTriggerClass}>
-            Matching
-          </TabsTrigger>
-          <TabsTrigger value="consent" className={tabTriggerClass}>
-            Consent Log
-          </TabsTrigger>
+        <TabsList className="inline-flex flex-wrap h-auto gap-1 w-full sm:w-auto">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="messages">Messages</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="matching">Matching</TabsTrigger>
+          <TabsTrigger value="consent">Consent Log</TabsTrigger>
         </TabsList>
 
         {/* TAB 1: Overview - 2x2 Grid */}

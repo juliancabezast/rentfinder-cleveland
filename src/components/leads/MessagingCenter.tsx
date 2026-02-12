@@ -241,7 +241,7 @@ export const MessagingCenter: React.FC<MessagingCenterProps> = ({
           Messages
         </CardTitle>
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "sms" | "whatsapp")}>
-          <TabsList className="h-8">
+          <TabsList className="h-8 inline-flex">
             <TabsTrigger value="sms" className="text-xs px-3 h-7 gap-1">
               <MessageSquare className="h-3 w-3" />
               SMS

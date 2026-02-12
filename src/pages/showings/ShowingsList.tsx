@@ -215,13 +215,13 @@ const ShowingsList: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="showings" className="flex items-center gap-2">
+        <TabsList className="inline-flex w-full sm:w-auto">
+          <TabsTrigger value="showings" className="flex-1 sm:flex-initial gap-2">
             <CalendarDays className="h-4 w-4" />
             <span>Showings</span>
           </TabsTrigger>
           {permissions.canViewOwnRoute && (
-            <TabsTrigger value="route" className="flex items-center gap-2">
+            <TabsTrigger value="route" className="flex-1 sm:flex-initial gap-2">
               <Map className="h-4 w-4" />
               <span>My Route</span>
             </TabsTrigger>

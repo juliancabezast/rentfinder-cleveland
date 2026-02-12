@@ -360,16 +360,16 @@ const KnowledgeHub: React.FC = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="documents" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="documents" className="flex items-center gap-2">
+        <TabsList className="inline-flex w-full sm:w-auto">
+          <TabsTrigger value="documents" className="flex-1 sm:flex-initial gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Documents</span>
           </TabsTrigger>
-          <TabsTrigger value="chat" className="flex items-center gap-2">
+          <TabsTrigger value="chat" className="flex-1 sm:flex-initial gap-2">
             <MessageSquare className="h-4 w-4" />
             <span className="hidden sm:inline">AI Chat</span>
           </TabsTrigger>
-          <TabsTrigger value="export" className="flex items-center gap-2">
+          <TabsTrigger value="export" className="flex-1 sm:flex-initial gap-2">
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Export</span>
           </TabsTrigger>

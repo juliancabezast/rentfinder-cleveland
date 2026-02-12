@@ -201,10 +201,10 @@ const CostDashboard: React.FC = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="per-lead">Per Lead</TabsTrigger>
-          <TabsTrigger value="per-source">Per Source</TabsTrigger>
+        <TabsList className="inline-flex w-full sm:w-auto">
+          <TabsTrigger value="overview" className="flex-1 sm:flex-initial">Overview</TabsTrigger>
+          <TabsTrigger value="per-lead" className="flex-1 sm:flex-initial">Per Lead</TabsTrigger>
+          <TabsTrigger value="per-source" className="flex-1 sm:flex-initial">Per Source</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Overview */}

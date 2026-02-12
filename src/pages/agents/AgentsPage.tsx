@@ -425,16 +425,16 @@ const AgentsPage: React.FC = () => {
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="grid w-full sm:w-auto grid-cols-3">
-            <TabsTrigger value="workload" className="gap-2">
+          <TabsList className="inline-flex w-full sm:w-auto">
+            <TabsTrigger value="workload" className="flex-1 sm:flex-initial gap-2">
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">Workload</span>
             </TabsTrigger>
-            <TabsTrigger value="activity" className="gap-2">
+            <TabsTrigger value="activity" className="flex-1 sm:flex-initial gap-2">
               <Activity className="h-4 w-4" />
               <span className="hidden sm:inline">Activity Log</span>
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="gap-2">
+            <TabsTrigger value="schedule" className="flex-1 sm:flex-initial gap-2">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Schedule</span>
             </TabsTrigger>
