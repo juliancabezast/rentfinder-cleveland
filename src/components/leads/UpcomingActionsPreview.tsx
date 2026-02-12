@@ -22,17 +22,17 @@ interface AgentTask {
   context: Record<string, unknown> | null;
 }
 
-// Map agent_type to biblical names
+// Map agent_type to biblical names — 12 operational agents
 const AGENT_NAMES: Record<string, string> = {
-  recapture: "Naomi",
-  no_show_followup: "Elijah",
-  no_show_follow_up: "Elijah",
-  showing_confirmation: "Abigail",
-  post_showing: "Priscilla",
-  campaign: "Campaign",
-  welcome_sequence: "Lydia",
-  campaign_voice: "Joshua",
-  campaign_sms: "Moses",
+  recapture: "Elijah",
+  no_show_followup: "Samuel",
+  no_show_follow_up: "Samuel",
+  showing_confirmation: "Samuel",
+  post_showing: "Samuel",
+  campaign: "Elijah",
+  welcome_sequence: "Elijah",
+  campaign_voice: "Elijah",
+  campaign_sms: "Ruth",
 };
 
 // Action type icons

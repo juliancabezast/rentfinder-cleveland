@@ -45,17 +45,17 @@ interface AgentTask {
   max_attempts: number | null;
 }
 
-// Map agent_type to biblical names
+// Map agent_type to biblical names — 12 operational agents
 const AGENT_NAMES: Record<string, string> = {
-  recapture: "Naomi",
-  no_show_followup: "Elijah",
-  no_show_follow_up: "Elijah",
-  showing_confirmation: "Abigail",
-  post_showing: "Priscilla",
-  campaign: "Campaign",
-  welcome_sequence: "Lydia",
-  campaign_voice: "Joshua",
-  campaign_sms: "Moses",
+  recapture: "Elijah",
+  no_show_followup: "Samuel",
+  no_show_follow_up: "Samuel",
+  showing_confirmation: "Samuel",
+  post_showing: "Samuel",
+  campaign: "Elijah",
+  welcome_sequence: "Elijah",
+  campaign_voice: "Elijah",
+  campaign_sms: "Ruth",
 };
 
 // Agent type to color mapping
@@ -68,7 +68,7 @@ const AGENT_COLORS: Record<string, string> = {
   campaign: "bg-purple-100 text-purple-700 border-purple-200",
   campaign_voice: "bg-purple-100 text-purple-700 border-purple-200",
   campaign_sms: "bg-purple-100 text-purple-700 border-purple-200",
-  welcome_sequence: "bg-teal-100 text-teal-700 border-teal-200",
+  welcome_sequence: "bg-amber-100 text-amber-700 border-amber-200",
 };
 
 // Status colors

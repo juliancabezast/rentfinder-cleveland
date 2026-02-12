@@ -8,7 +8,7 @@ AI-powered lead management SaaS for property management. Automates the entire re
 ## Tech Stack
 - **Frontend**: React + TypeScript, Tailwind CSS, shadcn/ui (mandatory for all components)
 - **Backend**: Supabase (PostgreSQL) with 32 tables, 131 RLS policies, 19 DB functions, 12 triggers
-- **Edge Functions**: 39 Deno functions (25 core agents + 14 auxiliary)
+- **Edge Functions**: Deno functions (12 operational agents + utility functions + webhooks)
 - **Font**: Montserrat
 - **Auth**: Supabase Auth with 5 roles: super_admin, admin, editor, viewer, leasing_agent
 
@@ -30,19 +30,22 @@ AI-powered lead management SaaS for property management. Automates the entire re
 ### Multi-Tenancy
 Every table has `organization_id`. All RLS policies scope by user's org. Never query without org context.
 
-### AI Agents (Biblical Names)
-30 agents with biblical names. Key ones:
-- **Nehemiah** (task-dispatcher) - Orchestrates pending tasks, runs every 5 min
-- **Daniel** (scoring) - AI lead scoring with Fair Housing compliance
-- **Joseph** (compliance-check) - TCPA gate called by 9 outbound agents before any contact
-- **Zacchaeus** (record-cost) - Cost tracking called by 16 edge functions
-- **Aaron** (twilio-inbound) - Receives inbound calls
-- **Deborah** (bland-call-webhook) - Processes Bland.ai call completions
+### AI Agents (Biblical Names) — 12 Operational Agents
+Organized by department:
+- **Recepción**: Aaron (inbound calls), Deborah (call processor + smart matching), Ruth (SMS conversational agent)
+- **Evaluación**: Daniel (AI scoring, Fair Housing compliant), Isaiah (transcript analysis)
+- **Operaciones**: Nehemiah (sole dispatcher, cron every 5 min — campaigns included)
+- **Ventas**: Elijah (outbound sales & recapture), Samuel (full showing lifecycle: confirm + no-show + post-showing)
+- **Inteligencia**: Solomon (conversion predictor), Moses (insight generator), David (report generator)
+- **Administración**: Ezra (Doorloop Bridge, bidirectional sync), Zacchaeus (health monitoring + cost tracking)
+
+**Utility functions** (not agents): joseph_compliance_check(), send_notification(), send_email(), rebekah_match_properties(), backup_lead_to_sheets(), execute_campaign_call()
+**Webhook**: Esther (Hemlane email parser)
 
 ### Compliance (Non-negotiable)
 - **Fair Housing Act**: Scoring NEVER uses race, religion, sex, familial status, disability, age, or proxies
-- **TCPA**: All outbound contact requires prior consent. joseph_compliance_check gates all outbound agents
-- **Call Recording**: Disclosure played at start of every call
+- **TCPA**: All outbound contact requires prior consent. Each outbound agent calls joseph_compliance_check() (DB function) before any contact
+- **Call Recording**: Disclosure played at start of every call via Bland.ai configuration
 
 ### Human Takeover System
 Leads can be taken under manual control, pausing all AI automation. Requires mandatory 20-char reason note. `pause_lead_agent_tasks()` RPC pauses all pending agent_tasks.
@@ -128,6 +131,7 @@ new → contacted → engaged → nurturing → qualified → showing_scheduled 
   20. **Production Deployment Checklist**: Pre-launch, testing, post-launch items
   21. **What Remains**: Outstanding items for production
   22. **Latest Session Update**: Current session work
+  **After creating the snapshot**: Also copy the exact same content to `PROJECT.md` in the repo root, so `PROJECT.md` always reflects the latest generated documentation. This keeps the source of truth in sync with the most recent snapshot.
   No confirmation needed.
 
 ## Important Notes

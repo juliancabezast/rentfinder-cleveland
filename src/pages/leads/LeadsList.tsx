@@ -52,34 +52,35 @@ import { CsvImportDialog } from "@/components/leads/CsvImportDialog";
 import LeadFilterPills, { ActiveFilters, FilterCounts } from "@/components/leads/LeadFilterPills";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Biblical agent name mapping
+// Biblical agent name mapping — 12 operational agents
 const AGENT_BIBLICAL_NAMES: Record<string, string> = {
+  // Active agents
   "task-dispatcher": "Nehemiah",
-  "health-checker": "Raphael",
-  "notification-dispatcher": "Uriel",
-  "welcome-sequence": "Lydia",
   "scoring": "Daniel",
   "twilio-inbound": "Aaron",
   "bland-call-webhook": "Deborah",
-  "recapture": "Naomi",
-  "showing-confirmation": "Abigail",
-  "noshow-followup": "Elijah",
-  "post-showing": "Priscilla",
-  "sms-inbound": "Phoebe",
-  "hemlane-parser": "Ruth",
-  "compliance-check": "Joseph",
+  "sms-inbound": "Ruth",
+  "recapture": "Elijah",
+  "showing-confirmation": "Samuel",
+  "noshow-followup": "Samuel",
+  "post-showing": "Samuel",
+  "transcript-analyst": "Isaiah",
+  "conversion-predictor": "Solomon",
+  "insight-generator": "Moses",
+  "report-generator": "David",
+  "doorloop-pull": "Ezra",
+  "doorloop-push": "Ezra",
   "cost-tracker": "Zacchaeus",
-  "transcript-analyst": "Solomon",
-  "conversion-predictor": "Samuel",
-  "insight-generator": "Isaiah",
-  "report-generator": "Luke",
-  "sheets-backup": "Matthew",
-  "doorloop-pull": "Esther",
-  "doorloop-push": "Esther",
-  "smart-matcher": "Rebekah",
-  "paip-assistant": "PAIp",
-  "campaign-orchestrator": "Gideon",
-  "campaign-voice": "Gideon",
+  "health-checker": "Zacchaeus",
+  "hemlane-parser": "Esther",
+  // Legacy mappings (tasks created before reorganization)
+  "welcome-sequence": "Elijah",
+  "campaign-orchestrator": "Nehemiah",
+  "campaign-voice": "Elijah",
+  "notification-dispatcher": "Nehemiah",
+  "compliance-check": "Nehemiah",
+  "sheets-backup": "Ezra",
+  "smart-matcher": "Deborah",
 };
 
 type Lead = Tables<"leads">;
