@@ -128,3 +128,11 @@ verify_jwt = false
 
 [functions.submit-demo-request]
 verify_jwt = false
+
+# Bland.ai Pathway Webhooks
+[functions.pathway-webhook]
+verify_jwt = false
+
+# Public Showing Booking
+[functions.book-public-showing]
+verify_jwt = false

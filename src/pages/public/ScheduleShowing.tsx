@@ -163,9 +163,8 @@ const ScheduleShowing: React.FC = () => {
     setBookingError(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("pathway-webhook", {
+      const { data, error } = await supabase.functions.invoke("book-public-showing", {
         body: {
-          action: "book_public_showing",
           property_id: propertyId,
           organization_id: property.organization_id,
           slot_date: format(selectedDate, "yyyy-MM-dd"),
