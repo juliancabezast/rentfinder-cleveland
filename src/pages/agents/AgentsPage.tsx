@@ -187,19 +187,19 @@ const AgentsPage: React.FC = () => {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="inline-flex w-full sm:w-auto">
-          <TabsTrigger value="overview" className="flex-1 sm:flex-initial gap-2 h-8">
+          <TabsTrigger value="overview" className="flex-1 sm:flex-initial gap-2">
             <Bot className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="activity" className="flex-1 sm:flex-initial gap-2 h-8">
+          <TabsTrigger value="activity" className="flex-1 sm:flex-initial gap-2">
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">Activity</span>
           </TabsTrigger>
-          <TabsTrigger value="schedule" className="flex-1 sm:flex-initial gap-2 h-8">
+          <TabsTrigger value="schedule" className="flex-1 sm:flex-initial gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Schedule</span>
           </TabsTrigger>
-          <TabsTrigger value="department" className="flex-1 sm:flex-initial gap-2 h-8">
+          <TabsTrigger value="department" className="flex-1 sm:flex-initial gap-2">
             <Layers className="h-4 w-4" />
             <span className="hidden sm:inline">By Dept</span>
           </TabsTrigger>
