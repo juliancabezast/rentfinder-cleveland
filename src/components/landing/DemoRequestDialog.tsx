@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, Rocket } from "lucide-react";
 import { z } from "zod";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { SmsConsentCheckbox, buildConsentPayload } from "@/components/public/SmsConsentCheckbox";
 
 interface DemoRequestDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [smsConsent, setSmsConsent] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -67,6 +69,12 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
       return;
     }
 
+    // Require SMS consent when phone is provided
+    if (formData.phone.trim() && !smsConsent) {
+      setErrors({ smsConsent: "Please agree to receive SMS messages" });
+      return;
+    }
+
     setLoading(true);
     setErrors({});
 
@@ -84,6 +92,7 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
             full_name: formData.fullName.trim(),
             email: formData.email.trim().toLowerCase(),
             phone: formData.phone.trim().replace(/\D/g, ""),
+            ...buildConsentPayload(smsConsent),
           }),
         }
       );
@@ -114,6 +123,7 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
     setTimeout(() => {
       setSubmitted(false);
       setFormData({ fullName: "", email: "", phone: "" });
+      setSmsConsent(false);
       setErrors({});
     }, 300);
   };
@@ -196,6 +206,24 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
             )}
           </div>
 
+          <SmsConsentCheckbox
+            checked={smsConsent}
+            onCheckedChange={(checked) => {
+              setSmsConsent(checked);
+              if (errors.smsConsent) {
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.smsConsent;
+                  return next;
+                });
+              }
+            }}
+            error={!!errors.smsConsent}
+          />
+          {errors.smsConsent && (
+            <p className="text-xs text-destructive">{errors.smsConsent}</p>
+          )}
+
           {errors.form && (
             <p className="text-sm text-destructive text-center">{errors.form}</p>
           )}
@@ -208,14 +236,6 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
             {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
             Start Free Trial
           </Button>
-
-          <p className="text-xs text-muted-foreground text-center">
-            By submitting, you agree to our{" "}
-            <a href="/p/privacy-policy" className="text-primary underline hover:no-underline">
-              Privacy Policy
-            </a>
-            .
-          </p>
         </form>
       </DialogContent>
     </Dialog>

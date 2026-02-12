@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Gift, Home, CheckCircle, AlertCircle, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SmsConsentCheckbox, buildConsentPayload } from "@/components/public/SmsConsentCheckbox";
 
 interface ReferralInfo {
   referrer_name: string;
@@ -77,7 +77,7 @@ const ReferralPage: React.FC = () => {
     }
 
     if (!consent) {
-      toast.error("Please agree to receive calls and texts");
+      toast.error("Please agree to receive SMS messages");
       return;
     }
 
@@ -94,6 +94,7 @@ const ReferralPage: React.FC = () => {
             phone: phone.trim(),
             email: email.trim() || null,
             consent,
+            ...buildConsentPayload(consent),
           },
         }
       );
@@ -244,17 +245,10 @@ const ReferralPage: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-start gap-2 pt-2">
-              <Checkbox
-                id="consent"
-                checked={consent}
-                onCheckedChange={(checked) => setConsent(checked as boolean)}
-              />
-              <Label htmlFor="consent" className="text-sm leading-tight">
-                I agree to receive calls and text messages about available
-                properties
-              </Label>
-            </div>
+            <SmsConsentCheckbox
+              checked={consent}
+              onCheckedChange={setConsent}
+            />
 
             <Button
               type="submit"

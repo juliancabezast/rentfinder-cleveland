@@ -3,9 +3,11 @@ import { X, Send, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { SMS_CONSENT_LANGUAGE, buildConsentPayload } from "@/components/public/SmsConsentCheckbox";
 
 const BOT_AVATAR_URL = "https://api.dicebear.com/9.x/bottts/svg?seed=austin&backgroundColor=370d4b";
 
@@ -90,6 +92,7 @@ export const AustinChatWidget: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [formData, setFormData] = useState({ fullName: "", email: "", phone: "" });
+  const [smsConsent, setSmsConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -180,6 +183,11 @@ export const AustinChatWidget: React.FC = () => {
       return;
     }
 
+    if (!smsConsent) {
+      toast.error("Please agree to receive SMS messages");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await fetch(
@@ -195,6 +203,7 @@ export const AustinChatWidget: React.FC = () => {
             full_name: formData.fullName.trim(),
             email: formData.email.trim().toLowerCase(),
             phone: formData.phone.trim().replace(/\D/g, ""),
+            ...buildConsentPayload(smsConsent),
           }),
         }
       );
@@ -216,6 +225,7 @@ export const AustinChatWidget: React.FC = () => {
         },
       ]);
       setFormData({ fullName: "", email: "", phone: "" });
+      setSmsConsent(false);
     } catch (err) {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -374,6 +384,19 @@ export const AustinChatWidget: React.FC = () => {
                         placeholder="john@company.com"
                         className="h-9 text-sm"
                       />
+                    </div>
+                    <div className="flex items-start gap-2 pt-1">
+                      <Checkbox
+                        id="chat-sms-consent"
+                        checked={smsConsent}
+                        onCheckedChange={(val) => setSmsConsent(val as boolean)}
+                      />
+                      <label htmlFor="chat-sms-consent" className="text-[10px] leading-tight text-muted-foreground cursor-pointer">
+                        {SMS_CONSENT_LANGUAGE} View our{" "}
+                        <a href="https://rentfindercleveland.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
+                        {" "}and{" "}
+                        <a href="https://rentfindercleveland.com/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-primary underline" onClick={(e) => e.stopPropagation()}>Terms</a>.
+                      </label>
                     </div>
                     <Button type="submit" size="sm" className="w-full" disabled={isSubmitting}>
                       {isSubmitting ? "Sending..." : "Send"}
