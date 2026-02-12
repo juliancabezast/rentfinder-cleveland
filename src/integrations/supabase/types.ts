@@ -2640,6 +2640,90 @@ export type Database = {
           },
         ]
       }
+      showing_available_slots: {
+        Row: {
+          id: string
+          organization_id: string
+          property_id: string
+          slot_date: string
+          slot_time: string
+          duration_minutes: number
+          is_enabled: boolean
+          is_booked: boolean
+          booked_showing_id: string | null
+          booked_at: string | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          property_id: string
+          slot_date: string
+          slot_time: string
+          duration_minutes?: number
+          is_enabled?: boolean
+          is_booked?: boolean
+          booked_showing_id?: string | null
+          booked_at?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          property_id?: string
+          slot_date?: string
+          slot_time?: string
+          duration_minutes?: number
+          is_enabled?: boolean
+          is_booked?: boolean
+          booked_showing_id?: string | null
+          booked_at?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showing_available_slots_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showing_available_slots_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showing_available_slots_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
+          },
+          {
+            foreignKeyName: "showing_available_slots_booked_showing_id_fkey"
+            columns: ["booked_showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showing_available_slots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_logs: {
         Row: {
           category: string

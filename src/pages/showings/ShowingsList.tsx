@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Calendar, Clock, MapPin, User, CalendarDays, Plus, FileText, Map } from "lucide-react";
+import { Calendar, Clock, MapPin, User, CalendarDays, Plus, FileText, Map, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +25,7 @@ import { format, startOfDay, endOfDay, addDays, parseISO } from "date-fns";
 import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
 import { MyRouteTab } from "@/components/showings/MyRouteTab";
+import { ManageSlotsTab } from "@/components/showings/ManageSlotsTab";
 
 interface ShowingWithDetails {
   id: string;
@@ -226,6 +227,12 @@ const ShowingsList: React.FC = () => {
               <span>My Route</span>
             </TabsTrigger>
           )}
+          {permissions.canEditProperty && (
+            <TabsTrigger value="slots" className="flex-1 sm:flex-initial gap-2">
+              <Settings2 className="h-4 w-4" />
+              <span>Manage Slots</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="showings" className="space-y-4">
@@ -368,6 +375,12 @@ const ShowingsList: React.FC = () => {
         {permissions.canViewOwnRoute && (
           <TabsContent value="route">
             <MyRouteTab onRefresh={fetchShowings} />
+          </TabsContent>
+        )}
+
+        {permissions.canEditProperty && (
+          <TabsContent value="slots">
+            <ManageSlotsTab />
           </TabsContent>
         )}
       </Tabs>
