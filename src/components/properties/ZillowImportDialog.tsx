@@ -1,0 +1,462 @@
+import React, { useState } from "react";
+import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+interface ZillowProperty {
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  bedrooms: number;
+  bathrooms: number;
+  square_feet: number | null;
+  property_type: string;
+  rent_price: number;
+  deposit_amount: number | null;
+  application_fee: number | null;
+  description: string | null;
+  photos: string[];
+  section_8_accepted: boolean;
+  hud_inspection_ready: boolean;
+  status: string;
+  pet_policy: string | null;
+  year_built: number | null;
+  _zillow_url: string;
+  _zpid: string;
+  _zestimate: number | null;
+  _rent_zestimate: number | null;
+}
+
+interface ZillowImportDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
+  open,
+  onOpenChange,
+  onSuccess,
+}) => {
+  const { userRecord } = useAuth();
+  const { toast } = useToast();
+
+  const [step, setStep] = useState<"url" | "review" | "saving">("url");
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [property, setProperty] = useState<ZillowProperty | null>(null);
+
+  // Editable fields in review step
+  const [editRent, setEditRent] = useState("");
+  const [editDeposit, setEditDeposit] = useState("");
+  const [editAppFee, setEditAppFee] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editStatus, setEditStatus] = useState("available");
+  const [editSection8, setEditSection8] = useState(true);
+  const [editHud, setEditHud] = useState(true);
+  const [editPetPolicy, setEditPetPolicy] = useState("");
+
+  const resetState = () => {
+    setStep("url");
+    setUrl("");
+    setLoading(false);
+    setError(null);
+    setProperty(null);
+  };
+
+  const handleFetch = async () => {
+    if (!url.trim()) return;
+
+    if (!url.includes("zillow.com")) {
+      setError("Please enter a valid Zillow URL.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "import-zillow-property",
+        {
+          body: {
+            zillow_url: url.trim(),
+            organization_id: userRecord?.organization_id,
+          },
+        }
+      );
+
+      if (fnError) throw new Error(fnError.message);
+      if (data?.error) throw new Error(data.error);
+      if (!data?.property) throw new Error("No property data returned");
+
+      const p = data.property as ZillowProperty;
+      setProperty(p);
+      setEditRent(String(p.rent_price || ""));
+      setEditDeposit(String(p.deposit_amount || ""));
+      setEditAppFee(String(p.application_fee || ""));
+      setEditDescription(p.description || "");
+      setEditStatus(p.status || "available");
+      setEditSection8(p.section_8_accepted ?? true);
+      setEditHud(p.hud_inspection_ready ?? true);
+      setEditPetPolicy(p.pet_policy || "");
+      setStep("review");
+    } catch (err) {
+      setError((err as Error).message || "Failed to fetch property data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!property || !userRecord?.organization_id) return;
+
+    setStep("saving");
+
+    try {
+      const rentPrice = parseFloat(editRent) || 0;
+      if (rentPrice <= 0) {
+        throw new Error("Rent price is required and must be greater than $0.");
+      }
+
+      const { error: insertErr } = await supabase.from("properties").insert({
+        organization_id: userRecord.organization_id,
+        address: property.address,
+        city: property.city,
+        state: property.state,
+        zip_code: property.zip_code,
+        bedrooms: property.bedrooms,
+        bathrooms: property.bathrooms,
+        square_feet: property.square_feet,
+        property_type: property.property_type,
+        rent_price: rentPrice,
+        deposit_amount: parseFloat(editDeposit) || null,
+        application_fee: parseFloat(editAppFee) || null,
+        description: editDescription || null,
+        photos: property.photos.length > 0 ? property.photos : [],
+        section_8_accepted: editSection8,
+        hud_inspection_ready: editHud,
+        status: editStatus,
+        pet_policy: editPetPolicy || null,
+        special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
+      });
+
+      if (insertErr) throw insertErr;
+
+      toast({
+        title: "Property Imported",
+        description: `${property.address} has been added successfully.`,
+      });
+
+      onSuccess();
+      onOpenChange(false);
+      resetState();
+    } catch (err) {
+      setError((err as Error).message || "Failed to save property");
+      setStep("review");
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) resetState();
+      }}
+    >
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-[#370d4b]" />
+            Import from Zillow
+          </DialogTitle>
+          <DialogDescription>
+            Paste a Zillow listing URL to auto-fill property details.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* ── Step 1: URL Input ─────────────────────────────────────── */}
+        {step === "url" && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="zillow-url">Zillow Listing URL</Label>
+              <Input
+                id="zillow-url"
+                placeholder="https://www.zillow.com/homedetails/..."
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleFetch();
+                }}
+                className="min-h-[44px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Copy the full URL from any Zillow listing page
+              </p>
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false);
+                  resetState();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleFetch}
+                disabled={!url.trim() || loading}
+                className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Fetching...
+                  </>
+                ) : (
+                  "Fetch Property"
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 2: Review & Edit ────────────────────────────────── */}
+        {step === "review" && property && (
+          <div className="space-y-4">
+            {/* Photo preview */}
+            {property.photos.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {property.photos.slice(0, 5).map((photo, i) => (
+                  <img
+                    key={i}
+                    src={photo}
+                    alt={`Property photo ${i + 1}`}
+                    className="h-24 w-36 object-cover rounded-lg shrink-0 border"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                ))}
+                {property.photos.length > 5 && (
+                  <div className="h-24 w-36 rounded-lg border bg-muted flex items-center justify-center text-sm text-muted-foreground shrink-0">
+                    +{property.photos.length - 5} more
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Address & core info (read-only) */}
+            <Card>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-center gap-2 text-lg font-semibold">
+                  <Home className="h-5 w-5 text-[#370d4b]" />
+                  {property.address}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {property.city}, {property.state} {property.zip_code}
+                </p>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <span className="flex items-center gap-1">
+                    <Bed className="h-4 w-4" /> {property.bedrooms} bed
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Bath className="h-4 w-4" /> {property.bathrooms} bath
+                  </span>
+                  {property.square_feet && (
+                    <span className="flex items-center gap-1">
+                      <Ruler className="h-4 w-4" />{" "}
+                      {property.square_feet.toLocaleString()} sqft
+                    </span>
+                  )}
+                  <span className="capitalize text-muted-foreground">
+                    {property.property_type}
+                  </span>
+                </div>
+                {property._zestimate && (
+                  <p className="text-xs text-muted-foreground">
+                    Zestimate: ${property._zestimate.toLocaleString()} | Rent
+                    Zestimate: $
+                    {property._rent_zestimate?.toLocaleString() || "N/A"}/mo
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Editable fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="edit-rent" className="flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" /> Monthly Rent *
+                </Label>
+                <Input
+                  id="edit-rent"
+                  type="number"
+                  value={editRent}
+                  onChange={(e) => setEditRent(e.target.value)}
+                  placeholder="0"
+                  className="min-h-[44px]"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-deposit">Security Deposit</Label>
+                <Input
+                  id="edit-deposit"
+                  type="number"
+                  value={editDeposit}
+                  onChange={(e) => setEditDeposit(e.target.value)}
+                  placeholder="0"
+                  className="min-h-[44px]"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-appfee">Application Fee</Label>
+                <Input
+                  id="edit-appfee"
+                  type="number"
+                  value={editAppFee}
+                  onChange={(e) => setEditAppFee(e.target.value)}
+                  placeholder="0"
+                  className="min-h-[44px]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={editStatus} onValueChange={setEditStatus}>
+                  <SelectTrigger className="min-h-[44px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="coming_soon">Coming Soon</SelectItem>
+                    <SelectItem value="in_leasing_process">
+                      In Leasing
+                    </SelectItem>
+                    <SelectItem value="rented">Rented</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-pet">Pet Policy</Label>
+                <Input
+                  id="edit-pet"
+                  value={editPetPolicy}
+                  onChange={(e) => setEditPetPolicy(e.target.value)}
+                  placeholder="e.g. Cats allowed, no dogs"
+                  className="min-h-[44px]"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-6">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="edit-s8"
+                  checked={editSection8}
+                  onCheckedChange={(v) => setEditSection8(v === true)}
+                />
+                <Label htmlFor="edit-s8" className="text-sm">
+                  Section 8 Accepted
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="edit-hud"
+                  checked={editHud}
+                  onCheckedChange={(v) => setEditHud(v === true)}
+                />
+                <Label htmlFor="edit-hud" className="text-sm">
+                  HUD Inspection Ready
+                </Label>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="edit-desc">Description</Label>
+              <Textarea
+                id="edit-desc"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={3}
+                placeholder="Property description..."
+              />
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStep("url");
+                  setError(null);
+                }}
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handleSave}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Import Property
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 3: Saving ───────────────────────────────────────── */}
+        {step === "saving" && (
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-[#370d4b]" />
+            <p className="text-muted-foreground">Saving property...</p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};

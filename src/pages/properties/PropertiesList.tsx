@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Building2, Filter } from "lucide-react";
+import { Plus, Search, Building2, Filter, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertyForm } from "@/components/properties/PropertyForm";
+import { ZillowImportDialog } from "@/components/properties/ZillowImportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -54,6 +55,7 @@ const PropertiesList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
+  const [zillowOpen, setZillowOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
 
   const fetchProperties = async () => {
@@ -156,10 +158,20 @@ const PropertiesList: React.FC = () => {
           </p>
         </div>
         {permissions.canCreateProperty && (
-          <Button onClick={() => setFormOpen(true)} className="min-h-[44px] bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add Property</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setZillowOpen(true)}
+              className="min-h-[44px] border-[#370d4b]/30 text-[#370d4b] hover:bg-[#370d4b]/5"
+            >
+              <Globe className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Import Zillow</span>
+            </Button>
+            <Button onClick={() => setFormOpen(true)} className="min-h-[44px] bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add Property</span>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -255,6 +267,13 @@ const PropertiesList: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Zillow Import Dialog */}
+      <ZillowImportDialog
+        open={zillowOpen}
+        onOpenChange={setZillowOpen}
+        onSuccess={fetchProperties}
+      />
 
       {/* Create/Edit Property Dialog */}
       <Dialog

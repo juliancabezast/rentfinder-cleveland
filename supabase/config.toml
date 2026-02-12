@@ -136,3 +136,7 @@ verify_jwt = false
 # Public Showing Booking
 [functions.book-public-showing]
 verify_jwt = false
+
+# Zillow Property Import
+[functions.import-zillow-property]
+verify_jwt = false
