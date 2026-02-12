@@ -9,14 +9,15 @@ const SECTIONS = [
   { id: "how-we-use-information", title: "3. How We Use Information" },
   { id: "legal-basis", title: "4. Legal Basis for Processing" },
   { id: "information-sharing", title: "5. Information Sharing" },
-  { id: "tcpa-compliance", title: "6. TCPA Compliance" },
-  { id: "fair-housing", title: "7. Fair Housing Act Compliance" },
-  { id: "data-retention", title: "8. Data Retention" },
-  { id: "your-rights", title: "9. Your Rights" },
-  { id: "data-security", title: "10. Data Security" },
-  { id: "childrens-privacy", title: "11. Children's Privacy" },
-  { id: "policy-changes", title: "12. Changes to This Policy" },
-  { id: "contact", title: "13. Contact Information" },
+  { id: "sms-messaging", title: "6. SMS/Text Messaging" },
+  { id: "tcpa-compliance", title: "7. TCPA Compliance" },
+  { id: "fair-housing", title: "8. Fair Housing Act Compliance" },
+  { id: "data-retention", title: "9. Data Retention" },
+  { id: "your-rights", title: "10. Your Rights" },
+  { id: "data-security", title: "11. Data Security" },
+  { id: "childrens-privacy", title: "12. Children's Privacy" },
+  { id: "policy-changes", title: "13. Changes to This Policy" },
+  { id: "contact", title: "14. Contact Information" },
 ];
 
 const PrivacyPolicy: React.FC = () => {
@@ -74,9 +75,9 @@ const PrivacyPolicy: React.FC = () => {
             <section id="introduction">
               <h2 className="text-xl font-semibold text-foreground mb-4">1. Introduction</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                Welcome to Rent Finder Cleveland. This Privacy Policy explains how Rent Finder Cleveland LLC 
-                ("Company," "we," "us," or "our"), a limited liability company organized under the laws of 
-                the State of Ohio with its principal place of business in Cleveland, Ohio, United States, 
+                Welcome to Rent Finder Cleveland. This Privacy Policy explains how Rent Finder Cleveland, LLC
+                (operating as "HomeGuard") ("Company," "we," "us," or "our"), a limited liability company organized under the laws of
+                the State of Ohio with its principal place of business in Cleveland, Ohio, United States,
                 collects, uses, discloses, and protects your personal information.
               </p>
               <p className="text-muted-foreground leading-relaxed mb-4">
@@ -242,58 +243,106 @@ const PrivacyPolicy: React.FC = () => {
               </div>
             </section>
 
-            {/* Section 6: TCPA Compliance */}
-            <section id="tcpa-compliance">
-              <h2 className="text-xl font-semibold text-foreground mb-4">6. TCPA Compliance</h2>
+            {/* Section 6: SMS/Text Messaging */}
+            <section id="sms-messaging">
+              <h2 className="text-xl font-semibold text-foreground mb-4">6. SMS/Text Messaging</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                We are committed to full compliance with the Telephone Consumer Protection Act (TCPA), 
+                By providing your phone number and opting in to receive SMS messages from Rent Finder Cleveland / HomeGuard,
+                you consent to receive text messages related to:
+              </p>
+              <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
+                <li>Property showing appointment confirmations and reminders</li>
+                <li>Follow-up messages regarding your property inquiries</li>
+                <li>Property availability notifications</li>
+                <li>Application status updates</li>
+              </ul>
+
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.1 Message Frequency</h3>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                Message frequency varies based on your interactions with us. You may receive up to 10 messages
+                per week during active property searches.
+              </p>
+
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.2 Message and Data Rates</h3>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                <strong>Message and data rates may apply.</strong> Check with your mobile carrier for details.
+              </p>
+
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.3 Opt-Out</h3>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                You may opt out of receiving SMS messages at any time by replying <strong>STOP</strong> to any message.
+                You may also reply <strong>STOPALL</strong>, <strong>UNSUBSCRIBE</strong>, <strong>CANCEL</strong>, <strong>END</strong>, or <strong>QUIT</strong>.
+                After opting out, you will receive a confirmation message and will no longer receive SMS communications from us.
+              </p>
+
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.4 Help</h3>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                For assistance, reply <strong>HELP</strong> to any message or contact us at (216) 238-3390
+                or support@rentfindercleveland.com.
+              </p>
+
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.5 Supported Carriers</h3>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                Compatible with most major US carriers including AT&T, Verizon, T-Mobile, Sprint, U.S. Cellular,
+                Cricket, MetroPCS, Boost Mobile, and Virgin Mobile. Carriers are not responsible for delayed or undelivered messages.
+              </p>
+            </section>
+
+            {/* Section 6b: TCPA Compliance */}
+            <section id="tcpa-compliance">
+              <h2 className="text-xl font-semibold text-foreground mb-4">7. TCPA Compliance</h2>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                We are committed to full compliance with the Telephone Consumer Protection Act (TCPA),
                 47 U.S.C. § 227, and its implementing regulations.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.1 Prior Express Written Consent</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.1 Prior Express Written Consent</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                All automated calls and text messages sent through our platform require prior express 
-                written consent from the recipient. This consent is obtained through clear disclosure 
-                and affirmative action (e.g., checking a consent box, providing a signature).
+                All automated calls and text messages sent through our platform require prior express
+                written consent from the recipient. Consent is obtained through: (1) submitting a phone number
+                on our website at rentfindercleveland.com with a clearly labeled consent checkbox, (2) verbal
+                consent during phone calls, or (3) by texting START, YES, SUBSCRIBE, or INFO to (216) 238-3390.
+                Consent is not a condition of purchase or service.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.2 Opt-Out Mechanisms</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.2 Opt-Out Mechanisms</h3>
               <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
-                <li>Reply STOP to any text message to immediately opt out of SMS communications</li>
-                <li>Request do-not-contact status by phone or email</li>
+                <li>Reply STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, or QUIT to any text message to immediately opt out</li>
+                <li>Call (216) 238-3390 or email support@rentfindercleveland.com to request do-not-contact status</li>
                 <li>Opt-out requests are processed immediately and honored within all systems</li>
               </ul>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.3 Call Recording Disclosures</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.3 Call Recording Disclosures</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                All recorded calls include a clear disclosure at the beginning of the call, in compliance 
-                with federal and state recording consent laws, including Ohio's one-party consent law.
+                Phone calls with Rent Finder Cleveland / HomeGuard may be recorded for quality assurance and training purposes.
+                You will be notified at the beginning of any recorded call. By continuing the call after this notification,
+                you consent to the recording.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.4 Calling Hours</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.4 Calling Hours</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Automated calls and texts are only sent during permitted hours (8:00 AM to 9:00 PM in 
-                the recipient's local time zone) unless the recipient has expressly consented to 
+                Automated calls and texts are only sent during permitted hours (8:00 AM to 9:00 PM in
+                the recipient's local time zone) unless the recipient has expressly consented to
                 communications outside these hours.
               </p>
             </section>
 
-            {/* Section 7: Fair Housing Act Compliance */}
+            {/* Section 8: Fair Housing Act Compliance */}
             <section id="fair-housing">
-              <h2 className="text-xl font-semibold text-foreground mb-4">7. Fair Housing Act Compliance</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">8. Fair Housing Act Compliance</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 We are committed to compliance with the Fair Housing Act (42 U.S.C. §§ 3601-3619) and 
                 Ohio's fair housing laws.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.1 Non-Discriminatory AI Systems</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.1 Non-Discriminatory AI Systems</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 Our AI systems, including lead scoring algorithms, do not use protected characteristics 
                 (race, color, religion, national origin, sex, familial status, or disability) in any 
                 decision-making processes.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.2 Behavioral Scoring Only</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.2 Behavioral Scoring Only</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 Lead scores are based solely on behavioral and engagement signals, such as:
               </p>
@@ -304,16 +353,16 @@ const PrivacyPolicy: React.FC = () => {
                 <li>Budget alignment with available properties</li>
               </ul>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.3 Regular Audits</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.3 Regular Audits</h3>
               <p className="text-muted-foreground leading-relaxed">
                 We conduct regular bias audits of our AI systems to identify and address any unintended 
                 discriminatory patterns or disparate impact.
               </p>
             </section>
 
-            {/* Section 8: Data Retention */}
+            {/* Section 9: Data Retention */}
             <section id="data-retention">
-              <h2 className="text-xl font-semibold text-foreground mb-4">8. Data Retention</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">9. Data Retention</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 We retain personal information only as long as necessary for the purposes described 
                 in this Privacy Policy:
@@ -328,59 +377,59 @@ const PrivacyPolicy: React.FC = () => {
               </ul>
             </section>
 
-            {/* Section 9: Your Rights */}
+            {/* Section 10: Your Rights */}
             <section id="your-rights">
-              <h2 className="text-xl font-semibold text-foreground mb-4">9. Your Rights</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">10. Your Rights</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 Under the California Consumer Privacy Act (CCPA), Ohio law, and other applicable regulations, 
                 you have the following rights:
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.1 Right to Know</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.1 Right to Know</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 You have the right to request disclosure of the categories and specific pieces of personal 
                 information we have collected about you.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.2 Right to Access</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.2 Right to Access</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 You have the right to request a copy of your personal information in a portable, 
                 commonly used format.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.3 Right to Delete</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.3 Right to Delete</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 You have the right to request deletion of your personal information, subject to 
                 certain exceptions (e.g., legal retention requirements).
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.4 Right to Correct</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.4 Right to Correct</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 You have the right to request correction of inaccurate personal information.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.5 Right to Opt-Out of Sale</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.5 Right to Opt-Out of Sale</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 While we do not sell personal information, you have the right to opt out of any 
                 future sale should our practices change.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.6 Right to Non-Discrimination</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.6 Right to Non-Discrimination</h3>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 We will not discriminate against you for exercising any of your privacy rights.
               </p>
 
-              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.7 How to Exercise Your Rights</h3>
+              <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.7 How to Exercise Your Rights</h3>
               <p className="text-muted-foreground leading-relaxed">
-                To exercise any of these rights, please contact us using the information in Section 13. 
+                To exercise any of these rights, please contact us using the information in Section 14. 
                 We will verify your identity before processing your request and respond within 45 days 
                 (or as required by applicable law).
               </p>
             </section>
 
-            {/* Section 10: Data Security */}
+            {/* Section 11: Data Security */}
             <section id="data-security">
-              <h2 className="text-xl font-semibold text-foreground mb-4">10. Data Security</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">11. Data Security</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 We implement comprehensive security measures to protect your personal information:
               </p>
@@ -398,9 +447,9 @@ const PrivacyPolicy: React.FC = () => {
               </p>
             </section>
 
-            {/* Section 11: Children's Privacy */}
+            {/* Section 12: Children's Privacy */}
             <section id="childrens-privacy">
-              <h2 className="text-xl font-semibold text-foreground mb-4">11. Children's Privacy</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">12. Children's Privacy</h2>
               <p className="text-muted-foreground leading-relaxed">
                 Our Service is not directed at children under the age of 13, and we do not knowingly 
                 collect personal information from children under 13. If we learn that we have collected 
@@ -410,9 +459,9 @@ const PrivacyPolicy: React.FC = () => {
               </p>
             </section>
 
-            {/* Section 12: Changes to This Policy */}
+            {/* Section 13: Changes to This Policy */}
             <section id="policy-changes">
-              <h2 className="text-xl font-semibold text-foreground mb-4">12. Changes to This Policy</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">13. Changes to This Policy</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 We may update this Privacy Policy from time to time to reflect changes in our practices, 
                 technology, legal requirements, or other factors. When we make material changes:
@@ -428,28 +477,34 @@ const PrivacyPolicy: React.FC = () => {
               </p>
             </section>
 
-            {/* Section 13: Contact Information */}
+            {/* Section 14: Contact Information */}
             <section id="contact">
-              <h2 className="text-xl font-semibold text-foreground mb-4">13. Contact Information</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">14. Contact Information</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 If you have questions about this Privacy Policy, wish to exercise your privacy rights, 
                 or have concerns about our data practices, please contact us:
               </p>
               <div className="bg-muted/50 rounded-xl p-6">
-                <p className="font-semibold text-foreground mb-2">Rent Finder Cleveland LLC</p>
+                <p className="font-semibold text-foreground mb-2">Rent Finder Cleveland, LLC (HomeGuard)</p>
                 <p className="text-muted-foreground">Cleveland, Ohio, United States</p>
                 <p className="text-muted-foreground mt-4">
                   <strong>Phone:</strong>{" "}
-                  <a href="tel:2166308857" className="text-primary hover:underline">(216) 630-8857</a>
+                  <a href="tel:2162383390" className="text-primary hover:underline">(216) 238-3390</a>
                 </p>
                 <p className="text-muted-foreground">
                   <strong>Email:</strong>{" "}
-                  <a href="mailto:privacy@rentfindercleveland.com" className="text-primary hover:underline">
-                    privacy@rentfindercleveland.com
+                  <a href="mailto:support@rentfindercleveland.com" className="text-primary hover:underline">
+                    support@rentfindercleveland.com
+                  </a>
+                </p>
+                <p className="text-muted-foreground">
+                  <strong>Website:</strong>{" "}
+                  <a href="https://rentfindercleveland.com" className="text-primary hover:underline">
+                    rentfindercleveland.com
                   </a>
                 </p>
                 <p className="text-muted-foreground mt-4 text-sm">
-                  For privacy-related inquiries, we will respond within 10 business days. For rights 
+                  For privacy-related inquiries, we will respond within 10 business days. For rights
                   requests under CCPA or applicable law, we will respond within 45 days.
                 </p>
               </div>
@@ -476,7 +531,7 @@ const PrivacyPolicy: React.FC = () => {
               <Link to="/p/terms-of-service" className="text-muted-foreground hover:text-foreground transition-colors">
                 Terms of Service
               </Link>
-              <a href="tel:2166308857" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="tel:2162383390" className="text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </a>
             </nav>

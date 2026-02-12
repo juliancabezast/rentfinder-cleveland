@@ -6,20 +6,22 @@
  const SECTIONS = [
    { id: "agreement", title: "1. Agreement to Terms" },
    { id: "service-description", title: "2. Description of Service" },
-   { id: "eligibility", title: "3. Eligibility" },
-   { id: "account-registration", title: "4. Account Registration" },
-   { id: "subscription-billing", title: "5. Subscription Plans & Billing" },
-   { id: "acceptable-use", title: "6. Acceptable Use Policy" },
-   { id: "data-ownership", title: "7. Data Ownership" },
-   { id: "ai-services", title: "8. AI and Automated Services" },
-   { id: "third-party", title: "9. Third-Party Integrations" },
-   { id: "liability", title: "10. Limitation of Liability" },
-   { id: "indemnification", title: "11. Indemnification" },
-   { id: "intellectual-property", title: "12. Intellectual Property" },
-   { id: "termination", title: "13. Termination" },
-   { id: "governing-law", title: "14. Governing Law" },
-   { id: "severability", title: "15. Severability" },
-   { id: "contact", title: "16. Contact Information" },
+   { id: "sms-program", title: "3. SMS/Text Messaging Program" },
+   { id: "eligibility", title: "4. Eligibility" },
+   { id: "account-registration", title: "5. Account Registration" },
+   { id: "subscription-billing", title: "6. Subscription Plans & Billing" },
+   { id: "acceptable-use", title: "7. Acceptable Use Policy" },
+   { id: "data-ownership", title: "8. Data Ownership" },
+   { id: "ai-services", title: "9. AI and Automated Services" },
+   { id: "third-party", title: "10. Third-Party Integrations" },
+   { id: "liability", title: "11. Limitation of Liability" },
+   { id: "indemnification", title: "12. Indemnification" },
+   { id: "intellectual-property", title: "13. Intellectual Property" },
+   { id: "termination", title: "14. Termination" },
+   { id: "fair-housing", title: "15. Fair Housing" },
+   { id: "governing-law", title: "16. Governing Law" },
+   { id: "severability", title: "17. Severability" },
+   { id: "contact", title: "18. Contact Information" },
  ];
  
  const TermsOfService: React.FC = () => {
@@ -77,10 +79,10 @@
              <section id="agreement">
                <h2 className="text-xl font-semibold text-foreground mb-4">1. Agreement to Terms</h2>
                <p className="text-muted-foreground leading-relaxed mb-4">
-                 By accessing or using Rent Finder Cleveland's website at rentfindercleveland.com, our 
-                 AI-powered leasing automation platform, or any related services (collectively, the "Service"), 
-                 you agree to be bound by these Terms of Service ("Terms"). These Terms constitute a legally 
-                 binding agreement between you and Rent Finder Cleveland LLC ("Company," "we," "us," or "our").
+                 By accessing our website, using our services, or opting in to receive SMS messages from
+                 Rent Finder Cleveland, LLC (operating as "HomeGuard") ("Company," "we," "us," or "our"),
+                 you agree to be bound by these Terms and Conditions. These Terms constitute a legally
+                 binding agreement between you and the Company.
                </p>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  If you are entering into these Terms on behalf of a company or other legal entity, you 
@@ -114,9 +116,100 @@
                </p>
              </section>
  
-             {/* Section 3: Eligibility */}
+             {/* Section 3: SMS/Text Messaging Program */}
+             <section id="sms-program">
+               <h2 className="text-xl font-semibold text-foreground mb-4">3. SMS/Text Messaging Program</h2>
+
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">3.1 Program Description</h3>
+               <p className="text-muted-foreground leading-relaxed mb-3">
+                 <strong>Program Name:</strong> Rent Finder Cleveland / HomeGuard Property Alerts
+               </p>
+               <p className="text-muted-foreground leading-relaxed mb-3">
+                 Rent Finder Cleveland / HomeGuard uses SMS text messaging to communicate with prospective
+                 tenants who have inquired about rental properties. Our messaging program includes:
+               </p>
+               <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
+                 <li>Property showing appointment confirmations and reminders</li>
+                 <li>Follow-up messages after property inquiries</li>
+                 <li>Application status updates</li>
+                 <li>Property availability notifications</li>
+               </ul>
+
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">3.2 Consent and Opt-In</h3>
+               <p className="text-muted-foreground leading-relaxed mb-3">
+                 By providing your mobile phone number and agreeing to receive SMS messages, you expressly
+                 consent to receive recurring automated text messages from Rent Finder Cleveland / HomeGuard
+                 at the phone number provided. Consent is not a condition of purchase or service.
+               </p>
+               <p className="text-muted-foreground leading-relaxed mb-3">
+                 <strong>You may opt in to receive messages by:</strong>
+               </p>
+               <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
+                 <li>Submitting your phone number on our website (rentfindercleveland.com) with the checkbox confirming your agreement to receive SMS communications</li>
+                 <li>Verbally consenting during an inbound phone call with our team or AI assistant</li>
+                 <li>Texting a keyword (START, YES, SUBSCRIBE, or INFO) to our number: (216) 238-3390</li>
+               </ul>
+
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">3.3 Message Frequency</h3>
+               <p className="text-muted-foreground leading-relaxed mb-4">
+                 Message frequency varies based on your property search activity and scheduled appointments.
+                 During active searches, you may receive approximately 5-10 messages per week. Appointment
+                 reminders are typically sent 24 hours and 2 hours before scheduled showings.
+               </p>
+
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">3.4 Opt-Out Instructions</h3>
+               <p className="text-muted-foreground leading-relaxed mb-3">
+                 You can opt out of receiving SMS messages at any time using any of the following methods:
+               </p>
+               <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
+                 <li><strong>Text STOP:</strong> Reply <strong>STOP</strong> to any message from (216) 238-3390</li>
+                 <li><strong>Other opt-out keywords:</strong> STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT</li>
+                 <li><strong>Call us:</strong> (216) 238-3390</li>
+                 <li><strong>Email us:</strong> support@rentfindercleveland.com</li>
+               </ul>
+               <p className="text-muted-foreground leading-relaxed mb-4">
+                 After opting out, you will receive a single confirmation message: "You have successfully been
+                 unsubscribed. You will not receive any more messages from this number. Reply START to resubscribe."
+               </p>
+
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">3.5 Help and Support</h3>
+               <p className="text-muted-foreground leading-relaxed mb-3">
+                 For help with our SMS program:
+               </p>
+               <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
+                 <li><strong>Text HELP:</strong> Reply <strong>HELP</strong> to any message</li>
+                 <li><strong>Call:</strong> (216) 238-3390</li>
+                 <li><strong>Email:</strong> support@rentfindercleveland.com</li>
+               </ul>
+               <p className="text-muted-foreground leading-relaxed mb-4">
+                 Help response: "Reply STOP to unsubscribe. Msg & Data Rates May Apply. For assistance, call (216) 238-3390."
+               </p>
+
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">3.6 Message and Data Rates</h3>
+               <p className="text-muted-foreground leading-relaxed mb-4">
+                 <strong>Message and data rates may apply.</strong> Please consult your mobile carrier's pricing
+                 plan for details. We are not responsible for any charges from your carrier.
+               </p>
+
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">3.7 Supported Carriers</h3>
+               <p className="text-muted-foreground leading-relaxed mb-4">
+                 Our SMS service is compatible with most major US mobile carriers, including but not limited to:
+                 AT&T, Verizon, T-Mobile, Sprint, U.S. Cellular, Cricket, MetroPCS, Boost Mobile, and Virgin Mobile.
+                 Carriers are not liable for delayed or undelivered messages.
+               </p>
+
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">3.8 Privacy</h3>
+               <p className="text-muted-foreground leading-relaxed">
+                 Your privacy is important to us. Please review our{" "}
+                 <a href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</a>{" "}
+                 to understand how we collect, use, and protect your information. We do not sell, rent, or
+                 share your phone number or personal information with third parties for marketing purposes.
+               </p>
+             </section>
+
+             {/* Section 4: Eligibility */}
              <section id="eligibility">
-               <h2 className="text-xl font-semibold text-foreground mb-4">3. Eligibility</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">4. Eligibility</h2>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  To use the Service, you must:
                </p>
@@ -129,42 +222,42 @@
                </ul>
              </section>
  
-             {/* Section 4: Account Registration */}
+             {/* Section 5: Account Registration */}
              <section id="account-registration">
-               <h2 className="text-xl font-semibold text-foreground mb-4">4. Account Registration</h2>
-               
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">4.1 Accurate Information</h3>
+               <h2 className="text-xl font-semibold text-foreground mb-4">5. Account Registration</h2>
+
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">5.1 Accurate Information</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  You agree to provide accurate, current, and complete information during registration and 
                  to update such information as necessary to maintain its accuracy.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">4.2 Account Security</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">5.2 Account Security</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  You are responsible for maintaining the confidentiality of your account credentials and 
                  for all activities that occur under your account. You must notify us immediately of any 
                  unauthorized access or security breach.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">4.3 One Account Per Organization</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">5.3 One Account Per Organization</h3>
                <p className="text-muted-foreground leading-relaxed">
                  Each organization may maintain only one account. Multiple user access within an organization 
                  is managed through our user invitation system.
                </p>
              </section>
  
-             {/* Section 5: Subscription Plans & Billing */}
+             {/* Section 6: Subscription Plans & Billing */}
              <section id="subscription-billing">
-               <h2 className="text-xl font-semibold text-foreground mb-4">5. Subscription Plans & Billing</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">6. Subscription Plans & Billing</h2>
                
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">5.1 Free Trial</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.1 Free Trial</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  We offer a 14-day free trial with no credit card required. During the trial period, you 
                  will have access to the Service features as specified for your selected plan. At the end 
                  of the trial, your account will be suspended unless you subscribe to a paid plan.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">5.2 Paid Plans</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.2 Paid Plans</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  Paid subscriptions are available on monthly or annual billing cycles. Plans are based on 
                  portfolio size and feature requirements:
@@ -175,42 +268,42 @@
                  <li><strong>Enterprise:</strong> Unlimited properties with custom integrations</li>
                </ul>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">5.3 Auto-Renewal</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.3 Auto-Renewal</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  Subscriptions automatically renew at the end of each billing period unless cancelled. 
                  We will charge the payment method on file at the then-current rate.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">5.4 Cancellation</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.4 Cancellation</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  You may cancel your subscription at any time through your account settings. Cancellation 
                  takes effect at the end of the current billing period. You will retain access to the 
                  Service until the end of the paid period.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">5.5 Refund Policy</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.5 Refund Policy</h3>
                <p className="text-muted-foreground leading-relaxed">
                  Annual plans are eligible for a pro-rata refund if cancelled within 30 days of purchase 
                  or renewal. Monthly plans are non-refundable but will not renew after cancellation.
                </p>
              </section>
  
-             {/* Section 6: Acceptable Use Policy */}
+             {/* Section 7: Acceptable Use Policy */}
              <section id="acceptable-use">
-               <h2 className="text-xl font-semibold text-foreground mb-4">6. Acceptable Use Policy</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">7. Acceptable Use Policy</h2>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  You agree to use the Service only for lawful purposes and in accordance with these Terms. 
                  You must NOT:
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.1 Fair Housing Compliance</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.1 Fair Housing Compliance</h3>
                <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
                  <li>Use the Service in any manner that violates the Fair Housing Act (42 U.S.C. §§ 3601-3619)</li>
                  <li>Use lead scoring or filtering to discriminate based on race, color, religion, national origin, sex, familial status, or disability</li>
                  <li>Create property listings or communications that express discriminatory preferences</li>
                </ul>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.2 TCPA Compliance</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.2 TCPA Compliance</h3>
                <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
                  <li>Send automated calls or texts without obtaining proper prior express written consent</li>
                  <li>Ignore opt-out requests or STOP keywords</li>
@@ -218,7 +311,7 @@
                  <li>Use the Service to contact numbers on the National Do Not Call Registry without consent</li>
                </ul>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">6.3 Technical Restrictions</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.3 Technical Restrictions</h3>
                <ul className="list-disc pl-6 text-muted-foreground space-y-2">
                  <li>Attempt to reverse-engineer, decompile, or extract our AI models or algorithms</li>
                  <li>Store credentials for third-party services outside the platform's secure credential storage</li>
@@ -228,25 +321,25 @@
                </ul>
              </section>
  
-             {/* Section 7: Data Ownership */}
+             {/* Section 8: Data Ownership */}
              <section id="data-ownership">
-               <h2 className="text-xl font-semibold text-foreground mb-4">7. Data Ownership</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">8. Data Ownership</h2>
                
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.1 Your Data</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.1 Your Data</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  You retain all ownership rights to the data you upload, create, or receive through the 
                  Service ("Customer Data"), including lead information, property listings, and communication 
                  records. We do not claim ownership of your Customer Data.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.2 License to Process</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.2 License to Process</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  You grant us a limited, non-exclusive license to use, process, and display Customer Data 
                  solely for the purpose of providing and improving the Service. This license includes the 
                  right to use aggregated, anonymized data for analytics and product development.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">7.3 Data Export</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.3 Data Export</h3>
                <p className="text-muted-foreground leading-relaxed">
                  Upon termination of your account, you will have 30 days to export your Customer Data. 
                  We provide data export tools in CSV format. After 30 days, we may delete your data in 
@@ -254,32 +347,32 @@
                </p>
              </section>
  
-             {/* Section 8: AI and Automated Services */}
+             {/* Section 9: AI and Automated Services */}
              <section id="ai-services">
-               <h2 className="text-xl font-semibold text-foreground mb-4">8. AI and Automated Services</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">9. AI and Automated Services</h2>
                
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.1 AI Agent Authority</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.1 AI Agent Authority</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  Our AI voice agents and automated systems act on your behalf when interacting with 
                  prospects. By using these features, you authorize the AI to answer calls, provide 
                  property information, qualify leads, and schedule showings according to your configuration.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.2 Accuracy of Information</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.2 Accuracy of Information</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  You are responsible for ensuring the accuracy of property information, pricing, 
                  availability, and other details that AI agents communicate to prospects. We are not 
                  liable for errors resulting from inaccurate information you provide.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.3 AI Limitations</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.3 AI Limitations</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  AI-generated insights, recommendations, and lead scores are provided for informational 
                  purposes only and do not constitute legal, financial, or professional advice. You should 
                  exercise independent judgment in all business decisions.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">8.4 Recording Compliance</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">9.4 Recording Compliance</h3>
                <p className="text-muted-foreground leading-relaxed">
                  While our system provides recording disclosures in compliance with federal law, you are 
                  responsible for understanding and complying with any additional recording consent 
@@ -287,9 +380,9 @@
                </p>
              </section>
  
-             {/* Section 9: Third-Party Integrations */}
+             {/* Section 10: Third-Party Integrations */}
              <section id="third-party">
-               <h2 className="text-xl font-semibold text-foreground mb-4">9. Third-Party Integrations</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">10. Third-Party Integrations</h2>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  The Service integrates with third-party services to provide functionality:
                </p>
@@ -310,18 +403,18 @@
                </p>
              </section>
  
-             {/* Section 10: Limitation of Liability */}
+             {/* Section 11: Limitation of Liability */}
              <section id="liability">
-               <h2 className="text-xl font-semibold text-foreground mb-4">10. Limitation of Liability</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">11. Limitation of Liability</h2>
                
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.1 Service "As Is"</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">11.1 Service "As Is"</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, 
                  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, 
                  FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.2 No Liability For</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">11.2 No Liability For</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  We are not liable for:
                </p>
@@ -334,7 +427,7 @@
                  <li>Fair Housing violations resulting from your configuration or instructions</li>
                </ul>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">10.3 Maximum Liability</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">11.3 Maximum Liability</h3>
                <p className="text-muted-foreground leading-relaxed">
                  TO THE MAXIMUM EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY FOR ANY CLAIMS ARISING OUT 
                  OF OR RELATED TO THESE TERMS OR THE SERVICE SHALL NOT EXCEED THE TOTAL FEES PAID BY YOU 
@@ -342,9 +435,9 @@
                </p>
              </section>
  
-             {/* Section 11: Indemnification */}
+             {/* Section 12: Indemnification */}
              <section id="indemnification">
-               <h2 className="text-xl font-semibold text-foreground mb-4">11. Indemnification</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">12. Indemnification</h2>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  You agree to indemnify, defend, and hold harmless Rent Finder Cleveland LLC, its officers, 
                  directors, employees, and agents from and against any claims, liabilities, damages, losses, 
@@ -360,9 +453,9 @@
                </ul>
              </section>
  
-             {/* Section 12: Intellectual Property */}
+             {/* Section 13: Intellectual Property */}
              <section id="intellectual-property">
-               <h2 className="text-xl font-semibold text-foreground mb-4">12. Intellectual Property</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">13. Intellectual Property</h2>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  The Service, including the platform, AI models, algorithms, software, documentation, 
                  user interface, and all related intellectual property, is and remains the exclusive 
@@ -379,17 +472,17 @@
                </p>
              </section>
  
-             {/* Section 13: Termination */}
+             {/* Section 14: Termination */}
              <section id="termination">
-               <h2 className="text-xl font-semibold text-foreground mb-4">13. Termination</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">14. Termination</h2>
                
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">13.1 Termination by You</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">14.1 Termination by You</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  You may terminate your account at any time by providing 30 days written notice or by 
                  using the cancellation feature in your account settings.
                </p>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">13.2 Termination by Us</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">14.2 Termination by Us</h3>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  We may terminate or suspend your account with 30 days notice for any reason. We may 
                  terminate immediately without notice for:
@@ -401,7 +494,7 @@
                  <li>Non-payment of fees after notice and opportunity to cure</li>
                </ul>
  
-               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">13.3 Effect of Termination</h3>
+               <h3 className="text-lg font-medium text-foreground mt-6 mb-3">14.3 Effect of Termination</h3>
                <p className="text-muted-foreground leading-relaxed">
                  Upon termination, your right to use the Service immediately ceases. Provisions that by 
                  their nature should survive termination (including indemnification, limitation of liability, 
@@ -409,9 +502,19 @@
                </p>
              </section>
  
-             {/* Section 14: Governing Law */}
+             {/* Section 15: Fair Housing */}
+             <section id="fair-housing">
+               <h2 className="text-xl font-semibold text-foreground mb-4">15. Fair Housing</h2>
+               <p className="text-muted-foreground leading-relaxed">
+                 Rent Finder Cleveland / HomeGuard complies with all federal, state, and local fair housing
+                 laws. We do not discriminate based on race, color, religion, national origin, sex, familial
+                 status, disability, or any other protected class.
+               </p>
+             </section>
+
+             {/* Section 16: Governing Law */}
              <section id="governing-law">
-               <h2 className="text-xl font-semibold text-foreground mb-4">14. Governing Law</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">16. Governing Law</h2>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  These Terms shall be governed by and construed in accordance with the laws of the State 
                  of Ohio, United States, without regard to its conflict of law provisions.
@@ -423,9 +526,9 @@
                </p>
              </section>
  
-             {/* Section 15: Severability */}
+             {/* Section 17: Severability */}
              <section id="severability">
-               <h2 className="text-xl font-semibold text-foreground mb-4">15. Severability</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">17. Severability</h2>
                <p className="text-muted-foreground leading-relaxed">
                  If any provision of these Terms is held to be unenforceable or invalid by a court of 
                  competent jurisdiction, such provision shall be modified to the minimum extent necessary 
@@ -434,24 +537,30 @@
                </p>
              </section>
  
-             {/* Section 16: Contact Information */}
+             {/* Section 18: Contact Information */}
              <section id="contact">
-               <h2 className="text-xl font-semibold text-foreground mb-4">16. Contact Information</h2>
+               <h2 className="text-xl font-semibold text-foreground mb-4">18. Contact Information</h2>
                <p className="text-muted-foreground leading-relaxed mb-4">
                  If you have questions about these Terms of Service or need to contact us for any reason, 
                  please reach out:
                </p>
                <div className="bg-muted/50 rounded-xl p-6">
-                 <p className="font-semibold text-foreground mb-2">Rent Finder Cleveland LLC</p>
-                 <p className="text-muted-foreground">Cleveland, Ohio, United States</p>
+                 <p className="font-semibold text-foreground mb-2">Rent Finder Cleveland, LLC (HomeGuard)</p>
+                 <p className="text-muted-foreground">Cleveland, Ohio and surrounding areas</p>
                  <p className="text-muted-foreground mt-4">
                    <strong>Phone:</strong>{" "}
-                   <a href="tel:2166308857" className="text-primary hover:underline">(216) 630-8857</a>
+                   <a href="tel:2162383390" className="text-primary hover:underline">(216) 238-3390</a>
                  </p>
                  <p className="text-muted-foreground">
                    <strong>Email:</strong>{" "}
-                   <a href="mailto:legal@rentfindercleveland.com" className="text-primary hover:underline">
-                     legal@rentfindercleveland.com
+                   <a href="mailto:support@rentfindercleveland.com" className="text-primary hover:underline">
+                     support@rentfindercleveland.com
+                   </a>
+                 </p>
+                 <p className="text-muted-foreground">
+                   <strong>Website:</strong>{" "}
+                   <a href="https://rentfindercleveland.com" className="text-primary hover:underline">
+                     rentfindercleveland.com
                    </a>
                  </p>
                  <p className="text-muted-foreground mt-4 text-sm">
@@ -481,7 +590,7 @@
                <Link to="/p/terms-of-service" className="text-primary font-medium">
                  Terms of Service
                </Link>
-               <a href="tel:2166308857" className="text-muted-foreground hover:text-foreground transition-colors">
+               <a href="tel:2162383390" className="text-muted-foreground hover:text-foreground transition-colors">
                  Contact
                </a>
              </nav>

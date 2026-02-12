@@ -82,7 +82,9 @@ const App = () => (
               <Routes>
                 {/* Public pages (no auth required) */}
                 <Route path="/p/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                <Route path="/p/terms-of-service" element={<TermsOfService />} />
+                <Route path="/terms-and-conditions" element={<TermsOfService />} />
                 <Route path="/p/refer/:referralCode" element={<ReferralPage />} />
 
                 {/* Public auth routes */}
