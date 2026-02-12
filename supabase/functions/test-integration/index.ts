@@ -119,14 +119,26 @@ serve(async (req: Request) => {
           break;
         }
         try {
-          const resp = await fetch("https://api.resend.com/api-keys", {
-            headers: { Authorization: `Bearer ${apiKey}` },
+          // Send a real test email to verify the key works
+          const resp = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "Rent Finder Cleveland <support@rentfindercleveland.com>",
+              to: ["delivered@resend.dev"],
+              subject: "Integration Test",
+              html: "<p>Connection verified.</p>",
+            }),
           });
           if (resp.ok) {
             success = true;
-            message = "Connected — Resend API key is valid";
+            message = "Connected — test email sent successfully";
           } else {
-            message = `Authentication failed (${resp.status})`;
+            const errData = await resp.json();
+            message = `API error: ${errData.message || resp.status}`;
           }
         } catch (e) {
           message = `Connection error: ${(e as Error).message}`;
