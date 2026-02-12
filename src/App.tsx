@@ -42,7 +42,8 @@ const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
 // Public pages (lazy-loaded)
 const PrivacyPolicy = lazy(() => import("./pages/public/PrivacyPolicy"));
 const ReferralPage = lazy(() => import("./pages/public/ReferralPage"));
- const TermsOfService = lazy(() => import("./pages/public/TermsOfService"));
+const TermsOfService = lazy(() => import("./pages/public/TermsOfService"));
+const SmsSignup = lazy(() => import("./pages/public/SmsSignup"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -86,6 +87,7 @@ const App = () => (
                <Route path="/p/terms-of-service" element={<TermsOfService />} />
                 <Route path="/terms-and-conditions" element={<TermsOfService />} />
                 <Route path="/p/refer/:referralCode" element={<ReferralPage />} />
+                <Route path="/sms-signup" element={<SmsSignup />} />
 
                 {/* Public auth routes */}
                 <Route path="/auth/login" element={<Login />} />
