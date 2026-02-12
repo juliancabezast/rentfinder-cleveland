@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, KeyRound, Clock, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,7 @@ import { RoleBadge } from '@/components/users/RoleBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 import type { AppRole } from '@/types/auth';
 
 interface User {
@@ -48,6 +49,9 @@ interface User {
   is_active: boolean | null;
   commission_rate: number | null;
   created_at: string | null;
+  last_login_at: string | null;
+  invited_at: string | null;
+  invited_by: string | null;
 }
 
 interface Property {
@@ -79,6 +83,7 @@ const UserDetail: React.FC = () => {
   // Stats for leasing agents
   const [assignedLeadsCount, setAssignedLeadsCount] = useState(0);
   const [assignedShowingsCount, setAssignedShowingsCount] = useState(0);
+  const [sendingReset, setSendingReset] = useState(false);
 
   const isOwnProfile = userRecord?.id === id;
   const canEdit = !isOwnProfile || userRecord?.role !== role; // Can't change own role
@@ -168,6 +173,30 @@ const UserDetail: React.FC = () => {
         ? prev.filter((pid) => pid !== propertyId)
         : [...prev, propertyId]
     );
+  };
+
+  const handleSendPasswordReset = async () => {
+    if (!user) return;
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (error) throw error;
+      toast({
+        title: 'Password Reset Sent',
+        description: `Recovery email sent to ${user.email}`,
+      });
+    } catch (error) {
+      console.error('Error sending password reset:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send password reset email.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingReset(false);
+    }
   };
 
   const handleSave = async () => {
@@ -455,6 +484,63 @@ const UserDetail: React.FC = () => {
                 disabled={isOwnProfile}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Activity & Account Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Activity & Account
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Created</span>
+                <span className="font-medium">
+                  {user.created_at
+                    ? format(new Date(user.created_at), 'MMM d, yyyy h:mm a')
+                    : 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Invited</span>
+                <span className="font-medium">
+                  {user.invited_at
+                    ? format(new Date(user.invited_at), 'MMM d, yyyy h:mm a')
+                    : 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Last Login</span>
+                <span className={`font-medium ${!user.last_login_at ? 'text-amber-600' : ''}`}>
+                  {user.last_login_at
+                    ? format(new Date(user.last_login_at), 'MMM d, yyyy h:mm a')
+                    : 'Never'}
+                </span>
+              </div>
+            </div>
+
+            {!isOwnProfile && (
+              <>
+                <div className="border-t pt-4">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleSendPasswordReset}
+                    disabled={sendingReset}
+                  >
+                    <KeyRound className="h-4 w-4 mr-2" />
+                    {sendingReset ? 'Sending...' : 'Send Password Reset Email'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Sends a recovery link to {user.email}
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

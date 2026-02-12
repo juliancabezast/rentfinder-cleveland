@@ -34,6 +34,8 @@ interface User {
   avatar_url: string | null;
   is_active: boolean | null;
   created_at: string | null;
+  last_login_at: string | null;
+  invited_at: string | null;
 }
 
 const UsersList: React.FC = () => {
@@ -54,7 +56,7 @@ const UsersList: React.FC = () => {
       // Only select non-sensitive columns for list view - email/phone only fetched in detail view
       let query = supabase
         .from('users')
-        .select('id, full_name, role, avatar_url, is_active, created_at')
+        .select('id, full_name, role, avatar_url, is_active, created_at, last_login_at, invited_at')
         .eq('organization_id', userRecord.organization_id)
         .order('created_at', { ascending: false });
 
@@ -201,6 +203,11 @@ const UsersList: React.FC = () => {
                         {user.created_at
                           ? format(new Date(user.created_at), 'MMM d, yyyy')
                           : 'Unknown'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {user.last_login_at
+                          ? `Last login: ${format(new Date(user.last_login_at), 'MMM d, yyyy h:mm a')}`
+                          : 'Never logged in'}
                       </p>
                     </div>
                   </div>

@@ -124,6 +124,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         retryCountRef.current = 0; // Reset retry count on success
         setUserRecord(userData as UserRecord);
 
+        // Update last_login_at
+        supabase
+          .from('users')
+          .update({ last_login_at: new Date().toISOString() })
+          .eq('id', userData.id)
+          .then(() => {});
+
         // Fetch organization if user has one
         if (userData.organization_id) {
           const { data: orgData, error: orgError } = await supabase
