@@ -141,6 +141,30 @@ new → contacted → engaged → nurturing → qualified → showing_scheduled 
 - Supabase client in edge functions: use `_shared/supabase.ts`
 - For cron-triggered agents, DB settings `app.settings.supabase_url` and `app.settings.service_role_key` must be set
 
+## Launch Status (Updated Feb 12, 2026)
+
+### DONE
+- 43 edge functions ALL deployed and active on Supabase (12 created locally, rest via Lovable)
+- All API keys configured in organization_credentials: Twilio, Bland.ai, OpenAI, DoorLoop, Resend
+- Supabase secrets set: RESEND_API_KEY, RESEND_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
+- Felipe Velásquez created as Editor user
+- Zillow property importer built (needs RAPIDAPI_KEY secret to work)
+- Users moved from sidebar into Settings → Team tab
+- Login tracking (last_login_at) + password reset button added to user management
+- Resend email sending verified working
+- Build passes, all code pushed to GitHub
+
+### REMAINING STEPS TO LAUNCH (in order)
+1. **Load properties** — No properties exist yet. Either add RAPIDAPI_KEY secret + use Zillow import, or add manually via "Add Property"
+2. **Resend webhook for Esther** — Resend Dashboard → Webhooks → Add: URL `https://glzzzthgotfwoiaranmp.supabase.co/functions/v1/agent-hemlane-parser`, event `email.received`. Signing secret already saved as RESEND_WEBHOOK_SECRET
+3. **Hemlane forwarding** — Configure Hemlane to forward lead notifications to Resend inbound email address (e.g. leads@rentfindercleveland.com)
+4. **Bland.ai pathway** — Import `src/config/bland-pathways/outbound-callback-pathway.json` into Bland dashboard, set webhook URL to `https://glzzzthgotfwoiaranmp.supabase.co/functions/v1/pathway-webhook`, then update OUTBOUND_CALLBACK_PATHWAY_ID in `src/config/bland-pathways/call-initiation.ts` with the real pathway ID
+5. **Lovable rebuild** — Trigger rebuild so frontend picks up all changes from today
+6. **End-to-end testing** — Test email parsing, Bland calls, SMS sending
+
+### Edge functions deployed from local repo (supabase/functions/)
+invite-user, send-notification-email, pathway-webhook, agent-hemlane-parser, import-zillow-property, book-public-showing, test-integration, send-message, match-properties, generate-lead-brief, predict-conversion, agent-health-checker
+
 ## Database Rules
 - NEVER run `npx supabase db push` or any supabase CLI database commands - they are not configured in this environment.
 - If SQL migrations or database schema changes are needed, tell the user: "This requires a database change. Please run this SQL in the Supabase Dashboard SQL Editor: [provide the SQL]"
