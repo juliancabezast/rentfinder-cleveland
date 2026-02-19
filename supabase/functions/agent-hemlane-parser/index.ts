@@ -482,8 +482,8 @@ const STREET_ABBREVIATIONS: [RegExp, string][] = [
   [/\bPkwy\b/i, "Parkway"],
 ];
 
-// ── Match property by address ────────────────────────────────────────
-async function matchProperty(
+// ── Match property by address (or auto-create if not found) ─────────
+async function matchOrCreateProperty(
   supabase: ReturnType<typeof createClient>,
   organizationId: string,
   propertyAddress: string
@@ -502,36 +502,92 @@ async function matchProperty(
 
   // Strategy 1: full address as-is
   const s1 = await tryMatch(propertyAddress);
-  if (s1) return s1;
+  if (s1) { console.log(`Esther: property matched (exact) "${propertyAddress}" → ${s1}`); return s1; }
 
-  // Strategy 2: street part before comma ("10314 Adams Avenue, Unit A" → "10314 Adams Avenue")
+  // Strategy 2: street part before comma
   const streetPart = propertyAddress.split(",")[0].trim();
   if (streetPart && streetPart !== propertyAddress) {
     const s2 = await tryMatch(streetPart);
-    if (s2) return s2;
+    if (s2) { console.log(`Esther: property matched (street) "${streetPart}" → ${s2}`); return s2; }
   }
 
   // Strategy 3: try with abbreviated/expanded street type
-  // "10314 Adams Avenue" → "10314 Adams Ave", "513 Henry Street" → "513 Henry St"
   const base = streetPart || propertyAddress;
   for (const [pattern, replacement] of STREET_ABBREVIATIONS) {
     if (pattern.test(base)) {
       const alternate = base.replace(pattern, replacement);
       const s3 = await tryMatch(alternate);
-      if (s3) return s3;
-      break; // Only try first matching abbreviation
+      if (s3) { console.log(`Esther: property matched (abbrev) "${alternate}" → ${s3}`); return s3; }
+      break;
     }
   }
 
-  // Strategy 4: street number + street name only (no type) — "10314 Adams"
+  // Strategy 4: street number + street name only
   const numAndName = propertyAddress.match(/^(\d+\s+\w+)/);
   if (numAndName) {
     const s4 = await tryMatch(numAndName[1]);
-    if (s4) return s4;
+    if (s4) { console.log(`Esther: property matched (partial) "${numAndName[1]}" → ${s4}`); return s4; }
   }
 
-  console.log(`Esther matchProperty: no match for "${propertyAddress}" (tried 4 strategies)`);
-  return null;
+  // ── No match → auto-create property from Hemlane data ────────────
+  // Hemlane IS our property management source — if it lists a property, it's real.
+  // Parse address parts: "12714 Farringdon Avenue" or "513 Henry St, Cleveland, OH 44108"
+  const addressParts = propertyAddress.split(",").map((s) => s.trim());
+  const mainAddress = addressParts[0];
+
+  let city = "Cleveland";
+  let state = "OH";
+  let zipCode = "44100"; // Placeholder — Cleveland general area
+
+  // Try to extract city/state/zip from address parts
+  if (addressParts.length >= 2) {
+    const part2 = addressParts[1];
+    if (part2 && !/^\d/.test(part2) && !/^(OH|oh)$/i.test(part2)) {
+      city = part2;
+    }
+  }
+  if (addressParts.length >= 3) {
+    const stateZipMatch = addressParts[2].match(/^([A-Z]{2})\s*(\d{5})?$/i);
+    if (stateZipMatch) {
+      state = stateZipMatch[1].toUpperCase();
+      if (stateZipMatch[2]) zipCode = stateZipMatch[2];
+    }
+  }
+  // Also check last part for standalone zip
+  const lastPart = addressParts[addressParts.length - 1];
+  const zipOnly = lastPart.match(/\b(\d{5})\b/);
+  if (zipOnly) zipCode = zipOnly[1];
+
+  // Extract unit number if present
+  const unitMatch = propertyAddress.match(/,?\s*(?:unit|apt|#)\s*(\w+)/i);
+  const unitNumber = unitMatch ? unitMatch[1] : null;
+
+  const { data: newProp, error: propErr } = await supabase
+    .from("properties")
+    .insert({
+      organization_id: organizationId,
+      address: mainAddress,
+      unit_number: unitNumber,
+      city,
+      state,
+      zip_code: zipCode,
+      bedrooms: 0,       // Unknown — to be filled later
+      bathrooms: 0,       // Unknown — to be filled later
+      rent_price: 0,      // Unknown — to be filled later
+      status: "available",
+      description: `Auto-created from Hemlane lead inquiry. Original address: "${propertyAddress}". Details pending.`,
+      section_8_accepted: true,
+    })
+    .select("id")
+    .single();
+
+  if (propErr) {
+    console.error(`Esther: auto-create property failed for "${propertyAddress}": ${propErr.message} (code: ${propErr.code})`);
+    return null;
+  }
+
+  console.log(`Esther: AUTO-CREATED property "${mainAddress}" (${city}, ${state} ${zipCode}) → ${newProp.id}`);
+  return newProp.id;
 }
 
 // ── Upsert a single lead ──────────────────────────────────────────────
@@ -552,7 +608,7 @@ async function upsertLead(
 
   // Match property in DB
   const propertyId = lead.property
-    ? await matchProperty(supabase, organizationId, lead.property)
+    ? await matchOrCreateProperty(supabase, organizationId, lead.property)
     : null;
 
   if (lead.property) {
@@ -581,7 +637,7 @@ async function upsertLead(
         existing.full_name.startsWith("detail")
       );
 
-      await supabase
+      const { error: updateErr } = await supabase
         .from("leads")
         .update({
           last_contact_at: new Date().toISOString(),
@@ -589,7 +645,7 @@ async function upsertLead(
           source_detail: detail,
           hemlane_email_id: emailId,
           ...(lead.email ? { email: lead.email } : {}),
-          ...(propertyId && !existing.interested_property_id ? { interested_property_id: propertyId } : {}),
+          ...(propertyId ? { interested_property_id: propertyId } : {}),
           ...(needsNameFix ? {
             full_name: lead.name,
             first_name: lead.name!.split(" ")[0] || null,
@@ -598,12 +654,16 @@ async function upsertLead(
         })
         .eq("id", existing.id);
 
-      // Save message as note on existing lead too
+      if (updateErr) {
+        console.error(`Esther: lead update failed for ${existing.id}: ${updateErr.message}`);
+      } else {
+        console.log(`Esther: updated existing lead ${existing.id} (phone dup) — property=${propertyId || "none"}, name=${needsNameFix ? lead.name : "kept"}`);
+      }
+
       if (lead.message) {
         await saveLeadNote(supabase, organizationId, existing.id, lead.message);
       }
 
-      // Auto-score existing lead if message shows intent
       if (lead.message) {
         const intents = detectAllIntents(lead.message);
         for (const intent of intents) {
@@ -617,19 +677,6 @@ async function upsertLead(
           });
           if (rpcErr) console.error(`Esther: score boost failed (${intent.reason_code}): ${rpcErr.message}`);
         }
-      }
-
-      // Add property to lead_properties (multi-property support)
-      if (propertyId) {
-        const { error: lpErr } = await supabase.from("lead_properties").upsert({
-          organization_id: organizationId,
-          lead_id: existing.id,
-          property_id: propertyId,
-          source: "hemlane_email",
-          listing_source: lead.listingSource || null,
-        }, { onConflict: "lead_id,property_id" });
-        if (lpErr) console.error(`Esther: lead_properties upsert failed: ${lpErr.message}`);
-        else console.log(`Esther: lead_properties linked lead=${existing.id} property=${propertyId}`);
       }
 
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
@@ -651,14 +698,13 @@ async function upsertLead(
         ? `${existing.source_detail}\n${note}`
         : note;
 
-      // Fix name if existing is garbage (from previous parse bugs) and we have a real name
       const needsNameFix = lead.name && existing.full_name && (
         existing.full_name.includes("{") ||
         existing.full_name.startsWith("Hemlane Lead") ||
         existing.full_name.startsWith("detail")
       );
 
-      await supabase
+      const { error: updateErr } = await supabase
         .from("leads")
         .update({
           last_contact_at: new Date().toISOString(),
@@ -666,7 +712,7 @@ async function upsertLead(
           source_detail: detail,
           hemlane_email_id: emailId,
           ...(phone && !existing.phone ? { phone } : {}),
-          ...(propertyId && !existing.interested_property_id ? { interested_property_id: propertyId } : {}),
+          ...(propertyId ? { interested_property_id: propertyId } : {}),
           ...(needsNameFix ? {
             full_name: lead.name,
             first_name: lead.name!.split(" ")[0] || null,
@@ -675,12 +721,16 @@ async function upsertLead(
         })
         .eq("id", existing.id);
 
-      // Save message as note on existing lead too
+      if (updateErr) {
+        console.error(`Esther: lead update failed for ${existing.id}: ${updateErr.message}`);
+      } else {
+        console.log(`Esther: updated existing lead ${existing.id} (email dup) — property=${propertyId || "none"}, name=${needsNameFix ? lead.name : "kept"}`);
+      }
+
       if (lead.message) {
         await saveLeadNote(supabase, organizationId, existing.id, lead.message);
       }
 
-      // Auto-score existing lead if message shows intent
       if (lead.message) {
         const intents = detectAllIntents(lead.message);
         for (const intent of intents) {
@@ -694,19 +744,6 @@ async function upsertLead(
           });
           if (rpcErr) console.error(`Esther: score boost failed (${intent.reason_code}): ${rpcErr.message}`);
         }
-      }
-
-      // Add property to lead_properties (multi-property support)
-      if (propertyId) {
-        const { error: lpErr } = await supabase.from("lead_properties").upsert({
-          organization_id: organizationId,
-          lead_id: existing.id,
-          property_id: propertyId,
-          source: "hemlane_email",
-          listing_source: lead.listingSource || null,
-        }, { onConflict: "lead_id,property_id" });
-        if (lpErr) console.error(`Esther: lead_properties upsert failed: ${lpErr.message}`);
-        else console.log(`Esther: lead_properties linked lead=${existing.id} property=${propertyId}`);
       }
 
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
@@ -771,19 +808,6 @@ async function upsertLead(
   const now = new Date().toISOString();
   const listingPlatform = lead.listingSource || "Hemlane";
   const evidenceText = `Lead initiated contact via ${listingPlatform} property listing${lead.property ? ` for ${lead.property}` : ""}. Inbound inquiry = implicit consent to be contacted back. Received ${now}. Email ID: ${emailId}`;
-
-  // ── Add to lead_properties junction table ─────────────────────────
-  if (propertyId) {
-    const { error: lpErr } = await supabase.from("lead_properties").insert({
-      organization_id: organizationId,
-      lead_id: leadId,
-      property_id: propertyId,
-      source: "hemlane_email",
-      listing_source: lead.listingSource || null,
-    });
-    if (lpErr) console.error(`Esther: lead_properties insert failed: ${lpErr.message}`);
-    else console.log(`Esther: lead_properties linked lead=${leadId} property=${propertyId}`);
-  }
 
   // ── Save initial message as a lead note ──────────────────────────
   if (lead.message) {
