@@ -607,26 +607,34 @@ async function upsertLead(
       if (lead.message) {
         const intents = detectAllIntents(lead.message);
         for (const intent of intents) {
-          await supabase.rpc("log_score_change", {
-            _lead_id: existing.id,
-            _change_amount: intent.boost,
-            _reason_code: intent.reason_code,
-            _reason_text: intent.reason,
-            _triggered_by: "engagement",
-            _changed_by_agent: "esther",
-          }).catch((e: Error) => console.error(`Esther: score boost failed: ${e.message}`));
+          try {
+            await supabase.rpc("log_score_change", {
+              _lead_id: existing.id,
+              _change_amount: intent.boost,
+              _reason_code: intent.reason_code,
+              _reason_text: intent.reason,
+              _triggered_by: "engagement",
+              _changed_by_agent: "esther",
+            });
+          } catch (e) {
+            console.error(`Esther: score boost failed: ${(e as Error).message}`);
+          }
         }
       }
 
       // Add property to lead_properties (multi-property support)
       if (propertyId) {
-        await supabase.from("lead_properties").upsert({
-          organization_id: organizationId,
-          lead_id: existing.id,
-          property_id: propertyId,
-          source: "hemlane_email",
-          listing_source: lead.listingSource || null,
-        }, { onConflict: "lead_id,property_id" }).catch(() => {});
+        try {
+          await supabase.from("lead_properties").upsert({
+            organization_id: organizationId,
+            lead_id: existing.id,
+            property_id: propertyId,
+            source: "hemlane_email",
+            listing_source: lead.listingSource || null,
+          }, { onConflict: "lead_id,property_id" });
+        } catch (e) {
+          console.error(`Esther: lead_properties upsert failed: ${(e as Error).message}`);
+        }
       }
 
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
@@ -681,26 +689,34 @@ async function upsertLead(
       if (lead.message) {
         const intents = detectAllIntents(lead.message);
         for (const intent of intents) {
-          await supabase.rpc("log_score_change", {
-            _lead_id: existing.id,
-            _change_amount: intent.boost,
-            _reason_code: intent.reason_code,
-            _reason_text: intent.reason,
-            _triggered_by: "engagement",
-            _changed_by_agent: "esther",
-          }).catch((e: Error) => console.error(`Esther: score boost failed: ${e.message}`));
+          try {
+            await supabase.rpc("log_score_change", {
+              _lead_id: existing.id,
+              _change_amount: intent.boost,
+              _reason_code: intent.reason_code,
+              _reason_text: intent.reason,
+              _triggered_by: "engagement",
+              _changed_by_agent: "esther",
+            });
+          } catch (e) {
+            console.error(`Esther: score boost failed: ${(e as Error).message}`);
+          }
         }
       }
 
       // Add property to lead_properties (multi-property support)
       if (propertyId) {
-        await supabase.from("lead_properties").upsert({
-          organization_id: organizationId,
-          lead_id: existing.id,
-          property_id: propertyId,
-          source: "hemlane_email",
-          listing_source: lead.listingSource || null,
-        }, { onConflict: "lead_id,property_id" }).catch(() => {});
+        try {
+          await supabase.from("lead_properties").upsert({
+            organization_id: organizationId,
+            lead_id: existing.id,
+            property_id: propertyId,
+            source: "hemlane_email",
+            listing_source: lead.listingSource || null,
+          }, { onConflict: "lead_id,property_id" });
+        } catch (e) {
+          console.error(`Esther: lead_properties upsert failed: ${(e as Error).message}`);
+        }
       }
 
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
@@ -739,23 +755,25 @@ async function upsertLead(
 
   if (err || !newLead) {
     console.error(`Esther: failed to create lead ${fullName}: ${err?.message}`);
-    await supabase.from("system_logs").insert({
-      organization_id: organizationId,
-      level: "error",
-      category: "general",
-      event_type: "esther_db_insert_failed",
-      message: `Esther: DB insert failed for lead ${fullName}. Error: ${err?.message}`,
-      details: {
-        lead_name: lead.name,
-        lead_phone: phone,
-        lead_email: lead.email,
-        lead_property: lead.property,
-        lead_listing_source: lead.listingSource,
-        hemlane_email_id: emailId,
-        error: err?.message,
-        error_code: err?.code,
-      },
-    }).catch(() => {});
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: organizationId,
+        level: "error",
+        category: "general",
+        event_type: "esther_db_insert_failed",
+        message: `Esther: DB insert failed for lead ${fullName}. Error: ${err?.message}`,
+        details: {
+          lead_name: lead.name,
+          lead_phone: phone,
+          lead_email: lead.email,
+          lead_property: lead.property,
+          lead_listing_source: lead.listingSource,
+          hemlane_email_id: emailId,
+          error: err?.message,
+          error_code: err?.code,
+        },
+      });
+    } catch (_) { /* don't mask original error */ }
     return null;
   }
 
@@ -766,13 +784,17 @@ async function upsertLead(
 
   // ── Add to lead_properties junction table ─────────────────────────
   if (propertyId) {
-    await supabase.from("lead_properties").insert({
-      organization_id: organizationId,
-      lead_id: leadId,
-      property_id: propertyId,
-      source: "hemlane_email",
-      listing_source: lead.listingSource || null,
-    }).catch(() => {});
+    try {
+      await supabase.from("lead_properties").insert({
+        organization_id: organizationId,
+        lead_id: leadId,
+        property_id: propertyId,
+        source: "hemlane_email",
+        listing_source: lead.listingSource || null,
+      });
+    } catch (e) {
+      console.error(`Esther: lead_properties insert failed: ${(e as Error).message}`);
+    }
   }
 
   // ── Save initial message as a lead note ──────────────────────────
@@ -798,28 +820,36 @@ async function upsertLead(
 
   // ── Score boost if lead has a matched property (+10: 40 → 50) ────
   if (propertyId) {
-    await supabase.rpc("log_score_change", {
-      _lead_id: leadId,
-      _change_amount: 10,
-      _reason_code: "property_matched",
-      _reason_text: "Lead associated with a property on creation",
-      _triggered_by: "system",
-      _changed_by_agent: "esther",
-    }).catch((e: Error) => console.error(`Esther: property score boost failed: ${e.message}`));
+    try {
+      await supabase.rpc("log_score_change", {
+        _lead_id: leadId,
+        _change_amount: 10,
+        _reason_code: "property_matched",
+        _reason_text: "Lead associated with a property on creation",
+        _triggered_by: "system",
+        _changed_by_agent: "esther",
+      });
+    } catch (e) {
+      console.error(`Esther: property score boost failed: ${(e as Error).message}`);
+    }
   }
 
   // ── Auto-score based on message intent (boosts stack) ──────────
   if (lead.message) {
     const intents = detectAllIntents(lead.message);
     for (const intent of intents) {
-      await supabase.rpc("log_score_change", {
-        _lead_id: leadId,
-        _change_amount: intent.boost,
-        _reason_code: intent.reason_code,
-        _reason_text: intent.reason,
-        _triggered_by: "engagement",
-        _changed_by_agent: "esther",
-      }).catch((e: Error) => console.error(`Esther: score boost failed: ${e.message}`));
+      try {
+        await supabase.rpc("log_score_change", {
+          _lead_id: leadId,
+          _change_amount: intent.boost,
+          _reason_code: intent.reason_code,
+          _reason_text: intent.reason,
+          _triggered_by: "engagement",
+          _changed_by_agent: "esther",
+        });
+      } catch (e) {
+        console.error(`Esther: score boost failed: ${(e as Error).message}`);
+      }
     }
   }
 
@@ -848,14 +878,16 @@ async function saveLeadNote(
   if (error) {
     console.error(`Esther: lead_notes insert failed: ${error.message} (code: ${error.code})`);
     // Log to system_logs so we can see the failure in the dashboard
-    await supabase.from("system_logs").insert({
-      organization_id: organizationId,
-      level: "warn",
-      category: "general",
-      event_type: "esther_note_save_failed",
-      message: `Esther: could not save lead note. Error: ${error.message}`,
-      details: { lead_id: leadId, error: error.message, error_code: error.code },
-    }).catch(() => {});
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: organizationId,
+        level: "warn",
+        category: "general",
+        event_type: "esther_note_save_failed",
+        message: `Esther: could not save lead note. Error: ${error.message}`,
+        details: { lead_id: leadId, error: error.message, error_code: error.code },
+      });
+    } catch (_) { /* don't mask original error */ }
   }
 }
 
@@ -1133,14 +1165,16 @@ serve(async (req: Request) => {
           }
         } catch (e) {
           console.error(`Esther digest: error processing ${lead.name}: ${(e as Error).message}`);
-          await supabase.from("system_logs").insert({
-            organization_id: organizationId,
-            level: "error",
-            category: "general",
-            event_type: "esther_digest_lead_error",
-            message: `Esther digest: failed to process lead ${lead.name || lead.email || lead.phone}. ${(e as Error).message}`,
-            details: { lead, error: (e as Error).message },
-          }).catch(() => {});
+          try {
+            await supabase.from("system_logs").insert({
+              organization_id: organizationId,
+              level: "error",
+              category: "general",
+              event_type: "esther_digest_lead_error",
+              message: `Esther digest: failed to process lead ${lead.name || lead.email || lead.phone}. ${(e as Error).message}`,
+              details: { lead, error: (e as Error).message },
+            });
+          } catch (_) { /* don't mask original error */ }
           skipped++;
         }
       }
