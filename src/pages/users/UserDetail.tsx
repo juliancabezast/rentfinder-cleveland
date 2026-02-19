@@ -304,21 +304,24 @@ const UserDetail: React.FC = () => {
     }
 
     try {
-      const { error } = await supabase.from('users').delete().eq('id', user.id);
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: user.id },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: 'User Deleted',
-        description: 'The user has been removed.',
+        description: data?.message || 'The user has been removed.',
       });
 
       navigate('/users');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
       toast({
         title: 'Error',
-        description: 'Failed to delete user.',
+        description: error?.message || 'Failed to delete user.',
         variant: 'destructive',
       });
     }

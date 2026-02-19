@@ -76,48 +76,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userData = byEmail;
       }
 
-      // Step 4: If still no profile, create one with the first available organization
+      // Step 4: If still no profile, sign out — user was likely deleted
       if (!userData) {
-        const { data: org, error: orgError } = await supabase
-          .from('organizations')
-          .select('id')
-          .limit(1)
-          .maybeSingle();
-
-        if (orgError) {
-          console.error('Error fetching organization:', orgError);
-        }
-
-        if (org) {
-          const { data: newProfile, error: insertError } = await supabase
-            .from('users')
-            .insert({
-              id: authUserId,
-              auth_user_id: authUserId,
-              email: authEmail || '',
-              organization_id: org.id,
-              full_name: authUser.user_metadata?.full_name || authEmail || 'User',
-              role: 'admin',
-              is_active: true,
-            })
-            .select()
-            .maybeSingle();
-
-          if (insertError) {
-            console.error('Error creating user profile:', insertError);
-            // Retry after a delay if we haven't exceeded max retries
-            if (retryCountRef.current < maxRetries) {
-              retryCountRef.current += 1;
-              console.error(`Retrying profile fetch (${retryCountRef.current}/${maxRetries})`);
-              setTimeout(() => fetchUserRecord(authUser), 2000);
-              return;
-            }
-          } else {
-            userData = newProfile;
-          }
-        } else {
-          console.error('No organization found to create profile');
-        }
+        console.error('No user profile found. User may have been deleted. Signing out.');
+        await supabase.auth.signOut();
+        setUserRecord(null);
+        setLoading(false);
+        return;
       }
 
       if (userData) {
