@@ -235,7 +235,7 @@ serve(async (req: Request) => {
 
     // ── 3. Fetch full email body from Resend API ────────────────────
     const emailResponse = await fetch(
-      `https://api.resend.com/emails/${emailId}`,
+      `https://api.resend.com/emails/receiving/${emailId}`,
       { headers: { Authorization: `Bearer ${resendApiKey}` } }
     );
 
