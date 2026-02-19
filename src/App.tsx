@@ -33,7 +33,7 @@ const Settings = lazy(() => import("./pages/settings/Settings"));
 const SystemLogs = lazy(() => import("./pages/SystemLogs"));
 const CostDashboard = lazy(() => import("./pages/costs/CostDashboard"));
 const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
-const VoucherIntelligence = lazy(() => import("./pages/analytics/VoucherIntelligence"));
+
 const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
@@ -311,17 +311,6 @@ const App = () => (
                 <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
                   <MainLayout>
                     <LeadHeatMap />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/analytics/voucher-intel"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
-                  <MainLayout>
-                    <VoucherIntelligence />
                   </MainLayout>
                 </ProtectedRoute>
               }

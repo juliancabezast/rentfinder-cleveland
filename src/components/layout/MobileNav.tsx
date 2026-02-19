@@ -10,15 +10,14 @@ import {
   MoreHorizontal,
   Phone,
   BarChart3,
-  UserCog,
   Settings,
   DollarSign,
   MapPin,
-  Shield,
   Target,
   FileText,
   Brain,
   Bot,
+  UserPlus,
 } from 'lucide-react';
 import {
   Sheet,
@@ -45,11 +44,10 @@ const mainNavItems: NavItem[] = [
   { title: 'Showings', href: '/showings', icon: CalendarDays },
 ];
 
-// Analytics items in the More sheet
-const analyticsNavItems: NavItem[] = [
+// Leasing items in the More sheet
+const leasingNavItems: NavItem[] = [
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
-  { title: 'Voucher Intel', href: '/analytics/voucher-intel', icon: Shield, permission: 'canViewAllReports' },
   { title: 'Competitor Radar', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
   { title: 'Knowledge Hub', href: '/knowledge', icon: Brain, permission: 'canAccessInsightGenerator' },
 ];
@@ -57,8 +55,8 @@ const analyticsNavItems: NavItem[] = [
 // Admin/More items
 const moreNavItems: NavItem[] = [
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
-  { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
   { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
+  { title: 'Demo Requests', href: '/demo-requests', icon: UserPlus, permission: 'canModifySettings' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
@@ -72,10 +70,10 @@ export const MobileNav: React.FC = () => {
     (item) => !item.permission || permissions[item.permission]
   );
 
-  const filteredAnalyticsItems = filterItems(analyticsNavItems);
+  const filteredLeasingItems = filterItems(leasingNavItems);
   const filteredMoreItems = filterItems(moreNavItems);
 
-  const hasMoreItems = filteredAnalyticsItems.length > 0 || filteredMoreItems.length > 0;
+  const hasMoreItems = filteredLeasingItems.length > 0 || filteredMoreItems.length > 0;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/80 dark:bg-card/80 backdrop-blur-xl border-t border-white/30 z-50 safe-area-inset-bottom">
@@ -95,7 +93,7 @@ export const MobileNav: React.FC = () => {
                 <item.icon className="h-5 w-5" />
                 <span className="truncate">{item.title}</span>
                 {isActive && (
-                  <span className="absolute bottom-1 w-1 h-1 rounded-full bg-accent" />
+                  <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
                 )}
               </>
             )}
@@ -119,14 +117,14 @@ export const MobileNav: React.FC = () => {
                 <SheetTitle>More Options</SheetTitle>
               </SheetHeader>
               <div className="py-4 space-y-4">
-                {/* Analytics Section */}
-                {filteredAnalyticsItems.length > 0 && (
+                {/* Leasing Section */}
+                {filteredLeasingItems.length > 0 && (
                   <div>
                     <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Analytics
+                      Leasing
                     </p>
                     <div className="grid grid-cols-3 gap-3">
-                      {filteredAnalyticsItems.map((item) => (
+                      {filteredLeasingItems.map((item) => (
                         <NavLink
                           key={item.href}
                           to={item.href}
@@ -145,7 +143,7 @@ export const MobileNav: React.FC = () => {
                   </div>
                 )}
 
-                {filteredMoreItems.length > 0 && filteredAnalyticsItems.length > 0 && (
+                {filteredMoreItems.length > 0 && filteredLeasingItems.length > 0 && (
                   <Separator />
                 )}
 

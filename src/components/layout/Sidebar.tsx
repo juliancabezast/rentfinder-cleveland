@@ -15,12 +15,11 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
-  Shield,
   Target,
   FileText,
   Brain,
   Bot,
-   UserPlus,
+  UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,27 +38,33 @@ const operationsNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Leads', href: '/leads', icon: Users },
-  { title: 'Showings', href: '/showings', icon: CalendarDays },
-  { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
 ];
 
-// ANALYTICS section
-const analyticsNavItems: NavItem[] = [
+// LEASING section
+const leasingNavItems: NavItem[] = [
+  { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
-  { title: 'Voucher Intel', href: '/analytics/voucher-intel', icon: Shield, permission: 'canViewAllReports' },
   { title: 'Competitor Radar', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
-  { title: 'Knowledge Hub', href: '/knowledge', icon: Brain, permission: 'canAccessInsightGenerator' },
 ];
 
 // ADMIN section
 const adminNavItems: NavItem[] = [
+  { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
   { title: 'Demo Requests', href: '/demo-requests', icon: UserPlus, permission: 'canModifySettings' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
 ];
+
+// Knowledge Hub — pinned at bottom
+const knowledgeHubItem: NavItem = {
+  title: 'Knowledge Hub',
+  href: '/knowledge',
+  icon: Brain,
+  permission: 'canAccessInsightGenerator',
+};
 
 interface SidebarProps {
   collapsed: boolean;
@@ -75,8 +80,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   );
 
   const filteredOperationsItems = filterItems(operationsNavItems);
-  const filteredAnalyticsItems = filterItems(analyticsNavItems);
+  const filteredLeasingItems = filterItems(leasingNavItems);
   const filteredAdminItems = filterItems(adminNavItems);
+  const showKnowledgeHub = !knowledgeHubItem.permission || permissions[knowledgeHubItem.permission];
 
   const renderNavItem = (item: NavItem) => (
     <NavLink
@@ -88,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
         collapsed && 'justify-center px-2'
       )}
-      activeClassName="!bg-amber-400 !text-gray-900 font-semibold shadow-lg shadow-amber-400/30 hover:!bg-amber-400 hover:!text-gray-900"
+      activeClassName="bg-white/15 text-sidebar-foreground font-semibold hover:!bg-white/20"
     >
       <item.icon className="h-5 w-5 shrink-0" />
       {!collapsed && <span>{item.title}</span>}
@@ -97,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
 
   const renderSection = (label: string, items: NavItem[], showSeparator: boolean = true) => {
     if (items.length === 0) return null;
-    
+
     return (
       <>
         {showSeparator && <Separator className="my-3 bg-sidebar-border" />}
@@ -152,16 +158,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
           )}
           {filteredOperationsItems.map(renderNavItem)}
 
-          {/* ANALYTICS Section */}
-          {renderSection('Analytics', filteredAnalyticsItems)}
+          {/* LEASING Section */}
+          {renderSection('Leasing', filteredLeasingItems)}
 
           {/* ADMIN Section */}
           {renderSection('Admin', filteredAdminItems)}
         </nav>
       </ScrollArea>
 
-      {/* Live Indicator + Collapse Button - Fixed at bottom */}
+      {/* Knowledge Hub + Collapse Button - Fixed at bottom */}
       <div className="flex-shrink-0 border-t border-sidebar-border">
+        {showKnowledgeHub && (
+          <div className="px-2 pt-3">
+            {renderNavItem(knowledgeHubItem)}
+          </div>
+        )}
         {/* Collapse Button */}
         <div className="p-3">
           <Button
