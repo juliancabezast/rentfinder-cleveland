@@ -478,32 +478,23 @@ function formatPhoneE164(raw: string): string {
   return `+${digits}`;
 }
 
-// Street name abbreviation mappings (both directions)
-const STREET_ABBREVIATIONS: [RegExp, string][] = [
-  [/\bStreet\b/i, "St"],
-  [/\bAvenue\b/i, "Ave"],
-  [/\bRoad\b/i, "Rd"],
-  [/\bDrive\b/i, "Dr"],
-  [/\bBoulevard\b/i, "Blvd"],
-  [/\bLane\b/i, "Ln"],
-  [/\bPlace\b/i, "Pl"],
-  [/\bCourt\b/i, "Ct"],
-  [/\bCircle\b/i, "Cir"],
-  [/\bTerrace\b/i, "Ter"],
-  [/\bParkway\b/i, "Pkwy"],
-  // Reverse: abbreviation → full
-  [/\bSt\b(?!\.)/i, "Street"],
-  [/\bAve\b/i, "Avenue"],
-  [/\bRd\b/i, "Road"],
-  [/\bDr\b/i, "Drive"],
-  [/\bBlvd\b/i, "Boulevard"],
-  [/\bLn\b/i, "Lane"],
-  [/\bPl\b/i, "Place"],
-  [/\bCt\b/i, "Court"],
-  [/\bCir\b/i, "Circle"],
-  [/\bTer\b/i, "Terrace"],
-  [/\bPkwy\b/i, "Parkway"],
-];
+// Normalize address for matching: abbreviate directions + street types
+function normalizeAddress(addr: string): string {
+  return addr.trim()
+    .replace(/\s*\[Esther\b.*$/i, "")       // Strip leaked timestamps
+    .replace(/\.\s*$/, "")                    // Strip trailing period
+    .replace(/,?\s*(?:Unit|Apt|#)\s*\w+$/i, "") // Strip unit suffix
+    .replace(/\bNorth\b/gi, "N").replace(/\bSouth\b/gi, "S")
+    .replace(/\bEast\b/gi, "E").replace(/\bWest\b/gi, "W")
+    .replace(/\bStreet\b/gi, "St").replace(/\bAvenue\b/gi, "Ave")
+    .replace(/\bRoad\b/gi, "Rd").replace(/\bDrive\b/gi, "Dr")
+    .replace(/\bBoulevard\b/gi, "Blvd").replace(/\bLane\b/gi, "Ln")
+    .replace(/\bPlace\b/gi, "Pl").replace(/\bCourt\b/gi, "Ct")
+    .replace(/\bCircle\b/gi, "Cir").replace(/\bTerrace\b/gi, "Ter")
+    .replace(/\bParkway\b/gi, "Pkwy")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 // ── Match property by address (or auto-create if not found) ─────────
 async function matchOrCreateProperty(
@@ -511,58 +502,77 @@ async function matchOrCreateProperty(
   organizationId: string,
   propertyAddress: string
 ): Promise<string | null> {
-  // Helper: try ilike match
-  const tryMatch = async (pattern: string): Promise<string | null> => {
-    const { data } = await supabase
-      .from("properties")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .ilike("address", `%${pattern}%`)
-      .limit(1)
-      .maybeSingle();
-    return data?.id || null;
-  };
+  // Clean input: strip [Esther ...] timestamps that may have leaked in
+  const cleanInput = propertyAddress.replace(/\s*\[Esther\b.*$/i, "").replace(/\.\s*$/, "").trim();
+  if (!cleanInput || cleanInput.length < 5) return null;
 
-  // Strategy 1: full address as-is
-  const s1 = await tryMatch(propertyAddress);
-  if (s1) { console.log(`Esther: property matched (exact) "${propertyAddress}" → ${s1}`); return s1; }
+  // Extract unit number
+  const unitMatch = cleanInput.match(/,?\s*(?:Unit|Apt|#)\s*(\w+)/i);
+  const unitNumber = unitMatch ? unitMatch[1] : null;
 
-  // Strategy 2: street part before comma
-  const streetPart = propertyAddress.split(",")[0].trim();
-  if (streetPart && streetPart !== propertyAddress) {
-    const s2 = await tryMatch(streetPart);
-    if (s2) { console.log(`Esther: property matched (street) "${streetPart}" → ${s2}`); return s2; }
+  // Main address: first part before comma, without unit suffix
+  const mainAddress = cleanInput.split(",")[0]
+    .replace(/,?\s*(?:Unit|Apt|#)\s*\w+$/i, "")
+    .trim();
+
+  // Street number for candidate lookup
+  const streetNumber = mainAddress.match(/^(\d+)/)?.[1];
+  if (!streetNumber) {
+    console.log(`Esther: no street number in "${cleanInput}", skipping property match`);
+    return null;
   }
 
-  // Strategy 3: try with abbreviated/expanded street type
-  const base = streetPart || propertyAddress;
-  for (const [pattern, replacement] of STREET_ABBREVIATIONS) {
-    if (pattern.test(base)) {
-      const alternate = base.replace(pattern, replacement);
-      const s3 = await tryMatch(alternate);
-      if (s3) { console.log(`Esther: property matched (abbrev) "${alternate}" → ${s3}`); return s3; }
-      break;
+  // Fetch ALL properties with same street number (one query, compare in JS)
+  const { data: candidates } = await supabase
+    .from("properties")
+    .select("id, address, unit_number")
+    .eq("organization_id", organizationId)
+    .ilike("address", `${streetNumber} %`)
+    .limit(50);
+
+  if (candidates && candidates.length > 0) {
+    const normInput = normalizeAddress(mainAddress).toLowerCase();
+    const inputUnit = unitNumber?.toLowerCase() || null;
+
+    // Pass 1: exact normalized match
+    for (const prop of candidates) {
+      const normProp = normalizeAddress(prop.address).toLowerCase();
+      if (normProp === normInput) {
+        const propUnit = prop.unit_number?.toLowerCase() || null;
+        if (!inputUnit || !propUnit || inputUnit === propUnit) {
+          console.log(`Esther: matched property (normalized) "${cleanInput}" → ${prop.id} "${prop.address}"`);
+          return prop.id;
+        }
+      }
+    }
+
+    // Pass 2: match by street number + main street name word
+    const dirs = new Set(["n", "s", "e", "w", "ne", "nw", "se", "sw"]);
+    const normWords = normInput.split(" ").filter(w => w.length > 0);
+    const inputStreetWord = normWords.find((w, i) => i > 0 && !dirs.has(w));
+
+    if (inputStreetWord) {
+      for (const prop of candidates) {
+        const propWords = normalizeAddress(prop.address).toLowerCase().split(" ").filter(w => w.length > 0);
+        const propStreetWord = propWords.find((w, i) => i > 0 && !dirs.has(w));
+        if (propStreetWord && propStreetWord === inputStreetWord && normWords[0] === propWords[0]) {
+          const propUnit = prop.unit_number?.toLowerCase() || null;
+          if (!inputUnit || !propUnit || inputUnit === propUnit) {
+            console.log(`Esther: matched property (fuzzy) "${cleanInput}" → ${prop.id} "${prop.address}"`);
+            return prop.id;
+          }
+        }
+      }
     }
   }
 
-  // Strategy 4: street number + street name only
-  const numAndName = propertyAddress.match(/^(\d+\s+\w+)/);
-  if (numAndName) {
-    const s4 = await tryMatch(numAndName[1]);
-    if (s4) { console.log(`Esther: property matched (partial) "${numAndName[1]}" → ${s4}`); return s4; }
-  }
-
-  // ── No match → auto-create property from Hemlane data ────────────
-  // Hemlane IS our property management source — if it lists a property, it's real.
-  // Parse address parts: "12714 Farringdon Avenue" or "513 Henry St, Cleveland, OH 44108"
-  const addressParts = propertyAddress.split(",").map((s) => s.trim());
-  const mainAddress = addressParts[0];
+  // ── No match → auto-create property ────────────────────────────────
+  const addressParts = cleanInput.split(",").map((s) => s.trim());
 
   let city = "Cleveland";
   let state = "OH";
-  let zipCode = "44100"; // Placeholder — Cleveland general area
+  let zipCode = "44100";
 
-  // Try to extract city/state/zip from address parts
   if (addressParts.length >= 2) {
     const part2 = addressParts[1];
     if (part2 && !/^\d/.test(part2) && !/^(OH|oh)$/i.test(part2)) {
@@ -576,14 +586,9 @@ async function matchOrCreateProperty(
       if (stateZipMatch[2]) zipCode = stateZipMatch[2];
     }
   }
-  // Also check last part for standalone zip
   const lastPart = addressParts[addressParts.length - 1];
   const zipOnly = lastPart.match(/\b(\d{5})\b/);
   if (zipOnly) zipCode = zipOnly[1];
-
-  // Extract unit number if present
-  const unitMatch = propertyAddress.match(/,?\s*(?:unit|apt|#)\s*(\w+)/i);
-  const unitNumber = unitMatch ? unitMatch[1] : null;
 
   const { data: newProp, error: propErr } = await supabase
     .from("properties")
@@ -594,22 +599,22 @@ async function matchOrCreateProperty(
       city,
       state,
       zip_code: zipCode,
-      bedrooms: 0,       // Unknown — to be filled later
-      bathrooms: 0,       // Unknown — to be filled later
-      rent_price: 0,      // Unknown — to be filled later
+      bedrooms: 0,
+      bathrooms: 0,
+      rent_price: 0,
       status: "available",
-      description: `Auto-created from Hemlane lead inquiry. Original address: "${propertyAddress}". Details pending.`,
+      description: "Auto-created from Hemlane inquiry. Details pending.",
       section_8_accepted: true,
     })
     .select("id")
     .single();
 
   if (propErr) {
-    console.error(`Esther: auto-create property failed for "${propertyAddress}": ${propErr.message} (code: ${propErr.code})`);
+    console.error(`Esther: auto-create property failed for "${cleanInput}": ${propErr.message}`);
     return null;
   }
 
-  console.log(`Esther: AUTO-CREATED property "${mainAddress}" (${city}, ${state} ${zipCode}) → ${newProp.id}`);
+  console.log(`Esther: AUTO-CREATED property "${mainAddress}" unit=${unitNumber || "none"} (${city}, ${state} ${zipCode}) → ${newProp.id}`);
   return newProp.id;
 }
 
@@ -649,10 +654,10 @@ async function upsertLead(
       }
     }
 
-    const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}${sourceVia}. ${lead.message || ""}`.trim();
-    const detail = existing.source_detail
-      ? `${existing.source_detail}\n${note}`
-      : note;
+    // Store clean property reference (don't concatenate — audit trail lives in lead_notes)
+    const detail = lead.property
+      ? `Property: ${lead.property}${sourceVia}`
+      : existing.source_detail;
 
     const needsNameFix = lead.name && existing.full_name && (
       existing.full_name.includes("{") ||
