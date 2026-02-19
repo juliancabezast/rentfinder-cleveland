@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { format, formatDistanceToNow, isPast } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -27,6 +27,7 @@ interface AgentTaskRow {
   agent_type: string;
   action_type: string;
   scheduled_for: string;
+  created_at: string;
   status: string;
   context: Record<string, unknown> | null;
   attempt_number: number | null;
@@ -161,7 +162,7 @@ export const RealTimeAgentPanel = () => {
       const { data, error } = await supabase
         .from("agent_tasks")
         .select(`
-          id, agent_type, action_type, scheduled_for, status, context,
+          id, agent_type, action_type, scheduled_for, created_at, status, context,
           attempt_number, max_attempts, lead_id,
           leads(full_name, phone, properties(address, city))
         `)
@@ -207,7 +208,7 @@ export const RealTimeAgentPanel = () => {
       entries.push({
         id: `task-${task.id}`,
         type: "task",
-        timestamp: task.scheduled_for,
+        timestamp: task.created_at,
         task,
       });
     });
@@ -386,7 +387,6 @@ export const RealTimeAgentPanel = () => {
                   const { leadName, property, actionDesc } = formatTaskLine(task);
                   const agentName = getAgentName(task.agent_type);
                   const Icon = ACTION_ICONS[task.action_type] || Zap;
-                  const isOverdue = isPast(new Date(task.scheduled_for));
                   const isInProgress = task.status === "in_progress";
 
                   return (
@@ -395,7 +395,6 @@ export const RealTimeAgentPanel = () => {
                       className={cn(
                         "flex items-start gap-2.5 p-2.5 rounded-lg transition-all hover:bg-muted/50",
                         isInProgress && "bg-blue-50/50 border border-blue-100",
-                        isOverdue && !isInProgress && "bg-amber-50/30",
                         index === 0 && "animate-fade-up"
                       )}
                     >
@@ -411,27 +410,12 @@ export const RealTimeAgentPanel = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
-                          <span
-                            className={cn(
-                              "text-xs font-mono font-semibold",
-                              isOverdue && !isInProgress
-                                ? "text-amber-600"
-                                : "text-muted-foreground"
-                            )}
-                          >
-                            {format(new Date(task.scheduled_for), "h:mm a")}
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
                           </span>
                           {isInProgress && (
                             <Badge className="h-4 px-1 text-[10px] bg-blue-500 hover:bg-blue-500">
                               EN CURSO
-                            </Badge>
-                          )}
-                          {isOverdue && !isInProgress && (
-                            <Badge
-                              variant="outline"
-                              className="h-4 px-1 text-[10px] text-amber-600 border-amber-300"
-                            >
-                              PENDIENTE
                             </Badge>
                           )}
                         </div>
