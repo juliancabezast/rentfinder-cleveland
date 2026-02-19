@@ -636,160 +636,136 @@ async function upsertLead(
 
   console.log(`Esther upsert: lead="${lead.name}" property="${lead.property || "NONE"}" → propertyId=${propertyId || "NULL"}`);
 
-  // Check duplicate by phone
+  // ── Helper: update an existing lead (shared by all dup paths) ────
+  const updateExistingLead = async (existing: { id: string; full_name: string | null; source_detail: string | null; phone?: string | null; interested_property_id: string | null }, dupType: string) => {
+    // Fallback: if no property from parser, try extracting from existing source_detail
+    if (!propertyId && !existing.interested_property_id && existing.source_detail) {
+      const sdAddress = existing.source_detail.match(
+        /Property:\s*(\d+\s+[A-Za-z][\w\s]+?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Place|Pl|Court|Ct|Circle|Cir|Terrace|Ter|Parkway|Pkwy))/i
+      );
+      if (sdAddress) {
+        console.log(`Esther: fallback property from source_detail: "${sdAddress[1]}"`);
+        propertyId = await matchOrCreateProperty(supabase, organizationId, sdAddress[1]);
+      }
+    }
+
+    const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}${sourceVia}. ${lead.message || ""}`.trim();
+    const detail = existing.source_detail
+      ? `${existing.source_detail}\n${note}`
+      : note;
+
+    const needsNameFix = lead.name && existing.full_name && (
+      existing.full_name.includes("{") ||
+      existing.full_name.startsWith("Hemlane Lead") ||
+      existing.full_name.startsWith("detail")
+    );
+
+    const { error: updateErr } = await supabase
+      .from("leads")
+      .update({
+        last_contact_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        source_detail: detail,
+        hemlane_email_id: emailId,
+        ...(lead.email ? { email: lead.email } : {}),
+        ...(phone && !(existing as any).phone ? { phone } : {}),
+        ...(propertyId ? { interested_property_id: propertyId } : {}),
+        ...(needsNameFix ? {
+          full_name: lead.name,
+          first_name: lead.name!.split(" ")[0] || null,
+          last_name: lead.name!.split(" ").slice(1).join(" ") || null,
+        } : {}),
+      })
+      .eq("id", existing.id);
+
+    if (updateErr) {
+      console.error(`Esther: lead update failed for ${existing.id}: ${updateErr.message}`);
+    } else {
+      console.log(`Esther: updated existing lead ${existing.id} (${dupType}) — property=${propertyId || "NONE"}`);
+    }
+
+    if (lead.message) {
+      await saveLeadNote(supabase, organizationId, existing.id, lead.message);
+      const intents = detectAllIntents(lead.message);
+      for (const intent of intents) {
+        const { error: rpcErr } = await supabase.rpc("log_score_change", {
+          _lead_id: existing.id,
+          _change_amount: intent.boost,
+          _reason_code: intent.reason_code,
+          _reason_text: intent.reason,
+          _triggered_by: "engagement",
+          _changed_by_agent: "esther",
+        });
+        if (rpcErr) console.error(`Esther: score boost failed (${intent.reason_code}): ${rpcErr.message}`);
+      }
+    }
+
+    return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
+  };
+
+  // ── Dup check 1: by phone ──────────────────────────────────────────
   if (phone) {
-    const { data: existing } = await supabase
+    const { data: existing, error: dupErr } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("phone", phone)
       .maybeSingle();
 
-    if (existing) {
-      // ── Fallback: if no property from parser, try extracting from existing source_detail ──
-      if (!propertyId && !existing.interested_property_id && existing.source_detail) {
-        const sdAddress = existing.source_detail.match(
-          /Property:\s*(\d+\s+[A-Za-z][\w\s]+?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Place|Pl|Court|Ct|Circle|Cir|Terrace|Ter|Parkway|Pkwy))/i
-        );
-        if (sdAddress) {
-          console.log(`Esther: fallback property from source_detail: "${sdAddress[1]}"`);
-          propertyId = await matchOrCreateProperty(supabase, organizationId, sdAddress[1]);
-        }
-      }
-
-      const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}${sourceVia}. ${lead.message || ""}`.trim();
-      const detail = existing.source_detail
-        ? `${existing.source_detail}\n${note}`
-        : note;
-
-      // Fix name if existing is garbage (from previous parse bugs) and we have a real name
-      const needsNameFix = lead.name && existing.full_name && (
-        existing.full_name.includes("{") ||
-        existing.full_name.startsWith("Hemlane Lead") ||
-        existing.full_name.startsWith("detail")
-      );
-
-      const { error: updateErr } = await supabase
+    if (dupErr) {
+      // maybeSingle throws when multiple rows match — use first one
+      console.warn(`Esther: multiple leads with phone ${phone}, using first`);
+      const { data: first } = await supabase
         .from("leads")
-        .update({
-          last_contact_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          source_detail: detail,
-          hemlane_email_id: emailId,
-          ...(lead.email ? { email: lead.email } : {}),
-          ...(propertyId ? { interested_property_id: propertyId } : {}),
-          ...(needsNameFix ? {
-            full_name: lead.name,
-            first_name: lead.name!.split(" ")[0] || null,
-            last_name: lead.name!.split(" ").slice(1).join(" ") || null,
-          } : {}),
-        })
-        .eq("id", existing.id);
-
-      if (updateErr) {
-        console.error(`Esther: lead update failed for ${existing.id}: ${updateErr.message}`);
-      } else {
-        console.log(`Esther: updated existing lead ${existing.id} (phone dup) — property=${propertyId || "NONE"}, name=${needsNameFix ? lead.name : "kept"}`);
-      }
-
-      if (lead.message) {
-        await saveLeadNote(supabase, organizationId, existing.id, lead.message);
-      }
-
-      if (lead.message) {
-        const intents = detectAllIntents(lead.message);
-        for (const intent of intents) {
-          const { error: rpcErr } = await supabase.rpc("log_score_change", {
-            _lead_id: existing.id,
-            _change_amount: intent.boost,
-            _reason_code: intent.reason_code,
-            _reason_text: intent.reason,
-            _triggered_by: "engagement",
-            _changed_by_agent: "esther",
-          });
-          if (rpcErr) console.error(`Esther: score boost failed (${intent.reason_code}): ${rpcErr.message}`);
-        }
-      }
-
-      return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
+        .select("id, full_name, source_detail, interested_property_id")
+        .eq("organization_id", organizationId)
+        .eq("phone", phone)
+        .limit(1)
+        .single();
+      if (first) return updateExistingLead(first, "phone dup (multi)");
     }
+
+    if (existing) return updateExistingLead(existing, "phone dup");
   }
 
-  // Check duplicate by email
+  // ── Dup check 2: by email ─────────────────────────────────────────
   if (lead.email) {
-    const { data: existing } = await supabase
+    const { data: existing, error: dupErr } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, phone, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("email", lead.email)
       .maybeSingle();
 
-    if (existing) {
-      // ── Fallback: if no property from parser, try extracting from existing source_detail ──
-      if (!propertyId && !existing.interested_property_id && existing.source_detail) {
-        const sdAddress = existing.source_detail.match(
-          /Property:\s*(\d+\s+[A-Za-z][\w\s]+?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Place|Pl|Court|Ct|Circle|Cir|Terrace|Ter|Parkway|Pkwy))/i
-        );
-        if (sdAddress) {
-          console.log(`Esther: fallback property from source_detail: "${sdAddress[1]}"`);
-          propertyId = await matchOrCreateProperty(supabase, organizationId, sdAddress[1]);
-        }
-      }
-
-      const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}${sourceVia}. ${lead.message || ""}`.trim();
-      const detail = existing.source_detail
-        ? `${existing.source_detail}\n${note}`
-        : note;
-
-      const needsNameFix = lead.name && existing.full_name && (
-        existing.full_name.includes("{") ||
-        existing.full_name.startsWith("Hemlane Lead") ||
-        existing.full_name.startsWith("detail")
-      );
-
-      const { error: updateErr } = await supabase
+    if (dupErr) {
+      console.warn(`Esther: multiple leads with email ${lead.email}, using first`);
+      const { data: first } = await supabase
         .from("leads")
-        .update({
-          last_contact_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          source_detail: detail,
-          hemlane_email_id: emailId,
-          ...(phone && !existing.phone ? { phone } : {}),
-          ...(propertyId ? { interested_property_id: propertyId } : {}),
-          ...(needsNameFix ? {
-            full_name: lead.name,
-            first_name: lead.name!.split(" ")[0] || null,
-            last_name: lead.name!.split(" ").slice(1).join(" ") || null,
-          } : {}),
-        })
-        .eq("id", existing.id);
+        .select("id, full_name, source_detail, phone, interested_property_id")
+        .eq("organization_id", organizationId)
+        .eq("email", lead.email)
+        .limit(1)
+        .single();
+      if (first) return updateExistingLead(first, "email dup (multi)");
+    }
 
-      if (updateErr) {
-        console.error(`Esther: lead update failed for ${existing.id}: ${updateErr.message}`);
-      } else {
-        console.log(`Esther: updated existing lead ${existing.id} (email dup) — property=${propertyId || "none"}, name=${needsNameFix ? lead.name : "kept"}`);
-      }
+    if (existing) return updateExistingLead(existing, "email dup");
+  }
 
-      if (lead.message) {
-        await saveLeadNote(supabase, organizationId, existing.id, lead.message);
-      }
+  // ── Dup check 3: by full name + same source (prevents digest/single email duplicates) ──
+  if (lead.name && lead.name.length > 2) {
+    const { data: existing } = await supabase
+      .from("leads")
+      .select("id, full_name, source_detail, phone, interested_property_id")
+      .eq("organization_id", organizationId)
+      .eq("source", "hemlane_email")
+      .ilike("full_name", lead.name)
+      .limit(1)
+      .maybeSingle();
 
-      if (lead.message) {
-        const intents = detectAllIntents(lead.message);
-        for (const intent of intents) {
-          const { error: rpcErr } = await supabase.rpc("log_score_change", {
-            _lead_id: existing.id,
-            _change_amount: intent.boost,
-            _reason_code: intent.reason_code,
-            _reason_text: intent.reason,
-            _triggered_by: "engagement",
-            _changed_by_agent: "esther",
-          });
-          if (rpcErr) console.error(`Esther: score boost failed (${intent.reason_code}): ${rpcErr.message}`);
-        }
-      }
-
-      return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
+    if (existing) {
+      console.log(`Esther: found name dup "${lead.name}" → ${existing.id} (no phone/email match but same name + hemlane source)`);
+      return updateExistingLead(existing, "name dup");
     }
   }
 
