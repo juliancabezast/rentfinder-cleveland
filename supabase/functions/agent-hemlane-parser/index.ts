@@ -58,6 +58,7 @@ interface LeadInfo {
   email: string | null;
   property: string | null;
   message: string | null;
+  listingSource: string | null;
 }
 
 /** Extract value from "LABEL\nvalue" format common in Hemlane new-inquiry emails */
@@ -87,6 +88,7 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
     email: null,
     property: null,
     message: null,
+    listingSource: null,
   };
 
   // Excluded email domains (system emails, not lead emails)
@@ -274,7 +276,7 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
   // Hemlane "New inquiry" format: "COMMENTS\nMulti-line message..."
   if (!result.message) {
     const commentsPat = text.match(
-      /^[ \t]*COMMENTS?[ \t]*$\n([\s\S]+?)(?=\n[ \t]*(?:PROPERTY|SOURCE|NAME|PHONE|EMAIL|SENT|DATE)[ \t]*$|\s*$)/im
+      /^[ \t]*COMMENTS?[ \t]*$\n([\s\S]+?)(?=\n[ \t]*(?:PROPERTY|SOURCE|NAME|PHONE|EMAIL|SENT|DATE|Respond to)[ \t]*)/im
     );
     if (commentsPat) {
       result.message = commentsPat[1].trim().substring(0, 500);
@@ -291,6 +293,21 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
       if (m) {
         result.message = m[1].trim().substring(0, 500);
         break;
+      }
+    }
+  }
+
+  // ── Listing source (Zillow, Apartments.com, etc.) ──────────────
+  const labelSource = extractLabelValue(text, "SOURCE");
+  if (labelSource && !/hemlane/i.test(labelSource)) {
+    result.listingSource = labelSource.substring(0, 100);
+  }
+  if (!result.listingSource) {
+    const sourcePat = text.match(/Source\s*[:\-]\s*(.+)/i);
+    if (sourcePat) {
+      const src = sourcePat[1].trim();
+      if (!/hemlane/i.test(src)) {
+        result.listingSource = src.substring(0, 100);
       }
     }
   }
@@ -374,6 +391,7 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
           phone,
           property: currentProperty,
           message: null,
+          listingSource: null,
         });
       }
     }
@@ -390,6 +408,24 @@ function formatPhoneE164(raw: string): string {
   return `+${digits}`;
 }
 
+// ── Match property by address ────────────────────────────────────────
+async function matchProperty(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  propertyAddress: string
+): Promise<string | null> {
+  // Try exact-ish match first (case-insensitive contains)
+  const { data } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .ilike("address", `%${propertyAddress}%`)
+    .limit(1)
+    .maybeSingle();
+
+  return data?.id || null;
+}
+
 // ── Upsert a single lead ──────────────────────────────────────────────
 async function upsertLead(
   supabase: ReturnType<typeof createClient>,
@@ -402,17 +438,26 @@ async function upsertLead(
   // Only skip if we truly have nothing (no contact info AND no name/property)
   if (!phone && !lead.email && !lead.name && !lead.property) return null;
 
+  // Build source detail string
+  const sourceVia = lead.listingSource ? ` (via ${lead.listingSource})` : "";
+  const propertyDetail = lead.property ? `Property: ${lead.property}${sourceVia}` : null;
+
+  // Match property in DB
+  const propertyId = lead.property
+    ? await matchProperty(supabase, organizationId, lead.property)
+    : null;
+
   // Check duplicate by phone
   if (phone) {
     const { data: existing } = await supabase
       .from("leads")
-      .select("id, source_detail")
+      .select("id, source_detail, property_id")
       .eq("organization_id", organizationId)
       .eq("phone", phone)
       .maybeSingle();
 
     if (existing) {
-      const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}. ${lead.message || ""}`.trim();
+      const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}${sourceVia}. ${lead.message || ""}`.trim();
       const detail = existing.source_detail
         ? `${existing.source_detail}\n${note}`
         : note;
@@ -425,8 +470,15 @@ async function upsertLead(
           source_detail: detail,
           hemlane_email_id: emailId,
           ...(lead.email ? { email: lead.email } : {}),
+          // Fill property_id if we matched one and existing doesn't have it
+          ...(propertyId && !existing.property_id ? { property_id: propertyId } : {}),
         })
         .eq("id", existing.id);
+
+      // Save message as note on existing lead too
+      if (lead.message) {
+        await saveLeadNote(supabase, organizationId, existing.id, lead.message);
+      }
 
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
     }
@@ -436,13 +488,13 @@ async function upsertLead(
   if (lead.email) {
     const { data: existing } = await supabase
       .from("leads")
-      .select("id, source_detail, phone")
+      .select("id, source_detail, phone, property_id")
       .eq("organization_id", organizationId)
       .eq("email", lead.email)
       .maybeSingle();
 
     if (existing) {
-      const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}. ${lead.message || ""}`.trim();
+      const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}${sourceVia}. ${lead.message || ""}`.trim();
       const detail = existing.source_detail
         ? `${existing.source_detail}\n${note}`
         : note;
@@ -454,10 +506,15 @@ async function upsertLead(
           updated_at: new Date().toISOString(),
           source_detail: detail,
           hemlane_email_id: emailId,
-          // Fill in phone if we have it and existing doesn't
           ...(phone && !existing.phone ? { phone } : {}),
+          ...(propertyId && !existing.property_id ? { property_id: propertyId } : {}),
         })
         .eq("id", existing.id);
+
+      // Save message as note on existing lead too
+      if (lead.message) {
+        await saveLeadNote(supabase, organizationId, existing.id, lead.message);
+      }
 
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
     }
@@ -481,10 +538,10 @@ async function upsertLead(
       phone: phone || null,
       email: lead.email || null,
       source: "hemlane_email",
-      source_detail: lead.property ? `Property: ${lead.property}` : null,
+      source_detail: propertyDetail,
       status: "new",
       hemlane_email_id: emailId,
-      // Inbound inquiry = implicit consent to be contacted back
+      property_id: propertyId,
       sms_consent: true,
       sms_consent_at: new Date().toISOString(),
       call_consent: true,
@@ -506,6 +563,7 @@ async function upsertLead(
         lead_phone: phone,
         lead_email: lead.email,
         lead_property: lead.property,
+        lead_listing_source: lead.listingSource,
         hemlane_email_id: emailId,
         error: err?.message,
         error_code: err?.code,
@@ -516,33 +574,64 @@ async function upsertLead(
 
   const leadId = newLead.id;
   const now = new Date().toISOString();
-  const evidenceText = `Lead initiated contact via Hemlane property listing${lead.property ? ` for ${lead.property}` : ""}. Inbound inquiry received ${now}. Email ID: ${emailId}`;
+  const listingPlatform = lead.listingSource || "Hemlane";
+  const evidenceText = `Lead initiated contact via ${listingPlatform} property listing${lead.property ? ` for ${lead.property}` : ""}. Inbound inquiry = implicit consent to be contacted back. Received ${now}. Email ID: ${emailId}`;
 
   // ── Save initial message as a lead note ──────────────────────────
   if (lead.message) {
-    await supabase.from("lead_notes").insert({
-      organization_id: organizationId,
-      lead_id: leadId,
-      content: `[Hemlane inquiry] ${lead.message}`,
-      note_type: "general",
-      is_pinned: false,
-    }).catch((e) => console.error(`Esther: failed to save lead note: ${e.message}`));
+    await saveLeadNote(supabase, organizationId, leadId, lead.message);
   }
 
   // ── Record consent (inbound inquiry = they contacted us) ─────────
   const consentTypes = ["automated_calls", "sms_marketing", "email_marketing"] as const;
   for (const consentType of consentTypes) {
-    await supabase.from("consent_log").insert({
+    const { error: consentErr } = await supabase.from("consent_log").insert({
       organization_id: organizationId,
       lead_id: leadId,
       consent_type: consentType,
       granted: true,
       method: "web_form",
       evidence_text: evidenceText,
-    }).catch((e) => console.error(`Esther: failed to log consent (${consentType}): ${e.message}`));
+    });
+    if (consentErr) {
+      console.error(`Esther: consent_log insert failed (${consentType}): ${consentErr.message}`);
+    }
   }
 
   return { leadId, isNew: true, missingName: !lead.name, missingPhone: !phone };
+}
+
+// ── Save lead note (handles missing created_by gracefully) ───────────
+async function saveLeadNote(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  leadId: string,
+  message: string
+): Promise<void> {
+  const content = `[Hemlane inquiry] ${message}`;
+
+  // Try with created_by as null first
+  const { error } = await supabase.from("lead_notes").insert({
+    organization_id: organizationId,
+    lead_id: leadId,
+    content,
+    note_type: "general",
+    is_pinned: false,
+    created_by: null,
+  });
+
+  if (error) {
+    console.error(`Esther: lead_notes insert failed: ${error.message} (code: ${error.code})`);
+    // Log to system_logs so we can see the failure in the dashboard
+    await supabase.from("system_logs").insert({
+      organization_id: organizationId,
+      level: "warn",
+      category: "general",
+      event_type: "esther_note_save_failed",
+      message: `Esther: could not save lead note. Error: ${error.message}`,
+      details: { lead_id: leadId, error: error.message, error_code: error.code },
+    }).catch(() => {});
+  }
 }
 
 // ── Main handler ──────────────────────────────────────────────────────
