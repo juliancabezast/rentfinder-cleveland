@@ -395,7 +395,7 @@ async function upsertLead(
   organizationId: string,
   lead: LeadInfo,
   emailId: string
-): Promise<{ leadId: string; isNew: boolean } | null> {
+): Promise<{ leadId: string; isNew: boolean; missingName: boolean } | null> {
   const phone = lead.phone ? formatPhoneE164(lead.phone) : "";
 
   if (!phone && !lead.email) return null;
@@ -427,7 +427,7 @@ async function upsertLead(
         })
         .eq("id", existing.id);
 
-      return { leadId: existing.id, isNew: false };
+      return { leadId: existing.id, isNew: false, missingName: false };
     }
   }
 
@@ -456,26 +456,25 @@ async function upsertLead(
         })
         .eq("id", existing.id);
 
-      return { leadId: existing.id, isNew: false };
+      return { leadId: existing.id, isNew: false, missingName: false };
     }
   }
 
   // No phone = can't create (NOT NULL constraint)
   if (!phone) return null;
 
-  // Quality gate: don't create new leads without a parsed name.
-  // If the parser couldn't extract a name, the email format is unrecognized
-  // and the data is unreliable. Log it for debugging instead of creating garbage.
-  if (!lead.name) return null;
+  // Build display name: use parsed name, or fallback to readable phone
+  const displayPhone = phone.replace(/^\+1/, "").replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3");
+  const fullName = lead.name || `Hemlane Lead ${displayPhone}`;
 
   // Create new lead
   const { data: newLead, error: err } = await supabase
     .from("leads")
     .insert({
       organization_id: organizationId,
-      full_name: lead.name!,
-      first_name: lead.name!.split(" ")[0],
-      last_name: lead.name!.split(" ").slice(1).join(" ") || null,
+      full_name: fullName,
+      first_name: lead.name?.split(" ")[0] || null,
+      last_name: lead.name?.split(" ").slice(1).join(" ") || null,
       phone,
       email: lead.email || null,
       source: "hemlane_email",
@@ -487,11 +486,11 @@ async function upsertLead(
     .single();
 
   if (err || !newLead) {
-    console.error(`Esther: failed to create lead ${lead.name}: ${err?.message}`);
+    console.error(`Esther: failed to create lead ${fullName}: ${err?.message}`);
     return null;
   }
 
-  return { leadId: newLead.id, isNew: true };
+  return { leadId: newLead.id, isNew: true, missingName: !lead.name };
 }
 
 // ── Main handler ──────────────────────────────────────────────────────
@@ -685,38 +684,61 @@ serve(async (req: Request) => {
     const result = await upsertLead(supabase, organizationId, leadInfo, emailId);
 
     if (!result) {
-      // Log the unparseable email so we can improve patterns later
-      await supabase.from("system_logs").insert({
-        organization_id: organizationId,
-        level: "warn",
-        category: "general",
-        event_type: "esther_parse_insufficient",
-        message: `Esther: email had contact info but couldn't extract lead name — skipped to avoid creating incomplete lead. Subject: ${subject}`,
-        details: {
-          email_id: emailId,
-          from: fromEmail,
-          subject,
-          parsed_phone: leadInfo.phone,
-          parsed_email: leadInfo.email,
-          parsed_property: leadInfo.property,
-          body_preview: (textBody || htmlBody).substring(0, 1000),
-        },
-      });
-
       return new Response(
-        JSON.stringify({ message: "Email parsed but insufficient data to create lead (missing name)" }),
+        JSON.stringify({ message: "Could not create lead (missing phone)" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const formattedPhone = leadInfo.phone ? formatPhoneE164(leadInfo.phone) : "";
 
+    // If name couldn't be parsed, schedule Ruth to intro-text the lead
+    if (result.isNew && result.missingName) {
+      const ruthSchedule = new Date();
+      ruthSchedule.setMinutes(ruthSchedule.getMinutes() + 2); // 2 min from now
+
+      await supabase.from("agent_tasks").insert({
+        organization_id: organizationId,
+        lead_id: result.leadId,
+        agent_type: "sms_inbound",
+        action_type: "sms",
+        scheduled_for: ruthSchedule.toISOString(),
+        status: "pending",
+        context: {
+          task: "intro_missing_name",
+          source: "esther_auto",
+          instruction: "Lead arrived from Hemlane without a name. Send a friendly intro SMS to gather their name and what property they are interested in.",
+          parsed_property: leadInfo.property || null,
+          parsed_message: leadInfo.message || null,
+        },
+      });
+
+      await supabase.from("system_logs").insert({
+        organization_id: organizationId,
+        level: "warn",
+        category: "general",
+        event_type: "esther_missing_name",
+        message: `Esther: lead created without name (${formattedPhone}). Ruth SMS task scheduled to gather info.`,
+        details: {
+          email_id: emailId,
+          from: fromEmail,
+          subject,
+          lead_id: result.leadId,
+          parsed_phone: formattedPhone,
+          parsed_email: leadInfo.email,
+          parsed_property: leadInfo.property,
+          body_preview: (textBody || htmlBody).substring(0, 1000),
+        },
+        related_lead_id: result.leadId,
+      });
+    }
+
     await supabase.from("system_logs").insert({
       organization_id: organizationId,
       level: "info",
       category: "general",
       event_type: "esther_lead_processed",
-      message: `Esther: ${result.isNew ? "new lead created" : "existing lead updated"} — ${leadInfo.name || "unknown"} (${formattedPhone || leadInfo.email})`,
+      message: `Esther: ${result.isNew ? "new lead created" : "existing lead updated"} — ${leadInfo.name || "no name parsed"} (${formattedPhone || leadInfo.email})${result.missingName ? " [Ruth scheduled]" : ""}`,
       details: {
         email_id: emailId,
         subject,
@@ -727,6 +749,7 @@ serve(async (req: Request) => {
         property: leadInfo.property,
         message: leadInfo.message,
         is_new_lead: result.isNew,
+        missing_name: result.missingName,
       },
       related_lead_id: result.leadId,
     });
@@ -736,7 +759,8 @@ serve(async (req: Request) => {
         success: true,
         lead_id: result.leadId,
         is_new_lead: result.isNew,
-        message: `Lead ${result.isNew ? "created" : "updated"} from Hemlane email`,
+        missing_name: result.missingName,
+        message: `Lead ${result.isNew ? "created" : "updated"} from Hemlane email${result.missingName ? " (Ruth SMS scheduled)" : ""}`,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
