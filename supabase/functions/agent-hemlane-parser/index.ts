@@ -395,8 +395,8 @@ async function upsertLead(
   organizationId: string,
   lead: LeadInfo,
   emailId: string
-): Promise<{ leadId: string; isNew: boolean; missingName: boolean } | null> {
-  const phone = lead.phone ? formatPhoneE164(lead.phone) : "";
+): Promise<{ leadId: string; isNew: boolean; missingName: boolean; missingPhone: boolean } | null> {
+  const phone = lead.phone ? formatPhoneE164(lead.phone) : null;
 
   if (!phone && !lead.email) return null;
 
@@ -422,20 +422,19 @@ async function upsertLead(
           updated_at: new Date().toISOString(),
           source_detail: detail,
           hemlane_email_id: emailId,
-          // Fill in email if missing
           ...(lead.email ? { email: lead.email } : {}),
         })
         .eq("id", existing.id);
 
-      return { leadId: existing.id, isNew: false, missingName: false };
+      return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
     }
   }
 
   // Check duplicate by email
-  if (lead.email && !phone) {
+  if (lead.email) {
     const { data: existing } = await supabase
       .from("leads")
-      .select("id, source_detail")
+      .select("id, source_detail, phone")
       .eq("organization_id", organizationId)
       .eq("email", lead.email)
       .maybeSingle();
@@ -453,19 +452,21 @@ async function upsertLead(
           updated_at: new Date().toISOString(),
           source_detail: detail,
           hemlane_email_id: emailId,
+          // Fill in phone if we have it and existing doesn't
+          ...(phone && !existing.phone ? { phone } : {}),
         })
         .eq("id", existing.id);
 
-      return { leadId: existing.id, isNew: false, missingName: false };
+      return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
     }
   }
 
-  // No phone = can't create (NOT NULL constraint)
-  if (!phone) return null;
-
-  // Build display name: use parsed name, or fallback to readable phone
-  const displayPhone = phone.replace(/^\+1/, "").replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3");
-  const fullName = lead.name || `Hemlane Lead ${displayPhone}`;
+  // Build display name
+  const displayPhone = phone
+    ? phone.replace(/^\+1/, "").replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3")
+    : null;
+  const fallbackIdentifier = displayPhone || lead.email || "unknown";
+  const fullName = lead.name || `Hemlane Lead ${fallbackIdentifier}`;
 
   // Create new lead
   const { data: newLead, error: err } = await supabase
@@ -475,7 +476,7 @@ async function upsertLead(
       full_name: fullName,
       first_name: lead.name?.split(" ")[0] || null,
       last_name: lead.name?.split(" ").slice(1).join(" ") || null,
-      phone,
+      phone: phone || null,
       email: lead.email || null,
       source: "hemlane_email",
       source_detail: lead.property ? `Property: ${lead.property}` : null,
@@ -490,7 +491,7 @@ async function upsertLead(
     return null;
   }
 
-  return { leadId: newLead.id, isNew: true, missingName: !lead.name };
+  return { leadId: newLead.id, isNew: true, missingName: !lead.name, missingPhone: !phone };
 }
 
 // ── Main handler ──────────────────────────────────────────────────────
@@ -685,40 +686,80 @@ serve(async (req: Request) => {
 
     if (!result) {
       return new Response(
-        JSON.stringify({ message: "Could not create lead (missing phone)" }),
+        JSON.stringify({ message: "Could not create lead (no phone or email)" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const formattedPhone = leadInfo.phone ? formatPhoneE164(leadInfo.phone) : "";
+    const formattedPhone = leadInfo.phone ? formatPhoneE164(leadInfo.phone) : null;
+    const contactId = formattedPhone || leadInfo.email || "unknown";
+    const followUpActions: string[] = [];
 
-    // If name couldn't be parsed, schedule Ruth to intro-text the lead
-    if (result.isNew && result.missingName) {
-      const ruthSchedule = new Date();
-      ruthSchedule.setMinutes(ruthSchedule.getMinutes() + 2); // 2 min from now
+    // ── Schedule follow-up when data is incomplete ────────────────────
+    if (result.isNew && (result.missingName || result.missingPhone)) {
+      const scheduleAt = new Date();
+      scheduleAt.setMinutes(scheduleAt.getMinutes() + 2);
 
-      await supabase.from("agent_tasks").insert({
-        organization_id: organizationId,
-        lead_id: result.leadId,
-        agent_type: "sms_inbound",
-        action_type: "sms",
-        scheduled_for: ruthSchedule.toISOString(),
-        status: "pending",
-        context: {
-          task: "intro_missing_name",
-          source: "esther_auto",
-          instruction: "Lead arrived from Hemlane without a name. Send a friendly intro SMS to gather their name and what property they are interested in.",
-          parsed_property: leadInfo.property || null,
-          parsed_message: leadInfo.message || null,
-        },
-      });
+      if (formattedPhone) {
+        // Has phone → Ruth sends intro SMS to get name
+        await supabase.from("agent_tasks").insert({
+          organization_id: organizationId,
+          lead_id: result.leadId,
+          agent_type: "sms_inbound",
+          action_type: "sms",
+          scheduled_for: scheduleAt.toISOString(),
+          status: "pending",
+          context: {
+            task: "intro_missing_info",
+            source: "esther_auto",
+            instruction: "Lead arrived from Hemlane without a name. Send a friendly intro SMS to gather their name and what property they are interested in.",
+            parsed_property: leadInfo.property || null,
+            parsed_message: leadInfo.message || null,
+          },
+        });
+        followUpActions.push("Ruth SMS scheduled");
+      } else if (leadInfo.email) {
+        // No phone, has email → send email asking for name + phone
+        const propertyMention = leadInfo.property
+          ? ` about <strong>${leadInfo.property}</strong>`
+          : "";
+
+        await supabase.functions.invoke("send-notification-email", {
+          body: {
+            to: leadInfo.email,
+            subject: "Thanks for your interest! — Rent Finder Cleveland",
+            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+              <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+                <h1 style="margin:0;color:#ffb22c;font-size:20px;">Thanks for reaching out!</h1>
+              </div>
+              <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
+                <p>Hi there! We received your inquiry${propertyMention} and would love to help you find the perfect rental.</p>
+                <p>To get you set up quickly, could you reply with:</p>
+                <ul>
+                  <li><strong>Your full name</strong></li>
+                  <li><strong>Best phone number</strong> to reach you</li>
+                </ul>
+                <p>Once we have that, our team will reach out to schedule a showing at a time that works for you.</p>
+                <br>
+                <p style="color:#666;font-size:14px;">— The Rent Finder Cleveland Team</p>
+              </div>
+            </div>`,
+            notification_type: "lead_info_request",
+            organization_id: organizationId,
+            related_entity_id: result.leadId,
+            related_entity_type: "lead",
+            from_name: "Rent Finder Cleveland",
+          },
+        });
+        followUpActions.push("info-request email sent");
+      }
 
       await supabase.from("system_logs").insert({
         organization_id: organizationId,
         level: "warn",
         category: "general",
-        event_type: "esther_missing_name",
-        message: `Esther: lead created without name (${formattedPhone}). Ruth SMS task scheduled to gather info.`,
+        event_type: "esther_incomplete_lead",
+        message: `Esther: lead created with incomplete data (${contactId}). Missing: ${[result.missingName && "name", result.missingPhone && "phone"].filter(Boolean).join(", ")}. Actions: ${followUpActions.join(", ")}.`,
         details: {
           email_id: emailId,
           from: fromEmail,
@@ -727,18 +768,23 @@ serve(async (req: Request) => {
           parsed_phone: formattedPhone,
           parsed_email: leadInfo.email,
           parsed_property: leadInfo.property,
+          missing_name: result.missingName,
+          missing_phone: result.missingPhone,
+          follow_up: followUpActions,
           body_preview: (textBody || htmlBody).substring(0, 1000),
         },
         related_lead_id: result.leadId,
       });
     }
 
+    const actionSuffix = followUpActions.length > 0 ? ` [${followUpActions.join(", ")}]` : "";
+
     await supabase.from("system_logs").insert({
       organization_id: organizationId,
       level: "info",
       category: "general",
       event_type: "esther_lead_processed",
-      message: `Esther: ${result.isNew ? "new lead created" : "existing lead updated"} — ${leadInfo.name || "no name parsed"} (${formattedPhone || leadInfo.email})${result.missingName ? " [Ruth scheduled]" : ""}`,
+      message: `Esther: ${result.isNew ? "new lead created" : "existing lead updated"} — ${leadInfo.name || "no name parsed"} (${contactId})${actionSuffix}`,
       details: {
         email_id: emailId,
         subject,
@@ -750,6 +796,7 @@ serve(async (req: Request) => {
         message: leadInfo.message,
         is_new_lead: result.isNew,
         missing_name: result.missingName,
+        missing_phone: result.missingPhone,
       },
       related_lead_id: result.leadId,
     });
@@ -760,7 +807,9 @@ serve(async (req: Request) => {
         lead_id: result.leadId,
         is_new_lead: result.isNew,
         missing_name: result.missingName,
-        message: `Lead ${result.isNew ? "created" : "updated"} from Hemlane email${result.missingName ? " (Ruth SMS scheduled)" : ""}`,
+        missing_phone: result.missingPhone,
+        follow_up: followUpActions,
+        message: `Lead ${result.isNew ? "created" : "updated"} from Hemlane email${actionSuffix}`,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
