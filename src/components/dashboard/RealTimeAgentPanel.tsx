@@ -14,6 +14,7 @@ import {
   Radio,
   Zap,
   Clock,
+  UserPlus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -117,16 +118,43 @@ const AGENT_ACTION_DESCRIPTIONS: Record<string, string> = {
   transcript_analyst: "analizar transcripción",
 };
 
+const SOURCE_LABELS: Record<string, string> = {
+  hemlane_email: "Hemlane",
+  inbound_call: "llamada entrante",
+  website: "sitio web",
+  sms: "SMS",
+  referral: "referido",
+  manual: "entrada manual",
+  campaign: "campaña",
+};
+
+interface RecentLead {
+  id: string;
+  full_name: string | null;
+  source: string;
+  created_at: string;
+}
+
+// Unified timeline entry
+interface TimelineEntry {
+  id: string;
+  type: "task" | "lead";
+  timestamp: string;
+  task?: AgentTaskRow;
+  lead?: RecentLead;
+}
+
 export const RealTimeAgentPanel = () => {
   const { userRecord } = useAuth();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
-  const queryKey = ["realtime-agent-tasks", userRecord?.organization_id];
+  const tasksQueryKey = ["realtime-agent-tasks", userRecord?.organization_id];
+  const leadsQueryKey = ["realtime-recent-leads", userRecord?.organization_id];
 
-  const { data: tasks, isLoading } = useQuery({
-    queryKey,
+  const { data: tasks, isLoading: tasksLoading } = useQuery({
+    queryKey: tasksQueryKey,
     queryFn: async () => {
       if (!userRecord?.organization_id) return [];
 
@@ -150,12 +178,59 @@ export const RealTimeAgentPanel = () => {
     refetchInterval: 15000,
   });
 
-  // Realtime subscription
+  const { data: recentLeads, isLoading: leadsLoading } = useQuery({
+    queryKey: leadsQueryKey,
+    queryFn: async () => {
+      if (!userRecord?.organization_id) return [];
+
+      const { data, error } = await supabase
+        .from("leads")
+        .select("id, full_name, source, created_at")
+        .eq("organization_id", userRecord.organization_id)
+        .order("created_at", { ascending: false })
+        .limit(15);
+
+      if (error) throw error;
+      return data as RecentLead[];
+    },
+    enabled: !!userRecord?.organization_id,
+    refetchInterval: 15000,
+  });
+
+  const isLoading = tasksLoading || leadsLoading;
+
+  // Merge tasks and leads into a unified timeline, most recent first
+  const timeline: TimelineEntry[] = (() => {
+    const entries: TimelineEntry[] = [];
+
+    (tasks || []).forEach((task) => {
+      entries.push({
+        id: `task-${task.id}`,
+        type: "task",
+        timestamp: task.scheduled_for,
+        task,
+      });
+    });
+
+    (recentLeads || []).forEach((lead) => {
+      entries.push({
+        id: `lead-${lead.id}`,
+        type: "lead",
+        timestamp: lead.created_at,
+        lead,
+      });
+    });
+
+    entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return entries;
+  })();
+
+  // Realtime subscription for agent_tasks + leads
   useEffect(() => {
     if (!userRecord?.organization_id) return;
 
     const channel: RealtimeChannel = supabase
-      .channel("realtime-agent-tasks-panel")
+      .channel("realtime-activity-panel")
       .on(
         "postgres_changes",
         {
@@ -165,7 +240,20 @@ export const RealTimeAgentPanel = () => {
           filter: `organization_id=eq.${userRecord.organization_id}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: tasksQueryKey });
+          setLastUpdate(new Date());
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "leads",
+          filter: `organization_id=eq.${userRecord.organization_id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: leadsQueryKey });
           setLastUpdate(new Date());
         }
       )
@@ -178,9 +266,12 @@ export const RealTimeAgentPanel = () => {
 
   const handleManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: tasksQueryKey }),
+      queryClient.invalidateQueries({ queryKey: leadsQueryKey }),
+    ]);
     setTimeout(() => setIsRefreshing(false), 600);
-  }, [queryClient, queryKey]);
+  }, [queryClient, tasksQueryKey, leadsQueryKey]);
 
   const getAgentName = (agentType: string) =>
     AGENT_NAMES[agentType] || agentType.replace(/_/g, " ");
@@ -245,117 +336,147 @@ export const RealTimeAgentPanel = () => {
               </div>
             ))}
           </div>
-        ) : !tasks || tasks.length === 0 ? (
+        ) : timeline.length === 0 ? (
           <EmptyState
             icon={Clock}
-            title="Sin tareas programadas"
-            description="Las acciones pendientes aparecen aqui"
+            title="Sin actividad"
+            description="La actividad reciente aparece aqui"
           />
         ) : (
           <ScrollArea className="h-[calc(100vh-280px)] min-h-[400px]">
             <div className="space-y-1">
-              {tasks.map((task, index) => {
-                const { leadName, property, actionDesc } = formatTaskLine(task);
-                const agentName = getAgentName(task.agent_type);
-                const Icon = ACTION_ICONS[task.action_type] || Zap;
-                const isOverdue = isPast(new Date(task.scheduled_for));
-                const isInProgress = task.status === "in_progress";
-
-                return (
-                  <div
-                    key={task.id}
-                    className={cn(
-                      "flex items-start gap-2.5 p-2.5 rounded-lg transition-all hover:bg-muted/50",
-                      isInProgress && "bg-blue-50/50 border border-blue-100",
-                      isOverdue && !isInProgress && "bg-amber-50/30",
-                      index === 0 && "animate-fade-up"
-                    )}
-                  >
-                    {/* Icon */}
+              {timeline.map((entry, index) => {
+                if (entry.type === "lead" && entry.lead) {
+                  const lead = entry.lead;
+                  const sourceLabel = SOURCE_LABELS[lead.source] || lead.source;
+                  return (
                     <div
+                      key={entry.id}
                       className={cn(
-                        "h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                        isInProgress
-                          ? "bg-blue-100 text-blue-600"
-                          : "bg-muted text-muted-foreground"
+                        "flex items-start gap-2.5 p-2.5 rounded-lg transition-all hover:bg-muted/50 bg-emerald-50/30",
+                        index === 0 && "animate-fade-up"
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      {/* Time */}
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span
-                          className={cn(
-                            "text-xs font-mono font-semibold",
-                            isOverdue && !isInProgress
-                              ? "text-amber-600"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {format(new Date(task.scheduled_for), "h:mm a")}
-                        </span>
-                        {isInProgress && (
-                          <Badge className="h-4 px-1 text-[10px] bg-blue-500 hover:bg-blue-500">
-                            EN CURSO
-                          </Badge>
-                        )}
-                        {isOverdue && !isInProgress && (
-                          <Badge
-                            variant="outline"
-                            className="h-4 px-1 text-[10px] text-amber-600 border-amber-300"
-                          >
-                            PENDIENTE
-                          </Badge>
-                        )}
+                      <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-100 text-emerald-600">
+                        <UserPlus className="h-3.5 w-3.5" />
                       </div>
-
-                      {/* Description */}
-                      <p className="text-sm leading-snug">
-                        <span
-                          className={cn(
-                            "font-semibold",
-                            AGENT_DEPT_COLORS[task.agent_type] || "text-foreground"
-                          )}
-                        >
-                          {agentName}
-                        </span>
-                        <span className="text-muted-foreground"> va a </span>
-                        <span className="text-foreground">{actionDesc}</span>
-                        <span className="text-muted-foreground"> a </span>
-                        <span className="font-medium text-foreground">{leadName}</span>
-                      </p>
-
-                      {/* Property */}
-                      {property && (
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {property}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
+                          </span>
+                          <Badge className="h-4 px-1 text-[10px] bg-emerald-500 hover:bg-emerald-500">
+                            NUEVO
+                          </Badge>
+                        </div>
+                        <p className="text-sm leading-snug">
+                          <span className="font-semibold text-emerald-700">
+                            {lead.full_name || "Lead sin nombre"}
+                          </span>
+                          <span className="text-muted-foreground"> ha ingresado a traves de </span>
+                          <span className="font-medium text-foreground">{sourceLabel}</span>
                         </p>
-                      )}
+                      </div>
+                    </div>
+                  );
+                }
 
-                      {/* Attempt info */}
-                      {task.attempt_number !== null &&
-                        task.max_attempts !== null &&
-                        task.attempt_number > 1 && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            Intento {task.attempt_number}/{task.max_attempts}
+                if (entry.type === "task" && entry.task) {
+                  const task = entry.task;
+                  const { leadName, property, actionDesc } = formatTaskLine(task);
+                  const agentName = getAgentName(task.agent_type);
+                  const Icon = ACTION_ICONS[task.action_type] || Zap;
+                  const isOverdue = isPast(new Date(task.scheduled_for));
+                  const isInProgress = task.status === "in_progress";
+
+                  return (
+                    <div
+                      key={entry.id}
+                      className={cn(
+                        "flex items-start gap-2.5 p-2.5 rounded-lg transition-all hover:bg-muted/50",
+                        isInProgress && "bg-blue-50/50 border border-blue-100",
+                        isOverdue && !isInProgress && "bg-amber-50/30",
+                        index === 0 && "animate-fade-up"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                          isInProgress
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span
+                            className={cn(
+                              "text-xs font-mono font-semibold",
+                              isOverdue && !isInProgress
+                                ? "text-amber-600"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {format(new Date(task.scheduled_for), "h:mm a")}
+                          </span>
+                          {isInProgress && (
+                            <Badge className="h-4 px-1 text-[10px] bg-blue-500 hover:bg-blue-500">
+                              EN CURSO
+                            </Badge>
+                          )}
+                          {isOverdue && !isInProgress && (
+                            <Badge
+                              variant="outline"
+                              className="h-4 px-1 text-[10px] text-amber-600 border-amber-300"
+                            >
+                              PENDIENTE
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm leading-snug">
+                          <span
+                            className={cn(
+                              "font-semibold",
+                              AGENT_DEPT_COLORS[task.agent_type] || "text-foreground"
+                            )}
+                          >
+                            {agentName}
+                          </span>
+                          <span className="text-muted-foreground"> va a </span>
+                          <span className="text-foreground">{actionDesc}</span>
+                          <span className="text-muted-foreground"> a </span>
+                          <span className="font-medium text-foreground">{leadName}</span>
+                        </p>
+                        {property && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {property}
                           </p>
                         )}
+                        {task.attempt_number !== null &&
+                          task.max_attempts !== null &&
+                          task.attempt_number > 1 && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              Intento {task.attempt_number}/{task.max_attempts}
+                            </p>
+                          )}
+                      </div>
                     </div>
-                  </div>
-                );
+                  );
+                }
+
+                return null;
               })}
             </div>
           </ScrollArea>
         )}
 
         {/* Footer count */}
-        {tasks && tasks.length > 0 && (
+        {timeline.length > 0 && (
           <div className="pt-3 mt-2 border-t">
             <p className="text-xs text-muted-foreground text-center">
-              Mostrando {tasks.length} tarea{tasks.length !== 1 ? "s" : ""} programada{tasks.length !== 1 ? "s" : ""}
+              {(tasks || []).length} tarea{(tasks || []).length !== 1 ? "s" : ""} · {(recentLeads || []).length} lead{(recentLeads || []).length !== 1 ? "s" : ""} reciente{(recentLeads || []).length !== 1 ? "s" : ""}
             </p>
           </div>
         )}

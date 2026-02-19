@@ -29,6 +29,10 @@ import {
   Settings2,
   Zap,
   Activity,
+  MessageSquare,
+  Mail,
+  Inbox,
+  Flame,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { format, startOfDay, endOfDay } from "date-fns";
@@ -44,6 +48,13 @@ interface DashboardStats {
   newLeadsThisWeek: number;
   showingsToday: number;
   conversionRate: number;
+  // New stat bubbles
+  totalLeads: number;
+  showingsScheduled: number;
+  smsSent: number;
+  emailsSent: number;
+  emailsParsed: number;
+  hotLeads: number;
 }
 
 interface PriorityLead {
@@ -139,6 +150,12 @@ export const AdminDashboard = () => {
           priorityLeadsResult,
           alertsResult,
           recentCallsResult,
+          totalLeadsResult,
+          showingsScheduledResult,
+          smsSentResult,
+          emailsSentResult,
+          emailsParsedResult,
+          hotLeadsResult,
         ] = await Promise.all([
           // Single RPC replaces 8 parallel queries for stats
           supabase.rpc('get_dashboard_summary'),
@@ -181,6 +198,39 @@ export const AdminDashboard = () => {
             .eq("organization_id", userRecord.organization_id)
             .order("started_at", { ascending: false })
             .limit(10),
+          // ── New stat bubble queries ──
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id),
+          supabase
+            .from("showings")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .in("status", ["confirmed", "pending"]),
+          supabase
+            .from("communications")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .eq("channel", "sms")
+            .eq("direction", "outbound"),
+          supabase
+            .from("communications")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .eq("channel", "email")
+            .eq("direction", "outbound"),
+          supabase
+            .from("system_logs")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .eq("event_type", "esther_lead_processed"),
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .gte("lead_score", 80)
+            .not("status", "in", '("lost","converted")'),
         ]);
 
         // Map RPC response to stats state
@@ -204,6 +254,12 @@ export const AdminDashboard = () => {
             newLeadsThisWeek: summary.leads.new_this_week,
             showingsToday: summary.showings.today,
             conversionRate: summary.conversion_rate,
+            totalLeads: totalLeadsResult.count || 0,
+            showingsScheduled: showingsScheduledResult.count || 0,
+            smsSent: smsSentResult.count || 0,
+            emailsSent: emailsSentResult.count || 0,
+            emailsParsed: emailsParsedResult.count || 0,
+            hotLeads: hotLeadsResult.count || 0,
           });
         }
 
@@ -329,46 +385,55 @@ export const AdminDashboard = () => {
           </Button>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Bubbles */}
         {isWidgetVisible("stats_cards") && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
             <div className="animate-fade-up stagger-1">
               <StatCard
-                title="Total Properties"
-                value={stats?.totalProperties || 0}
-                subtitle={`${stats?.propertiesByStatus?.available || 0} available`}
-                icon={Building}
-                impact={stats?.propertiesByStatus?.available && stats.propertiesByStatus.available > 5 ? "high" : "medium"}
+                title="Total Leads"
+                value={stats?.totalLeads || 0}
+                icon={Users}
                 loading={loading}
               />
             </div>
             <div className="animate-fade-up stagger-2">
               <StatCard
-                title="Active Leads"
-                value={stats?.activeLeads || 0}
-                subtitle="this week"
-                icon={Users}
-                trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
-                impact={stats?.activeLeads && stats.activeLeads > 20 ? "high" : stats?.activeLeads && stats.activeLeads > 10 ? "medium" : "low"}
+                title="Showings Agendados"
+                value={stats?.showingsScheduled || 0}
+                icon={Calendar}
                 loading={loading}
               />
             </div>
             <div className="animate-fade-up stagger-3">
               <StatCard
-                title="Showings Today"
-                value={stats?.showingsToday || 0}
-                subtitle={format(new Date(), "EEEE, MMM d")}
-                icon={Calendar}
+                title="Mensajes Enviados"
+                value={stats?.smsSent || 0}
+                icon={MessageSquare}
                 loading={loading}
               />
             </div>
             <div className="animate-fade-up stagger-4">
               <StatCard
-                title="Conversion Rate"
-                value={`${stats?.conversionRate || 0}%`}
-                subtitle="This month"
-                icon={TrendingUp}
-                impact={stats?.conversionRate && stats.conversionRate >= 15 ? "high" : stats?.conversionRate && stats.conversionRate >= 8 ? "medium" : "low"}
+                title="Correos Enviados"
+                value={stats?.emailsSent || 0}
+                icon={Mail}
+                loading={loading}
+              />
+            </div>
+            <div className="animate-fade-up stagger-5">
+              <StatCard
+                title="Emails Parseados"
+                value={stats?.emailsParsed || 0}
+                icon={Inbox}
+                loading={loading}
+              />
+            </div>
+            <div className="animate-fade-up stagger-6">
+              <StatCard
+                title="Hot Leads"
+                value={stats?.hotLeads || 0}
+                icon={Flame}
+                impact={stats?.hotLeads && stats.hotLeads > 0 ? "high" : undefined}
                 loading={loading}
               />
             </div>
