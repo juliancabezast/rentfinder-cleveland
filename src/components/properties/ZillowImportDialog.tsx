@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle, Upload, ImageIcon, X, CheckCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -82,6 +82,97 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   const [editSection8, setEditSection8] = useState(true);
   const [editHud, setEditHud] = useState(true);
   const [editPetPolicy, setEditPetPolicy] = useState("");
+
+  // AI screenshot extraction state
+  const [aiExtracting, setAiExtracting] = useState(false);
+  const [aiResults, setAiResults] = useState<Record<string, unknown> | null>(null);
+  const [aiApprovals, setAiApprovals] = useState<Record<string, boolean>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fieldLabels: Record<string, string> = {
+    bedrooms: "Bedrooms",
+    bathrooms: "Bathrooms",
+    sqft: "Sq Ft",
+    rent_price: "Monthly Rent",
+    property_type: "Property Type",
+    pet_policy: "Pet Policy",
+    description: "Description",
+    deposit: "Security Deposit",
+    application_fee: "Application Fee",
+  };
+
+  const handleScreenshotUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0 || !userRecord?.organization_id) return;
+
+    setAiExtracting(true);
+    setAiResults(null);
+
+    try {
+      // Convert files to base64 data URLs
+      const images: string[] = [];
+      for (let i = 0; i < Math.min(files.length, 4); i++) {
+        const file = files[i];
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        images.push(base64);
+      }
+
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "extract-property-from-image",
+        {
+          body: {
+            organization_id: userRecord.organization_id,
+            images,
+          },
+        }
+      );
+
+      if (fnError) throw new Error(fnError.message);
+      if (data?.error) throw new Error(data.error);
+      if (!data?.extracted || Object.keys(data.extracted).length === 0) {
+        toast({ title: "No data found", description: "AI could not extract property details from the screenshot.", variant: "destructive" });
+        return;
+      }
+
+      setAiResults(data.extracted);
+      // Default all fields to approved
+      const approvals: Record<string, boolean> = {};
+      for (const key of Object.keys(data.extracted)) {
+        approvals[key] = true;
+      }
+      setAiApprovals(approvals);
+    } catch (err) {
+      toast({
+        title: "Screenshot analysis failed",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setAiExtracting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const applyAiResults = () => {
+    if (!aiResults) return;
+
+    if (aiApprovals.bedrooms && aiResults.bedrooms != null) setEditBedrooms(String(aiResults.bedrooms));
+    if (aiApprovals.bathrooms && aiResults.bathrooms != null) setEditBathrooms(String(aiResults.bathrooms));
+    if (aiApprovals.sqft && aiResults.sqft != null) setEditSqft(String(aiResults.sqft));
+    if (aiApprovals.rent_price && aiResults.rent_price != null) setEditRent(String(aiResults.rent_price));
+    if (aiApprovals.property_type && aiResults.property_type) setEditPropertyType(String(aiResults.property_type));
+    if (aiApprovals.pet_policy && aiResults.pet_policy) setEditPetPolicy(String(aiResults.pet_policy));
+    if (aiApprovals.description && aiResults.description) setEditDescription(String(aiResults.description));
+    if (aiApprovals.deposit && aiResults.deposit != null) setEditDeposit(String(aiResults.deposit));
+    if (aiApprovals.application_fee && aiResults.application_fee != null) setEditAppFee(String(aiResults.application_fee));
+
+    setAiResults(null);
+    setAiApprovals({});
+    toast({ title: "Fields updated", description: "AI-extracted data has been applied." });
+  };
 
   const resetState = () => {
     setStep("url");
@@ -309,6 +400,104 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
                 )}
               </CardContent>
             </Card>
+
+            {/* Screenshot upload for AI extraction */}
+            <div className="relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleScreenshotUpload(e.target.files)}
+              />
+              {aiExtracting ? (
+                <div className="flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-[#370d4b]/30 bg-[#370d4b]/5">
+                  <Loader2 className="h-5 w-5 animate-spin text-[#370d4b]" />
+                  <span className="text-sm text-[#370d4b] font-medium">AI analyzing screenshots...</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-[#370d4b]/50 hover:bg-[#370d4b]/5 transition-colors cursor-pointer"
+                >
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Upload screenshots to auto-fill with AI
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* AI extraction results popup */}
+            {aiResults && Object.keys(aiResults).length > 0 && (
+              <Card className="border-[#370d4b]/30 bg-[#370d4b]/5">
+                <CardContent className="pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-[#370d4b] flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      AI found these details
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => { setAiResults(null); setAiApprovals({}); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {Object.entries(aiResults).map(([key, value]) => {
+                      if (value == null || value === "") return null;
+                      const label = fieldLabels[key] || key;
+                      const displayValue = key === "rent_price" || key === "deposit" || key === "application_fee"
+                        ? `$${value}`
+                        : String(value);
+                      const truncated = displayValue.length > 60
+                        ? displayValue.substring(0, 60) + "..."
+                        : displayValue;
+
+                      return (
+                        <div
+                          key={key}
+                          className="flex items-center gap-3 px-3 py-2 rounded-md bg-white/70"
+                        >
+                          <Checkbox
+                            checked={aiApprovals[key] ?? true}
+                            onCheckedChange={(v) =>
+                              setAiApprovals((prev) => ({ ...prev, [key]: v === true }))
+                            }
+                          />
+                          <span className="text-sm font-medium w-28 shrink-0">{label}</span>
+                          <span className="text-sm text-muted-foreground truncate">{truncated}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setAiResults(null); setAiApprovals({}); }}
+                    >
+                      Dismiss
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={applyAiResults}
+                      className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Apply Selected
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Property details — all editable */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
