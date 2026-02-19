@@ -79,24 +79,95 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
     message: null,
   };
 
-  // Name patterns
-  const namePatterns = [
-    /Name\s*[:\-]\s*(.+)/i,
-    /Tenant(?:\s+Name)?\s*[:\-]\s*(.+)/i,
-    /Applicant\s*[:\-]\s*(.+)/i,
-    /From\s*[:\-]\s*([A-Z][a-z]+ [A-Z][a-z]+)/,
-    /Contact\s*[:\-]\s*(.+)/i,
-    /Lead\s*[:\-]\s*(.+)/i,
-  ];
-  for (const pat of namePatterns) {
-    const m = text.match(pat);
-    if (m) {
-      result.name = m[1].trim().substring(0, 100);
-      break;
+  // Excluded email domains (system emails, not lead emails)
+  const excludedDomains = ["hemlane.com", "rentfindercleveland.com", "inbound.rentfindercleveland.com"];
+
+  // ── Hemlane-specific patterns (highest priority) ─────────────────
+
+  // Hemlane format: "{Name} sent a message about {Property}:"
+  const hemlaneMessagePat = text.match(
+    /([A-Za-z][A-Za-z\s'-]+?)\s+sent a message about\s+(.+?):/i
+  );
+  if (hemlaneMessagePat) {
+    result.name = hemlaneMessagePat[1].trim().substring(0, 100);
+    result.property = hemlaneMessagePat[2].trim().substring(0, 200);
+
+    // Extract message: text between "about {Property}:" and "View and Respond"
+    const msgPat = text.match(
+      /sent a message about .+?:\s*\n([\s\S]+?)(?=\s*View and Respond|\s*Available Rental|\s*$)/i
+    );
+    if (msgPat) {
+      result.message = msgPat[1].trim().substring(0, 500);
     }
   }
 
-  // Phone patterns
+  // Hemlane format: "{Name} is interested in {Property}" or "New inquiry from {Name}"
+  if (!result.name) {
+    const inquiryPat = text.match(
+      /([A-Za-z][A-Za-z\s'-]+?)\s+is interested in\s+(.+?)(?:\.|$)/im
+    );
+    if (inquiryPat) {
+      result.name = inquiryPat[1].trim().substring(0, 100);
+      if (!result.property) {
+        result.property = inquiryPat[2].trim().substring(0, 200);
+      }
+    }
+  }
+
+  if (!result.name) {
+    const fromPat = text.match(
+      /(?:inquiry|message|application)\s+from\s+([A-Za-z][A-Za-z\s'-]+?)(?:\s+for|\s+about|\s*$)/im
+    );
+    if (fromPat) {
+      result.name = fromPat[1].trim().substring(0, 100);
+    }
+  }
+
+  // Hemlane "Available Rental: {address} | ${price} per month"
+  if (!result.property) {
+    const rentalPat = text.match(
+      /Available Rental:\s*(.+?)(?:\s*\||\s*\(|$)/im
+    );
+    if (rentalPat) {
+      result.property = rentalPat[1].trim().substring(0, 200);
+    }
+  }
+
+  // ── Extract property from subject line ───────────────────────────
+  if (!result.property) {
+    const subjectPatterns = [
+      /Rental Message from\s+(.+)/i,
+      /New inquiry for\s+(.+)/i,
+      /New (?:Lead|Inquiry|Message).*?(?:for|at|[-–:])\s*(.+)/i,
+    ];
+    for (const pat of subjectPatterns) {
+      const m = subject.match(pat);
+      if (m) {
+        result.property = m[1].trim().substring(0, 200);
+        break;
+      }
+    }
+  }
+
+  // ── Generic name patterns (fallback) ─────────────────────────────
+  if (!result.name) {
+    const namePatterns = [
+      /Name\s*[:\-]\s*(.+)/i,
+      /Tenant(?:\s+Name)?\s*[:\-]\s*(.+)/i,
+      /Applicant\s*[:\-]\s*(.+)/i,
+      /Contact\s*[:\-]\s*(.+)/i,
+      /Lead\s*[:\-]\s*(.+)/i,
+    ];
+    for (const pat of namePatterns) {
+      const m = text.match(pat);
+      if (m) {
+        result.name = m[1].trim().substring(0, 100);
+        break;
+      }
+    }
+  }
+
+  // ── Phone patterns ───────────────────────────────────────────────
   const phonePatterns = [
     /Phone\s*[:\-]\s*([\d\s\-().+]+)/i,
     /Tel(?:ephone)?\s*[:\-]\s*([\d\s\-().+]+)/i,
@@ -112,54 +183,61 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
     }
   }
 
-  // Email patterns
+  // ── Email patterns (exclude system domains) ──────────────────────
   const emailPatterns = [
     /Email\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)/i,
     /E-mail\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)/i,
-    /([\w.+-]+@[\w.-]+\.\w{2,})/,
   ];
   for (const pat of emailPatterns) {
     const m = text.match(pat);
     if (m) {
-      result.email = m[1].trim().toLowerCase();
-      break;
+      const candidate = m[1].trim().toLowerCase();
+      if (!excludedDomains.some((d) => candidate.endsWith(d))) {
+        result.email = candidate;
+        break;
+      }
+    }
+  }
+  // Fallback: find all emails and pick the first non-system one
+  if (!result.email) {
+    const allEmails = text.matchAll(/([\w.+-]+@[\w.-]+\.\w{2,})/g);
+    for (const m of allEmails) {
+      const candidate = m[1].trim().toLowerCase();
+      if (!excludedDomains.some((d) => candidate.endsWith(d))) {
+        result.email = candidate;
+        break;
+      }
     }
   }
 
-  // Property patterns (from email body and subject)
-  const propertyPatterns = [
-    /Property\s*[:\-]\s*(.+)/i,
-    /(?:Address|Unit|Listing)\s*[:\-]\s*(.+)/i,
-    /(?:interested in|inquiry (?:for|about)|regarding)\s+(.+?)(?:\.|$)/i,
-  ];
-  for (const pat of propertyPatterns) {
-    const m = text.match(pat);
-    if (m) {
-      result.property = m[1].trim().substring(0, 200);
-      break;
-    }
-  }
-  // Also try extracting property from subject line
+  // ── Generic property patterns (fallback) ─────────────────────────
   if (!result.property) {
-    const subjectPat = subject.match(
-      /(?:New (?:Lead|Inquiry|Message).*?(?:for|at|[-–:])\s*)(.+)/i
-    );
-    if (subjectPat) {
-      result.property = subjectPat[1].trim().substring(0, 200);
+    const propertyPatterns = [
+      /Property\s*[:\-]\s*(.+)/i,
+      /(?:Address|Unit|Listing)\s*[:\-]\s*(.+)/i,
+    ];
+    for (const pat of propertyPatterns) {
+      const m = text.match(pat);
+      if (m) {
+        result.property = m[1].trim().substring(0, 200);
+        break;
+      }
     }
   }
 
-  // Message / notes patterns
-  const messagePatterns = [
-    /Message\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
-    /Notes?\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
-    /Comments?\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
-  ];
-  for (const pat of messagePatterns) {
-    const m = text.match(pat);
-    if (m) {
-      result.message = m[1].trim().substring(0, 500);
-      break;
+  // ── Message patterns (fallback) ──────────────────────────────────
+  if (!result.message) {
+    const messagePatterns = [
+      /Message\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
+      /Notes?\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
+      /Comments?\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
+    ];
+    for (const pat of messagePatterns) {
+      const m = text.match(pat);
+      if (m) {
+        result.message = m[1].trim().substring(0, 500);
+        break;
+      }
     }
   }
 
