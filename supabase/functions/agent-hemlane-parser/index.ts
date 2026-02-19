@@ -456,7 +456,7 @@ async function upsertLead(
   if (phone) {
     const { data: existing } = await supabase
       .from("leads")
-      .select("id, source_detail, interested_property_id")
+      .select("id, full_name, source_detail, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("phone", phone)
       .maybeSingle();
@@ -467,6 +467,13 @@ async function upsertLead(
         ? `${existing.source_detail}\n${note}`
         : note;
 
+      // Fix name if existing is garbage (from previous parse bugs) and we have a real name
+      const needsNameFix = lead.name && existing.full_name && (
+        existing.full_name.includes("{") ||
+        existing.full_name.startsWith("Hemlane Lead") ||
+        existing.full_name.startsWith("detail")
+      );
+
       await supabase
         .from("leads")
         .update({
@@ -475,8 +482,12 @@ async function upsertLead(
           source_detail: detail,
           hemlane_email_id: emailId,
           ...(lead.email ? { email: lead.email } : {}),
-          // Fill interested_property_id if we matched one and existing doesn't have it
           ...(propertyId && !existing.interested_property_id ? { interested_property_id: propertyId } : {}),
+          ...(needsNameFix ? {
+            full_name: lead.name,
+            first_name: lead.name!.split(" ")[0] || null,
+            last_name: lead.name!.split(" ").slice(1).join(" ") || null,
+          } : {}),
         })
         .eq("id", existing.id);
 
@@ -519,7 +530,7 @@ async function upsertLead(
   if (lead.email) {
     const { data: existing } = await supabase
       .from("leads")
-      .select("id, source_detail, phone, interested_property_id")
+      .select("id, full_name, source_detail, phone, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("email", lead.email)
       .maybeSingle();
@@ -530,6 +541,13 @@ async function upsertLead(
         ? `${existing.source_detail}\n${note}`
         : note;
 
+      // Fix name if existing is garbage (from previous parse bugs) and we have a real name
+      const needsNameFix = lead.name && existing.full_name && (
+        existing.full_name.includes("{") ||
+        existing.full_name.startsWith("Hemlane Lead") ||
+        existing.full_name.startsWith("detail")
+      );
+
       await supabase
         .from("leads")
         .update({
@@ -539,6 +557,11 @@ async function upsertLead(
           hemlane_email_id: emailId,
           ...(phone && !existing.phone ? { phone } : {}),
           ...(propertyId && !existing.interested_property_id ? { interested_property_id: propertyId } : {}),
+          ...(needsNameFix ? {
+            full_name: lead.name,
+            first_name: lead.name!.split(" ")[0] || null,
+            last_name: lead.name!.split(" ").slice(1).join(" ") || null,
+          } : {}),
         })
         .eq("id", existing.id);
 
