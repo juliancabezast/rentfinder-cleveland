@@ -736,6 +736,8 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
                       <SelectItem value="house">House</SelectItem>
                       <SelectItem value="apartment">Apartment</SelectItem>
                       <SelectItem value="duplex">Duplex</SelectItem>
+                      <SelectItem value="triplex">Triplex</SelectItem>
+                      <SelectItem value="fourplex">Fourplex</SelectItem>
                       <SelectItem value="townhouse">Townhouse</SelectItem>
                       <SelectItem value="condo">Condo</SelectItem>
                     </SelectContent>

@@ -958,8 +958,9 @@ serve(async (req: Request) => {
 
     if (isDigest) {
       // ── DIGEST: batch-process all leads ───────────────────────────
-      // Use plain text for digest — HTML tables don't parse well
-      const digestLeads = parseHemlaneDigest(textBody || htmlBody);
+      // Prefer HTML for digest — our parser strips tags and uses </td> boundaries
+      // for clean line separation. Plain text loses table structure.
+      const digestLeads = parseHemlaneDigest(htmlBody || textBody);
 
       if (digestLeads.length === 0) {
         await supabase.from("system_logs").insert({
