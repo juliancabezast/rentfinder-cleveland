@@ -159,37 +159,39 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   const [orgProperties, setOrgProperties] = useState<
     { id: string; address: string; unit_number: string | null; city: string }[]
   >([]);
-  // All properties this lead is interested in (from lead_properties junction)
+  // All properties this lead is interested in (from lead_property_interests junction)
   const [additionalProperties, setAdditionalProperties] = useState<
-    { property_id: string; listing_source: string | null; address: string; unit_number: string | null }[]
+    { property_id: string; address: string; unit_number: string | null }[]
   >([]);
 
-  // Fetch additional properties from lead_properties junction table
+  // Fetch property interests from junction table
   useEffect(() => {
     const fetchLeadProperties = async () => {
       if (!lead.id || !userRecord?.organization_id) return;
       try {
         const { data } = await supabase
-          .from("lead_properties" as any)
-          .select("property_id, listing_source, properties(address, unit_number)")
+          .from("lead_property_interests" as any)
+          .select("property_id, properties:property_id(address, unit_number)")
           .eq("lead_id", lead.id)
           .eq("organization_id", userRecord.organization_id);
         if (data) {
+          // Filter out the primary property to avoid duplication
           setAdditionalProperties(
-            data.map((row: any) => ({
-              property_id: row.property_id,
-              listing_source: row.listing_source,
-              address: row.properties?.address || "Unknown",
-              unit_number: row.properties?.unit_number || null,
-            }))
+            data
+              .map((row: any) => ({
+                property_id: row.property_id,
+                address: (row.properties as any)?.address || "Unknown",
+                unit_number: (row.properties as any)?.unit_number || null,
+              }))
+              .filter((p: any) => p.property_id !== lead.interested_property_id)
           );
         }
       } catch {
-        // Table may not exist yet — graceful fallback
+        // Graceful fallback
       }
     };
     fetchLeadProperties();
-  }, [lead.id, userRecord?.organization_id]);
+  }, [lead.id, lead.interested_property_id, userRecord?.organization_id]);
 
   const fetchAllProperties = async () => {
     if (!userRecord?.organization_id) return;
@@ -471,11 +473,6 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                           {ap.address}
                           {ap.unit_number ? ` #${ap.unit_number}` : ""}
                         </span>
-                        {ap.listing_source && (
-                          <Badge variant="outline" className="h-4 px-1 text-[9px]">
-                            {ap.listing_source}
-                          </Badge>
-                        )}
                       </div>
                     ))}
                 </div>

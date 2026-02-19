@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -10,7 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2, ChevronsUpDown, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -74,6 +81,9 @@ export const LeadForm: React.FC<LeadFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
 
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [propertyPopoverOpen, setPropertyPopoverOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     first_name: lead?.first_name || "",
     last_name: lead?.last_name || "",
@@ -82,7 +92,6 @@ export const LeadForm: React.FC<LeadFormProps> = ({
     preferred_language: lead?.preferred_language || "en",
     status: lead?.status || "new",
     source: lead?.source || "manual",
-    interested_property_id: lead?.interested_property_id || "",
     budget_min: lead?.budget_min?.toString() || "",
     budget_max: lead?.budget_max?.toString() || "",
     move_in_date: lead?.move_in_date || "",
@@ -95,8 +104,9 @@ export const LeadForm: React.FC<LeadFormProps> = ({
     call_consent: lead?.call_consent || false,
   });
 
+  // Fetch properties + existing interests
   useEffect(() => {
-    const fetchProperties = async () => {
+    const fetchData = async () => {
       if (!userRecord?.organization_id) return;
 
       const { data } = await supabase
@@ -107,10 +117,25 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         .order("address");
 
       if (data) setProperties(data);
+
+      // Load existing property interests from junction table
+      if (lead?.id) {
+        const { data: interests } = await supabase
+          .from("lead_property_interests")
+          .select("property_id")
+          .eq("lead_id", lead.id);
+
+        if (interests && interests.length > 0) {
+          setSelectedPropertyIds(interests.map((i: any) => i.property_id));
+        } else if (lead.interested_property_id) {
+          // Fallback to legacy single FK
+          setSelectedPropertyIds([lead.interested_property_id]);
+        }
+      }
     };
 
-    fetchProperties();
-  }, [userRecord?.organization_id]);
+    fetchData();
+  }, [userRecord?.organization_id, lead?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +143,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
 
     setLoading(true);
     try {
-      // Base lead data
+      // Base lead data — interested_property_id keeps first selection for backward compat
       const leadData = {
         organization_id: userRecord.organization_id,
         first_name: formData.first_name || null,
@@ -131,7 +156,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         preferred_language: formData.preferred_language,
         status: formData.status,
         source: formData.source,
-        interested_property_id: formData.interested_property_id || null,
+        interested_property_id: selectedPropertyIds[0] || null,
         budget_min: formData.budget_min ? parseFloat(formData.budget_min) : null,
         budget_max: formData.budget_max ? parseFloat(formData.budget_max) : null,
         move_in_date: formData.move_in_date || null,
@@ -158,6 +183,23 @@ export const LeadForm: React.FC<LeadFormProps> = ({
           .update(leadData)
           .eq("id", lead.id);
         if (error) throw error;
+
+        // Sync junction table: delete old, insert new
+        await supabase
+          .from("lead_property_interests")
+          .delete()
+          .eq("lead_id", lead.id);
+
+        if (selectedPropertyIds.length > 0) {
+          await supabase.from("lead_property_interests").insert(
+            selectedPropertyIds.map((pid) => ({
+              organization_id: userRecord.organization_id,
+              lead_id: lead.id,
+              property_id: pid,
+            }))
+          );
+        }
+
         toast({ title: "Success", description: "Lead updated successfully." });
         onSuccess();
       } else {
@@ -169,8 +211,19 @@ export const LeadForm: React.FC<LeadFormProps> = ({
           .single();
         if (error) throw error;
         
+        // Sync junction table for new lead
+        if (newLead?.id && selectedPropertyIds.length > 0) {
+          await supabase.from("lead_property_interests").insert(
+            selectedPropertyIds.map((pid) => ({
+              organization_id: userRecord.organization_id,
+              lead_id: newLead.id,
+              property_id: pid,
+            }))
+          );
+        }
+
         toast({ title: "Success", description: "Lead created successfully." });
-        
+
         // Trigger smart matching for the new lead
         if (newLead?.id) {
           try {
@@ -190,12 +243,17 @@ export const LeadForm: React.FC<LeadFormProps> = ({
                 description: "View the lead details to see property recommendations.",
               });
               
-              // Auto-populate interested_property_id with top match if lead didn't specify
-              if (!formData.interested_property_id && matches.length > 0) {
+              // Auto-populate with top match if lead didn't specify any properties
+              if (selectedPropertyIds.length === 0 && matches.length > 0) {
                 await supabase
                   .from("leads")
                   .update({ interested_property_id: matches[0].property_id })
                   .eq("id", newLead.id);
+                await supabase.from("lead_property_interests").insert({
+                  organization_id: userRecord.organization_id,
+                  lead_id: newLead.id,
+                  property_id: matches[0].property_id,
+                });
               }
             }
           } catch (matchError) {
@@ -313,7 +371,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
       {/* Status & Interest */}
       <div className="space-y-4">
         <h3 className="font-medium">Status & Interest</h3>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Status</Label>
             <Select
@@ -350,27 +408,74 @@ export const LeadForm: React.FC<LeadFormProps> = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Interested Property</Label>
-            <Select
-              value={formData.interested_property_id || "none"}
-              onValueChange={(v) =>
-                setFormData((f) => ({ ...f, interested_property_id: v === "none" ? "" : v }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select property" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {properties.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.address}
-                    {p.unit_number ? ` #${p.unit_number}` : ""} - {p.city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-2 sm:col-span-3">
+            <Label>Interested Properties</Label>
+            <Popover open={propertyPopoverOpen} onOpenChange={setPropertyPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between font-normal h-auto min-h-10"
+                >
+                  <div className="flex flex-wrap gap-1 py-0.5">
+                    {selectedPropertyIds.length === 0 ? (
+                      <span className="text-muted-foreground">Select properties...</span>
+                    ) : (
+                      selectedPropertyIds.map((pid) => {
+                        const prop = properties.find((p) => p.id === pid);
+                        if (!prop) return null;
+                        return (
+                          <Badge
+                            key={pid}
+                            variant="secondary"
+                            className="text-xs gap-1 pr-1"
+                          >
+                            {prop.address}{prop.unit_number ? ` #${prop.unit_number}` : ""}
+                            <X
+                              className="h-3 w-3 cursor-pointer hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPropertyIds((ids) => ids.filter((id) => id !== pid));
+                              }}
+                            />
+                          </Badge>
+                        );
+                      })
+                    )}
+                  </div>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <ScrollArea className="max-h-[280px]">
+                  <div className="p-2 space-y-1">
+                    {properties.map((p) => {
+                      const isSelected = selectedPropertyIds.includes(p.id);
+                      const label = `${p.address}${p.unit_number ? ` #${p.unit_number}` : ""} - ${p.city}`;
+                      return (
+                        <div
+                          key={p.id}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
+                          onClick={() => {
+                            setSelectedPropertyIds((ids) =>
+                              isSelected
+                                ? ids.filter((id) => id !== p.id)
+                                : [...ids, p.id]
+                            );
+                          }}
+                        >
+                          <Checkbox checked={isSelected} className="pointer-events-none" />
+                          <span className="text-sm">{label}</span>
+                        </div>
+                      );
+                    })}
+                    {properties.length === 0 && (
+                      <p className="text-sm text-muted-foreground p-2">No properties available</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
