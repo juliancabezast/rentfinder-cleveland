@@ -962,6 +962,12 @@ serve(async (req: Request) => {
       // for clean line separation. Plain text loses table structure.
       const digestLeads = parseHemlaneDigest(htmlBody || textBody);
 
+      // Log parsed digest summary for debugging
+      console.log(`Esther digest: parsed ${digestLeads.length} leads from ${htmlBody ? "HTML" : "text"} body`);
+      for (const dl of digestLeads.slice(0, 5)) {
+        console.log(`  → name=${dl.name}, email=${dl.email}, phone=${dl.phone}, property=${dl.property}, source=${dl.listingSource}`);
+      }
+
       if (digestLeads.length === 0) {
         await supabase.from("system_logs").insert({
           organization_id: organizationId,
