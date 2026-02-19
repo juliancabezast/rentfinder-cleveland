@@ -22,15 +22,15 @@ export type LogCategory =
   | "openai"
   | "persona"
   | "doorloop"
-  | "lead"
-  | "showing"
+  | "google_sheets"
+  | "supabase"
   | "authentication"
-  | "system";
+  | "general";
 
 export interface LogEventParams {
   organization_id?: string;
   level: LogLevel;
-  category: LogCategory | string;
+  category: LogCategory;
   event_type: string;
   message: string;
   details?: Json;

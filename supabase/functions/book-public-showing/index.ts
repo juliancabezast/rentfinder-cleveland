@@ -329,7 +329,7 @@ serve(async (req: Request) => {
     await supabase.from("system_logs").insert({
       organization_id,
       level: "info",
-      category: "showing",
+      category: "general",
       event_type: "public_showing_booked",
       message: `Showing booked via public page: ${full_name.trim()} at ${propertyAddress} on ${formatDateHuman(slot_date)} ${formatTimeHuman(slot_time)}`,
       details: {

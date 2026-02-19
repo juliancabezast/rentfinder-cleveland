@@ -42,14 +42,11 @@ export const IntegrationHealth: React.FC = () => {
         .eq("organization_id", userRecord.organization_id)
         .single();
 
-      // Fetch recent test logs
+      // Fetch integration health statuses
       const { data: testLogs } = await supabase
-        .from("system_logs")
+        .from("integration_health")
         .select("*")
-        .eq("organization_id", userRecord.organization_id)
-        .eq("event_type", "integration_test")
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .eq("organization_id", userRecord.organization_id);
 
       const now = new Date();
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -75,14 +72,10 @@ export const IntegrationHealth: React.FC = () => {
           };
         }
 
-        // Find the most recent test for this service
-        const recentTest = testLogs?.find((log) => {
-          const details = log.details as { service?: string; success?: boolean } | null;
-          return details?.service === integration.key;
-        });
+        // Find the health record for this service
+        const healthRecord = testLogs?.find((row: any) => row.service === integration.key);
 
-        if (!recentTest) {
-          // No test yet - Resend might not be configured
+        if (!healthRecord) {
           if (integration.key === "resend") {
             return {
               key: integration.key,
@@ -98,27 +91,25 @@ export const IntegrationHealth: React.FC = () => {
           };
         }
 
-        const testDate = new Date(recentTest.created_at!);
-        const details = recentTest.details as { service?: string; success?: boolean } | null;
-        const success = details?.success;
+        const testDate = new Date(healthRecord.last_checked_at);
+        const isHealthy = healthRecord.status === "healthy";
 
-        if (!success) {
+        if (!isHealthy) {
           return {
             key: integration.key,
             label: integration.label,
             status: "error",
-            lastTested: recentTest.created_at!,
-            message: recentTest.message,
+            lastTested: healthRecord.last_checked_at,
+            message: healthRecord.message,
           };
         }
 
-        // Success - check if recent
         if (testDate < twentyFourHoursAgo) {
           return {
             key: integration.key,
             label: integration.label,
             status: "warning",
-            lastTested: recentTest.created_at!,
+            lastTested: healthRecord.last_checked_at,
             message: "Test was over 24 hours ago",
           };
         }
@@ -127,8 +118,8 @@ export const IntegrationHealth: React.FC = () => {
           key: integration.key,
           label: integration.label,
           status: "connected",
-          lastTested: recentTest.created_at!,
-          message: recentTest.message,
+          lastTested: healthRecord.last_checked_at,
+          message: healthRecord.message,
         };
       });
 

@@ -60,7 +60,6 @@ const SERVICES = [
   { value: "google_sheets", label: "Google Sheets" },
   { value: "supabase", label: "Supabase" },
   { value: "authentication", label: "Authentication" },
-  { value: "automation", label: "Automation" },
   { value: "general", label: "General" },
 ];
 
@@ -94,7 +93,6 @@ const serviceIcons: Record<string, string> = {
   google_sheets: "📊",
   supabase: "⚡",
   authentication: "🔐",
-  automation: "⚙️",
   general: "📋",
 };
 

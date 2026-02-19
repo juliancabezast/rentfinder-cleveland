@@ -120,12 +120,9 @@ export const IntegrationKeysTab: React.FC = () => {
             .eq('organization_id', userRecord.organization_id)
             .single(),
           supabase
-            .from('system_logs')
+            .from('integration_health')
             .select('*')
-            .eq('organization_id', userRecord.organization_id)
-            .eq('event_type', 'integration_test')
-            .order('created_at', { ascending: false })
-            .limit(20),
+            .eq('organization_id', userRecord.organization_id),
         ]);
 
         if (credsResult.error && credsResult.error.code !== 'PGRST116') throw credsResult.error;
@@ -142,30 +139,25 @@ export const IntegrationKeysTab: React.FC = () => {
           setCredentials(creds);
         }
 
-        // Parse test statuses from logs
+        // Parse test statuses from integration_health
         const statuses: Record<string, TestStatus> = {};
-        (logsResult.data || []).forEach((log) => {
-          const details = log.details as { service?: string; success?: boolean } | null;
-          if (details?.service) {
-            const keyForService = Object.entries({
-              twilio: ['twilio_account_sid', 'twilio_auth_token'],
-              bland_ai: ['bland_api_key'],
-              openai: ['openai_api_key'],
-              persona: ['persona_api_key'],
-              doorloop: ['doorloop_api_key'],
-              resend: ['resend_api_key'],
-            }).find(([svc]) => svc === details.service);
-
-            if (keyForService) {
-              keyForService[1].forEach((key) => {
-                if (!statuses[key]) {
-                  statuses[key] = {
-                    success: details.success === true,
-                    testedAt: log.created_at!,
-                  };
-                }
-              });
-            }
+        const serviceToKeys: Record<string, string[]> = {
+          twilio: ['twilio_account_sid', 'twilio_auth_token'],
+          bland_ai: ['bland_api_key'],
+          openai: ['openai_api_key'],
+          persona: ['persona_api_key'],
+          doorloop: ['doorloop_api_key'],
+          resend: ['resend_api_key'],
+        };
+        (logsResult.data || []).forEach((row: any) => {
+          const keys = serviceToKeys[row.service];
+          if (keys) {
+            keys.forEach((key) => {
+              statuses[key] = {
+                success: row.status === 'healthy',
+                testedAt: row.last_checked_at,
+              };
+            });
           }
         });
         setTestStatuses(statuses);

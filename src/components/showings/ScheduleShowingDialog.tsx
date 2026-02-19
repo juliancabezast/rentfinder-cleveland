@@ -258,7 +258,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         await supabase.from("system_logs").insert({
           organization_id: userRecord.organization_id,
           level: "info",
-          category: "showing",
+          category: "general",
           event_type: "admin_showing_scheduled",
           message: `Showing scheduled by admin: ${propertyAddr} on ${format(scheduledAt, "MMM d, yyyy")} at ${format(scheduledAt, "h:mm a")}`,
           details: {

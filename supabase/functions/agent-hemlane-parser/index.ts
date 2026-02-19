@@ -961,7 +961,7 @@ async function saveLeadNote(
     try {
       await supabase.from("system_logs").insert({
         organization_id: organizationId,
-        level: "warn",
+        level: "warning",
         category: "general",
         event_type: "esther_note_save_failed",
         message: `Esther: could not save lead note. Error: ${error.message}`,
@@ -1302,7 +1302,7 @@ serve(async (req: Request) => {
     if (!leadInfo.phone && !leadInfo.email && !leadInfo.name && !leadInfo.property) {
       await supabase.from("system_logs").insert({
         organization_id: organizationId,
-        level: "warn",
+        level: "warning",
         category: "general",
         event_type: "esther_parse_skip",
         message: `Esther: skipped email — no lead info found at all. Subject: ${subject}`,
@@ -1399,7 +1399,7 @@ serve(async (req: Request) => {
 
       await supabase.from("system_logs").insert({
         organization_id: organizationId,
-        level: "warn",
+        level: "warning",
         category: "general",
         event_type: "esther_incomplete_lead",
         message: `Esther: lead created with incomplete data (${contactId}). Missing: ${[result.missingName && "name", result.missingPhone && "phone"].filter(Boolean).join(", ")}. Actions: ${followUpActions.join(", ")}.`,
