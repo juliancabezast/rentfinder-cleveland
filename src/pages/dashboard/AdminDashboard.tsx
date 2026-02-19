@@ -385,57 +385,95 @@ export const AdminDashboard = () => {
           </Button>
         </div>
 
-        {/* Stats Bubbles */}
+        {/* Stats Grid — Row 1 */}
         {isWidgetVisible("stats_cards") && (
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            <div className="animate-fade-up stagger-1">
-              <StatCard
-                title="Total Leads"
-                value={stats?.totalLeads || 0}
-                icon={Users}
-                loading={loading}
-              />
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="animate-fade-up stagger-1">
+                <StatCard
+                  title="Total Leads"
+                  value={stats?.totalLeads || 0}
+                  subtitle="this week"
+                  icon={Users}
+                  trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
+                  impact={stats?.totalLeads && stats.totalLeads > 20 ? "high" : stats?.totalLeads && stats.totalLeads > 10 ? "medium" : "low"}
+                  loading={loading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-2">
+                <StatCard
+                  title="Showings Agendados"
+                  value={stats?.showingsScheduled || 0}
+                  subtitle={format(new Date(), "EEEE, MMM d")}
+                  icon={Calendar}
+                  impact={stats?.showingsScheduled && stats.showingsScheduled > 0 ? "high" : undefined}
+                  loading={loading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-3">
+                <StatCard
+                  title="Hot Leads"
+                  value={stats?.hotLeads || 0}
+                  subtitle="score 80+"
+                  icon={Flame}
+                  impact={stats?.hotLeads && stats.hotLeads > 0 ? "high" : stats?.hotLeads === 0 ? "low" : undefined}
+                  loading={loading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-4">
+                <StatCard
+                  title="Total Properties"
+                  value={stats?.totalProperties || 0}
+                  subtitle={`${stats?.propertiesByStatus?.available || 0} available`}
+                  icon={Building}
+                  impact={stats?.propertiesByStatus?.available && stats.propertiesByStatus.available > 5 ? "high" : "medium"}
+                  loading={loading}
+                />
+              </div>
             </div>
-            <div className="animate-fade-up stagger-2">
-              <StatCard
-                title="Showings Agendados"
-                value={stats?.showingsScheduled || 0}
-                icon={Calendar}
-                loading={loading}
-              />
-            </div>
-            <div className="animate-fade-up stagger-3">
-              <StatCard
-                title="Mensajes Enviados"
-                value={stats?.smsSent || 0}
-                icon={MessageSquare}
-                loading={loading}
-              />
-            </div>
-            <div className="animate-fade-up stagger-4">
-              <StatCard
-                title="Correos Enviados"
-                value={stats?.emailsSent || 0}
-                icon={Mail}
-                loading={loading}
-              />
-            </div>
-            <div className="animate-fade-up stagger-5">
-              <StatCard
-                title="Emails Parseados"
-                value={stats?.emailsParsed || 0}
-                icon={Inbox}
-                loading={loading}
-              />
-            </div>
-            <div className="animate-fade-up stagger-6">
-              <StatCard
-                title="Hot Leads"
-                value={stats?.hotLeads || 0}
-                icon={Flame}
-                impact={stats?.hotLeads && stats.hotLeads > 0 ? "high" : undefined}
-                loading={loading}
-              />
+
+            {/* Stats Grid — Row 2 */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="animate-fade-up stagger-5">
+                <StatCard
+                  title="Mensajes Enviados"
+                  value={stats?.smsSent || 0}
+                  subtitle="SMS outbound"
+                  icon={MessageSquare}
+                  impact={stats?.smsSent && stats.smsSent > 50 ? "high" : stats?.smsSent && stats.smsSent > 10 ? "medium" : undefined}
+                  loading={loading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-6">
+                <StatCard
+                  title="Correos Enviados"
+                  value={stats?.emailsSent || 0}
+                  subtitle="emails outbound"
+                  icon={Mail}
+                  impact={stats?.emailsSent && stats.emailsSent > 50 ? "high" : stats?.emailsSent && stats.emailsSent > 10 ? "medium" : undefined}
+                  loading={loading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-7">
+                <StatCard
+                  title="Emails Parseados"
+                  value={stats?.emailsParsed || 0}
+                  subtitle="via Esther"
+                  icon={Inbox}
+                  impact={stats?.emailsParsed && stats.emailsParsed > 0 ? "medium" : undefined}
+                  loading={loading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-8">
+                <StatCard
+                  title="Showings Today"
+                  value={stats?.showingsToday || 0}
+                  subtitle={format(new Date(), "EEEE, MMM d")}
+                  icon={TrendingUp}
+                  impact={stats?.showingsToday && stats.showingsToday > 0 ? "high" : undefined}
+                  loading={loading}
+                />
+              </div>
             </div>
           </div>
         )}
