@@ -496,8 +496,8 @@ function normalizeAddress(addr: string): string {
     .trim();
 }
 
-// ── Match property by address (or auto-create if not found) ─────────
-async function matchOrCreateProperty(
+// ── Match property by address (match only — NEVER creates properties) ──
+async function matchProperty(
   supabase: ReturnType<typeof createClient>,
   organizationId: string,
   propertyAddress: string
@@ -530,92 +530,48 @@ async function matchOrCreateProperty(
     .ilike("address", `${streetNumber} %`)
     .limit(50);
 
-  if (candidates && candidates.length > 0) {
-    const normInput = normalizeAddress(mainAddress).toLowerCase();
-    const inputUnit = unitNumber?.toLowerCase() || null;
+  if (!candidates || candidates.length === 0) {
+    console.log(`Esther: no property candidates for "${cleanInput}"`);
+    return null;
+  }
 
-    // Pass 1: exact normalized match
+  const normInput = normalizeAddress(mainAddress).toLowerCase();
+  const inputUnit = unitNumber?.toLowerCase() || null;
+
+  // Pass 1: exact normalized match
+  for (const prop of candidates) {
+    const normProp = normalizeAddress(prop.address).toLowerCase();
+    if (normProp === normInput) {
+      const propUnit = prop.unit_number?.toLowerCase() || null;
+      if (!inputUnit || !propUnit || inputUnit === propUnit) {
+        console.log(`Esther: matched property (normalized) "${cleanInput}" → ${prop.id} "${prop.address}"`);
+        return prop.id;
+      }
+    }
+  }
+
+  // Pass 2: match by street number + main street name word
+  const dirs = new Set(["n", "s", "e", "w", "ne", "nw", "se", "sw"]);
+  const normWords = normInput.split(" ").filter(w => w.length > 0);
+  const inputStreetWord = normWords.find((w, i) => i > 0 && !dirs.has(w));
+
+  if (inputStreetWord) {
     for (const prop of candidates) {
-      const normProp = normalizeAddress(prop.address).toLowerCase();
-      if (normProp === normInput) {
+      const propWords = normalizeAddress(prop.address).toLowerCase().split(" ").filter(w => w.length > 0);
+      const propStreetWord = propWords.find((w, i) => i > 0 && !dirs.has(w));
+      if (propStreetWord && propStreetWord === inputStreetWord && normWords[0] === propWords[0]) {
         const propUnit = prop.unit_number?.toLowerCase() || null;
         if (!inputUnit || !propUnit || inputUnit === propUnit) {
-          console.log(`Esther: matched property (normalized) "${cleanInput}" → ${prop.id} "${prop.address}"`);
+          console.log(`Esther: matched property (fuzzy) "${cleanInput}" → ${prop.id} "${prop.address}"`);
           return prop.id;
         }
       }
     }
-
-    // Pass 2: match by street number + main street name word
-    const dirs = new Set(["n", "s", "e", "w", "ne", "nw", "se", "sw"]);
-    const normWords = normInput.split(" ").filter(w => w.length > 0);
-    const inputStreetWord = normWords.find((w, i) => i > 0 && !dirs.has(w));
-
-    if (inputStreetWord) {
-      for (const prop of candidates) {
-        const propWords = normalizeAddress(prop.address).toLowerCase().split(" ").filter(w => w.length > 0);
-        const propStreetWord = propWords.find((w, i) => i > 0 && !dirs.has(w));
-        if (propStreetWord && propStreetWord === inputStreetWord && normWords[0] === propWords[0]) {
-          const propUnit = prop.unit_number?.toLowerCase() || null;
-          if (!inputUnit || !propUnit || inputUnit === propUnit) {
-            console.log(`Esther: matched property (fuzzy) "${cleanInput}" → ${prop.id} "${prop.address}"`);
-            return prop.id;
-          }
-        }
-      }
-    }
   }
 
-  // ── No match → auto-create property ────────────────────────────────
-  const addressParts = cleanInput.split(",").map((s) => s.trim());
-
-  let city = "Cleveland";
-  let state = "OH";
-  let zipCode = "44100";
-
-  if (addressParts.length >= 2) {
-    const part2 = addressParts[1];
-    if (part2 && !/^\d/.test(part2) && !/^(OH|oh)$/i.test(part2)) {
-      city = part2;
-    }
-  }
-  if (addressParts.length >= 3) {
-    const stateZipMatch = addressParts[2].match(/^([A-Z]{2})\s*(\d{5})?$/i);
-    if (stateZipMatch) {
-      state = stateZipMatch[1].toUpperCase();
-      if (stateZipMatch[2]) zipCode = stateZipMatch[2];
-    }
-  }
-  const lastPart = addressParts[addressParts.length - 1];
-  const zipOnly = lastPart.match(/\b(\d{5})\b/);
-  if (zipOnly) zipCode = zipOnly[1];
-
-  const { data: newProp, error: propErr } = await supabase
-    .from("properties")
-    .insert({
-      organization_id: organizationId,
-      address: mainAddress,
-      unit_number: unitNumber,
-      city,
-      state,
-      zip_code: zipCode,
-      bedrooms: 0,
-      bathrooms: 0,
-      rent_price: 0,
-      status: "available",
-      description: "Auto-created from Hemlane inquiry. Details pending.",
-      section_8_accepted: true,
-    })
-    .select("id")
-    .single();
-
-  if (propErr) {
-    console.error(`Esther: auto-create property failed for "${cleanInput}": ${propErr.message}`);
-    return null;
-  }
-
-  console.log(`Esther: AUTO-CREATED property "${mainAddress}" unit=${unitNumber || "none"} (${city}, ${state} ${zipCode}) → ${newProp.id}`);
-  return newProp.id;
+  // No match found — Esther does NOT create properties, only users do
+  console.log(`Esther: no property match for "${cleanInput}" — lead will have no property assigned`);
+  return null;
 }
 
 // ── Upsert a single lead ──────────────────────────────────────────────
@@ -636,7 +592,7 @@ async function upsertLead(
 
   // Match property in DB (or auto-create if not found)
   let propertyId = lead.property
-    ? await matchOrCreateProperty(supabase, organizationId, lead.property)
+    ? await matchProperty(supabase, organizationId, lead.property)
     : null;
 
   console.log(`Esther upsert: lead="${lead.name}" property="${lead.property || "NONE"}" → propertyId=${propertyId || "NULL"}`);
@@ -650,7 +606,7 @@ async function upsertLead(
       );
       if (sdAddress) {
         console.log(`Esther: fallback property from source_detail: "${sdAddress[1]}"`);
-        propertyId = await matchOrCreateProperty(supabase, organizationId, sdAddress[1]);
+        propertyId = await matchProperty(supabase, organizationId, sdAddress[1]);
       }
     }
 
