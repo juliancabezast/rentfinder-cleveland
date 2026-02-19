@@ -419,16 +419,44 @@ async function matchProperty(
   organizationId: string,
   propertyAddress: string
 ): Promise<string | null> {
-  // Try exact-ish match first (case-insensitive contains)
-  const { data } = await supabase
+  // Strategy 1: full address as search term (works if DB address contains digest address)
+  const { data: exact } = await supabase
     .from("properties")
     .select("id")
     .eq("organization_id", organizationId)
     .ilike("address", `%${propertyAddress}%`)
     .limit(1)
     .maybeSingle();
+  if (exact?.id) return exact.id;
 
-  return data?.id || null;
+  // Strategy 2: street part only (before first comma — "3549 E 105th St, Cleveland" → "3549 E 105th St")
+  const streetPart = propertyAddress.split(",")[0].trim();
+  if (streetPart && streetPart !== propertyAddress) {
+    const { data: street } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .ilike("address", `%${streetPart}%`)
+      .limit(1)
+      .maybeSingle();
+    if (street?.id) return street.id;
+  }
+
+  // Strategy 3: extract street number + street name prefix (first 3 words)
+  const numberMatch = propertyAddress.match(/^(\d+\s+\S+(?:\s+\S+)?)/);
+  if (numberMatch) {
+    const prefix = numberMatch[1].trim();
+    const { data: prefix_match } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .ilike("address", `%${prefix}%`)
+      .limit(1)
+      .maybeSingle();
+    if (prefix_match?.id) return prefix_match.id;
+  }
+
+  return null;
 }
 
 // ── Upsert a single lead ──────────────────────────────────────────────
