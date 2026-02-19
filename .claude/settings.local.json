@@ -53,7 +53,14 @@
       "WebFetch(domain:rentfindercleveland.com)",
       "Bash(nslookup:*)",
       "Bash(curl:*)",
-      "Bash(dig:*)"
+      "Bash(dig:*)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:rapidapi.com)",
+      "WebFetch(domain:resend.com)",
+      "Bash($price\" for property extraction:*)",
+      "Bash(Hemlane\"\\) merged with agent tasks in a unified timeline sorted:*)",
+      "Bash(to schedule a tour\", \"can I visit\", \"ready to move in\"\\), Esther now calls:*)",
+      "Bash([source]\", with purple badge, icon, and agent name color matching the:*)"
     ]
   }
 }
