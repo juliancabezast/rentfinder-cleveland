@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle, Upload, ImageIcon, X, CheckCircle } from "lucide-react";
+import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle, Upload, ImageIcon, X, CheckCircle, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -82,6 +82,9 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   const [editSection8, setEditSection8] = useState(true);
   const [editHud, setEditHud] = useState(true);
   const [editPetPolicy, setEditPetPolicy] = useState("");
+
+  // AI description generation
+  const [generatingDesc, setGeneratingDesc] = useState(false);
 
   // AI screenshot extraction state
   const [aiExtracting, setAiExtracting] = useState(false);
@@ -172,6 +175,78 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
     setAiResults(null);
     setAiApprovals({});
     toast({ title: "Fields updated", description: "AI-extracted data has been applied." });
+  };
+
+  const generateAiDescription = async () => {
+    if (!userRecord?.organization_id || !property) return;
+
+    setGeneratingDesc(true);
+    try {
+      const context = {
+        address: property.address,
+        city: property.city,
+        state: property.state,
+        zip_code: property.zip_code,
+        bedrooms: editBedrooms || "unknown",
+        bathrooms: editBathrooms || "unknown",
+        sqft: editSqft || "unknown",
+        property_type: editPropertyType,
+        rent_price: editRent || "unknown",
+        pet_policy: editPetPolicy || "not specified",
+        section_8: editSection8 ? "accepted" : "not accepted",
+        hud_ready: editHud ? "yes" : "no",
+      };
+
+      const { data: creds } = await supabase
+        .from("organization_credentials")
+        .select("openai_api_key")
+        .eq("organization_id", userRecord.organization_id)
+        .single();
+
+      if (!creds?.openai_api_key) {
+        toast({ title: "OpenAI not configured", description: "Add your OpenAI API key in Settings → Integrations.", variant: "destructive" });
+        return;
+      }
+
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${creds.openai_api_key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          max_tokens: 300,
+          messages: [
+            {
+              role: "system",
+              content: `You are writing a concise rental property description optimized for AI agents that handle inbound calls and lead management. The description must:
+1. Lead with the most important details: rent, beds/baths, key features
+2. Be concise (3-4 sentences max)
+3. Include Section 8/voucher status clearly
+4. Mention pet policy if available
+5. Highlight move-in readiness and standout amenities
+6. Use a professional, informative tone (not marketing fluff)
+7. Write in English only
+Return ONLY the description text, no quotes or labels.`,
+            },
+            {
+              role: "user",
+              content: `Generate an AI-optimized property description:\n${JSON.stringify(context)}`,
+            },
+          ],
+        }),
+      });
+
+      if (!resp.ok) throw new Error(`OpenAI error: ${resp.status}`);
+      const data = await resp.json();
+      const desc = data.choices?.[0]?.message?.content?.trim();
+      if (desc) setEditDescription(desc);
+    } catch (err) {
+      toast({ title: "Generation failed", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setGeneratingDesc(false);
+    }
   };
 
   const resetState = () => {
@@ -649,7 +724,29 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="edit-desc">Description</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-desc">Description</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={generateAiDescription}
+                  disabled={generatingDesc}
+                  className="h-7 px-2 text-xs text-[#370d4b] hover:bg-[#370d4b]/10"
+                >
+                  {generatingDesc ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5 mr-1" />
+                      AI Magic
+                    </>
+                  )}
+                </Button>
+              </div>
               <Textarea
                 id="edit-desc"
                 value={editDescription}
