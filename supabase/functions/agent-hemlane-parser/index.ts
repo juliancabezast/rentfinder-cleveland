@@ -485,6 +485,21 @@ async function upsertLead(
         await saveLeadNote(supabase, organizationId, existing.id, lead.message);
       }
 
+      // Auto-score existing lead if message shows intent
+      if (lead.message) {
+        const intent = detectHighIntent(lead.message);
+        if (intent) {
+          await supabase.rpc("log_score_change", {
+            _lead_id: existing.id,
+            _change_amount: intent.boost,
+            _reason_code: "inquiry_intent",
+            _reason_text: intent.reason,
+            _triggered_by: "engagement",
+            _changed_by_agent: "esther",
+          }).catch((e: Error) => console.error(`Esther: score boost failed: ${e.message}`));
+        }
+      }
+
       // Add property to lead_properties (multi-property support)
       if (propertyId) {
         await supabase.from("lead_properties").upsert({
@@ -530,6 +545,21 @@ async function upsertLead(
       // Save message as note on existing lead too
       if (lead.message) {
         await saveLeadNote(supabase, organizationId, existing.id, lead.message);
+      }
+
+      // Auto-score existing lead if message shows intent
+      if (lead.message) {
+        const intent = detectHighIntent(lead.message);
+        if (intent) {
+          await supabase.rpc("log_score_change", {
+            _lead_id: existing.id,
+            _change_amount: intent.boost,
+            _reason_code: "inquiry_intent",
+            _reason_text: intent.reason,
+            _triggered_by: "engagement",
+            _changed_by_agent: "esther",
+          }).catch((e: Error) => console.error(`Esther: score boost failed: ${e.message}`));
+        }
       }
 
       // Add property to lead_properties (multi-property support)
@@ -636,6 +666,21 @@ async function upsertLead(
     }
   }
 
+  // ── Auto-score based on message intent ──────────────────────────
+  if (lead.message) {
+    const intent = detectHighIntent(lead.message);
+    if (intent) {
+      await supabase.rpc("log_score_change", {
+        _lead_id: leadId,
+        _change_amount: intent.boost,
+        _reason_code: "inquiry_intent",
+        _reason_text: intent.reason,
+        _triggered_by: "engagement",
+        _changed_by_agent: "esther",
+      }).catch((e: Error) => console.error(`Esther: score boost failed: ${e.message}`));
+    }
+  }
+
   return { leadId, isNew: true, missingName: !lead.name, missingPhone: !phone };
 }
 
@@ -670,6 +715,42 @@ async function saveLeadNote(
       details: { lead_id: leadId, error: error.message, error_code: error.code },
     }).catch(() => {});
   }
+}
+
+// ── Detect high-intent language in lead messages ─────────────────────
+function detectHighIntent(message: string): { boost: number; reason: string } | null {
+  const m = message.toLowerCase();
+
+  // Tier 1 — Showing / tour intent (+35 → hits 85 priority threshold)
+  const showingPatterns = [
+    /schedul\w*\s+(a\s+)?(tour|showing|visit|viewing|walkthrough)/,
+    /\b(want|like|love|interested)\b.*\b(tour|showing|visit|see|view)\b/,
+    /\b(can|could)\s+(i|we)\s+(tour|visit|see|view|come\s+see)/,
+    /\bset\s+up\s+a?\s*(tour|showing|visit|viewing)\b/,
+    /\b(book|request)\s+a?\s*(tour|showing|visit|viewing)\b/,
+    /\bwhen\s+can\s+(i|we)\s+(tour|see|visit|view|come)/,
+    /\b(move[\s-]?in|ready\s+to\s+move|looking\s+to\s+move)\b/,
+  ];
+  for (const pat of showingPatterns) {
+    if (pat.test(m)) {
+      return { boost: 35, reason: "Lead expressed showing/tour intent in inquiry message" };
+    }
+  }
+
+  // Tier 2 — Strong engagement signals (+20 → score 70, not priority but elevated)
+  const engagementPatterns = [
+    /\b(how\s+much|what.*rent|price|cost|monthly)\b/,
+    /\b(available|availability|still\s+available|is\s+(it|this)\s+available)\b/,
+    /\b(apply|application|how\s+(do|can)\s+(i|we)\s+apply)\b/,
+    /\b(voucher|section\s*8|hcv)\b/,
+  ];
+  for (const pat of engagementPatterns) {
+    if (pat.test(m)) {
+      return { boost: 20, reason: "Lead asked about availability/pricing/application in inquiry" };
+    }
+  }
+
+  return null;
 }
 
 // ── Main handler ──────────────────────────────────────────────────────
