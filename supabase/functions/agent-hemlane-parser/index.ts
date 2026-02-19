@@ -451,7 +451,7 @@ async function upsertLead(
   if (phone) {
     const { data: existing } = await supabase
       .from("leads")
-      .select("id, source_detail, property_id")
+      .select("id, source_detail, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("phone", phone)
       .maybeSingle();
@@ -470,8 +470,8 @@ async function upsertLead(
           source_detail: detail,
           hemlane_email_id: emailId,
           ...(lead.email ? { email: lead.email } : {}),
-          // Fill property_id if we matched one and existing doesn't have it
-          ...(propertyId && !existing.property_id ? { property_id: propertyId } : {}),
+          // Fill interested_property_id if we matched one and existing doesn't have it
+          ...(propertyId && !existing.interested_property_id ? { interested_property_id: propertyId } : {}),
         })
         .eq("id", existing.id);
 
@@ -488,7 +488,7 @@ async function upsertLead(
   if (lead.email) {
     const { data: existing } = await supabase
       .from("leads")
-      .select("id, source_detail, phone, property_id")
+      .select("id, source_detail, phone, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("email", lead.email)
       .maybeSingle();
@@ -507,7 +507,7 @@ async function upsertLead(
           source_detail: detail,
           hemlane_email_id: emailId,
           ...(phone && !existing.phone ? { phone } : {}),
-          ...(propertyId && !existing.property_id ? { property_id: propertyId } : {}),
+          ...(propertyId && !existing.interested_property_id ? { interested_property_id: propertyId } : {}),
         })
         .eq("id", existing.id);
 
@@ -541,7 +541,7 @@ async function upsertLead(
       source_detail: propertyDetail,
       status: "new",
       hemlane_email_id: emailId,
-      property_id: propertyId,
+      interested_property_id: propertyId,
       sms_consent: true,
       sms_consent_at: new Date().toISOString(),
       call_consent: true,

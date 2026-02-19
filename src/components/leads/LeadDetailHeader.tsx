@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,6 +12,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Phone,
   CalendarPlus,
   Edit,
@@ -20,6 +27,8 @@ import {
   Sparkles,
   Building2,
   StickyNote,
+  Search,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,6 +61,7 @@ interface LeadDetailHeaderProps {
     preferred_language?: string | null;
     contact_preference?: string | null;
     source?: string | null;
+    source_detail?: string | null;
     budget_min?: number | null;
     budget_max?: number | null;
     move_in_date?: string | null;
@@ -70,6 +80,7 @@ interface LeadDetailHeaderProps {
   onEdit: () => void;
   onTakeControl: () => void;
   onBriefGenerated: () => void;
+  onPropertyMatched?: () => void;
   notesCount?: number;
   onNotesClick?: () => void;
 }
@@ -133,6 +144,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   onEdit,
   onTakeControl,
   onBriefGenerated,
+  onPropertyMatched,
   notesCount = 0,
   onNotesClick,
 }) => {
@@ -140,6 +152,93 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   const [callViaAgentOpen, setCallViaAgentOpen] = useState(false);
   const [callViaAgentLoading, setCallViaAgentLoading] = useState(false);
   const [generatingBrief, setGeneratingBrief] = useState(false);
+
+  // Property Match state
+  const [matchingProperty, setMatchingProperty] = useState(false);
+  const [showPropertySelector, setShowPropertySelector] = useState(false);
+  const [orgProperties, setOrgProperties] = useState<
+    { id: string; address: string; unit_number: string | null; city: string }[]
+  >([]);
+
+  const fetchAllProperties = async () => {
+    if (!userRecord?.organization_id) return;
+    const { data } = await supabase
+      .from("properties")
+      .select("id, address, unit_number, city")
+      .eq("organization_id", userRecord.organization_id)
+      .order("address");
+    if (data) setOrgProperties(data);
+  };
+
+  const handlePropertyMatch = async () => {
+    if (!userRecord?.organization_id) return;
+    setMatchingProperty(true);
+
+    try {
+      // Extract property address from source_detail
+      const sourceDetail = lead.source_detail || "";
+      const addressMatch = sourceDetail.match(/Property:\s*(.+?)(?:\s*\(|$)/);
+
+      if (addressMatch) {
+        const address = addressMatch[1].trim();
+        const { data } = await supabase
+          .from("properties")
+          .select("id, address, unit_number, city")
+          .eq("organization_id", userRecord.organization_id)
+          .ilike("address", `%${address}%`)
+          .limit(5);
+
+        if (data && data.length === 1) {
+          // Exact match → auto-assign
+          await supabase
+            .from("leads")
+            .update({ interested_property_id: data[0].id })
+            .eq("id", lead.id);
+          toast.success(`Propiedad asignada: ${data[0].address}`);
+          onPropertyMatched?.();
+          return;
+        }
+
+        if (data && data.length > 1) {
+          setOrgProperties(data);
+          setShowPropertySelector(true);
+          toast.info(`${data.length} propiedades encontradas. Selecciona la correcta.`);
+          return;
+        }
+      }
+
+      // No match from source_detail → show all properties
+      await fetchAllProperties();
+      setShowPropertySelector(true);
+      if (addressMatch) {
+        toast.info("No se encontró match automático. Selecciona manualmente.");
+      }
+    } catch (err) {
+      console.error("Property match error:", err);
+      toast.error("Error al buscar propiedad");
+    } finally {
+      setMatchingProperty(false);
+    }
+  };
+
+  const handlePropertySelect = async (propertyId: string) => {
+    if (!propertyId || propertyId === "none") return;
+
+    try {
+      await supabase
+        .from("leads")
+        .update({ interested_property_id: propertyId })
+        .eq("id", lead.id);
+
+      const selected = orgProperties.find((p) => p.id === propertyId);
+      toast.success(`Propiedad asignada: ${selected?.address || "OK"}`);
+      setShowPropertySelector(false);
+      onPropertyMatched?.();
+    } catch (err) {
+      console.error("Property assign error:", err);
+      toast.error("Error al asignar propiedad");
+    }
+  };
 
   const leadName =
     lead.full_name ||
@@ -309,8 +408,48 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                     {property.bedrooms && ` · ${property.bedrooms} BR`}
                   </span>
                 </div>
+              ) : showPropertySelector ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <Select onValueChange={handlePropertySelect}>
+                    <SelectTrigger className="h-7 text-xs w-[260px]">
+                      <SelectValue placeholder="Seleccionar propiedad..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {orgProperties.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.address}
+                          {p.unit_number ? ` #${p.unit_number}` : ""} — {p.city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => setShowPropertySelector(false)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               ) : (
-                <span className="text-muted-foreground italic">No property selected</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground italic">No property selected</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 px-2 text-xs gap-1"
+                    onClick={handlePropertyMatch}
+                    disabled={matchingProperty}
+                  >
+                    {matchingProperty ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Search className="h-3 w-3" />
+                    )}
+                    Property Match
+                  </Button>
+                </div>
               )}
             </div>
           </div>

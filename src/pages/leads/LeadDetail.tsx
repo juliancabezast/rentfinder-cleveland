@@ -320,6 +320,7 @@ const LeadDetail: React.FC = () => {
         onEdit={() => setEditOpen(true)}
         onTakeControl={() => setTakeoverOpen(true)}
         onBriefGenerated={fetchLead}
+        onPropertyMatched={fetchLead}
         notesCount={notesCount}
         onNotesClick={() => setActiveTab("notes")}
       />
