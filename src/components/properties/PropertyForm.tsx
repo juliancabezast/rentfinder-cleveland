@@ -27,8 +27,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PhotoUpload } from './PhotoUpload';
 import { AlternativePropertiesSelector } from './AlternativePropertiesSelector';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles, Globe, Check, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 const propertySchema = z.object({
   address: z.string().min(1, 'Address is required'),
@@ -126,6 +127,17 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
   const [investors, setInvestors] = useState<{ id: string; full_name: string }[]>([]);
 
+  // AI generation states
+  const [generatingDesc, setGeneratingDesc] = useState(false);
+  const [generatingNotes, setGeneratingNotes] = useState(false);
+  const [generatingPetPolicy, setGeneratingPetPolicy] = useState(false);
+
+  // Zillow re-sync states (edit mode only)
+  const [zillowUrl, setZillowUrl] = useState('');
+  const [zillowLoading, setZillowLoading] = useState(false);
+  const [zillowChanges, setZillowChanges] = useState<Record<string, { current: string; incoming: string }> | null>(null);
+  const [zillowApprovals, setZillowApprovals] = useState<Record<string, boolean>>({});
+
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
     defaultValues: {
@@ -193,6 +205,219 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
         ? prev.filter((a) => a !== amenityId)
         : [...prev, amenityId]
     );
+  };
+
+  const getPropertyContext = () => ({
+    address: form.getValues('address'),
+    city: form.getValues('city'),
+    state: form.getValues('state'),
+    zip_code: form.getValues('zip_code'),
+    bedrooms: form.getValues('bedrooms') || 'unknown',
+    bathrooms: form.getValues('bathrooms') || 'unknown',
+    sqft: form.getValues('square_feet') || 'unknown',
+    property_type: form.getValues('property_type') || 'unknown',
+    rent_price: form.getValues('rent_price') || 'unknown',
+    pet_policy: form.getValues('pet_policy') || 'not specified',
+    section_8: form.getValues('section_8_accepted') ? 'accepted' : 'not accepted',
+    hud_ready: form.getValues('hud_inspection_ready') ? 'yes' : 'no',
+    amenities: amenities.map(a => amenitiesList.find(al => al.id === a)?.label || a).join(', ') || 'none listed',
+  });
+
+  const callOpenAi = async (systemPrompt: string, userPrompt: string): Promise<string | null> => {
+    if (!organization?.id) return null;
+
+    const { data: creds } = await supabase
+      .from('organization_credentials')
+      .select('openai_api_key')
+      .eq('organization_id', organization.id)
+      .single();
+
+    if (!creds?.openai_api_key) {
+      toast.error('OpenAI API key not configured. Add it in Settings → Integrations.');
+      return null;
+    }
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${creds.openai_api_key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 400,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`OpenAI error: ${resp.status}`);
+    const data = await resp.json();
+    return data.choices?.[0]?.message?.content?.trim() || null;
+  };
+
+  const generateAiDescription = async () => {
+    setGeneratingDesc(true);
+    try {
+      const result = await callOpenAi(
+        `You are writing a concise rental property description optimized for AI agents that handle inbound calls and lead management. The description must:
+1. Lead with the most important details: rent, beds/baths, key features
+2. Be concise (3-4 sentences max)
+3. Include Section 8/voucher status clearly
+4. Mention pet policy if available
+5. Highlight move-in readiness and standout amenities
+6. Use a professional, informative tone (not marketing fluff)
+7. Write in English only
+Return ONLY the description text, no quotes or labels.`,
+        `Generate an AI-optimized property description:\n${JSON.stringify(getPropertyContext())}`
+      );
+      if (result) form.setValue('description', result);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setGeneratingDesc(false);
+    }
+  };
+
+  const generateAiNotes = async () => {
+    setGeneratingNotes(true);
+    try {
+      const result = await callOpenAi(
+        `You generate internal notes for a property management team. These notes are NOT visible to tenants. Include:
+1. Key selling points for agents to mention on calls
+2. Potential objections and how to handle them
+3. Comparative market positioning (is the rent competitive for the area?)
+4. Any red flags or things to watch for
+5. Tips for showing the property
+Be direct and concise (4-6 bullet points). Write in English only.
+Return ONLY the notes text, no quotes or labels.`,
+        `Generate internal team notes for this property:\n${JSON.stringify(getPropertyContext())}`
+      );
+      if (result) form.setValue('special_notes', result);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setGeneratingNotes(false);
+    }
+  };
+
+  const generateAiPetPolicy = async () => {
+    setGeneratingPetPolicy(true);
+    try {
+      const result = await callOpenAi(
+        `You generate a clear, professional pet policy for a rental property listing. The policy should:
+1. Clearly state which pets are allowed (cats, dogs, small pets)
+2. Include any weight/breed restrictions if applicable for the property type
+3. Mention pet deposit or pet rent if typical for the area
+4. Be concise (2-3 sentences max)
+5. Write in English only
+Return ONLY the pet policy text, no quotes or labels. If no specific pet information is available, generate a reasonable default policy for the property type.`,
+        `Generate a pet policy for this property:\n${JSON.stringify(getPropertyContext())}`
+      );
+      if (result) form.setValue('pet_policy', result);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setGeneratingPetPolicy(false);
+    }
+  };
+
+  const fieldLabels: Record<string, string> = {
+    bedrooms: 'Bedrooms',
+    bathrooms: 'Bathrooms',
+    square_feet: 'Sq Ft',
+    rent_price: 'Monthly Rent',
+    property_type: 'Property Type',
+    pet_policy: 'Pet Policy',
+    description: 'Description',
+    deposit_amount: 'Security Deposit',
+    application_fee: 'Application Fee',
+  };
+
+  const handleZillowSync = async () => {
+    if (!zillowUrl.trim() || !organization?.id) return;
+    if (!zillowUrl.includes('zillow.com')) {
+      toast.error('Please enter a valid Zillow URL.');
+      return;
+    }
+
+    setZillowLoading(true);
+    setZillowChanges(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('import-zillow-property', {
+        body: { zillow_url: zillowUrl.trim(), organization_id: organization.id },
+      });
+
+      if (fnError) throw new Error(fnError.message);
+      if (data?.error) throw new Error(data.error);
+      if (!data?.property) throw new Error('No property data returned');
+
+      const incoming = data.property;
+      const current = form.getValues();
+
+      // Compare fields and find differences
+      const changes: Record<string, { current: string; incoming: string }> = {};
+      const fieldsToCompare: { key: string; formKey: keyof PropertyFormData; format?: (v: any) => string }[] = [
+        { key: 'bedrooms', formKey: 'bedrooms' },
+        { key: 'bathrooms', formKey: 'bathrooms' },
+        { key: 'square_feet', formKey: 'square_feet' },
+        { key: 'rent_price', formKey: 'rent_price' },
+        { key: 'property_type', formKey: 'property_type' },
+        { key: 'deposit_amount', formKey: 'deposit_amount' },
+        { key: 'application_fee', formKey: 'application_fee' },
+        { key: 'description', formKey: 'description' },
+        { key: 'pet_policy', formKey: 'pet_policy' },
+      ];
+
+      for (const { key, formKey } of fieldsToCompare) {
+        const incomingVal = incoming[key];
+        const currentVal = current[formKey];
+
+        if (incomingVal != null && incomingVal !== '' && incomingVal !== 0) {
+          const inStr = String(incomingVal);
+          const curStr = String(currentVal || '');
+          if (inStr !== curStr) {
+            changes[formKey] = { current: curStr || '(empty)', incoming: inStr };
+          }
+        }
+      }
+
+      if (Object.keys(changes).length === 0) {
+        toast.success('No differences found — property is up to date.');
+      } else {
+        setZillowChanges(changes);
+        const approvals: Record<string, boolean> = {};
+        for (const key of Object.keys(changes)) approvals[key] = true;
+        setZillowApprovals(approvals);
+      }
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setZillowLoading(false);
+    }
+  };
+
+  const applyZillowChanges = () => {
+    if (!zillowChanges) return;
+
+    for (const [key, { incoming }] of Object.entries(zillowChanges)) {
+      if (zillowApprovals[key]) {
+        const numericFields = ['bedrooms', 'bathrooms', 'square_feet', 'rent_price', 'deposit_amount', 'application_fee'];
+        if (numericFields.includes(key)) {
+          form.setValue(key as keyof PropertyFormData, parseFloat(incoming) as any);
+        } else {
+          form.setValue(key as keyof PropertyFormData, incoming as any);
+        }
+      }
+    }
+
+    setZillowChanges(null);
+    setZillowApprovals({});
+    setZillowUrl('');
+    toast.success('Selected changes applied to form.');
   };
 
   const onSubmit = async (data: PropertyFormData) => {
@@ -264,6 +489,111 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Zillow Re-sync (edit mode only) */}
+        {property?.id && (
+          <Card className="border-[#370d4b]/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Globe className="h-4 w-4 text-[#370d4b]" />
+                Sync from Zillow
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://www.zillow.com/homedetails/..."
+                  value={zillowUrl}
+                  onChange={(e) => setZillowUrl(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleZillowSync(); } }}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleZillowSync}
+                  disabled={!zillowUrl.trim() || zillowLoading}
+                  className="shrink-0"
+                >
+                  {zillowLoading ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Checking...</>
+                  ) : (
+                    'Check for Updates'
+                  )}
+                </Button>
+              </div>
+
+              {/* Zillow variance popup */}
+              {zillowChanges && Object.keys(zillowChanges).length > 0 && (
+                <div className="rounded-lg border border-[#370d4b]/30 bg-[#370d4b]/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-[#370d4b] flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      {Object.keys(zillowChanges).length} difference{Object.keys(zillowChanges).length > 1 ? 's' : ''} found
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => { setZillowChanges(null); setZillowApprovals({}); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {Object.entries(zillowChanges).map(([key, { current, incoming }]) => {
+                      const label = fieldLabels[key] || key;
+                      const isMonetary = ['rent_price', 'deposit_amount', 'application_fee'].includes(key);
+                      const displayCurrent = isMonetary && current !== '(empty)' ? `$${current}` : current;
+                      const displayIncoming = isMonetary ? `$${incoming}` : incoming;
+                      const truncCurrent = displayCurrent.length > 40 ? displayCurrent.substring(0, 40) + '...' : displayCurrent;
+                      const truncIncoming = displayIncoming.length > 40 ? displayIncoming.substring(0, 40) + '...' : displayIncoming;
+
+                      return (
+                        <div key={key} className="flex items-center gap-3 px-3 py-2 rounded-md bg-white/70">
+                          <Checkbox
+                            checked={zillowApprovals[key] ?? true}
+                            onCheckedChange={(v) =>
+                              setZillowApprovals((prev) => ({ ...prev, [key]: v === true }))
+                            }
+                          />
+                          <span className="text-sm font-medium w-28 shrink-0">{label}</span>
+                          <div className="flex items-center gap-2 text-sm min-w-0">
+                            <span className="text-muted-foreground line-through truncate">{truncCurrent}</span>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="text-[#370d4b] font-medium truncate">{truncIncoming}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setZillowChanges(null); setZillowApprovals({}); }}
+                    >
+                      Dismiss
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={applyZillowChanges}
+                      className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Apply Selected
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Basic Info */}
         <Card>
           <CardHeader>
@@ -611,7 +941,23 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Public Description</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Public Description</FormLabel>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={generateAiDescription}
+                      disabled={generatingDesc}
+                      className="h-7 px-2 text-xs text-[#370d4b] hover:bg-[#370d4b]/10"
+                    >
+                      {generatingDesc ? (
+                        <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Generating...</>
+                      ) : (
+                        <><Sparkles className="h-3.5 w-3.5 mr-1" /> AI Magic</>
+                      )}
+                    </Button>
+                  </div>
                   <FormControl>
                     <Textarea
                       rows={4}
@@ -629,7 +975,23 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
               name="special_notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Internal Notes</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Internal Notes</FormLabel>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={generateAiNotes}
+                      disabled={generatingNotes}
+                      className="h-7 px-2 text-xs text-[#370d4b] hover:bg-[#370d4b]/10"
+                    >
+                      {generatingNotes ? (
+                        <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Generating...</>
+                      ) : (
+                        <><Sparkles className="h-3.5 w-3.5 mr-1" /> AI Magic</>
+                      )}
+                    </Button>
+                  </div>
                   <FormControl>
                     <Textarea
                       rows={3}
@@ -674,7 +1036,23 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
         {/* Pet Policy */}
         <Card>
           <CardHeader>
-            <CardTitle>Pet Policy</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Pet Policy</CardTitle>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={generateAiPetPolicy}
+                disabled={generatingPetPolicy}
+                className="h-7 px-2 text-xs text-[#370d4b] hover:bg-[#370d4b]/10"
+              >
+                {generatingPetPolicy ? (
+                  <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Generating...</>
+                ) : (
+                  <><Sparkles className="h-3.5 w-3.5 mr-1" /> AI Magic</>
+                )}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <FormField
