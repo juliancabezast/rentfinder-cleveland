@@ -244,6 +244,197 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
   return result;
 }
 
+// ── Parse Hemlane Daily Digest ("Property Listings Update") ───────────
+function parseHemlaneDigest(html: string): LeadInfo[] {
+  const text = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&#?\w+;/g, "")
+    .trim();
+
+  const leads: LeadInfo[] = [];
+  const lines = text.split("\n");
+  const excludedDomains = ["hemlane.com", "rentfindercleveland.com", "inbound.rentfindercleveland.com"];
+
+  let currentProperty: string | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : "";
+
+    // Detect property header: a non-empty line followed by dashes
+    if (nextLine && /^-{5,}$/.test(nextLine) && line.length > 3) {
+      if (!/^(Past \d|Daily Leads)/i.test(line)) {
+        currentProperty = line;
+      }
+      i++;
+      continue;
+    }
+
+    // Skip headers and empty lines
+    if (/^(CONTACT|EMAIL \| PHONE|EMAIL|PHONE|SOURCE|DATE|\*+|-+|View My Dashboard|Website|Facebook|Twitter|LinkedIn)/i.test(line) || line === "") {
+      continue;
+    }
+
+    // Look for email on this line
+    const emailMatch = line.match(/^([\w.+-]+@[\w.-]+\.\w{2,})$/);
+    if (emailMatch && currentProperty) {
+      const email = emailMatch[1].toLowerCase();
+      if (excludedDomains.some((d) => email.endsWith(d))) continue;
+
+      // Name: scan backwards for a non-email, non-phone, non-header line
+      let name: string | null = null;
+      for (let j = i - 1; j >= Math.max(0, i - 5); j--) {
+        const prev = lines[j].trim();
+        if (
+          prev &&
+          !/^(CONTACT|EMAIL|PHONE|SOURCE|DATE|\*|-|$)/i.test(prev) &&
+          !prev.match(/[\w.+-]+@/) &&
+          !prev.match(/^\+?[\d\s\-().]{7,}$/) &&
+          !prev.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/) &&
+          !prev.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Zillow|Apartments|Zumper|Hemlane|Facebook|Craigslist|Realtor)/i)
+        ) {
+          name = prev;
+          break;
+        }
+      }
+
+      // Phone: scan forward for a phone-like line
+      let phone: string | null = null;
+      for (let j = i + 1; j <= Math.min(lines.length - 1, i + 3); j++) {
+        const next = lines[j].trim();
+        if (next && /^[\d\s\-().+]+$/.test(next) && next.replace(/\D/g, "").length >= 7) {
+          phone = next;
+          break;
+        }
+      }
+
+      if (phone) {
+        leads.push({
+          name: name?.substring(0, 100) || null,
+          email,
+          phone,
+          property: currentProperty,
+          message: null,
+        });
+      }
+    }
+  }
+
+  return leads;
+}
+
+// ── Format phone to E.164 ─────────────────────────────────────────────
+function formatPhoneE164(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return `+${digits}`;
+}
+
+// ── Upsert a single lead ──────────────────────────────────────────────
+async function upsertLead(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  lead: LeadInfo,
+  emailId: string
+): Promise<{ leadId: string; isNew: boolean } | null> {
+  const phone = lead.phone ? formatPhoneE164(lead.phone) : "";
+
+  if (!phone && !lead.email) return null;
+
+  // Check duplicate by phone
+  if (phone) {
+    const { data: existing } = await supabase
+      .from("leads")
+      .select("id, source_detail")
+      .eq("organization_id", organizationId)
+      .eq("phone", phone)
+      .maybeSingle();
+
+    if (existing) {
+      const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}. ${lead.message || ""}`.trim();
+      const detail = existing.source_detail
+        ? `${existing.source_detail}\n${note}`
+        : note;
+
+      await supabase
+        .from("leads")
+        .update({
+          last_contact_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          source_detail: detail,
+          hemlane_email_id: emailId,
+          // Fill in email if missing
+          ...(lead.email ? { email: lead.email } : {}),
+        })
+        .eq("id", existing.id);
+
+      return { leadId: existing.id, isNew: false };
+    }
+  }
+
+  // Check duplicate by email
+  if (lead.email && !phone) {
+    const { data: existing } = await supabase
+      .from("leads")
+      .select("id, source_detail")
+      .eq("organization_id", organizationId)
+      .eq("email", lead.email)
+      .maybeSingle();
+
+    if (existing) {
+      const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}. ${lead.message || ""}`.trim();
+      const detail = existing.source_detail
+        ? `${existing.source_detail}\n${note}`
+        : note;
+
+      await supabase
+        .from("leads")
+        .update({
+          last_contact_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          source_detail: detail,
+          hemlane_email_id: emailId,
+        })
+        .eq("id", existing.id);
+
+      return { leadId: existing.id, isNew: false };
+    }
+  }
+
+  // No phone = can't create (NOT NULL constraint)
+  if (!phone) return null;
+
+  // Create new lead
+  const { data: newLead, error: err } = await supabase
+    .from("leads")
+    .insert({
+      organization_id: organizationId,
+      full_name: lead.name || "Unknown (Hemlane)",
+      first_name: lead.name?.split(" ")[0] || null,
+      last_name: lead.name?.split(" ").slice(1).join(" ") || null,
+      phone,
+      email: lead.email || null,
+      source: "hemlane_email",
+      source_detail: lead.property ? `Property: ${lead.property}` : null,
+      status: "new",
+      hemlane_email_id: emailId,
+    })
+    .select("id")
+    .single();
+
+  if (err || !newLead) {
+    console.error(`Esther: failed to create lead ${lead.name}: ${err?.message}`);
+    return null;
+  }
+
+  return { leadId: newLead.id, isNew: true };
+}
+
 // ── Main handler ──────────────────────────────────────────────────────
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -327,27 +518,6 @@ serve(async (req: Request) => {
     const emailData = await emailResponse.json();
     const htmlBody = emailData.html || emailData.text || "";
 
-    // ── 4. Parse lead info from Hemlane notification ────────────────
-    const leadInfo = parseHemlaneEmail(htmlBody, subject);
-
-    if (!leadInfo.phone && !leadInfo.email) {
-      await supabase.from("system_logs").insert({
-        level: "info",
-        category: "general",
-        event_type: "esther_parse_skip",
-        message: `Esther: skipped email — no lead contact info found. Subject: ${subject}`,
-        details: { email_id: emailId, from: fromEmail, subject },
-      });
-
-      return new Response(
-        JSON.stringify({ message: "Email parsed but no lead info found" }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
     // ── Get default organization ────────────────────────────────────
     const { data: org } = await supabase
       .from("organizations")
@@ -360,140 +530,114 @@ serve(async (req: Request) => {
       throw new Error("Default organization 'rent-finder-cleveland' not found");
     }
 
-    // ── 5. Check duplicate by phone ─────────────────────────────────
-    let leadId: string;
-    let isNewLead = false;
+    // ── 4. Detect email type and parse ──────────────────────────────
+    const isDigest = /Property Listings Update|Daily Leads Update/i.test(subject);
 
-    const cleanPhone = leadInfo.phone
-      ? leadInfo.phone.replace(/\D/g, "")
-      : "";
-    const formattedPhone = cleanPhone
-      ? cleanPhone.length === 10
-        ? `+1${cleanPhone}`
-        : `+${cleanPhone}`
-      : "";
+    if (isDigest) {
+      // ── DIGEST: batch-process all leads ───────────────────────────
+      const digestLeads = parseHemlaneDigest(htmlBody);
 
-    if (formattedPhone) {
-      const { data: existingLead } = await supabase
-        .from("leads")
-        .select("id, source_detail")
-        .eq("organization_id", organizationId)
-        .eq("phone", formattedPhone)
-        .maybeSingle();
+      if (digestLeads.length === 0) {
+        await supabase.from("system_logs").insert({
+          organization_id: organizationId,
+          level: "info",
+          category: "general",
+          event_type: "esther_digest_empty",
+          message: `Esther: digest email parsed but no leads found. Subject: ${subject}`,
+          details: { email_id: emailId, from: fromEmail, subject },
+        });
 
-      if (existingLead) {
-        leadId = existingLead.id;
-
-        // ── 6a. Update existing lead ────────────────────────────────
-        const noteEntry = `[Esther ${new Date().toISOString().slice(0, 16)}] Hemlane inquiry: ${leadInfo.property || "unknown property"}. ${leadInfo.message || ""}`.trim();
-        const updatedDetail = existingLead.source_detail
-          ? `${existingLead.source_detail}\n${noteEntry}`
-          : noteEntry;
-
-        await supabase
-          .from("leads")
-          .update({
-            last_contact_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            source_detail: updatedDetail,
-            hemlane_email_id: emailId,
-          })
-          .eq("id", leadId);
-      } else {
-        isNewLead = true;
+        return new Response(
+          JSON.stringify({ message: "Digest parsed but no leads found" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    } else {
-      // No phone — try email dedup
-      if (leadInfo.email) {
-        const { data: existingLead } = await supabase
-          .from("leads")
-          .select("id, source_detail")
-          .eq("organization_id", organizationId)
-          .eq("email", leadInfo.email)
-          .maybeSingle();
 
-        if (existingLead) {
-          leadId = existingLead.id;
+      let created = 0;
+      let updated = 0;
+      let skipped = 0;
 
-          const noteEntry = `[Esther ${new Date().toISOString().slice(0, 16)}] Hemlane inquiry: ${leadInfo.property || "unknown property"}. ${leadInfo.message || ""}`.trim();
-          const updatedDetail = existingLead.source_detail
-            ? `${existingLead.source_detail}\n${noteEntry}`
-            : noteEntry;
-
-          await supabase
-            .from("leads")
-            .update({
-              last_contact_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              source_detail: updatedDetail,
-              hemlane_email_id: emailId,
-            })
-            .eq("id", leadId);
-        } else {
-          // No phone at all — can't create lead (phone is NOT NULL)
-          await supabase.from("system_logs").insert({
-            organization_id: organizationId,
-            level: "warning",
-            category: "general",
-            event_type: "esther_no_phone",
-            message: `Esther: lead has email (${leadInfo.email}) but no phone — cannot create lead record`,
-            details: {
-              email_id: emailId,
-              subject,
-              lead_name: leadInfo.name,
-              lead_email: leadInfo.email,
-              property: leadInfo.property,
-            },
-          });
-
-          return new Response(
-            JSON.stringify({
-              message: "Lead email found but no phone number — cannot create lead",
-            }),
-            {
-              status: 200,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
+      for (const lead of digestLeads) {
+        try {
+          const result = await upsertLead(supabase, organizationId, lead, emailId);
+          if (result) {
+            if (result.isNew) created++;
+            else updated++;
+          } else {
+            skipped++;
+          }
+        } catch (e) {
+          console.error(`Esther digest: error processing ${lead.name}: ${(e as Error).message}`);
+          skipped++;
         }
       }
+
+      await supabase.from("system_logs").insert({
+        organization_id: organizationId,
+        level: "info",
+        category: "general",
+        event_type: "esther_digest_processed",
+        message: `Esther: daily digest processed — ${created} new, ${updated} updated, ${skipped} skipped (${digestLeads.length} total)`,
+        details: {
+          email_id: emailId,
+          subject,
+          total_leads: digestLeads.length,
+          created,
+          updated,
+          skipped,
+        },
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          type: "digest",
+          total: digestLeads.length,
+          created,
+          updated,
+          skipped,
+          message: `Digest: ${created} new, ${updated} updated, ${skipped} skipped`,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // ── 6b. Create new lead ─────────────────────────────────────────
-    if (isNewLead) {
-      const { data: newLead, error: leadErr } = await supabase
-        .from("leads")
-        .insert({
-          organization_id: organizationId,
-          full_name: leadInfo.name || "Unknown (Hemlane)",
-          first_name: leadInfo.name?.split(" ")[0] || null,
-          last_name:
-            leadInfo.name?.split(" ").slice(1).join(" ") || null,
-          phone: formattedPhone,
-          email: leadInfo.email || null,
-          source: "hemlane_email",
-          source_detail: leadInfo.property
-            ? `Property: ${leadInfo.property}`
-            : null,
-          status: "new",
-          hemlane_email_id: emailId,
-        })
-        .select("id")
-        .single();
+    // ── SINGLE EMAIL: parse one lead ────────────────────────────────
+    const leadInfo = parseHemlaneEmail(htmlBody, subject);
 
-      if (leadErr || !newLead) {
-        throw new Error(`Failed to create lead: ${leadErr?.message}`);
-      }
-      leadId = newLead.id;
+    if (!leadInfo.phone && !leadInfo.email) {
+      await supabase.from("system_logs").insert({
+        organization_id: organizationId,
+        level: "info",
+        category: "general",
+        event_type: "esther_parse_skip",
+        message: `Esther: skipped email — no lead contact info found. Subject: ${subject}`,
+        details: { email_id: emailId, from: fromEmail, subject },
+      });
+
+      return new Response(
+        JSON.stringify({ message: "Email parsed but no lead info found" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // ── 7. Log to system_logs ───────────────────────────────────────
+    const result = await upsertLead(supabase, organizationId, leadInfo, emailId);
+
+    if (!result) {
+      return new Response(
+        JSON.stringify({ message: "Could not create lead (missing phone)" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const formattedPhone = leadInfo.phone ? formatPhoneE164(leadInfo.phone) : "";
+
     await supabase.from("system_logs").insert({
       organization_id: organizationId,
       level: "info",
       category: "general",
       event_type: "esther_lead_processed",
-      message: `Esther: ${isNewLead ? "new lead created" : "existing lead updated"} — ${leadInfo.name || "unknown"} (${formattedPhone || leadInfo.email})`,
+      message: `Esther: ${result.isNew ? "new lead created" : "existing lead updated"} — ${leadInfo.name || "unknown"} (${formattedPhone || leadInfo.email})`,
       details: {
         email_id: emailId,
         subject,
@@ -503,34 +647,19 @@ serve(async (req: Request) => {
         lead_email: leadInfo.email,
         property: leadInfo.property,
         message: leadInfo.message,
-        is_new_lead: isNewLead,
+        is_new_lead: result.isNew,
       },
-      related_lead_id: leadId!,
+      related_lead_id: result.leadId,
     });
 
-    // ── 8. Record cost via zacchaeus_record_cost ────────────────────
-    await supabase.rpc("zacchaeus_record_cost", {
-      p_organization_id: organizationId,
-      p_service: "openai",
-      p_usage_quantity: 1,
-      p_usage_unit: "webhook_parse",
-      p_unit_cost: 0,
-      p_total_cost: 0,
-      p_lead_id: leadId!,
-    });
-
-    // ── 9. Return success ───────────────────────────────────────────
     return new Response(
       JSON.stringify({
         success: true,
-        lead_id: leadId!,
-        is_new_lead: isNewLead,
-        message: `Lead ${isNewLead ? "created" : "updated"} from Hemlane email`,
+        lead_id: result.leadId,
+        is_new_lead: result.isNew,
+        message: `Lead ${result.isNew ? "created" : "updated"} from Hemlane email`,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("agent-hemlane-parser (Esther) error:", err);
