@@ -15,33 +15,39 @@ import {
   Zap,
   Clock,
   UserPlus,
+  ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
-interface AgentTaskRow {
+// ── Types ────────────────────────────────────────────────────────────
+
+interface RecentLeadRow {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  source: string;
+  created_at: string;
+  properties: {
+    address: string;
+    city: string;
+  } | null;
+}
+
+interface NextTaskRow {
   id: string;
   agent_type: string;
   action_type: string;
   scheduled_for: string;
-  created_at: string;
-  status: string;
-  context: Record<string, unknown> | null;
-  attempt_number: number | null;
-  max_attempts: number | null;
   lead_id: string;
-  leads: {
-    full_name: string | null;
-    phone: string;
-    properties: {
-      address: string;
-      city: string;
-    } | null;
-  } | null;
+  status: string;
 }
+
+// ── Agent names ──────────────────────────────────────────────────────
 
 const AGENT_NAMES: Record<string, string> = {
   main_inbound: "Aaron",
@@ -67,36 +73,34 @@ const AGENT_NAMES: Record<string, string> = {
   campaign_sms: "Ruth",
 };
 
-const AGENT_DEPT_COLORS: Record<string, string> = {
-  main_inbound: "text-teal-600",
-  bland_call_webhook: "text-teal-600",
-  sms_inbound: "text-teal-600",
-  hemlane_parser: "text-teal-600",
-  scoring: "text-blue-600",
-  transcript_analyst: "text-blue-600",
-  task_dispatcher: "text-purple-600",
-  recapture: "text-amber-600",
-  showing_confirmation: "text-amber-600",
-  no_show_followup: "text-amber-600",
-  no_show_follow_up: "text-amber-600",
-  post_showing: "text-amber-600",
-  campaign: "text-amber-600",
-  campaign_voice: "text-amber-600",
-  campaign_sms: "text-amber-600",
-  welcome_sequence: "text-amber-600",
-  conversion_predictor: "text-green-600",
-  insight_generator: "text-green-600",
-  report_generator: "text-green-600",
-  doorloop_pull: "text-slate-600",
-  cost_tracker: "text-slate-600",
+// ── Source → agent that brought the lead in ──────────────────────────
+
+const SOURCE_INFO: Record<string, { agent: string; action: string }> = {
+  hemlane_email: { agent: "Esther", action: "registró vía Hemlane" },
+  inbound_call: { agent: "Aaron", action: "registró por llamada entrante" },
+  website: { agent: "Aaron", action: "capturó desde sitio web" },
+  sms: { agent: "Ruth", action: "registró por SMS entrante" },
+  referral: { agent: "Aaron", action: "registró como referido" },
+  manual: { agent: "—", action: "ingresó manualmente" },
+  campaign: { agent: "Elijah", action: "captó en campaña outbound" },
 };
 
-const ACTION_LABELS: Record<string, string> = {
-  call: "llamar a",
-  sms: "enviar SMS a",
-  email: "enviar email a",
-  voice: "llamar a",
+// ── Next-task action labels ──────────────────────────────────────────
+
+const NEXT_ACTION_LABELS: Record<string, string> = {
+  call: "llamar",
+  sms: "enviar SMS",
+  email: "enviar email",
+  voice: "llamar",
+  score: "evaluar lead",
+  confirm_showing: "confirmar showing",
+  outbound_callback: "hacer callback",
+  send_application: "enviar aplicación",
+  recapture: "recapturar",
+  follow_up: "hacer seguimiento",
 };
+
+// ── Action icons ─────────────────────────────────────────────────────
 
 const ACTION_ICONS: Record<string, React.ElementType> = {
   call: Phone,
@@ -105,45 +109,7 @@ const ACTION_ICONS: Record<string, React.ElementType> = {
   voice: Phone,
 };
 
-const AGENT_ACTION_DESCRIPTIONS: Record<string, string> = {
-  recapture: "recapturar",
-  no_show_followup: "seguimiento no-show",
-  no_show_follow_up: "seguimiento no-show",
-  showing_confirmation: "confirmar showing",
-  post_showing: "seguimiento post-showing",
-  campaign: "campaña outbound",
-  campaign_voice: "campaña de voz",
-  campaign_sms: "campaña SMS",
-  welcome_sequence: "secuencia bienvenida",
-  scoring: "evaluar",
-  transcript_analyst: "analizar transcripción",
-};
-
-const SOURCE_LABELS: Record<string, string> = {
-  hemlane_email: "Hemlane",
-  inbound_call: "llamada entrante",
-  website: "sitio web",
-  sms: "SMS",
-  referral: "referido",
-  manual: "entrada manual",
-  campaign: "campaña",
-};
-
-interface RecentLead {
-  id: string;
-  full_name: string | null;
-  source: string;
-  created_at: string;
-}
-
-// Unified timeline entry
-interface TimelineEntry {
-  id: string;
-  type: "task" | "lead";
-  timestamp: string;
-  task?: AgentTaskRow;
-  lead?: RecentLead;
-}
+// ── Component ────────────────────────────────────────────────────────
 
 export const RealTimeAgentPanel = () => {
   const { userRecord } = useAuth();
@@ -151,110 +117,90 @@ export const RealTimeAgentPanel = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
-  const tasksQueryKey = ["realtime-agent-tasks", userRecord?.organization_id];
-  const leadsQueryKey = ["realtime-recent-leads", userRecord?.organization_id];
+  const orgId = userRecord?.organization_id;
+  const leadsQueryKey = ["realtime-recent-leads", orgId];
+  const tasksQueryKey = ["realtime-next-tasks", orgId];
 
-  const { data: tasks, isLoading: tasksLoading } = useQuery({
-    queryKey: tasksQueryKey,
-    queryFn: async () => {
-      if (!userRecord?.organization_id) return [];
-
-      const { data, error } = await supabase
-        .from("agent_tasks")
-        .select(`
-          id, agent_type, action_type, scheduled_for, created_at, status, context,
-          attempt_number, max_attempts, lead_id,
-          leads(full_name, phone, properties(address, city))
-        `)
-        .eq("organization_id", userRecord.organization_id)
-        .in("status", ["pending", "in_progress"])
-        .order("scheduled_for", { ascending: true })
-        .limit(30);
-
-      if (error) throw error;
-      setLastUpdate(new Date());
-      return data as unknown as AgentTaskRow[];
-    },
-    enabled: !!userRecord?.organization_id,
-    refetchInterval: 15000,
-  });
-
+  // ── Fetch recent leads with property info ───────────────────────────
   const { data: recentLeads, isLoading: leadsLoading } = useQuery({
     queryKey: leadsQueryKey,
     queryFn: async () => {
-      if (!userRecord?.organization_id) return [];
+      if (!orgId) return [];
 
       const { data, error } = await supabase
         .from("leads")
-        .select("id, full_name, source, created_at")
-        .eq("organization_id", userRecord.organization_id)
+        .select("id, full_name, phone, email, source, created_at, properties(address, city)")
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
-        .limit(15);
+        .limit(20);
 
       if (error) throw error;
-      return data as RecentLead[];
+      setLastUpdate(new Date());
+      return data as unknown as RecentLeadRow[];
     },
-    enabled: !!userRecord?.organization_id,
+    enabled: !!orgId,
     refetchInterval: 15000,
   });
 
-  const isLoading = tasksLoading || leadsLoading;
+  // ── Fetch next pending task per lead ────────────────────────────────
+  const leadIds = recentLeads?.map((l) => l.id) || [];
 
-  // Merge tasks and leads into a unified timeline, most recent first
-  const timeline: TimelineEntry[] = (() => {
-    const entries: TimelineEntry[] = [];
+  const { data: nextTasks } = useQuery({
+    queryKey: [...tasksQueryKey, leadIds],
+    queryFn: async () => {
+      if (leadIds.length === 0) return [];
 
-    (tasks || []).forEach((task) => {
-      entries.push({
-        id: `task-${task.id}`,
-        type: "task",
-        timestamp: task.created_at,
-        task,
-      });
-    });
+      const { data, error } = await supabase
+        .from("agent_tasks")
+        .select("id, agent_type, action_type, scheduled_for, lead_id, status")
+        .in("lead_id", leadIds)
+        .in("status", ["pending", "in_progress"])
+        .order("scheduled_for", { ascending: true });
 
-    (recentLeads || []).forEach((lead) => {
-      entries.push({
-        id: `lead-${lead.id}`,
-        type: "lead",
-        timestamp: lead.created_at,
-        lead,
-      });
-    });
+      if (error) throw error;
+      return data as NextTaskRow[];
+    },
+    enabled: leadIds.length > 0,
+    refetchInterval: 15000,
+  });
 
-    entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return entries;
-  })();
+  // Build next-task lookup: first (soonest) task per lead
+  const nextTaskByLead: Record<string, NextTaskRow> = {};
+  (nextTasks || []).forEach((task) => {
+    if (!nextTaskByLead[task.lead_id]) {
+      nextTaskByLead[task.lead_id] = task;
+    }
+  });
 
-  // Realtime subscription for agent_tasks + leads
+  // ── Realtime subscriptions ──────────────────────────────────────────
   useEffect(() => {
-    if (!userRecord?.organization_id) return;
+    if (!orgId) return;
 
     const channel: RealtimeChannel = supabase
       .channel("realtime-activity-panel")
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
-          table: "agent_tasks",
-          filter: `organization_id=eq.${userRecord.organization_id}`,
+          table: "leads",
+          filter: `organization_id=eq.${orgId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: tasksQueryKey });
+          queryClient.invalidateQueries({ queryKey: leadsQueryKey });
           setLastUpdate(new Date());
         }
       )
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
-          table: "leads",
-          filter: `organization_id=eq.${userRecord.organization_id}`,
+          table: "agent_tasks",
+          filter: `organization_id=eq.${orgId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: leadsQueryKey });
+          queryClient.invalidateQueries({ queryKey: tasksQueryKey });
           setLastUpdate(new Date());
         }
       )
@@ -263,31 +209,25 @@ export const RealTimeAgentPanel = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userRecord?.organization_id, queryClient]);
+  }, [orgId, queryClient]);
 
   const handleManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: tasksQueryKey }),
       queryClient.invalidateQueries({ queryKey: leadsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: tasksQueryKey }),
     ]);
     setTimeout(() => setIsRefreshing(false), 600);
-  }, [queryClient, tasksQueryKey, leadsQueryKey]);
+  }, [queryClient, leadsQueryKey, tasksQueryKey]);
 
-  const getAgentName = (agentType: string) =>
-    AGENT_NAMES[agentType] || agentType.replace(/_/g, " ");
+  // ── Helpers ─────────────────────────────────────────────────────────
 
-  const getActionDesc = (agentType: string) =>
-    AGENT_ACTION_DESCRIPTIONS[agentType] || agentType.replace(/_/g, " ");
-
-  const formatTaskLine = (task: AgentTaskRow) => {
-    const leadName = task.leads?.full_name || task.leads?.phone || "Lead desconocido";
-    const property = task.leads?.properties
-      ? `${task.leads.properties.address}`
-      : null;
-    const actionDesc = getActionDesc(task.agent_type);
-
-    return { leadName, property, actionDesc };
+  const describeNextTask = (task: NextTaskRow) => {
+    const agent = AGENT_NAMES[task.agent_type] || task.agent_type;
+    const action =
+      NEXT_ACTION_LABELS[task.action_type] || task.action_type.replace(/_/g, " ");
+    const Icon = ACTION_ICONS[task.action_type] || Zap;
+    return { agent, action, Icon };
   };
 
   return (
@@ -323,144 +263,116 @@ export const RealTimeAgentPanel = () => {
         </p>
       </CardHeader>
 
-      {/* Task List */}
+      {/* Lead Activity */}
       <CardContent className="pt-0">
-        {isLoading ? (
+        {leadsLoading ? (
           <div className="space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-start gap-3 p-2">
-                <Skeleton className="h-8 w-8 rounded-full shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-3 w-full" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-3 rounded-lg border border-muted">
+                <div className="flex items-center gap-2 mb-2">
+                  <Skeleton className="h-7 w-7 rounded-full shrink-0" />
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-16 rounded" />
                 </div>
+                <Skeleton className="h-3.5 w-full ml-9" />
+                <Skeleton className="h-3 w-40 ml-9 mt-1.5" />
               </div>
             ))}
           </div>
-        ) : timeline.length === 0 ? (
+        ) : !recentLeads || recentLeads.length === 0 ? (
           <EmptyState
             icon={Clock}
             title="Sin actividad"
-            description="La actividad reciente aparece aqui"
+            description="Los nuevos leads aparecerán aquí"
           />
         ) : (
           <ScrollArea className="h-[calc(100vh-280px)] min-h-[400px]">
-            <div className="space-y-1">
-              {timeline.map((entry, index) => {
-                if (entry.type === "lead" && entry.lead) {
-                  const lead = entry.lead;
-                  const sourceLabel = SOURCE_LABELS[lead.source] || lead.source;
-                  return (
-                    <div
-                      key={entry.id}
-                      className={cn(
-                        "flex items-start gap-2.5 p-2.5 rounded-lg transition-all hover:bg-muted/50 bg-emerald-50/30",
-                        index === 0 && "animate-fade-up"
-                      )}
-                    >
-                      <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-100 text-emerald-600">
+            <div className="space-y-2">
+              {recentLeads.map((lead, index) => {
+                const sourceInfo = SOURCE_INFO[lead.source] || {
+                  agent: "Sistema",
+                  action: `registró desde ${lead.source}`,
+                };
+                const nextTask = nextTaskByLead[lead.id];
+                const leadName =
+                  lead.full_name || lead.phone || lead.email || "Lead sin nombre";
+                const createdAt = new Date(lead.created_at);
+
+                return (
+                  <div
+                    key={lead.id}
+                    className={cn(
+                      "p-3 rounded-lg transition-all hover:bg-emerald-50/60 bg-emerald-50/30 border border-emerald-100/60",
+                      index === 0 && "animate-fade-up"
+                    )}
+                  >
+                    {/* Row 1: icon + time + badge */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600">
                         <UserPlus className="h-3.5 w-3.5" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
-                          </span>
-                          <Badge className="h-4 px-1 text-[10px] bg-emerald-500 hover:bg-emerald-500">
-                            NUEVO
-                          </Badge>
-                        </div>
-                        <p className="text-sm leading-snug">
-                          <span className="font-semibold text-emerald-700">
-                            {lead.full_name || "Lead sin nombre"}
-                          </span>
-                          <span className="text-muted-foreground"> ha ingresado a traves de </span>
-                          <span className="font-medium text-foreground">{sourceLabel}</span>
-                        </p>
-                      </div>
+                      <span className="text-[11px] text-muted-foreground">
+                        {format(createdAt, "h:mm a")} ·{" "}
+                        {formatDistanceToNow(createdAt, { addSuffix: true })}
+                      </span>
+                      <Badge className="h-4 px-1.5 text-[10px] bg-emerald-500 hover:bg-emerald-500 ml-auto">
+                        NUEVO LEAD
+                      </Badge>
                     </div>
-                  );
-                }
 
-                if (entry.type === "task" && entry.task) {
-                  const task = entry.task;
-                  const { leadName, property, actionDesc } = formatTaskLine(task);
-                  const agentName = getAgentName(task.agent_type);
-                  const Icon = ACTION_ICONS[task.action_type] || Zap;
-                  const isInProgress = task.status === "in_progress";
+                    {/* Row 2: agent action + lead name */}
+                    <p className="text-sm leading-snug ml-9">
+                      <span className="font-semibold text-teal-600">
+                        {sourceInfo.agent}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {" "}{sourceInfo.action} a{" "}
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {leadName}
+                      </span>
+                    </p>
 
-                  return (
-                    <div
-                      key={entry.id}
-                      className={cn(
-                        "flex items-start gap-2.5 p-2.5 rounded-lg transition-all hover:bg-muted/50",
-                        isInProgress && "bg-blue-50/50 border border-blue-100",
-                        index === 0 && "animate-fade-up"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                          isInProgress
-                            ? "bg-blue-100 text-blue-600"
-                            : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
+                    {/* Row 3: property interest (only if matched) */}
+                    {lead.properties && (
+                      <p className="text-xs text-muted-foreground ml-9 mt-0.5">
+                        Interesado en:{" "}
+                        <span className="font-medium text-foreground">
+                          {lead.properties.address}, {lead.properties.city}
+                        </span>
+                      </p>
+                    )}
+
+                    {/* Row 4: next automation step */}
+                    {nextTask && (() => {
+                      const { agent, action, Icon } = describeNextTask(nextTask);
+                      return (
+                        <div className="flex items-center gap-1.5 ml-9 mt-2 py-1 px-2 rounded bg-blue-50/80 border border-blue-100/60 w-fit">
+                          <ChevronRight className="h-3 w-3 text-blue-500 shrink-0" />
+                          <Icon className="h-3 w-3 text-blue-500 shrink-0" />
+                          <span className="text-xs text-blue-700 font-medium">
+                            Siguiente: {agent} va a {action}
                           </span>
-                          {isInProgress && (
-                            <Badge className="h-4 px-1 text-[10px] bg-blue-500 hover:bg-blue-500">
+                          {nextTask.status === "in_progress" && (
+                            <Badge className="h-3.5 px-1 text-[9px] bg-blue-500 hover:bg-blue-500">
                               EN CURSO
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm leading-snug">
-                          <span
-                            className={cn(
-                              "font-semibold",
-                              AGENT_DEPT_COLORS[task.agent_type] || "text-foreground"
-                            )}
-                          >
-                            {agentName}
-                          </span>
-                          <span className="text-muted-foreground"> va a </span>
-                          <span className="text-foreground">{actionDesc}</span>
-                          <span className="text-muted-foreground"> a </span>
-                          <span className="font-medium text-foreground">{leadName}</span>
-                        </p>
-                        {property && (
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {property}
-                          </p>
-                        )}
-                        {task.attempt_number !== null &&
-                          task.max_attempts !== null &&
-                          task.attempt_number > 1 && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              Intento {task.attempt_number}/{task.max_attempts}
-                            </p>
-                          )}
-                      </div>
-                    </div>
-                  );
-                }
-
-                return null;
+                      );
+                    })()}
+                  </div>
+                );
               })}
             </div>
           </ScrollArea>
         )}
 
-        {/* Footer count */}
-        {timeline.length > 0 && (
+        {/* Footer */}
+        {recentLeads && recentLeads.length > 0 && (
           <div className="pt-3 mt-2 border-t">
             <p className="text-xs text-muted-foreground text-center">
-              {(tasks || []).length} tarea{(tasks || []).length !== 1 ? "s" : ""} · {(recentLeads || []).length} lead{(recentLeads || []).length !== 1 ? "s" : ""} reciente{(recentLeads || []).length !== 1 ? "s" : ""}
+              {recentLeads.length} lead{recentLeads.length !== 1 ? "s" : ""} reciente{recentLeads.length !== 1 ? "s" : ""}
             </p>
           </div>
         )}
