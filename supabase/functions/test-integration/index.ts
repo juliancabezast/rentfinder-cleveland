@@ -213,15 +213,18 @@ serve(async (req: Request) => {
     }
 
     // Update integration_health table
+    const healthStatus = success ? "healthy" : "down";
     await supabase.from("integration_health").upsert(
       {
         organization_id,
-        service_name: service,
-        status: success ? "connected" : "error",
+        service: service,
+        status: healthStatus,
         last_checked_at: new Date().toISOString(),
-        error_message: success ? null : message,
+        message: success ? "OK" : message,
+        last_healthy_at: success ? new Date().toISOString() : undefined,
+        consecutive_failures: success ? 0 : 1,
       },
-      { onConflict: "organization_id,service_name" }
+      { onConflict: "organization_id,service" }
     );
 
     return new Response(

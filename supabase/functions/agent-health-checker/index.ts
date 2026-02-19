@@ -195,16 +195,20 @@ serve(async (req: Request) => {
       });
 
       // ── Upsert to integration_health ─────────────────────────────
+      // Map status values to what the frontend expects
+      const healthStatus = status === "connected" ? "healthy" : status === "error" ? "down" : status;
       await supabase.from("integration_health").upsert(
         {
           organization_id,
-          service_name: service,
-          status,
+          service: service,
+          status: healthStatus,
           last_checked_at: new Date().toISOString(),
-          response_time_ms: elapsed,
-          error_message: status === "error" ? message : null,
+          response_ms: elapsed,
+          message: healthStatus === "down" ? message : "OK",
+          last_healthy_at: healthStatus === "healthy" ? new Date().toISOString() : undefined,
+          consecutive_failures: healthStatus === "down" ? 1 : 0,
         },
-        { onConflict: "organization_id,service_name" }
+        { onConflict: "organization_id,service" }
       );
     }
 
