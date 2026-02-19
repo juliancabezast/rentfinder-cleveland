@@ -592,9 +592,8 @@ const LeadDetail: React.FC = () => {
                         </p>
 
                         {log.evidence_text && (
-                          <p className="text-sm text-muted-foreground mt-1 truncate max-w-md">
-                            Evidence: {log.evidence_text.substring(0, 100)}
-                            {log.evidence_text.length > 100 ? "..." : ""}
+                          <p className="text-sm text-muted-foreground mt-1 break-words">
+                            Evidence: {log.evidence_text}
                           </p>
                         )}
 

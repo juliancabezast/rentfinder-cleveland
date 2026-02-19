@@ -225,7 +225,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
             .from("leads")
             .update({ interested_property_id: data[0].id })
             .eq("id", lead.id);
-          toast.success(`Propiedad asignada: ${data[0].address}`);
+          toast.success(`Property assigned: ${data[0].address}`);
           onPropertyMatched?.();
           return;
         }
@@ -233,7 +233,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
         if (data && data.length > 1) {
           setOrgProperties(data);
           setShowPropertySelector(true);
-          toast.info(`${data.length} propiedades encontradas. Selecciona la correcta.`);
+          toast.info(`${data.length} properties found. Select the correct one.`);
           return;
         }
       }
@@ -242,11 +242,11 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
       await fetchAllProperties();
       setShowPropertySelector(true);
       if (addressMatch) {
-        toast.info("No se encontró match automático. Selecciona manualmente.");
+        toast.info("No automatic match found. Select manually.");
       }
     } catch (err) {
       console.error("Property match error:", err);
-      toast.error("Error al buscar propiedad");
+      toast.error("Error searching for property");
     } finally {
       setMatchingProperty(false);
     }
@@ -279,12 +279,12 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
       }
 
       const selected = orgProperties.find((p) => p.id === propertyId);
-      toast.success(`Propiedad asignada: ${selected?.address || "OK"}`);
+      toast.success(`Property assigned: ${selected?.address || "OK"}`);
       setShowPropertySelector(false);
       onPropertyMatched?.();
     } catch (err) {
       console.error("Property assign error:", err);
-      toast.error("Error al asignar propiedad");
+      toast.error("Error assigning property");
     }
   };
 
@@ -479,7 +479,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                 <div className="flex items-center gap-2 flex-1">
                   <Select onValueChange={handlePropertySelect}>
                     <SelectTrigger className="h-7 text-xs w-[260px]">
-                      <SelectValue placeholder="Seleccionar propiedad..." />
+                      <SelectValue placeholder="Select property..." />
                     </SelectTrigger>
                     <SelectContent>
                       {orgProperties.map((p) => (

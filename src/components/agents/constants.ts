@@ -14,7 +14,7 @@ export interface DepartmentConfig {
 export const DEPARTMENTS: DepartmentConfig[] = [
   {
     key: "recepcion",
-    label: "Recepcion",
+    label: "Reception",
     icon: Phone,
     color: "border-teal-500",
     bgColor: "bg-teal-50 dark:bg-teal-950/30",
@@ -23,7 +23,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
   },
   {
     key: "evaluacion",
-    label: "Evaluacion",
+    label: "Evaluation",
     icon: Brain,
     color: "border-blue-500",
     bgColor: "bg-blue-50 dark:bg-blue-950/30",
@@ -32,7 +32,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
   },
   {
     key: "operaciones",
-    label: "Operaciones",
+    label: "Operations",
     icon: Settings,
     color: "border-purple-500",
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
@@ -41,7 +41,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
   },
   {
     key: "ventas",
-    label: "Ventas",
+    label: "Sales",
     icon: Megaphone,
     color: "border-amber-500",
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
@@ -50,7 +50,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
   },
   {
     key: "inteligencia",
-    label: "Inteligencia",
+    label: "Intelligence",
     icon: Lightbulb,
     color: "border-green-500",
     bgColor: "bg-green-50 dark:bg-green-950/30",
@@ -59,7 +59,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
   },
   {
     key: "administracion",
-    label: "Administracion",
+    label: "Administration",
     icon: Shield,
     color: "border-slate-500",
     bgColor: "bg-slate-50 dark:bg-slate-950/30",

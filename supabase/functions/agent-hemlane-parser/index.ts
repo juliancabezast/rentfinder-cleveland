@@ -74,8 +74,11 @@ function extractLabelValue(text: string, labelPattern: string): string | null {
 function parseHemlaneEmail(html: string, subject: string): LeadInfo {
   // Strip HTML tags for plain-text extraction
   const text = html
+    // Remove <style> and <script> blocks FIRST (their content leaks as false text)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, "\n")
+    .replace(/<\/(?:p|div|tr|td|li|h[1-6])>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -318,8 +321,10 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
 // ── Parse Hemlane Daily Digest ("Property Listings Update") ───────────
 function parseHemlaneDigest(html: string): LeadInfo[] {
   const text = html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, "\n")
+    .replace(/<\/(?:p|div|tr|td|li|h[1-6])>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")

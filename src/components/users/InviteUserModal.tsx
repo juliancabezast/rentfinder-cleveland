@@ -122,9 +122,9 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
 
       // Show appropriate toast based on response
       if (data?.warning) {
-        toast.info(`Usuario creado — ${data.warning}`);
+        toast.info(`User created — ${data.warning}`);
       } else {
-        toast.success(`Invitación enviada — ${fullName} ha sido invitado al equipo`);
+        toast.success(`Invitation sent — ${fullName} has been invited to the team`);
       }
 
       // Reset form

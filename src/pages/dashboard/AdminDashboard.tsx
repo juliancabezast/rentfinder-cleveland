@@ -440,9 +440,9 @@ export const AdminDashboard = () => {
             {/* Period filter — applies to all stat cards */}
             <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
               {([
-                { key: 'day' as StatsPeriod, label: 'Hoy' },
-                { key: 'week' as StatsPeriod, label: 'Semana' },
-                { key: 'month' as StatsPeriod, label: 'Mes' },
+                { key: 'day' as StatsPeriod, label: 'Today' },
+                { key: 'week' as StatsPeriod, label: 'Week' },
+                { key: 'month' as StatsPeriod, label: 'Month' },
                 { key: 'total' as StatsPeriod, label: 'Total' },
               ]).map(({ key, label }) => (
                 <button
@@ -495,9 +495,9 @@ export const AdminDashboard = () => {
               </div>
               <div className="animate-fade-up stagger-4">
                 <StatCard
-                  title="Llamadas Hechas"
+                  title="Calls Made"
                   value={periodStats?.callsMade || 0}
-                  subtitle={`${periodStats?.callMinutes || 0} min en llamada`}
+                  subtitle={`${periodStats?.callMinutes || 0} min on calls`}
                   icon={Phone}
                   impact={periodStats?.callsMade && periodStats.callsMade > 10 ? "high" : periodStats?.callsMade && periodStats.callsMade > 0 ? "medium" : undefined}
                   loading={loading || periodLoading}
@@ -509,7 +509,7 @@ export const AdminDashboard = () => {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="animate-fade-up stagger-5">
                 <StatCard
-                  title="Mensajes SMS"
+                  title="SMS Sent"
                   value={periodStats?.smsSent || 0}
                   subtitle="outbound"
                   icon={MessageSquare}
@@ -519,7 +519,7 @@ export const AdminDashboard = () => {
               </div>
               <div className="animate-fade-up stagger-6">
                 <StatCard
-                  title="Correos Enviados"
+                  title="Emails Sent"
                   value={periodStats?.emailsSent || 0}
                   subtitle="outbound"
                   icon={Mail}
@@ -529,7 +529,7 @@ export const AdminDashboard = () => {
               </div>
               <div className="animate-fade-up stagger-7">
                 <StatCard
-                  title="Emails Parseados"
+                  title="Emails Parsed"
                   value={periodStats?.emailsParsed || 0}
                   subtitle="via Esther"
                   icon={Inbox}

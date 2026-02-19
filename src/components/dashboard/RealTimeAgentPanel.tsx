@@ -77,28 +77,28 @@ const AGENT_NAMES: Record<string, string> = {
 // ── Source → agent that brought the lead in ──────────────────────────
 
 const SOURCE_INFO: Record<string, { agent: string; action: string }> = {
-  hemlane_email: { agent: "Esther", action: "registró vía Hemlane" },
-  inbound_call: { agent: "Aaron", action: "registró por llamada entrante" },
-  website: { agent: "Aaron", action: "capturó desde sitio web" },
-  sms: { agent: "Ruth", action: "registró por SMS entrante" },
-  referral: { agent: "Aaron", action: "registró como referido" },
-  manual: { agent: "—", action: "ingresó manualmente" },
-  campaign: { agent: "Elijah", action: "captó en campaña outbound" },
+  hemlane_email: { agent: "Esther", action: "registered via Hemlane" },
+  inbound_call: { agent: "Aaron", action: "registered via inbound call" },
+  website: { agent: "Aaron", action: "captured from website" },
+  sms: { agent: "Ruth", action: "registered via inbound SMS" },
+  referral: { agent: "Aaron", action: "registered as referral" },
+  manual: { agent: "—", action: "entered manually" },
+  campaign: { agent: "Elijah", action: "captured in outbound campaign" },
 };
 
 // ── Next-task action labels ──────────────────────────────────────────
 
 const NEXT_ACTION_LABELS: Record<string, string> = {
-  call: "llamar",
-  sms: "enviar SMS",
-  email: "enviar email",
-  voice: "llamar",
-  score: "evaluar lead",
-  confirm_showing: "confirmar showing",
-  outbound_callback: "hacer callback",
-  send_application: "enviar aplicación",
-  recapture: "recapturar",
-  follow_up: "hacer seguimiento",
+  call: "call",
+  sms: "send SMS",
+  email: "send email",
+  voice: "call",
+  score: "score lead",
+  confirm_showing: "confirm showing",
+  outbound_callback: "make callback",
+  send_application: "send application",
+  recapture: "recapture",
+  follow_up: "follow up",
 };
 
 // ── Action icons ─────────────────────────────────────────────────────
@@ -242,7 +242,7 @@ export const RealTimeAgentPanel = () => {
               <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
               <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500" />
             </div>
-            Actividad en Tiempo Real
+            Real-Time Activity
           </CardTitle>
           <Button
             variant="ghost"
@@ -260,7 +260,7 @@ export const RealTimeAgentPanel = () => {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Actualizado {formatDistanceToNow(lastUpdate, { addSuffix: true })}
+          Updated {formatDistanceToNow(lastUpdate, { addSuffix: true })}
         </p>
       </CardHeader>
 
@@ -283,20 +283,20 @@ export const RealTimeAgentPanel = () => {
         ) : !recentLeads || recentLeads.length === 0 ? (
           <EmptyState
             icon={Clock}
-            title="Sin actividad"
-            description="Los nuevos leads aparecerán aquí"
+            title="No activity"
+            description="New leads will appear here"
           />
         ) : (
           <ScrollArea className="h-[calc(100vh-280px)] min-h-[400px]">
             <div className="space-y-2">
               {recentLeads.map((lead, index) => {
                 const sourceInfo = SOURCE_INFO[lead.source] || {
-                  agent: "Sistema",
-                  action: `registró desde ${lead.source}`,
+                  agent: "System",
+                  action: `registered from ${lead.source}`,
                 };
                 const nextTask = nextTaskByLead[lead.id];
                 const leadName =
-                  lead.full_name || lead.phone || lead.email || "Lead sin nombre";
+                  lead.full_name || lead.phone || lead.email || "Unknown Lead";
                 const createdAt = new Date(lead.created_at);
                 const updatedAt = new Date(lead.updated_at || lead.created_at);
                 // Show the most recent timestamp (created or updated)
@@ -333,7 +333,7 @@ export const RealTimeAgentPanel = () => {
                           ? "bg-emerald-500 hover:bg-emerald-500"
                           : "bg-blue-500 hover:bg-blue-500"
                       )}>
-                        {isNew ? "NUEVO LEAD" : "ACTIVIDAD"}
+                        {isNew ? "NEW LEAD" : "ACTIVITY"}
                       </Badge>
                     </div>
 
@@ -353,7 +353,7 @@ export const RealTimeAgentPanel = () => {
                     {/* Row 3: property interest (only if matched) */}
                     {lead.properties && (
                       <p className="text-xs text-muted-foreground ml-9 mt-0.5">
-                        Interesado en:{" "}
+                        Interested in:{" "}
                         <span className="font-medium text-foreground">
                           {lead.properties.address}, {lead.properties.city}
                         </span>
@@ -368,11 +368,11 @@ export const RealTimeAgentPanel = () => {
                           <ChevronRight className="h-3 w-3 text-blue-500 shrink-0" />
                           <Icon className="h-3 w-3 text-blue-500 shrink-0" />
                           <span className="text-xs text-blue-700 font-medium">
-                            Siguiente: {agent} va a {action}
+                            Next: {agent} will {action}
                           </span>
                           {nextTask.status === "in_progress" && (
                             <Badge className="h-3.5 px-1 text-[9px] bg-blue-500 hover:bg-blue-500">
-                              EN CURSO
+                              IN PROGRESS
                             </Badge>
                           )}
                         </div>
@@ -389,7 +389,7 @@ export const RealTimeAgentPanel = () => {
         {recentLeads && recentLeads.length > 0 && (
           <div className="pt-3 mt-2 border-t">
             <p className="text-xs text-muted-foreground text-center">
-              {recentLeads.length} lead{recentLeads.length !== 1 ? "s" : ""} reciente{recentLeads.length !== 1 ? "s" : ""}
+              {recentLeads.length} recent lead{recentLeads.length !== 1 ? "s" : ""}
             </p>
           </div>
         )}

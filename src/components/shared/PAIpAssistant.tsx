@@ -18,14 +18,14 @@ interface Message {
   timestamp: Date;
 }
 
-const WELCOME_MESSAGE = `¡Hola! Soy pAIp, tu asistente de administración. Puedo ayudarte con:
+const WELCOME_MESSAGE = `Hi! I'm pAIp, your admin assistant. I can help you with:
 
-- Gestionar propiedades y leads
-- Ver reportes y métricas
-- Guiarte paso a paso en cualquier proceso
-- Encontrar información en el sistema
+- Managing properties and leads
+- Viewing reports and metrics
+- Walking you through any process step by step
+- Finding information in the system
 
-¿En qué te puedo ayudar?`;
+How can I help you?`;
 
 export const PAIpAssistant: React.FC = () => {
   const { userRecord, organization } = useAuth();
@@ -90,7 +90,7 @@ export const PAIpAssistant: React.FC = () => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Error al conectar con el asistente');
+      throw new Error(errorData.error || 'Error connecting to the assistant');
     }
 
     if (!response.body) {
@@ -198,7 +198,7 @@ export const PAIpAssistant: React.FC = () => {
         {
           id: `error-${Date.now()}`,
           role: 'assistant',
-          content: error instanceof Error ? error.message : 'Lo siento, hubo un error. ¿Puedo ayudarte con otra cosa?',
+          content: error instanceof Error ? error.message : 'Sorry, there was an error. Can I help you with something else?',
           timestamp: new Date(),
         },
       ]);
@@ -215,7 +215,7 @@ export const PAIpAssistant: React.FC = () => {
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
   // Custom link renderer for markdown
@@ -248,7 +248,7 @@ export const PAIpAssistant: React.FC = () => {
           'hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2',
           isOpen && 'scale-0 opacity-0'
         )}
-        aria-label="Abrir asistente pAIp"
+        aria-label="Open pAIp assistant"
       >
         <Bot className="h-6 w-6 text-white" />
         <Badge className="absolute -top-1 -right-1 bg-white text-violet-600 text-[10px] px-1.5 py-0.5 font-bold">
@@ -283,7 +283,7 @@ export const PAIpAssistant: React.FC = () => {
                   pAIp
                   <Sparkles className="h-3 w-3" />
                 </h3>
-                <p className="text-[10px] opacity-80">Tu asistente inteligente</p>
+                <p className="text-[10px] opacity-80">Your smart assistant</p>
               </div>
             </div>
             <Button
@@ -373,7 +373,7 @@ export const PAIpAssistant: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Pregunta algo..."
+                placeholder="Ask something..."
                 disabled={isLoading}
                 className="flex-1"
               />

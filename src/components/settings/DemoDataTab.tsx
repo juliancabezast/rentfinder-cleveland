@@ -252,10 +252,10 @@ export const DemoDataTab: React.FC = () => {
       // Refresh counts from database
       await fetchDemoDataCounts();
 
-      toast.success(`${item.name} ha sido eliminado`);
+      toast.success(`${item.name} has been removed`);
     } catch (error) {
       console.error('Error removing item:', error);
-      toast.error('No se pudo eliminar el elemento. Intenta de nuevo');
+      toast.error('Could not delete the item. Please try again');
     } finally {
       setRemovingId(null);
     }
@@ -580,9 +580,9 @@ export const DemoDataTab: React.FC = () => {
       await fetchDemoDataCounts();
 
       if (totalDeleted > 0) {
-        toast.success(`🗑️ Se eliminaron ${totalDeleted} registros demo`);
+        toast.success(`${totalDeleted} demo records deleted`);
       } else {
-        toast.info('No hay datos demo para eliminar');
+        toast.info('No demo data to delete');
       }
     } catch (error) {
       console.error('Error removing demo data:', error);
@@ -642,10 +642,10 @@ export const DemoDataTab: React.FC = () => {
       // Refresh counts from database
       await fetchDemoDataCounts();
 
-      toast.success(`☠️ Purge complete — Se eliminaron ${totalDeleted} registros de tu organización`);
+      toast.success(`Purge complete — ${totalDeleted} records deleted from your organization`);
     } catch (error) {
       console.error('Error purging org data:', error);
-      toast.error('Falló la purga. Algunos registros pueden haber sido eliminados');
+      toast.error('Purge failed. Some records may have been deleted');
     } finally {
       setPurging(false);
     }
@@ -684,10 +684,10 @@ export const DemoDataTab: React.FC = () => {
 
   const getTypeLabel = (type: DemoItem['type']) => {
     switch (type) {
-      case 'property': return 'Propiedad';
+      case 'property': return 'Property';
       case 'lead': return 'Lead';
       case 'showing': return 'Showing';
-      case 'call': return 'Llamada';
+      case 'call': return 'Call';
     }
   };
 
@@ -822,18 +822,18 @@ export const DemoDataTab: React.FC = () => {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Esta acción eliminará "{item.name}" y todos sus datos relacionados. Esta acción no se puede deshacer.
+                                  This will delete "{item.name}" and all related data. This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => removeIndividualItem(item)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  Eliminar
+                                  Delete
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -888,22 +888,22 @@ export const DemoDataTab: React.FC = () => {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription className="space-y-2">
                     <p>
-                      Esto eliminará TODOS los registros demo de todas las tablas (propiedades, leads, llamadas, showings, historial de puntaje). Esta acción no se puede deshacer.
+                      This will delete ALL demo records from all tables (properties, leads, calls, showings, score history). This action cannot be undone.
                     </p>
                     {totalOrphanCount > 0 && (
                       <p className="text-amber-600 dark:text-amber-400 font-medium">
-                        ⚠️ Nota: Hay {totalOrphanCount} registros huérfanos sin el flag is_demo que NO serán eliminados. Usa "Purge ALL Org Data" si quieres eliminar todo.
+                        Note: There are {totalOrphanCount} orphan records without the is_demo flag that will NOT be deleted. Use "Purge ALL Org Data" to delete everything.
                       </p>
                     )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={removeDemoData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Eliminar Todo Demo
+                    Delete All Demo
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -934,36 +934,36 @@ export const DemoDataTab: React.FC = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-red-600 flex items-center gap-2">
                     <Skull className="h-5 w-5" />
-                    ⚠️ ACCIÓN IRREVERSIBLE
+                    IRREVERSIBLE ACTION
                   </AlertDialogTitle>
                   <AlertDialogDescription className="space-y-3">
                     <p className="text-red-600 dark:text-red-400 font-bold">
-                      Esto eliminará ABSOLUTAMENTE TODOS los registros de tu organización:
+                      This will delete ABSOLUTELY ALL records from your organization:
                     </p>
                     <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>{orgTotalStats.properties} propiedades</li>
+                      <li>{orgTotalStats.properties} properties</li>
                       <li>{orgTotalStats.leads} leads</li>
-                      <li>{orgTotalStats.calls} llamadas</li>
+                      <li>{orgTotalStats.calls} calls</li>
                       <li>{orgTotalStats.showings} showings</li>
-                      <li>{orgTotalStats.scoreHistory} registros de score history</li>
-                      <li>{orgTotalStats.communications} comunicaciones</li>
-                      <li>+ registros relacionados (consent_log, alerts, tasks, etc.)</li>
+                      <li>{orgTotalStats.scoreHistory} score history records</li>
+                      <li>{orgTotalStats.communications} communications</li>
+                      <li>+ related records (consent_log, alerts, tasks, etc.)</li>
                     </ul>
                     <p className="font-bold text-red-600 dark:text-red-400">
-                      Total: {totalOrgCount}+ registros serán eliminados permanentemente.
+                      Total: {totalOrgCount}+ records will be permanently deleted.
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Esta acción NO SE PUEDE DESHACER. Solo los usuarios y configuración de la organización se preservarán.
+                      This action CANNOT BE UNDONE. Only users and organization settings will be preserved.
                     </p>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={purgeAllOrgData} 
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={purgeAllOrgData}
                     className="bg-red-900 text-white hover:bg-red-800"
                   >
-                    Sí, PURGAR TODO
+                    Yes, PURGE ALL
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -972,20 +972,20 @@ export const DemoDataTab: React.FC = () => {
 
           {/* Status Summary */}
           <div className="space-y-2 pt-4 border-t">
-            <h4 className="text-sm font-medium text-muted-foreground">Estado de la organización</h4>
+            <h4 className="text-sm font-medium text-muted-foreground">Organization Status</h4>
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Demo flagged:</span>
                 <span className="font-medium">{totalDemoCount}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Orphan (sin flag):</span>
+                <span className="text-muted-foreground">Orphan (no flag):</span>
                 <span className={`font-medium ${totalOrphanCount > 0 ? 'text-red-600' : ''}`}>
                   {totalOrphanCount}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Total organización:</span>
+                <span className="text-muted-foreground">Total organization:</span>
                 <span className="font-medium">{totalOrgCount}</span>
               </div>
             </div>
@@ -993,7 +993,7 @@ export const DemoDataTab: React.FC = () => {
             {totalOrgCount === 0 ? (
               <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2 mt-2">
                 <CheckCircle className="h-4 w-4" />
-                Tu organización está limpia. No hay registros de datos.
+                Your organization is clean. No data records found.
               </p>
             ) : totalDemoCount > 0 ? (
               <p className="text-sm text-muted-foreground mt-2">
