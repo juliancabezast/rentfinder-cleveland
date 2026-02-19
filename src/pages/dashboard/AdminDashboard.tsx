@@ -20,10 +20,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Building,
+  DoorOpen,
   Users,
+  UserPlus,
   Calendar,
-  TrendingUp,
   Bell,
   ChevronRight,
   Settings2,
@@ -33,28 +33,34 @@ import {
   Mail,
   Inbox,
   Flame,
+  Phone,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { RealTimeAgentPanel } from "@/components/dashboard/RealTimeAgentPanel";
 
+type StatsPeriod = 'day' | 'week' | 'month' | 'total';
+
 interface DashboardStats {
-  totalProperties: number;
+  totalDoors: number;
+  totalDistinctProperties: number;
   propertiesByStatus: Record<string, number>;
   activeLeads: number;
   newLeadsThisWeek: number;
-  showingsToday: number;
-  conversionRate: number;
-  // New stat bubbles
   totalLeads: number;
-  showingsScheduled: number;
+  leadsToday: number;
+  hotLeads: number;
+}
+
+interface Row2Stats {
   smsSent: number;
   emailsSent: number;
   emailsParsed: number;
-  hotLeads: number;
+  callsMade: number;
+  callMinutes: number;
 }
 
 interface PriorityLead {
@@ -91,6 +97,9 @@ export const AdminDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [row2Stats, setRow2Stats] = useState<Row2Stats | null>(null);
+  const [row2Loading, setRow2Loading] = useState(false);
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('week');
   const [priorityLeads, setPriorityLeads] = useState<PriorityLead[]>([]);
   const [todayShowings, setTodayShowings] = useState<TodayShowing[]>([]);
   const [alerts, setAlerts] = useState<PropertyAlert[]>([]);

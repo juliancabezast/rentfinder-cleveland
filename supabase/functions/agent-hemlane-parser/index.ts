@@ -480,6 +480,17 @@ async function upsertLead(
         await saveLeadNote(supabase, organizationId, existing.id, lead.message);
       }
 
+      // Add property to lead_properties (multi-property support)
+      if (propertyId) {
+        await supabase.from("lead_properties").upsert({
+          organization_id: organizationId,
+          lead_id: existing.id,
+          property_id: propertyId,
+          source: "hemlane_email",
+          listing_source: lead.listingSource || null,
+        }, { onConflict: "lead_id,property_id" }).catch(() => {});
+      }
+
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
     }
   }
@@ -514,6 +525,17 @@ async function upsertLead(
       // Save message as note on existing lead too
       if (lead.message) {
         await saveLeadNote(supabase, organizationId, existing.id, lead.message);
+      }
+
+      // Add property to lead_properties (multi-property support)
+      if (propertyId) {
+        await supabase.from("lead_properties").upsert({
+          organization_id: organizationId,
+          lead_id: existing.id,
+          property_id: propertyId,
+          source: "hemlane_email",
+          listing_source: lead.listingSource || null,
+        }, { onConflict: "lead_id,property_id" }).catch(() => {});
       }
 
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
@@ -576,6 +598,17 @@ async function upsertLead(
   const now = new Date().toISOString();
   const listingPlatform = lead.listingSource || "Hemlane";
   const evidenceText = `Lead initiated contact via ${listingPlatform} property listing${lead.property ? ` for ${lead.property}` : ""}. Inbound inquiry = implicit consent to be contacted back. Received ${now}. Email ID: ${emailId}`;
+
+  // ── Add to lead_properties junction table ─────────────────────────
+  if (propertyId) {
+    await supabase.from("lead_properties").insert({
+      organization_id: organizationId,
+      lead_id: leadId,
+      property_id: propertyId,
+      source: "hemlane_email",
+      listing_source: lead.listingSource || null,
+    }).catch(() => {});
+  }
 
   // ── Save initial message as a lead note ──────────────────────────
   if (lead.message) {

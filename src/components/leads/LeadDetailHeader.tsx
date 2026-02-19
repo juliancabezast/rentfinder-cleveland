@@ -159,6 +159,37 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   const [orgProperties, setOrgProperties] = useState<
     { id: string; address: string; unit_number: string | null; city: string }[]
   >([]);
+  // All properties this lead is interested in (from lead_properties junction)
+  const [additionalProperties, setAdditionalProperties] = useState<
+    { property_id: string; listing_source: string | null; address: string; unit_number: string | null }[]
+  >([]);
+
+  // Fetch additional properties from lead_properties junction table
+  useEffect(() => {
+    const fetchLeadProperties = async () => {
+      if (!lead.id || !userRecord?.organization_id) return;
+      try {
+        const { data } = await supabase
+          .from("lead_properties")
+          .select("property_id, listing_source, properties(address, unit_number)")
+          .eq("lead_id", lead.id)
+          .eq("organization_id", userRecord.organization_id);
+        if (data) {
+          setAdditionalProperties(
+            data.map((row: any) => ({
+              property_id: row.property_id,
+              listing_source: row.listing_source,
+              address: row.properties?.address || "Unknown",
+              unit_number: row.properties?.unit_number || null,
+            }))
+          );
+        }
+      } catch {
+        // Table may not exist yet — graceful fallback
+      }
+    };
+    fetchLeadProperties();
+  }, [lead.id, userRecord?.organization_id]);
 
   const fetchAllProperties = async () => {
     if (!userRecord?.organization_id) return;
@@ -225,10 +256,27 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
     if (!propertyId || propertyId === "none") return;
 
     try {
+      // Set as primary interested property
       await supabase
         .from("leads")
         .update({ interested_property_id: propertyId })
         .eq("id", lead.id);
+
+      // Also record in lead_properties junction table
+      if (userRecord?.organization_id) {
+        await supabase
+          .from("lead_properties")
+          .upsert(
+            {
+              organization_id: userRecord.organization_id,
+              lead_id: lead.id,
+              property_id: propertyId,
+              source: "manual_match",
+            },
+            { onConflict: "lead_id,property_id" }
+          )
+          .catch(() => {});
+      }
 
       const selected = orgProperties.find((p) => p.id === propertyId);
       toast.success(`Propiedad asignada: ${selected?.address || "OK"}`);
@@ -400,13 +448,32 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
             <div className="flex items-start gap-2 text-sm">
               <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               {property ? (
-                <div>
-                  <span className="font-medium">{property.address}</span>
-                  {property.unit_number && <span> #{property.unit_number}</span>}
-                  <span className="text-muted-foreground ml-2">
-                    {property.rent_price && `$${property.rent_price.toLocaleString()}/mo`}
-                    {property.bedrooms && ` · ${property.bedrooms} BR`}
-                  </span>
+                <div className="space-y-1">
+                  <div>
+                    <span className="font-medium">{property.address}</span>
+                    {property.unit_number && <span> #{property.unit_number}</span>}
+                    <span className="text-muted-foreground ml-2">
+                      {property.rent_price && `$${property.rent_price.toLocaleString()}/mo`}
+                      {property.bedrooms && ` · ${property.bedrooms} BR`}
+                    </span>
+                  </div>
+                  {/* Additional properties from lead_properties junction */}
+                  {additionalProperties
+                    .filter((ap) => ap.property_id !== property.id)
+                    .map((ap) => (
+                      <div key={ap.property_id} className="text-xs text-muted-foreground flex items-center gap-1">
+                        <span>+</span>
+                        <span className="font-medium text-foreground">
+                          {ap.address}
+                          {ap.unit_number ? ` #${ap.unit_number}` : ""}
+                        </span>
+                        {ap.listing_source && (
+                          <Badge variant="outline" className="h-4 px-1 text-[9px]">
+                            {ap.listing_source}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
                 </div>
               ) : showPropertySelector ? (
                 <div className="flex items-center gap-2 flex-1">
@@ -433,22 +500,43 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground italic">No property selected</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 px-2 text-xs gap-1"
-                    onClick={handlePropertyMatch}
-                    disabled={matchingProperty}
-                  >
-                    {matchingProperty ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Search className="h-3 w-3" />
-                    )}
-                    Property Match
-                  </Button>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground italic">No property selected</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-xs gap-1"
+                      onClick={handlePropertyMatch}
+                      disabled={matchingProperty}
+                    >
+                      {matchingProperty ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Search className="h-3 w-3" />
+                      )}
+                      Property Match
+                    </Button>
+                  </div>
+                  {/* Show additional properties even when no primary is set */}
+                  {additionalProperties.length > 0 && (
+                    <div className="space-y-0.5">
+                      {additionalProperties.map((ap) => (
+                        <div key={ap.property_id} className="text-xs text-muted-foreground flex items-center gap-1">
+                          <span>+</span>
+                          <span className="font-medium text-foreground">
+                            {ap.address}
+                            {ap.unit_number ? ` #${ap.unit_number}` : ""}
+                          </span>
+                          {ap.listing_source && (
+                            <Badge variant="outline" className="h-4 px-1 text-[9px]">
+                              {ap.listing_source}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
