@@ -8,18 +8,20 @@ interface ScoreDisplayProps {
   showPriorityBadge?: boolean;
 }
 
-const getScoreColor = (score: number): string => {
-  if (score <= 30) return "text-red-600";
-  if (score <= 50) return "text-yellow-600";
-  if (score <= 70) return "text-green-600";
-  return "text-emerald-500";
+// Continuous HSL gradient: 0 = red (0°), 50 = yellow (45°), 100 = green (142°)
+const getScoreHue = (score: number): number => {
+  const clamped = Math.max(0, Math.min(100, score));
+  // 0→0°(red)  50→45°(yellow-amber)  100→142°(green)
+  if (clamped <= 50) return (clamped / 50) * 45;
+  return 45 + ((clamped - 50) / 50) * 97;
 };
 
-const getScoreBgColor = (score: number): string => {
-  if (score <= 30) return "bg-red-100";
-  if (score <= 50) return "bg-yellow-100";
-  if (score <= 70) return "bg-green-100";
-  return "bg-emerald-100";
+const getScoreStyles = (score: number) => {
+  const hue = getScoreHue(score);
+  return {
+    color: `hsl(${hue}, 70%, 35%)`,
+    backgroundColor: `hsl(${hue}, 60%, 92%)`,
+  };
 };
 
 export const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
@@ -35,15 +37,16 @@ export const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
     lg: "text-xl font-bold min-w-[3.5rem] h-14 px-3",
   };
 
+  const scoreStyles = getScoreStyles(score);
+
   return (
     <div className="flex items-center gap-2">
       <div
         className={cn(
           "rounded-full flex items-center justify-center shrink-0",
-          sizeClasses[size],
-          getScoreBgColor(score),
-          getScoreColor(score)
+          sizeClasses[size]
         )}
+        style={scoreStyles}
       >
         {score}
       </div>
