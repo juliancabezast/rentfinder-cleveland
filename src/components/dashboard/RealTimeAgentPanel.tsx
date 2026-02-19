@@ -76,14 +76,14 @@ const AGENT_NAMES: Record<string, string> = {
 
 // ── Source → agent that brought the lead in ──────────────────────────
 
-const SOURCE_INFO: Record<string, { agent: string; action: string }> = {
-  hemlane_email: { agent: "Esther", action: "registered via Hemlane" },
-  inbound_call: { agent: "Aaron", action: "registered via inbound call" },
-  website: { agent: "Aaron", action: "captured from website" },
-  sms: { agent: "Ruth", action: "registered via inbound SMS" },
-  referral: { agent: "Aaron", action: "registered as referral" },
-  manual: { agent: "—", action: "entered manually" },
-  campaign: { agent: "Elijah", action: "captured in outbound campaign" },
+const SOURCE_INFO: Record<string, { agent: string; action: string; updateAction: string }> = {
+  hemlane_email: { agent: "Esther", action: "registered via Hemlane", updateAction: "updated via Hemlane" },
+  inbound_call: { agent: "Aaron", action: "registered via inbound call", updateAction: "updated via inbound call" },
+  website: { agent: "Aaron", action: "captured from website", updateAction: "updated from website" },
+  sms: { agent: "Ruth", action: "registered via inbound SMS", updateAction: "updated via SMS" },
+  referral: { agent: "Aaron", action: "registered as referral", updateAction: "updated referral" },
+  manual: { agent: "—", action: "entered manually", updateAction: "updated manually" },
+  campaign: { agent: "Elijah", action: "captured in outbound campaign", updateAction: "updated in campaign" },
 };
 
 // ── Next-task action labels ──────────────────────────────────────────
@@ -293,6 +293,7 @@ export const RealTimeAgentPanel = () => {
                 const sourceInfo = SOURCE_INFO[lead.source] || {
                   agent: "System",
                   action: `registered from ${lead.source}`,
+                  updateAction: `updated from ${lead.source}`,
                 };
                 const nextTask = nextTaskByLead[lead.id];
                 const leadName =
@@ -301,8 +302,11 @@ export const RealTimeAgentPanel = () => {
                 const updatedAt = new Date(lead.updated_at || lead.created_at);
                 // Show the most recent timestamp (created or updated)
                 const displayTime = updatedAt > createdAt ? updatedAt : createdAt;
-                // "New" = created in the last hour; otherwise it's returning activity
+                // "New" = created in the last hour
                 const isNew = (Date.now() - createdAt.getTime()) < 60 * 60 * 1000;
+                // "Updated" = updated_at is more than 60s after created_at (not a new lead, it's an update)
+                const isUpdated = !isNew && (updatedAt.getTime() - createdAt.getTime()) > 60_000;
+                const actionText = isUpdated ? sourceInfo.updateAction : sourceInfo.action;
 
                 return (
                   <div
@@ -311,7 +315,9 @@ export const RealTimeAgentPanel = () => {
                       "p-3 rounded-lg transition-all",
                       isNew
                         ? "bg-emerald-50/30 border border-emerald-100/60 hover:bg-emerald-50/60"
-                        : "bg-blue-50/30 border border-blue-100/60 hover:bg-blue-50/60",
+                        : isUpdated
+                          ? "bg-purple-50/30 border border-purple-100/60 hover:bg-purple-50/60"
+                          : "bg-blue-50/30 border border-blue-100/60 hover:bg-blue-50/60",
                       index === 0 && "animate-fade-up"
                     )}
                   >
@@ -319,7 +325,11 @@ export const RealTimeAgentPanel = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <div className={cn(
                         "h-7 w-7 rounded-full flex items-center justify-center shrink-0",
-                        isNew ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600"
+                        isNew
+                          ? "bg-emerald-100 text-emerald-600"
+                          : isUpdated
+                            ? "bg-[#370d4b]/10 text-[#370d4b]"
+                            : "bg-blue-100 text-blue-600"
                       )}>
                         <UserPlus className="h-3.5 w-3.5" />
                       </div>
@@ -331,19 +341,24 @@ export const RealTimeAgentPanel = () => {
                         "h-4 px-1.5 text-[10px] ml-auto",
                         isNew
                           ? "bg-emerald-500 hover:bg-emerald-500"
-                          : "bg-blue-500 hover:bg-blue-500"
+                          : isUpdated
+                            ? "bg-[#370d4b] hover:bg-[#370d4b]"
+                            : "bg-blue-500 hover:bg-blue-500"
                       )}>
-                        {isNew ? "NEW LEAD" : "ACTIVITY"}
+                        {isNew ? "NEW LEAD" : isUpdated ? "UPDATED" : "ACTIVITY"}
                       </Badge>
                     </div>
 
                     {/* Row 2: agent action + lead name */}
                     <p className="text-sm leading-snug ml-9">
-                      <span className="font-semibold text-teal-600">
+                      <span className={cn(
+                        "font-semibold",
+                        isUpdated ? "text-[#370d4b]" : "text-teal-600"
+                      )}>
                         {sourceInfo.agent}
                       </span>
                       <span className="text-muted-foreground">
-                        {" "}{sourceInfo.action} a{" "}
+                        {" "}{actionText}{" "}
                       </span>
                       <span className="font-semibold text-foreground">
                         {leadName}
