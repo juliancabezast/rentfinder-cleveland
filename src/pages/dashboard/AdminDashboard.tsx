@@ -5,7 +5,8 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { PriorityLeadCard, PriorityLeadCardSkeleton } from "@/components/dashboard/PriorityLeadCard";
 import { ShowingCard, ShowingCardSkeleton } from "@/components/dashboard/ShowingCard";
-import { ActivityFeed, ActivityFeedSkeleton } from "@/components/dashboard/ActivityFeed";
+
+
 import { VoiceQualityWidget } from "@/components/dashboard/VoiceQualityWidget";
 import {
   DashboardCustomizer,
@@ -23,7 +24,6 @@ import {
   DoorOpen,
   Users,
   Calendar,
-  Bell,
   ChevronRight,
   Settings2,
   Zap,
@@ -85,14 +85,6 @@ interface TodayShowing {
   duration_minutes?: number;
 }
 
-interface PropertyAlert {
-  id: string;
-  message: string;
-  alert_type: string;
-  created_at: string;
-  property_address?: string;
-}
-
 export const AdminDashboard = () => {
   const { userRecord } = useAuth();
   const navigate = useNavigate();
@@ -102,15 +94,7 @@ export const AdminDashboard = () => {
   const [periodLoading, setPeriodLoading] = useState(false);
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('total');
   const [priorityLeads, setPriorityLeads] = useState<PriorityLead[]>([]);
-  const [todayShowings, setTodayShowings] = useState<TodayShowing[]>([]);
-  const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
-  const [activities, setActivities] = useState<Array<{
-    id: string;
-    type: "call" | "showing_scheduled" | "showing_completed" | "lead_created" | "sms_sent";
-    title: string;
-    description?: string;
-    timestamp: string;
-  }>>([]);
+  const [upcomingShowings, setUpcomingShowings] = useState<TodayShowing[]>([]);
 
   // Dashboard customization state
   const [showCustomizer, setShowCustomizer] = useState(false);
@@ -160,10 +144,8 @@ export const AdminDashboard = () => {
 
         const [
           summaryResult,
-          showingsTodayResult,
+          upcomingShowingsResult,
           priorityLeadsResult,
-          alertsResult,
-          recentCallsResult,
           propertiesResult,
           leadsTodayResult,
           leadsThisWeekResult,
@@ -180,8 +162,9 @@ export const AdminDashboard = () => {
             `)
             .eq("organization_id", userRecord.organization_id)
             .gte("scheduled_at", todayStart)
-            .lte("scheduled_at", todayEnd)
-            .order("scheduled_at", { ascending: true }),
+            .not("status", "in", '("cancelled","no_show")')
+            .order("scheduled_at", { ascending: true })
+            .limit(10),
           supabase
             .from("leads")
             .select(`
@@ -193,22 +176,6 @@ export const AdminDashboard = () => {
             .not("status", "in", '("lost","converted")')
             .order("lead_score", { ascending: false })
             .limit(5),
-          supabase
-            .from("property_alerts")
-            .select(`
-              id, message, alert_type, created_at,
-              properties(address)
-            `)
-            .eq("organization_id", userRecord.organization_id)
-            .eq("is_read", false)
-            .order("created_at", { ascending: false })
-            .limit(5),
-          supabase
-            .from("calls")
-            .select("id, started_at, direction, status, phone_number")
-            .eq("organization_id", userRecord.organization_id)
-            .order("started_at", { ascending: false })
-            .limit(10),
           supabase
             .from("properties")
             .select("address, city, zip_code")
@@ -268,8 +235,8 @@ export const AdminDashboard = () => {
           });
         }
 
-        setTodayShowings(
-          (showingsTodayResult.data || []).map((s: any) => ({
+        setUpcomingShowings(
+          (upcomingShowingsResult.data || []).map((s: any) => ({
             id: s.id,
             scheduled_at: s.scheduled_at,
             status: s.status,
@@ -292,26 +259,6 @@ export const AdminDashboard = () => {
             status: l.status,
             is_human_controlled: l.is_human_controlled,
             property_address: l.properties?.address,
-          }))
-        );
-
-        setAlerts(
-          (alertsResult.data || []).map((a: any) => ({
-            id: a.id,
-            message: a.message,
-            alert_type: a.alert_type,
-            created_at: a.created_at,
-            property_address: a.properties?.address,
-          }))
-        );
-
-        setActivities(
-          (recentCallsResult.data || []).map((c: any) => ({
-            id: c.id,
-            type: "call" as const,
-            title: `${c.direction === "inbound" ? "Inbound" : "Outbound"} call`,
-            description: `${c.phone_number} - ${c.status}`,
-            timestamp: c.started_at,
           }))
         );
 
@@ -434,25 +381,6 @@ export const AdminDashboard = () => {
     } catch (error) {
       console.error("Error taking control:", error);
       toast.error("Failed to take control of lead");
-    }
-  };
-
-  const handleMarkAlertRead = async (alertId: string) => {
-    if (!userRecord) return;
-
-    try {
-      await supabase
-        .from("property_alerts")
-        .update({
-          is_read: true,
-          read_by: userRecord.id,
-          read_at: new Date().toISOString(),
-        })
-        .eq("id", alertId);
-
-      setAlerts((prev) => prev.filter((a) => a.id !== alertId));
-    } catch (error) {
-      console.error("Error marking alert read:", error);
     }
   };
 
@@ -604,7 +532,7 @@ export const AdminDashboard = () => {
 
         {/* Main Widget Grid - auto-fill to avoid gaps */}
         {(() => {
-          const widgetIds = ["priority_leads", "today_showings", "property_alerts", "recent_activity"];
+          const widgetIds = ["priority_leads", "upcoming_showings"];
           const visibleWidgets = widgetIds.filter((id) => isWidgetVisible(id));
           const visibleCount = visibleWidgets.length;
 
@@ -672,12 +600,12 @@ export const AdminDashboard = () => {
                     </Card>
                   </div>
                 );
-              case "today_showings":
+              case "upcoming_showings":
                 return (
                   <div key={widgetId} className={wrapperClass}>
                     <Card variant="glass" className="h-full">
                       <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-lg">Today's Showings</CardTitle>
+                        <CardTitle className="text-lg">Upcoming Showings</CardTitle>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -693,8 +621,8 @@ export const AdminDashboard = () => {
                               Array.from({ length: 3 }).map((_, i) => (
                                 <ShowingCardSkeleton key={i} variant="compact" />
                               ))
-                            ) : todayShowings.length > 0 ? (
-                              todayShowings.map((showing) => (
+                            ) : upcomingShowings.length > 0 ? (
+                              upcomingShowings.map((showing) => (
                                 <ShowingCard
                                   key={showing.id}
                                   showing={showing}
@@ -704,7 +632,7 @@ export const AdminDashboard = () => {
                             ) : (
                               <EmptyState
                                 icon={Calendar}
-                                title="No showings today"
+                                title="No upcoming showings"
                                 description="Schedule a showing from the leads page"
                                 action={{ label: "View showings", onClick: () => navigate("/showings") }}
                               />
@@ -713,78 +641,6 @@ export const AdminDashboard = () => {
                         </ScrollArea>
                       </CardContent>
                     </Card>
-                  </div>
-                );
-              case "property_alerts":
-                return (
-                  <div key={widgetId} className={wrapperClass}>
-                    <Card variant="glass" className="h-full">
-                      <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Bell className="h-5 w-5" />
-                          Property Alerts
-                          {alerts.length > 0 && (
-                            <Badge variant="destructive">{alerts.length}</Badge>
-                          )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ScrollArea className="max-h-[300px]">
-                          <div className="space-y-3">
-                            {loading ? (
-                              Array.from({ length: 3 }).map((_, i) => (
-                                <div key={i} className="flex items-start gap-3 p-3 rounded-lg border">
-                                  <div className="flex-1 space-y-1">
-                                    <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
-                                    <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
-                                  </div>
-                                </div>
-                              ))
-                            ) : alerts.length > 0 ? (
-                              alerts.map((alert) => (
-                                <div
-                                  key={alert.id}
-                                  className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50"
-                                >
-                                  <Bell className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium">{alert.message}</p>
-                                    {alert.property_address && (
-                                      <p className="text-xs text-muted-foreground truncate">
-                                        {alert.property_address}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleMarkAlertRead(alert.id)}
-                                  >
-                                    Dismiss
-                                  </Button>
-                                </div>
-                              ))
-                            ) : (
-                              <EmptyState
-                                icon={Bell}
-                                title="No unread alerts"
-                                description="Property alerts will appear here"
-                              />
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </CardContent>
-                    </Card>
-                  </div>
-                );
-              case "recent_activity":
-                return (
-                  <div key={widgetId} className={wrapperClass}>
-                    {loading ? (
-                      <ActivityFeedSkeleton />
-                    ) : (
-                      <ActivityFeed activities={activities} />
-                    )}
                   </div>
                 );
               default:
