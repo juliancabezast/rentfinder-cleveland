@@ -350,29 +350,32 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
       /,?\s*unit\s+\w/i.test(l)
     );
 
+  // Debug: log first 30 lines to see actual text structure
+  console.log(`Esther digest: ${lines.length} non-empty lines. First 30:`);
+  for (let d = 0; d < Math.min(30, lines.length); d++) {
+    console.log(`  [${d}] "${lines[d]}"`);
+  }
+
   let currentProperty: string | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
     // ── Property header detection ─────────────────────────────────
-    // Strategy 1: line followed by dashes (original format)
-    if (i + 1 < lines.length && /^-{5,}$/.test(lines[i + 1]) && line.length > 3) {
-      if (!isSkipLine(line)) {
-        currentProperty = line;
-      }
-      i++;
+    // Any address-like line in a digest is a property header
+    if (isAddressLine(line)) {
+      currentProperty = line;
+      console.log(`Esther digest: detected property header → "${line}"`);
       continue;
     }
 
-    // Strategy 2: address-like line followed by "CONTACT" within 1-3 lines
-    if (isAddressLine(line)) {
-      for (let k = i + 1; k <= Math.min(lines.length - 1, i + 3); k++) {
-        if (/^CONTACT/i.test(lines[k])) {
-          currentProperty = line;
-          break;
-        }
+    // Line followed by dashes (alternate format)
+    if (i + 1 < lines.length && /^-{5,}$/.test(lines[i + 1]) && line.length > 3) {
+      if (!isSkipLine(line)) {
+        currentProperty = line;
+        console.log(`Esther digest: detected property header (dashes) → "${line}"`);
       }
+      i++;
       continue;
     }
 
@@ -552,6 +555,10 @@ async function upsertLead(
     ? await matchProperty(supabase, organizationId, lead.property)
     : null;
 
+  if (lead.property) {
+    console.log(`Esther upsert: lead="${lead.name}" property="${lead.property}" → matchId=${propertyId || "NO MATCH"}`);
+  }
+
   // Check duplicate by phone
   if (phone) {
     const { data: existing } = await supabase
@@ -598,12 +605,12 @@ async function upsertLead(
 
       // Auto-score existing lead if message shows intent
       if (lead.message) {
-        const intent = detectHighIntent(lead.message);
-        if (intent) {
+        const intents = detectAllIntents(lead.message);
+        for (const intent of intents) {
           await supabase.rpc("log_score_change", {
             _lead_id: existing.id,
             _change_amount: intent.boost,
-            _reason_code: "inquiry_intent",
+            _reason_code: intent.reason_code,
             _reason_text: intent.reason,
             _triggered_by: "engagement",
             _changed_by_agent: "esther",
@@ -672,12 +679,12 @@ async function upsertLead(
 
       // Auto-score existing lead if message shows intent
       if (lead.message) {
-        const intent = detectHighIntent(lead.message);
-        if (intent) {
+        const intents = detectAllIntents(lead.message);
+        for (const intent of intents) {
           await supabase.rpc("log_score_change", {
             _lead_id: existing.id,
             _change_amount: intent.boost,
-            _reason_code: "inquiry_intent",
+            _reason_code: intent.reason_code,
             _reason_text: intent.reason,
             _triggered_by: "engagement",
             _changed_by_agent: "esther",
@@ -789,14 +796,26 @@ async function upsertLead(
     }
   }
 
-  // ── Auto-score based on message intent ──────────────────────────
+  // ── Score boost if lead has a matched property (+10: 40 → 50) ────
+  if (propertyId) {
+    await supabase.rpc("log_score_change", {
+      _lead_id: leadId,
+      _change_amount: 10,
+      _reason_code: "property_matched",
+      _reason_text: "Lead associated with a property on creation",
+      _triggered_by: "system",
+      _changed_by_agent: "esther",
+    }).catch((e: Error) => console.error(`Esther: property score boost failed: ${e.message}`));
+  }
+
+  // ── Auto-score based on message intent (boosts stack) ──────────
   if (lead.message) {
-    const intent = detectHighIntent(lead.message);
-    if (intent) {
+    const intents = detectAllIntents(lead.message);
+    for (const intent of intents) {
       await supabase.rpc("log_score_change", {
         _lead_id: leadId,
         _change_amount: intent.boost,
-        _reason_code: "inquiry_intent",
+        _reason_code: intent.reason_code,
         _reason_text: intent.reason,
         _triggered_by: "engagement",
         _changed_by_agent: "esther",
@@ -840,11 +859,12 @@ async function saveLeadNote(
   }
 }
 
-// ── Detect high-intent language in lead messages ─────────────────────
-function detectHighIntent(message: string): { boost: number; reason: string } | null {
+// ── Detect intent signals in lead messages (all matching boosts stack) ────
+function detectAllIntents(message: string): { boost: number; reason: string; reason_code: string }[] {
   const m = message.toLowerCase();
+  const intents: { boost: number; reason: string; reason_code: string }[] = [];
 
-  // Tier 1 — Showing / tour intent (+35 → hits 85 priority threshold)
+  // Tier 1 — Showing / tour intent (+35)
   const showingPatterns = [
     /schedul\w*\s+(a\s+)?(tour|showing|visit|viewing|walkthrough)/,
     /\b(want|like|love|interested)\b.*\b(tour|showing|visit|see|view)\b/,
@@ -856,24 +876,39 @@ function detectHighIntent(message: string): { boost: number; reason: string } | 
   ];
   for (const pat of showingPatterns) {
     if (pat.test(m)) {
-      return { boost: 35, reason: "Lead expressed showing/tour intent in inquiry message" };
+      intents.push({ boost: 35, reason: "Lead expressed showing/tour intent in inquiry message", reason_code: "showing_intent" });
+      break;
     }
   }
 
-  // Tier 2 — Strong engagement signals (+20 → score 70, not priority but elevated)
+  // Tier 2 — Section 8 voucher (+15)
+  const section8Patterns = [
+    /\b(have|got|using|with)\s+(a\s+)?(voucher|section\s*8|hcv)/,
+    /\b(voucher|section\s*8|hcv)\s+(holder|recipient|approved|accepted)/,
+    /\bmy\s+(voucher|section\s*8|hcv)\b/,
+    /\b(voucher|section\s*8|hcv)\b/,
+  ];
+  for (const pat of section8Patterns) {
+    if (pat.test(m)) {
+      intents.push({ boost: 15, reason: "Lead mentioned Section 8 voucher", reason_code: "section8_voucher" });
+      break;
+    }
+  }
+
+  // Tier 3 — General engagement signals (+20)
   const engagementPatterns = [
     /\b(how\s+much|what.*rent|price|cost|monthly)\b/,
     /\b(available|availability|still\s+available|is\s+(it|this)\s+available)\b/,
     /\b(apply|application|how\s+(do|can)\s+(i|we)\s+apply)\b/,
-    /\b(voucher|section\s*8|hcv)\b/,
   ];
   for (const pat of engagementPatterns) {
     if (pat.test(m)) {
-      return { boost: 20, reason: "Lead asked about availability/pricing/application in inquiry" };
+      intents.push({ boost: 20, reason: "Lead asked about availability/pricing/application in inquiry", reason_code: "inquiry_intent" });
+      break;
     }
   }
 
-  return null;
+  return intents;
 }
 
 // ── Main handler ──────────────────────────────────────────────────────
