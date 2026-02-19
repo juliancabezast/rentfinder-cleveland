@@ -279,8 +279,8 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
       continue;
     }
 
-    // Look for email on this line
-    const emailMatch = line.match(/^([\w.+-]+@[\w.-]+\.\w{2,})$/);
+    // Look for email on this line (allow surrounding whitespace/parens)
+    const emailMatch = line.match(/^[\s(]*([\w.+-]+@[\w.-]+\.\w{2,})[\s)]*$/);
     if (emailMatch && currentProperty) {
       const email = emailMatch[1].toLowerCase();
       if (excludedDomains.some((d) => email.endsWith(d))) continue;
@@ -517,6 +517,7 @@ serve(async (req: Request) => {
 
     const emailData = await emailResponse.json();
     const htmlBody = emailData.html || emailData.text || "";
+    const textBody = emailData.text || "";
 
     // ── Get default organization ────────────────────────────────────
     const { data: org } = await supabase
@@ -535,7 +536,8 @@ serve(async (req: Request) => {
 
     if (isDigest) {
       // ── DIGEST: batch-process all leads ───────────────────────────
-      const digestLeads = parseHemlaneDigest(htmlBody);
+      // Use plain text for digest — HTML tables don't parse well
+      const digestLeads = parseHemlaneDigest(textBody || htmlBody);
 
       if (digestLeads.length === 0) {
         await supabase.from("system_logs").insert({
