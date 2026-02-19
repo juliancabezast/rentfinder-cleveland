@@ -103,7 +103,6 @@ function parseZillowUrl(url: string): {
     }
   }
 
-  // Title-case the address and city
   const titleCase = (s: string) =>
     s.replace(/\b\w/g, c => c.toUpperCase());
 
@@ -113,6 +112,179 @@ function parseZillowUrl(url: string): {
     state: state || "OH",
     zip_code,
   };
+}
+
+// ── Scrape Zillow page HTML for property details ────────────────────────
+async function scrapeZillowPage(url: string): Promise<{
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  sqft: number | null;
+  propertyType: string;
+  description: string | null;
+  petPolicy: string | null;
+  photos: string[];
+  yearBuilt: number | null;
+} | null> {
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+
+    if (!resp.ok) {
+      console.error(`Zillow page fetch failed: ${resp.status}`);
+      return null;
+    }
+
+    const html = await resp.text();
+
+    const result = {
+      price: 0,
+      bedrooms: 0,
+      bathrooms: 0,
+      sqft: null as number | null,
+      propertyType: "house",
+      description: null as string | null,
+      petPolicy: null as string | null,
+      photos: [] as string[],
+      yearBuilt: null as number | null,
+    };
+
+    // ── Try JSON-LD structured data ──────────────────────────────────
+    const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    if (jsonLdMatch) {
+      try {
+        const ld = JSON.parse(jsonLdMatch[1]);
+        if (ld["@type"] === "SingleFamilyResidence" || ld["@type"] === "Apartment" || ld["@type"]?.includes?.("Residence")) {
+          result.bedrooms = ld.numberOfBedrooms || ld.numberOfRooms || 0;
+          result.bathrooms = ld.numberOfBathroomsTotal || 0;
+          result.sqft = ld.floorSize?.value || null;
+          result.description = ld.description || null;
+          if (ld.image) {
+            const imgs = Array.isArray(ld.image) ? ld.image : [ld.image];
+            result.photos = imgs.filter((i: unknown) => typeof i === "string").slice(0, 15);
+          }
+        }
+      } catch { /* ignore JSON parse errors */ }
+    }
+
+    // ── Try __NEXT_DATA__ or gdpClientCache (Zillow embeds data) ─────
+    const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (nextDataMatch) {
+      try {
+        const nd = JSON.parse(nextDataMatch[1]);
+        const prop = nd?.props?.pageProps?.componentProps?.gdpClientCache;
+        if (prop) {
+          const cacheKey = Object.keys(prop)[0];
+          if (cacheKey) {
+            const cached = JSON.parse(prop[cacheKey]);
+            const p = cached?.property;
+            if (p) {
+              result.bedrooms = p.bedrooms || result.bedrooms;
+              result.bathrooms = p.bathrooms || result.bathrooms;
+              result.sqft = p.livingArea || p.livingAreaValue || result.sqft;
+              result.price = p.rentZestimate || p.price || result.price;
+              result.description = p.description || result.description;
+              result.yearBuilt = p.yearBuilt || result.yearBuilt;
+              result.propertyType = mapPropertyType(p.homeType || p.propertyType);
+              if (p.responsivePhotos || p.photos) {
+                result.photos = extractPhotos(p);
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // ── Regex fallbacks from raw HTML ────────────────────────────────
+
+    // Price: "$1,300/mo" or similar
+    if (!result.price) {
+      const priceMatch = html.match(/\$([0-9,]+)\s*\/\s*mo/i);
+      if (priceMatch) {
+        result.price = parseInt(priceMatch[1].replace(/,/g, ""), 10);
+      }
+    }
+
+    // Bedrooms
+    if (!result.bedrooms) {
+      const bedMatch = html.match(/(\d+)\s*(?:beds?|bedrooms?|bd)\b/i);
+      if (bedMatch) result.bedrooms = parseInt(bedMatch[1], 10);
+    }
+
+    // Bathrooms
+    if (!result.bathrooms) {
+      const bathMatch = html.match(/([\d.]+)\s*(?:baths?|bathrooms?|ba)\b/i);
+      if (bathMatch) result.bathrooms = parseFloat(bathMatch[1]);
+    }
+
+    // Square feet
+    if (!result.sqft) {
+      const sqftMatch = html.match(/([\d,]+)\s*(?:sqft|sq\s*ft|square\s*feet)/i);
+      if (sqftMatch) result.sqft = parseInt(sqftMatch[1].replace(/,/g, ""), 10);
+    }
+
+    // Property type
+    const typeMatch = html.match(/(?:Single family|Multi family|Apartment|Condo|Townhouse|Duplex)\s*(?:residence|home)?/i);
+    if (typeMatch) {
+      const t = typeMatch[0].toLowerCase();
+      if (t.includes("single family")) result.propertyType = "house";
+      else if (t.includes("multi family") || t.includes("duplex")) result.propertyType = "duplex";
+      else if (t.includes("apartment")) result.propertyType = "apartment";
+      else if (t.includes("condo")) result.propertyType = "condo";
+      else if (t.includes("townhouse")) result.propertyType = "townhouse";
+    }
+
+    // Pet policy
+    const petMatch = html.match(/((?:Cats?|Dogs?)[^<]{0,50}(?:OK|allowed|welcome|accepted))/i)
+      || html.match(/(No pets|Pets (?:allowed|not allowed|OK|welcome))/i);
+    if (petMatch) {
+      result.petPolicy = petMatch[1].trim();
+    }
+
+    // Description from "What's special" or meta description
+    if (!result.description) {
+      const descMatch = html.match(/What(?:'|&#x27;)s special<\/[^>]+>\s*<[^>]+>([^<]+)/i);
+      if (descMatch) {
+        result.description = descMatch[1].trim();
+      }
+    }
+    if (!result.description) {
+      const metaDesc = html.match(/<meta name="description" content="([^"]+)"/i);
+      if (metaDesc) {
+        result.description = metaDesc[1].trim();
+      }
+    }
+
+    // Photos from meta og:image or image URLs
+    if (result.photos.length === 0) {
+      const ogImage = html.match(/<meta property="og:image" content="([^"]+)"/i);
+      if (ogImage) result.photos.push(ogImage[1]);
+
+      // Zillow photo URLs pattern
+      const photoMatches = html.matchAll(/https:\/\/photos\.zillowstatic\.com\/fp\/[a-f0-9]+-[a-z0-9_]+\.jpg/gi);
+      for (const m of photoMatches) {
+        if (!result.photos.includes(m[0]) && result.photos.length < 15) {
+          result.photos.push(m[0]);
+        }
+      }
+    }
+
+    // Year built
+    if (!result.yearBuilt) {
+      const yearMatch = html.match(/(?:Year built|Built in)\s*:?\s*(\d{4})/i);
+      if (yearMatch) result.yearBuilt = parseInt(yearMatch[1], 10);
+    }
+
+    return result;
+  } catch (e) {
+    console.error("Zillow scrape error:", (e as Error).message);
+    return null;
+  }
 }
 
 // ── Map Zillow homeType to our property_type ────────────────────────────
@@ -269,7 +441,7 @@ serve(async (req: Request) => {
       }
     }
 
-    // ── Fallback: parse property data from the URL slug ──────────────
+    // ── Fallback: scrape page + parse URL slug ──────────────────────
     const parsed = parseZillowUrl(zillow_url);
     if (!parsed) {
       return new Response(
@@ -283,25 +455,28 @@ serve(async (req: Request) => {
       );
     }
 
+    // Scrape the actual Zillow page for detailed info
+    const scraped = await scrapeZillowPage(zillow_url);
+
     const property = {
       address: parsed.address,
       city: parsed.city,
       state: parsed.state,
       zip_code: parsed.zip_code,
-      bedrooms: 0,
-      bathrooms: 0,
-      square_feet: null,
-      property_type: "house",
-      rent_price: 0,
+      bedrooms: scraped?.bedrooms || 0,
+      bathrooms: scraped?.bathrooms || 0,
+      square_feet: scraped?.sqft || null,
+      property_type: scraped?.propertyType || "house",
+      rent_price: scraped?.price || 0,
       deposit_amount: null,
       application_fee: null,
-      description: null,
-      photos: [],
+      description: scraped?.description || null,
+      photos: scraped?.photos || [],
       section_8_accepted: true,
       hud_inspection_ready: true,
       status: "available",
-      pet_policy: null,
-      year_built: null,
+      pet_policy: scraped?.petPolicy || null,
+      year_built: scraped?.yearBuilt || null,
       lot_size: null,
       _zillow_url: zillow_url,
       _zpid: zpid || "unknown",
