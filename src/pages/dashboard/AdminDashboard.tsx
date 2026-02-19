@@ -32,6 +32,7 @@ import {
   Inbox,
   Flame,
   Phone,
+  ListChecks,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from "date-fns";
@@ -47,7 +48,10 @@ interface DashboardStats {
   totalDistinctProperties: number;
   propertiesByStatus: Record<string, number>;
   activeLeads: number;
-  newLeadsThisWeek: number;
+  leadsToday: number;
+  leadsThisWeek: number;
+  leadsLastWeek: number;
+  pendingTasks: number;
 }
 
 interface PeriodStats {
@@ -150,6 +154,10 @@ export const AdminDashboard = () => {
         const todayStart = startOfDay(today).toISOString();
         const todayEnd = endOfDay(today).toISOString();
 
+        const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+        const lastWeekStart = new Date(thisWeekStart);
+        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
         const [
           summaryResult,
           showingsTodayResult,
@@ -157,6 +165,10 @@ export const AdminDashboard = () => {
           alertsResult,
           recentCallsResult,
           propertiesResult,
+          leadsTodayResult,
+          leadsThisWeekResult,
+          leadsLastWeekResult,
+          pendingTasksResult,
         ] = await Promise.all([
           supabase.rpc('get_dashboard_summary'),
           supabase
@@ -201,6 +213,31 @@ export const AdminDashboard = () => {
             .from("properties")
             .select("address, city, zip_code")
             .eq("organization_id", userRecord.organization_id),
+          // Leads today
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .gte("created_at", todayStart),
+          // Leads this week
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .gte("created_at", thisWeekStart.toISOString()),
+          // Leads last week
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .gte("created_at", lastWeekStart.toISOString())
+            .lt("created_at", thisWeekStart.toISOString()),
+          // Pending agent tasks
+          supabase
+            .from("agent_tasks")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .in("status", ["pending", "in_progress"]),
         ]);
 
         const summary = summaryResult.data as {
@@ -224,7 +261,10 @@ export const AdminDashboard = () => {
               rented: summary.properties.rented,
             },
             activeLeads: summary.leads.active,
-            newLeadsThisWeek: summary.leads.new_this_week,
+            leadsToday: leadsTodayResult.count || 0,
+            leadsThisWeek: leadsThisWeekResult.count || 0,
+            leadsLastWeek: leadsLastWeekResult.count || 0,
+            pendingTasks: pendingTasksResult.count || 0,
           });
         }
 
@@ -476,9 +516,13 @@ export const AdminDashboard = () => {
                 <StatCard
                   title="Leads"
                   value={periodStats?.totalLeads || 0}
-                  subtitle={`${stats?.activeLeads || 0} active`}
+                  subtitle={`${stats?.leadsToday || 0} today`}
                   icon={Users}
-                  trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
+                  trend={stats?.leadsLastWeek
+                    ? { value: Math.round(((stats.leadsThisWeek - stats.leadsLastWeek) / stats.leadsLastWeek) * 100), isPositive: stats.leadsThisWeek >= stats.leadsLastWeek }
+                    : stats?.leadsThisWeek
+                      ? { value: 100, isPositive: true }
+                      : undefined}
                   impact={periodStats?.totalLeads && periodStats.totalLeads > 20 ? "high" : periodStats?.totalLeads && periodStats.totalLeads > 10 ? "medium" : "low"}
                   loading={loading || periodLoading}
                 />
@@ -495,18 +539,18 @@ export const AdminDashboard = () => {
               </div>
               <div className="animate-fade-up stagger-4">
                 <StatCard
-                  title="Calls Made"
-                  value={periodStats?.callsMade || 0}
-                  subtitle={`${periodStats?.callMinutes || 0} min on calls`}
-                  icon={Phone}
-                  impact={periodStats?.callsMade && periodStats.callsMade > 10 ? "high" : periodStats?.callsMade && periodStats.callsMade > 0 ? "medium" : undefined}
-                  loading={loading || periodLoading}
+                  title="Agent Queue"
+                  value={stats?.pendingTasks || 0}
+                  subtitle="pending tasks"
+                  icon={ListChecks}
+                  impact={stats?.pendingTasks && stats.pendingTasks > 20 ? "high" : stats?.pendingTasks && stats.pendingTasks > 0 ? "medium" : undefined}
+                  loading={loading}
                 />
               </div>
             </div>
 
             {/* Row 2: Communications */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="animate-fade-up stagger-5">
                 <StatCard
                   title="SMS Sent"
@@ -534,6 +578,16 @@ export const AdminDashboard = () => {
                   subtitle="via Esther"
                   icon={Inbox}
                   impact={periodStats?.emailsParsed && periodStats.emailsParsed > 0 ? "medium" : undefined}
+                  loading={loading || periodLoading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-8">
+                <StatCard
+                  title="Calls Made"
+                  value={periodStats?.callsMade || 0}
+                  subtitle={`${periodStats?.callMinutes || 0} min on calls`}
+                  icon={Phone}
+                  impact={periodStats?.callsMade && periodStats.callsMade > 10 ? "high" : periodStats?.callsMade && periodStats.callsMade > 0 ? "medium" : undefined}
                   loading={loading || periodLoading}
                 />
               </div>
