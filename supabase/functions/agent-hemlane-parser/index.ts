@@ -463,14 +463,19 @@ async function upsertLead(
   // No phone = can't create (NOT NULL constraint)
   if (!phone) return null;
 
+  // Quality gate: don't create new leads without a parsed name.
+  // If the parser couldn't extract a name, the email format is unrecognized
+  // and the data is unreliable. Log it for debugging instead of creating garbage.
+  if (!lead.name) return null;
+
   // Create new lead
   const { data: newLead, error: err } = await supabase
     .from("leads")
     .insert({
       organization_id: organizationId,
-      full_name: lead.name || "Unknown (Hemlane)",
-      first_name: lead.name?.split(" ")[0] || null,
-      last_name: lead.name?.split(" ").slice(1).join(" ") || null,
+      full_name: lead.name!,
+      first_name: lead.name!.split(" ")[0],
+      last_name: lead.name!.split(" ").slice(1).join(" ") || null,
       phone,
       email: lead.email || null,
       source: "hemlane_email",
@@ -680,8 +685,26 @@ serve(async (req: Request) => {
     const result = await upsertLead(supabase, organizationId, leadInfo, emailId);
 
     if (!result) {
+      // Log the unparseable email so we can improve patterns later
+      await supabase.from("system_logs").insert({
+        organization_id: organizationId,
+        level: "warn",
+        category: "general",
+        event_type: "esther_parse_insufficient",
+        message: `Esther: email had contact info but couldn't extract lead name — skipped to avoid creating incomplete lead. Subject: ${subject}`,
+        details: {
+          email_id: emailId,
+          from: fromEmail,
+          subject,
+          parsed_phone: leadInfo.phone,
+          parsed_email: leadInfo.email,
+          parsed_property: leadInfo.property,
+          body_preview: (textBody || htmlBody).substring(0, 1000),
+        },
+      });
+
       return new Response(
-        JSON.stringify({ message: "Could not create lead (missing phone)" }),
+        JSON.stringify({ message: "Email parsed but insufficient data to create lead (missing name)" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
