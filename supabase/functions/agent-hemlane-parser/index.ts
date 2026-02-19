@@ -101,7 +101,7 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
 
   // Hemlane format: "{Name} sent a message about {Property}:"
   const hemlaneMessagePat = text.match(
-    /([A-Za-z][A-Za-z\s'-]+?)\s+sent a message about\s+(.+?):/i
+    /([A-Za-z\u00C0-\u024F][A-Za-z\u00C0-\u024F\s'-]+?)\s+sent a message about\s+(.+?):/i
   );
   if (hemlaneMessagePat) {
     result.name = hemlaneMessagePat[1].trim().substring(0, 100);
@@ -119,7 +119,7 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
   // Hemlane format: "{Name} is interested in {Property}" or "New inquiry from {Name}"
   if (!result.name) {
     const inquiryPat = text.match(
-      /([A-Za-z][A-Za-z\s'-]+?)\s+is interested in\s+(.+?)(?:\.|$)/im
+      /([A-Za-z\u00C0-\u024F][A-Za-z\u00C0-\u024F\s'-]+?)\s+is interested in\s+(.+?)(?:\.|$)/im
     );
     if (inquiryPat) {
       result.name = inquiryPat[1].trim().substring(0, 100);
@@ -131,7 +131,7 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
 
   if (!result.name) {
     const fromPat = text.match(
-      /(?:inquiry|message|application)\s+from\s+([A-Za-z][A-Za-z\s'-]+?)(?:\s+for|\s+about|\s*$)/im
+      /(?:inquiry|message|application)\s+from\s+([A-Za-z\u00C0-\u024F][A-Za-z\u00C0-\u024F\s'-]+?)(?:\s+for|\s+about|\s*$)/im
     );
     if (fromPat) {
       result.name = fromPat[1].trim().substring(0, 100);
@@ -215,6 +215,18 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
     }
   }
 
+  // ── Reject phone if it was picked up from boilerplate/footer text ─
+  if (result.phone && !labelPhone) {
+    const phonePos = text.indexOf(result.phone);
+    if (phonePos >= 0) {
+      const contextBefore = text.substring(Math.max(0, phonePos - 80), phonePos);
+      if (/(?:Questions?\??|Contact\s+us|Support|Customer\s+Service|Help\s+(?:Line|Desk)|Hemlane)/i.test(contextBefore)) {
+        console.log(`Esther: rejected phone "${result.phone}" — found in footer/boilerplate context`);
+        result.phone = null;
+      }
+    }
+  }
+
   // ── Email patterns (exclude system domains) ──────────────────────
   // Hemlane "New inquiry" format: "EMAIL\nuser@example.com"
   const labelEmail = extractLabelValue(text, "E-?MAIL");
@@ -283,6 +295,15 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
     );
     if (commentsPat) {
       result.message = commentsPat[1].trim().substring(0, 500);
+    }
+  }
+  // Fallback: COMMENTS at end of text with no following label
+  if (!result.message) {
+    const commentsAtEnd = text.match(
+      /^[ \t]*COMMENTS?[ \t]*$\n([\s\S]+)/im
+    );
+    if (commentsAtEnd) {
+      result.message = commentsAtEnd[1].trim().substring(0, 500);
     }
   }
   if (!result.message) {
@@ -364,11 +385,12 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
   const isSkipLine = (l: string) =>
     /^(CONTACT|EMAIL\s*[|I]\s*PHONE|SOURCE|DATE|\*+|-{3,}|View My Dashboard|Website|Facebook Marketplace|Twitter|LinkedIn|Past \d|Daily Leads|These prospective)/i.test(l);
 
-  // Detect address-like lines: starts with number + has street-like words, or ends with "Unit X"
+  // Detect address-like lines: starts with number + has street-like words, unit, or city/state/zip
   const isAddressLine = (l: string) =>
     /^\d+\s+\w/.test(l) && (
-      /\b(street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd|lane|ln|way|place|pl|court|ct|circle|cir|terrace|parkway)\b/i.test(l) ||
-      /,?\s*unit\s+\w/i.test(l)
+      /\b(street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd|lane|ln|way|place|pl|court|ct|circle|cir|terrace|ter|parkway|pkwy)\b/i.test(l) ||
+      /,?\s*unit\s+\w/i.test(l) ||
+      /,\s*\w+,?\s*[A-Z]{2}\s*\d{5}/.test(l)  // "City, OH 44120"
     );
 
   // Debug: log first 30 lines to see actual text structure
@@ -464,6 +486,63 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
         leads.push(leadEntry);
         console.log(`Esther digest lead: name=${leadEntry.name}, email=${email}, property=${currentProperty || "NONE"}`);
       }
+      continue;
+    }
+
+    // ── Phone-only detection (leads without email in digest) ─────────
+    if (/^[\d\s\-().+]+$/.test(line) && line.replace(/\D/g, "").length >= 7) {
+      const phoneVal = line;
+      // Skip if already captured by an email-based lead
+      if (leads.some((l) => l.phone === phoneVal)) continue;
+
+      // Check no email is nearby (email detection would handle that case)
+      let hasNearbyEmail = false;
+      for (let j = i + 1; j <= Math.min(lines.length - 1, i + 3); j++) {
+        if (/[\w.+-]+@[\w.-]+\.\w{2,}/.test(lines[j])) { hasNearbyEmail = true; break; }
+      }
+      if (!hasNearbyEmail) {
+        for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
+          if (/[\w.+-]+@[\w.-]+\.\w{2,}/.test(lines[j])) { hasNearbyEmail = true; break; }
+        }
+      }
+
+      if (!hasNearbyEmail) {
+        // Scan backward for name
+        let phoneName: string | null = null;
+        for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
+          const prev = lines[j];
+          if (
+            !isSkipLine(prev) &&
+            !prev.match(/[\w.+-]+@/) &&
+            !prev.match(/^\+?[\d\s\-().]{7,}$/) &&
+            !prev.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/) &&
+            !prev.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i) &&
+            !listingSourceSet.has(prev.toLowerCase()) &&
+            !isAddressLine(prev)
+          ) {
+            phoneName = prev;
+            break;
+          }
+        }
+
+        // Scan forward for listing source
+        let phoneSource: string | null = null;
+        for (let j = i + 1; j <= Math.min(lines.length - 1, i + 6); j++) {
+          if (listingSourceSet.has(lines[j].toLowerCase())) { phoneSource = lines[j]; break; }
+          const srcMatch = LISTING_SOURCES.find((s) => lines[j].toLowerCase() === s.toLowerCase());
+          if (srcMatch) { phoneSource = srcMatch; break; }
+        }
+
+        leads.push({
+          name: phoneName?.substring(0, 100) || null,
+          email: null,
+          phone: phoneVal,
+          property: currentProperty,
+          message: null,
+          listingSource: phoneSource,
+        });
+        console.log(`Esther digest lead (phone-only): name=${phoneName}, phone=${phoneVal}, property=${currentProperty || "NONE"}`);
+      }
     }
   }
 
@@ -471,10 +550,12 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
 }
 
 // ── Format phone to E.164 ─────────────────────────────────────────────
-function formatPhoneE164(raw: string): string {
+function formatPhoneE164(raw: string): string | null {
   const digits = raw.replace(/\D/g, "");
   if (digits.length === 10) return `+1${digits}`;
   if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  // Invalid phone (too short, too long, or no digits) — don't create ghost records
+  if (digits.length < 10 || digits.length > 15) return null;
   return `+${digits}`;
 }
 
@@ -657,6 +738,20 @@ async function upsertLead(
       await saveLeadNote(supabase, organizationId, existing.id, lead.message);
       const intents = detectAllIntents(lead.message);
       for (const intent of intents) {
+        // Skip if same intent was already scored recently (30 min dedup window)
+        const { data: recentBoost } = await supabase
+          .from("lead_score_history")
+          .select("id")
+          .eq("lead_id", existing.id)
+          .eq("reason_code", intent.reason_code)
+          .gte("created_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())
+          .limit(1)
+          .maybeSingle();
+        if (recentBoost) {
+          console.log(`Esther: skipping ${intent.reason_code} boost for ${existing.id} — already applied recently`);
+          continue;
+        }
+
         const { error: rpcErr } = await supabase.rpc("log_score_change", {
           _lead_id: existing.id,
           _change_amount: intent.boost,
@@ -723,7 +818,7 @@ async function upsertLead(
 
   // ── Dup check 3: by full name + same source (prevents digest/single email duplicates) ──
   if (lead.name && lead.name.length > 2) {
-    const { data: existing } = await supabase
+    const { data: existing, error: dup3Err } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
@@ -731,6 +826,8 @@ async function upsertLead(
       .ilike("full_name", lead.name)
       .limit(1)
       .maybeSingle();
+
+    if (dup3Err) console.error(`Esther: dup check 3 (name) query failed: ${dup3Err.message}`);
 
     if (existing) {
       console.log(`Esther: found name dup "${lead.name}" → ${existing.id} (no phone/email match but same name + hemlane source)`);
@@ -743,7 +840,7 @@ async function upsertLead(
   // If a hemlane lead was created in the last 15 min for the same property, merge.
   if (propertyId) {
     const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-    const { data: recentSameProperty } = await supabase
+    const { data: recentSameProperty, error: dup4Err } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
@@ -753,6 +850,8 @@ async function upsertLead(
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    if (dup4Err) console.error(`Esther: dup check 4 (property+time) query failed: ${dup4Err.message}`);
 
     if (recentSameProperty) {
       console.log(`Esther: found recent lead for same property (15m window) → ${recentSameProperty.id} "${recentSameProperty.full_name}"`);
@@ -765,7 +864,7 @@ async function upsertLead(
   if (phone) {
     const phoneDigits = phone.replace(/\D/g, "").slice(-7); // last 7 digits
     if (phoneDigits.length === 7) {
-      const { data: phoneInName } = await supabase
+      const { data: phoneInName, error: dup5Err } = await supabase
         .from("leads")
         .select("id, full_name, source_detail, phone, email, interested_property_id")
         .eq("organization_id", organizationId)
@@ -773,6 +872,8 @@ async function upsertLead(
         .like("full_name", `%${phoneDigits.slice(0, 3)}%${phoneDigits.slice(3)}%`)
         .limit(1)
         .maybeSingle();
+
+      if (dup5Err) console.error(`Esther: dup check 5 (phone-in-name) query failed: ${dup5Err.message}`);
 
       if (phoneInName) {
         console.log(`Esther: found phone-in-name match → ${phoneInName.id} "${phoneInName.full_name}" (phone digits ${phoneDigits})`);
@@ -789,7 +890,7 @@ async function upsertLead(
     const hasComplementaryInfo = (lead.name && lead.name.length > 2) || phone;
 
     if (hasComplementaryInfo) {
-      const { data: recentIncomplete } = await supabase
+      const { data: recentIncomplete, error: dup6Err } = await supabase
         .from("leads")
         .select("id, full_name, source_detail, phone, email, interested_property_id")
         .eq("organization_id", organizationId)
@@ -798,8 +899,15 @@ async function upsertLead(
         .order("created_at", { ascending: false })
         .limit(5);
 
+      if (dup6Err) console.error(`Esther: dup check 6 (recent-incomplete) query failed: ${dup6Err.message}`);
+
       if (recentIncomplete) {
         for (const candidate of recentIncomplete) {
+          // Skip if properties conflict (different properties = different leads)
+          const propertiesConflict = propertyId && candidate.interested_property_id
+            && propertyId !== candidate.interested_property_id;
+          if (propertiesConflict) continue;
+
           const candidateMissingName = !candidate.full_name || candidate.full_name.startsWith("Hemlane Lead");
           const candidateMissingPhone = !candidate.phone;
           const weHaveName = lead.name && lead.name.length > 2;
@@ -1131,6 +1239,22 @@ serve(async (req: Request) => {
     const organizationId = org?.id;
     if (!organizationId) {
       throw new Error("Default organization 'rent-finder-cleveland' not found");
+    }
+
+    // ── Idempotency: skip if this exact email was already processed ──
+    const { data: alreadyProcessed } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("hemlane_email_id", emailId)
+      .limit(1)
+      .maybeSingle();
+
+    if (alreadyProcessed) {
+      console.log(`Esther: email ${emailId} already processed → lead ${alreadyProcessed.id}, skipping`);
+      return new Response(
+        JSON.stringify({ message: "Email already processed", lead_id: alreadyProcessed.id }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ── 4. Detect email type and parse ──────────────────────────────
