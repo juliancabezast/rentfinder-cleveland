@@ -1,5 +1,9 @@
 # CLAUDE.md - Rent Finder Cleveland
 
+## Working Style
+- **Always execute actions yourself.** If you can run a command (deploy, build, push, test, etc.), do it immediately — never tell the user to do it themselves. The user should only need to act when something truly requires their manual intervention (e.g., Supabase Dashboard UI, third-party dashboards, Lovable rebuild).
+- When doing "go" (commit + push), if a new edge function was created, deploy it yourself before finishing.
+
 ## Project Overview
 AI-powered lead management SaaS for property management. Automates the entire rental lead lifecycle: inbound calls → AI voice agents → lead scoring → follow-ups → showings → applications. Multi-tenant architecture supporting 3 apps on 1 Supabase DB.
 
