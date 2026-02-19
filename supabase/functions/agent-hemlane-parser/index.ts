@@ -60,6 +60,16 @@ interface LeadInfo {
   message: string | null;
 }
 
+/** Extract value from "LABEL\nvalue" format common in Hemlane new-inquiry emails */
+function extractLabelValue(text: string, labelPattern: string): string | null {
+  const pattern = new RegExp(
+    `^[ \\t]*${labelPattern}[ \\t]*$\\n([^\\n]+)`,
+    "im"
+  );
+  const m = text.match(pattern);
+  return m ? m[1].trim() : null;
+}
+
 function parseHemlaneEmail(html: string, subject: string): LeadInfo {
   // Strip HTML tags for plain-text extraction
   const text = html
@@ -150,6 +160,16 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
   }
 
   // ── Generic name patterns (fallback) ─────────────────────────────
+  // Hemlane "New inquiry" format: "NAME\nValue" on separate lines
+  if (!result.name) {
+    const labelName = extractLabelValue(text, "NAME")
+      || extractLabelValue(text, "TENANT(?:\\s+NAME)?")
+      || extractLabelValue(text, "CONTACT")
+      || extractLabelValue(text, "APPLICANT");
+    if (labelName && labelName.length > 1 && labelName.length <= 100) {
+      result.name = labelName;
+    }
+  }
   if (!result.name) {
     const namePatterns = [
       /Name\s*[:\-]\s*(.+)/i,
@@ -168,33 +188,50 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
   }
 
   // ── Phone patterns ───────────────────────────────────────────────
-  const phonePatterns = [
-    /Phone\s*[:\-]\s*([\d\s\-().+]+)/i,
-    /Tel(?:ephone)?\s*[:\-]\s*([\d\s\-().+]+)/i,
-    /Cell\s*[:\-]\s*([\d\s\-().+]+)/i,
-    /Mobile\s*[:\-]\s*([\d\s\-().+]+)/i,
-    /(\+?1?\s*\(?\d{3}\)?\s*[-.\s]?\d{3}\s*[-.\s]?\d{4})/,
-  ];
-  for (const pat of phonePatterns) {
-    const m = text.match(pat);
-    if (m) {
-      result.phone = m[1].trim();
-      break;
+  // Hemlane "New inquiry" format: "PHONE\n773-931-0649"
+  const labelPhone = extractLabelValue(text, "PHONE");
+  if (labelPhone && labelPhone.replace(/\D/g, "").length >= 7) {
+    result.phone = labelPhone;
+  }
+  if (!result.phone) {
+    const phonePatterns = [
+      /Phone\s*[:\-]\s*([\d\s\-().+]+)/i,
+      /Tel(?:ephone)?\s*[:\-]\s*([\d\s\-().+]+)/i,
+      /Cell\s*[:\-]\s*([\d\s\-().+]+)/i,
+      /Mobile\s*[:\-]\s*([\d\s\-().+]+)/i,
+      /(\+?1?\s*\(?\d{3}\)?\s*[-.\s]?\d{3}\s*[-.\s]?\d{4})/,
+    ];
+    for (const pat of phonePatterns) {
+      const m = text.match(pat);
+      if (m) {
+        result.phone = m[1].trim();
+        break;
+      }
     }
   }
 
   // ── Email patterns (exclude system domains) ──────────────────────
-  const emailPatterns = [
-    /Email\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)/i,
-    /E-mail\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)/i,
-  ];
-  for (const pat of emailPatterns) {
-    const m = text.match(pat);
-    if (m) {
-      const candidate = m[1].trim().toLowerCase();
-      if (!excludedDomains.some((d) => candidate.endsWith(d))) {
-        result.email = candidate;
-        break;
+  // Hemlane "New inquiry" format: "EMAIL\nuser@example.com"
+  const labelEmail = extractLabelValue(text, "E-?MAIL");
+  if (labelEmail) {
+    const emailCandidate = labelEmail.toLowerCase();
+    if (/^[\w.+-]+@[\w.-]+\.\w{2,}$/.test(emailCandidate) && !excludedDomains.some((d) => emailCandidate.endsWith(d))) {
+      result.email = emailCandidate;
+    }
+  }
+  if (!result.email) {
+    const emailPatterns = [
+      /Email\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)/i,
+      /E-mail\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)/i,
+    ];
+    for (const pat of emailPatterns) {
+      const m = text.match(pat);
+      if (m) {
+        const candidate = m[1].trim().toLowerCase();
+        if (!excludedDomains.some((d) => candidate.endsWith(d))) {
+          result.email = candidate;
+          break;
+        }
       }
     }
   }
@@ -212,6 +249,14 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
 
   // ── Generic property patterns (fallback) ─────────────────────────
   if (!result.property) {
+    const labelProperty = extractLabelValue(text, "PROPERTY")
+      || extractLabelValue(text, "ADDRESS")
+      || extractLabelValue(text, "LISTING");
+    if (labelProperty) {
+      result.property = labelProperty.substring(0, 200);
+    }
+  }
+  if (!result.property) {
     const propertyPatterns = [
       /Property\s*[:\-]\s*(.+)/i,
       /(?:Address|Unit|Listing)\s*[:\-]\s*(.+)/i,
@@ -226,6 +271,15 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
   }
 
   // ── Message patterns (fallback) ──────────────────────────────────
+  // Hemlane "New inquiry" format: "COMMENTS\nMulti-line message..."
+  if (!result.message) {
+    const commentsPat = text.match(
+      /^[ \t]*COMMENTS?[ \t]*$\n([\s\S]+?)(?=\n[ \t]*(?:PROPERTY|SOURCE|NAME|PHONE|EMAIL|SENT|DATE)[ \t]*$|\s*$)/im
+    );
+    if (commentsPat) {
+      result.message = commentsPat[1].trim().substring(0, 500);
+    }
+  }
   if (!result.message) {
     const messagePatterns = [
       /Message\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
