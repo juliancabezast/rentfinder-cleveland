@@ -469,7 +469,7 @@ async function upsertLead(
   const fallbackIdentifier = displayPhone || lead.email || "unknown";
   const fullName = lead.name || `Hemlane Lead ${fallbackIdentifier}`;
 
-  // Create new lead
+  // Create new lead — with consent flags since they initiated contact
   const { data: newLead, error: err } = await supabase
     .from("leads")
     .insert({
@@ -483,13 +483,17 @@ async function upsertLead(
       source_detail: lead.property ? `Property: ${lead.property}` : null,
       status: "new",
       hemlane_email_id: emailId,
+      // Inbound inquiry = implicit consent to be contacted back
+      sms_consent: true,
+      sms_consent_at: new Date().toISOString(),
+      call_consent: true,
+      call_consent_at: new Date().toISOString(),
     })
     .select("id")
     .single();
 
   if (err || !newLead) {
     console.error(`Esther: failed to create lead ${fullName}: ${err?.message}`);
-    // Log to system_logs so DB failures are visible in the dashboard
     await supabase.from("system_logs").insert({
       organization_id: organizationId,
       level: "error",
@@ -509,7 +513,35 @@ async function upsertLead(
     return null;
   }
 
-  return { leadId: newLead.id, isNew: true, missingName: !lead.name, missingPhone: !phone };
+  const leadId = newLead.id;
+  const now = new Date().toISOString();
+  const evidenceText = `Lead initiated contact via Hemlane property listing${lead.property ? ` for ${lead.property}` : ""}. Inbound inquiry received ${now}. Email ID: ${emailId}`;
+
+  // ── Save initial message as a lead note ──────────────────────────
+  if (lead.message) {
+    await supabase.from("lead_notes").insert({
+      organization_id: organizationId,
+      lead_id: leadId,
+      content: `[Hemlane inquiry] ${lead.message}`,
+      note_type: "general",
+      is_pinned: false,
+    }).catch((e) => console.error(`Esther: failed to save lead note: ${e.message}`));
+  }
+
+  // ── Record consent (inbound inquiry = they contacted us) ─────────
+  const consentTypes = ["automated_calls", "sms_marketing", "email_marketing"] as const;
+  for (const consentType of consentTypes) {
+    await supabase.from("consent_log").insert({
+      organization_id: organizationId,
+      lead_id: leadId,
+      consent_type: consentType,
+      granted: true,
+      method: "web_form",
+      evidence_text: evidenceText,
+    }).catch((e) => console.error(`Esther: failed to log consent (${consentType}): ${e.message}`));
+  }
+
+  return { leadId, isNew: true, missingName: !lead.name, missingPhone: !phone };
 }
 
 // ── Main handler ──────────────────────────────────────────────────────
