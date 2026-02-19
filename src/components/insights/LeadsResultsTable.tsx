@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -82,19 +82,24 @@ export const LeadsResultsTable: React.FC<LeadsResultsTableProps> = ({
   }: {
     field: SortField;
     children: React.ReactNode;
-  }) => (
-    <TableHead
-      className="cursor-pointer hover:bg-muted/50 transition-colors"
-      onClick={() => onSort(field)}
-    >
-      <div className="flex items-center gap-1">
-        {children}
-        <ArrowUpDown
-          className={`h-3 w-3 ${sortField === field ? "text-foreground" : "text-muted-foreground"}`}
-        />
-      </div>
-    </TableHead>
-  );
+  }) => {
+    const isActive = sortField === field;
+    const SortIcon = isActive
+      ? sortDirection === "asc" ? ArrowUp : ArrowDown
+      : ArrowUpDown;
+
+    return (
+      <TableHead
+        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => onSort(field)}
+      >
+        <div className="flex items-center gap-1">
+          {children}
+          <SortIcon className={`h-3 w-3 ${isActive ? "text-[#370d4b]" : "text-muted-foreground"}`} />
+        </div>
+      </TableHead>
+    );
+  };
 
   if (loading) {
     return (

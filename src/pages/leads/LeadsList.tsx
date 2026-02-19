@@ -38,6 +38,8 @@ import {
   Users,
   AlertTriangle,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -427,17 +429,24 @@ const LeadsList: React.FC = () => {
   const SortableHeader: React.FC<{ field: SortField; children: React.ReactNode }> = ({
     field,
     children,
-  }) => (
-    <TableHead
-      className="cursor-pointer select-none hover:bg-muted/50"
-      onClick={() => handleSort(field)}
-    >
-      <div className="flex items-center gap-1">
-        {children}
-        <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
-      </div>
-    </TableHead>
-  );
+  }) => {
+    const isActive = sortField === field;
+    const SortIcon = isActive
+      ? sortDirection === "asc" ? ArrowUp : ArrowDown
+      : ArrowUpDown;
+
+    return (
+      <TableHead
+        className="cursor-pointer select-none hover:bg-muted/50"
+        onClick={() => handleSort(field)}
+      >
+        <div className="flex items-center gap-1">
+          {children}
+          <SortIcon className={`h-3 w-3 ${isActive ? "text-[#370d4b]" : "text-muted-foreground"}`} />
+        </div>
+      </TableHead>
+    );
+  };
 
   return (
     <div className="space-y-6">

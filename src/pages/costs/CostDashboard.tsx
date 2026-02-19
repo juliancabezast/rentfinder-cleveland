@@ -8,6 +8,8 @@ import {
   TrendingUp,
   Search,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   ChevronLeft,
   ChevronRight,
   Settings,
@@ -153,17 +155,24 @@ const CostDashboard: React.FC = () => {
     }
   };
 
-  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <TableHead
-      className="cursor-pointer hover:bg-muted/50 transition-colors"
-      onClick={() => handleSort(field)}
-    >
-      <div className="flex items-center gap-1">
-        {children}
-        <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
-      </div>
-    </TableHead>
-  );
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => {
+    const isActive = sortField === field;
+    const SortIcon = isActive
+      ? sortDirection === "asc" ? ArrowUp : ArrowDown
+      : ArrowUpDown;
+
+    return (
+      <TableHead
+        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => handleSort(field)}
+      >
+        <div className="flex items-center gap-1">
+          {children}
+          <SortIcon className={`h-3 w-3 ${isActive ? "text-[#370d4b]" : "text-muted-foreground"}`} />
+        </div>
+      </TableHead>
+    );
+  };
 
   return (
     <div className="space-y-6">
