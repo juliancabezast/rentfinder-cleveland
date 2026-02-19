@@ -366,7 +366,8 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
         }
       }
 
-      if (phone) {
+      // Push lead if we have phone OR email (don't require both)
+      if (phone || email) {
         leads.push({
           name: name?.substring(0, 100) || null,
           email,
@@ -488,6 +489,23 @@ async function upsertLead(
 
   if (err || !newLead) {
     console.error(`Esther: failed to create lead ${fullName}: ${err?.message}`);
+    // Log to system_logs so DB failures are visible in the dashboard
+    await supabase.from("system_logs").insert({
+      organization_id: organizationId,
+      level: "error",
+      category: "general",
+      event_type: "esther_db_insert_failed",
+      message: `Esther: DB insert failed for lead ${fullName}. Error: ${err?.message}`,
+      details: {
+        lead_name: lead.name,
+        lead_phone: phone,
+        lead_email: lead.email,
+        lead_property: lead.property,
+        hemlane_email_id: emailId,
+        error: err?.message,
+        error_code: err?.code,
+      },
+    }).catch(() => {});
     return null;
   }
 
@@ -617,18 +635,92 @@ serve(async (req: Request) => {
       let created = 0;
       let updated = 0;
       let skipped = 0;
+      const digestFollowUps: string[] = [];
 
       for (const lead of digestLeads) {
         try {
           const result = await upsertLead(supabase, organizationId, lead, emailId);
-          if (result) {
-            if (result.isNew) created++;
-            else updated++;
-          } else {
+          if (!result) {
             skipped++;
+            continue;
+          }
+
+          if (result.isNew) created++;
+          else updated++;
+
+          // Schedule follow-up for incomplete new leads
+          if (result.isNew && (result.missingName || result.missingPhone)) {
+            const scheduleAt = new Date();
+            scheduleAt.setMinutes(scheduleAt.getMinutes() + 2);
+            const leadPhone = lead.phone ? formatPhoneE164(lead.phone) : null;
+
+            if (leadPhone) {
+              // Has phone → Ruth SMS
+              await supabase.from("agent_tasks").insert({
+                organization_id: organizationId,
+                lead_id: result.leadId,
+                agent_type: "sms_inbound",
+                action_type: "sms",
+                scheduled_for: scheduleAt.toISOString(),
+                status: "pending",
+                context: {
+                  task: "intro_missing_info",
+                  source: "esther_digest_auto",
+                  instruction: "Lead arrived from Hemlane digest without a name. Send a friendly intro SMS to gather their name and what property they are interested in.",
+                  parsed_property: lead.property || null,
+                },
+              });
+              digestFollowUps.push(`Ruth SMS → ${leadPhone}`);
+            } else if (lead.email) {
+              // No phone, has email → send email
+              const propertyMention = lead.property
+                ? ` about <strong>${lead.property}</strong>`
+                : "";
+              try {
+                await supabase.functions.invoke("send-notification-email", {
+                  body: {
+                    to: lead.email,
+                    subject: "Thanks for your interest! — Rent Finder Cleveland",
+                    html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                      <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+                        <h1 style="margin:0;color:#ffb22c;font-size:20px;">Thanks for reaching out!</h1>
+                      </div>
+                      <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
+                        <p>Hi there! We received your inquiry${propertyMention} and would love to help you find the perfect rental.</p>
+                        <p>To get you set up quickly, could you reply with:</p>
+                        <ul>
+                          <li><strong>Your full name</strong></li>
+                          <li><strong>Best phone number</strong> to reach you</li>
+                        </ul>
+                        <p>Once we have that, our team will reach out to schedule a showing at a time that works for you.</p>
+                        <br>
+                        <p style="color:#666;font-size:14px;">— The Rent Finder Cleveland Team</p>
+                      </div>
+                    </div>`,
+                    notification_type: "lead_info_request",
+                    organization_id: organizationId,
+                    related_entity_id: result.leadId,
+                    related_entity_type: "lead",
+                    from_name: "Rent Finder Cleveland",
+                  },
+                });
+                digestFollowUps.push(`email → ${lead.email}`);
+              } catch (emailErr) {
+                console.error(`Esther digest: email send failed for ${lead.email}: ${(emailErr as Error).message}`);
+                digestFollowUps.push(`email FAILED → ${lead.email}`);
+              }
+            }
           }
         } catch (e) {
           console.error(`Esther digest: error processing ${lead.name}: ${(e as Error).message}`);
+          await supabase.from("system_logs").insert({
+            organization_id: organizationId,
+            level: "error",
+            category: "general",
+            event_type: "esther_digest_lead_error",
+            message: `Esther digest: failed to process lead ${lead.name || lead.email || lead.phone}. ${(e as Error).message}`,
+            details: { lead, error: (e as Error).message },
+          }).catch(() => {});
           skipped++;
         }
       }
@@ -638,7 +730,7 @@ serve(async (req: Request) => {
         level: "info",
         category: "general",
         event_type: "esther_digest_processed",
-        message: `Esther: daily digest processed — ${created} new, ${updated} updated, ${skipped} skipped (${digestLeads.length} total)`,
+        message: `Esther: daily digest processed — ${created} new, ${updated} updated, ${skipped} skipped (${digestLeads.length} total)${digestFollowUps.length > 0 ? `. Follow-ups: ${digestFollowUps.length}` : ""}`,
         details: {
           email_id: emailId,
           subject,
@@ -646,6 +738,7 @@ serve(async (req: Request) => {
           created,
           updated,
           skipped,
+          follow_ups: digestFollowUps,
         },
       });
 
@@ -669,11 +762,16 @@ serve(async (req: Request) => {
     if (!leadInfo.phone && !leadInfo.email) {
       await supabase.from("system_logs").insert({
         organization_id: organizationId,
-        level: "info",
+        level: "warn",
         category: "general",
         event_type: "esther_parse_skip",
         message: `Esther: skipped email — no lead contact info found. Subject: ${subject}`,
-        details: { email_id: emailId, from: fromEmail, subject },
+        details: {
+          email_id: emailId,
+          from: fromEmail,
+          subject,
+          body_preview: (textBody || htmlBody).substring(0, 1500),
+        },
       });
 
       return new Response(
@@ -724,6 +822,7 @@ serve(async (req: Request) => {
           ? ` about <strong>${leadInfo.property}</strong>`
           : "";
 
+        try {
         await supabase.functions.invoke("send-notification-email", {
           body: {
             to: leadInfo.email,
@@ -752,6 +851,10 @@ serve(async (req: Request) => {
           },
         });
         followUpActions.push("info-request email sent");
+        } catch (emailErr) {
+          console.error(`Esther: email send failed for ${leadInfo.email}: ${(emailErr as Error).message}`);
+          followUpActions.push("info-request email FAILED");
+        }
       }
 
       await supabase.from("system_logs").insert({
