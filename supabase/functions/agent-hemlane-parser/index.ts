@@ -607,34 +607,29 @@ async function upsertLead(
       if (lead.message) {
         const intents = detectAllIntents(lead.message);
         for (const intent of intents) {
-          try {
-            await supabase.rpc("log_score_change", {
-              _lead_id: existing.id,
-              _change_amount: intent.boost,
-              _reason_code: intent.reason_code,
-              _reason_text: intent.reason,
-              _triggered_by: "engagement",
-              _changed_by_agent: "esther",
-            });
-          } catch (e) {
-            console.error(`Esther: score boost failed: ${(e as Error).message}`);
-          }
+          const { error: rpcErr } = await supabase.rpc("log_score_change", {
+            _lead_id: existing.id,
+            _change_amount: intent.boost,
+            _reason_code: intent.reason_code,
+            _reason_text: intent.reason,
+            _triggered_by: "engagement",
+            _changed_by_agent: "esther",
+          });
+          if (rpcErr) console.error(`Esther: score boost failed (${intent.reason_code}): ${rpcErr.message}`);
         }
       }
 
       // Add property to lead_properties (multi-property support)
       if (propertyId) {
-        try {
-          await supabase.from("lead_properties").upsert({
-            organization_id: organizationId,
-            lead_id: existing.id,
-            property_id: propertyId,
-            source: "hemlane_email",
-            listing_source: lead.listingSource || null,
-          }, { onConflict: "lead_id,property_id" });
-        } catch (e) {
-          console.error(`Esther: lead_properties upsert failed: ${(e as Error).message}`);
-        }
+        const { error: lpErr } = await supabase.from("lead_properties").upsert({
+          organization_id: organizationId,
+          lead_id: existing.id,
+          property_id: propertyId,
+          source: "hemlane_email",
+          listing_source: lead.listingSource || null,
+        }, { onConflict: "lead_id,property_id" });
+        if (lpErr) console.error(`Esther: lead_properties upsert failed: ${lpErr.message}`);
+        else console.log(`Esther: lead_properties linked lead=${existing.id} property=${propertyId}`);
       }
 
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
@@ -689,34 +684,29 @@ async function upsertLead(
       if (lead.message) {
         const intents = detectAllIntents(lead.message);
         for (const intent of intents) {
-          try {
-            await supabase.rpc("log_score_change", {
-              _lead_id: existing.id,
-              _change_amount: intent.boost,
-              _reason_code: intent.reason_code,
-              _reason_text: intent.reason,
-              _triggered_by: "engagement",
-              _changed_by_agent: "esther",
-            });
-          } catch (e) {
-            console.error(`Esther: score boost failed: ${(e as Error).message}`);
-          }
+          const { error: rpcErr } = await supabase.rpc("log_score_change", {
+            _lead_id: existing.id,
+            _change_amount: intent.boost,
+            _reason_code: intent.reason_code,
+            _reason_text: intent.reason,
+            _triggered_by: "engagement",
+            _changed_by_agent: "esther",
+          });
+          if (rpcErr) console.error(`Esther: score boost failed (${intent.reason_code}): ${rpcErr.message}`);
         }
       }
 
       // Add property to lead_properties (multi-property support)
       if (propertyId) {
-        try {
-          await supabase.from("lead_properties").upsert({
-            organization_id: organizationId,
-            lead_id: existing.id,
-            property_id: propertyId,
-            source: "hemlane_email",
-            listing_source: lead.listingSource || null,
-          }, { onConflict: "lead_id,property_id" });
-        } catch (e) {
-          console.error(`Esther: lead_properties upsert failed: ${(e as Error).message}`);
-        }
+        const { error: lpErr } = await supabase.from("lead_properties").upsert({
+          organization_id: organizationId,
+          lead_id: existing.id,
+          property_id: propertyId,
+          source: "hemlane_email",
+          listing_source: lead.listingSource || null,
+        }, { onConflict: "lead_id,property_id" });
+        if (lpErr) console.error(`Esther: lead_properties upsert failed: ${lpErr.message}`);
+        else console.log(`Esther: lead_properties linked lead=${existing.id} property=${propertyId}`);
       }
 
       return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
@@ -784,17 +774,15 @@ async function upsertLead(
 
   // ── Add to lead_properties junction table ─────────────────────────
   if (propertyId) {
-    try {
-      await supabase.from("lead_properties").insert({
-        organization_id: organizationId,
-        lead_id: leadId,
-        property_id: propertyId,
-        source: "hemlane_email",
-        listing_source: lead.listingSource || null,
-      });
-    } catch (e) {
-      console.error(`Esther: lead_properties insert failed: ${(e as Error).message}`);
-    }
+    const { error: lpErr } = await supabase.from("lead_properties").insert({
+      organization_id: organizationId,
+      lead_id: leadId,
+      property_id: propertyId,
+      source: "hemlane_email",
+      listing_source: lead.listingSource || null,
+    });
+    if (lpErr) console.error(`Esther: lead_properties insert failed: ${lpErr.message}`);
+    else console.log(`Esther: lead_properties linked lead=${leadId} property=${propertyId}`);
   }
 
   // ── Save initial message as a lead note ──────────────────────────
@@ -818,38 +806,41 @@ async function upsertLead(
     }
   }
 
-  // ── Score boost if lead has a matched property (+10: 40 → 50) ────
-  if (propertyId) {
-    try {
-      await supabase.rpc("log_score_change", {
-        _lead_id: leadId,
-        _change_amount: 10,
-        _reason_code: "property_matched",
-        _reason_text: "Lead associated with a property on creation",
-        _triggered_by: "system",
-        _changed_by_agent: "esther",
-      });
-    } catch (e) {
-      console.error(`Esther: property score boost failed: ${(e as Error).message}`);
+  // ── Helper: call log_score_change with proper error handling ────
+  const applyScoreBoost = async (amount: number, reasonCode: string, reasonText: string, triggeredBy: string) => {
+    const { error: rpcErr } = await supabase.rpc("log_score_change", {
+      _lead_id: leadId,
+      _change_amount: amount,
+      _reason_code: reasonCode,
+      _reason_text: reasonText,
+      _triggered_by: triggeredBy,
+      _changed_by_agent: "esther",
+    });
+    if (rpcErr) {
+      console.error(`Esther: score boost failed (${reasonCode}, +${amount}): ${rpcErr.message}`);
+    } else {
+      console.log(`Esther: score boost applied (${reasonCode}, +${amount}) for lead ${leadId}`);
     }
+  };
+
+  // ── Base score: inbound inquiry = real lead (+10) ─────────────
+  await applyScoreBoost(10, "inbound_inquiry", "Lead initiated contact via Hemlane property listing", "system");
+
+  // ── Bonus: complete contact info (+5) ─────────────────────────
+  if (phone && lead.email) {
+    await applyScoreBoost(5, "complete_contact", "Lead provided both phone and email", "system");
   }
 
-  // ── Auto-score based on message intent (boosts stack) ──────────
+  // ── Score boost if lead has a matched property (+10) ──────────
+  if (propertyId) {
+    await applyScoreBoost(10, "property_matched", "Lead associated with a property on creation", "system");
+  }
+
+  // ── Auto-score based on message intent (boosts stack) ─────────
   if (lead.message) {
     const intents = detectAllIntents(lead.message);
     for (const intent of intents) {
-      try {
-        await supabase.rpc("log_score_change", {
-          _lead_id: leadId,
-          _change_amount: intent.boost,
-          _reason_code: intent.reason_code,
-          _reason_text: intent.reason,
-          _triggered_by: "engagement",
-          _changed_by_agent: "esther",
-        });
-      } catch (e) {
-        console.error(`Esther: score boost failed: ${(e as Error).message}`);
-      }
+      await applyScoreBoost(intent.boost, intent.reason_code, intent.reason, "engagement");
     }
   }
 
