@@ -170,7 +170,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
       if (!lead.id || !userRecord?.organization_id) return;
       try {
         const { data } = await supabase
-          .from("lead_properties")
+          .from("lead_properties" as any)
           .select("property_id, listing_source, properties(address, unit_number)")
           .eq("lead_id", lead.id)
           .eq("organization_id", userRecord.organization_id);
@@ -257,25 +257,29 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
 
     try {
       // Set as primary interested property
-      await supabase
+      const { error: updateErr } = await supabase
         .from("leads")
         .update({ interested_property_id: propertyId })
         .eq("id", lead.id);
+      if (updateErr) throw updateErr;
 
-      // Also record in lead_properties junction table
+      // Also record in lead_properties junction table (best-effort)
       if (userRecord?.organization_id) {
-        await supabase
-          .from("lead_properties")
-          .upsert(
-            {
-              organization_id: userRecord.organization_id,
-              lead_id: lead.id,
-              property_id: propertyId,
-              source: "manual_match",
-            },
-            { onConflict: "lead_id,property_id" }
-          )
-          .catch(() => {});
+        try {
+          await supabase
+            .from("lead_properties" as any)
+            .upsert(
+              {
+                organization_id: userRecord.organization_id,
+                lead_id: lead.id,
+                property_id: propertyId,
+                source: "manual_match",
+              },
+              { onConflict: "lead_id,property_id" }
+            );
+        } catch {
+          // Table may not be in generated types — ignore
+        }
       }
 
       const selected = orgProperties.find((p) => p.id === propertyId);
