@@ -28,7 +28,6 @@ import {
   ChevronRight,
   Settings2,
   Zap,
-  Activity,
   MessageSquare,
   Mail,
   Inbox,
@@ -143,6 +142,7 @@ export const AdminDashboard = () => {
     return prefs.widgets.find((w) => w.id === widgetId)?.visible ?? true;
   };
 
+  // ── Row 1 + list data (runs once) ──
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!userRecord?.organization_id) return;
@@ -152,7 +152,6 @@ export const AdminDashboard = () => {
         const todayStart = startOfDay(today).toISOString();
         const todayEnd = endOfDay(today).toISOString();
 
-        // Single RPC for all stats + parallel queries for list data
         const [
           summaryResult,
           showingsTodayResult,
@@ -160,15 +159,11 @@ export const AdminDashboard = () => {
           alertsResult,
           recentCallsResult,
           totalLeadsResult,
-          showingsScheduledResult,
-          smsSentResult,
-          emailsSentResult,
-          emailsParsedResult,
+          leadsTodayResult,
           hotLeadsResult,
+          propertiesResult,
         ] = await Promise.all([
-          // Single RPC replaces 8 parallel queries for stats
           supabase.rpc('get_dashboard_summary'),
-          // Keep list queries for UI cards
           supabase
             .from("showings")
             .select(`
@@ -207,42 +202,29 @@ export const AdminDashboard = () => {
             .eq("organization_id", userRecord.organization_id)
             .order("started_at", { ascending: false })
             .limit(10),
-          // ── New stat bubble queries ──
+          // Row 1 stat queries
           supabase
             .from("leads")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", userRecord.organization_id),
           supabase
-            .from("showings")
+            .from("leads")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", userRecord.organization_id)
-            .in("status", ["confirmed", "pending"]),
-          supabase
-            .from("communications")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", userRecord.organization_id)
-            .eq("channel", "sms")
-            .eq("direction", "outbound"),
-          supabase
-            .from("communications")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", userRecord.organization_id)
-            .eq("channel", "email")
-            .eq("direction", "outbound"),
-          supabase
-            .from("system_logs")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", userRecord.organization_id)
-            .eq("event_type", "esther_lead_processed"),
+            .gte("created_at", todayStart),
           supabase
             .from("leads")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", userRecord.organization_id)
             .gte("lead_score", 80)
             .not("status", "in", '("lost","converted")'),
+          // Properties for distinct count
+          supabase
+            .from("properties")
+            .select("address, city, zip_code")
+            .eq("organization_id", userRecord.organization_id),
         ]);
 
-        // Map RPC response to stats state
         const summary = summaryResult.data as {
           properties: { total: number; available: number; coming_soon: number; in_leasing: number; rented: number };
           leads: { active: number; new_this_week: number; converted_this_month: number; total_this_month: number };
@@ -250,9 +232,14 @@ export const AdminDashboard = () => {
           conversion_rate: number;
         } | null;
 
+        // Count distinct properties (unique address+city+zip combos)
+        const allProps = propertiesResult.data || [];
+        const distinctSet = new Set(allProps.map((p: any) => `${p.address}|${p.city}|${p.zip_code}`));
+
         if (summary) {
           setStats({
-            totalProperties: summary.properties.total,
+            totalDoors: summary.properties.total,
+            totalDistinctProperties: distinctSet.size,
             propertiesByStatus: {
               available: summary.properties.available,
               coming_soon: summary.properties.coming_soon,
@@ -261,13 +248,8 @@ export const AdminDashboard = () => {
             },
             activeLeads: summary.leads.active,
             newLeadsThisWeek: summary.leads.new_this_week,
-            showingsToday: summary.showings.today,
-            conversionRate: summary.conversion_rate,
             totalLeads: totalLeadsResult.count || 0,
-            showingsScheduled: showingsScheduledResult.count || 0,
-            smsSent: smsSentResult.count || 0,
-            emailsSent: emailsSentResult.count || 0,
-            emailsParsed: emailsParsedResult.count || 0,
+            leadsToday: leadsTodayResult.count || 0,
             hotLeads: hotLeadsResult.count || 0,
           });
         }
@@ -329,6 +311,73 @@ export const AdminDashboard = () => {
 
     fetchDashboardData();
   }, [userRecord?.organization_id]);
+
+  // ── Row 2 stats (re-runs when period changes) ──
+  useEffect(() => {
+    const fetchRow2 = async () => {
+      if (!userRecord?.organization_id) return;
+      setRow2Loading(true);
+
+      try {
+        const now = new Date();
+        let periodStart: string | null = null;
+        if (statsPeriod === 'day') periodStart = startOfDay(now).toISOString();
+        else if (statsPeriod === 'week') periodStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString();
+        else if (statsPeriod === 'month') periodStart = startOfMonth(now).toISOString();
+
+        // Build filtered queries
+        let smsQuery = supabase
+          .from("communications")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", userRecord.organization_id)
+          .eq("channel", "sms")
+          .eq("direction", "outbound");
+        if (periodStart) smsQuery = smsQuery.gte("created_at", periodStart);
+
+        let emailQuery = supabase
+          .from("communications")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", userRecord.organization_id)
+          .eq("channel", "email")
+          .eq("direction", "outbound");
+        if (periodStart) emailQuery = emailQuery.gte("created_at", periodStart);
+
+        let parsedQuery = supabase
+          .from("system_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", userRecord.organization_id)
+          .eq("event_type", "esther_lead_processed");
+        if (periodStart) parsedQuery = parsedQuery.gte("created_at", periodStart);
+
+        let callsQuery = supabase
+          .from("calls")
+          .select("duration_seconds")
+          .eq("organization_id", userRecord.organization_id);
+        if (periodStart) callsQuery = callsQuery.gte("started_at", periodStart);
+
+        const [smsRes, emailRes, parsedRes, callsRes] = await Promise.all([
+          smsQuery, emailQuery, parsedQuery, callsQuery,
+        ]);
+
+        const callRows = callsRes.data || [];
+        const totalSeconds = callRows.reduce((sum: number, c: any) => sum + (c.duration_seconds || 0), 0);
+
+        setRow2Stats({
+          smsSent: smsRes.count || 0,
+          emailsSent: emailRes.count || 0,
+          emailsParsed: parsedRes.count || 0,
+          callsMade: callRows.length,
+          callMinutes: Math.round(totalSeconds / 60),
+        });
+      } catch (error) {
+        console.error("Error fetching row 2 stats:", error);
+      } finally {
+        setRow2Loading(false);
+      }
+    };
+
+    fetchRow2();
+  }, [userRecord?.organization_id, statsPeriod]);
 
   const handleTakeControl = async (leadId: string) => {
     if (!userRecord) return;
@@ -394,32 +443,42 @@ export const AdminDashboard = () => {
           </Button>
         </div>
 
-        {/* Stats Grid — Row 1 */}
+        {/* Stats Grid — Row 1: Totals */}
         {isWidgetVisible("stats_cards") && (
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="animate-fade-up stagger-1">
                 <StatCard
+                  title="Total Doors"
+                  value={stats?.totalDoors || 0}
+                  subtitle={`${stats?.totalDistinctProperties || 0} properties`}
+                  icon={DoorOpen}
+                  impact={stats?.totalDoors && stats.totalDoors > 10 ? "high" : stats?.totalDoors && stats.totalDoors > 5 ? "medium" : "low"}
+                  loading={loading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-2">
+                <StatCard
                   title="Total Leads"
                   value={stats?.totalLeads || 0}
-                  subtitle="this week"
+                  subtitle={`${stats?.activeLeads || 0} active`}
                   icon={Users}
                   trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
                   impact={stats?.totalLeads && stats.totalLeads > 20 ? "high" : stats?.totalLeads && stats.totalLeads > 10 ? "medium" : "low"}
                   loading={loading}
                 />
               </div>
-              <div className="animate-fade-up stagger-2">
+              <div className="animate-fade-up stagger-3">
                 <StatCard
-                  title="Showings Agendados"
-                  value={stats?.showingsScheduled || 0}
+                  title="Leads Today"
+                  value={stats?.leadsToday || 0}
                   subtitle={format(new Date(), "EEEE, MMM d")}
-                  icon={Calendar}
-                  impact={stats?.showingsScheduled && stats.showingsScheduled > 0 ? "high" : undefined}
+                  icon={UserPlus}
+                  impact={stats?.leadsToday && stats.leadsToday > 0 ? "high" : undefined}
                   loading={loading}
                 />
               </div>
-              <div className="animate-fade-up stagger-3">
+              <div className="animate-fade-up stagger-4">
                 <StatCard
                   title="Hot Leads"
                   value={stats?.hotLeads || 0}
@@ -429,58 +488,71 @@ export const AdminDashboard = () => {
                   loading={loading}
                 />
               </div>
-              <div className="animate-fade-up stagger-4">
-                <StatCard
-                  title="Total Properties"
-                  value={stats?.totalProperties || 0}
-                  subtitle={`${stats?.propertiesByStatus?.available || 0} available`}
-                  icon={Building}
-                  impact={stats?.propertiesByStatus?.available && stats.propertiesByStatus.available > 5 ? "high" : "medium"}
-                  loading={loading}
-                />
-              </div>
             </div>
 
-            {/* Stats Grid — Row 2 */}
+            {/* Period Filter for Row 2 */}
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
+              {([
+                { key: 'day' as StatsPeriod, label: 'Hoy' },
+                { key: 'week' as StatsPeriod, label: 'Semana' },
+                { key: 'month' as StatsPeriod, label: 'Mes' },
+                { key: 'total' as StatsPeriod, label: 'Total' },
+              ]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setStatsPeriod(key)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                    statsPeriod === key
+                      ? "bg-white text-[#370d4b] shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Stats Grid — Row 2: Activity (filtered by period) */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="animate-fade-up stagger-5">
                 <StatCard
                   title="Mensajes Enviados"
-                  value={stats?.smsSent || 0}
+                  value={row2Stats?.smsSent || 0}
                   subtitle="SMS outbound"
                   icon={MessageSquare}
-                  impact={stats?.smsSent && stats.smsSent > 50 ? "high" : stats?.smsSent && stats.smsSent > 10 ? "medium" : undefined}
-                  loading={loading}
+                  impact={row2Stats?.smsSent && row2Stats.smsSent > 50 ? "high" : row2Stats?.smsSent && row2Stats.smsSent > 10 ? "medium" : undefined}
+                  loading={loading || row2Loading}
                 />
               </div>
               <div className="animate-fade-up stagger-6">
                 <StatCard
                   title="Correos Enviados"
-                  value={stats?.emailsSent || 0}
+                  value={row2Stats?.emailsSent || 0}
                   subtitle="emails outbound"
                   icon={Mail}
-                  impact={stats?.emailsSent && stats.emailsSent > 50 ? "high" : stats?.emailsSent && stats.emailsSent > 10 ? "medium" : undefined}
-                  loading={loading}
+                  impact={row2Stats?.emailsSent && row2Stats.emailsSent > 50 ? "high" : row2Stats?.emailsSent && row2Stats.emailsSent > 10 ? "medium" : undefined}
+                  loading={loading || row2Loading}
                 />
               </div>
               <div className="animate-fade-up stagger-7">
                 <StatCard
                   title="Emails Parseados"
-                  value={stats?.emailsParsed || 0}
+                  value={row2Stats?.emailsParsed || 0}
                   subtitle="via Esther"
                   icon={Inbox}
-                  impact={stats?.emailsParsed && stats.emailsParsed > 0 ? "medium" : undefined}
-                  loading={loading}
+                  impact={row2Stats?.emailsParsed && row2Stats.emailsParsed > 0 ? "medium" : undefined}
+                  loading={loading || row2Loading}
                 />
               </div>
               <div className="animate-fade-up stagger-8">
                 <StatCard
-                  title="Showings Today"
-                  value={stats?.showingsToday || 0}
-                  subtitle={format(new Date(), "EEEE, MMM d")}
-                  icon={TrendingUp}
-                  impact={stats?.showingsToday && stats.showingsToday > 0 ? "high" : undefined}
-                  loading={loading}
+                  title="Llamadas Hechas"
+                  value={row2Stats?.callsMade || 0}
+                  subtitle={`${row2Stats?.callMinutes || 0} min en llamada`}
+                  icon={Phone}
+                  impact={row2Stats?.callsMade && row2Stats.callsMade > 10 ? "high" : row2Stats?.callsMade && row2Stats.callsMade > 0 ? "medium" : undefined}
+                  loading={loading || row2Loading}
                 />
               </div>
             </div>
