@@ -32,6 +32,7 @@ interface RecentLeadRow {
   email: string | null;
   source: string;
   created_at: string;
+  updated_at: string;
   properties: {
     address: string;
     city: string;
@@ -129,9 +130,9 @@ export const RealTimeAgentPanel = () => {
 
       const { data, error } = await supabase
         .from("leads")
-        .select("id, full_name, phone, email, source, created_at, properties(address, city)")
+        .select("id, full_name, phone, email, source, created_at, updated_at, properties(address, city)")
         .eq("organization_id", orgId)
-        .order("created_at", { ascending: false })
+        .order("updated_at", { ascending: false })
         .limit(20);
 
       if (error) throw error;
@@ -181,7 +182,7 @@ export const RealTimeAgentPanel = () => {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "leads",
           filter: `organization_id=eq.${orgId}`,
@@ -297,26 +298,42 @@ export const RealTimeAgentPanel = () => {
                 const leadName =
                   lead.full_name || lead.phone || lead.email || "Lead sin nombre";
                 const createdAt = new Date(lead.created_at);
+                const updatedAt = new Date(lead.updated_at || lead.created_at);
+                // Show the most recent timestamp (created or updated)
+                const displayTime = updatedAt > createdAt ? updatedAt : createdAt;
+                // "New" = created in the last hour; otherwise it's returning activity
+                const isNew = (Date.now() - createdAt.getTime()) < 60 * 60 * 1000;
 
                 return (
                   <div
                     key={lead.id}
                     className={cn(
-                      "p-3 rounded-lg transition-all hover:bg-emerald-50/60 bg-emerald-50/30 border border-emerald-100/60",
+                      "p-3 rounded-lg transition-all",
+                      isNew
+                        ? "bg-emerald-50/30 border border-emerald-100/60 hover:bg-emerald-50/60"
+                        : "bg-blue-50/30 border border-blue-100/60 hover:bg-blue-50/60",
                       index === 0 && "animate-fade-up"
                     )}
                   >
                     {/* Row 1: icon + time + badge */}
                     <div className="flex items-center gap-2 mb-1">
-                      <div className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600">
+                      <div className={cn(
+                        "h-7 w-7 rounded-full flex items-center justify-center shrink-0",
+                        isNew ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600"
+                      )}>
                         <UserPlus className="h-3.5 w-3.5" />
                       </div>
                       <span className="text-[11px] text-muted-foreground">
-                        {format(createdAt, "h:mm a")} ·{" "}
-                        {formatDistanceToNow(createdAt, { addSuffix: true })}
+                        {format(displayTime, "h:mm a")} ·{" "}
+                        {formatDistanceToNow(displayTime, { addSuffix: true })}
                       </span>
-                      <Badge className="h-4 px-1.5 text-[10px] bg-emerald-500 hover:bg-emerald-500 ml-auto">
-                        NUEVO LEAD
+                      <Badge className={cn(
+                        "h-4 px-1.5 text-[10px] ml-auto",
+                        isNew
+                          ? "bg-emerald-500 hover:bg-emerald-500"
+                          : "bg-blue-500 hover:bg-blue-500"
+                      )}>
+                        {isNew ? "NUEVO LEAD" : "ACTIVIDAD"}
                       </Badge>
                     </div>
 

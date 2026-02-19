@@ -399,7 +399,8 @@ async function upsertLead(
 ): Promise<{ leadId: string; isNew: boolean; missingName: boolean; missingPhone: boolean } | null> {
   const phone = lead.phone ? formatPhoneE164(lead.phone) : null;
 
-  if (!phone && !lead.email) return null;
+  // Only skip if we truly have nothing (no contact info AND no name/property)
+  if (!phone && !lead.email && !lead.name && !lead.property) return null;
 
   // Check duplicate by phone
   if (phone) {
@@ -628,6 +629,20 @@ serve(async (req: Request) => {
     const htmlBody = emailData.html || emailData.text || "";
     const textBody = emailData.text || "";
 
+    // ── Extract reply_to as fallback contact email ────────────────
+    const excludedEmailDomains = ["hemlane.com", "rentfindercleveland.com", "inbound.rentfindercleveland.com"];
+    let replyToEmail: string | null = null;
+    if (emailData.reply_to) {
+      const replyTos = Array.isArray(emailData.reply_to) ? emailData.reply_to : [emailData.reply_to];
+      for (const rt of replyTos) {
+        const rtMatch = String(rt).toLowerCase().match(/[\w.+-]+@[\w.-]+\.\w{2,}/);
+        if (rtMatch && !excludedEmailDomains.some((d) => rtMatch[0].endsWith(d))) {
+          replyToEmail = rtMatch[0];
+          break;
+        }
+      }
+    }
+
     // ── Get default organization ────────────────────────────────────
     const { data: org } = await supabase
       .from("organizations")
@@ -791,13 +806,19 @@ serve(async (req: Request) => {
     // ── SINGLE EMAIL: parse one lead ────────────────────────────────
     const leadInfo = parseHemlaneEmail(htmlBody, subject);
 
-    if (!leadInfo.phone && !leadInfo.email) {
+    // Use reply_to email as fallback if parser didn't find one
+    if (!leadInfo.email && replyToEmail) {
+      leadInfo.email = replyToEmail;
+    }
+
+    // Only skip if we truly have NOTHING useful
+    if (!leadInfo.phone && !leadInfo.email && !leadInfo.name && !leadInfo.property) {
       await supabase.from("system_logs").insert({
         organization_id: organizationId,
         level: "warn",
         category: "general",
         event_type: "esther_parse_skip",
-        message: `Esther: skipped email — no lead contact info found. Subject: ${subject}`,
+        message: `Esther: skipped email — no lead info found at all. Subject: ${subject}`,
         details: {
           email_id: emailId,
           from: fromEmail,
