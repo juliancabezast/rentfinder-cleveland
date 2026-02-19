@@ -300,6 +300,26 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
     }
   }
 
+  // ── Last resort: find ANY street address in the text ─────────────
+  if (!result.property) {
+    const addressPat = text.match(
+      /\b(\d+\s+[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*\s+(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Place|Pl|Court|Ct|Circle|Cir|Terrace|Ter|Parkway|Pkwy))\b/
+    );
+    if (addressPat) {
+      result.property = addressPat[1].trim().substring(0, 200);
+    }
+  }
+
+  // ── Even more aggressive: "number + words" near "Rental" or "Property" ─
+  if (!result.property) {
+    const nearRental = text.match(
+      /(?:rental|property|listing|unit|address)[:\s]*(\d+\s+[A-Za-z][\w\s,]+?)(?:\s*[\|\(\n]|$)/im
+    );
+    if (nearRental) {
+      result.property = nearRental[1].trim().substring(0, 200);
+    }
+  }
+
   // ── Listing source (Zillow, Apartments.com, etc.) ──────────────
   const labelSource = extractLabelValue(text, "SOURCE");
   if (labelSource && !/hemlane/i.test(labelSource)) {
@@ -315,6 +335,7 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
     }
   }
 
+  console.log(`Esther parseEmail: name=${result.name}, property=${result.property || "NONE"}, email=${result.email}, phone=${result.phone}, message=${result.message ? "yes" : "no"}`);
   return result;
 }
 
@@ -432,14 +453,16 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
       }
 
       if (phone || email) {
-        leads.push({
+        const leadEntry = {
           name: name?.substring(0, 100) || null,
           email,
           phone,
           property: currentProperty,
           message: null,
           listingSource,
-        });
+        };
+        leads.push(leadEntry);
+        console.log(`Esther digest lead: name=${leadEntry.name}, email=${email}, property=${currentProperty || "NONE"}`);
       }
     }
   }
@@ -606,14 +629,12 @@ async function upsertLead(
   const sourceVia = lead.listingSource ? ` (via ${lead.listingSource})` : "";
   const propertyDetail = lead.property ? `Property: ${lead.property}${sourceVia}` : null;
 
-  // Match property in DB
-  const propertyId = lead.property
+  // Match property in DB (or auto-create if not found)
+  let propertyId = lead.property
     ? await matchOrCreateProperty(supabase, organizationId, lead.property)
     : null;
 
-  if (lead.property) {
-    console.log(`Esther upsert: lead="${lead.name}" property="${lead.property}" → matchId=${propertyId || "NO MATCH"}`);
-  }
+  console.log(`Esther upsert: lead="${lead.name}" property="${lead.property || "NONE"}" → propertyId=${propertyId || "NULL"}`);
 
   // Check duplicate by phone
   if (phone) {
@@ -625,6 +646,17 @@ async function upsertLead(
       .maybeSingle();
 
     if (existing) {
+      // ── Fallback: if no property from parser, try extracting from existing source_detail ──
+      if (!propertyId && !existing.interested_property_id && existing.source_detail) {
+        const sdAddress = existing.source_detail.match(
+          /Property:\s*(\d+\s+[A-Za-z][\w\s]+?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Place|Pl|Court|Ct|Circle|Cir|Terrace|Ter|Parkway|Pkwy))/i
+        );
+        if (sdAddress) {
+          console.log(`Esther: fallback property from source_detail: "${sdAddress[1]}"`);
+          propertyId = await matchOrCreateProperty(supabase, organizationId, sdAddress[1]);
+        }
+      }
+
       const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}${sourceVia}. ${lead.message || ""}`.trim();
       const detail = existing.source_detail
         ? `${existing.source_detail}\n${note}`
@@ -657,7 +689,7 @@ async function upsertLead(
       if (updateErr) {
         console.error(`Esther: lead update failed for ${existing.id}: ${updateErr.message}`);
       } else {
-        console.log(`Esther: updated existing lead ${existing.id} (phone dup) — property=${propertyId || "none"}, name=${needsNameFix ? lead.name : "kept"}`);
+        console.log(`Esther: updated existing lead ${existing.id} (phone dup) — property=${propertyId || "NONE"}, name=${needsNameFix ? lead.name : "kept"}`);
       }
 
       if (lead.message) {
@@ -693,6 +725,17 @@ async function upsertLead(
       .maybeSingle();
 
     if (existing) {
+      // ── Fallback: if no property from parser, try extracting from existing source_detail ──
+      if (!propertyId && !existing.interested_property_id && existing.source_detail) {
+        const sdAddress = existing.source_detail.match(
+          /Property:\s*(\d+\s+[A-Za-z][\w\s]+?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Place|Pl|Court|Ct|Circle|Cir|Terrace|Ter|Parkway|Pkwy))/i
+        );
+        if (sdAddress) {
+          console.log(`Esther: fallback property from source_detail: "${sdAddress[1]}"`);
+          propertyId = await matchOrCreateProperty(supabase, organizationId, sdAddress[1]);
+        }
+      }
+
       const note = `[Esther ${new Date().toISOString().slice(0, 16)}] ${lead.property || "unknown property"}${sourceVia}. ${lead.message || ""}`.trim();
       const detail = existing.source_detail
         ? `${existing.source_detail}\n${note}`
