@@ -644,7 +644,7 @@ export const AdminDashboard = () => {
                         </Button>
                       </CardHeader>
                       <CardContent>
-                        <ScrollArea className="max-h-[400px]">
+                        <ScrollArea className="h-[400px]">
                           <div className="space-y-3">
                             {loading ? (
                               Array.from({ length: 3 }).map((_, i) => (
@@ -687,7 +687,7 @@ export const AdminDashboard = () => {
                         </Button>
                       </CardHeader>
                       <CardContent>
-                        <ScrollArea className="max-h-[400px]">
+                        <ScrollArea className="h-[400px]">
                           <div className="space-y-3">
                             {loading ? (
                               Array.from({ length: 3 }).map((_, i) => (
