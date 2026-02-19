@@ -332,46 +332,70 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
     .trim();
 
   const leads: LeadInfo[] = [];
-  const lines = text.split("\n");
+  const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
   const excludedDomains = ["hemlane.com", "rentfindercleveland.com", "inbound.rentfindercleveland.com"];
+
+  // Known listing sources for detection
+  const LISTING_SOURCES = ["Zillow", "Zumper", "Zumper.com", "Apartments.com", "Apartments", "Hemlane", "Facebook", "Craigslist", "Realtor", "Realtor.com", "Trulia", "HotPads", "Rent.com"];
+  const listingSourceSet = new Set(LISTING_SOURCES.map((s) => s.toLowerCase()));
+
+  // Skip patterns: table headers, navigation, boilerplate
+  const isSkipLine = (l: string) =>
+    /^(CONTACT|EMAIL\s*[|I]\s*PHONE|SOURCE|DATE|\*+|-{3,}|View My Dashboard|Website|Facebook Marketplace|Twitter|LinkedIn|Past \d|Daily Leads|These prospective)/i.test(l);
+
+  // Detect address-like lines: starts with number + has street-like words, or ends with "Unit X"
+  const isAddressLine = (l: string) =>
+    /^\d+\s+\w/.test(l) && (
+      /\b(street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd|lane|ln|way|place|pl|court|ct|circle|cir|terrace|parkway)\b/i.test(l) ||
+      /,?\s*unit\s+\w/i.test(l)
+    );
 
   let currentProperty: string | null = null;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : "";
+    const line = lines[i];
 
-    // Detect property header: a non-empty line followed by dashes
-    if (nextLine && /^-{5,}$/.test(nextLine) && line.length > 3) {
-      if (!/^(Past \d|Daily Leads)/i.test(line)) {
+    // ── Property header detection ─────────────────────────────────
+    // Strategy 1: line followed by dashes (original format)
+    if (i + 1 < lines.length && /^-{5,}$/.test(lines[i + 1]) && line.length > 3) {
+      if (!isSkipLine(line)) {
         currentProperty = line;
       }
       i++;
       continue;
     }
 
-    // Skip headers and empty lines
-    if (/^(CONTACT|EMAIL \| PHONE|EMAIL|PHONE|SOURCE|DATE|\*+|-+|View My Dashboard|Website|Facebook|Twitter|LinkedIn)/i.test(line) || line === "") {
+    // Strategy 2: address-like line followed by "CONTACT" within 1-3 lines
+    if (isAddressLine(line)) {
+      for (let k = i + 1; k <= Math.min(lines.length - 1, i + 3); k++) {
+        if (/^CONTACT/i.test(lines[k])) {
+          currentProperty = line;
+          break;
+        }
+      }
       continue;
     }
 
-    // Look for email on this line (allow surrounding whitespace/parens)
+    if (isSkipLine(line)) continue;
+
+    // ── Email detection → build lead record ───────────────────────
     const emailMatch = line.match(/^[\s(]*([\w.+-]+@[\w.-]+\.\w{2,})[\s)]*$/);
-    if (emailMatch && currentProperty) {
+    if (emailMatch) {
       const email = emailMatch[1].toLowerCase();
       if (excludedDomains.some((d) => email.endsWith(d))) continue;
 
-      // Name: scan backwards for a non-email, non-phone, non-header line
+      // Name: scan backwards for a non-email, non-phone, non-header, non-source line
       let name: string | null = null;
       for (let j = i - 1; j >= Math.max(0, i - 5); j--) {
-        const prev = lines[j].trim();
+        const prev = lines[j];
         if (
-          prev &&
-          !/^(CONTACT|EMAIL|PHONE|SOURCE|DATE|\*|-|$)/i.test(prev) &&
+          !isSkipLine(prev) &&
           !prev.match(/[\w.+-]+@/) &&
           !prev.match(/^\+?[\d\s\-().]{7,}$/) &&
-          !prev.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/) &&
-          !prev.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Zillow|Apartments|Zumper|Hemlane|Facebook|Craigslist|Realtor)/i)
+          !prev.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/) &&
+          !prev.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i) &&
+          !listingSourceSet.has(prev.toLowerCase()) &&
+          !isAddressLine(prev)
         ) {
           name = prev;
           break;
@@ -381,14 +405,29 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
       // Phone: scan forward for a phone-like line
       let phone: string | null = null;
       for (let j = i + 1; j <= Math.min(lines.length - 1, i + 3); j++) {
-        const next = lines[j].trim();
-        if (next && /^[\d\s\-().+]+$/.test(next) && next.replace(/\D/g, "").length >= 7) {
+        const next = lines[j];
+        if (/^[\d\s\-().+]+$/.test(next) && next.replace(/\D/g, "").length >= 7) {
           phone = next;
           break;
         }
       }
 
-      // Push lead if we have phone OR email (don't require both)
+      // Listing source: scan forward for a known source name (within 5 lines after email)
+      let listingSource: string | null = null;
+      for (let j = i + 1; j <= Math.min(lines.length - 1, i + 6); j++) {
+        const next = lines[j];
+        if (listingSourceSet.has(next.toLowerCase())) {
+          listingSource = next;
+          break;
+        }
+        // Also try partial match for "Zumper.com" etc.
+        const srcMatch = LISTING_SOURCES.find((s) => next.toLowerCase() === s.toLowerCase());
+        if (srcMatch) {
+          listingSource = srcMatch;
+          break;
+        }
+      }
+
       if (phone || email) {
         leads.push({
           name: name?.substring(0, 100) || null,
@@ -396,7 +435,7 @@ function parseHemlaneDigest(html: string): LeadInfo[] {
           phone,
           property: currentProperty,
           message: null,
-          listingSource: null,
+          listingSource,
         });
       }
     }
