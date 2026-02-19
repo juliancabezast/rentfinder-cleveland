@@ -615,10 +615,18 @@ async function upsertLead(
       ? `Property: ${lead.property}${sourceVia}`
       : existing.source_detail;
 
-    const needsNameFix = lead.name && existing.full_name && (
+    // Fix name if existing is a placeholder/fallback:
+    // - starts with "Hemlane Lead" (auto-generated fallback)
+    // - contains "{" (template leak)
+    // - starts with "detail" (parse artifact)
+    // - contains 7+ consecutive digits (phone number embedded in name)
+    // - existing has no name at all
+    const needsNameFix = lead.name && lead.name.length > 2 && (
+      !existing.full_name ||
       existing.full_name.includes("{") ||
       existing.full_name.startsWith("Hemlane Lead") ||
-      existing.full_name.startsWith("detail")
+      existing.full_name.startsWith("detail") ||
+      /\d{7,}/.test(existing.full_name.replace(/\D/g, ""))
     );
 
     const { error: updateErr } = await supabase
@@ -628,7 +636,7 @@ async function upsertLead(
         updated_at: new Date().toISOString(),
         source_detail: detail,
         hemlane_email_id: emailId,
-        ...(lead.email ? { email: lead.email } : {}),
+        ...(lead.email && !(existing as any).email ? { email: lead.email } : {}),
         ...(phone && !(existing as any).phone ? { phone } : {}),
         ...(propertyId ? { interested_property_id: propertyId } : {}),
         ...(needsNameFix ? {
@@ -668,7 +676,7 @@ async function upsertLead(
   if (phone) {
     const { data: existing, error: dupErr } = await supabase
       .from("leads")
-      .select("id, full_name, source_detail, interested_property_id")
+      .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("phone", phone)
       .maybeSingle();
@@ -678,7 +686,7 @@ async function upsertLead(
       console.warn(`Esther: multiple leads with phone ${phone}, using first`);
       const { data: first } = await supabase
         .from("leads")
-        .select("id, full_name, source_detail, interested_property_id")
+        .select("id, full_name, source_detail, phone, email, interested_property_id")
         .eq("organization_id", organizationId)
         .eq("phone", phone)
         .limit(1)
@@ -693,7 +701,7 @@ async function upsertLead(
   if (lead.email) {
     const { data: existing, error: dupErr } = await supabase
       .from("leads")
-      .select("id, full_name, source_detail, phone, interested_property_id")
+      .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("email", lead.email)
       .maybeSingle();
@@ -702,7 +710,7 @@ async function upsertLead(
       console.warn(`Esther: multiple leads with email ${lead.email}, using first`);
       const { data: first } = await supabase
         .from("leads")
-        .select("id, full_name, source_detail, phone, interested_property_id")
+        .select("id, full_name, source_detail, phone, email, interested_property_id")
         .eq("organization_id", organizationId)
         .eq("email", lead.email)
         .limit(1)
@@ -717,7 +725,7 @@ async function upsertLead(
   if (lead.name && lead.name.length > 2) {
     const { data: existing } = await supabase
       .from("leads")
-      .select("id, full_name, source_detail, phone, interested_property_id")
+      .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
       .ilike("full_name", lead.name)
@@ -727,6 +735,83 @@ async function upsertLead(
     if (existing) {
       console.log(`Esther: found name dup "${lead.name}" → ${existing.id} (no phone/email match but same name + hemlane source)`);
       return updateExistingLead(existing, "name dup");
+    }
+  }
+
+  // ── Dup check 4: same property + time window (Hemlane multi-email) ──
+  // Hemlane often sends 2-3 emails for the same inquiry (name in one, phone in another).
+  // If a hemlane lead was created in the last 15 min for the same property, merge.
+  if (propertyId) {
+    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { data: recentSameProperty } = await supabase
+      .from("leads")
+      .select("id, full_name, source_detail, phone, email, interested_property_id")
+      .eq("organization_id", organizationId)
+      .eq("source", "hemlane_email")
+      .eq("interested_property_id", propertyId)
+      .gte("created_at", fifteenMinAgo)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentSameProperty) {
+      console.log(`Esther: found recent lead for same property (15m window) → ${recentSameProperty.id} "${recentSameProperty.full_name}"`);
+      return updateExistingLead(recentSameProperty, "property+time dup");
+    }
+  }
+
+  // ── Dup check 5: phone digits embedded in existing lead name ──
+  // Catches "Hemlane Lead (614) 972-3153" when new email has name but same phone.
+  if (phone) {
+    const phoneDigits = phone.replace(/\D/g, "").slice(-7); // last 7 digits
+    if (phoneDigits.length === 7) {
+      const { data: phoneInName } = await supabase
+        .from("leads")
+        .select("id, full_name, source_detail, phone, email, interested_property_id")
+        .eq("organization_id", organizationId)
+        .eq("source", "hemlane_email")
+        .like("full_name", `%${phoneDigits.slice(0, 3)}%${phoneDigits.slice(3)}%`)
+        .limit(1)
+        .maybeSingle();
+
+      if (phoneInName) {
+        console.log(`Esther: found phone-in-name match → ${phoneInName.id} "${phoneInName.full_name}" (phone digits ${phoneDigits})`);
+        return updateExistingLead(phoneInName, "phone-in-name dup");
+      }
+    }
+  }
+
+  // ── Dup check 6: recent incomplete hemlane lead (no property match fallback) ──
+  // If no match yet, look for a hemlane lead created in last 5 min that's missing
+  // name or phone, and this new lead provides the complementary piece.
+  {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const hasComplementaryInfo = (lead.name && lead.name.length > 2) || phone;
+
+    if (hasComplementaryInfo) {
+      const { data: recentIncomplete } = await supabase
+        .from("leads")
+        .select("id, full_name, source_detail, phone, email, interested_property_id")
+        .eq("organization_id", organizationId)
+        .eq("source", "hemlane_email")
+        .gte("created_at", fiveMinAgo)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (recentIncomplete) {
+        for (const candidate of recentIncomplete) {
+          const candidateMissingName = !candidate.full_name || candidate.full_name.startsWith("Hemlane Lead");
+          const candidateMissingPhone = !candidate.phone;
+          const weHaveName = lead.name && lead.name.length > 2;
+          const weHavePhone = !!phone;
+
+          // Merge if we provide what they're missing
+          if ((candidateMissingName && weHaveName) || (candidateMissingPhone && weHavePhone)) {
+            console.log(`Esther: found recent incomplete lead → ${candidate.id} "${candidate.full_name}" (complementary info match)`);
+            return updateExistingLead(candidate, "recent-incomplete dup");
+          }
+        }
+      }
     }
   }
 
