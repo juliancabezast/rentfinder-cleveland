@@ -70,6 +70,10 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   const [property, setProperty] = useState<ZillowProperty | null>(null);
 
   // Editable fields in review step
+  const [editBedrooms, setEditBedrooms] = useState("");
+  const [editBathrooms, setEditBathrooms] = useState("");
+  const [editSqft, setEditSqft] = useState("");
+  const [editPropertyType, setEditPropertyType] = useState("house");
   const [editRent, setEditRent] = useState("");
   const [editDeposit, setEditDeposit] = useState("");
   const [editAppFee, setEditAppFee] = useState("");
@@ -115,6 +119,10 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
 
       const p = data.property as ZillowProperty;
       setProperty(p);
+      setEditBedrooms(String(p.bedrooms || ""));
+      setEditBathrooms(String(p.bathrooms || ""));
+      setEditSqft(String(p.square_feet || ""));
+      setEditPropertyType(p.property_type || "house");
       setEditRent(String(p.rent_price || ""));
       setEditDeposit(String(p.deposit_amount || ""));
       setEditAppFee(String(p.application_fee || ""));
@@ -148,10 +156,10 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
         city: property.city,
         state: property.state,
         zip_code: property.zip_code,
-        bedrooms: property.bedrooms,
-        bathrooms: property.bathrooms,
-        square_feet: property.square_feet,
-        property_type: property.property_type,
+        bedrooms: parseInt(editBedrooms) || 0,
+        bathrooms: parseFloat(editBathrooms) || 0,
+        square_feet: parseInt(editSqft) || null,
+        property_type: editPropertyType,
         rent_price: rentPrice,
         deposit_amount: parseFloat(editDeposit) || null,
         application_fee: parseFloat(editAppFee) || null,
@@ -282,9 +290,9 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
               </div>
             )}
 
-            {/* Address & core info (read-only) */}
+            {/* Address (read-only from URL) */}
             <Card>
-              <CardContent className="pt-4 space-y-3">
+              <CardContent className="pt-4 space-y-2">
                 <div className="flex items-center gap-2 text-lg font-semibold">
                   <Home className="h-5 w-5 text-[#370d4b]" />
                   {property.address}
@@ -292,23 +300,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
                 <p className="text-sm text-muted-foreground">
                   {property.city}, {property.state} {property.zip_code}
                 </p>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span className="flex items-center gap-1">
-                    <Bed className="h-4 w-4" /> {property.bedrooms} bed
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Bath className="h-4 w-4" /> {property.bathrooms} bath
-                  </span>
-                  {property.square_feet && (
-                    <span className="flex items-center gap-1">
-                      <Ruler className="h-4 w-4" />{" "}
-                      {property.square_feet.toLocaleString()} sqft
-                    </span>
-                  )}
-                  <span className="capitalize text-muted-foreground">
-                    {property.property_type}
-                  </span>
-                </div>
                 {property._zestimate && (
                   <p className="text-xs text-muted-foreground">
                     Zestimate: ${property._zestimate.toLocaleString()} | Rent
@@ -319,7 +310,65 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
               </CardContent>
             </Card>
 
-            {/* Editable fields */}
+            {/* Property details — all editable */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="edit-beds" className="flex items-center gap-1">
+                  <Bed className="h-3 w-3" /> Bedrooms *
+                </Label>
+                <Input
+                  id="edit-beds"
+                  type="number"
+                  value={editBedrooms}
+                  onChange={(e) => setEditBedrooms(e.target.value)}
+                  placeholder="3"
+                  className="min-h-[44px]"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-baths" className="flex items-center gap-1">
+                  <Bath className="h-3 w-3" /> Bathrooms *
+                </Label>
+                <Input
+                  id="edit-baths"
+                  type="number"
+                  step="0.5"
+                  value={editBathrooms}
+                  onChange={(e) => setEditBathrooms(e.target.value)}
+                  placeholder="1"
+                  className="min-h-[44px]"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-sqft" className="flex items-center gap-1">
+                  <Ruler className="h-3 w-3" /> Sq Ft
+                </Label>
+                <Input
+                  id="edit-sqft"
+                  type="number"
+                  value={editSqft}
+                  onChange={(e) => setEditSqft(e.target.value)}
+                  placeholder="1200"
+                  className="min-h-[44px]"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Type</Label>
+                <Select value={editPropertyType} onValueChange={setEditPropertyType}>
+                  <SelectTrigger className="min-h-[44px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="house">House</SelectItem>
+                    <SelectItem value="apartment">Apartment</SelectItem>
+                    <SelectItem value="duplex">Duplex</SelectItem>
+                    <SelectItem value="condo">Condo</SelectItem>
+                    <SelectItem value="townhouse">Townhouse</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="edit-rent" className="flex items-center gap-1">
@@ -330,7 +379,7 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
                   type="number"
                   value={editRent}
                   onChange={(e) => setEditRent(e.target.value)}
-                  placeholder="0"
+                  placeholder="1300"
                   className="min-h-[44px]"
                 />
               </div>
@@ -381,7 +430,7 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
                   id="edit-pet"
                   value={editPetPolicy}
                   onChange={(e) => setEditPetPolicy(e.target.value)}
-                  placeholder="e.g. Cats allowed, no dogs"
+                  placeholder="e.g. Cats, dogs OK"
                   className="min-h-[44px]"
                 />
               </div>
