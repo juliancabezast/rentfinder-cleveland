@@ -15,11 +15,104 @@ function extractZpid(url: string): string | null {
   if (zpidMatch) return zpidMatch[1];
 
   // Sometimes just a query param: ?zpid=12345678
-  const urlObj = new URL(url);
-  const zpidParam = urlObj.searchParams.get("zpid");
-  if (zpidParam && /^\d+$/.test(zpidParam)) return zpidParam;
+  try {
+    const urlObj = new URL(url);
+    const zpidParam = urlObj.searchParams.get("zpid");
+    if (zpidParam && /^\d+$/.test(zpidParam)) return zpidParam;
+  } catch { /* ignore invalid URL */ }
 
   return null;
+}
+
+// ── Parse property data from the Zillow URL slug ────────────────────────
+function parseZillowUrl(url: string): {
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+} | null {
+  // URL format: /homedetails/14504-Ardenall-Ave-East-Cleveland-OH-44112/33444982_zpid/
+  const slugMatch = url.match(/\/homedetails\/([^/]+)\//);
+  if (!slugMatch) return null;
+
+  const slug = slugMatch[1];
+  // Split by hyphens
+  const parts = slug.split("-");
+  if (parts.length < 4) return null;
+
+  // Last part might be zpid or zip code
+  // Work backwards: zip (5 digits), state (2 letters), city (remaining after address number)
+  let zip_code = "";
+  let state = "";
+  let endIdx = parts.length;
+
+  // Check if last part is zpid-like (just digits, > 5 chars) — skip it
+  if (/^\d{6,}$/.test(parts[endIdx - 1])) {
+    endIdx--;
+  }
+
+  // Zip code: 5-digit number
+  if (endIdx > 0 && /^\d{5}$/.test(parts[endIdx - 1])) {
+    zip_code = parts[endIdx - 1];
+    endIdx--;
+  }
+
+  // State: 2-letter code
+  if (endIdx > 0 && /^[A-Z]{2}$/i.test(parts[endIdx - 1])) {
+    state = parts[endIdx - 1].toUpperCase();
+    endIdx--;
+  }
+
+  // Now find where the street address ends and city begins
+  // Street usually starts with a number
+  const addressParts = parts.slice(0, endIdx);
+  if (addressParts.length === 0) return null;
+
+  // Find where street number + street name ends (heuristic: common street suffixes)
+  const streetSuffixes = [
+    "St", "Ave", "Blvd", "Dr", "Rd", "Ct", "Ln", "Way", "Pl", "Cir",
+    "Ter", "Pkwy", "Hwy", "Trail", "Loop", "Run", "Path", "Walk",
+    "Street", "Avenue", "Boulevard", "Drive", "Road", "Court", "Lane",
+  ];
+
+  let splitIdx = -1;
+  for (let i = 0; i < addressParts.length; i++) {
+    if (streetSuffixes.some(s => addressParts[i].toLowerCase() === s.toLowerCase())) {
+      splitIdx = i;
+      break;
+    }
+  }
+
+  let address: string;
+  let city: string;
+
+  if (splitIdx >= 0 && splitIdx < addressParts.length - 1) {
+    address = addressParts.slice(0, splitIdx + 1).join(" ");
+    city = addressParts.slice(splitIdx + 1).join(" ");
+  } else {
+    // Fallback: assume first few parts are address, rest is city
+    // If starts with number, take until we hit a non-street-word
+    const numMatch = addressParts[0]?.match(/^\d+$/);
+    if (numMatch && addressParts.length >= 3) {
+      // Take number + next word(s) as address, guess city
+      address = addressParts.slice(0, 3).join(" ");
+      city = addressParts.slice(3).join(" ");
+    } else {
+      address = addressParts.join(" ");
+      city = "";
+    }
+  }
+
+  // Title-case the address and city
+  const titleCase = (s: string) =>
+    s.replace(/\b\w/g, c => c.toUpperCase());
+
+  return {
+    address: titleCase(address),
+    city: titleCase(city) || "Cleveland",
+    state: state || "OH",
+    zip_code,
+  };
 }
 
 // ── Map Zillow homeType to our property_type ────────────────────────────
@@ -116,25 +209,72 @@ serve(async (req: Request) => {
       );
     }
 
-    if (!rapidApiKey) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "RAPIDAPI_KEY not configured. Add it in Supabase Dashboard → Edge Functions → Secrets.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const zpid = extractZpid(zillow_url);
+
+    // ── Try RapidAPI if key is available ─────────────────────────────
+    if (rapidApiKey && zpid) {
+      try {
+        const apiResponse = await fetch(
+          `https://zillow56.p.rapidapi.com/property?zpid=${zpid}`,
+          {
+            headers: {
+              "X-RapidAPI-Key": rapidApiKey,
+              "X-RapidAPI-Host": "zillow56.p.rapidapi.com",
+            },
+          }
+        );
+
+        if (apiResponse.ok) {
+          const data = await apiResponse.json();
+          const addr = (data.address as Record<string, string>) || {};
+
+          const property = {
+            address: addr.streetAddress || data.streetAddress || data.address || "",
+            city: addr.city || data.city || "Cleveland",
+            state: addr.state || data.state || "OH",
+            zip_code: addr.zipcode || data.zipcode || "",
+            bedrooms: data.bedrooms ?? data.resoFacts?.bedrooms ?? 0,
+            bathrooms: data.bathrooms ?? data.resoFacts?.bathrooms ?? 0,
+            square_feet: data.livingArea || data.livingAreaValue || null,
+            property_type: mapPropertyType(
+              data.homeType || data.propertyType || data.homeTypeDimension
+            ),
+            rent_price: data.rentZestimate || data.price || 0,
+            deposit_amount: null,
+            application_fee: null,
+            description: data.description || null,
+            photos: extractPhotos(data),
+            section_8_accepted: true,
+            hud_inspection_ready: true,
+            status: "available",
+            pet_policy: null,
+            year_built: data.yearBuilt || null,
+            lot_size: data.lotSize || data.lotAreaValue || null,
+            _zillow_url: zillow_url,
+            _zpid: zpid,
+            _zestimate: data.zestimate || null,
+            _rent_zestimate: data.rentZestimate || null,
+          };
+
+          return new Response(
+            JSON.stringify({ success: true, property }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
         }
-      );
+      } catch (e) {
+        console.error("RapidAPI failed, falling back to URL parsing:", (e as Error).message);
+      }
     }
 
-    const zpid = extractZpid(zillow_url);
-    if (!zpid) {
+    // ── Fallback: parse property data from the URL slug ──────────────
+    const parsed = parseZillowUrl(zillow_url);
+    if (!parsed) {
       return new Response(
         JSON.stringify({
-          error:
-            "Could not extract Zillow property ID from URL. Use a URL like: zillow.com/homedetails/.../12345678_zpid/",
+          error: "Could not extract property info from this URL. Try a URL like: zillow.com/homedetails/123-Main-St-Cleveland-OH-44101/12345678_zpid/",
         }),
         {
           status: 400,
@@ -143,58 +283,30 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Call RapidAPI Zillow endpoint ──────────────────────────────────
-    const apiResponse = await fetch(
-      `https://zillow56.p.rapidapi.com/property?zpid=${zpid}`,
-      {
-        headers: {
-          "X-RapidAPI-Key": rapidApiKey,
-          "X-RapidAPI-Host": "zillow56.p.rapidapi.com",
-        },
-      }
-    );
-
-    if (!apiResponse.ok) {
-      const errText = await apiResponse.text();
-      console.error("RapidAPI error:", apiResponse.status, errText);
-      throw new Error(
-        `Zillow API returned ${apiResponse.status}. Check your RAPIDAPI_KEY and subscription.`
-      );
-    }
-
-    const data = await apiResponse.json();
-
-    // ── Handle nested address object ──────────────────────────────────
-    const addr = (data.address as Record<string, string>) || {};
-
-    // ── Map response to our properties schema ─────────────────────────
     const property = {
-      address: addr.streetAddress || data.streetAddress || data.address || "",
-      city: addr.city || data.city || "Cleveland",
-      state: addr.state || data.state || "OH",
-      zip_code: addr.zipcode || data.zipcode || "",
-      bedrooms: data.bedrooms ?? data.resoFacts?.bedrooms ?? 0,
-      bathrooms: data.bathrooms ?? data.resoFacts?.bathrooms ?? 0,
-      square_feet: data.livingArea || data.livingAreaValue || null,
-      property_type: mapPropertyType(
-        data.homeType || data.propertyType || data.homeTypeDimension
-      ),
-      rent_price: data.rentZestimate || data.price || 0,
+      address: parsed.address,
+      city: parsed.city,
+      state: parsed.state,
+      zip_code: parsed.zip_code,
+      bedrooms: 0,
+      bathrooms: 0,
+      square_feet: null,
+      property_type: "house",
+      rent_price: 0,
       deposit_amount: null,
       application_fee: null,
-      description: data.description || null,
-      photos: extractPhotos(data),
+      description: null,
+      photos: [],
       section_8_accepted: true,
       hud_inspection_ready: true,
       status: "available",
       pet_policy: null,
-      year_built: data.yearBuilt || null,
-      lot_size: data.lotSize || data.lotAreaValue || null,
-      // Metadata for reference
+      year_built: null,
+      lot_size: null,
       _zillow_url: zillow_url,
-      _zpid: zpid,
-      _zestimate: data.zestimate || null,
-      _rent_zestimate: data.rentZestimate || null,
+      _zpid: zpid || "unknown",
+      _zestimate: null,
+      _rent_zestimate: null,
     };
 
     return new Response(
