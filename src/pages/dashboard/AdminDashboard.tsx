@@ -22,7 +22,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DoorOpen,
   Users,
-  UserPlus,
   Calendar,
   Bell,
   ChevronRight,
@@ -49,12 +48,11 @@ interface DashboardStats {
   propertiesByStatus: Record<string, number>;
   activeLeads: number;
   newLeadsThisWeek: number;
-  totalLeads: number;
-  leadsToday: number;
-  hotLeads: number;
 }
 
-interface Row2Stats {
+interface PeriodStats {
+  totalLeads: number;
+  hotLeads: number;
   smsSent: number;
   emailsSent: number;
   emailsParsed: number;
@@ -96,9 +94,9 @@ export const AdminDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [row2Stats, setRow2Stats] = useState<Row2Stats | null>(null);
-  const [row2Loading, setRow2Loading] = useState(false);
-  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('week');
+  const [periodStats, setPeriodStats] = useState<PeriodStats | null>(null);
+  const [periodLoading, setPeriodLoading] = useState(false);
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('total');
   const [priorityLeads, setPriorityLeads] = useState<PriorityLead[]>([]);
   const [todayShowings, setTodayShowings] = useState<TodayShowing[]>([]);
   const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
@@ -142,7 +140,7 @@ export const AdminDashboard = () => {
     return prefs.widgets.find((w) => w.id === widgetId)?.visible ?? true;
   };
 
-  // ── Row 1 + list data (runs once) ──
+  // ── Summary + list data (runs once) ──
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!userRecord?.organization_id) return;
@@ -158,9 +156,6 @@ export const AdminDashboard = () => {
           priorityLeadsResult,
           alertsResult,
           recentCallsResult,
-          totalLeadsResult,
-          leadsTodayResult,
-          hotLeadsResult,
           propertiesResult,
         ] = await Promise.all([
           supabase.rpc('get_dashboard_summary'),
@@ -202,23 +197,6 @@ export const AdminDashboard = () => {
             .eq("organization_id", userRecord.organization_id)
             .order("started_at", { ascending: false })
             .limit(10),
-          // Row 1 stat queries
-          supabase
-            .from("leads")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", userRecord.organization_id),
-          supabase
-            .from("leads")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", userRecord.organization_id)
-            .gte("created_at", todayStart),
-          supabase
-            .from("leads")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", userRecord.organization_id)
-            .gte("lead_score", 80)
-            .not("status", "in", '("lost","converted")'),
-          // Properties for distinct count
           supabase
             .from("properties")
             .select("address, city, zip_code")
@@ -232,7 +210,6 @@ export const AdminDashboard = () => {
           conversion_rate: number;
         } | null;
 
-        // Count distinct properties (unique address+city+zip combos)
         const allProps = propertiesResult.data || [];
         const distinctSet = new Set(allProps.map((p: any) => `${p.address}|${p.city}|${p.zip_code}`));
 
@@ -248,9 +225,6 @@ export const AdminDashboard = () => {
             },
             activeLeads: summary.leads.active,
             newLeadsThisWeek: summary.leads.new_this_week,
-            totalLeads: totalLeadsResult.count || 0,
-            leadsToday: leadsTodayResult.count || 0,
-            hotLeads: hotLeadsResult.count || 0,
           });
         }
 
@@ -312,11 +286,11 @@ export const AdminDashboard = () => {
     fetchDashboardData();
   }, [userRecord?.organization_id]);
 
-  // ── Row 2 stats (re-runs when period changes) ──
+  // ── All stat card numbers (re-runs when period changes) ──
   useEffect(() => {
-    const fetchRow2 = async () => {
+    const fetchPeriodStats = async () => {
       if (!userRecord?.organization_id) return;
-      setRow2Loading(true);
+      setPeriodLoading(true);
 
       try {
         const now = new Date();
@@ -325,14 +299,29 @@ export const AdminDashboard = () => {
         else if (statsPeriod === 'week') periodStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString();
         else if (statsPeriod === 'month') periodStart = startOfMonth(now).toISOString();
 
-        // Build filtered queries
+        // Row 1: leads + hot leads (filtered by period)
+        let leadsQuery = supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", userRecord.organization_id);
+        if (periodStart) leadsQuery = leadsQuery.gte("created_at", periodStart);
+
+        let hotQuery = supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", userRecord.organization_id)
+          .gte("lead_score", 80)
+          .not("status", "in", '("lost","converted")');
+        if (periodStart) hotQuery = hotQuery.gte("created_at", periodStart);
+
+        // Row 2: comms + calls (filtered by period)
         let smsQuery = supabase
           .from("communications")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", userRecord.organization_id)
           .eq("channel", "sms")
           .eq("direction", "outbound");
-        if (periodStart) smsQuery = smsQuery.gte("created_at", periodStart);
+        if (periodStart) smsQuery = smsQuery.gte("sent_at", periodStart);
 
         let emailQuery = supabase
           .from("communications")
@@ -340,7 +329,7 @@ export const AdminDashboard = () => {
           .eq("organization_id", userRecord.organization_id)
           .eq("channel", "email")
           .eq("direction", "outbound");
-        if (periodStart) emailQuery = emailQuery.gte("created_at", periodStart);
+        if (periodStart) emailQuery = emailQuery.gte("sent_at", periodStart);
 
         let parsedQuery = supabase
           .from("system_logs")
@@ -355,14 +344,16 @@ export const AdminDashboard = () => {
           .eq("organization_id", userRecord.organization_id);
         if (periodStart) callsQuery = callsQuery.gte("started_at", periodStart);
 
-        const [smsRes, emailRes, parsedRes, callsRes] = await Promise.all([
-          smsQuery, emailQuery, parsedQuery, callsQuery,
+        const [leadsRes, hotRes, smsRes, emailRes, parsedRes, callsRes] = await Promise.all([
+          leadsQuery, hotQuery, smsQuery, emailQuery, parsedQuery, callsQuery,
         ]);
 
         const callRows = callsRes.data || [];
         const totalSeconds = callRows.reduce((sum: number, c: any) => sum + (c.duration_seconds || 0), 0);
 
-        setRow2Stats({
+        setPeriodStats({
+          totalLeads: leadsRes.count || 0,
+          hotLeads: hotRes.count || 0,
           smsSent: smsRes.count || 0,
           emailsSent: emailRes.count || 0,
           emailsParsed: parsedRes.count || 0,
@@ -370,13 +361,13 @@ export const AdminDashboard = () => {
           callMinutes: Math.round(totalSeconds / 60),
         });
       } catch (error) {
-        console.error("Error fetching row 2 stats:", error);
+        console.error("Error fetching period stats:", error);
       } finally {
-        setRow2Loading(false);
+        setPeriodLoading(false);
       }
     };
 
-    fetchRow2();
+    fetchPeriodStats();
   }, [userRecord?.organization_id, statsPeriod]);
 
   const handleTakeControl = async (leadId: string) => {
@@ -443,54 +434,10 @@ export const AdminDashboard = () => {
           </Button>
         </div>
 
-        {/* Stats Grid — Row 1: Totals */}
+        {/* Stats */}
         {isWidgetVisible("stats_cards") && (
           <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="animate-fade-up stagger-1">
-                <StatCard
-                  title="Total Doors"
-                  value={stats?.totalDoors || 0}
-                  subtitle={`${stats?.totalDistinctProperties || 0} properties`}
-                  icon={DoorOpen}
-                  impact={stats?.totalDoors && stats.totalDoors > 10 ? "high" : stats?.totalDoors && stats.totalDoors > 5 ? "medium" : "low"}
-                  loading={loading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-2">
-                <StatCard
-                  title="Total Leads"
-                  value={stats?.totalLeads || 0}
-                  subtitle={`${stats?.activeLeads || 0} active`}
-                  icon={Users}
-                  trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
-                  impact={stats?.totalLeads && stats.totalLeads > 20 ? "high" : stats?.totalLeads && stats.totalLeads > 10 ? "medium" : "low"}
-                  loading={loading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-3">
-                <StatCard
-                  title="Leads Today"
-                  value={stats?.leadsToday || 0}
-                  subtitle={format(new Date(), "EEEE, MMM d")}
-                  icon={UserPlus}
-                  impact={stats?.leadsToday && stats.leadsToday > 0 ? "high" : undefined}
-                  loading={loading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-4">
-                <StatCard
-                  title="Hot Leads"
-                  value={stats?.hotLeads || 0}
-                  subtitle="score 80+"
-                  icon={Flame}
-                  impact={stats?.hotLeads && stats.hotLeads > 0 ? "high" : stats?.hotLeads === 0 ? "low" : undefined}
-                  loading={loading}
-                />
-              </div>
-            </div>
-
-            {/* Period Filter for Row 2 */}
+            {/* Period filter — applies to all stat cards */}
             <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
               {([
                 { key: 'day' as StatsPeriod, label: 'Hoy' },
@@ -513,46 +460,81 @@ export const AdminDashboard = () => {
               ))}
             </div>
 
-            {/* Stats Grid — Row 2: Activity (filtered by period) */}
+            {/* Row 1: Portfolio + Leads */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="animate-fade-up stagger-1">
+                <StatCard
+                  title="Total Doors"
+                  value={stats?.totalDoors || 0}
+                  subtitle={`${stats?.totalDistinctProperties || 0} properties`}
+                  icon={DoorOpen}
+                  impact={stats?.totalDoors && stats.totalDoors > 10 ? "high" : stats?.totalDoors && stats.totalDoors > 5 ? "medium" : "low"}
+                  loading={loading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-2">
+                <StatCard
+                  title="Leads"
+                  value={periodStats?.totalLeads || 0}
+                  subtitle={`${stats?.activeLeads || 0} active`}
+                  icon={Users}
+                  trend={stats?.newLeadsThisWeek ? { value: stats.newLeadsThisWeek, isPositive: true } : undefined}
+                  impact={periodStats?.totalLeads && periodStats.totalLeads > 20 ? "high" : periodStats?.totalLeads && periodStats.totalLeads > 10 ? "medium" : "low"}
+                  loading={loading || periodLoading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-3">
+                <StatCard
+                  title="Hot Leads"
+                  value={periodStats?.hotLeads || 0}
+                  subtitle="score 80+"
+                  icon={Flame}
+                  impact={periodStats?.hotLeads && periodStats.hotLeads > 0 ? "high" : periodStats?.hotLeads === 0 ? "low" : undefined}
+                  loading={loading || periodLoading}
+                />
+              </div>
+              <div className="animate-fade-up stagger-4">
+                <StatCard
+                  title="Llamadas Hechas"
+                  value={periodStats?.callsMade || 0}
+                  subtitle={`${periodStats?.callMinutes || 0} min en llamada`}
+                  icon={Phone}
+                  impact={periodStats?.callsMade && periodStats.callsMade > 10 ? "high" : periodStats?.callsMade && periodStats.callsMade > 0 ? "medium" : undefined}
+                  loading={loading || periodLoading}
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Communications */}
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="animate-fade-up stagger-5">
                 <StatCard
-                  title="Mensajes Enviados"
-                  value={row2Stats?.smsSent || 0}
-                  subtitle="SMS outbound"
+                  title="Mensajes SMS"
+                  value={periodStats?.smsSent || 0}
+                  subtitle="outbound"
                   icon={MessageSquare}
-                  impact={row2Stats?.smsSent && row2Stats.smsSent > 50 ? "high" : row2Stats?.smsSent && row2Stats.smsSent > 10 ? "medium" : undefined}
-                  loading={loading || row2Loading}
+                  impact={periodStats?.smsSent && periodStats.smsSent > 50 ? "high" : periodStats?.smsSent && periodStats.smsSent > 10 ? "medium" : undefined}
+                  loading={loading || periodLoading}
                 />
               </div>
               <div className="animate-fade-up stagger-6">
                 <StatCard
                   title="Correos Enviados"
-                  value={row2Stats?.emailsSent || 0}
-                  subtitle="emails outbound"
+                  value={periodStats?.emailsSent || 0}
+                  subtitle="outbound"
                   icon={Mail}
-                  impact={row2Stats?.emailsSent && row2Stats.emailsSent > 50 ? "high" : row2Stats?.emailsSent && row2Stats.emailsSent > 10 ? "medium" : undefined}
-                  loading={loading || row2Loading}
+                  impact={periodStats?.emailsSent && periodStats.emailsSent > 50 ? "high" : periodStats?.emailsSent && periodStats.emailsSent > 10 ? "medium" : undefined}
+                  loading={loading || periodLoading}
                 />
               </div>
               <div className="animate-fade-up stagger-7">
                 <StatCard
                   title="Emails Parseados"
-                  value={row2Stats?.emailsParsed || 0}
+                  value={periodStats?.emailsParsed || 0}
                   subtitle="via Esther"
                   icon={Inbox}
-                  impact={row2Stats?.emailsParsed && row2Stats.emailsParsed > 0 ? "medium" : undefined}
-                  loading={loading || row2Loading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-8">
-                <StatCard
-                  title="Llamadas Hechas"
-                  value={row2Stats?.callsMade || 0}
-                  subtitle={`${row2Stats?.callMinutes || 0} min en llamada`}
-                  icon={Phone}
-                  impact={row2Stats?.callsMade && row2Stats.callsMade > 10 ? "high" : row2Stats?.callsMade && row2Stats.callsMade > 0 ? "medium" : undefined}
-                  loading={loading || row2Loading}
+                  impact={periodStats?.emailsParsed && periodStats.emailsParsed > 0 ? "medium" : undefined}
+                  loading={loading || periodLoading}
                 />
               </div>
             </div>
