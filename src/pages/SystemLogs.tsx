@@ -47,6 +47,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
+import { DataHealthDashboard } from "@/components/system/DataHealthDashboard";
 
 type SystemLog = Tables<"system_logs">;
 
@@ -216,10 +217,12 @@ const LogEntry: React.FC<LogEntryProps> = ({ log, onResolve }) => {
         <TableCell>
           {log.is_resolved ? (
             <span className="text-xs text-muted-foreground">Resolved</span>
-          ) : (
+          ) : log.level !== "info" ? (
             <Badge variant="outline" className="text-orange-600 border-orange-600">
               Unresolved
             </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
           )}
         </TableCell>
       </TableRow>
@@ -265,7 +268,7 @@ const LogEntry: React.FC<LogEntryProps> = ({ log, onResolve }) => {
                 </div>
               )}
 
-              {!log.is_resolved && (
+              {!log.is_resolved && log.level !== "info" && (
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-medium mb-2">Mark as Resolved</h4>
                   <Textarea
@@ -537,6 +540,9 @@ const SystemLogs: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Data Health Dashboard */}
+      <DataHealthDashboard />
 
       {/* Filters */}
       <Card>

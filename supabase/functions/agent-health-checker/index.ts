@@ -28,8 +28,11 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  let organization_id = "";
   try {
-    const { organization_id, mode } = await req.json();
+    const parsed = await req.json();
+    organization_id = parsed.organization_id;
+    const mode = parsed.mode;
 
     if (!organization_id) {
       return new Response(
@@ -212,6 +215,21 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── Log health check results ───────────────────────────────────
+    const failedServices = results.filter((r) => r.status === "error");
+    if (failedServices.length > 0) {
+      try {
+        await supabase.from("system_logs").insert({
+          organization_id,
+          level: "warning",
+          category: "general",
+          event_type: "health_check_failures",
+          message: `Health check: ${failedServices.length} service(s) down — ${failedServices.map((s) => s.service).join(", ")}`,
+          details: { failed: failedServices, total_checked: results.length },
+        });
+      } catch { /* non-blocking */ }
+    }
+
     // ── Record cost (Zacchaeus) ────────────────────────────────────
     try {
       await supabase.rpc("zacchaeus_record_cost", {
@@ -236,6 +254,19 @@ serve(async (req: Request) => {
     );
   } catch (err) {
     console.error("agent-health-checker error:", err);
+
+    // Log error
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: organization_id || null,
+        level: "error",
+        category: "general",
+        event_type: "health_checker_error",
+        message: `Health checker crashed: ${(err as Error).message || "Unknown error"}`,
+        details: { error: String(err) },
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         error: (err as Error).message || "Health check failed",

@@ -366,10 +366,17 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  let organization_id = "", zillow_url = "";
   try {
     const rapidApiKey = Deno.env.get("RAPIDAPI_KEY");
 
-    const { zillow_url, organization_id } = await req.json();
+    const parsed = await req.json();
+    zillow_url = parsed.zillow_url;
+    organization_id = parsed.organization_id;
 
     if (!zillow_url || !organization_id) {
       return new Response(
@@ -484,6 +491,18 @@ serve(async (req: Request) => {
       _rent_zestimate: null,
     };
 
+    // Log successful import
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id,
+        level: "info",
+        category: "general",
+        event_type: "zillow_property_imported",
+        message: `Property imported from Zillow: ${property.address}, ${property.city} — $${property.rent_price}/mo`,
+        details: { address: property.address, city: property.city, rent_price: property.rent_price, bedrooms: property.bedrooms, zillow_url },
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({ success: true, property }),
       {
@@ -493,6 +512,19 @@ serve(async (req: Request) => {
     );
   } catch (err) {
     console.error("import-zillow-property error:", err);
+
+    // Log error
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: organization_id || null,
+        level: "error",
+        category: "general",
+        event_type: "zillow_import_error",
+        message: `Failed to import from Zillow: ${(err as Error).message || "Unknown error"}`,
+        details: { error: String(err), zillow_url },
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         error:

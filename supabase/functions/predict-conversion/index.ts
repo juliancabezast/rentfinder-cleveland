@@ -133,8 +133,11 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  let organization_id = "", lead_id = "";
   try {
-    const { organization_id, lead_id } = await req.json();
+    const parsed = await req.json();
+    organization_id = parsed.organization_id;
+    lead_id = parsed.lead_id;
 
     if (!organization_id || !lead_id) {
       return new Response(
@@ -209,12 +212,39 @@ serve(async (req: Request) => {
       })
       .eq("id", lead_id);
 
+    // Log prediction
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id,
+        level: "info",
+        category: "openai",
+        event_type: "conversion_predicted",
+        message: `Conversion prediction for lead: ${prediction.predicted_outcome} (${Math.round(prediction.conversion_probability * 100)}%)`,
+        details: { lead_id, probability: prediction.conversion_probability, outcome: prediction.predicted_outcome, factors_count: prediction.factors.length },
+        related_lead_id: lead_id,
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({ success: true, prediction }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("predict-conversion error:", err);
+
+    // Log error
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: organization_id || null,
+        level: "error",
+        category: "openai",
+        event_type: "conversion_prediction_error",
+        message: `Failed to predict conversion: ${(err as Error).message || "Unknown error"}`,
+        details: { error: String(err), lead_id },
+        related_lead_id: lead_id || null,
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         error: (err as Error).message || "Failed to generate prediction",

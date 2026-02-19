@@ -17,17 +17,19 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  let to = "", subject = "", notification_type = "", organization_id = "";
   try {
+    const parsed = await req.json();
+    to = parsed.to;
+    subject = parsed.subject;
+    notification_type = parsed.notification_type;
+    organization_id = parsed.organization_id;
     const {
-      to,
-      subject,
       html,
-      notification_type,
-      organization_id,
       related_entity_id,
       related_entity_type,
       from_name,
-    } = await req.json();
+    } = parsed;
 
     if (!to || !subject || !html) {
       return new Response(
@@ -121,6 +123,20 @@ serve(async (req: Request) => {
       }
     }
 
+    // Log successful email
+    if (organization_id) {
+      try {
+        await supabase.from("system_logs").insert({
+          organization_id,
+          level: "info",
+          category: "general",
+          event_type: "email_sent",
+          message: `Email sent to ${to}: "${subject}"`,
+          details: { notification_type: notification_type || "notification", resend_email_id: resendEmailId, related_entity_id, related_entity_type },
+        });
+      } catch { /* non-blocking */ }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -133,6 +149,18 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("send-notification-email error:", error);
+
+    // Log error
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: organization_id || null,
+        level: "error",
+        category: "general",
+        event_type: "email_send_error",
+        message: `Failed to send email to ${to || "unknown"}: ${error.message || "Unknown error"}`,
+        details: { error: String(error), to, subject, notification_type },
+      });
+    } catch { /* non-blocking */ }
 
     return new Response(
       JSON.stringify({

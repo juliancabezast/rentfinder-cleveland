@@ -17,8 +17,11 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  let organization_id = "", lead_id = "";
   try {
-    const { organization_id, lead_id } = await req.json();
+    const parsed = await req.json();
+    organization_id = parsed.organization_id;
+    lead_id = parsed.lead_id;
 
     if (!organization_id || !lead_id) {
       return new Response(
@@ -131,6 +134,19 @@ serve(async (req: Request) => {
     scored.sort((a, b) => b.match_score - a.match_score);
     const topMatches = scored.slice(0, 10);
 
+    // Log match results
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id,
+        level: "info",
+        category: "general",
+        event_type: "properties_matched",
+        message: `Matched ${topMatches.length} properties for lead (top score: ${topMatches[0]?.match_score || 0})`,
+        details: { lead_id, total_properties: properties.length, top_matches: topMatches.length, top_score: topMatches[0]?.match_score || 0 },
+        related_lead_id: lead_id,
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({ matches: topMatches }),
       {
@@ -140,6 +156,20 @@ serve(async (req: Request) => {
     );
   } catch (err) {
     console.error("match-properties error:", err);
+
+    // Log error
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: organization_id || null,
+        level: "error",
+        category: "general",
+        event_type: "property_match_error",
+        message: `Failed to match properties: ${(err as Error).message || "Unknown error"}`,
+        details: { error: String(err), lead_id },
+        related_lead_id: lead_id || null,
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         matches: [],

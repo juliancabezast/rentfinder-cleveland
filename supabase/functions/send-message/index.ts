@@ -17,9 +17,13 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  let lead_id = "", channel = "", organization_id = "";
   try {
-    const { lead_id, channel, body: messageBody, organization_id } =
-      await req.json();
+    const parsed = await req.json();
+    lead_id = parsed.lead_id;
+    channel = parsed.channel;
+    organization_id = parsed.organization_id;
+    const messageBody = parsed.body;
 
     if (!lead_id || !channel || !messageBody || !organization_id) {
       return new Response(
@@ -249,6 +253,19 @@ serve(async (req: Request) => {
       // Non-blocking
     }
 
+    // Log successful message
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id,
+        level: "info",
+        category: channel === "email" ? "general" : "twilio",
+        event_type: "message_sent",
+        message: `${channel.toUpperCase()} message sent to ${lead.full_name || lead.phone}`,
+        details: { channel, message_id: messageId, lead_id },
+        related_lead_id: lead_id,
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({ success: true, message_id: messageId }),
       {
@@ -258,6 +275,20 @@ serve(async (req: Request) => {
     );
   } catch (err) {
     console.error("send-message error:", err);
+
+    // Log error
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: organization_id || null,
+        level: "error",
+        category: "twilio",
+        event_type: "message_send_error",
+        message: `Failed to send message: ${(err as Error).message || "Unknown error"}`,
+        details: { error: String(err), channel, lead_id },
+        related_lead_id: lead_id || null,
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         success: false,

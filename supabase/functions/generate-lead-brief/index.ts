@@ -17,8 +17,11 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  let lead_id = "";
   try {
-    const { lead_id, user_id } = await req.json();
+    const parsed = await req.json();
+    lead_id = parsed.lead_id;
+    const user_id = parsed.user_id;
 
     if (!lead_id) {
       return new Response(
@@ -222,12 +225,38 @@ serve(async (req: Request) => {
       }
     }
 
+    // Log brief generation
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: lead.organization_id,
+        level: "info",
+        category: "openai",
+        event_type: "lead_brief_generated",
+        message: `Lead brief generated for ${lead.full_name || "lead"} (${openaiKey ? "AI" : "rule-based"})`,
+        details: { lead_id, method: openaiKey ? "openai" : "rule_based", brief_length: brief.length },
+        related_lead_id: lead_id,
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({ success: true, brief }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("generate-lead-brief error:", err);
+
+    // Log error
+    try {
+      await supabase.from("system_logs").insert({
+        level: "error",
+        category: "openai",
+        event_type: "lead_brief_error",
+        message: `Failed to generate lead brief: ${(err as Error).message || "Unknown error"}`,
+        details: { error: String(err), lead_id },
+        related_lead_id: lead_id || null,
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         error: (err as Error).message || "Failed to generate brief",

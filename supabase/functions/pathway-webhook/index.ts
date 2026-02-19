@@ -54,8 +54,9 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  let body: Record<string, unknown> = {};
   try {
-    const body = await req.json();
+    body = await req.json();
     const {
       action,
       organization_id,
@@ -302,6 +303,20 @@ serve(async (req: Request) => {
         }
       }
 
+      // Log showing booked
+      try {
+        await supabase.from("system_logs").insert({
+          organization_id,
+          level: "info",
+          category: "bland_ai",
+          event_type: "pathway_showing_booked",
+          message: `Showing booked via Bland pathway: ${property_address || "property"} on ${formatDateHuman(slotDate)} at ${formatTimeHuman(slotTime)}`,
+          details: { showing_id: showing.id, lead_id, property_id, slot: selected_slot, call_id: call_id || null },
+          related_lead_id: lead_id,
+          related_showing_id: showing.id,
+        });
+      } catch { /* non-blocking */ }
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -366,6 +381,19 @@ serve(async (req: Request) => {
         }
       }
 
+      // Log application request
+      try {
+        await supabase.from("system_logs").insert({
+          organization_id,
+          level: "info",
+          category: "bland_ai",
+          event_type: "pathway_application_sent",
+          message: `Application request via Bland pathway for ${lead_name || "lead"} — ${property_address || "property"}`,
+          details: { lead_id, property_id, lead_email, call_id: call_id || null },
+          related_lead_id: lead_id,
+        });
+      } catch { /* non-blocking */ }
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -423,6 +451,19 @@ serve(async (req: Request) => {
         },
       });
 
+      // Log callback scheduled
+      try {
+        await supabase.from("system_logs").insert({
+          organization_id,
+          level: "info",
+          category: "bland_ai",
+          event_type: "pathway_callback_scheduled",
+          message: `Callback scheduled via Bland pathway for ${scheduledFor}`,
+          details: { lead_id, property_id, callback_time, scheduled_for: scheduledFor, call_id: call_id || null },
+          related_lead_id: lead_id,
+        });
+      } catch { /* non-blocking */ }
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -446,6 +487,20 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("pathway-webhook error:", error);
+
+    // Log error
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id: body?.organization_id || null,
+        level: "error",
+        category: "bland_ai",
+        event_type: "pathway_webhook_error",
+        message: `Pathway webhook error: ${error.message || "Unknown error"}`,
+        details: { error: String(error), action: body?.action },
+        related_lead_id: body?.lead_id || null,
+      });
+    } catch { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({ error: error.message || "Internal error" }),
       {
