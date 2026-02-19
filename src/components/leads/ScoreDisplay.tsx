@@ -30,16 +30,16 @@ export const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   const isPriority = score >= 85;
 
   const sizeClasses = {
-    sm: "text-lg font-semibold w-10 h-10",
-    md: "text-2xl font-bold w-14 h-14",
-    lg: "text-4xl font-bold w-20 h-20",
+    sm: "text-xs font-semibold min-w-[2.25rem] h-9 px-2",
+    md: "text-sm font-bold min-w-[2.75rem] h-11 px-2.5",
+    lg: "text-xl font-bold min-w-[3.5rem] h-14 px-3",
   };
 
   return (
     <div className="flex items-center gap-2">
       <div
         className={cn(
-          "rounded-full flex items-center justify-center",
+          "rounded-full flex items-center justify-center shrink-0",
           sizeClasses[size],
           getScoreBgColor(score),
           getScoreColor(score)
