@@ -452,49 +452,82 @@ function formatPhoneE164(raw: string): string {
   return `+${digits}`;
 }
 
+// Street name abbreviation mappings (both directions)
+const STREET_ABBREVIATIONS: [RegExp, string][] = [
+  [/\bStreet\b/i, "St"],
+  [/\bAvenue\b/i, "Ave"],
+  [/\bRoad\b/i, "Rd"],
+  [/\bDrive\b/i, "Dr"],
+  [/\bBoulevard\b/i, "Blvd"],
+  [/\bLane\b/i, "Ln"],
+  [/\bPlace\b/i, "Pl"],
+  [/\bCourt\b/i, "Ct"],
+  [/\bCircle\b/i, "Cir"],
+  [/\bTerrace\b/i, "Ter"],
+  [/\bParkway\b/i, "Pkwy"],
+  // Reverse: abbreviation → full
+  [/\bSt\b(?!\.)/i, "Street"],
+  [/\bAve\b/i, "Avenue"],
+  [/\bRd\b/i, "Road"],
+  [/\bDr\b/i, "Drive"],
+  [/\bBlvd\b/i, "Boulevard"],
+  [/\bLn\b/i, "Lane"],
+  [/\bPl\b/i, "Place"],
+  [/\bCt\b/i, "Court"],
+  [/\bCir\b/i, "Circle"],
+  [/\bTer\b/i, "Terrace"],
+  [/\bPkwy\b/i, "Parkway"],
+];
+
 // ── Match property by address ────────────────────────────────────────
 async function matchProperty(
   supabase: ReturnType<typeof createClient>,
   organizationId: string,
   propertyAddress: string
 ): Promise<string | null> {
-  // Strategy 1: full address as search term (works if DB address contains digest address)
-  const { data: exact } = await supabase
-    .from("properties")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .ilike("address", `%${propertyAddress}%`)
-    .limit(1)
-    .maybeSingle();
-  if (exact?.id) return exact.id;
+  // Helper: try ilike match
+  const tryMatch = async (pattern: string): Promise<string | null> => {
+    const { data } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .ilike("address", `%${pattern}%`)
+      .limit(1)
+      .maybeSingle();
+    return data?.id || null;
+  };
 
-  // Strategy 2: street part only (before first comma — "3549 E 105th St, Cleveland" → "3549 E 105th St")
+  // Strategy 1: full address as-is
+  const s1 = await tryMatch(propertyAddress);
+  if (s1) return s1;
+
+  // Strategy 2: street part before comma ("10314 Adams Avenue, Unit A" → "10314 Adams Avenue")
   const streetPart = propertyAddress.split(",")[0].trim();
   if (streetPart && streetPart !== propertyAddress) {
-    const { data: street } = await supabase
-      .from("properties")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .ilike("address", `%${streetPart}%`)
-      .limit(1)
-      .maybeSingle();
-    if (street?.id) return street.id;
+    const s2 = await tryMatch(streetPart);
+    if (s2) return s2;
   }
 
-  // Strategy 3: extract street number + street name prefix (first 3 words)
-  const numberMatch = propertyAddress.match(/^(\d+\s+\S+(?:\s+\S+)?)/);
-  if (numberMatch) {
-    const prefix = numberMatch[1].trim();
-    const { data: prefix_match } = await supabase
-      .from("properties")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .ilike("address", `%${prefix}%`)
-      .limit(1)
-      .maybeSingle();
-    if (prefix_match?.id) return prefix_match.id;
+  // Strategy 3: try with abbreviated/expanded street type
+  // "10314 Adams Avenue" → "10314 Adams Ave", "513 Henry Street" → "513 Henry St"
+  const base = streetPart || propertyAddress;
+  for (const [pattern, replacement] of STREET_ABBREVIATIONS) {
+    if (pattern.test(base)) {
+      const alternate = base.replace(pattern, replacement);
+      const s3 = await tryMatch(alternate);
+      if (s3) return s3;
+      break; // Only try first matching abbreviation
+    }
   }
 
+  // Strategy 4: street number + street name only (no type) — "10314 Adams"
+  const numAndName = propertyAddress.match(/^(\d+\s+\w+)/);
+  if (numAndName) {
+    const s4 = await tryMatch(numAndName[1]);
+    if (s4) return s4;
+  }
+
+  console.log(`Esther matchProperty: no match for "${propertyAddress}" (tried 4 strategies)`);
   return null;
 }
 
