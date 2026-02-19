@@ -8,12 +8,12 @@ interface ScoreDisplayProps {
   showPriorityBadge?: boolean;
 }
 
-// Continuous HSL gradient: 0 = red (0°), 50 = yellow (45°), 100 = green (142°)
+// Continuous HSL gradient: 40 = red (0°), 70 = yellow (45°), 100 = green (142°)
 const getScoreHue = (score: number): number => {
   const clamped = Math.max(0, Math.min(100, score));
-  // 0→0°(red)  50→45°(yellow-amber)  100→142°(green)
-  if (clamped <= 50) return (clamped / 50) * 45;
-  return 45 + ((clamped - 50) / 50) * 97;
+  if (clamped <= 40) return 0; // red
+  if (clamped <= 70) return ((clamped - 40) / 30) * 45; // red → yellow
+  return 45 + ((clamped - 70) / 30) * 97; // yellow → green
 };
 
 const getScoreStyles = (score: number) => {
