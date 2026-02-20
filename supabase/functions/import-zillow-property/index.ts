@@ -449,8 +449,8 @@ serve(async (req: Request) => {
     }
 
     // ── Fallback: scrape page + parse URL slug ──────────────────────
-    const parsed = parseZillowUrl(zillow_url);
-    if (!parsed) {
+    const urlParsed = parseZillowUrl(zillow_url);
+    if (!urlParsed) {
       return new Response(
         JSON.stringify({
           error: "Could not extract property info from this URL. Try a URL like: zillow.com/homedetails/123-Main-St-Cleveland-OH-44101/12345678_zpid/",
@@ -466,10 +466,10 @@ serve(async (req: Request) => {
     const scraped = await scrapeZillowPage(zillow_url);
 
     const property = {
-      address: parsed.address,
-      city: parsed.city,
-      state: parsed.state,
-      zip_code: parsed.zip_code,
+      address: urlParsed.address,
+      city: urlParsed.city,
+      state: urlParsed.state,
+      zip_code: urlParsed.zip_code,
       bedrooms: scraped?.bedrooms || 0,
       bathrooms: scraped?.bathrooms || 0,
       square_feet: scraped?.sqft || null,
