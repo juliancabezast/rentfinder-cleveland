@@ -1021,16 +1021,16 @@ async function upsertLead(
   };
 
   // ── Base score: inbound inquiry = real lead (+10) ─────────────
-  await applyScoreBoost(10, "inbound_inquiry", "Lead initiated contact via Hemlane property listing", "system");
+  await applyScoreBoost(10, "inbound_inquiry", "Lead initiated contact via Hemlane property listing", "engagement");
 
   // ── Bonus: complete contact info (+5) ─────────────────────────
   if (phone && lead.email) {
-    await applyScoreBoost(5, "complete_contact", "Lead provided both phone and email", "system");
+    await applyScoreBoost(5, "complete_contact", "Lead provided both phone and email", "engagement");
   }
 
   // ── Score boost if lead has a matched property (+10) ──────────
   if (propertyId) {
-    await applyScoreBoost(10, "property_matched", "Lead associated with a property on creation", "system");
+    await applyScoreBoost(10, "property_matched", "Lead associated with a property on creation", "engagement");
   }
 
   // ── Auto-score based on message intent (boosts stack) ─────────
@@ -1519,14 +1519,20 @@ serve(async (req: Request) => {
           console.error(`Esther: email send failed for ${leadInfo.email}: ${(emailErr as Error).message}`);
           followUpActions.push("info-request email FAILED");
         }
+      } else {
+        // No phone AND no email → flag for manual admin review
+        followUpActions.push("flagged for manual review (no contact info)");
       }
+
+      const missingFields = [result.missingName && "name", result.missingPhone && "phone"].filter(Boolean).join(", ");
+      const actionsText = followUpActions.length > 0 ? followUpActions.join(", ") : "none";
 
       await supabase.from("system_logs").insert({
         organization_id: organizationId,
-        level: "warning",
+        level: followUpActions.some((a) => a.includes("manual review")) ? "error" : "warning",
         category: "general",
         event_type: "esther_incomplete_lead",
-        message: `Esther: lead created with incomplete data (${contactId}). Missing: ${[result.missingName && "name", result.missingPhone && "phone"].filter(Boolean).join(", ")}. Actions: ${followUpActions.join(", ")}.`,
+        message: `Esther: lead created with incomplete data (${contactId}). Missing: ${missingFields}. Actions: ${actionsText}`,
         details: {
           email_id: emailId,
           from: fromEmail,
