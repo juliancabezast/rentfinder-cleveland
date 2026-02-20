@@ -34,11 +34,12 @@ const SERVICE_DISPLAY_MAP: Record<string, string> = {
   bland_ai: "Bland",
   openai: "OpenAI",
   persona: "Persona",
+  maxmind: "MaxMind",
   doorloop: "Doorloop",
   resend: "Email",
 };
 
-const SERVICE_ORDER = ["twilio", "bland_ai", "openai", "persona", "doorloop", "resend"];
+const SERVICE_ORDER = ["twilio", "bland_ai", "openai", "persona", "maxmind", "doorloop", "resend"];
 
 type HealthStatus = "healthy" | "degraded" | "down" | "not_configured" | "unknown";
 

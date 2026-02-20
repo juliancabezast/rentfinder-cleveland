@@ -58,7 +58,19 @@ const INTEGRATION_KEYS: IntegrationKey[] = [
   {
     key: 'persona_api_key',
     label: 'Persona API Key',
-    description: 'API key for identity verification',
+    description: 'API key for identity verification (primary)',
+    testable: true,
+  },
+  {
+    key: 'maxmind_account_id',
+    label: 'MaxMind Account ID',
+    description: 'MaxMind minFraud account identifier (fallback verification)',
+    testable: false,
+  },
+  {
+    key: 'maxmind_license_key',
+    label: 'MaxMind License Key',
+    description: 'MaxMind minFraud license key (used with Account ID)',
     testable: true,
   },
   {
@@ -85,6 +97,8 @@ const mapKeyToService = (key: string): string => {
     bland_api_key: "bland_ai",
     openai_api_key: "openai",
     persona_api_key: "persona",
+    maxmind_account_id: "maxmind",
+    maxmind_license_key: "maxmind",
     doorloop_api_key: "doorloop",
     resend_api_key: "resend",
   };
@@ -146,6 +160,7 @@ export const IntegrationKeysTab: React.FC = () => {
           bland_ai: ['bland_api_key'],
           openai: ['openai_api_key'],
           persona: ['persona_api_key'],
+          maxmind: ['maxmind_account_id', 'maxmind_license_key'],
           doorloop: ['doorloop_api_key'],
           resend: ['resend_api_key'],
         };

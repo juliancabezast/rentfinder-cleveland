@@ -20,6 +20,7 @@ const INTEGRATIONS = [
   { key: "bland_ai", label: "Bland.ai", credentialKeys: ["bland_api_key"] },
   { key: "openai", label: "OpenAI", credentialKeys: ["openai_api_key"] },
   { key: "persona", label: "Persona", credentialKeys: ["persona_api_key"] },
+  { key: "maxmind", label: "MaxMind", credentialKeys: ["maxmind_account_id", "maxmind_license_key"] },
   { key: "doorloop", label: "Doorloop", credentialKeys: ["doorloop_api_key"] },
   { key: "resend", label: "Resend", credentialKeys: [] }, // Stored as env secret
 ];

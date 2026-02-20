@@ -16,6 +16,7 @@ const SERVICES = [
   "resend",
   "doorloop",
   "persona",
+  "maxmind",
   "supabase",
 ];
 
@@ -163,6 +164,19 @@ serve(async (req: Request) => {
             if (!apiKey) {
               status = "not_configured";
               message = "Not configured";
+              break;
+            }
+            status = "connected";
+            message = "Credentials saved";
+            break;
+          }
+
+          case "maxmind": {
+            const mAccountId = creds?.maxmind_account_id;
+            const mLicenseKey = creds?.maxmind_license_key;
+            if (!mAccountId || !mLicenseKey) {
+              status = "not_configured";
+              message = "Credentials not set";
               break;
             }
             status = "connected";

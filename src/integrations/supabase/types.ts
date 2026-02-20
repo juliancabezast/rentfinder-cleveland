@@ -1801,6 +1801,7 @@ export type Database = {
           status: string
           updated_at: string | null
           verification_completed_at: string | null
+          verification_provider: string | null
           verification_started_at: string | null
           verification_status: string | null
           voucher_amount: number | null
@@ -1858,6 +1859,7 @@ export type Database = {
           status?: string
           updated_at?: string | null
           verification_completed_at?: string | null
+          verification_provider?: string | null
           verification_started_at?: string | null
           verification_status?: string | null
           voucher_amount?: number | null
@@ -1915,6 +1917,7 @@ export type Database = {
           status?: string
           updated_at?: string | null
           verification_completed_at?: string | null
+          verification_provider?: string | null
           verification_started_at?: string | null
           verification_status?: string | null
           voucher_amount?: number | null
@@ -2074,6 +2077,8 @@ export type Database = {
           created_at: string | null
           doorloop_api_key: string | null
           id: string
+          maxmind_account_id: string | null
+          maxmind_license_key: string | null
           openai_api_key: string | null
           organization_id: string
           persona_api_key: string | null
@@ -2089,6 +2094,8 @@ export type Database = {
           created_at?: string | null
           doorloop_api_key?: string | null
           id?: string
+          maxmind_account_id?: string | null
+          maxmind_license_key?: string | null
           openai_api_key?: string | null
           organization_id: string
           persona_api_key?: string | null
@@ -2104,6 +2111,8 @@ export type Database = {
           created_at?: string | null
           doorloop_api_key?: string | null
           id?: string
+          maxmind_account_id?: string | null
+          maxmind_license_key?: string | null
           openai_api_key?: string | null
           organization_id?: string
           persona_api_key?: string | null
