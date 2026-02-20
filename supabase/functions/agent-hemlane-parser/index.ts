@@ -650,9 +650,114 @@ async function matchProperty(
     }
   }
 
-  // No match found — Esther does NOT create properties, only users do
-  console.log(`Esther: no property match for "${cleanInput}" — lead will have no property assigned`);
+  // No match found
+  console.log(`Esther: no property match for "${cleanInput}" — will auto-create`);
   return null;
+}
+
+// ── Auto-create property from Hemlane digest address ──────────────────
+// Creates a minimal "coming_soon" placeholder when a lead references
+// a property we don't have yet. The user fills in details later.
+async function autoCreateProperty(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  propertyAddress: string
+): Promise<string | null> {
+  const cleanInput = propertyAddress
+    .replace(/\s*\[Esther\b.*$/i, "")
+    .replace(/\.\s*$/, "")
+    .trim();
+  if (!cleanInput || cleanInput.length < 5) return null;
+
+  // Extract unit number
+  const unitMatch = cleanInput.match(/,?\s*(?:Unit|Apt|#)\s*(\w+)/i);
+  const unitNumber = unitMatch ? unitMatch[1] : null;
+
+  // Extract zip code if present
+  const zipMatch = cleanInput.match(/\b(\d{5})(?:-\d{4})?\b/);
+  let zipCode = zipMatch ? zipMatch[1] : null;
+
+  // Extract city/state if present (e.g. "Cleveland, OH 44110")
+  const cityStateMatch = cleanInput.match(/,\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*\d{5}/);
+  const city = cityStateMatch ? cityStateMatch[1].trim() : "Cleveland";
+  const state = cityStateMatch ? cityStateMatch[2] : "OH";
+
+  // Main address: street portion before first comma, without unit suffix
+  const mainAddress = cleanInput.split(",")[0]
+    .replace(/,?\s*(?:Unit|Apt|#)\s*\w+$/i, "")
+    .trim();
+
+  if (!mainAddress || mainAddress.length < 5) return null;
+
+  // If no zip found in address, use the most common zip from org's existing properties
+  if (!zipCode) {
+    const { data: existingProps } = await supabase
+      .from("properties")
+      .select("zip_code")
+      .eq("organization_id", organizationId)
+      .limit(50);
+
+    if (existingProps && existingProps.length > 0) {
+      const zipCounts = new Map<string, number>();
+      for (const p of existingProps) {
+        if (p.zip_code) zipCounts.set(p.zip_code, (zipCounts.get(p.zip_code) || 0) + 1);
+      }
+      let maxCount = 0;
+      for (const [zip, count] of zipCounts) {
+        if (count > maxCount) { maxCount = count; zipCode = zip; }
+      }
+    }
+    if (!zipCode) zipCode = "44113"; // Cleveland fallback
+  }
+
+  const propertyType = unitNumber ? "duplex" : null;
+
+  const { data: newProp, error } = await supabase
+    .from("properties")
+    .insert({
+      organization_id: organizationId,
+      address: mainAddress,
+      unit_number: unitNumber,
+      city,
+      state,
+      zip_code: zipCode,
+      bedrooms: 0,
+      bathrooms: 0,
+      rent_price: 0,
+      status: "coming_soon",
+      property_type: propertyType,
+      description: `Auto-created from Hemlane lead inquiry. Original: "${cleanInput}". Needs rent price, beds, baths, and photos.`,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error(`Esther: auto-create property failed for "${cleanInput}": ${error.message}`);
+    return null;
+  }
+
+  console.log(`Esther: auto-created property "${mainAddress}" unit=${unitNumber} → ${newProp.id}`);
+
+  try {
+    await supabase.from("system_logs").insert({
+      organization_id: organizationId,
+      level: "info",
+      category: "general",
+      event_type: "esther_property_auto_created",
+      message: `Esther auto-created property: ${mainAddress}${unitNumber ? `, Unit ${unitNumber}` : ""} (needs details)`,
+      details: {
+        property_id: newProp.id,
+        original_address: cleanInput,
+        parsed_address: mainAddress,
+        unit_number: unitNumber,
+        zip_code: zipCode,
+        city,
+        state,
+      },
+    });
+  } catch { /* non-blocking */ }
+
+  return newProp.id;
 }
 
 // ── Upsert a single lead ──────────────────────────────────────────────
@@ -671,10 +776,15 @@ async function upsertLead(
   const sourceVia = lead.listingSource ? ` (via ${lead.listingSource})` : "";
   const propertyDetail = lead.property ? `Property: ${lead.property}${sourceVia}` : null;
 
-  // Match property in DB (or auto-create if not found)
+  // Match property in DB — auto-create if not found
   let propertyId = lead.property
     ? await matchProperty(supabase, organizationId, lead.property)
     : null;
+
+  // Auto-create property if Hemlane digest mentions one we don't have
+  if (!propertyId && lead.property) {
+    propertyId = await autoCreateProperty(supabase, organizationId, lead.property);
+  }
 
   console.log(`Esther upsert: lead="${lead.name}" property="${lead.property || "NONE"}" → propertyId=${propertyId || "NULL"}`);
 
