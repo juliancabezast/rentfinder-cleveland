@@ -32,7 +32,6 @@ serve(async (req: Request) => {
   try {
     const parsed = await req.json();
     organization_id = parsed.organization_id;
-    const mode = parsed.mode;
 
     if (!organization_id) {
       return new Response(

@@ -284,7 +284,7 @@ serve(async (req: Request) => {
                 </div>
                 <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
                   <p>Hi <strong>${lead_name || "there"}</strong>, your showing is confirmed!</p>
-                  <p><strong>Property:</strong> ${property_address}</p>
+                  <p><strong>Property:</strong> ${property_address || "your property"}</p>
                   <p><strong>Date:</strong> ${formatDateHuman(slotDate)}</p>
                   <p><strong>Time:</strong> ${formatTimeHuman(slotTime)}</p>
                   <p><strong>Duration:</strong> ${slot.duration_minutes || 30} minutes</p>
@@ -495,14 +495,14 @@ serve(async (req: Request) => {
         level: "error",
         category: "bland_ai",
         event_type: "pathway_webhook_error",
-        message: `Pathway webhook error: ${error.message || "Unknown error"}`,
+        message: `Pathway webhook error: ${(error as Error).message || "Unknown error"}`,
         details: { error: String(error), action: body?.action },
         related_lead_id: body?.lead_id || null,
       });
     } catch { /* non-blocking */ }
 
     return new Response(
-      JSON.stringify({ error: error.message || "Internal error" }),
+      JSON.stringify({ error: (error as Error).message || "Internal error" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

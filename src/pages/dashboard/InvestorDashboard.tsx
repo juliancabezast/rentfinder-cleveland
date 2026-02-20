@@ -70,16 +70,18 @@ export const InvestorDashboard = () => {
         if (propertiesError) throw propertiesError;
 
         // Fetch lead counts per property
-        const { data: leadsData } = await supabase
+        const { data: leadsData, error: leadsError } = await supabase
           .from("leads")
           .select("interested_property_id")
           .in("interested_property_id", propertyIds);
+        if (leadsError) console.error("Error fetching lead counts:", leadsError);
 
         // Fetch showings per property
-        const { data: showingsData } = await supabase
+        const { data: showingsData, error: showingsError } = await supabase
           .from("showings")
           .select("property_id, status")
           .in("property_id", propertyIds);
+        if (showingsError) console.error("Error fetching showings:", showingsError);
 
         // Process metrics
         const leadCounts: Record<string, number> = {};

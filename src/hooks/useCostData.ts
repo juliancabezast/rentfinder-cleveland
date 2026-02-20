@@ -218,7 +218,7 @@ export function useCostData(dateRange: DateRange | undefined) {
           timeGroups.set(key, current);
         });
 
-        communications?.forEach(comm => {
+        communications?.filter(c => c.sent_at).forEach(comm => {
           const date = new Date(comm.sent_at!);
           const key = groupByWeek 
             ? format(startOfWeek(date), "MMM dd")
@@ -351,7 +351,9 @@ export function useCostData(dateRange: DateRange | undefined) {
       }
     };
 
-    fetchData();
+    let cancelled = false;
+    fetchData().finally(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [userRecord?.organization_id, dateRange?.from?.toISOString(), dateRange?.to?.toISOString()]);
 
   return { data, loading, error };

@@ -133,12 +133,6 @@ serve(async (req: Request) => {
     let authUserId: string;
     let warning: string | null = null;
 
-    // Check if auth user already exists (e.g., from another org)
-    const { data: existingAuthUsers } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-    });
-
     // Use inviteUserByEmail to create and send invite email
     const { data: inviteData, error: inviteError } =
       await supabase.auth.admin.inviteUserByEmail(email.toLowerCase(), {

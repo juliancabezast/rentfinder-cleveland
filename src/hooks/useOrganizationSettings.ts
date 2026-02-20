@@ -160,7 +160,7 @@ export function useOrganizationSettings(): UseOrganizationSettingsReturn {
       .select('id')
       .eq('organization_id', organizationId)
       .eq('key', key)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       // Update existing

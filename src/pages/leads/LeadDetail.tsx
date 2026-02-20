@@ -100,10 +100,11 @@ const LeadDetail: React.FC = () => {
   // Fetch notes count for header badge
   const fetchNotesCount = useCallback(async () => {
     if (!id) return;
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from("lead_notes")
       .select("id", { count: "exact", head: true })
       .eq("lead_id", id);
+    if (error) { console.error("Error fetching notes count:", error); return; }
     setNotesCount(count || 0);
   }, [id]);
 
@@ -112,7 +113,7 @@ const LeadDetail: React.FC = () => {
   }, [fetchNotesCount]);
 
   const fetchLead = async () => {
-    if (!id) return;
+    if (!id || !userRecord?.organization_id) return;
 
     setLoading(true);
     try {

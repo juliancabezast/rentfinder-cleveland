@@ -157,7 +157,7 @@ serve(async (req: Request) => {
         level: "error",
         category: "general",
         event_type: "email_send_error",
-        message: `Failed to send email to ${to || "unknown"}: ${error.message || "Unknown error"}`,
+        message: `Failed to send email to ${to || "unknown"}: ${(error as Error).message || "Unknown error"}`,
         details: { error: String(error), to, subject, notification_type },
       });
     } catch { /* non-blocking */ }
@@ -165,7 +165,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || "Failed to send email",
+        error: (error as Error).message || "Failed to send email",
       }),
       {
         status: 500,

@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .from('users')
           .update({ last_login_at: new Date().toISOString() })
           .eq('id', userData.id)
-          .then(() => {});
+          .then(({ error: loginErr }) => { if (loginErr) console.error('Failed to update last_login_at:', loginErr); });
 
         // Fetch organization if user has one
         if (userData.organization_id) {

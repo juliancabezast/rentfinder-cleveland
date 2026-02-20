@@ -1252,6 +1252,7 @@ serve(async (req: Request) => {
   const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
   const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+  let organizationId: string | undefined;
 
   try {
     // ── 1. Read raw body & verify webhook signature ─────────────────
@@ -1346,7 +1347,7 @@ serve(async (req: Request) => {
       .eq("slug", "rent-finder-cleveland")
       .single();
 
-    const organizationId = org?.id;
+    organizationId = org?.id;
     if (!organizationId) {
       throw new Error("Default organization 'rent-finder-cleveland' not found");
     }
@@ -1702,6 +1703,7 @@ serve(async (req: Request) => {
     // Log error to system_logs
     try {
       await supabase.from("system_logs").insert({
+        organization_id: organizationId || null,
         level: "error",
         category: "general",
         event_type: "esther_error",

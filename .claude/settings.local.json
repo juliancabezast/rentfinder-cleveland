@@ -60,7 +60,10 @@
       "Bash($price\" for property extraction:*)",
       "Bash(Hemlane\"\\) merged with agent tasks in a unified timeline sorted:*)",
       "Bash(to schedule a tour\", \"can I visit\", \"ready to move in\"\\), Esther now calls:*)",
-      "Bash([source]\", with purple badge, icon, and agent name color matching the:*)"
+      "Bash([source]\", with purple badge, icon, and agent name color matching the:*)",
+      "Bash(ANON_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsenp6dGhnb3Rmd29pYXJhbm1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NjM5NTksImV4cCI6MjA4NTMzOTk1OX0.zis7q1VXP1IKbL8Zc9B5oe9MPcSyVJbXVCNDYE7d690\":*)",
+      "Bash(ANON_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsenp6dGhnb3Rmd29pYXJhbm1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3NTM5OTgsImV4cCI6MjA1MzMyOTk5OH0.xyYSVFgEJsOHLP_0MYw2VBKvm06PQjg-CliOKMJCqJ0\":*)",
+      "Bash(__NEW_LINE_6d2ab2e08394e391__ curl -s \"https://glzzzthgotfwoiaranmp.supabase.co/rest/v1/properties?select=address,unit_number,rent_price,bedrooms,bathrooms,square_feet,status&order=address.asc\" -H \"apikey: $ANON_KEY\" -H \"Authorization: Bearer $ANON_KEY\")"
     ]
   }
 }

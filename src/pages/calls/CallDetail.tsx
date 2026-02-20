@@ -83,7 +83,7 @@ const CallDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchCall = async () => {
-      if (!id) return;
+      if (!id || !userRecord?.organization_id) return;
 
       setLoading(true);
       try {
@@ -139,7 +139,7 @@ const CallDetail: React.FC = () => {
     };
 
     fetchCall();
-  }, [id]);
+  }, [id, userRecord?.organization_id]);
 
   const formatDuration = (seconds: number | null) => {
     if (!seconds) return "0s";

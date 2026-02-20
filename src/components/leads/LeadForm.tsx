@@ -185,19 +185,21 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         if (error) throw error;
 
         // Sync junction table: delete old, insert new
-        await supabase
+        const { error: deleteErr } = await supabase
           .from("lead_property_interests")
           .delete()
           .eq("lead_id", lead.id);
+        if (deleteErr) console.error("Failed to clear property interests:", deleteErr);
 
         if (selectedPropertyIds.length > 0) {
-          await supabase.from("lead_property_interests").insert(
+          const { error: insertErr } = await supabase.from("lead_property_interests").insert(
             selectedPropertyIds.map((pid) => ({
               organization_id: userRecord.organization_id,
               lead_id: lead.id,
               property_id: pid,
             }))
           );
+          if (insertErr) console.error("Failed to save property interests:", insertErr);
         }
 
         toast({ title: "Success", description: "Lead updated successfully." });

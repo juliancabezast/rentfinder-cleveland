@@ -207,6 +207,11 @@ export const AdminDashboard = () => {
             .in("status", ["pending", "in_progress"]),
         ]);
 
+        if (summaryResult.error) console.error("Dashboard summary RPC error:", summaryResult.error);
+        if (leadsTodayResult.error) console.error("Leads today count error:", leadsTodayResult.error);
+        if (leadsThisWeekResult.error) console.error("Leads this week count error:", leadsThisWeekResult.error);
+        if (pendingTasksResult.error) console.error("Pending tasks count error:", pendingTasksResult.error);
+
         const summary = summaryResult.data as {
           properties: { total: number; available: number; coming_soon: number; in_leasing: number; rented: number };
           leads: { active: number; new_this_week: number; converted_this_month: number; total_this_month: number };

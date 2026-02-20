@@ -234,7 +234,9 @@ export function useReportsData(dateRange: DateRange | undefined) {
       }
     };
 
-    fetchData();
+    let cancelled = false;
+    fetchData().finally(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [userRecord?.organization_id, dateRange?.from?.toISOString(), dateRange?.to?.toISOString()]);
 
   return { data, loading, error };

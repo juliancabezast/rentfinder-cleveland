@@ -183,7 +183,7 @@ serve(async (req: Request) => {
   } catch (err) {
     console.error("delete-user error:", err);
     return new Response(
-      JSON.stringify({ error: err.message || "Internal server error" }),
+      JSON.stringify({ error: (err as Error).message || "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
