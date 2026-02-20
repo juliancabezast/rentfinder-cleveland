@@ -1,5 +1,5 @@
 # PROJECT COMPLETE — Rent Finder Cleveland
-## Version 11 | February 12, 2026
+## Version 12 | February 20, 2026
 
 ---
 
@@ -85,8 +85,9 @@ English (primary) with Spanish language support for prospect-facing interactions
 | Phase 3: Analytics & Integration | Code Complete | Insight Generator, investor storytelling, Doorloop sync, cost dashboard, campaigns |
 | Phase 4: Self-Service Showings | Code Complete | Calendly-like public scheduling, slot management, email confirmations |
 | Phase 5: Bland.ai Pathways | Code Complete | Outbound callback pathway with mid-call webhooks, showing booking, DoorLoop push |
-| Pre-Production Audit | Complete | 15-layer system hardening (Operation Clean Slate), 0 critical issues |
-| Documentation System | Complete | PROJECT.md (source of truth) + incremental snapshots (MD5–MD11) |
+| Phase 6: Identity Verification | Code Complete | Persona (primary) + MaxMind minFraud (Plan B fallback) with automatic failover |
+| Pre-Production Audit | Complete | 15-layer system hardening (Operation Clean Slate), 19-bug codebase audit + fix, 0 critical issues |
+| Documentation System | Complete | PROJECT.md (source of truth) + incremental snapshots (MD5–MD12) |
 
 **Status**: Code complete. Ready for production configuration and testing.
 
@@ -94,21 +95,21 @@ English (primary) with Spanish language support for prospect-facing interactions
 
 | Metric | Count |
 |--------|-------|
-| **Total Lines of Code (src/)** | 48,375 |
-| **Total Lines of Code (supabase/)** | 4,456 |
+| **Total Lines of Code (src/)** | 50,498 |
+| **Total Lines of Code (supabase/)** | 5,881 |
 | **Bland.ai Pathway Configs** | 707 |
 | **Static HTML (sms-signup)** | 550 |
-| **Combined Total** | 54,088 |
-| **TSX files** | 41,137 lines |
-| **TS files** | 6,826 lines |
+| **Combined Total** | 57,636 |
+| **TSX files** | 43,247 lines |
+| **TS files** | 6,839 lines |
 | **CSS files** | 412 lines |
 | **SQL migrations** | 3,592 lines |
-| **Edge functions (Deno TS)** | 864 lines (local repo) |
-| **Page Files** | 33 (13,076 lines) |
-| **Custom Components** | 94 |
+| **Edge functions (Deno TS)** | 5,881 lines (15 local directories) |
+| **Page Files** | 33 (13,308 lines) |
+| **Custom Components** | 97 |
 | **shadcn/ui Components** | 49 |
 | **Custom UI Components** | 3 (EmptyState, LoadingSpinner, StatusBadge) |
-| **Total Component Files** | 146 (27,424 lines) |
+| **Total Component Files** | 150 (29,538 lines) |
 | **Custom Hooks** | 7 (1,573 lines) |
 | **Library Files** | 7 (1,052 lines) |
 | **Context Files** | 1 (261 lines) |
@@ -120,7 +121,8 @@ English (primary) with Spanish language support for prospect-facing interactions
 | **Database Triggers** | 11 |
 | **Database Enums** | 1 (app_role) |
 | **SQL Migrations** | 28 (3,592 lines) |
-| **Edge Functions (deployed in Supabase)** | 41 (39 prior + 2 new local) |
+| **Edge Functions (deployed in Supabase)** | 46 |
+| **Edge Functions (local repo)** | 15 |
 | **Cron Jobs** | 1 (daily property alert check) |
 | **npm Dependencies** | 55 |
 | **npm devDependencies** | 21 |
@@ -129,7 +131,7 @@ English (primary) with Spanish language support for prospect-facing interactions
 ## 2.3 Build Output
 
 ```
-vite v6 built in ~3.5s — 0 errors, 0 warnings
+vite v6 built in ~3.9s — 0 errors, 0 warnings
 ```
 
 ---
@@ -161,11 +163,12 @@ vite v6 built in ~3.5s — 0 errors, 0 warnings
 | **Twilio** | Inbound/outbound calls, SMS | Aaron (inbound webhook), Ruth (SMS inbound), Elijah (recapture), Samuel (confirmation), Jonah (no-show), Joshua (campaign voice) |
 | **Bland.ai** | AI voice agent conversations | Deborah (call webhook), pathway-webhook (mid-call actions), all voice agents route through Bland |
 | **OpenAI** | Scoring, transcript analysis, insights, PAIp chat | Daniel (scoring), Isaiah (transcript), Solomon (prediction), Moses (insights), David (reports), PAIp assistant |
-| **Persona** | Identity verification before showings | Joseph (compliance check / verification) |
+| **Persona** | Identity verification before showings (primary) | Joseph (compliance check / verification), verify-identity (primary provider) |
+| **MaxMind** | Identity verification via minFraud risk scoring (Plan B) | verify-identity (fallback provider), test-integration, agent-health-checker |
 | **Doorloop** | Application/lease status sync | Ezra (pull), Caleb (push) |
 | **Google Sheets** | Lead backup and redundancy | Matthew (sheets backup) |
 | **Resend** | Transactional email | Luke (email processor), book-public-showing (confirmation emails) |
-| **Gmail / Hemlane** | Parse Hemlane lead notification emails | Esther (Hemlane parser with Svix webhook verification) |
+| **Gmail / Hemlane** | Parse Hemlane lead notification emails | Esther (Hemlane parser with auto-create property) |
 
 ---
 
@@ -239,7 +242,7 @@ xl:  1280px  /* Desktops */
 |---|-------|---------|-----|
 | 1 | `organizations` | Multi-tenant core with branding, subscription, API keys | Yes |
 | 2 | `organization_settings` | Per-org configurable settings (agents, scoring, compliance, etc.) | Yes |
-| 3 | `organization_credentials` | Encrypted API keys per org (Twilio, Bland, OpenAI, etc.) | Yes |
+| 3 | `organization_credentials` | Encrypted API keys per org (Twilio, Bland, OpenAI, Persona, MaxMind, etc.) | Yes |
 | 4 | `users` | User accounts with roles, org assignment, commission rates | Yes |
 | 5 | `user_activity_log` | User action audit trail | Yes |
 | 6 | `user_feature_toggles` | Per-user feature flag overrides | Yes |
@@ -247,7 +250,7 @@ xl:  1280px  /* Desktops */
 | 8 | `properties` | Rental listings with details, photos, Section 8, alternatives | Yes |
 | 9 | `property_alerts` | Notifications for property events (coming_soon, high interest) | Yes |
 | 10 | `investor_property_access` | Maps investors (viewers) to properties they can see | Yes |
-| 11 | `leads` | Core lead records with scoring, status, human control flags | Yes |
+| 11 | `leads` | Core lead records with scoring, status, human control flags, verification | Yes |
 | 12 | `lead_score_history` | Explainable scoring audit trail (every change logged) | Yes |
 | 13 | `lead_predictions` | ML-based conversion probability predictions | Yes |
 | 14 | `lead_field_changes` | Lead field change audit log | Yes |
@@ -257,7 +260,7 @@ xl:  1280px  /* Desktops */
 | 18 | `communications` | SMS & email logs with delivery status and costs | Yes |
 | 19 | `email_events` | Email delivery event tracking | Yes |
 | 20 | `showings` | Appointments with confirmation tracking, agent reports | Yes |
-| 21 | `showing_available_slots` | **NEW** Calendly-like time slot management per property | Yes |
+| 21 | `showing_available_slots` | Calendly-like time slot management per property | Yes |
 | 22 | `agent_tasks` | Scheduled AI actions (pausable for human takeover) | Yes |
 | 23 | `agents_registry` | Registry of all AI agents with status and config | Yes |
 | 24 | `agent_activity_log` | Agent execution audit trail | Yes |
@@ -265,7 +268,7 @@ xl:  1280px  /* Desktops */
 | 26 | `campaign_recipients` | Campaign recipient lists and status | Yes |
 | 27 | `system_settings` | Key-value settings, per-org or platform-wide | Yes |
 | 28 | `system_logs` | Error & integration tracking with resolution workflow | Yes |
-| 29 | `integration_health` | Real-time integration status monitoring | Yes |
+| 29 | `integration_health` | Real-time integration status monitoring (7 services + supabase) | Yes |
 | 30 | `cost_records` | Per-interaction cost attribution across services | Yes |
 | 31 | `faq_documents` | FAQ content with OpenAI vector embeddings (1536 dimensions) | Yes |
 | 32 | `consent_log` | TCPA compliance evidence with consent type, method, evidence | Yes |
@@ -280,7 +283,7 @@ xl:  1280px  /* Desktops */
 
 **View**: `property_performance` — Aggregated property metrics view
 
-### NEW: showing_available_slots Table
+### showing_available_slots Table
 
 ```sql
 -- Calendly-like time slot management for self-service showing scheduling
@@ -338,6 +341,27 @@ CREATE TABLE organizations (
   timezone TEXT DEFAULT 'America/New_York',
   default_language TEXT DEFAULT 'en',
   is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Organization Credentials
+```sql
+CREATE TABLE organization_credentials (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE UNIQUE,
+  twilio_account_sid TEXT,
+  twilio_auth_token TEXT,
+  twilio_phone_number TEXT,
+  twilio_whatsapp_number TEXT,
+  bland_api_key TEXT,
+  openai_api_key TEXT,
+  persona_api_key TEXT,
+  maxmind_account_id TEXT,        -- NEW: MaxMind minFraud Account ID
+  maxmind_license_key TEXT,       -- NEW: MaxMind minFraud License Key
+  doorloop_api_key TEXT,
+  resend_api_key TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -410,7 +434,7 @@ CREATE TABLE leads (
   phone TEXT NOT NULL,
   email TEXT,
   preferred_language TEXT DEFAULT 'en' CHECK (preferred_language IN ('en', 'es')),
-  source TEXT NOT NULL CHECK (source IN ('inbound_call', 'hemlane_email', 'website', 'referral', 'manual', 'sms', 'campaign')),
+  source TEXT NOT NULL CHECK (source IN ('inbound_call', 'hemlane_email', 'website', 'referral', 'manual', 'sms', 'campaign', 'web_schedule')),
   source_detail TEXT,
   interested_property_id UUID REFERENCES properties(id),
   interested_zip_codes TEXT[],
@@ -436,6 +460,10 @@ CREATE TABLE leads (
   phone_verified BOOLEAN DEFAULT false,
   identity_verified BOOLEAN DEFAULT false,
   persona_verification_id TEXT,
+  verification_provider TEXT,           -- NEW: 'persona' | 'maxmind' | 'manual'
+  verification_status TEXT,             -- 'in_progress' | 'verified' | 'needs_review' | 'failed' | 'pending'
+  verification_started_at TIMESTAMPTZ,
+  verification_completed_at TIMESTAMPTZ,
   assigned_leasing_agent_id UUID REFERENCES users(id),
   contact_preference TEXT DEFAULT 'any' CHECK (contact_preference IN ('call', 'sms', 'email', 'any')),
   do_not_contact BOOLEAN DEFAULT false,
@@ -448,7 +476,8 @@ CREATE TABLE leads (
   last_contact_at TIMESTAMPTZ,
   next_follow_up_at TIMESTAMPTZ,
   doorloop_prospect_id TEXT,
-  hemlane_lead_id TEXT
+  hemlane_lead_id TEXT,
+  hemlane_email_id TEXT
 );
 ```
 
@@ -589,6 +618,7 @@ CREATE TABLE leads (
 | View settings | Yes | Yes | Yes | - | - |
 | Modify settings | Yes | Yes | - | - | - |
 | Toggle features on/off | Yes | Yes | - | - | - |
+| Configure integration keys | Yes | Yes | - | - | - |
 
 ## 6.2 RLS Policy Architecture
 
@@ -659,7 +689,8 @@ any → lost              After max contact attempts OR manual mark
 ## 8.1 Score Range
 
 - **Scale**: 0–100
-- **Starting score**: 50 (neutral)
+- **Base score**: 40 (all leads start here)
+- **Boosts**: +10 inbound source, +5 complete contact, +10 property matched, status bonuses
 - **Priority threshold**: 85+ (triggers `is_priority = true`)
 
 ## 8.2 Positive Indicators
@@ -677,6 +708,8 @@ any → lost              After max contact attempts OR manual mark
 | Responded to follow-up | +10 | Engaged after nurturing | "Lead responded to follow-up communication" |
 | Positive sentiment | +5 | AI sentiment analysis | "Lead expressed positive sentiment during call" |
 | Self-scheduled showing | +10 | Source = public booking | "Lead proactively self-scheduled a showing" |
+| Inbound source | +10 | source = inbound_call/hemlane_email | "Lead initiated contact (inbound)" |
+| Property matched | +10 | interested_property_id is set | "Lead matched to specific property" |
 
 ## 8.3 Negative Indicators
 
@@ -688,6 +721,7 @@ any → lost              After max contact attempts OR manual mark
 | No response after 3+ attempts | -15 | Contact attempts > 3 | "No response after multiple contact attempts" |
 | Invalid phone detected | -25 | Verification failed | "Phone number could not be verified" |
 | Incomplete info after 3 calls | -10 | Missing required fields | "Still missing key information after multiple contacts" |
+| Staleness (> 7 days no activity) | -5 | Time decay | "No activity for over 7 days" |
 
 ## 8.4 Explainable Scoring
 
@@ -768,7 +802,7 @@ Allow team members to take manual control of high-value or sensitive leads, paus
 
 ## 10.1 Overview
 
-12 operational AI agents with biblical names, organized by department. Implemented as Supabase Edge Functions (Deno). The local repository contains 2 edge functions (Esther, book-public-showing); the remaining 39 are deployed directly in Supabase.
+12 operational AI agents with biblical names, organized by department. Implemented as Supabase Edge Functions (Deno). The local repository contains 15 edge function directories; the remaining are deployed directly in Supabase (46 total deployed).
 
 ## 10.2 Agent Departments (12 Operational Agents)
 
@@ -810,9 +844,9 @@ Allow team members to take manual control of high-value or sensitive leads, paus
 
 **Support agents** (managed by Zacchaeus health monitoring + cost tracking, integrated into the 12 above):
 - **Zacchaeus**: Cost tracking function called by 16 edge functions; health monitoring
-- **Esther**: `agent-hemlane-parser` (484 lines) — Parses Hemlane lead notification emails with Svix webhook signature verification
+- **Esther**: `agent-hemlane-parser` (~1720 lines) — Parses Hemlane lead notification emails, auto-creates properties from digest, smart property matching
 
-## 10.3 Bland.ai Pathway System (NEW)
+## 10.3 Bland.ai Pathway System
 
 ### Outbound Callback Pathway
 A complete Bland.ai pathway configuration for outbound lead callbacks, stored in `src/config/bland-pathways/`:
@@ -842,26 +876,25 @@ A complete Bland.ai pathway configuration for outbound lead callbacks, stored in
 - TCPA compliant: Respects opt-out immediately
 - Connected to: Samuel (showings), Ezra/Caleb (DoorLoop), Nehemiah (callbacks)
 
-## 10.4 Auxiliary Edge Functions (15+ non-agent functions)
+## 10.4 Auxiliary Edge Functions (Local Repo — 15 directories)
 
 | Function | Lines | Purpose |
 |----------|:-----:|---------|
-| `book-public-showing` | 380 | **NEW** Public showing booking + confirmation email via Resend |
-| `generate-investor-report` | 447 | Generate investor report document |
-| `generate-all-investor-reports` | 146 | Batch generate all investor reports |
-| `predict-conversion` | 287 | Single lead conversion prediction |
-| `batch-predictions` | 142 | Batch conversion predictions |
-| `trigger-referral-campaign` | 249 | Trigger referral outreach campaign |
-| `test-integration` | 227 | Test external service connections |
-| `invite-user` | 224 | Send user invitation email |
-| `send-message` | 206 | Send SMS/email message |
+| `agent-hemlane-parser` | ~1,720 | Esther: Hemlane digest parser with auto-create property |
+| `agent-health-checker` | ~230 | Zacchaeus: Health check for 8 services (incl. MaxMind) |
+| `book-public-showing` | 380 | Public showing booking + confirmation email via Resend |
+| `delete-user` | 191 | Admin user deletion with FK cleanup |
+| `extract-property-from-image` | ~150 | Extract property info from images via AI |
+| `generate-lead-brief` | ~200 | Generate AI lead brief |
+| `import-zillow-property` | ~500 | Import property from Zillow URL |
+| `invite-user` | 290 | Send user invitation email |
 | `match-properties` | 197 | Match lead preferences to properties |
-| `paip-chat` | 194 | PAIp AI assistant public chat endpoint |
-| `send-notification-email` | 174 | Send notification email via Resend |
-| `persona-webhook` | 167 | Handle Persona verification webhooks |
-| `capture-lead` | 143 | Website lead capture endpoint |
-| `check-coming-soon` | 90 | Check expiring coming_soon properties |
-| `submit-demo-request` | 91 | Handle demo request form submissions |
+| `pathway-webhook` | ~510 | Bland.ai mid-call webhook handler |
+| `predict-conversion` | 287 | Single lead conversion prediction |
+| `send-message` | 206 | Send SMS/email message |
+| `send-notification-email` | 177 | Send notification email via Resend |
+| `test-integration` | ~280 | Test external service connections (8 services) |
+| `verify-identity` | ~270 | **NEW** Identity verification with Persona→MaxMind fallback |
 
 ## 10.5 Compliance Gates
 
@@ -876,7 +909,7 @@ A complete Bland.ai pathway configuration for outbound lead callbacks, stored in
 8. Luke (email outbound)
 9. Joel (campaign orchestrator)
 
-**Zacchaeus Cost Tracking** — 16 functions call cost recording after execution.
+**Zacchaeus Cost Tracking** — 16+ functions call cost recording after execution.
 
 ## 10.6 Cron Schedule
 
@@ -981,11 +1014,11 @@ The `SmsConsentCheckbox` component (`src/components/public/SmsConsentCheckbox.ts
 | Privacy Policy | `public/PrivacyPolicy.tsx` | 556 | Legal privacy policy (A2P-compliant) |
 | Terms of Service | `public/TermsOfService.tsx` | 613 | Legal terms of service (A2P-compliant) |
 | Referral Page | `public/ReferralPage.tsx` | 287 | Public referral program page |
-| **Schedule Showing** | `public/ScheduleShowing.tsx` | 570 | **NEW** Public Calendly-like showing scheduler |
-| **SMS Signup** | `public/SmsSignup.tsx` | 13 | **NEW** A2P-compliant SMS signup page (iframe) |
+| Schedule Showing | `public/ScheduleShowing.tsx` | 570 | Public Calendly-like showing scheduler |
+| SMS Signup | `public/SmsSignup.tsx` | 13 | A2P-compliant SMS signup page (iframe) |
 | Not Found | `NotFound.tsx` | 24 | 404 catch-all page |
 
-**Total**: 33 pages, 13,076 lines
+**Total**: 33 pages, 13,308 lines
 
 ## 12.2 All Custom Components (by category)
 
@@ -1005,8 +1038,8 @@ The `SmsConsentCheckbox` component (`src/components/public/SmsConsentCheckbox.ts
 | `DashboardCustomizer.tsx` | 244 | Widget visibility toggle |
 | `DashboardGreeting.tsx` | 76 | Personalized greeting with date |
 | `InsightCard.tsx` | 118 | AI insight display card |
-| `IntegrationHealth.tsx` | 284 | Integration status overview |
-| `IntegrationStatusMini.tsx` | 397 | Compact integration status |
+| `IntegrationHealth.tsx` | 290 | Integration status overview (7 services + MaxMind) |
+| `IntegrationStatusMini.tsx` | 435 | Compact integration status bar (7 services + MaxMind) |
 | `InvestorReportsSection.tsx` | 253 | Investor report list |
 | `PriorityLeadCard.tsx` | 125 | Priority lead highlight |
 | `ProgressTimeline.tsx` | 87 | Lead funnel progress |
@@ -1054,12 +1087,12 @@ The `SmsConsentCheckbox` component (`src/components/public/SmsConsentCheckbox.ts
 | Component | Lines | Purpose |
 |-----------|:-----:|---------|
 | `DailyRouteCard.tsx` | 393 | Daily showing route planner |
-| `ManageSlotsTab.tsx` | 575 | **NEW** Calendly-like slot management per property per week |
+| `ManageSlotsTab.tsx` | 575 | Calendly-like slot management per property per week |
 | `MyRouteTab.tsx` | 539 | Agent's showing route view |
 | `ScheduleShowingDialog.tsx` | 527 | Schedule showing dialog |
 | `ShowingReportDialog.tsx` | 394 | Submit showing report dialog |
 
-### Agents Components (8 components + 2 TS files) — NEW
+### Agents Components (8 components + 2 TS files)
 | Component | Lines | Purpose |
 |-----------|:-----:|---------|
 | `AgentMetricsBar.tsx` | 68 | Top metrics bar (total agents, active, tasks) |
@@ -1080,7 +1113,7 @@ The `SmsConsentCheckbox` component (`src/components/public/SmsConsentCheckbox.ts
 | `CommunicationsTab.tsx` | 532 | SMS/email templates and settings |
 | `ComplianceTab.tsx` | 202 | Recording disclosure and compliance |
 | `DemoDataTab.tsx` | 1,008 | Demo data seeding tool |
-| `IntegrationKeysTab.tsx` | 430 | API key management |
+| `IntegrationKeysTab.tsx` | 440 | API key management (11 keys incl. MaxMind) |
 | `InvestorReportsTab.tsx` | 549 | Investor report generation |
 | `LeadCaptureTab.tsx` | 119 | Lead capture popup settings |
 | `OrganizationTab.tsx` | 324 | Organization profile settings |
@@ -1109,10 +1142,10 @@ The `SmsConsentCheckbox` component (`src/components/public/SmsConsentCheckbox.ts
 | `RotatingHeroText.tsx` | 52 | Rotating hero headline text |
 | `SocialProofToast.tsx` | 155 | Social proof notification toasts |
 
-### Public Components (1 component) — NEW
+### Public Components (1 component)
 | Component | Lines | Purpose |
 |-----------|:-----:|---------|
-| `SmsConsentCheckbox.tsx` | 77 | **NEW** Reusable TCPA consent checkbox for calls + SMS |
+| `SmsConsentCheckbox.tsx` | 77 | Reusable TCPA consent checkbox for calls + SMS |
 
 ### Other Components (11 components)
 | Component | Lines | Purpose |
@@ -1141,10 +1174,10 @@ The `SmsConsentCheckbox` component (`src/components/public/SmsConsentCheckbox.ts
 | `use-mobile.tsx` | 19 | Detect mobile viewport |
 | `use-toast.ts` | 221 | Legacy toast notifications (8 files still use) |
 | `useAgentsData.ts` | 215 | Fetch agent registry and task data |
-| `useCostData.ts` | 358 | Fetch and process cost analytics |
-| `useOrganizationSettings.ts` | 307 | Read/write organization settings |
+| `useCostData.ts` | 358 | Fetch and process cost analytics (with null safety + cleanup) |
+| `useOrganizationSettings.ts` | 307 | Read/write organization settings (with maybeSingle fix) |
 | `usePermissions.ts` | 185 | Role-based permission checks |
-| `useReportsData.ts` | 268 | Fetch report analytics data |
+| `useReportsData.ts` | 268 | Fetch report analytics data (with cleanup) |
 
 ## 12.5 Library Files
 
@@ -1200,7 +1233,7 @@ Each organization has:
 - **Contact**: Owner email, phone, address
 - **Branding**: Primary/accent colors (CSS variables)
 - **Subscription**: Plan type (starter/professional/enterprise), status, billing, limits
-- **Integration Keys**: Each org can have their own Twilio, Bland, OpenAI keys or use platform defaults
+- **Integration Keys**: Each org can have their own Twilio, Bland, OpenAI, Persona, MaxMind keys or use platform defaults
 - **Settings**: Fully configurable behaviors (see below)
 
 ## 13.3 Configurable Settings per Organization
@@ -1251,7 +1284,7 @@ Each organization has:
 Every interaction logs costs in the `cost_records` table and/or directly in the `calls` table:
 - Every call: `cost_twilio`, `cost_bland`, `cost_openai`
 - Every SMS: `cost_twilio`
-- Every verification: `cost_persona`
+- Every verification: `cost_persona` or `cost_maxmind`
 
 ## 14.2 Cost Calculation Methods
 
@@ -1261,7 +1294,8 @@ Every interaction logs costs in the `cost_records` table and/or directly in the 
 | Twilio SMS | Message count x rate | ~$0.0079/message |
 | Bland.ai | Minutes x rate | ~$0.09/min |
 | OpenAI | Token count x model rate | ~$0.01-0.03/1K tokens (GPT-4) |
-| Persona | Verification count x rate | ~$1-2/verification |
+| Persona | Verification count x rate | ~$0.50/verification |
+| MaxMind | Score query count x rate | ~$0.005/query |
 
 ## 14.3 Dashboard Features (`CostDashboard.tsx`, 627 lines)
 
@@ -1292,12 +1326,50 @@ Every interaction logs costs in the `cost_records` table and/or directly in the 
 - **Structure**: One "Leads" sheet with columns: Timestamp, Name, Phone, Email, Source, Interested Property, Status, Lead Score, Created At
 - **Sync**: Append row on new lead, update row on status change
 
-## 15.3 Persona Identity Verification
+## 15.3 Identity Verification (Persona + MaxMind)
 
+### Primary: Persona
 - **Agent**: Joseph (`agent-persona-verification`)
-- **Flow**: Before showings, verify lead identity via Persona
-- **Fallback**: If verification times out, allow showing with "Pending Verification" status
+- **Flow**: Before showings, verify lead identity via Persona inquiry
 - **Webhook**: `persona-webhook` edge function handles completion callbacks
+- **Cost**: ~$0.50/verification
+
+### Plan B: MaxMind minFraud (NEW)
+- **Edge Function**: `verify-identity` — handles the full verification flow
+- **Flow**: If Persona is down or fails, MaxMind automatically takes over
+- **Auth**: Basic Auth with Account ID + License Key
+- **Endpoint**: `https://minfraud.maxmind.com/minfraud/v2.0/score`
+- **Risk Scoring**: risk_score < 30 = verified, 30-70 = needs_review, > 70 = failed
+- **Cost**: ~$0.005/query (100x cheaper than Persona)
+- **Data sent**: IP address (required), email (optional), phone (optional)
+
+### Verification Flow (`verify-identity` edge function)
+1. Receive `lead_id`, `organization_id`, `ip_address`, `email`, `phone`
+2. Check if lead is already verified (short-circuit)
+3. Check `integration_health` table — if Persona is marked "down", skip directly to MaxMind
+4. **Try Persona**: Create inquiry via API
+5. **If Persona fails**: Automatically fall back to MaxMind minFraud Score
+6. Update lead: `identity_verified`, `verification_status`, `verification_provider`
+7. Log to `system_logs`, record cost via `zacchaeus_record_cost`
+
+### Fallback Decision Logic
+```
+Has Persona key? ──Yes──→ Is Persona "down" in integration_health?
+       │                         │Yes              │No
+       │                         ↓                 ↓
+       │                  Skip to MaxMind    Call Persona API
+       │                                         │
+       │                               Success? ──Yes──→ Done (provider: persona)
+       │                                  │No
+       │                                  ↓
+       No                         Has MaxMind key?
+       │                               │Yes         │No
+       ↓                               ↓             ↓
+  Has MaxMind? ──Yes──→ Call MaxMind    Call MaxMind   Return error
+       │No                                   │
+       ↓                               Score result
+  Return error               <30: verified, 30-70: review, >70: failed
+```
 
 ## 15.4 Resend Email
 
@@ -1309,10 +1381,16 @@ Every interaction logs costs in the `cost_records` table and/or directly in the 
 
 ## 15.5 Hemlane Email Parsing
 
-- **Agent**: Esther (`agent-hemlane-parser`, 484 lines)
-- **Purpose**: Parse Hemlane lead notification emails into structured lead records
+- **Agent**: Esther (`agent-hemlane-parser`, ~1,720 lines)
+- **Purpose**: Parse Hemlane lead notification emails and daily lead digests into structured lead records
 - **Security**: Svix webhook signature verification (HMAC-SHA256) with 5-minute timestamp tolerance
-- **Features**: Creates or updates leads, matches to properties by address, handles duplicate phone numbers, logs consent
+- **Features**:
+  - Creates or updates leads with smart property matching by address normalization
+  - **Auto-creates "coming_soon" placeholder properties** when Hemlane mentions addresses not in the database
+  - Handles duplicate phone numbers gracefully
+  - Parses both individual lead notifications and daily digest format
+  - Logs consent for incoming communications
+  - Comprehensive system_logs logging across all operations
 
 ---
 
@@ -1327,7 +1405,7 @@ Every interaction logs costs in the `cost_records` table and/or directly in the 
 | `/p/terms-of-service` (also `/terms-and-conditions`) | Terms of Service | Public |
 | `/p/refer/:referralCode` | Referral Program | Public |
 | `/sms-signup` | SMS Signup | Public |
-| `/p/schedule-showing/:propertyId` | **NEW** Self-Service Showing Scheduler | Public |
+| `/p/schedule-showing/:propertyId` | Self-Service Showing Scheduler | Public |
 
 ## 16.2 Landing Page Features
 
@@ -1339,7 +1417,7 @@ Every interaction logs costs in the `cost_records` table and/or directly in the 
 - Demo Request Dialog (captures name, email, company, phone, TCPA consent)
 - Floating animated background
 
-## 16.3 Self-Service Showing Scheduling System (NEW)
+## 16.3 Self-Service Showing Scheduling System
 
 A complete Calendly-like system for leads to self-schedule property showings:
 
@@ -1364,9 +1442,10 @@ A complete Calendly-like system for leads to self-schedule property showings:
 
 ### Backend: book-public-showing (`book-public-showing/index.ts`, 380 lines)
 - Creates showing record in database
-- Creates or updates lead record (source = 'website')
+- Creates or updates lead record (source = 'web_schedule')
 - Logs TCPA consent
-- Marks slot as booked
+- Marks slot as booked (+ buffer slot)
+- Schedules Samuel confirmation task (24h before)
 - Sends branded HTML confirmation email via Resend
 - Returns booking confirmation
 
@@ -1418,6 +1497,7 @@ A complete Calendly-like system for leads to self-schedule property showings:
 | API error rate high | Admin | Email |
 | Doorloop sync failed | Admin | In-app + Email |
 | Critical integration failure | Admin | Email (immediate) |
+| Identity verification failure | Admin | System log warning |
 
 ---
 
@@ -1475,8 +1555,11 @@ Insights stored in `investor_insights` table with types:
 | **OpenAI** | API timeout | Use cached/default scoring (+5). Mark for re-analysis | None |
 | **OpenAI** | Rate limit | Queue requests. Process in batches when available | None |
 | **OpenAI** | API error | Log error. Use defaults. Background retry | Admin if >10/hour |
-| **Persona** | Timeout | Allow showing with "Pending Verification" | Lead sees "in progress" |
-| **Persona** | API error | Mark "Manual Verification Required" | Admin alert |
+| **Persona** | Timeout | **Automatic fallback to MaxMind minFraud** | Lead sees "in progress" |
+| **Persona** | API error | **Automatic fallback to MaxMind minFraud** | System log warning |
+| **Persona** | Service marked "down" | **Skip directly to MaxMind** (health-aware) | None |
+| **MaxMind** | API error | Mark "Manual Verification Required" | Admin alert |
+| **MaxMind** | Both providers fail | Allow showing with "Pending Verification" status | Admin alert |
 | **Doorloop** | Sync failure | Log, retry in 15 min. After 3 failures: alert | Admin alert |
 | **Doorloop** | API unavailable | Continue without sync. Queue updates | Admin notification |
 | **Resend** | Email failure | Log error, retry once. Showing still created. | Admin if persistent |
@@ -1486,8 +1569,9 @@ Insights stored in `investor_insights` table with types:
 - **Location**: Admin dashboard → System Logs page (`SystemLogs.tsx`, 658 lines)
 - **Features**: Real-time log stream, filter by level/service/date/resolution, mark as resolved with notes, export CSV
 - **Critical errors**: Automatically email admin with details, affected entities, and suggested action
-- **Health Check Widget**: `IntegrationHealth.tsx` (284 lines) shows green/yellow/red status per service
+- **Health Check Widget**: `IntegrationHealth.tsx` (290 lines) shows green/yellow/red status per service (8 services including MaxMind)
 - **Integration Health Table**: `integration_health` table tracks real-time status per service
+- **Status Bar**: `IntegrationStatusMini.tsx` (435 lines) in header shows live status dots for all 7 services
 
 ---
 
@@ -1503,7 +1587,7 @@ Insights stored in `investor_insights` table with types:
 - [ ] Import outbound callback pathway to Bland.ai dashboard
 - [ ] Set up pathway-webhook edge function for mid-call actions
 - [ ] Set up Persona webhook URL
-- [ ] Configure organization API keys (Twilio, Bland, OpenAI, Persona, Doorloop, Resend)
+- [ ] Configure organization API keys (Twilio, Bland, OpenAI, Persona, MaxMind, Doorloop, Resend)
 - [ ] Set up Resend domain verification
 - [ ] Configure DNS for all 3 domains
 - [ ] Set up SSL certificates
@@ -1511,12 +1595,14 @@ Insights stored in `investor_insights` table with types:
 - [ ] Verify RLS policies with test data across all 5 roles
 - [ ] Create `showing_available_slots` table in production DB
 - [ ] Configure Hemlane webhook (Esther) with Svix signing secret
+- [ ] Run ALTER TABLE for maxmind columns + verification_provider
 
 ## 20.2 Testing
 
 - [ ] End-to-end: Inbound call → lead creation → scoring → follow-up → showing → application
 - [ ] End-to-end: Public showing booking → lead creation → confirmation email → showing record
 - [ ] End-to-end: Bland.ai pathway → mid-call webhook → showing reservation → confirmation
+- [ ] End-to-end: Identity verification → Persona primary → MaxMind fallback
 - [ ] Human takeover: take control → verify paused tasks → release → verify resumed
 - [ ] Multi-tenant: verify data isolation between organizations
 - [ ] All 5 user roles: verify permission boundaries
@@ -1527,6 +1613,7 @@ Insights stored in `investor_insights` table with types:
 - [ ] CSV import: test bulk lead import
 - [ ] Mobile: test all pages on phone/tablet viewports
 - [ ] Hemlane parser: test with sample Hemlane notification email
+- [ ] Hemlane auto-create property: verify placeholder property creation
 
 ## 20.3 Post-Launch
 
@@ -1537,6 +1624,7 @@ Insights stored in `investor_insights` table with types:
 - [ ] Run first investor report generation
 - [ ] Verify public showing scheduling working end-to-end
 - [ ] Enable prevent_direct_score_update trigger
+- [ ] Verify MaxMind fallback activates when Persona is unavailable
 
 ## 20.4 SQL Migrations (28 Files)
 
@@ -1575,7 +1663,17 @@ Insights stored in `investor_insights` table with types:
 
 **Note**: `showing_available_slots` table was created via Supabase Dashboard (not in migrations). Migration needed for production replication.
 
-## 20.5 Route Map (All 27 Authenticated Routes + 6 Public)
+**Pending SQL** (run manually in Supabase Dashboard):
+```sql
+ALTER TABLE public.organization_credentials
+  ADD COLUMN IF NOT EXISTS maxmind_account_id TEXT,
+  ADD COLUMN IF NOT EXISTS maxmind_license_key TEXT;
+
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS verification_provider TEXT;
+```
+
+## 20.5 Route Map (All 27 Authenticated Routes + 8 Public)
 
 | Route | Component | Auth Required | Roles |
 |-------|-----------|:------------:|-------|
@@ -1623,11 +1721,15 @@ Insights stored in `investor_insights` table with types:
 
 1. **Cron jobs**: Nehemiah (5-min task dispatch) and Doorloop sync (15-min) not yet configured
 2. **Webhook URLs**: Need to be configured in Twilio, Bland.ai, Persona, and Hemlane dashboards
-3. **API keys**: Need to be set per organization in production database
+3. **API keys**: Need to be set per organization in production database (including MaxMind Account ID + License Key)
 4. **DB settings**: `app.settings.supabase_url` and `app.settings.service_role_key` must be set
 5. **Bland.ai pathway**: Import `outbound-callback-pathway.json` to Bland.ai dashboard and get pathway_id
 6. **pathway-webhook**: Deploy edge function for mid-call webhook actions
 7. **showing_available_slots migration**: Create table in production DB (currently only in Supabase types)
+8. **MaxMind DB columns**: Run ALTER TABLE to add `maxmind_account_id` and `maxmind_license_key` to `organization_credentials`, `verification_provider` to `leads`
+9. **Properties**: Load properties (Zillow import or manual entry)
+10. **Resend webhook**: Configure for Esther (Hemlane parser)
+11. **Hemlane forwarding**: Configure Hemlane to forward lead notifications
 
 ## 21.2 Advisory Items from Audit (Non-Blocking)
 
@@ -1639,66 +1741,61 @@ Insights stored in `investor_insights` table with types:
 | 4 | Score audit trigger disabled | Medium | Enable in production DB |
 | 5 | 18+ date format strings | Low | Create centralized utility |
 | 6 | Dual toast system | Low | Consolidate to sonner |
+| 7 | `lead_property_interests` table | Low | Verify exists in DB, regenerate types if so |
 
 ---
 
 # 22. Latest Session Update
 
-## Session: February 12, 2026
+## Session: February 20, 2026
 
-### Major Additions Since MD10
+### Changes Since MD11
 
-#### 1. Self-Service Showing Scheduling System (Calendly-like)
-Complete self-scheduling flow for leads:
-- **ManageSlotsTab** (575 lines): Admin manages available time slots per property per week with visual calendar grid, bulk operations, and week copying
-- **ScheduleShowing** (570 lines): Public page where leads select date → time → enter info → book with TCPA consent
-- **book-public-showing** (380 lines): Edge function creates showing, lead, consent log; sends branded HTML confirmation email via Resend
-- **showing_available_slots** table: New database table tracking enabled/booked slots per property
-- **Route**: `/p/schedule-showing/:propertyId`
+#### 1. MaxMind minFraud Integration (Plan B Identity Verification)
+Complete integration of MaxMind minFraud as automatic fallback for Persona identity verification:
+- **`verify-identity` edge function** (~270 lines): New edge function with Persona-first, MaxMind-fallback flow. Checks `integration_health` to skip Persona if it's marked "down". Risk scoring thresholds: < 30 verified, 30-70 needs_review, > 70 failed.
+- **Settings UI**: MaxMind Account ID + License Key fields added to `IntegrationKeysTab.tsx` (11 total integration keys)
+- **Dashboard widgets**: MaxMind added to `IntegrationHealth.tsx` and `IntegrationStatusMini.tsx` (now 7 services + Supabase)
+- **Health checks**: MaxMind added to `agent-health-checker` SERVICES array and `test-integration` switch
+- **Types**: `maxmind_account_id`, `maxmind_license_key` added to `organization_credentials`; `verification_provider` added to `leads`
+- **Cost tracking**: Persona ~$0.50/verification, MaxMind ~$0.005/query via `zacchaeus_record_cost`
 
-#### 2. Esther — Hemlane Email Parser (484 lines)
-New edge function `agent-hemlane-parser` that parses Hemlane lead notification emails:
-- Svix webhook signature verification (HMAC-SHA256) with 5-minute timestamp tolerance
-- Creates or updates leads with property matching
-- Handles duplicate phone numbers gracefully
-- Logs consent for incoming communications
+#### 2. Esther Hemlane Parser — Auto-Create Properties
+- **`autoCreateProperty()` function** added to `agent-hemlane-parser`: When Hemlane digest mentions an address not in the database, Esther now automatically creates a "coming_soon" placeholder property with inferred zip code from org's existing properties
+- **Fixed 3 root-cause bugs**: `triggered_by` field now passes valid CHECK constraint values, orphan leads handled, empty actions text fixed
+- **`organizationId` scoping fix**: Changed from `const` inside try to `let` declared before try block, fixing catch block system_logs inserts
 
-#### 3. Bland.ai Pathway Configuration (707 lines)
-Complete outbound callback pathway for AI voice calls:
-- `outbound-callback-pathway.json` (386 lines): 12-node bilingual pathway
-- `call-initiation.ts` (109 lines): TypeScript interfaces for Bland API calls
-- `pathway-webhook-spec.ts` (212 lines): Mid-call webhook specification for real-time database operations
-- Supports: property info delivery, showing scheduling, DoorLoop application, callback scheduling
+#### 3. 19-Bug Codebase Audit & Fix
+Comprehensive audit found and fixed 19 bugs across 16 files:
+- **Edge functions** (6 deployed): TypeScript strict mode `(err as Error).message` fixes in pathway-webhook, send-notification-email, delete-user; removed unused `listUsers` API call in invite-user; removed unused variable in agent-health-checker
+- **Frontend hooks**: `useCostData.ts` null safety for `sent_at` + unmount cleanup; `useReportsData.ts` unmount cleanup; `useOrganizationSettings.ts` `.single()` → `.maybeSingle()` fix
+- **Frontend pages**: `CallDetail.tsx` and `LeadDetail.tsx` missing org_id guards in useEffect deps; `AdminDashboard.tsx` and `InvestorDashboard.tsx` silent error handling; `AuthContext.tsx` login error logging
+- **LeadForm.tsx**: Added error handling for junction table operations
 
-#### 4. Agent Architecture Refactoring
-- Reorganized from 30 conceptual agents to 12 operational agents organized by department
-- New hierarchical department view on Agents page with dedicated components:
-  - `components/agents/` directory: 8 new components + 2 TS files (1,069 lines total)
-  - Departments: Recepcion, Evaluacion, Operaciones, Ventas, Inteligencia, Administracion
+#### 4. Zillow Import Fix
+- Fixed variable shadowing bug: `const parsed` declared twice in same try scope (line 377 for `req.json()`, line 452 for `parseZillowUrl()`). Renamed second to `urlParsed`.
+- Deployed and verified working.
 
-#### 5. TCPA Consent Component
-- `SmsConsentCheckbox` (77 lines): Reusable component covering both automated calls AND SMS
-- Consent language version tracking (`v1.1`)
-- `buildConsentPayload()` captures: method, source URL, language, version, user_agent, timestamp
-- Integrated into: landing page, public showing scheduler, SMS signup
+#### 5. Score Recalculation
+- SQL provided and executed to recalculate scores for all leads with 13 rules (base 40, +10 inbound, +5 complete contact, +10 property matched, status bonuses, staleness penalties)
 
-#### 6. A2P 10DLC Compliance
-- SMS signup standalone page (`/sms-signup`) with static HTML form (550 lines)
-- Privacy Policy and Terms of Service updated for Twilio campaign registration
-- Consent covers both automated calls and SMS (not just SMS)
+### Updated Statistics (vs. MD11)
+- Total LoC: 57,636 (up from 54,088 — +3,548 lines)
+- Edge functions (local): 15 directories (up from ~12)
+- Edge functions (deployed): 46 (up from 41)
+- Integration services monitored: 8 (added MaxMind)
+- Integration keys configurable: 11 (added MaxMind Account ID + License Key)
+- New edge function: `verify-identity` (identity verification with fallback)
 
-### Updated Statistics (vs. MD10)
-- Total LoC: 54,088 (up from 49,324 — +4,764 lines)
-- Database tables: 40 (up from 39 — added `showing_available_slots`)
-- Database functions: 40 (up from 36 — discovered 4 additional via types.ts: `is_admin`, `is_editor_or_above`, `get_user_internal_id`, `get_user_org_id`)
-- Pages: 33 (up from 31 — added ScheduleShowing, SmsSignup)
-- Components: 94 custom (up from 83 — added 8 agents components, ManageSlotsTab, SmsConsentCheckbox, reorganized agents)
-- Edge functions: 41 (39 deployed + 2 local: agent-hemlane-parser, book-public-showing)
+### Commits Since MD11
+- `ef527cd` — fix: 19-bug audit across edge functions and frontend
+- `4b7dac6` — feat: add MaxMind minFraud as Plan B identity verification fallback
+- Plus: Esther auto-create property, Zillow import fix, score recalculation
 
 ---
 
-*Document Version: 11*
-*Last Updated: February 12, 2026*
+*Document Version: 12*
+*Last Updated: February 20, 2026*
 *Project: Rent Finder Cleveland*
 *Architecture: Multi-Tenant SaaS*
-*Total Lines of Code: 54,088*
+*Total Lines of Code: 57,636*
