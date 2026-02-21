@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Sparkles, Send, Trash2, User } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -18,15 +20,13 @@ const WELCOME_MESSAGE: ChatMessage = {
   role: "assistant",
   content: `Hi! I'm your data analyst. Ask me anything about your leads, calls, and showings. For example:
 
-• What zip code has the highest conversion rate?
-• What are the most common unanswered questions?
-• Show me leads who mentioned urgency but didn't schedule
-• What day gets the most inbound calls?
-• Compare English vs Spanish call durations`,
+\u2022 What zip code has the highest conversion rate?
+\u2022 What are the most common unanswered questions?
+\u2022 Show me leads who mentioned urgency but didn't schedule
+\u2022 What day gets the most inbound calls?
+\u2022 Compare English vs Spanish call durations`,
   timestamp: new Date(),
 };
-
-const PLACEHOLDER_RESPONSE = `I'll be able to answer your questions once the OpenAI integration is configured. Head to **Settings → Integration Keys** to add your OpenAI API key.`;
 
 export const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
@@ -43,7 +43,7 @@ export const AIChat: React.FC = () => {
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isTyping) return;
 
     const userMessage: ChatMessage = {
       role: "user",
@@ -52,20 +52,57 @@ export const AIChat: React.FC = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const question = inputValue.trim();
     setInputValue("");
     setIsTyping(true);
 
-    // Simulate AI response delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Not authenticated");
+      }
 
-    const aiMessage: ChatMessage = {
-      role: "assistant",
-      content: PLACEHOLDER_RESPONSE,
-      timestamp: new Date(),
-    };
+      // Build conversation history (exclude welcome message)
+      const history = messages
+        .filter((_, i) => i > 0)
+        .map((m) => ({ role: m.role, content: m.content }));
 
-    setIsTyping(false);
-    setMessages((prev) => [...prev, aiMessage]);
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/ai-chat`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          apikey: session.access_token,
+        },
+        body: JSON.stringify({ question, history }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data.error || "Failed to get response");
+      }
+
+      const aiMessage: ChatMessage = {
+        role: "assistant",
+        content: data.answer,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (err) {
+      console.error("AI Chat error:", err);
+      const errorMessage: ChatMessage = {
+        role: "assistant",
+        content: `Sorry, I encountered an error: ${(err as Error).message}. Please try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      toast.error("AI Chat error");
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -77,6 +114,28 @@ export const AIChat: React.FC = () => {
 
   const handleClear = () => {
     setMessages([WELCOME_MESSAGE]);
+  };
+
+  // Simple markdown-like rendering for bold and bullet points
+  const renderContent = (content: string) => {
+    const lines = content.split("\n");
+    return lines.map((line, i) => {
+      // Bold **text**
+      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+      const rendered = parts.map((part, j) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return <strong key={j}>{part.slice(2, -2)}</strong>;
+        }
+        return part;
+      });
+
+      return (
+        <React.Fragment key={i}>
+          {rendered}
+          {i < lines.length - 1 && <br />}
+        </React.Fragment>
+      );
+    });
   };
 
   return (
@@ -102,7 +161,7 @@ export const AIChat: React.FC = () => {
         <ScrollArea className="h-full p-4" ref={scrollRef}>
           <div className="space-y-4">
             {messages.map((message, index) => (
-              <MessageBubble key={index} message={message} />
+              <MessageBubble key={index} message={message} renderContent={renderContent} />
             ))}
 
             {isTyping && <TypingIndicator />}
@@ -139,7 +198,10 @@ export const AIChat: React.FC = () => {
   );
 };
 
-const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
+const MessageBubble: React.FC<{
+  message: ChatMessage;
+  renderContent: (content: string) => React.ReactNode;
+}> = ({ message, renderContent }) => {
   const isUser = message.role === "user";
 
   return (
@@ -158,7 +220,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
             : "bg-primary/5 text-foreground rounded-tl-sm"
         )}
       >
-        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        <div className="text-sm whitespace-pre-wrap">{renderContent(message.content)}</div>
         <p
           className={cn(
             "text-xs mt-1",
