@@ -117,23 +117,23 @@ export const ManageSlotsTab: React.FC = () => {
     fetchSlots();
   }, [fetchSlots]);
 
-  // Delete all slots for a given date
+  // Disable all unbooked slots for a given date (using UPDATE instead of DELETE for RLS compatibility)
   const handleDeleteDate = async (date: string) => {
     if (!orgId) return;
     setDeletingDate(date);
 
     const { error } = await supabase
       .from("showing_available_slots")
-      .delete()
+      .update({ is_enabled: false, updated_at: new Date().toISOString() })
       .eq("organization_id", orgId)
       .eq("slot_date", date)
       .eq("is_booked", false);
 
     if (error) {
-      console.error("Delete error:", error);
-      toast({ title: "Error", description: `Failed to delete slots: ${error.message}`, variant: "destructive" });
+      console.error("Disable error:", error);
+      toast({ title: "Error", description: `Failed to remove slots: ${error.message}`, variant: "destructive" });
     } else {
-      toast({ title: "Deleted", description: `Available slots for ${format(parseISO(date), "MMM d")} removed.` });
+      toast({ title: "Removed", description: `Available slots for ${format(parseISO(date), "MMM d")} disabled.` });
       fetchSlots();
     }
     setDeletingDate(null);

@@ -120,13 +120,14 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           setEndTime(match ? match.value : TIME_OPTIONS[TIME_OPTIONS.length - 1].value);
         }
 
-        // In edit mode: fetch which properties actually have slots for this date
+        // In edit mode: fetch which properties actually have ENABLED slots for this date
         // and pre-exclude properties that DON'T have slots
         const { data: slotData } = await supabase
           .from("showing_available_slots")
           .select("property_id")
           .eq("organization_id", orgId)
           .eq("slot_date", editData.date)
+          .eq("is_enabled", true)
           .eq("is_booked", false);
 
         const propsWithSlots = new Set((slotData || []).map((s) => s.property_id));
@@ -224,16 +225,25 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
 
-      // In edit mode, first delete existing unbooked slots for this date
+      // In edit mode, first DISABLE all unbooked slots for this date
+      // (using UPDATE instead of DELETE to avoid RLS policy issues)
       if (isEditMode) {
-        await supabase
+        const { error: disableErr } = await supabase
           .from("showing_available_slots")
-          .delete()
+          .update({ is_enabled: false, updated_at: new Date().toISOString() })
           .eq("organization_id", orgId)
           .eq("slot_date", dateStr)
           .eq("is_booked", false);
+
+        if (disableErr) {
+          console.error("Disable slots error:", disableErr);
+          toast.error(`Failed to update slots: ${disableErr.message}`);
+          setSubmitting(false);
+          return;
+        }
       }
 
+      // Create/update slots for active properties only (sets is_enabled = true)
       const rows = activeProperties.flatMap((prop) =>
         previewSlots.map((time) => ({
           organization_id: orgId,
