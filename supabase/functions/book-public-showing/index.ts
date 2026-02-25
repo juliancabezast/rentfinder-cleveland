@@ -485,8 +485,9 @@ serve(async (req: Request) => {
           .single();
 
         if (creds?.doorloop_api_key) {
+          const dlApiKey = creds.doorloop_api_key.trim();
           const dlHeaders = {
-            "Authorization": `Bearer ${creds.doorloop_api_key}`,
+            "Authorization": `Bearer ${dlApiKey}`,
             "Content-Type": "application/json",
           };
 

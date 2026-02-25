@@ -217,6 +217,52 @@ export function testEmailTemplate(data: TestEmailData = {}): string {
   `;
 }
 
+interface ShowingInvitationData {
+  leadName: string;
+  propertyAddress: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  rentPrice?: number;
+  bookingUrl: string;
+}
+
+export function showingInvitationTemplate(data: ShowingInvitationData): string {
+  const details: string[] = [];
+  if (data.bedrooms) details.push(`${data.bedrooms} bed`);
+  if (data.bathrooms) details.push(`${data.bathrooms} bath`);
+  if (data.rentPrice) details.push(`$${data.rentPrice.toLocaleString()}/mo`);
+
+  return `
+    <div style="margin-bottom: 24px;">
+      <h2 style="margin: 0; color: ${BRAND.textDark}; font-size: 22px; font-weight: 700;">
+        Hi ${data.leadName},
+      </h2>
+      <p style="margin: 12px 0 0 0; color: ${BRAND.textLight}; font-size: 16px; line-height: 1.5;">
+        We have a property available that might be perfect for you! We'd love to show it to you.
+      </p>
+    </div>
+
+    ${cardSection("Property Details", `
+      <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%;">
+        ${infoRow("Address", data.propertyAddress)}
+        ${details.length > 0 ? infoRow("Details", details.join(" · ")) : ""}
+      </table>
+    `)}
+
+    <p style="margin: 16px 0; color: ${BRAND.textLight}; font-size: 14px; line-height: 1.5;">
+      Click below to pick a date and time that works best for you. It only takes a minute!
+    </p>
+
+    <div style="text-align: center; margin: 24px 0;">
+      ${ctaButton("Schedule a Showing", data.bookingUrl)}
+    </div>
+
+    <p style="margin: 24px 0 0 0; color: ${BRAND.textLight}; font-size: 13px;">
+      If you have any questions, just reply to this email. We're happy to help!
+    </p>
+  `;
+}
+
 interface DailySummaryData {
   date: string;
   newLeads: number;
