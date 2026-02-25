@@ -227,7 +227,7 @@ const LeadsList: React.FC = () => {
 
     try {
       // Parallel count queries
-      // Base filter: only complete leads (name + phone + email)
+      // Base filter: only complete leads with clean data
       const completeLeadBase = () =>
         supabase
           .from("leads")
@@ -235,7 +235,16 @@ const LeadsList: React.FC = () => {
           .eq("organization_id", orgId)
           .not("full_name", "is", null)
           .not("phone", "is", null)
-          .not("email", "is", null);
+          .not("email", "is", null)
+          .not("full_name", "ilike", "%.com%")
+          .not("full_name", "ilike", "%http%")
+          .not("full_name", "ilike", "%@%")
+          .not("full_name", "ilike", "%comments%")
+          .not("full_name", "ilike", "%unsubscribe%")
+          .not("full_name", "ilike", "%click here%")
+          .not("full_name", "ilike", "%mailto:%")
+          .not("full_name", "ilike", "%subject:%")
+          .not("full_name", "ilike", "%reply%");
 
       const [priorityRes, humanRes, moveInRes, section8Res, showingsRes] = await Promise.all([
         // Priority count
@@ -332,7 +341,17 @@ const LeadsList: React.FC = () => {
         .eq("organization_id", userRecord.organization_id)
         .not("full_name", "is", null)
         .not("phone", "is", null)
-        .not("email", "is", null);
+        .not("email", "is", null)
+        // Exclude leads with junk/parsing-artifact data (shown in For Review tab)
+        .not("full_name", "ilike", "%.com%")
+        .not("full_name", "ilike", "%http%")
+        .not("full_name", "ilike", "%@%")
+        .not("full_name", "ilike", "%comments%")
+        .not("full_name", "ilike", "%unsubscribe%")
+        .not("full_name", "ilike", "%click here%")
+        .not("full_name", "ilike", "%mailto:%")
+        .not("full_name", "ilike", "%subject:%")
+        .not("full_name", "ilike", "%reply%");
 
       // Apply dropdown filters
       if (statusFilter !== "all") {

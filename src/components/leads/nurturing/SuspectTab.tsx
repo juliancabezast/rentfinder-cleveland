@@ -399,7 +399,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     return (
       <EmptyState
         icon={AlertTriangle}
-        title="No suspect data found"
+        title="Nothing to review"
         description="All leads have valid-looking names, phones, and emails."
       />
     );
@@ -408,7 +408,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        {leads.length} lead{leads.length !== 1 ? "s" : ""} with suspicious data.
+        {leads.length} lead{leads.length !== 1 ? "s" : ""} need review.
         Click on flagged fields to fix them, or delete junk leads.
       </p>
 

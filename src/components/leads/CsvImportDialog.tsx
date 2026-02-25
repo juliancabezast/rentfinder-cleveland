@@ -158,12 +158,6 @@ function detectFieldByContent(
   return null;
 }
 
-interface ValidationIssue {
-  row: number;
-  field: string;
-  issue: string;
-  value: string;
-}
 
 interface ImportResult {
   imported: number;
@@ -173,10 +167,34 @@ interface ImportResult {
   propertyName?: string;
 }
 
+interface AnalyzedLead {
+  rowNum: number;
+  name: string;
+  phone: string;
+  email: string;
+  data: Record<string, unknown>;
+}
+
+interface PreImportAnalysis {
+  newLeads: AnalyzedLead[];
+  duplicates: Array<{ rowNum: number; name: string; contact: string; reason: string }>;
+  missingContact: Array<{ rowNum: number; name: string }>;
+  totalRows: number;
+}
+
 // Normalize phone to last 10 digits for dedup matching
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   return digits.slice(-10);
+}
+
+// Smart initial score based on available data (mirrors Esther's scoring logic)
+function calculateImportScore(lead: Record<string, unknown>, hasPropertyAssigned: boolean): number {
+  let score = 50; // base
+  if (hasPropertyAssigned) score += 10; // property_matched
+  if (lead.phone && lead.email) score += 5; // complete_contact
+  if (lead.has_voucher === true || (lead.voucher_amount && Number(lead.voucher_amount) > 0)) score += 15; // section8_voucher
+  return Math.min(score, 100);
 }
 
 export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
@@ -201,6 +219,11 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
   // Column mapping: fileColumn -> ourField (or "skip")
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+
+  // Pre-import analysis
+  const [preImportAnalysis, setPreImportAnalysis] = useState<PreImportAnalysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [reviewTab, setReviewTab] = useState<"import" | "skipped">("import");
 
   // Importing state
   const [importing, setImporting] = useState(false);
@@ -318,54 +341,46 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
     return fileData.slice(0, 3);
   }, [fileData]);
 
-  // Validate and prepare leads — require phone OR email
-  const validateAndPrepareLeads = useMemo(() => {
-    if (step !== 3) return { validLeads: [], issues: [], skippedCount: 0 };
-
-    const validLeads: Record<string, unknown>[] = [];
-    const issues: Array<{ row: number; reason: string }> = [];
-    let skippedCount = 0;
+  // Build lead objects from file data + column mapping
+  const buildLeadsFromFile = () => {
+    const validLeads: Array<Record<string, unknown> & { _rowNum: number }> = [];
+    const missingContact: Array<{ rowNum: number; name: string }> = [];
 
     const phoneColumn = Object.entries(columnMapping).find(([_, field]) => field === "phone")?.[0];
     const emailColumn = Object.entries(columnMapping).find(([_, field]) => field === "email")?.[0];
+    const nameColumn = Object.entries(columnMapping).find(([_, field]) => field === "full_name")?.[0]
+      || Object.entries(columnMapping).find(([_, field]) => field === "first_name")?.[0];
 
     fileData.forEach((row, index) => {
-      const rowNum = index + 2; // +2 for header row and 0-indexing
-
-      // Check phone OR email — at least one must exist
+      const rowNum = index + 2;
       const phoneValue = phoneColumn ? row[phoneColumn]?.trim() : "";
       const emailValue = emailColumn ? row[emailColumn]?.trim() : "";
+      const nameValue = nameColumn ? row[nameColumn]?.trim() : "";
+
       if (!phoneValue && !emailValue) {
-        skippedCount++;
-        issues.push({ row: rowNum, reason: "Missing phone and email" });
+        missingContact.push({ rowNum, name: nameValue || "—" });
         return;
       }
 
-      // Build lead object
-      const lead: Record<string, unknown> = {
+      const lead: Record<string, unknown> & { _rowNum: number } = {
+        _rowNum: rowNum,
         source: "csv_import",
         status: "new",
-        lead_score: 50,
       };
       if (phoneValue) lead.phone = phoneValue;
       if (emailValue) lead.email = emailValue;
 
-      // Map other fields
       Object.entries(columnMapping).forEach(([fileCol, ourField]) => {
         if (ourField === "skip" || ourField === "phone" || ourField === "email") return;
-
         const value = row[fileCol]?.trim();
         if (!value) return;
-
         switch (ourField) {
           case "budget_min":
           case "budget_max":
           case "voucher_amount":
           case "bedrooms_needed": {
             const numVal = parseFloat(value);
-            if (!isNaN(numVal)) {
-              lead[ourField] = numVal;
-            }
+            if (!isNaN(numVal)) lead[ourField] = numVal;
             break;
           }
           case "has_voucher":
@@ -373,9 +388,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
             break;
           case "move_in_date": {
             const dateVal = new Date(value);
-            if (!isNaN(dateVal.getTime())) {
-              lead[ourField] = dateVal.toISOString().split("T")[0];
-            }
+            if (!isNaN(dateVal.getTime())) lead[ourField] = dateVal.toISOString().split("T")[0];
             break;
           }
           default:
@@ -386,135 +399,149 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       validLeads.push(lead);
     });
 
-    return { validLeads, issues, skippedCount };
-  }, [step, fileData, columnMapping]);
+    return { validLeads, missingContact };
+  };
 
-  const handleImport = async () => {
+  // Async analysis: validate + dedup against DB before showing Step 3 preview
+  const analyzeImport = async () => {
     if (!userRecord?.organization_id) return;
-
-    setImporting(true);
+    setAnalyzing(true);
+    setReviewTab("import");
 
     try {
-      const { validLeads, issues, skippedCount } = validateAndPrepareLeads;
+      const { validLeads, missingContact } = buildLeadsFromFile();
+      const hasProperty = !!(selectedPropertyId && selectedPropertyId !== "none");
 
-      if (validLeads.length === 0) {
-        toast.error("No valid leads to import. All rows are missing phone and email.");
-        setImporting(false);
-        return;
-      }
-
-      // 1. Fetch existing phones and emails for dedup
+      // Fetch existing phones/emails for dedup
       const { data: existingLeads } = await supabase
         .from("leads")
         .select("phone, email")
         .eq("organization_id", userRecord.organization_id);
 
       const existingPhones = new Set(
-        (existingLeads || [])
-          .map((l) => l.phone)
-          .filter(Boolean)
-          .map((p) => normalizePhone(p))
+        (existingLeads || []).map((l) => l.phone).filter(Boolean).map((p) => normalizePhone(p))
       );
       const existingEmails = new Set(
-        (existingLeads || [])
-          .map((l) => l.email)
-          .filter(Boolean)
-          .map((e) => e.toLowerCase().trim())
+        (existingLeads || []).map((l) => l.email).filter(Boolean).map((e) => e.toLowerCase().trim())
       );
 
-      // 2. Split into new vs duplicate (match by phone first, then email)
-      const newLeads: Record<string, unknown>[] = [];
-      const dupIssues: Array<{ row: number; reason: string }> = [];
-      const seenPhonesInBatch = new Set<string>();
-      const seenEmailsInBatch = new Set<string>();
+      const newLeads: AnalyzedLead[] = [];
+      const duplicates: PreImportAnalysis["duplicates"] = [];
+      const seenPhones = new Set<string>();
+      const seenEmails = new Set<string>();
 
-      validLeads.forEach((lead, idx) => {
+      validLeads.forEach((lead) => {
         const phone = lead.phone ? normalizePhone(lead.phone as string) : "";
         const email = lead.email ? (lead.email as string).toLowerCase().trim() : "";
-
-        // Check phone dedup
-        if (phone && (existingPhones.has(phone) || seenPhonesInBatch.has(phone))) {
-          dupIssues.push({ row: idx + 2, reason: "Duplicate phone (already in database)" });
-          return;
-        }
-        // Check email dedup (only if no phone or phone is new)
-        if (!phone && email && (existingEmails.has(email) || seenEmailsInBatch.has(email))) {
-          dupIssues.push({ row: idx + 2, reason: "Duplicate email (already in database)" });
-          return;
-        }
-
-        if (phone) seenPhonesInBatch.add(phone);
-        if (email) seenEmailsInBatch.add(email);
-        newLeads.push(lead);
-      });
-
-      if (newLeads.length === 0) {
-        setImportResult({
-          imported: 0,
-          skippedMissingContact: skippedCount,
-          skippedDuplicate: dupIssues.length,
-          issues: [...issues, ...dupIssues],
-        });
-        toast.warning("All leads already exist in the database.");
-        setImporting(false);
-        return;
-      }
-
-      // 3. Build leads with org, stage, property, full_name
-      const effectivePropertyId = selectedPropertyId && selectedPropertyId !== "none" ? selectedPropertyId : null;
-      const selectedProp = effectivePropertyId ? properties.find((p) => p.id === effectivePropertyId) : null;
-
-      // Extract notes separately — leads table has no "notes" column
-      const leadNoteTexts: Map<string, string> = new Map();
-      const leadsWithOrg = newLeads.map((lead, idx) => {
         const firstName = (lead.first_name as string) || "";
         const lastName = (lead.last_name as string) || "";
         const fullName = (lead.full_name as string) || [firstName, lastName].filter(Boolean).join(" ");
+
+        // Phone dedup
+        if (phone && (existingPhones.has(phone) || seenPhones.has(phone))) {
+          duplicates.push({
+            rowNum: lead._rowNum,
+            name: fullName || "—",
+            contact: (lead.phone as string) || (lead.email as string) || "",
+            reason: "Duplicate phone",
+          });
+          return;
+        }
+        // Email dedup (only for phone-less leads)
+        if (!phone && email && (existingEmails.has(email) || seenEmails.has(email))) {
+          duplicates.push({
+            rowNum: lead._rowNum,
+            name: fullName || "—",
+            contact: (lead.email as string) || "",
+            reason: "Duplicate email",
+          });
+          return;
+        }
+
+        if (phone) seenPhones.add(phone);
+        if (email) seenEmails.add(email);
+
+        // Calculate smart score
+        lead.lead_score = calculateImportScore(lead, hasProperty);
+
+        newLeads.push({
+          rowNum: lead._rowNum,
+          name: fullName || "—",
+          phone: (lead.phone as string) || "",
+          email: (lead.email as string) || "",
+          data: lead,
+        });
+      });
+
+      setPreImportAnalysis({
+        newLeads,
+        duplicates,
+        missingContact,
+        totalRows: fileData.length,
+      });
+      setStep(3);
+    } catch (err) {
+      console.error("Analysis error:", err);
+      toast.error("Failed to analyze file. Please try again.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!userRecord?.organization_id || !preImportAnalysis || preImportAnalysis.newLeads.length === 0) return;
+
+    setImporting(true);
+
+    try {
+      const { newLeads, duplicates, missingContact } = preImportAnalysis;
+      const effectivePropertyId = selectedPropertyId && selectedPropertyId !== "none" ? selectedPropertyId : null;
+      const selectedProp = effectivePropertyId ? properties.find((p) => p.id === effectivePropertyId) : null;
+
+      // Build DB-ready lead objects
+      const leadNoteTexts: Map<string, string> = new Map();
+      const leadsWithOrg = newLeads.map((analyzed) => {
+        const lead = analyzed.data;
         const phone = (lead.phone as string) || "";
         const email = (lead.email as string) || "";
 
-        // Save notes text for later, keyed by phone or email
         const dedupKey = phone ? normalizePhone(phone) : email.toLowerCase().trim();
-        if (lead.notes) {
-          leadNoteTexts.set(dedupKey, lead.notes as string);
-        }
+        if (lead.notes) leadNoteTexts.set(dedupKey, lead.notes as string);
 
-        // Remove fields that don't exist in leads table
-        const { notes, ...leadWithoutNotes } = lead;
+        // Remove internal/non-DB fields
+        const { notes, _rowNum, ...cleanLead } = lead;
 
         return {
-          ...leadWithoutNotes,
+          ...cleanLead,
           organization_id: userRecord.organization_id,
-          source: (leadWithoutNotes.source as string) || "csv_import",
+          source: (cleanLead.source as string) || "csv_import",
           stage: "prospect",
-          full_name: fullName || null,
+          full_name: analyzed.name !== "—" ? analyzed.name : null,
           ...(phone ? { phone } : {}),
           ...(email ? { email } : {}),
           ...(effectivePropertyId ? { interested_property_id: effectivePropertyId } : {}),
         };
       });
 
-      // 4. Insert leads
+      // Insert leads
       const { error } = await supabase.from("leads").insert(leadsWithOrg as any);
       if (error) throw error;
 
-      // 5. Create audit notes — fetch the newly inserted lead IDs by phone or email
+      // Create audit notes
       const insertedPhones = leadsWithOrg.map((l) => l.phone).filter(Boolean);
       const insertedEmails = leadsWithOrg.filter((l) => !l.phone).map((l) => l.email).filter(Boolean);
 
       let insertedLeads: { id: string; phone: string | null; email: string | null }[] = [];
       if (insertedPhones.length > 0) {
         const { data } = await supabase
-          .from("leads")
-          .select("id, phone, email")
+          .from("leads").select("id, phone, email")
           .eq("organization_id", userRecord.organization_id)
           .in("phone", insertedPhones);
         if (data) insertedLeads.push(...(data as typeof insertedLeads));
       }
       if (insertedEmails.length > 0) {
         const { data } = await supabase
-          .from("leads")
-          .select("id, phone, email")
+          .from("leads").select("id, phone, email")
           .eq("organization_id", userRecord.organization_id)
           .in("email", insertedEmails);
         if (data) insertedLeads.push(...(data as typeof insertedLeads));
@@ -529,7 +556,6 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
         const allNotes: Record<string, unknown>[] = [];
         insertedLeads.forEach((lead) => {
-          // Audit note
           allNotes.push({
             lead_id: lead.id,
             organization_id: userRecord.organization_id,
@@ -537,7 +563,6 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
             content: `Imported via CSV upload by ${uploaderName} on ${now}${propertyNote}`,
             note_type: "system",
           });
-          // CSV notes column (if provided)
           const dedupKey = lead.phone
             ? normalizePhone(lead.phone)
             : lead.email?.toLowerCase().trim() || "";
@@ -552,15 +577,19 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
             });
           }
         });
-
         await supabase.from("lead_notes").insert(allNotes as any);
       }
 
+      const issues: Array<{ row: number; reason: string }> = [
+        ...missingContact.map((m) => ({ row: m.rowNum, reason: "Missing phone & email" })),
+        ...duplicates.map((d) => ({ row: d.rowNum, reason: d.reason })),
+      ];
+
       setImportResult({
         imported: newLeads.length,
-        skippedMissingContact: skippedCount,
-        skippedDuplicate: dupIssues.length,
-        issues: [...issues, ...dupIssues],
+        skippedMissingContact: missingContact.length,
+        skippedDuplicate: duplicates.length,
+        issues,
         propertyName: selectedProp?.address,
       });
 
@@ -637,6 +666,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         setFileData([]);
         setColumnMapping({});
         setImportResult(null);
+        setPreImportAnalysis(null);
         setSelectedPropertyId("");
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
@@ -662,6 +692,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       }
     } else if (step === 3) {
       setStep(2);
+      setPreImportAnalysis(null);
     }
   };
 
@@ -883,86 +914,170 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           )}
 
           {/* Step 3: Review & Import */}
-          {step === 3 && !importResult && (
-            <div className="space-y-4">
-              {/* Summary */}
-              <div className="rounded-lg bg-[#f4f1f1] p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Ready to import:</span>
-                  <span className="text-lg font-bold text-[#370d4b]">
-                    {validateAndPrepareLeads.validLeads.length} prospects
-                  </span>
+          {step === 3 && !importResult && preImportAnalysis && (
+            <div className="space-y-3">
+              {/* Summary stats bar */}
+              <div className="grid grid-cols-4 gap-2">
+                <div className="rounded-lg bg-[#f4f1f1] p-2.5 text-center">
+                  <p className="text-lg font-bold text-[#374151]">{preImportAnalysis.totalRows}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Total Rows</p>
                 </div>
-                {validateAndPrepareLeads.skippedCount > 0 && (
-                  <div className="flex items-center justify-between text-sm text-amber-600">
-                    <span>Will be skipped (no phone or email):</span>
-                    <span className="font-medium">{validateAndPrepareLeads.skippedCount}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Duplicates will be detected by phone or email during import.
-                </p>
-                {selectedPropertyId && selectedPropertyId !== "none" && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Assigned property:</span>
-                    <span className="font-medium text-[#370d4b]">
-                      {properties.find((p) => p.id === selectedPropertyId)?.address}
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between text-sm">
-                  <span>Stage:</span>
-                  <span className="px-2 py-0.5 bg-[#370d4b]/10 text-[#370d4b] rounded text-xs font-medium">
-                    Prospect
-                  </span>
+                <div className="rounded-lg bg-green-50 border border-green-200 p-2.5 text-center">
+                  <p className="text-lg font-bold text-green-700">{preImportAnalysis.newLeads.length}</p>
+                  <p className="text-[10px] text-green-600 uppercase">New</p>
+                </div>
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-center">
+                  <p className="text-lg font-bold text-amber-700">{preImportAnalysis.duplicates.length}</p>
+                  <p className="text-[10px] text-amber-600 uppercase">Duplicates</p>
+                </div>
+                <div className="rounded-lg bg-red-50 border border-red-200 p-2.5 text-center">
+                  <p className="text-lg font-bold text-red-700">{preImportAnalysis.missingContact.length}</p>
+                  <p className="text-[10px] text-red-600 uppercase">No Contact</p>
                 </div>
               </div>
 
-              {/* Validation issues */}
-              {validateAndPrepareLeads.issues.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">
-                    Issues ({validateAndPrepareLeads.issues.length})
-                  </Label>
-                  <ScrollArea className="h-[150px] border border-[#e5e7eb] rounded-lg p-2">
-                    <div className="space-y-1">
-                      {validateAndPrepareLeads.issues.slice(0, 20).map((issue, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-2 text-xs text-amber-600"
-                        >
-                          <AlertCircle className="h-3 w-3 shrink-0" />
-                          <span>
-                            Row {issue.row}: {issue.reason}
-                          </span>
-                        </div>
-                      ))}
-                      {validateAndPrepareLeads.issues.length > 20 && (
-                        <p className="text-xs text-muted-foreground pt-2">
-                          +{validateAndPrepareLeads.issues.length - 20} more issues
-                        </p>
-                      )}
-                    </div>
-                  </ScrollArea>
+              {/* Operation details */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="px-2 py-1 bg-[#370d4b]/10 text-[#370d4b] rounded font-medium">
+                  Stage: Prospect
+                </span>
+                {selectedPropertyId && selectedPropertyId !== "none" && (
+                  <span className="px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded font-medium">
+                    {properties.find((p) => p.id === selectedPropertyId)?.address}
+                  </span>
+                )}
+                {preImportAnalysis.newLeads.length > 0 && (
+                  <span className="px-2 py-1 bg-green-50 text-green-700 border border-green-200 rounded font-medium">
+                    Score: {preImportAnalysis.newLeads[0].data.lead_score}
+                  </span>
+                )}
+                {Object.entries(columnMapping)
+                  .filter(([_, field]) => field !== "skip")
+                  .map(([col, field]) => (
+                    <span key={col} className="px-2 py-1 bg-[#f4f1f1] text-[#6b7280] rounded">
+                      {MAPPABLE_FIELDS.find((f) => f.key === field)?.label || field}
+                    </span>
+                  ))}
+              </div>
+
+              {/* Tab toggle: To Import / Skipped */}
+              {(preImportAnalysis.duplicates.length > 0 || preImportAnalysis.missingContact.length > 0) && (
+                <div className="flex border-b border-[#e5e7eb]">
+                  <button
+                    onClick={() => setReviewTab("import")}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+                      reviewTab === "import"
+                        ? "border-[#370d4b] text-[#370d4b]"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    To Import ({preImportAnalysis.newLeads.length})
+                  </button>
+                  <button
+                    onClick={() => setReviewTab("skipped")}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+                      reviewTab === "skipped"
+                        ? "border-amber-600 text-amber-700"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Skipped ({preImportAnalysis.duplicates.length + preImportAnalysis.missingContact.length})
+                  </button>
                 </div>
               )}
 
-              {/* Mapped fields summary */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Fields being imported:</Label>
-                <div className="flex flex-wrap gap-1">
-                  {Object.entries(columnMapping)
-                    .filter(([_, field]) => field !== "skip")
-                    .map(([col, field]) => (
-                      <span
-                        key={col}
-                        className="px-2 py-0.5 bg-[#370d4b]/10 text-[#370d4b] rounded text-xs"
-                      >
-                        {MAPPABLE_FIELDS.find((f) => f.key === field)?.label || field}
-                      </span>
-                    ))}
-                </div>
-              </div>
+              {/* Preview table: To Import */}
+              {reviewTab === "import" && (
+                <ScrollArea className="h-[220px] border border-[#e5e7eb] rounded-lg">
+                  {preImportAnalysis.newLeads.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                      <AlertCircle className="h-8 w-8 mb-2" />
+                      <p className="text-sm font-medium">No new leads to import</p>
+                      <p className="text-xs">All rows are duplicates or missing contact info.</p>
+                    </div>
+                  ) : (
+                    <table className="w-full text-xs">
+                      <thead className="bg-[#f4f1f1] sticky top-0">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left font-medium text-[#374151] w-10">Row</th>
+                          <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Name</th>
+                          <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Phone</th>
+                          <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Email</th>
+                          <th className="px-2 py-1.5 text-right font-medium text-[#374151] w-14">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {preImportAnalysis.newLeads.map((lead) => (
+                          <tr key={lead.rowNum} className="border-t border-[#e5e7eb] hover:bg-[#fafafa]">
+                            <td className="px-2 py-1.5 text-muted-foreground">{lead.rowNum}</td>
+                            <td className="px-2 py-1.5 font-medium truncate max-w-[140px]">{lead.name}</td>
+                            <td className="px-2 py-1.5 font-mono truncate max-w-[110px]">
+                              {lead.phone || <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="px-2 py-1.5 truncate max-w-[140px]">
+                              {lead.email || <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="px-2 py-1.5 text-right">
+                              <span className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-bold",
+                                Number(lead.data.lead_score) >= 60
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-[#f4f1f1] text-[#6b7280]"
+                              )}>
+                                {String(lead.data.lead_score)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </ScrollArea>
+              )}
+
+              {/* Preview table: Skipped */}
+              {reviewTab === "skipped" && (
+                <ScrollArea className="h-[220px] border border-[#e5e7eb] rounded-lg">
+                  <table className="w-full text-xs">
+                    <thead className="bg-[#f4f1f1] sticky top-0">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left font-medium text-[#374151] w-10">Row</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Name</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Contact</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preImportAnalysis.duplicates.map((dup) => (
+                        <tr key={`dup-${dup.rowNum}`} className="border-t border-[#e5e7eb]">
+                          <td className="px-2 py-1.5 text-muted-foreground">{dup.rowNum}</td>
+                          <td className="px-2 py-1.5 truncate max-w-[120px]">{dup.name}</td>
+                          <td className="px-2 py-1.5 font-mono truncate max-w-[120px]">{dup.contact}</td>
+                          <td className="px-2 py-1.5">
+                            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium">
+                              {dup.reason}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                      {preImportAnalysis.missingContact.map((m) => (
+                        <tr key={`miss-${m.rowNum}`} className="border-t border-[#e5e7eb]">
+                          <td className="px-2 py-1.5 text-muted-foreground">{m.rowNum}</td>
+                          <td className="px-2 py-1.5 truncate max-w-[120px]">{m.name}</td>
+                          <td className="px-2 py-1.5 text-muted-foreground">—</td>
+                          <td className="px-2 py-1.5">
+                            <span className="px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-medium">
+                              No phone or email
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </ScrollArea>
+              )}
             </div>
           )}
 
@@ -1046,12 +1161,21 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 Back
               </Button>
               <Button
-                onClick={() => setStep(3)}
-                disabled={!isPhoneOrEmailMapped}
+                onClick={analyzeImport}
+                disabled={!isPhoneOrEmailMapped || analyzing}
                 className="bg-[#370d4b] hover:bg-[#370d4b]/90"
               >
-                Continue
-                <ChevronRight className="ml-1 h-4 w-4" />
+                {analyzing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </>
           )}
@@ -1063,7 +1187,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
               </Button>
               <Button
                 onClick={handleImport}
-                disabled={importing || validateAndPrepareLeads.validLeads.length === 0}
+                disabled={importing || !preImportAnalysis || preImportAnalysis.newLeads.length === 0}
                 className="bg-[#370d4b] hover:bg-[#370d4b]/90"
               >
                 {importing ? (
@@ -1074,7 +1198,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4" />
-                    Import {validateAndPrepareLeads.validLeads.length} Prospects
+                    Import {preImportAnalysis?.newLeads.length || 0} Prospects
                   </>
                 )}
               </Button>

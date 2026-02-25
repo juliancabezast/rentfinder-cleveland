@@ -138,6 +138,25 @@ export const AdminDashboard = () => {
     return prefs.widgets.find((w) => w.id === widgetId)?.visible ?? true;
   };
 
+  // Helper: base query for clean leads (complete + no junk names)
+  const cleanLeadCount = () =>
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", userRecord?.organization_id || "")
+      .not("full_name", "is", null)
+      .not("phone", "is", null)
+      .not("email", "is", null)
+      .not("full_name", "ilike", "%.com%")
+      .not("full_name", "ilike", "%http%")
+      .not("full_name", "ilike", "%@%")
+      .not("full_name", "ilike", "%comments%")
+      .not("full_name", "ilike", "%unsubscribe%")
+      .not("full_name", "ilike", "%click here%")
+      .not("full_name", "ilike", "%mailto:%")
+      .not("full_name", "ilike", "%subject:%")
+      .not("full_name", "ilike", "%reply%");
+
   // ── Summary + list data (runs once) ──
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -191,32 +210,12 @@ export const AdminDashboard = () => {
             .from("properties")
             .select("address, city, zip_code")
             .eq("organization_id", userRecord.organization_id),
-          // Leads today (only complete)
-          supabase
-            .from("leads")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", userRecord.organization_id)
-            .not("full_name", "is", null)
-            .not("phone", "is", null)
-            .not("email", "is", null)
-            .gte("created_at", todayStart),
-          // Leads this week (only complete)
-          supabase
-            .from("leads")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", userRecord.organization_id)
-            .not("full_name", "is", null)
-            .not("phone", "is", null)
-            .not("email", "is", null)
-            .gte("created_at", thisWeekStart.toISOString()),
-          // Leads last week (only complete)
-          supabase
-            .from("leads")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", userRecord.organization_id)
-            .not("full_name", "is", null)
-            .not("phone", "is", null)
-            .not("email", "is", null)
+          // Leads today (only complete + clean)
+          cleanLeadCount().gte("created_at", todayStart),
+          // Leads this week
+          cleanLeadCount().gte("created_at", thisWeekStart.toISOString()),
+          // Leads last week
+          cleanLeadCount()
             .gte("created_at", lastWeekStart.toISOString())
             .lt("created_at", thisWeekStart.toISOString()),
           // Pending agent tasks
@@ -334,23 +333,11 @@ export const AdminDashboard = () => {
         else if (statsPeriod === 'week') periodStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString();
         else if (statsPeriod === 'month') periodStart = startOfMonth(now).toISOString();
 
-        // Row 1: leads + hot leads (filtered by period, only complete leads)
-        let leadsQuery = supabase
-          .from("leads")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", userRecord.organization_id)
-          .not("full_name", "is", null)
-          .not("phone", "is", null)
-          .not("email", "is", null);
+        // Row 1: leads + hot leads (filtered by period, only complete clean leads)
+        let leadsQuery = cleanLeadCount();
         if (periodStart) leadsQuery = leadsQuery.gte("created_at", periodStart);
 
-        let hotQuery = supabase
-          .from("leads")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", userRecord.organization_id)
-          .not("full_name", "is", null)
-          .not("phone", "is", null)
-          .not("email", "is", null)
+        let hotQuery = cleanLeadCount()
           .gte("lead_score", 80)
           .not("status", "in", '("lost","converted")');
         if (periodStart) hotQuery = hotQuery.gte("created_at", periodStart);

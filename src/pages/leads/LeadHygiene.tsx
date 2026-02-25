@@ -87,7 +87,7 @@ const LeadHygiene: React.FC = () => {
         {counts.suspect > 0 && (
           <Badge className="bg-red-100 text-red-800 hover:bg-red-100 text-sm px-3 py-1">
             <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
-            {counts.suspect} suspect
+            {counts.suspect} for review
           </Badge>
         )}
         {counts.duplicates === 0 && counts.incomplete === 0 && counts.stale === 0 && counts.suspect === 0 && (
@@ -114,7 +114,7 @@ const LeadHygiene: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger value="suspect" className="gap-1.5">
             <AlertTriangle className="h-4 w-4" />
-            Suspect
+            For Review
           </TabsTrigger>
         </TabsList>
 
