@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Building, Users, DollarSign, TrendingUp, Home } from 'lucide-react';
+import { Building, Users, DollarSign, TrendingUp, Home, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ZipEntry {
@@ -100,13 +100,13 @@ export type CityKey = keyof typeof CITY_CONFIGS;
 
 // === HEAT LEVEL HELPERS ===
 
-const getHeatLevel = (count: number): { bg: string; text: string; label: string; showFire: boolean } => {
-  if (count === 0) return { bg: 'bg-muted', text: 'text-muted-foreground', label: 'No data', showFire: false };
-  if (count <= 5) return { bg: 'bg-primary/10', text: 'text-foreground', label: 'Low', showFire: false };
-  if (count <= 15) return { bg: 'bg-primary/20', text: 'text-foreground', label: 'Moderate', showFire: false };
-  if (count <= 30) return { bg: 'bg-primary/40', text: 'text-foreground', label: 'Active', showFire: false };
-  if (count <= 50) return { bg: 'bg-primary/60', text: 'text-white', label: 'Hot', showFire: false };
-  return { bg: 'bg-primary/80', text: 'text-white', label: 'Hot', showFire: true };
+const getHeatLevel = (count: number): { bg: string; text: string; badgeClass: string; label: string; showFire: boolean } => {
+  if (count === 0) return { bg: 'bg-muted', text: 'text-muted-foreground', badgeClass: 'border-muted-foreground/30 text-muted-foreground', label: 'No data', showFire: false };
+  if (count <= 5) return { bg: 'bg-primary/10', text: 'text-foreground', badgeClass: '', label: 'Low', showFire: false };
+  if (count <= 15) return { bg: 'bg-primary/20', text: 'text-foreground', badgeClass: '', label: 'Moderate', showFire: false };
+  if (count <= 30) return { bg: 'bg-primary/40', text: 'text-foreground', badgeClass: '', label: 'Active', showFire: false };
+  if (count <= 50) return { bg: 'bg-primary/60', text: 'text-white', badgeClass: 'border-white/50 text-white', label: 'Hot', showFire: false };
+  return { bg: 'bg-primary/80', text: 'text-white', badgeClass: 'border-white/50 text-white', label: 'Very Hot', showFire: true };
 };
 
 // === MAIN COMPONENT (generic) ===
@@ -126,21 +126,22 @@ export const CityHeatGrid: React.FC<CityHeatGridProps> = ({ zips, zipStats, prop
 
   const propertiesInZip = (zip: string) => properties.filter(p => p.zip_code === zip);
 
-  // Auto-calculate grid columns (max 7 per row)
-  const cols = Math.min(zips.length, 7);
-
   return (
     <>
-      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7">
         {zips.map(zipData => {
           const stats = getStatsForZip(zipData.zip);
           const heat = getHeatLevel(stats.leadCount);
 
           return (
-            <Card
+            <button
               key={zipData.zip}
+              type="button"
               className={cn(
-                'p-3 cursor-pointer transition-all hover:scale-105 hover:shadow-lg',
+                'p-3 rounded-2xl text-left transition-all duration-200',
+                'hover:shadow-modern-lg hover:ring-2 hover:ring-primary/20',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                'border border-transparent',
                 heat.bg,
                 heat.text
               )}
@@ -149,7 +150,7 @@ export const CityHeatGrid: React.FC<CityHeatGridProps> = ({ zips, zipStats, prop
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm">{zipData.zip}</span>
-                  {heat.showFire && <span>🔥</span>}
+                  {heat.showFire && <Flame className="h-3.5 w-3.5 text-orange-400" aria-label="Very hot area" />}
                 </div>
                 <p className="text-xs opacity-80 truncate">{zipData.name}</p>
                 <div className="pt-2 space-y-0.5">
@@ -157,12 +158,12 @@ export const CityHeatGrid: React.FC<CityHeatGridProps> = ({ zips, zipStats, prop
                   {stats.avgBudget > 0 && (
                     <p className="text-xs opacity-80">Avg: ${stats.avgBudget.toLocaleString()}</p>
                   )}
-                  <Badge variant="outline" className={cn('text-[10px] mt-1', heat.text)}>
+                  <Badge variant="outline" className={cn('text-[10px] mt-1', heat.badgeClass)}>
                     {heat.label}
                   </Badge>
                 </div>
               </div>
-            </Card>
+            </button>
           );
         })}
       </div>
@@ -233,7 +234,7 @@ export const CityHeatGrid: React.FC<CityHeatGridProps> = ({ zips, zipStats, prop
 
                       {propsInZip.length > 0 ? (
                         <div className="text-sm text-muted-foreground">
-                          {propsInZip.length} properties available in this zip code
+                          {propsInZip.length} {propsInZip.length === 1 ? 'property' : 'properties'} in this zip code
                         </div>
                       ) : (
                         <div className="text-sm text-amber-600 dark:text-amber-400">

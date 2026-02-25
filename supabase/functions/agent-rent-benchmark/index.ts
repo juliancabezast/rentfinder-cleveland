@@ -110,13 +110,14 @@ serve(async (req: Request) => {
     }
 
     let analyzed = 0;
+    const errors: string[] = [];
 
     for (const prop of properties as PropertyRow[]) {
       try {
         const result = await analyzeProperty(prop, openaiKey);
         if (result) {
           // Upsert into rent_benchmarks
-          await supabase
+          const { error: upsertErr } = await supabase
             .from("rent_benchmarks")
             .upsert({
               organization_id: organizationId,
@@ -131,15 +132,29 @@ serve(async (req: Request) => {
               analyzed_at: new Date().toISOString(),
             }, { onConflict: "property_id" });
 
-          analyzed++;
+          if (upsertErr) {
+            console.error(`Upsert error for ${prop.address}:`, upsertErr);
+            errors.push(`${prop.address}: ${upsertErr.message}`);
+          } else {
+            analyzed++;
+          }
+        }
+        // Small delay to avoid OpenAI rate limits
+        if (properties.length > 5) {
+          await new Promise(r => setTimeout(r, 500));
         }
       } catch (err) {
         console.error(`Error analyzing property ${prop.address}:`, err);
+        errors.push(`${prop.address}: ${err instanceof Error ? err.message : "Unknown error"}`);
       }
     }
 
     return new Response(
-      JSON.stringify({ properties_analyzed: analyzed, total_properties: properties.length }),
+      JSON.stringify({
+        properties_analyzed: analyzed,
+        total_properties: properties.length,
+        ...(errors.length > 0 ? { warnings: errors.slice(0, 5) } : {}),
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
@@ -162,12 +177,13 @@ async function analyzeProperty(
   const address = prop.address;
   const zip = prop.zip_code;
   const currentRent = prop.rent_price ? `$${prop.rent_price}/month` : "unknown";
+  const currentDate = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   const prompt = `You are a real estate market analyst. Analyze the rental market for a ${bedrooms}-bedroom ${type} located at or near "${address}", ${city}, ${state} ${zip}.
 
 Current listed rent: ${currentRent}
 
-Based on your knowledge of the ${city}, ${state} rental market as of early 2026:
+Based on your knowledge of the ${city}, ${state} rental market as of ${currentDate}:
 
 1. What is the average monthly rent for comparable ${bedrooms}-bedroom ${type} units within approximately 1 mile of this address?
 2. What is the typical low and high range?
@@ -197,6 +213,7 @@ IMPORTANT: Respond ONLY with a JSON object in this exact format, no other text:
       ],
       temperature: 0.3,
       max_tokens: 300,
+      response_format: { type: "json_object" },
     }),
   });
 

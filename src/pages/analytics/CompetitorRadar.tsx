@@ -27,7 +27,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface RentBenchmark {
@@ -51,6 +51,7 @@ interface RentBenchmark {
 
 const RentBenchmarkPage: React.FC = () => {
   const { userRecord } = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [benchmarks, setBenchmarks] = useState<RentBenchmark[]>([]);
   const [running, setRunning] = useState(false);
@@ -105,14 +106,14 @@ const RentBenchmarkPage: React.FC = () => {
 
       const result = data as { properties_analyzed?: number; error?: string };
       if (result.error) {
-        toast.error(result.error);
+        toast({ title: "Analysis Error", description: result.error, variant: "destructive" });
       } else {
-        toast.success(`Analyzed ${result.properties_analyzed || 0} properties`);
+        toast({ title: "Analysis Complete", description: `Analyzed ${result.properties_analyzed || 0} properties` });
         fetchBenchmarks();
       }
     } catch (err) {
       console.error("Analysis error:", err);
-      toast.error("Failed to run analysis. Make sure the edge function is deployed.");
+      toast({ title: "Error", description: "Failed to run analysis. Make sure the edge function is deployed.", variant: "destructive" });
     } finally {
       setRunning(false);
     }
@@ -120,17 +121,17 @@ const RentBenchmarkPage: React.FC = () => {
 
   // Summary calculations
   const propertiesAnalyzed = benchmarks.length;
-  const avgOurRent = propertiesAnalyzed > 0
-    ? Math.round(benchmarks.reduce((s, b) => s + (b.our_rent || 0), 0) / propertiesAnalyzed)
+  const withOurRent = benchmarks.filter(b => b.our_rent != null && b.our_rent > 0);
+  const avgOurRent = withOurRent.length > 0
+    ? Math.round(withOurRent.reduce((s, b) => s + (b.our_rent || 0), 0) / withOurRent.length)
     : 0;
-  const avgMarketRent = benchmarks.filter(b => b.market_avg_rent).length > 0
-    ? Math.round(
-        benchmarks.filter(b => b.market_avg_rent).reduce((s, b) => s + (b.market_avg_rent || 0), 0)
-        / benchmarks.filter(b => b.market_avg_rent).length
-      )
+  const withMarketRent = benchmarks.filter(b => b.market_avg_rent != null && b.market_avg_rent > 0);
+  const avgMarketRent = withMarketRent.length > 0
+    ? Math.round(withMarketRent.reduce((s, b) => s + (b.market_avg_rent || 0), 0) / withMarketRent.length)
     : 0;
-  const competitivePosition = avgOurRent > 0 && avgMarketRent > 0
-    ? Math.round(((avgMarketRent - avgOurRent) / avgMarketRent) * 100)
+  // Positive = our rent is above market, negative = below market
+  const rentDiffPct = avgOurRent > 0 && avgMarketRent > 0
+    ? Math.round(((avgOurRent - avgMarketRent) / avgMarketRent) * 100)
     : null;
 
   const lastAnalyzed = benchmarks.length > 0
@@ -153,7 +154,7 @@ const RentBenchmarkPage: React.FC = () => {
         <Button
           onClick={handleRunAnalysis}
           disabled={running}
-          className="bg-[#370d4b] hover:bg-[#370d4b]/90 shrink-0"
+          className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold min-h-[44px] shrink-0"
         >
           {running ? (
             <>
@@ -213,11 +214,11 @@ const RentBenchmarkPage: React.FC = () => {
           loading={loading}
         />
         <StatCard
-          title="Competitive Position"
-          value={competitivePosition != null ? `${competitivePosition > 0 ? "+" : ""}${competitivePosition}%` : "N/A"}
-          icon={competitivePosition != null && competitivePosition > 0 ? TrendingUp : competitivePosition != null && competitivePosition < 0 ? TrendingDown : Minus}
-          subtitle={competitivePosition != null
-            ? competitivePosition > 0 ? "below market (good)" : competitivePosition < 0 ? "above market" : "at market"
+          title="vs Market"
+          value={rentDiffPct != null ? `${rentDiffPct > 0 ? "+" : ""}${rentDiffPct}%` : "N/A"}
+          icon={rentDiffPct != null && rentDiffPct > 0 ? TrendingUp : rentDiffPct != null && rentDiffPct < 0 ? TrendingDown : Minus}
+          subtitle={rentDiffPct != null
+            ? rentDiffPct > 0 ? "above market avg" : rentDiffPct < 0 ? "below market avg" : "at market avg"
             : undefined}
           loading={loading}
         />
@@ -251,9 +252,9 @@ const RentBenchmarkPage: React.FC = () => {
                     <TableHead className="text-right">Our Rent</TableHead>
                     <TableHead className="text-right">Market Avg</TableHead>
                     <TableHead className="text-right">Difference</TableHead>
-                    <TableHead className="text-center">Range</TableHead>
-                    <TableHead className="text-center">Samples</TableHead>
-                    <TableHead>AI Summary</TableHead>
+                    <TableHead className="text-center hidden md:table-cell">Range</TableHead>
+                    <TableHead className="text-center hidden md:table-cell">Samples</TableHead>
+                    <TableHead className="hidden lg:table-cell">AI Summary</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -296,22 +297,22 @@ const RentBenchmarkPage: React.FC = () => {
                               {isBelow ? <TrendingDown className="h-3.5 w-3.5" /> :
                                isAbove ? <TrendingUp className="h-3.5 w-3.5" /> :
                                <Minus className="h-3.5 w-3.5" />}
-                              {diff > 0 ? "+" : ""}{diff < 0 ? "-" : ""}${Math.abs(diff).toLocaleString()}
-                              <span className="text-xs opacity-70">({diffPct}%)</span>
+                              {diff > 0 ? "+" : "-"}${Math.abs(diff).toLocaleString()}
+                              <span className="text-xs opacity-70">({diffPct != null ? `${diffPct > 0 ? "+" : ""}${diffPct}` : 0}%)</span>
                             </span>
                           ) : "—"}
                         </TableCell>
-                        <TableCell className="text-center text-xs text-muted-foreground">
+                        <TableCell className="text-center text-xs text-muted-foreground hidden md:table-cell">
                           {b.market_low && b.market_high
                             ? `$${b.market_low.toLocaleString()} – $${b.market_high.toLocaleString()}`
                             : "—"}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center hidden md:table-cell">
                           {b.sample_size ? (
                             <Badge variant="outline" className="text-xs">{b.sample_size}</Badge>
                           ) : "—"}
                         </TableCell>
-                        <TableCell className="max-w-[200px]">
+                        <TableCell className="max-w-[200px] hidden lg:table-cell">
                           {b.ai_summary ? (
                             <p className="text-xs text-muted-foreground truncate" title={b.ai_summary}>
                               {b.ai_summary}

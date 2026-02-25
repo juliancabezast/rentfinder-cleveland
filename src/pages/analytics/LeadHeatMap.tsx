@@ -64,16 +64,21 @@ export const LeadHeatMap: React.FC = () => {
 
     setLoading(true);
     try {
-      const startDate = dateRange.from ? format(startOfDay(dateRange.from), "yyyy-MM-dd'T'HH:mm:ss") : undefined;
-      const endDate = dateRange.to ? format(endOfDay(dateRange.to), "yyyy-MM-dd'T'HH:mm:ss") : undefined;
+      const startDate = dateRange.from ? format(startOfDay(dateRange.from), "yyyy-MM-dd'T'HH:mm:ss") : null;
+      const endDate = dateRange.to ? format(endOfDay(dateRange.to), "yyyy-MM-dd'T'HH:mm:ss") : null;
+
+      if (!startDate || !endDate) {
+        setLoading(false);
+        return;
+      }
 
       const [leadsRes, propertiesRes] = await Promise.all([
         supabase
           .from('leads')
           .select('id, interested_zip_codes, interested_property_id, budget_min, budget_max, has_voucher, status, voucher_amount')
           .eq('organization_id', userRecord.organization_id)
-          .gte('created_at', startDate || '')
-          .lte('created_at', endDate || '')
+          .gte('created_at', startDate)
+          .lte('created_at', endDate)
           .limit(2000),
         supabase
           .from('properties')
@@ -82,10 +87,12 @@ export const LeadHeatMap: React.FC = () => {
           .limit(500),
       ]);
 
-      if (leadsRes.data) setLeads(leadsRes.data);
-      if (propertiesRes.data) setProperties(propertiesRes.data);
+      if (leadsRes.error) throw leadsRes.error;
+      if (propertiesRes.error) throw propertiesRes.error;
+      setLeads(leadsRes.data || []);
+      setProperties(propertiesRes.data || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching heat map data:', error);
     } finally {
       setLoading(false);
     }
@@ -127,7 +134,7 @@ export const LeadHeatMap: React.FC = () => {
     Object.entries(zipLeadMap).forEach(([zip, zipLeads]) => {
       const budgets = zipLeads
         .filter(l => l.budget_min || l.budget_max)
-        .map(l => ((l.budget_min || 0) + (l.budget_max || l.budget_min || 0)) / 2);
+        .map(l => ((l.budget_min ?? 0) + (l.budget_max ?? l.budget_min ?? 0)) / 2);
       const avgBudget = budgets.length > 0 ? Math.round(budgets.reduce((a, b) => a + b, 0) / budgets.length) : 0;
       const voucherCount = zipLeads.filter(l => l.has_voucher).length;
       const voucherPercent = Math.round((voucherCount / zipLeads.length) * 100);
@@ -198,9 +205,9 @@ export const LeadHeatMap: React.FC = () => {
             See where prospects are searching across {cityConfig.label}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Select value={selectedCity} onValueChange={(v) => setSelectedCity(v as CityKey)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] min-h-[44px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

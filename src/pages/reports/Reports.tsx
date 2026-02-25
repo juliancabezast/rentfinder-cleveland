@@ -13,7 +13,6 @@ import {
   Clock,
   RefreshCw,
   Building2,
-  UserX,
   Zap,
 } from "lucide-react";
 import {
@@ -454,28 +453,31 @@ const Reports: React.FC = () => {
             {loading ? (
               <Skeleton className="h-[260px] w-full" />
             ) : data?.leadsBySource.length ? (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
-                    data={data.leadsBySource}
+                    data={data.leadsBySource.map(s => ({ ...s, name: SOURCE_LABELS[s.source] || s.source }))}
                     cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={90}
+                    cy="45%"
+                    innerRadius={50}
+                    outerRadius={80}
                     paddingAngle={2}
                     dataKey="count"
-                    nameKey="source"
-                    label={({ source, percent }) =>
-                      `${SOURCE_LABELS[source] || source} (${(percent * 100).toFixed(0)}%)`
-                    }
-                    labelLine={false}
+                    nameKey="name"
                   >
                     {data.leadsBySource.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    formatter={(value: number, name: string) => [value, name]}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={40}
+                    formatter={(value: string) => <span className="text-xs">{value}</span>}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (

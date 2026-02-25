@@ -131,13 +131,13 @@ export function useReportsData(dateRange: DateRange | undefined) {
       const prevEnd = subMonths(dateRange.to, 1).toISOString();
 
       // Parallel fetch all data
+      // Parallel fetch all data (merged showings into one query)
       const [
         leadsRes,
         prevLeadsRes,
         showingsRes,
         callsRes,
         propertiesRes,
-        allPropertyShowingsRes,
       ] = await Promise.all([
         // Current period leads
         supabase
@@ -145,52 +145,51 @@ export function useReportsData(dateRange: DateRange | undefined) {
           .select("id, status, source, lead_score, created_at, interested_property_id")
           .eq("organization_id", orgId)
           .gte("created_at", startDate)
-          .lte("created_at", endDate),
+          .lte("created_at", endDate)
+          .limit(5000),
         // Previous period leads
         supabase
           .from("leads")
           .select("id")
           .eq("organization_id", orgId)
           .gte("created_at", prevStart)
-          .lte("created_at", prevEnd),
-        // Showings
+          .lte("created_at", prevEnd)
+          .limit(5000),
+        // Showings (single query with all needed fields)
         supabase
           .from("showings")
           .select("id, status, scheduled_at, lead_id, property_id")
           .eq("organization_id", orgId)
           .gte("scheduled_at", startDate)
-          .lte("scheduled_at", endDate),
+          .lte("scheduled_at", endDate)
+          .limit(5000),
         // Calls (for peak hours + response time)
         supabase
           .from("calls")
           .select("id, lead_id, started_at")
           .eq("organization_id", orgId)
           .gte("started_at", startDate)
-          .lte("started_at", endDate),
+          .lte("started_at", endDate)
+          .limit(5000),
         // Properties (for top properties)
         supabase
           .from("properties")
           .select("id, address, rent_price, bedrooms, status")
-          .eq("organization_id", orgId),
-        // All showings by property
-        supabase
-          .from("showings")
-          .select("id, property_id, lead_id, status")
           .eq("organization_id", orgId)
-          .gte("scheduled_at", startDate)
-          .lte("scheduled_at", endDate),
+          .limit(1000),
       ]);
 
       if (leadsRes.error) throw leadsRes.error;
       if (prevLeadsRes.error) throw prevLeadsRes.error;
       if (showingsRes.error) throw showingsRes.error;
+      if (callsRes.error) throw callsRes.error;
+      if (propertiesRes.error) throw propertiesRes.error;
 
       const leads = leadsRes.data || [];
       const prevLeads = prevLeadsRes.data || [];
       const showings = showingsRes.data || [];
       const calls = callsRes.data || [];
       const properties = propertiesRes.data || [];
-      const allShowings = allPropertyShowingsRes.data || [];
 
       // === SUMMARY STATS ===
       const totalLeads = leads.length;
@@ -198,8 +197,9 @@ export function useReportsData(dateRange: DateRange | undefined) {
       const activePipeline = leads.filter(l => ACTIVE_STATUSES.includes(l.status)).length;
       const convertedLeads = leads.filter(l => l.status === "converted").length;
       const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
-      const avgLeadScore = totalLeads > 0
-        ? leads.reduce((s, l) => s + (l.lead_score || 0), 0) / totalLeads
+      const scoredLeads = leads.filter(l => l.lead_score != null && l.lead_score > 0);
+      const avgLeadScore = scoredLeads.length > 0
+        ? scoredLeads.reduce((s, l) => s + (l.lead_score || 0), 0) / scoredLeads.length
         : 0;
 
       const showingsCompleted = showings.filter(s => s.status === "completed").length;
@@ -262,30 +262,41 @@ export function useReportsData(dateRange: DateRange | undefined) {
       // === LEADS OVER TIME ===
       const daysDiff = differenceInDays(dateRange.to, dateRange.from);
       const groupByWeek = daysDiff > 31;
-      const timeGroups = new Map<string, number>();
+      const timeGroups = new Map<string, { label: string; sortKey: string; count: number }>();
       leads.forEach(l => {
         const d = new Date(l.created_at);
-        const key = groupByWeek ? format(startOfWeek(d), "MMM dd") : format(d, "MMM dd");
-        timeGroups.set(key, (timeGroups.get(key) || 0) + 1);
+        const groupDate = groupByWeek ? startOfWeek(d) : d;
+        const sortKey = format(groupDate, "yyyy-MM-dd");
+        const label = format(groupDate, "MMM dd");
+        const existing = timeGroups.get(sortKey);
+        if (existing) {
+          existing.count++;
+        } else {
+          timeGroups.set(sortKey, { label, sortKey, count: 1 });
+        }
       });
-      const leadsOverTime: LeadsOverTimeData[] = Array.from(timeGroups.entries())
-        .map(([date, count]) => ({ date, count }))
-        .sort((a, b) => a.date.localeCompare(b.date));
+      const leadsOverTime: LeadsOverTimeData[] = Array.from(timeGroups.values())
+        .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+        .map(({ label, count }) => ({ date: label, count }));
 
       // === SHOWINGS PERFORMANCE ===
-      const showingWeeks = new Map<string, { completed: number; no_show: number; cancelled: number; scheduled: number }>();
+      const showingWeeks = new Map<string, { sortKey: string; label: string; completed: number; no_show: number; cancelled: number; scheduled: number }>();
       showings.forEach(s => {
-        const weekKey = format(startOfWeek(new Date(s.scheduled_at)), "MMM dd");
-        const cur = showingWeeks.get(weekKey) || { completed: 0, no_show: 0, cancelled: 0, scheduled: 0 };
+        const weekDate = startOfWeek(new Date(s.scheduled_at));
+        const sortKey = format(weekDate, "yyyy-MM-dd");
+        const label = format(weekDate, "MMM dd");
+        const cur = showingWeeks.get(sortKey) || { sortKey, label, completed: 0, no_show: 0, cancelled: 0, scheduled: 0 };
         if (s.status === "completed") cur.completed++;
         else if (s.status === "no_show") cur.no_show++;
         else if (s.status === "cancelled") cur.cancelled++;
         else cur.scheduled++;
-        showingWeeks.set(weekKey, cur);
+        showingWeeks.set(sortKey, cur);
       });
-      const showingsPerformance: ShowingsPerformanceData[] = Array.from(showingWeeks.entries())
-        .map(([week, stats]) => ({ week, ...stats }))
-        .sort((a, b) => a.week.localeCompare(b.week));
+      const showingsPerformance: ShowingsPerformanceData[] = Array.from(showingWeeks.values())
+        .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+        .map(({ label, completed, no_show, cancelled, scheduled }) => ({
+          week: label, completed, no_show, cancelled, scheduled,
+        }));
 
       // === LEAD SCORE DISTRIBUTION ===
       const scoreBuckets = [
@@ -369,12 +380,13 @@ export function useReportsData(dateRange: DateRange | undefined) {
         if (l.status === "converted") cur.converted++;
         sourceMap.set(src, cur);
       });
-      // Add showings counts per source
-      allShowings.forEach(s => {
+      // Add showings counts per source (using Map for O(1) lookups)
+      const leadSourceMap = new Map<string, string>();
+      leads.forEach(l => leadSourceMap.set(l.id, l.source || "unknown"));
+      showings.forEach(s => {
         if (!s.lead_id) return;
-        const lead = leads.find(l => l.id === s.lead_id);
-        if (lead) {
-          const src = lead.source || "unknown";
+        const src = leadSourceMap.get(s.lead_id);
+        if (src) {
           const cur = sourceMap.get(src);
           if (cur) cur.showings++;
         }
@@ -455,7 +467,8 @@ export function exportReportToCSV(data: ReportsData) {
     ...data.leadFunnel.map(f => [f.label, f.count.toString()]),
   ];
 
-  const csvContent = rows.map(row => row.join(",")).join("\n");
+  const escapeCSV = (val: string) => val.includes(",") || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
+  const csvContent = rows.map(row => row.map(escapeCSV).join(",")).join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
