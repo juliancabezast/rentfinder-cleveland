@@ -118,6 +118,17 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           const computedEnd = `${String(eH).padStart(2, "0")}:${String(eM).padStart(2, "0")}:00`;
           const match = TIME_OPTIONS.find((t) => t.value >= computedEnd);
           setEndTime(match ? match.value : TIME_OPTIONS[TIME_OPTIONS.length - 1].value);
+
+          // Infer buffer from gap between first two slots: gap = slotDuration(30) + buffer
+          if (editData.slots.length >= 2) {
+            const [s1h, s1m] = editData.slots[0].split(":").map(Number);
+            const [s2h, s2m] = editData.slots[1].split(":").map(Number);
+            const gapMin = (s2h * 60 + s2m) - (s1h * 60 + s1m);
+            const inferredBuffer = String(gapMin - 30);
+            if (BUFFER_OPTIONS.some((b) => b.value === inferredBuffer)) {
+              setBuffer(inferredBuffer);
+            }
+          }
         }
 
         // In edit mode: fetch which properties actually have ENABLED slots for this date
@@ -140,10 +151,9 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
         setSelectedDate(undefined);
         setStartTime("09:00:00");
         setEndTime("17:00:00");
+        setBuffer("30");
         setExcludedIds(new Set());
       }
-
-      setBuffer("30");
       setLoadingProps(false);
     })();
   }, [open, orgId, editData]);
