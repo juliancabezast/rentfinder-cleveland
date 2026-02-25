@@ -51,6 +51,7 @@ export interface ActivityLog {
 
 export interface AgentStats {
   active: number;
+  enabled: number;
   total: number;
   executedToday: number;
   successesToday: number;

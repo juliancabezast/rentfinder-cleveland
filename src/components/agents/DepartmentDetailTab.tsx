@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Clock, Zap, CheckCircle, XCircle, AlertTriangle, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { DEPARTMENTS, STATUS_CONFIG, getAgentDisplayName } from "./constants";
+import { DEPARTMENTS, STATUS_CONFIG, getAgentDisplayName, AGENT_KPIS, resolveAgentKey } from "./constants";
 import type { Agent, ActivityLog } from "./types";
 
 interface DepartmentDetailTabProps {
@@ -44,7 +44,7 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
 
   const deptStats = useMemo(() => {
     const total = deptAgents.length;
-    const active = deptAgents.filter((a) => a.is_enabled && (a.status === "active" || a.status === "idle")).length;
+    const active = deptAgents.filter((a) => a.is_enabled).length;
     const executed = deptAgents.reduce((s, a) => s + (a.executions_today || 0), 0);
     const successes = deptAgents.reduce((s, a) => s + (a.successes_today || 0), 0);
     const failures = deptAgents.reduce((s, a) => s + (a.failures_today || 0), 0);
@@ -84,7 +84,7 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center">
               <p className="text-2xl font-bold text-green-600">{deptStats.active}/{deptStats.total}</p>
-              <p className="text-xs text-muted-foreground">Active</p>
+              <p className="text-xs text-muted-foreground">Enabled</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold">{deptStats.executed}</p>
@@ -160,6 +160,32 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
                       <p className="text-[10px] text-muted-foreground">Pending</p>
                     </div>
                   </div>
+
+                  {/* KPIs */}
+                  {(() => {
+                    const canonical = resolveAgentKey(agent.agent_key);
+                    const kpis = AGENT_KPIS[canonical];
+                    if (!kpis) return null;
+                    return (
+                      <div className="space-y-1.5 mb-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">KPIs</p>
+                        {kpis.map((kpi, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">{kpi.label}</span>
+                            <span className="font-medium">
+                              {agent.executions_today > 0 ? (
+                                idx === 0 ? `${agent.successes_today} ${kpi.metric}` :
+                                idx === 1 ? `${Math.round((agent.successes_today / agent.executions_today) * 100)}%` :
+                                agent.avg_execution_ms ? `${(agent.avg_execution_ms / 1000).toFixed(1)}s` : "—"
+                              ) : (
+                                <span className="text-muted-foreground">No data</span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {/* Progress bar */}
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-3">

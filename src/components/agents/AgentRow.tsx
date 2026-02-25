@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { STATUS_CONFIG, getAgentDisplayName } from "./constants";
+import { STATUS_CONFIG, getAgentDisplayName, AGENT_KPIS, resolveAgentKey } from "./constants";
 import { AgentTaskQueue } from "./AgentTaskQueue";
 import type { Agent } from "./types";
 
@@ -117,9 +117,32 @@ export const AgentRow: React.FC<AgentRowProps> = ({
         </Button>
       </div>
 
-      {/* Expanded task queue */}
+      {/* Expanded: KPIs + task queue */}
       {expanded && (
-        <div className="ml-8 mr-3 mb-2">
+        <div className="ml-8 mr-3 mb-2 space-y-3">
+          {/* KPIs */}
+          {(() => {
+            const canonical = resolveAgentKey(agent.agent_key);
+            const kpis = AGENT_KPIS[canonical];
+            if (!kpis) return null;
+            return (
+              <div className="grid grid-cols-3 gap-2">
+                {kpis.map((kpi, idx) => (
+                  <div key={idx} className="rounded-lg border border-border bg-muted/30 p-2.5">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{kpi.label}</p>
+                    <p className="text-sm font-semibold mt-0.5 text-foreground">
+                      {agent.executions_today > 0 ? (
+                        idx === 0 ? agent.successes_today :
+                        idx === 1 ? `${agent.executions_today > 0 ? Math.round((agent.successes_today / agent.executions_today) * 100) : 0}%` :
+                        agent.avg_execution_ms ? `${(agent.avg_execution_ms / 1000).toFixed(1)}s` : "—"
+                      ) : "—"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{kpi.target}</p>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
           <AgentTaskQueue agentKey={agent.agent_key} organizationId={organizationId} />
         </div>
       )}

@@ -20,7 +20,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
     color: "border-teal-500",
     bgColor: "bg-teal-50 dark:bg-teal-950/30",
     dotColor: "bg-teal-500",
-    agentKeys: ["aaron", "esther", "nehemiah"],
+    agentKeys: ["aaron", "esther", "ruth", "nehemiah"],
   },
   {
     key: "leasing",
@@ -29,7 +29,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
     color: "border-amber-500",
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
     dotColor: "bg-amber-500",
-    agentKeys: ["elijah", "ruth"],
+    agentKeys: ["elijah"],
   },
   {
     key: "cierre",
@@ -83,6 +83,51 @@ export const AGENT_DISPLAY_NAMES: Record<string, string> = {
   campaign_voice: "Leasing Consultant",
   welcome_sequence: "Leasing Consultant",
   campaign_sms: "SMS Agent",
+};
+
+// KPI definitions per agent — 3 KPIs each
+export interface AgentKPI {
+  label: string;
+  target: string;      // description of the goal
+  metric: string;      // short metric label shown in UI
+}
+
+export const AGENT_KPIS: Record<string, AgentKPI[]> = {
+  aaron: [
+    { label: "Calls Handled", target: "Handle all inbound calls", metric: "calls/day" },
+    { label: "Info Capture Rate", target: "Capture name+email+phone on 80%+ calls", metric: "% captured" },
+    { label: "Avg Call Duration", target: "Under 5 min per call", metric: "min/call" },
+  ],
+  esther: [
+    { label: "Emails Processed", target: "Process all inbound emails <5 min", metric: "emails/day" },
+    { label: "Dedup Accuracy", target: "Correctly identify 95%+ duplicates", metric: "% deduped" },
+    { label: "Prospect Creation", target: "Create prospect from every valid email", metric: "prospects/day" },
+  ],
+  ruth: [
+    { label: "SMS Sent", target: "Send all scheduled SMS on time", metric: "msgs/day" },
+    { label: "Response Rate", target: "Get 30%+ reply rate", metric: "% replies" },
+    { label: "Avg Response Time", target: "Reply within 2 min of inbound SMS", metric: "min/reply" },
+  ],
+  nehemiah: [
+    { label: "Prospects Evaluated", target: "Evaluate all new prospects within 5 min", metric: "evals/day" },
+    { label: "Qualification Rate", target: "Promote 60%+ prospects to leads", metric: "% qualified" },
+    { label: "Tasks Dispatched", target: "Dispatch all pending tasks on schedule", metric: "tasks/day" },
+  ],
+  elijah: [
+    { label: "Leads Contacted", target: "Contact all new leads within 24h", metric: "contacts/day" },
+    { label: "Showing Booking Rate", target: "Book showings for 40%+ leads", metric: "% booked" },
+    { label: "Campaign Reach", target: "Complete all assigned campaigns", metric: "calls/day" },
+  ],
+  samuel: [
+    { label: "Showings Confirmed", target: "Confirm 90%+ showings 24h before", metric: "confirmed/day" },
+    { label: "Application Rate", target: "Send application to 70%+ attended showings", metric: "% applied" },
+    { label: "Close Rate", target: "Convert 30%+ applications to signed leases", metric: "% closed" },
+  ],
+  zacchaeus: [
+    { label: "Health Checks", target: "Run checks every 30 min", metric: "checks/day" },
+    { label: "Services Healthy", target: "Keep 100% services operational", metric: "% healthy" },
+    { label: "Cost Tracked", target: "Track costs for every interaction", metric: "$/day" },
+  ],
 };
 
 // Status visual config

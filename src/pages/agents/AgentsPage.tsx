@@ -142,8 +142,9 @@ const AgentsPage: React.FC = () => {
 
   // Compute stats
   const stats: AgentStats = useMemo(() => {
-    if (!agents) return { active: 0, total: 0, executedToday: 0, successesToday: 0, failuresToday: 0, pendingGlobal: 0, successRate: 100, errorCount: 0 };
-    const active = agents.filter((a) => a.is_enabled && (a.status === "active" || a.status === "idle")).length;
+    if (!agents) return { active: 0, enabled: 0, total: 0, executedToday: 0, successesToday: 0, failuresToday: 0, pendingGlobal: 0, successRate: 100, errorCount: 0 };
+    const active = agents.filter((a) => a.status === "active").length;
+    const enabled = agents.filter((a) => a.is_enabled).length;
     const total = agents.length;
     const executedToday = agents.reduce((s, a) => s + (a.executions_today || 0), 0);
     const successesToday = agents.reduce((s, a) => s + (a.successes_today || 0), 0);
@@ -151,7 +152,7 @@ const AgentsPage: React.FC = () => {
     const pendingGlobal = Object.values(pendingTasks || {}).reduce((s, c) => s + c, 0);
     const successRate = executedToday > 0 ? Math.round((successesToday / executedToday) * 100) : 100;
     const errorCount = agents.filter((a) => a.status === "error").length;
-    return { active, total, executedToday, successesToday, failuresToday, pendingGlobal, successRate, errorCount };
+    return { active, enabled, total, executedToday, successesToday, failuresToday, pendingGlobal, successRate, errorCount };
   }, [agents, pendingTasks]);
 
   const handleToggle = (agentId: string, isEnabled: boolean) => {

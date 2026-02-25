@@ -382,15 +382,28 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       // 3. Build leads with org, stage, property, full_name
       const effectivePropertyId = selectedPropertyId && selectedPropertyId !== "none" ? selectedPropertyId : null;
       const selectedProp = effectivePropertyId ? properties.find((p) => p.id === effectivePropertyId) : null;
+
+      // Extract notes separately — leads table has no "notes" column
+      const leadNoteTexts: Map<string, string> = new Map();
       const leadsWithOrg = newLeads.map((lead) => {
         const firstName = (lead.first_name as string) || "";
         const lastName = (lead.last_name as string) || "";
         const fullName = (lead.full_name as string) || [firstName, lastName].filter(Boolean).join(" ");
+        const phone = lead.phone as string;
+
+        // Save notes text for later, keyed by phone
+        if (lead.notes) {
+          leadNoteTexts.set(normalizePhone(phone), lead.notes as string);
+        }
+
+        // Remove fields that don't exist in leads table
+        const { notes, ...leadWithoutNotes } = lead;
+
         return {
-          ...lead,
+          ...leadWithoutNotes,
           organization_id: userRecord.organization_id,
-          phone: lead.phone as string,
-          source: (lead.source as string) || "csv_import",
+          phone,
+          source: (leadWithoutNotes.source as string) || "csv_import",
           stage: "prospect",
           full_name: fullName || null,
           ...(effectivePropertyId ? { interested_property_id: effectivePropertyId } : {}),
@@ -416,15 +429,30 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         });
         const propertyNote = selectedProp ? ` — assigned to ${selectedProp.address}` : "";
 
-        const notes = insertedLeads.map((lead) => ({
-          lead_id: lead.id,
-          organization_id: userRecord.organization_id,
-          created_by: userRecord.id,
-          content: `Imported via CSV upload by ${uploaderName} on ${now}${propertyNote}`,
-          note_type: "system",
-        }));
+        const allNotes: Record<string, unknown>[] = [];
+        insertedLeads.forEach((lead) => {
+          // Audit note
+          allNotes.push({
+            lead_id: lead.id,
+            organization_id: userRecord.organization_id,
+            created_by: userRecord.id,
+            content: `Imported via CSV upload by ${uploaderName} on ${now}${propertyNote}`,
+            note_type: "system",
+          });
+          // CSV notes column (if provided)
+          const csvNote = leadNoteTexts.get(normalizePhone(lead.phone));
+          if (csvNote) {
+            allNotes.push({
+              lead_id: lead.id,
+              organization_id: userRecord.organization_id,
+              created_by: userRecord.id,
+              content: csvNote,
+              note_type: "manual",
+            });
+          }
+        });
 
-        await supabase.from("lead_notes").insert(notes as any);
+        await supabase.from("lead_notes").insert(allNotes as any);
       }
 
       setImportResult({

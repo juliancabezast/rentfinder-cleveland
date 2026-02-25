@@ -211,22 +211,39 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
         if (updateErr) throw new Error(`Update winner failed: ${updateErr.message}`);
       }
 
-      // 3. Re-point related records from loser → winner
-      const relatedTables = [
+      // 3. Re-point ALL related records from loser → winner
+      // Tables with lead_id column
+      const leadIdTables = [
         "lead_notes", "calls", "showings", "agent_tasks",
         "lead_score_history", "consent_log", "communications",
+        "cost_records", "lead_predictions", "competitor_mentions",
       ];
 
-      for (const table of relatedTables) {
+      for (const table of leadIdTables) {
         const { error: moveErr } = await supabase
           .from(table)
           .update({ lead_id: winner.id })
           .eq("lead_id", loser.id);
-        // Ignore errors on tables that may have unique constraints or missing lead_id
         if (moveErr) {
           console.warn(`Merge: moving ${table} records: ${moveErr.message}`);
         }
       }
+
+      // system_logs uses related_lead_id
+      await supabase
+        .from("system_logs")
+        .update({ related_lead_id: winner.id })
+        .eq("related_lead_id", loser.id);
+
+      // referrals has two FK columns
+      await supabase
+        .from("referrals")
+        .update({ referrer_lead_id: winner.id })
+        .eq("referrer_lead_id", loser.id);
+      await supabase
+        .from("referrals")
+        .update({ referred_lead_id: winner.id })
+        .eq("referred_lead_id", loser.id);
 
       // 4. Log the merge as a note on the winner
       await supabase.from("lead_notes").insert({

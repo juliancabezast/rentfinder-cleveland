@@ -65,7 +65,9 @@
       "Bash(ANON_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsenp6dGhnb3Rmd29pYXJhbm1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3NTM5OTgsImV4cCI6MjA1MzMyOTk5OH0.xyYSVFgEJsOHLP_0MYw2VBKvm06PQjg-CliOKMJCqJ0\":*)",
       "Bash(__NEW_LINE_6d2ab2e08394e391__ curl -s \"https://glzzzthgotfwoiaranmp.supabase.co/rest/v1/properties?select=address,unit_number,rent_price,bedrooms,bathrooms,square_feet,status&order=address.asc\" -H \"apikey: $ANON_KEY\" -H \"Authorization: Bearer $ANON_KEY\")",
       "Bash(export SUPABASE_ACCESS_TOKEN=\"sbp_00a96b581a771c79435383f9e8b1c96b35626e34\" && npx supabase projects list 2>&1)",
-      "Bash(SUPABASE_ACCESS_TOKEN=\"sbp_00a96b581a771c79435383f9e8b1c96b35626e34\" npx supabase:*)"
+      "Bash(SUPABASE_ACCESS_TOKEN=\"sbp_00a96b581a771c79435383f9e8b1c96b35626e34\" npx supabase:*)",
+      "Bash(git status:*)",
+      "Bash(git add src/components/leads/CsvImportDialog.tsx src/pages/leads/LeadsList.tsx && git commit -m \"$\\(cat <<'EOF'\nfeat: enhanced CSV import with phone dedup, property assignment, audit log\n\n- Property selector in Step 1: assign all imports to a specific property\n- Phone dedup: normalizes to last 10 digits, checks against existing DB\n  leads AND within the batch to prevent duplicates\n- Sets stage='prospect' on all imported records\n- Creates system lead_note for each import: \"Imported via CSV upload by\n  [user] on [date]\" with property info\n- Updated result screen: shows duplicate count, missing phone count,\n  assigned property badge\n- Builds full_name from first_name + last_name if not provided\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push origin main 2>&1)"
     ]
   }
 }

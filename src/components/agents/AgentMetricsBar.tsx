@@ -13,15 +13,27 @@ export const AgentMetricsBar: React.FC<AgentMetricsBarProps> = ({ stats }) => {
     <Card variant="glass">
       <CardContent className="p-3">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-          {/* Active agents */}
+          {/* Enabled agents */}
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-            </span>
-            <span className="font-semibold">{stats.active}/{stats.total}</span>
-            <span className="text-muted-foreground">Active</span>
+            <Bot className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-semibold">{stats.enabled}/{stats.total}</span>
+            <span className="text-muted-foreground">Enabled</span>
           </div>
+
+          {/* Active agents (only if any are truly active) */}
+          {stats.active > 0 && (
+            <>
+              <div className="hidden sm:block h-4 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                </span>
+                <span className="font-semibold">{stats.active}</span>
+                <span className="text-muted-foreground">Active</span>
+              </div>
+            </>
+          )}
 
           <div className="hidden sm:block h-4 w-px bg-border" />
 
