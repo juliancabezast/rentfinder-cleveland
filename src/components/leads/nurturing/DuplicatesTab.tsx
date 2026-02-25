@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -17,8 +18,9 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import { format } from "date-fns";
-import { MergeDialog } from "./MergeDialog";
+import { MergeDialog, performMerge } from "./MergeDialog";
 
 interface LeadRow {
   id: string;
@@ -188,6 +190,11 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
     loser: LeadRow;
     groupKey: string;
   } | null>(null);
+  const [mergeAllProgress, setMergeAllProgress] = useState<{
+    current: number;
+    total: number;
+    currentName: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchAndDetect();
@@ -242,6 +249,41 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
     fetchAndDetect();
   };
 
+  const handleMergeAll = async () => {
+    // Only auto-merge groups with exactly 2 leads
+    const mergeable = groups.filter((g) => g.leads.length === 2);
+    if (mergeable.length === 0) return;
+
+    setMergeAllProgress({ current: 0, total: mergeable.length, currentName: "" });
+    let succeeded = 0;
+    let failed = 0;
+
+    for (let i = 0; i < mergeable.length; i++) {
+      const group = mergeable[i];
+      const winnerId = selectedWinners[group.key] || group.leads[0].id;
+      const winner = group.leads.find((l) => l.id === winnerId)!;
+      const loser = group.leads.find((l) => l.id !== winnerId)!;
+
+      setMergeAllProgress({
+        current: i + 1,
+        total: mergeable.length,
+        currentName: winner.full_name || winner.id.slice(0, 8),
+      });
+
+      try {
+        await performMerge(winner.id, loser.id, userRecord?.id || null);
+        succeeded++;
+      } catch (err: any) {
+        console.error(`Merge failed for group ${group.key}:`, err.message);
+        failed++;
+      }
+    }
+
+    setMergeAllProgress(null);
+    toast.success(`Merge complete: ${succeeded} merged${failed > 0 ? `, ${failed} failed` : ""}`);
+    fetchAndDetect();
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -269,12 +311,45 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
     );
   }
 
+  const mergeableCount = groups.filter((g) => g.leads.length === 2).length;
+
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Found {groups.length} group{groups.length !== 1 ? "s" : ""} of potential duplicates.
-        Select the primary lead in each group, then click Merge.
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Found {groups.length} group{groups.length !== 1 ? "s" : ""} of potential duplicates.
+          Select the primary lead in each group, then click Merge.
+        </p>
+        {mergeableCount > 1 && !mergeAllProgress && (
+          <Button
+            onClick={handleMergeAll}
+            className="bg-[#370d4b] hover:bg-[#370d4b]/90"
+          >
+            <Merge className="h-4 w-4 mr-1.5" />
+            Merge All ({mergeableCount})
+          </Button>
+        )}
+      </div>
+
+      {mergeAllProgress && (
+        <Card className="border-[#370d4b]/30">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Loader2 className="h-4 w-4 animate-spin text-[#370d4b]" />
+              <span className="text-sm font-medium">
+                Merging {mergeAllProgress.current} of {mergeAllProgress.total}...
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {mergeAllProgress.currentName}
+              </span>
+            </div>
+            <Progress
+              value={(mergeAllProgress.current / mergeAllProgress.total) * 100}
+              className="h-2"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {groups.map((group) => (
         <Card key={group.key}>

@@ -51,7 +51,7 @@ interface MergeDialogProps {
 }
 
 // Status progression order (higher index = more advanced)
-const STATUS_ORDER = [
+export const STATUS_ORDER = [
   "new", "contacted", "engaged", "nurturing", "qualified",
   "showing_scheduled", "showed", "in_application", "converted",
 ];
@@ -69,7 +69,7 @@ function displayValue(val: any): string {
   return String(val);
 }
 
-function autoPickDefault(
+export function autoPickDefault(
   key: string,
   winnerVal: any,
   loserVal: any
@@ -100,6 +100,90 @@ function autoPickDefault(
   return "winner";
 }
 
+export const MERGE_FIELDS = [
+  { key: "full_name", label: "Full Name" },
+  { key: "first_name", label: "First Name" },
+  { key: "last_name", label: "Last Name" },
+  { key: "phone", label: "Phone" },
+  { key: "email", label: "Email" },
+  { key: "status", label: "Status" },
+  { key: "lead_score", label: "Score" },
+  { key: "source", label: "Source" },
+  { key: "source_detail", label: "Source Detail" },
+  { key: "interested_property_id", label: "Property" },
+  { key: "budget_min", label: "Budget Min" },
+  { key: "budget_max", label: "Budget Max" },
+  { key: "move_in_date", label: "Move-in Date" },
+  { key: "has_voucher", label: "Has Voucher" },
+  { key: "voucher_amount", label: "Voucher Amount" },
+  { key: "preferred_language", label: "Language" },
+  { key: "contact_preference", label: "Contact Preference" },
+  { key: "sms_consent", label: "SMS Consent" },
+  { key: "call_consent", label: "Call Consent" },
+];
+
+/** Perform a full merge of loser into winner using auto-picked defaults. */
+export async function performMerge(
+  winnerId: string,
+  loserId: string,
+  userId: string | null
+): Promise<void> {
+  // Fetch full records
+  const [winnerRes, loserRes] = await Promise.all([
+    supabase.from("leads").select("*").eq("id", winnerId).single(),
+    supabase.from("leads").select("*").eq("id", loserId).single(),
+  ]);
+  if (winnerRes.error) throw new Error(winnerRes.error.message);
+  if (loserRes.error) throw new Error(loserRes.error.message);
+  const winnerFull = winnerRes.data;
+  const loserFull = loserRes.data;
+
+  // Build overrides from auto-pick
+  const overrides: Record<string, any> = {};
+  for (const f of MERGE_FIELDS) {
+    if (autoPickDefault(f.key, winnerFull[f.key], loserFull[f.key]) === "loser") {
+      overrides[f.key] = loserFull[f.key];
+    }
+  }
+  if (overrides.full_name) {
+    const parts = String(overrides.full_name).trim().split(" ");
+    overrides.first_name = parts[0] || null;
+    overrides.last_name = parts.slice(1).join(" ") || null;
+  }
+
+  // Apply overrides to winner
+  if (Object.keys(overrides).length > 0) {
+    overrides.updated_at = new Date().toISOString();
+    const { error } = await supabase.from("leads").update(overrides).eq("id", winnerId);
+    if (error) throw new Error(`Update winner: ${error.message}`);
+  }
+
+  // Re-point related records
+  const leadIdTables = [
+    "lead_notes", "calls", "showings", "agent_tasks",
+    "lead_score_history", "consent_log", "communications",
+    "cost_records", "lead_predictions", "competitor_mentions",
+  ];
+  for (const table of leadIdTables) {
+    await supabase.from(table).update({ lead_id: winnerId }).eq("lead_id", loserId);
+  }
+  await supabase.from("system_logs").update({ related_lead_id: winnerId }).eq("related_lead_id", loserId);
+  await supabase.from("referrals").update({ referrer_lead_id: winnerId }).eq("referrer_lead_id", loserId);
+  await supabase.from("referrals").update({ referred_lead_id: winnerId }).eq("referred_lead_id", loserId);
+
+  // Log merge note
+  await supabase.from("lead_notes").insert({
+    lead_id: winnerId,
+    user_id: userId,
+    note: `Merged duplicate lead (${loserFull.full_name || loserId.slice(0, 8)}) into this record. Fields kept from duplicate: ${Object.keys(overrides).filter(k => k !== "updated_at").join(", ") || "none"}.`,
+    created_at: new Date().toISOString(),
+  });
+
+  // Delete loser
+  const { error: deleteErr } = await supabase.from("leads").delete().eq("id", loserId);
+  if (deleteErr) throw new Error(`Delete duplicate: ${deleteErr.message}`);
+}
+
 export const MergeDialog: React.FC<MergeDialogProps> = ({
   open,
   onOpenChange,
@@ -115,28 +199,6 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selections, setSelections] = useState<Record<string, "winner" | "loser">>({});
   const [relatedCounts, setRelatedCounts] = useState<Record<string, number>>({});
-
-  const MERGE_FIELDS = [
-    { key: "full_name", label: "Full Name" },
-    { key: "first_name", label: "First Name" },
-    { key: "last_name", label: "Last Name" },
-    { key: "phone", label: "Phone" },
-    { key: "email", label: "Email" },
-    { key: "status", label: "Status" },
-    { key: "lead_score", label: "Score" },
-    { key: "source", label: "Source" },
-    { key: "source_detail", label: "Source Detail" },
-    { key: "interested_property_id", label: "Property" },
-    { key: "budget_min", label: "Budget Min" },
-    { key: "budget_max", label: "Budget Max" },
-    { key: "move_in_date", label: "Move-in Date" },
-    { key: "has_voucher", label: "Has Voucher" },
-    { key: "voucher_amount", label: "Voucher Amount" },
-    { key: "preferred_language", label: "Language" },
-    { key: "contact_preference", label: "Contact Preference" },
-    { key: "sms_consent", label: "SMS Consent" },
-    { key: "call_consent", label: "Call Consent" },
-  ];
 
   useEffect(() => {
     if (open) fetchFullLeads();
