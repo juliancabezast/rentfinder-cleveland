@@ -89,48 +89,63 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
 
   const isEditMode = !!editData;
 
-  // Fetch active properties (only "available")
+  // Fetch active properties + pre-fill edit state
   useEffect(() => {
     if (!open || !orgId) return;
     (async () => {
       setLoadingProps(true);
-      const { data } = await supabase
+
+      // Fetch all available properties
+      const { data: propData } = await supabase
         .from("properties")
         .select("id, address, city")
         .eq("organization_id", orgId)
         .eq("status", "available")
         .order("address");
-      setProperties(data || []);
+      const allProps = propData || [];
+      setProperties(allProps);
+
+      // Set time defaults
+      if (editData) {
+        setSelectedDate(new Date(editData.date + "T12:00:00"));
+        if (editData.slots.length > 0) {
+          setStartTime(editData.slots[0]);
+          const lastSlot = editData.slots[editData.slots.length - 1];
+          const [lh, lm] = lastSlot.split(":").map(Number);
+          const endMin = lh * 60 + lm + 30;
+          const eH = Math.floor(endMin / 60);
+          const eM = endMin % 60;
+          const computedEnd = `${String(eH).padStart(2, "0")}:${String(eM).padStart(2, "0")}:00`;
+          const match = TIME_OPTIONS.find((t) => t.value >= computedEnd);
+          setEndTime(match ? match.value : TIME_OPTIONS[TIME_OPTIONS.length - 1].value);
+        }
+
+        // In edit mode: fetch which properties actually have slots for this date
+        // and pre-exclude properties that DON'T have slots
+        const { data: slotData } = await supabase
+          .from("showing_available_slots")
+          .select("property_id")
+          .eq("organization_id", orgId)
+          .eq("slot_date", editData.date)
+          .eq("is_booked", false);
+
+        const propsWithSlots = new Set((slotData || []).map((s) => s.property_id));
+        const excluded = new Set<string>();
+        allProps.forEach((p) => {
+          if (!propsWithSlots.has(p.id)) excluded.add(p.id);
+        });
+        setExcludedIds(excluded);
+      } else {
+        setSelectedDate(undefined);
+        setStartTime("09:00:00");
+        setEndTime("17:00:00");
+        setExcludedIds(new Set());
+      }
+
+      setBuffer("30");
       setLoadingProps(false);
     })();
-  }, [open, orgId]);
-
-  // Set defaults / pre-fill for edit
-  useEffect(() => {
-    if (!open) return;
-    if (editData) {
-      setSelectedDate(new Date(editData.date + "T12:00:00"));
-      if (editData.slots.length > 0) {
-        setStartTime(editData.slots[0]);
-        // End time must be AFTER last slot (last slot + 30 min) so calculation includes it
-        const lastSlot = editData.slots[editData.slots.length - 1];
-        const [lh, lm] = lastSlot.split(":").map(Number);
-        const endMin = lh * 60 + lm + 30;
-        const eH = Math.floor(endMin / 60);
-        const eM = endMin % 60;
-        const computedEnd = `${String(eH).padStart(2, "0")}:${String(eM).padStart(2, "0")}:00`;
-        // Pick the closest TIME_OPTIONS value >= computedEnd
-        const match = TIME_OPTIONS.find((t) => t.value >= computedEnd);
-        setEndTime(match ? match.value : TIME_OPTIONS[TIME_OPTIONS.length - 1].value);
-      }
-    } else {
-      setSelectedDate(undefined);
-      setStartTime("09:00:00");
-      setEndTime("17:00:00");
-    }
-    setBuffer("30");
-    setExcludedIds(new Set());
-  }, [open, editData]);
+  }, [open, orgId, editData]);
 
   const toggleExclude = (id: string) => {
     setExcludedIds((prev) => {
