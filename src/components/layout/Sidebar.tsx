@@ -21,6 +21,7 @@ import {
   Bot,
   UserPlus,
   Sparkles,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,6 +45,7 @@ const operationsNavItems: NavItem[] = [
 
 // LEASING section
 const leasingNavItems: NavItem[] = [
+  { title: 'Applicants', href: '/applicants', icon: UserCheck },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },

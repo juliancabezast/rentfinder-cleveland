@@ -53,8 +53,8 @@ serve(async (req: Request) => {
       ? `${property.address}, ${property.city}, ${property.state} ${property.zip_code}`
       : "Property";
 
-    // ── Try DoorLoop rental application ────────────────────────────────
-    let doorloopAppCreated = false;
+    // ── Ensure DoorLoop prospect exists ────────────────────────────────
+    let doorloopProspectId = lead.doorloop_prospect_id;
 
     try {
       const { data: creds } = await supabase
@@ -63,70 +63,83 @@ serve(async (req: Request) => {
         .eq("organization_id", organization_id)
         .single();
 
-      if (creds?.doorloop_api_key && lead.doorloop_prospect_id) {
+      if (creds?.doorloop_api_key) {
         const dlHeaders = {
           "Authorization": `Bearer ${creds.doorloop_api_key}`,
           "Content-Type": "application/json",
         };
 
-        const appBody: Record<string, any> = {
-          prospect_id: Number(lead.doorloop_prospect_id),
-          status: "new",
-        };
+        // Create prospect in DoorLoop if not already synced
+        if (!doorloopProspectId) {
+          const nameParts = (lead.full_name || "").trim().split(/\s+/);
+          const firstName = nameParts[0] || "Lead";
+          const lastName = nameParts.slice(1).join(" ") || firstName;
 
-        // Include DoorLoop property ID if available
-        if (property?.doorloop_property_id) {
-          appBody.property_id = Number(property.doorloop_property_id);
-        }
-
-        const resp = await fetch("https://app.doorloop.com/api/v1/rental-applications", {
-          method: "POST",
-          headers: dlHeaders,
-          body: JSON.stringify(appBody),
-        });
-
-        if (resp.ok) {
-          doorloopAppCreated = true;
-          console.log("DoorLoop: Rental application created for prospect", lead.doorloop_prospect_id);
-
-          // Log the sync
-          await supabase.from("doorloop_sync_log").insert({
-            organization_id,
-            entity_type: "rental_application",
-            sync_direction: "push",
-            local_id: lead_id,
-            doorloop_id: lead.doorloop_prospect_id,
-            status: "success",
-            action_taken: "Created rental application from public booking page",
-            details: { property_id, property_address: propertyAddress },
+          const createResp = await fetch("https://app.doorloop.com/api/tenants", {
+            method: "POST",
+            headers: dlHeaders,
+            body: JSON.stringify({
+              firstName,
+              lastName,
+              phones: lead.phone ? [{ type: "MOBILE", number: lead.phone }] : [],
+              ...(lead.email ? { emails: [{ type: "PERSONAL", address: lead.email }] } : {}),
+              prospectInfo: {
+                status: "SHOWING_SCHEDULED",
+                leadSource: "WEBSITE",
+              },
+            }),
           });
-        } else {
-          const errText = await resp.text();
-          console.error("DoorLoop rental application failed:", resp.status, errText);
+
+          if (createResp.ok) {
+            const createData = await createResp.json();
+            doorloopProspectId = String(createData.id);
+            console.log("DoorLoop: Created prospect:", doorloopProspectId);
+
+            // Store on lead
+            await supabase
+              .from("leads")
+              .update({ doorloop_prospect_id: doorloopProspectId })
+              .eq("id", lead_id);
+
+            // Log sync
+            await supabase.from("doorloop_sync_log").insert({
+              organization_id,
+              entity_type: "prospect",
+              sync_direction: "push",
+              local_id: lead_id,
+              doorloop_id: doorloopProspectId,
+              status: "success",
+              action_taken: "Created prospect from Apply Now button",
+              details: { property_id, property_address: propertyAddress },
+            });
+          } else {
+            const errText = await createResp.text();
+            console.error("DoorLoop prospect creation failed:", createResp.status, errText);
+          }
         }
       }
     } catch (dlErr) {
-      console.error("DoorLoop application error:", dlErr);
+      console.error("DoorLoop error:", dlErr);
     }
 
-    // ── Create Ezra agent task (backup if DoorLoop direct didn't work) ──
-    if (!doorloopAppCreated) {
-      await supabase.from("agent_tasks").insert({
-        organization_id,
-        agent_key: "ezra",
-        action_type: "send_application",
-        lead_id,
-        property_id,
-        scheduled_for: new Date().toISOString(),
-        status: "pending",
-        metadata: {
-          source: "public_booking_page",
-          lead_email: lead.email || null,
-          lead_name: lead.full_name || null,
-          property_address: propertyAddress,
-        },
-      });
-    }
+    // ── Create Ezra agent task to send application from DoorLoop portal ──
+    await supabase.from("agent_tasks").insert({
+      organization_id,
+      agent_key: "ezra",
+      action_type: "send_application",
+      lead_id,
+      property_id,
+      scheduled_for: new Date().toISOString(),
+      status: "pending",
+      metadata: {
+        source: "public_booking_page",
+        lead_email: lead.email || null,
+        lead_name: lead.full_name || null,
+        lead_phone: lead.phone || null,
+        property_address: propertyAddress,
+        doorloop_prospect_id: doorloopProspectId || null,
+      },
+    });
 
     // ── Send notification email to lead ────────────────────────────────
     if (lead.email) {
@@ -178,7 +191,7 @@ serve(async (req: Request) => {
       details: {
         lead_id,
         property_id,
-        doorloop_app_created: doorloopAppCreated,
+        doorloop_prospect_id: doorloopProspectId || null,
         email_sent: !!lead.email,
       },
       related_lead_id: lead_id,
@@ -187,7 +200,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        doorloop_created: doorloopAppCreated,
+        prospect_created: !!doorloopProspectId,
         email_sent: !!lead.email,
         message: "Application invite sent successfully.",
       }),

@@ -346,21 +346,22 @@ export const AdminDashboard = () => {
         if (periodStart) hotQuery = hotQuery.gte("created_at", periodStart);
 
         // Row 2: comms + calls (filtered by period)
+        // SMS: count from system_logs where send-message logged successful SMS
         let smsQuery = supabase
-          .from("communications")
+          .from("system_logs")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", userRecord.organization_id)
-          .eq("channel", "sms")
-          .eq("direction", "outbound");
-        if (periodStart) smsQuery = smsQuery.gte("sent_at", periodStart);
+          .eq("event_type", "message_sent")
+          .eq("category", "twilio");
+        if (periodStart) smsQuery = smsQuery.gte("created_at", periodStart);
 
+        // Emails: count from system_logs where send-notification-email logged success
         let emailQuery = supabase
-          .from("communications")
+          .from("system_logs")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", userRecord.organization_id)
-          .eq("channel", "email")
-          .eq("direction", "outbound");
-        if (periodStart) emailQuery = emailQuery.gte("sent_at", periodStart);
+          .eq("event_type", "email_sent");
+        if (periodStart) emailQuery = emailQuery.gte("created_at", periodStart);
 
         let parsedQuery = supabase
           .from("system_logs")
@@ -375,26 +376,15 @@ export const AdminDashboard = () => {
           .eq("organization_id", userRecord.organization_id);
         if (periodStart) callsQuery = callsQuery.gte("started_at", periodStart);
 
-        // Applications sent this week
-        const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString();
-        const lastWeekStartDate = new Date(new Date(thisWeekStart).getTime() - 7 * 24 * 60 * 60 * 1000);
-        const appsSentThisWeekQuery = supabase
-          .from("system_logs")
+        // Applicants: count leads currently in application stage
+        const applicantsQuery = supabase
+          .from("leads")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", userRecord.organization_id)
-          .eq("event_type", "application_invite_sent")
-          .gte("created_at", thisWeekStart);
+          .eq("status", "in_application");
 
-        const appsSentLastWeekQuery = supabase
-          .from("system_logs")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", userRecord.organization_id)
-          .eq("event_type", "application_invite_sent")
-          .gte("created_at", lastWeekStartDate.toISOString())
-          .lt("created_at", thisWeekStart);
-
-        const [leadsRes, hotRes, smsRes, emailRes, parsedRes, callsRes, appsSentRes, appsSentLastRes] = await Promise.all([
-          leadsQuery, hotQuery, smsQuery, emailQuery, parsedQuery, callsQuery, appsSentThisWeekQuery, appsSentLastWeekQuery,
+        const [leadsRes, hotRes, smsRes, emailRes, parsedRes, callsRes, applicantsRes] = await Promise.all([
+          leadsQuery, hotQuery, smsQuery, emailQuery, parsedQuery, callsQuery, applicantsQuery,
         ]);
 
         const callRows = callsRes.data || [];
@@ -408,8 +398,8 @@ export const AdminDashboard = () => {
           emailsParsed: parsedRes.count || 0,
           callsMade: callRows.length,
           callMinutes: Math.round(totalSeconds / 60),
-          applicationsSent: appsSentRes.count || 0,
-          applicationsSentLastWeek: appsSentLastRes.count || 0,
+          applicationsSent: applicantsRes.count || 0,
+          applicationsSentLastWeek: 0,
         });
       } catch (error) {
         console.error("Error fetching period stats:", error);
@@ -583,17 +573,12 @@ export const AdminDashboard = () => {
                   loading={loading || periodLoading}
                 />
               </div>
-              <div className="animate-fade-up stagger-8">
+              <div className="animate-fade-up stagger-8 cursor-pointer" onClick={() => navigate("/applicants")}>
                 <StatCard
-                  title="Applications"
+                  title="Applicants"
                   value={periodStats?.applicationsSent || 0}
-                  subtitle={`${periodStats?.applicationsSent || 0} sent this week`}
+                  subtitle="in application"
                   icon={FileText}
-                  trend={periodStats?.applicationsSentLastWeek
-                    ? { value: Math.round(((periodStats.applicationsSent - periodStats.applicationsSentLastWeek) / periodStats.applicationsSentLastWeek) * 100), isPositive: periodStats.applicationsSent >= periodStats.applicationsSentLastWeek }
-                    : periodStats?.applicationsSent && periodStats.applicationsSent > 0
-                      ? { value: 100, isPositive: true }
-                      : undefined}
                   impact={periodStats?.applicationsSent && periodStats.applicationsSent > 0 ? "high" : undefined}
                   loading={loading || periodLoading}
                 />

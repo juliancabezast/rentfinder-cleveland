@@ -27,6 +27,7 @@ import {
   Target,
   Map,
   Gift,
+  UserCheck,
 } from 'lucide-react';
 
 interface NavItem {
@@ -40,6 +41,7 @@ const mainNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Leads', href: '/leads', icon: Users },
+  { title: 'Applicants', href: '/applicants', icon: UserCheck },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'My Route', href: '/showings/route', icon: Map, permission: 'canViewOwnRoute' },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },

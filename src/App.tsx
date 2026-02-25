@@ -36,6 +36,7 @@ const CostDashboard = lazy(() => import("./pages/costs/CostDashboard"));
 const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
 
 const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
+const ApplicantsPage = lazy(() => import("./pages/applicants/ApplicantsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
  const DemoRequests = lazy(() => import("./pages/DemoRequests"));
@@ -183,6 +184,17 @@ const App = () => (
             <Route
               path="/showings/route"
               element={<Navigate to="/showings?tab=route" replace />}
+            />
+
+            <Route
+              path="/applicants"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <ApplicantsPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
             />
 
             <Route

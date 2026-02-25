@@ -18,6 +18,7 @@ import {
   Brain,
   Bot,
   UserPlus,
+  UserCheck,
 } from 'lucide-react';
 import {
   Sheet,
@@ -46,6 +47,7 @@ const mainNavItems: NavItem[] = [
 
 // Leasing items in the More sheet
 const leasingNavItems: NavItem[] = [
+  { title: 'Applicants', href: '/applicants', icon: UserCheck },
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },

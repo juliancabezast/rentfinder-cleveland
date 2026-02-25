@@ -492,7 +492,7 @@ serve(async (req: Request) => {
 
           // Search for existing prospect by phone to avoid duplicates
           const searchResp = await fetch(
-            `https://app.doorloop.com/api/v1/prospects?filter_phone=${encodeURIComponent(formattedPhone)}&page_size=1`,
+            `https://app.doorloop.com/api/tenants?filter_phone=${encodeURIComponent(formattedPhone)}&page_size=1`,
             { headers: dlHeaders }
           );
 
@@ -512,14 +512,18 @@ serve(async (req: Request) => {
             const firstName = nameParts[0] || "";
             const lastName = nameParts.slice(1).join(" ") || "";
 
-            const createResp = await fetch("https://app.doorloop.com/api/v1/prospects", {
+            const createResp = await fetch("https://app.doorloop.com/api/tenants", {
               method: "POST",
               headers: dlHeaders,
               body: JSON.stringify({
-                first_name: firstName,
-                last_name: lastName || firstName,
-                phone: formattedPhone,
-                email: leadEmail || undefined,
+                firstName,
+                lastName: lastName || firstName,
+                phones: [{ type: "MOBILE", number: formattedPhone }],
+                ...(leadEmail ? { emails: [{ type: "PERSONAL", address: leadEmail }] } : {}),
+                prospectInfo: {
+                  status: "SHOWING_SCHEDULED",
+                  leadSource: "WEBSITE",
+                },
               }),
             });
 
