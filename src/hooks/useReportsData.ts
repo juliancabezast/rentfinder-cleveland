@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { startOfMonth, endOfMonth, subMonths, differenceInDays, format, startOfWeek, endOfWeek } from "date-fns";
+import { differenceInDays, differenceInHours, format, startOfWeek, subMonths } from "date-fns";
 
 interface DateRange {
   from: Date;
@@ -37,21 +37,59 @@ interface LeadScoreDistribution {
   count: number;
 }
 
+interface PeakHourData {
+  hour: number;
+  label: string;
+  leads: number;
+  calls: number;
+  total: number;
+}
+
+interface TopPropertyData {
+  id: string;
+  address: string;
+  rent_price: number | null;
+  bedrooms: number | null;
+  status: string;
+  leads: number;
+  showings: number;
+  converted: number;
+  avgScore: number;
+}
+
+interface SourcePerformanceData {
+  source: string;
+  leads: number;
+  converted: number;
+  conversionRate: number;
+  avgScore: number;
+  showings: number;
+}
+
 interface ReportsData {
   // Summary stats
   totalLeads: number;
   totalLeadsPrevious: number;
+  activePipeline: number;
   showingsCompleted: number;
   showingsScheduled: number;
+  noShowRate: number;
   conversionRate: number;
   avgLeadScore: number;
-  
+  avgResponseHours: number | null;
+
   // Chart data
   leadFunnel: LeadFunnelData[];
   leadsBySource: LeadsBySourceData[];
   leadsOverTime: LeadsOverTimeData[];
   showingsPerformance: ShowingsPerformanceData[];
   leadScoreDistribution: LeadScoreDistribution[];
+  peakHours: PeakHourData[];
+  topProperties: TopPropertyData[];
+  sourcePerformance: SourcePerformanceData[];
+
+  // Metadata
+  fetchedAt: string;
 }
 
 const LEAD_STATUS_ORDER = [
@@ -66,192 +104,352 @@ const LEAD_STATUS_ORDER = [
   { value: "converted", label: "Converted" },
 ];
 
+const ACTIVE_STATUSES = ["contacted", "engaged", "nurturing", "qualified", "showing_scheduled", "showed", "in_application"];
+
 export function useReportsData(dateRange: DateRange | undefined) {
   const { userRecord } = useAuth();
   const [data, setData] = useState<ReportsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!userRecord?.organization_id || !dateRange?.from || !dateRange?.to) {
       setLoading(false);
       return;
     }
 
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      try {
-        const orgId = userRecord.organization_id;
-        const startDate = dateRange.from.toISOString();
-        const endDate = dateRange.to.toISOString();
-        
-        // Calculate previous period for comparison
-        const periodDays = differenceInDays(dateRange.to, dateRange.from);
-        const prevStart = subMonths(dateRange.from, 1).toISOString();
-        const prevEnd = subMonths(dateRange.to, 1).toISOString();
+    try {
+      const orgId = userRecord.organization_id;
+      const startDate = dateRange.from.toISOString();
+      const endDate = dateRange.to.toISOString();
 
-        // Fetch all leads in date range
-        const { data: leads, error: leadsError } = await supabase
+      // Previous period for comparison
+      const prevStart = subMonths(dateRange.from, 1).toISOString();
+      const prevEnd = subMonths(dateRange.to, 1).toISOString();
+
+      // Parallel fetch all data
+      const [
+        leadsRes,
+        prevLeadsRes,
+        showingsRes,
+        callsRes,
+        propertiesRes,
+        allPropertyShowingsRes,
+      ] = await Promise.all([
+        // Current period leads
+        supabase
           .from("leads")
-          .select("id, status, source, lead_score, created_at")
+          .select("id, status, source, lead_score, created_at, interested_property_id")
           .eq("organization_id", orgId)
           .gte("created_at", startDate)
-          .lte("created_at", endDate);
-
-        if (leadsError) throw leadsError;
-
-        // Fetch previous period leads for comparison
-        const { data: prevLeads, error: prevLeadsError } = await supabase
+          .lte("created_at", endDate),
+        // Previous period leads
+        supabase
           .from("leads")
           .select("id")
           .eq("organization_id", orgId)
           .gte("created_at", prevStart)
-          .lte("created_at", prevEnd);
-
-        if (prevLeadsError) throw prevLeadsError;
-
-        // Fetch showings in date range
-        const { data: showings, error: showingsError } = await supabase
+          .lte("created_at", prevEnd),
+        // Showings
+        supabase
           .from("showings")
-          .select("id, status, scheduled_at")
+          .select("id, status, scheduled_at, lead_id, property_id")
           .eq("organization_id", orgId)
           .gte("scheduled_at", startDate)
-          .lte("scheduled_at", endDate);
+          .lte("scheduled_at", endDate),
+        // Calls (for peak hours + response time)
+        supabase
+          .from("calls")
+          .select("id, lead_id, started_at")
+          .eq("organization_id", orgId)
+          .gte("started_at", startDate)
+          .lte("started_at", endDate),
+        // Properties (for top properties)
+        supabase
+          .from("properties")
+          .select("id, address, rent_price, bedrooms, status")
+          .eq("organization_id", orgId),
+        // All showings by property
+        supabase
+          .from("showings")
+          .select("id, property_id, lead_id, status")
+          .eq("organization_id", orgId)
+          .gte("scheduled_at", startDate)
+          .lte("scheduled_at", endDate),
+      ]);
 
-        if (showingsError) throw showingsError;
+      if (leadsRes.error) throw leadsRes.error;
+      if (prevLeadsRes.error) throw prevLeadsRes.error;
+      if (showingsRes.error) throw showingsRes.error;
 
-        // Process summary stats
-        const totalLeads = leads?.length || 0;
-        const totalLeadsPrevious = prevLeads?.length || 0;
-        const convertedLeads = leads?.filter(l => l.status === "converted").length || 0;
-        const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
-        const avgLeadScore = totalLeads > 0 
-          ? (leads?.reduce((sum, l) => sum + (l.lead_score || 0), 0) || 0) / totalLeads 
-          : 0;
-        
-        const showingsCompleted = showings?.filter(s => s.status === "completed").length || 0;
-        const showingsScheduled = showings?.length || 0;
+      const leads = leadsRes.data || [];
+      const prevLeads = prevLeadsRes.data || [];
+      const showings = showingsRes.data || [];
+      const calls = callsRes.data || [];
+      const properties = propertiesRes.data || [];
+      const allShowings = allPropertyShowingsRes.data || [];
 
-        // Process lead funnel
-        const statusCounts = new Map<string, number>();
-        leads?.forEach(lead => {
-          const count = statusCounts.get(lead.status) || 0;
-          statusCounts.set(lead.status, count + 1);
+      // === SUMMARY STATS ===
+      const totalLeads = leads.length;
+      const totalLeadsPrevious = prevLeads.length;
+      const activePipeline = leads.filter(l => ACTIVE_STATUSES.includes(l.status)).length;
+      const convertedLeads = leads.filter(l => l.status === "converted").length;
+      const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+      const avgLeadScore = totalLeads > 0
+        ? leads.reduce((s, l) => s + (l.lead_score || 0), 0) / totalLeads
+        : 0;
+
+      const showingsCompleted = showings.filter(s => s.status === "completed").length;
+      const showingsScheduled = showings.length;
+      const noShows = showings.filter(s => s.status === "no_show").length;
+      const noShowRate = showingsScheduled > 0 ? (noShows / showingsScheduled) * 100 : 0;
+
+      // === AVG RESPONSE TIME ===
+      // For each lead, find the first call to that lead
+      let avgResponseHours: number | null = null;
+      if (calls.length > 0 && leads.length > 0) {
+        const firstCallByLead = new Map<string, string>();
+        // calls are ordered by started_at ascending — take first per lead
+        const sortedCalls = [...calls].sort((a, b) =>
+          new Date(a.started_at).getTime() - new Date(b.started_at).getTime()
+        );
+        sortedCalls.forEach(c => {
+          if (c.lead_id && !firstCallByLead.has(c.lead_id)) {
+            firstCallByLead.set(c.lead_id, c.started_at);
+          }
         });
-        
-        const leadFunnel: LeadFunnelData[] = LEAD_STATUS_ORDER.map(s => ({
-          status: s.value,
-          label: s.label,
-          count: statusCounts.get(s.value) || 0,
-        }));
 
-        // Process leads by source
-        const sourceCounts = new Map<string, number>();
-        leads?.forEach(lead => {
-          const source = lead.source || "unknown";
-          const count = sourceCounts.get(source) || 0;
-          sourceCounts.set(source, count + 1);
+        const responseTimes: number[] = [];
+        leads.forEach(lead => {
+          const firstCall = firstCallByLead.get(lead.id);
+          if (firstCall) {
+            const hours = differenceInHours(new Date(firstCall), new Date(lead.created_at));
+            if (hours >= 0 && hours < 720) { // ignore > 30 days
+              responseTimes.push(hours);
+            }
+          }
         });
-        
-        const leadsBySource: LeadsBySourceData[] = Array.from(sourceCounts.entries())
-          .map(([source, count]) => ({ source, count }))
-          .sort((a, b) => b.count - a.count);
 
-        // Process leads over time
-        const daysDiff = differenceInDays(dateRange.to, dateRange.from);
-        const groupByWeek = daysDiff > 31;
-        
-        const timeGroups = new Map<string, number>();
-        leads?.forEach(lead => {
-          const date = new Date(lead.created_at);
-          const key = groupByWeek 
-            ? format(startOfWeek(date), "MMM dd")
-            : format(date, "MMM dd");
-          const count = timeGroups.get(key) || 0;
-          timeGroups.set(key, count + 1);
-        });
-        
-        const leadsOverTime: LeadsOverTimeData[] = Array.from(timeGroups.entries())
-          .map(([date, count]) => ({ date, count }))
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-        // Process showings performance by week
-        const showingWeeks = new Map<string, { completed: number; no_show: number; cancelled: number; scheduled: number }>();
-        showings?.forEach(showing => {
-          const date = new Date(showing.scheduled_at);
-          const weekKey = format(startOfWeek(date), "MMM dd");
-          const current = showingWeeks.get(weekKey) || { completed: 0, no_show: 0, cancelled: 0, scheduled: 0 };
-          
-          if (showing.status === "completed") current.completed++;
-          else if (showing.status === "no_show") current.no_show++;
-          else if (showing.status === "cancelled") current.cancelled++;
-          else current.scheduled++;
-          
-          showingWeeks.set(weekKey, current);
-        });
-        
-        const showingsPerformance: ShowingsPerformanceData[] = Array.from(showingWeeks.entries())
-          .map(([week, stats]) => ({ week, ...stats }))
-          .sort((a, b) => a.week.localeCompare(b.week));
-
-        // Process lead score distribution
-        const scoreBuckets = [
-          { min: 0, max: 20, label: "0-20" },
-          { min: 21, max: 40, label: "21-40" },
-          { min: 41, max: 60, label: "41-60" },
-          { min: 61, max: 80, label: "61-80" },
-          { min: 81, max: 100, label: "81-100" },
-        ];
-        
-        const leadScoreDistribution: LeadScoreDistribution[] = scoreBuckets.map(bucket => ({
-          bucket: bucket.label,
-          count: leads?.filter(l => {
-            const score = l.lead_score || 0;
-            return score >= bucket.min && score <= bucket.max;
-          }).length || 0,
-        }));
-
-        setData({
-          totalLeads,
-          totalLeadsPrevious,
-          showingsCompleted,
-          showingsScheduled,
-          conversionRate,
-          avgLeadScore,
-          leadFunnel,
-          leadsBySource,
-          leadsOverTime,
-          showingsPerformance,
-          leadScoreDistribution,
-        });
-      } catch (err) {
-        console.error("Error fetching reports data:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch reports data");
-      } finally {
-        setLoading(false);
+        if (responseTimes.length > 0) {
+          avgResponseHours = Math.round(
+            responseTimes.reduce((s, h) => s + h, 0) / responseTimes.length
+          );
+        }
       }
-    };
 
-    let cancelled = false;
-    fetchData().finally(() => { if (cancelled) return; });
-    return () => { cancelled = true; };
+      // === LEAD FUNNEL ===
+      const statusCounts = new Map<string, number>();
+      leads.forEach(l => statusCounts.set(l.status, (statusCounts.get(l.status) || 0) + 1));
+      const leadFunnel: LeadFunnelData[] = LEAD_STATUS_ORDER.map(s => ({
+        status: s.value,
+        label: s.label,
+        count: statusCounts.get(s.value) || 0,
+      }));
+
+      // === LEADS BY SOURCE ===
+      const sourceCounts = new Map<string, number>();
+      leads.forEach(l => {
+        const src = l.source || "unknown";
+        sourceCounts.set(src, (sourceCounts.get(src) || 0) + 1);
+      });
+      const leadsBySource: LeadsBySourceData[] = Array.from(sourceCounts.entries())
+        .map(([source, count]) => ({ source, count }))
+        .sort((a, b) => b.count - a.count);
+
+      // === LEADS OVER TIME ===
+      const daysDiff = differenceInDays(dateRange.to, dateRange.from);
+      const groupByWeek = daysDiff > 31;
+      const timeGroups = new Map<string, number>();
+      leads.forEach(l => {
+        const d = new Date(l.created_at);
+        const key = groupByWeek ? format(startOfWeek(d), "MMM dd") : format(d, "MMM dd");
+        timeGroups.set(key, (timeGroups.get(key) || 0) + 1);
+      });
+      const leadsOverTime: LeadsOverTimeData[] = Array.from(timeGroups.entries())
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      // === SHOWINGS PERFORMANCE ===
+      const showingWeeks = new Map<string, { completed: number; no_show: number; cancelled: number; scheduled: number }>();
+      showings.forEach(s => {
+        const weekKey = format(startOfWeek(new Date(s.scheduled_at)), "MMM dd");
+        const cur = showingWeeks.get(weekKey) || { completed: 0, no_show: 0, cancelled: 0, scheduled: 0 };
+        if (s.status === "completed") cur.completed++;
+        else if (s.status === "no_show") cur.no_show++;
+        else if (s.status === "cancelled") cur.cancelled++;
+        else cur.scheduled++;
+        showingWeeks.set(weekKey, cur);
+      });
+      const showingsPerformance: ShowingsPerformanceData[] = Array.from(showingWeeks.entries())
+        .map(([week, stats]) => ({ week, ...stats }))
+        .sort((a, b) => a.week.localeCompare(b.week));
+
+      // === LEAD SCORE DISTRIBUTION ===
+      const scoreBuckets = [
+        { min: 0, max: 20, label: "0-20" },
+        { min: 21, max: 40, label: "21-40" },
+        { min: 41, max: 60, label: "41-60" },
+        { min: 61, max: 80, label: "61-80" },
+        { min: 81, max: 100, label: "81-100" },
+      ];
+      const leadScoreDistribution: LeadScoreDistribution[] = scoreBuckets.map(b => ({
+        bucket: b.label,
+        count: leads.filter(l => (l.lead_score || 0) >= b.min && (l.lead_score || 0) <= b.max).length,
+      }));
+
+      // === PEAK ACTIVITY HOURS ===
+      const hourBuckets: number[] = new Array(24).fill(0);
+      const callHourBuckets: number[] = new Array(24).fill(0);
+
+      leads.forEach(l => {
+        const h = new Date(l.created_at).getHours();
+        hourBuckets[h]++;
+      });
+      calls.forEach(c => {
+        const h = new Date(c.started_at).getHours();
+        callHourBuckets[h]++;
+      });
+
+      const peakHours: PeakHourData[] = Array.from({ length: 24 }, (_, i) => ({
+        hour: i,
+        label: i === 0 ? "12am" : i < 12 ? `${i}am` : i === 12 ? "12pm" : `${i - 12}pm`,
+        leads: hourBuckets[i],
+        calls: callHourBuckets[i],
+        total: hourBuckets[i] + callHourBuckets[i],
+      }));
+
+      // === TOP PROPERTIES ===
+      const propLeadCounts = new Map<string, { leads: number; scores: number[]; converted: number }>();
+      leads.forEach(l => {
+        if (!l.interested_property_id) return;
+        const cur = propLeadCounts.get(l.interested_property_id) || { leads: 0, scores: [], converted: 0 };
+        cur.leads++;
+        cur.scores.push(l.lead_score || 0);
+        if (l.status === "converted") cur.converted++;
+        propLeadCounts.set(l.interested_property_id, cur);
+      });
+
+      const propShowingCounts = new Map<string, number>();
+      allShowings.forEach(s => {
+        if (s.property_id) {
+          propShowingCounts.set(s.property_id, (propShowingCounts.get(s.property_id) || 0) + 1);
+        }
+      });
+
+      const topProperties: TopPropertyData[] = properties
+        .map(p => {
+          const stats = propLeadCounts.get(p.id) || { leads: 0, scores: [], converted: 0 };
+          return {
+            id: p.id,
+            address: p.address,
+            rent_price: p.rent_price,
+            bedrooms: p.bedrooms,
+            status: p.status,
+            leads: stats.leads,
+            showings: propShowingCounts.get(p.id) || 0,
+            converted: stats.converted,
+            avgScore: stats.scores.length > 0
+              ? Math.round(stats.scores.reduce((a, b) => a + b, 0) / stats.scores.length)
+              : 0,
+          };
+        })
+        .sort((a, b) => b.leads - a.leads)
+        .slice(0, 10);
+
+      // === SOURCE PERFORMANCE ===
+      const sourceMap = new Map<string, { leads: number; converted: number; scores: number[]; showings: number }>();
+      leads.forEach(l => {
+        const src = l.source || "unknown";
+        const cur = sourceMap.get(src) || { leads: 0, converted: 0, scores: [], showings: 0 };
+        cur.leads++;
+        cur.scores.push(l.lead_score || 0);
+        if (l.status === "converted") cur.converted++;
+        sourceMap.set(src, cur);
+      });
+      // Add showings counts per source
+      allShowings.forEach(s => {
+        if (!s.lead_id) return;
+        const lead = leads.find(l => l.id === s.lead_id);
+        if (lead) {
+          const src = lead.source || "unknown";
+          const cur = sourceMap.get(src);
+          if (cur) cur.showings++;
+        }
+      });
+
+      const sourcePerformance: SourcePerformanceData[] = Array.from(sourceMap.entries())
+        .map(([source, stats]) => ({
+          source,
+          leads: stats.leads,
+          converted: stats.converted,
+          conversionRate: stats.leads > 0 ? Math.round((stats.converted / stats.leads) * 100) : 0,
+          avgScore: stats.scores.length > 0
+            ? Math.round(stats.scores.reduce((a, b) => a + b, 0) / stats.scores.length)
+            : 0,
+          showings: stats.showings,
+        }))
+        .sort((a, b) => b.leads - a.leads);
+
+      setData({
+        totalLeads,
+        totalLeadsPrevious,
+        activePipeline,
+        showingsCompleted,
+        showingsScheduled,
+        noShowRate,
+        conversionRate,
+        avgLeadScore,
+        avgResponseHours,
+        leadFunnel,
+        leadsBySource,
+        leadsOverTime,
+        showingsPerformance,
+        leadScoreDistribution,
+        peakHours,
+        topProperties,
+        sourcePerformance,
+        fetchedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("Error fetching reports data:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch reports data");
+    } finally {
+      setLoading(false);
+    }
   }, [userRecord?.organization_id, dateRange?.from?.toISOString(), dateRange?.to?.toISOString()]);
 
-  return { data, loading, error };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
 }
 
 export function exportReportToCSV(data: ReportsData) {
   const rows: string[][] = [
     ["Metric", "Value"],
     ["Total Leads", data.totalLeads.toString()],
+    ["Active Pipeline", data.activePipeline.toString()],
     ["Showings Completed", data.showingsCompleted.toString()],
+    ["No-Show Rate", `${data.noShowRate.toFixed(1)}%`],
     ["Conversion Rate", `${data.conversionRate.toFixed(1)}%`],
     ["Avg Lead Score", data.avgLeadScore.toFixed(1)],
+    ["Avg Response Time", data.avgResponseHours != null ? `${data.avgResponseHours}h` : "N/A"],
     [""],
-    ["Leads by Source", "Count"],
-    ...data.leadsBySource.map(s => [s.source, s.count.toString()]),
+    ["Source", "Leads", "Converted", "Conv%", "Avg Score", "Showings"],
+    ...data.sourcePerformance.map(s => [
+      s.source, s.leads.toString(), s.converted.toString(),
+      `${s.conversionRate}%`, s.avgScore.toString(), s.showings.toString(),
+    ]),
+    [""],
+    ["Property", "Leads", "Showings", "Converted", "Avg Score", "Rent"],
+    ...data.topProperties.map(p => [
+      p.address, p.leads.toString(), p.showings.toString(),
+      p.converted.toString(), p.avgScore.toString(), p.rent_price ? `$${p.rent_price}` : "N/A",
+    ]),
     [""],
     ["Lead Status", "Count"],
     ...data.leadFunnel.map(f => [f.label, f.count.toString()]),

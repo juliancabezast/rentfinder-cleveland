@@ -1,171 +1,141 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Target, 
-  Crosshair,
-  TrendingDown, 
-  Award,
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { StatCard } from "@/components/dashboard/StatCard";
+import {
+  Target,
   Building2,
-  ChevronRight,
-  AlertTriangle,
-  Lightbulb,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  DollarSign,
+  Clock,
+  RefreshCw,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
-import { Link } from "react-router-dom";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip as RechartsTooltip, Cell } from "recharts";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-interface CompetitorMention {
+interface RentBenchmark {
   id: string;
-  created_at: string;
-  competitor_name: string | null;
-  competitor_address: string | null;
-  competitor_price: number | null;
-  advantage_mentioned: string | null;
-  lead_chose_competitor: boolean;
-  transcript_excerpt: string | null;
-  lead_id: string | null;
-  lead_name?: string | null;
+  property_id: string;
+  our_rent: number | null;
+  market_avg_rent: number | null;
+  market_low: number | null;
+  market_high: number | null;
+  sample_size: number | null;
+  ai_summary: string | null;
+  analyzed_at: string;
+  property?: {
+    address: string;
+    bedrooms: number | null;
+    status: string;
+    city: string | null;
+    state: string | null;
+  } | null;
 }
 
-interface DateRange {
-  from: Date;
-  to: Date;
-}
-
-const CompetitorRadar: React.FC = () => {
+const RentBenchmarkPage: React.FC = () => {
   const { userRecord } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [mentions, setMentions] = useState<CompetitorMention[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: subDays(new Date(), 90),
-    to: new Date(),
-  });
-  const [advantageFilter, setAdvantageFilter] = useState<string>("all");
+  const [benchmarks, setBenchmarks] = useState<RentBenchmark[]>([]);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!userRecord?.organization_id) return;
+    fetchBenchmarks();
+  }, [userRecord?.organization_id]);
 
-      setLoading(true);
-      try {
-        const { data: mentionsData, error } = await supabase
-          .from("competitor_mentions")
-          .select(`
-            id, created_at, competitor_name, competitor_address, competitor_price,
-            advantage_mentioned, lead_chose_competitor, transcript_excerpt, lead_id
-          `)
-          .eq("organization_id", userRecord.organization_id)
-          .gte("created_at", startOfDay(dateRange.from).toISOString())
-          .lte("created_at", endOfDay(dateRange.to).toISOString())
-          .order("created_at", { ascending: false })
-          .limit(1000);
+  const fetchBenchmarks = async () => {
+    if (!userRecord?.organization_id) return;
+    setLoading(true);
+    setError(null);
 
-        if (error) throw error;
+    try {
+      const { data, error: err } = await supabase
+        .from("rent_benchmarks")
+        .select(`
+          id, property_id, our_rent, market_avg_rent, market_low, market_high,
+          sample_size, ai_summary, analyzed_at,
+          properties:property_id (address, bedrooms, status, city, state)
+        `)
+        .eq("organization_id", userRecord.organization_id)
+        .order("analyzed_at", { ascending: false });
 
-        // Fetch lead names for mentions with lead_id
-        const leadIds = mentionsData?.filter(m => m.lead_id).map(m => m.lead_id) || [];
-        let leadNamesMap: Record<string, string> = {};
+      if (err) throw err;
 
-        if (leadIds.length > 0) {
-          const { data: leads } = await supabase
-            .from("leads")
-            .select("id, full_name")
-            .in("id", leadIds);
-
-          leads?.forEach(l => {
-            leadNamesMap[l.id] = l.full_name || "Unknown";
-          });
-        }
-
-        setMentions(
-          (mentionsData || []).map(m => ({
-            ...m,
-            lead_name: m.lead_id ? leadNamesMap[m.lead_id] : null,
-          }))
-        );
-      } catch (error) {
-        console.error("Error fetching competitor data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [userRecord?.organization_id, dateRange]);
-
-  // Calculate summary stats
-  const totalMentions = mentions.length;
-  const leadsLost = mentions.filter(m => m.lead_chose_competitor).length;
-  
-  // Group by advantage
-  const advantageCounts: Record<string, number> = {};
-  mentions.forEach(m => {
-    if (m.advantage_mentioned) {
-      const adv = m.advantage_mentioned.toLowerCase();
-      advantageCounts[adv] = (advantageCounts[adv] || 0) + 1;
+      // Normalize the join (Supabase returns single object for FK join)
+      const normalized = (data || []).map((b: any) => ({
+        ...b,
+        property: b.properties || null,
+      }));
+      setBenchmarks(normalized);
+    } catch (err) {
+      console.error("Error fetching benchmarks:", err);
+      setError("Could not load benchmark data. Make sure the rent_benchmarks table exists.");
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
-  const sortedAdvantages = Object.entries(advantageCounts)
-    .sort((a, b) => b[1] - a[1]);
-  
-  const topAdvantage = sortedAdvantages[0];
+  const handleRunAnalysis = async () => {
+    if (!userRecord?.organization_id) return;
+    setRunning(true);
 
-  const chartData = sortedAdvantages.slice(0, 8).map(([advantage, count]) => ({
-    name: advantage.charAt(0).toUpperCase() + advantage.slice(1),
-    count,
-  }));
+    try {
+      const { data, error: err } = await supabase.functions.invoke("agent-rent-benchmark", {
+        body: { organization_id: userRecord.organization_id },
+      });
 
-  const uniqueAdvantages = ["all", ...Object.keys(advantageCounts)];
+      if (err) throw err;
 
-  const filteredMentions = advantageFilter === "all"
-    ? mentions
-    : mentions.filter(m => m.advantage_mentioned?.toLowerCase() === advantageFilter);
+      const result = data as { properties_analyzed?: number; error?: string };
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(`Analyzed ${result.properties_analyzed || 0} properties`);
+        fetchBenchmarks();
+      }
+    } catch (err) {
+      console.error("Analysis error:", err);
+      toast.error("Failed to run analysis. Make sure the edge function is deployed.");
+    } finally {
+      setRunning(false);
+    }
+  };
 
-  // Generate insights
-  const insights = [];
-  if (topAdvantage) {
-    insights.push({
-      icon: AlertTriangle,
-      color: "text-amber-600",
-      text: `${topAdvantage[0].charAt(0).toUpperCase() + topAdvantage[0].slice(1)} is the #1 reason leads explore other options (${topAdvantage[1]} mentions).`,
-      suggestion: "Consider adding this feature to your properties or highlighting alternatives.",
-    });
-  }
+  // Summary calculations
+  const propertiesAnalyzed = benchmarks.length;
+  const avgOurRent = propertiesAnalyzed > 0
+    ? Math.round(benchmarks.reduce((s, b) => s + (b.our_rent || 0), 0) / propertiesAnalyzed)
+    : 0;
+  const avgMarketRent = benchmarks.filter(b => b.market_avg_rent).length > 0
+    ? Math.round(
+        benchmarks.filter(b => b.market_avg_rent).reduce((s, b) => s + (b.market_avg_rent || 0), 0)
+        / benchmarks.filter(b => b.market_avg_rent).length
+      )
+    : 0;
+  const competitivePosition = avgOurRent > 0 && avgMarketRent > 0
+    ? Math.round(((avgMarketRent - avgOurRent) / avgMarketRent) * 100)
+    : null;
 
-  const lostRatio = totalMentions > 0 ? (leadsLost / totalMentions * 100).toFixed(0) : 0;
-  if (Number(lostRatio) > 30) {
-    insights.push({
-      icon: TrendingDown,
-      color: "text-red-600",
-      text: `${lostRatio}% of leads who mentioned competitors chose them over us.`,
-      suggestion: "Review pricing and features to improve competitive positioning.",
-    });
-  }
-
-  const avgCompetitorPrice = mentions
-    .filter(m => m.competitor_price)
-    .reduce((sum, m) => sum + (m.competitor_price || 0), 0) / 
-    (mentions.filter(m => m.competitor_price).length || 1);
-
-  if (avgCompetitorPrice > 0) {
-    insights.push({
-      icon: Building2,
-      color: "text-blue-600",
-      text: `Average competitor price mentioned: $${avgCompetitorPrice.toFixed(0)}/month.`,
-      suggestion: "Compare this to your property pricing to identify positioning opportunities.",
-    });
-  }
+  const lastAnalyzed = benchmarks.length > 0
+    ? format(new Date(benchmarks[0].analyzed_at), "MMM d, yyyy 'at' h:mm a")
+    : null;
 
   return (
     <div className="space-y-6">
@@ -173,270 +143,186 @@ const CompetitorRadar: React.FC = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Crosshair className="h-6 w-6" />
-            Competitor Radar
+            <Target className="h-6 w-6" />
+            Rent Benchmark
           </h1>
           <p className="text-muted-foreground">
-            Track what competitors are offering and why leads choose them
+            AI-powered market rent analysis for your properties
           </p>
         </div>
-        <DateRangePicker
-          date={dateRange}
-          onDateChange={(range) => range && setDateRange(range as DateRange)}
+        <Button
+          onClick={handleRunAnalysis}
+          disabled={running}
+          className="bg-[#370d4b] hover:bg-[#370d4b]/90 shrink-0"
+        >
+          {running ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Run Analysis
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Last updated banner */}
+      {lastAnalyzed && (
+        <div className="flex items-center gap-2 rounded-lg bg-muted/40 border px-4 py-2 text-sm text-muted-foreground">
+          <Clock className="h-3.5 w-3.5" />
+          <span>Last analyzed: {lastAnalyzed}</span>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <Card variant="glass" className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-amber-800">{error}</p>
+              <p className="text-amber-700 mt-1">
+                Run this SQL in the Supabase Dashboard to create the table, then run the analysis.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Summary Stats */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Properties Analyzed"
+          value={propertiesAnalyzed}
+          icon={Building2}
+          loading={loading}
+        />
+        <StatCard
+          title="Avg Our Rent"
+          value={avgOurRent > 0 ? `$${avgOurRent.toLocaleString()}` : "N/A"}
+          icon={DollarSign}
+          loading={loading}
+        />
+        <StatCard
+          title="Avg Market Rent"
+          value={avgMarketRent > 0 ? `$${avgMarketRent.toLocaleString()}` : "N/A"}
+          icon={TrendingUp}
+          loading={loading}
+        />
+        <StatCard
+          title="Competitive Position"
+          value={competitivePosition != null ? `${competitivePosition > 0 ? "+" : ""}${competitivePosition}%` : "N/A"}
+          icon={competitivePosition != null && competitivePosition > 0 ? TrendingUp : competitivePosition != null && competitivePosition < 0 ? TrendingDown : Minus}
+          subtitle={competitivePosition != null
+            ? competitivePosition > 0 ? "below market (good)" : competitivePosition < 0 ? "above market" : "at market"
+            : undefined}
+          loading={loading}
         />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card variant="glass">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Competitor Mentions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <p className="text-3xl font-bold">{totalMentions}</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card variant="glass">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingDown className="h-4 w-4" />
-              Leads Lost to Competitors
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <p className="text-3xl font-bold text-red-600">{leadsLost}</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card variant="glass">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Award className="h-4 w-4" />
-              Top Advantage They Have
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : topAdvantage ? (
-              <p className="text-xl font-bold capitalize">{topAdvantage[0]}</p>
-            ) : (
-              <p className="text-muted-foreground">No data yet</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Advantage Chart */}
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle>Competitor Advantages</CardTitle>
-            <CardDescription>What features do competitors offer that we don't?</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
-                  <XAxis type="number" />
-                  <YAxis 
-                    type="category" 
-                    dataKey="name" 
-                    width={120}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <RechartsTooltip 
-                    formatter={(value: number) => [`${value} mentions`, 'Count']}
-                  />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                    {chartData.map((_, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={index === 0 ? "hsl(var(--destructive))" : "hsl(var(--primary))"} 
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-muted-foreground">
-                <div className="text-center">
-                  <Target className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p>No competitor mentions recorded yet</p>
-                  <p className="text-sm mt-1">This data is extracted from call transcripts via AI</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Insights Panel */}
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-accent" />
-              Insights
-            </CardTitle>
-            <CardDescription>Actionable recommendations based on competitor data</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-              </div>
-            ) : insights.length > 0 ? (
-              <div className="space-y-4">
-                {insights.map((insight, idx) => (
-                  <div key={idx} className="p-4 rounded-lg bg-muted/50 border">
-                    <div className="flex items-start gap-3">
-                      <insight.icon className={`h-5 w-5 shrink-0 mt-0.5 ${insight.color}`} />
-                      <div>
-                        <p className="font-medium text-sm">{insight.text}</p>
-                        <p className="text-sm text-muted-foreground mt-1">{insight.suggestion}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Lightbulb className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p>Insights will appear once competitor data is collected</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Mentions Table */}
+      {/* Benchmark Table */}
       <Card variant="glass">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Recent Competitor Mentions</CardTitle>
-            <CardDescription>Details extracted from call transcripts</CardDescription>
-          </div>
-          <Select value={advantageFilter} onValueChange={setAdvantageFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by advantage" />
-            </SelectTrigger>
-            <SelectContent>
-              {uniqueAdvantages.map(adv => (
-                <SelectItem key={adv} value={adv}>
-                  {adv === "all" ? "All Advantages" : adv.charAt(0).toUpperCase() + adv.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Property Rent Comparison</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
-          ) : filteredMentions.length > 0 ? (
-            <ScrollArea className="w-full">
+          ) : benchmarks.length === 0 ? (
+            <div className="flex flex-col items-center py-12 text-center">
+              <Target className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+              <h3 className="text-lg font-medium">No benchmark data yet</h3>
+              <p className="text-muted-foreground text-sm mt-1 max-w-md">
+                Click "Run Analysis" to analyze your properties against market rents using AI.
+                The analysis uses OpenAI to research comparable rents within 1 mile of each property.
+              </p>
+            </div>
+          ) : (
+            <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Lead</TableHead>
-                    <TableHead>Competitor</TableHead>
-                    <TableHead>Their Advantage</TableHead>
-                    <TableHead>Chose Them?</TableHead>
-                    <TableHead>Excerpt</TableHead>
+                    <TableHead>Property</TableHead>
+                    <TableHead className="text-right">Our Rent</TableHead>
+                    <TableHead className="text-right">Market Avg</TableHead>
+                    <TableHead className="text-right">Difference</TableHead>
+                    <TableHead className="text-center">Range</TableHead>
+                    <TableHead className="text-center">Samples</TableHead>
+                    <TableHead>AI Summary</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMentions.slice(0, 20).map((mention) => (
-                    <TableRow key={mention.id}>
-                      <TableCell className="whitespace-nowrap">
-                        {format(new Date(mention.created_at), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        {mention.lead_id ? (
-                          <Link 
-                            to={`/leads/${mention.lead_id}`}
-                            className="text-primary hover:underline"
-                          >
-                            {mention.lead_name || "View Lead"}
-                          </Link>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{mention.competitor_name || "Unknown"}</p>
-                          {mention.competitor_price && (
-                            <p className="text-sm text-muted-foreground">
-                              ${mention.competitor_price}/mo
+                  {benchmarks.map(b => {
+                    const diff = b.our_rent && b.market_avg_rent
+                      ? b.our_rent - b.market_avg_rent
+                      : null;
+                    const diffPct = diff != null && b.market_avg_rent
+                      ? Math.round((diff / b.market_avg_rent) * 100)
+                      : null;
+                    const isBelow = diff != null && diff < 0;
+                    const isAbove = diff != null && diff > 0;
+                    const isClose = diffPct != null && Math.abs(diffPct) <= 5;
+
+                    return (
+                      <TableRow key={b.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-sm">{b.property?.address || "Unknown"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {b.property?.bedrooms ? `${b.property.bedrooms} BR` : ""}
+                              {b.property?.city ? ` · ${b.property.city}` : ""}
                             </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {mention.advantage_mentioned ? (
-                          <Badge variant="secondary" className="capitalize">
-                            {mention.advantage_mentioned}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {mention.lead_chose_competitor ? (
-                          <Badge variant="destructive">Yes</Badge>
-                        ) : (
-                          <Badge variant="outline">No</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-[200px]">
-                        {mention.transcript_excerpt ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="truncate block cursor-help text-sm">
-                                {mention.transcript_excerpt.slice(0, 50)}...
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-[300px]">
-                              <p className="text-sm whitespace-pre-wrap">{mention.transcript_excerpt}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          {b.our_rent ? `$${b.our_rent.toLocaleString()}` : "—"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {b.market_avg_rent ? `$${b.market_avg_rent.toLocaleString()}` : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {diff != null ? (
+                            <span className={cn(
+                              "flex items-center justify-end gap-1 font-semibold text-sm",
+                              isClose ? "text-amber-600" :
+                              isBelow ? "text-green-600" :
+                              "text-red-600"
+                            )}>
+                              {isBelow ? <TrendingDown className="h-3.5 w-3.5" /> :
+                               isAbove ? <TrendingUp className="h-3.5 w-3.5" /> :
+                               <Minus className="h-3.5 w-3.5" />}
+                              {diff > 0 ? "+" : ""}{diff < 0 ? "-" : ""}${Math.abs(diff).toLocaleString()}
+                              <span className="text-xs opacity-70">({diffPct}%)</span>
+                            </span>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell className="text-center text-xs text-muted-foreground">
+                          {b.market_low && b.market_high
+                            ? `$${b.market_low.toLocaleString()} – $${b.market_high.toLocaleString()}`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {b.sample_size ? (
+                            <Badge variant="outline" className="text-xs">{b.sample_size}</Badge>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell className="max-w-[200px]">
+                          {b.ai_summary ? (
+                            <p className="text-xs text-muted-foreground truncate" title={b.ai_summary}>
+                              {b.ai_summary}
+                            </p>
+                          ) : "—"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <Target className="h-12 w-12 mx-auto mb-4 opacity-30" />
-              <p>No competitor mentions found for this period</p>
-              <p className="text-sm mt-1">
-                This data will be automatically extracted when OpenAI analyzes call transcripts
-              </p>
             </div>
           )}
         </CardContent>
@@ -445,4 +331,4 @@ const CompetitorRadar: React.FC = () => {
   );
 };
 
-export default CompetitorRadar;
+export default RentBenchmarkPage;

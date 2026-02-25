@@ -49,7 +49,7 @@ const mainNavItems: NavItem[] = [
 const analyticsNavItems: NavItem[] = [
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Voucher Intel', href: '/analytics/voucher-intel', icon: Shield, permission: 'canViewAllReports' },
-  { title: 'Competitor Radar', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
+  { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Insight Generator', href: '/insights', icon: Sparkles, permission: 'canAccessInsightGenerator' },
 ];

@@ -10,11 +10,9 @@ import {
 import { Building, Users, DollarSign, TrendingUp, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ZipData {
+interface ZipEntry {
   zip: string;
   name: string;
-  row: number;
-  col: number;
 }
 
 interface ZipStats {
@@ -25,38 +23,82 @@ interface ZipStats {
   topProperties: Array<{ id: string; address: string; count: number }>;
 }
 
-interface ClevelandHeatGridProps {
+interface CityHeatGridProps {
+  zips: ZipEntry[];
   zipStats: Record<string, ZipStats>;
   properties: Array<{ id: string; address: string; zip_code: string }>;
 }
 
-const CLEVELAND_ZIPS: ZipData[] = [
-  { zip: '44102', name: 'Detroit Shoreway', row: 1, col: 2 },
-  { zip: '44107', name: 'Lakewood', row: 1, col: 1 },
-  { zip: '44113', name: 'Ohio City/Tremont', row: 2, col: 2 },
-  { zip: '44109', name: 'Brooklyn Centre', row: 3, col: 2 },
-  { zip: '44111', name: 'West Park', row: 2, col: 1 },
-  { zip: '44135', name: 'Brookpark/Airport', row: 3, col: 1 },
-  { zip: '44114', name: 'Downtown', row: 1, col: 3 },
-  { zip: '44115', name: 'Central', row: 2, col: 3 },
-  { zip: '44103', name: 'East Side', row: 1, col: 4 },
-  { zip: '44104', name: 'Kinsman', row: 2, col: 4 },
-  { zip: '44106', name: 'University Circle', row: 1, col: 5 },
-  { zip: '44108', name: 'Hough/Glenville', row: 1, col: 6 },
-  { zip: '44110', name: 'Collinwood', row: 1, col: 7 },
-  { zip: '44112', name: 'East Cleveland', row: 2, col: 6 },
-  { zip: '44105', name: 'Slavic Village', row: 3, col: 4 },
-  { zip: '44120', name: 'Shaker Heights', row: 2, col: 5 },
-  { zip: '44128', name: 'North Randall', row: 3, col: 5 },
-  { zip: '44125', name: 'Garfield Heights', row: 4, col: 4 },
-  { zip: '44127', name: 'Newburgh Heights', row: 3, col: 3 },
-  { zip: '44134', name: 'Parma', row: 4, col: 2 },
-  { zip: '44129', name: 'Parma Heights', row: 4, col: 1 },
-  { zip: '44144', name: 'Brooklyn', row: 4, col: 3 },
-  { zip: '44119', name: 'Euclid', row: 2, col: 7 },
-  { zip: '44143', name: 'Richmond Heights', row: 3, col: 7 },
-  { zip: '44121', name: 'South Euclid', row: 3, col: 6 },
+// === CITY CONFIGURATIONS ===
+
+const CLEVELAND_ZIPS: ZipEntry[] = [
+  { zip: '44107', name: 'Lakewood' },
+  { zip: '44102', name: 'Detroit Shoreway' },
+  { zip: '44114', name: 'Downtown' },
+  { zip: '44103', name: 'East Side' },
+  { zip: '44106', name: 'University Circle' },
+  { zip: '44108', name: 'Hough/Glenville' },
+  { zip: '44110', name: 'Collinwood' },
+  { zip: '44111', name: 'West Park' },
+  { zip: '44113', name: 'Ohio City/Tremont' },
+  { zip: '44115', name: 'Central' },
+  { zip: '44104', name: 'Kinsman' },
+  { zip: '44120', name: 'Shaker Heights' },
+  { zip: '44112', name: 'East Cleveland' },
+  { zip: '44119', name: 'Euclid' },
+  { zip: '44135', name: 'Brookpark/Airport' },
+  { zip: '44109', name: 'Brooklyn Centre' },
+  { zip: '44127', name: 'Newburgh Heights' },
+  { zip: '44105', name: 'Slavic Village' },
+  { zip: '44128', name: 'North Randall' },
+  { zip: '44121', name: 'South Euclid' },
+  { zip: '44143', name: 'Richmond Heights' },
+  { zip: '44129', name: 'Parma Heights' },
+  { zip: '44134', name: 'Parma' },
+  { zip: '44144', name: 'Brooklyn' },
+  { zip: '44125', name: 'Garfield Heights' },
 ];
+
+const MILWAUKEE_ZIPS: ZipEntry[] = [
+  { zip: '53202', name: 'East Town/Yankee Hill' },
+  { zip: '53203', name: 'Westown/Marquette' },
+  { zip: '53204', name: "Walker's Point" },
+  { zip: '53205', name: 'Halyard Park' },
+  { zip: '53206', name: "Brewers Hill/Harambee" },
+  { zip: '53207', name: 'Bay View' },
+  { zip: '53208', name: 'Washington Heights' },
+  { zip: '53209', name: 'Old North Milwaukee' },
+  { zip: '53210', name: 'Washington Park' },
+  { zip: '53211', name: 'Shorewood/Murray Hill' },
+  { zip: '53212', name: "Riverwest" },
+  { zip: '53213', name: 'Wauwatosa East' },
+  { zip: '53214', name: 'West Allis' },
+  { zip: '53215', name: 'Lincoln Creek' },
+  { zip: '53216', name: 'Capitol Heights' },
+  { zip: '53217', name: 'Whitefish Bay' },
+  { zip: '53218', name: 'Thurston Woods' },
+  { zip: '53219', name: 'West Milwaukee' },
+  { zip: '53220', name: 'Southgate' },
+  { zip: '53221', name: 'St. Francis/Tippecanoe' },
+  { zip: '53222', name: 'Menomonee River Hills' },
+  { zip: '53223', name: 'Brown Deer' },
+  { zip: '53224', name: 'Granville' },
+  { zip: '53225', name: 'Timmerman' },
+  { zip: '53226', name: 'Wauwatosa West' },
+  { zip: '53227', name: 'West Allis South' },
+  { zip: '53228', name: 'New Berlin' },
+  { zip: '53233', name: 'Near West Side' },
+  { zip: '53235', name: 'St. Francis' },
+];
+
+export const CITY_CONFIGS = {
+  cleveland: { label: 'Cleveland, OH', zips: CLEVELAND_ZIPS },
+  milwaukee: { label: 'Milwaukee, WI', zips: MILWAUKEE_ZIPS },
+} as const;
+
+export type CityKey = keyof typeof CITY_CONFIGS;
+
+// === HEAT LEVEL HELPERS ===
 
 const getHeatLevel = (count: number): { bg: string; text: string; label: string; showFire: boolean } => {
   if (count === 0) return { bg: 'bg-muted', text: 'text-muted-foreground', label: 'No data', showFire: false };
@@ -67,8 +109,10 @@ const getHeatLevel = (count: number): { bg: string; text: string; label: string;
   return { bg: 'bg-primary/80', text: 'text-white', label: 'Hot', showFire: true };
 };
 
-export const ClevelandHeatGrid: React.FC<ClevelandHeatGridProps> = ({ zipStats, properties }) => {
-  const [selectedZip, setSelectedZip] = useState<ZipData | null>(null);
+// === MAIN COMPONENT (generic) ===
+
+export const CityHeatGrid: React.FC<CityHeatGridProps> = ({ zips, zipStats, properties }) => {
+  const [selectedZip, setSelectedZip] = useState<ZipEntry | null>(null);
 
   const getStatsForZip = (zip: string): ZipStats => {
     return zipStats[zip] || {
@@ -80,26 +124,15 @@ export const ClevelandHeatGrid: React.FC<ClevelandHeatGridProps> = ({ zipStats, 
     };
   };
 
-  const propertiesInZip = (zip: string) => {
-    return properties.filter(p => p.zip_code === zip);
-  };
+  const propertiesInZip = (zip: string) => properties.filter(p => p.zip_code === zip);
 
-  // Group by rows for grid layout
-  const maxRow = Math.max(...CLEVELAND_ZIPS.map(z => z.row));
-  const maxCol = Math.max(...CLEVELAND_ZIPS.map(z => z.col));
+  // Auto-calculate grid columns (max 7 per row)
+  const cols = Math.min(zips.length, 7);
 
   return (
     <>
-      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${maxCol}, minmax(0, 1fr))` }}>
-        {Array.from({ length: maxRow * maxCol }, (_, index) => {
-          const row = Math.floor(index / maxCol) + 1;
-          const col = (index % maxCol) + 1;
-          const zipData = CLEVELAND_ZIPS.find(z => z.row === row && z.col === col);
-
-          if (!zipData) {
-            return <div key={index} className="aspect-square" />;
-          }
-
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+        {zips.map(zipData => {
           const stats = getStatsForZip(zipData.zip);
           const heat = getHeatLevel(stats.leadCount);
 
@@ -148,7 +181,7 @@ export const ClevelandHeatGrid: React.FC<ClevelandHeatGridProps> = ({ zipStats, 
                 {(() => {
                   const stats = getStatsForZip(selectedZip.zip);
                   const propsInZip = propertiesInZip(selectedZip.zip);
-                  
+
                   return (
                     <>
                       <div className="grid grid-cols-2 gap-4">
@@ -204,7 +237,7 @@ export const ClevelandHeatGrid: React.FC<ClevelandHeatGridProps> = ({ zipStats, 
                         </div>
                       ) : (
                         <div className="text-sm text-amber-600 dark:text-amber-400">
-                          ⚠️ No properties listed in this zip — potential opportunity!
+                          No properties listed in this zip — potential opportunity!
                         </div>
                       )}
                     </>
@@ -218,3 +251,6 @@ export const ClevelandHeatGrid: React.FC<ClevelandHeatGridProps> = ({ zipStats, 
     </>
   );
 };
+
+// Backwards-compatible alias
+export const ClevelandHeatGrid = CityHeatGrid;

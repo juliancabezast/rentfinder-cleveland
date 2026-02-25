@@ -48,7 +48,7 @@ const mainNavItems: NavItem[] = [
 const leasingNavItems: NavItem[] = [
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
-  { title: 'Competitor Radar', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
+  { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
   { title: 'Knowledge Hub', href: '/knowledge', icon: Brain, permission: 'canAccessInsightGenerator' },
 ];
 

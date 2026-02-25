@@ -499,7 +499,7 @@ const LeadsList: React.FC = () => {
         .from("leads")
         .select("lead_score")
         .eq("organization_id", userRecord.organization_id)
-        .not("status", "in", '("lost","converted")');
+        .not("status", "in", "(lost,converted)");
 
       const scoresBefore = (beforeData || []).map((l) => l.lead_score || 0);
       const avgBefore = scoresBefore.length > 0
@@ -519,7 +519,7 @@ const LeadsList: React.FC = () => {
         .from("leads")
         .select("lead_score")
         .eq("organization_id", userRecord.organization_id)
-        .not("status", "in", '("lost","converted")');
+        .not("status", "in", "(lost,converted)");
 
       const scoresAfter = (afterData || []).map((l) => l.lead_score || 0);
       const avgAfter = scoresAfter.length > 0

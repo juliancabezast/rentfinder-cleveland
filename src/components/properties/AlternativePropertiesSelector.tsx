@@ -33,6 +33,7 @@ interface AlternativePropertiesSelectorProps {
   availableProperties: Property[];
   excludePropertyId?: string;
   isLoading?: boolean;
+  compact?: boolean;
 }
 
 export const AlternativePropertiesSelector: React.FC<AlternativePropertiesSelectorProps> = ({
@@ -41,6 +42,7 @@ export const AlternativePropertiesSelector: React.FC<AlternativePropertiesSelect
   availableProperties,
   excludePropertyId,
   isLoading = false,
+  compact = false,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -74,24 +76,43 @@ export const AlternativePropertiesSelector: React.FC<AlternativePropertiesSelect
     return `${address} - ${property.bedrooms}bd - $${property.rent_price.toLocaleString()}/mo`;
   };
 
+  const buttonLabel = () => {
+    if (selectedIds.length === 0) {
+      return compact ? 'Select redirects...' : 'Select alternative properties...';
+    }
+    if (compact && selectedProperties.length > 0) {
+      const first = selectedProperties[0];
+      const name = first.unit_number
+        ? `${first.address} #${first.unit_number}`
+        : first.address;
+      if (selectedProperties.length === 1) return name;
+      return `${name} +${selectedProperties.length - 1}`;
+    }
+    return selectedIds.length === 1
+      ? '1 property selected'
+      : `${selectedIds.length} properties selected`;
+  };
+
   return (
-    <div className="space-y-2">
+    <div className={compact ? "" : "space-y-2"}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between"
+            className={cn(
+              "w-full justify-between",
+              compact && "h-8 text-xs",
+              compact && selectedIds.length > 0 && "border-[#370d4b]/30"
+            )}
             disabled={isLoading}
           >
-            {selectedIds.length === 0
-              ? 'Select alternative properties...'
-              : `${selectedIds.length} property(ies) selected`}
+            <span className="truncate">{buttonLabel()}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
+        <PopoverContent className="min-w-[350px] p-0" align="start">
           <Command>
             <CommandInput placeholder="Search properties..." />
             <CommandList>
@@ -137,8 +158,8 @@ export const AlternativePropertiesSelector: React.FC<AlternativePropertiesSelect
         </PopoverContent>
       </Popover>
 
-      {/* Selected Properties */}
-      {selectedProperties.length > 0 && (
+      {/* Selected Properties — hidden in compact mode */}
+      {!compact && selectedProperties.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {selectedProperties.map((property) => (
             <Badge

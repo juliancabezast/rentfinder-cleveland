@@ -2,10 +2,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { MapPin, Flame, TrendingUp, AlertTriangle, DollarSign, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { ClevelandHeatGrid } from '@/components/analytics/ClevelandHeatGrid';
+import { CityHeatGrid, CITY_CONFIGS, type CityKey } from '@/components/analytics/ClevelandHeatGrid';
 import { subDays, format, startOfDay, endOfDay } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 
@@ -40,10 +47,13 @@ export const LeadHeatMap: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedCity, setSelectedCity] = useState<CityKey>('cleveland');
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 90),
     to: new Date(),
   });
+
+  const cityConfig = CITY_CONFIGS[selectedCity];
 
   useEffect(() => {
     fetchData();
@@ -84,9 +94,7 @@ export const LeadHeatMap: React.FC = () => {
   // Build property zip lookup
   const propertyZipMap = useMemo(() => {
     const map: Record<string, string> = {};
-    properties.forEach(p => {
-      map[p.id] = p.zip_code;
-    });
+    properties.forEach(p => { map[p.id] = p.zip_code; });
     return map;
   }, [properties]);
 
@@ -98,13 +106,9 @@ export const LeadHeatMap: React.FC = () => {
 
     leads.forEach(lead => {
       const zips = new Set<string>();
-
-      // Add interested zips
       if (lead.interested_zip_codes) {
         lead.interested_zip_codes.forEach(z => zips.add(z));
       }
-
-      // Add property zip
       if (lead.interested_property_id && propertyZipMap[lead.interested_property_id]) {
         zips.add(propertyZipMap[lead.interested_property_id]);
       }
@@ -112,8 +116,6 @@ export const LeadHeatMap: React.FC = () => {
       zips.forEach(zip => {
         if (!zipLeadMap[zip]) zipLeadMap[zip] = [];
         zipLeadMap[zip].push(lead);
-
-        // Track property interest
         if (lead.interested_property_id) {
           if (!zipPropertyCount[zip]) zipPropertyCount[zip] = {};
           const propId = lead.interested_property_id;
@@ -126,14 +128,12 @@ export const LeadHeatMap: React.FC = () => {
       const budgets = zipLeads
         .filter(l => l.budget_min || l.budget_max)
         .map(l => ((l.budget_min || 0) + (l.budget_max || l.budget_min || 0)) / 2);
-
       const avgBudget = budgets.length > 0 ? Math.round(budgets.reduce((a, b) => a + b, 0) / budgets.length) : 0;
       const voucherCount = zipLeads.filter(l => l.has_voucher).length;
       const voucherPercent = Math.round((voucherCount / zipLeads.length) * 100);
       const convertedCount = zipLeads.filter(l => l.status === 'converted').length;
       const conversionRate = Math.round((convertedCount / zipLeads.length) * 100);
 
-      // Top properties
       const propCounts = zipPropertyCount[zip] || {};
       const topProperties = Object.entries(propCounts)
         .map(([id, count]) => {
@@ -143,45 +143,39 @@ export const LeadHeatMap: React.FC = () => {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
-      stats[zip] = {
-        leadCount: zipLeads.length,
-        avgBudget,
-        voucherPercent,
-        conversionRate,
-        topProperties,
-      };
+      stats[zip] = { leadCount: zipLeads.length, avgBudget, voucherPercent, conversionRate, topProperties };
     });
 
     return stats;
   }, [leads, propertyZipMap, properties]);
 
-  // Calculate insights
+  // Insights filtered to selected city's zips
   const insights = useMemo(() => {
-    const sortedByCount = Object.entries(zipStats).sort((a, b) => b[1].leadCount - a[1].leadCount);
-    const hottest = sortedByCount.slice(0, 5);
+    const cityZipSet = new Set(cityConfig.zips.map(z => z.zip));
 
-    // Find zips with leads but no properties
+    const cityStats = Object.entries(zipStats).filter(([zip]) => cityZipSet.has(zip));
+    const sortedByCount = cityStats.sort((a, b) => b[1].leadCount - a[1].leadCount);
+    const hottest = sortedByCount.filter(([_, s]) => s.leadCount > 0).slice(0, 5);
+
     const availablePropertyZips = new Set(
       properties.filter(p => p.status === 'available').map(p => p.zip_code)
     );
     const underserved = sortedByCount
-      .filter(([zip]) => !availablePropertyZips.has(zip) && zipStats[zip].leadCount > 0)
+      .filter(([zip, s]) => !availablePropertyZips.has(zip) && s.leadCount > 0)
       .slice(0, 5);
 
-    // Best converting
-    const sortedByConversion = Object.entries(zipStats)
-      .filter(([_, s]) => s.leadCount >= 3) // Need at least 3 leads for meaningful rate
+    const bestConverting = cityStats
+      .filter(([_, s]) => s.leadCount >= 3)
       .sort((a, b) => b[1].conversionRate - a[1].conversionRate)
       .slice(0, 5);
 
-    // Highest voucher amounts
-    const sortedByVoucher = Object.entries(zipStats)
+    const highestVoucher = cityStats
       .filter(([_, s]) => s.avgBudget > 0)
       .sort((a, b) => b[1].avgBudget - a[1].avgBudget)
       .slice(0, 5);
 
-    return { hottest, underserved, bestConverting: sortedByConversion, highestVoucher: sortedByVoucher };
-  }, [zipStats, properties]);
+    return { hottest, underserved, bestConverting, highestVoucher };
+  }, [zipStats, properties, cityConfig]);
 
   if (loading) {
     return (
@@ -201,13 +195,27 @@ export const LeadHeatMap: React.FC = () => {
             Lead Demand Heat Map
           </h1>
           <p className="text-muted-foreground">
-            See where prospects are searching across Cleveland
+            See where prospects are searching across {cityConfig.label}
           </p>
         </div>
-        <DateRangePicker
-          date={dateRange}
-          onDateChange={(range) => range && setDateRange(range)}
-        />
+        <div className="flex items-center gap-2">
+          <Select value={selectedCity} onValueChange={(v) => setSelectedCity(v as CityKey)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(CITY_CONFIGS).map(([key, cfg]) => (
+                <SelectItem key={key} value={key}>
+                  {cfg.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DateRangePicker
+            date={dateRange}
+            onDateChange={(range) => range && setDateRange(range)}
+          />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -215,11 +223,15 @@ export const LeadHeatMap: React.FC = () => {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Cleveland Area Zip Codes</CardTitle>
+              <CardTitle className="text-lg">{cityConfig.label} Zip Codes</CardTitle>
               <CardDescription>Click any zip code for detailed insights</CardDescription>
             </CardHeader>
             <CardContent>
-              <ClevelandHeatGrid zipStats={zipStats} properties={properties} />
+              <CityHeatGrid
+                zips={cityConfig.zips}
+                zipStats={zipStats}
+                properties={properties}
+              />
             </CardContent>
           </Card>
         </div>
@@ -238,11 +250,9 @@ export const LeadHeatMap: React.FC = () => {
               {insights.hottest.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No data yet</p>
               ) : (
-                insights.hottest.map(([zip, stats], i) => (
+                insights.hottest.map(([zip, stats]) => (
                   <div key={zip} className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Badge variant="outline" className="font-mono">{zip}</Badge>
-                    </span>
+                    <Badge variant="outline" className="font-mono">{zip}</Badge>
                     <span className="font-medium">{stats.leadCount} leads</span>
                   </div>
                 ))

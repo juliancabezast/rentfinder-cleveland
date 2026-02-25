@@ -47,7 +47,7 @@ const leasingNavItems: NavItem[] = [
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
-  { title: 'Competitor Radar', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
+  { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
 ];
 
 // ADMIN section
