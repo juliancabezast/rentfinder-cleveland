@@ -85,6 +85,18 @@ const INTEGRATION_KEYS: IntegrationKey[] = [
     description: 'API key for sending email notifications',
     testable: true,
   },
+  {
+    key: 'telegram_bot_token',
+    label: 'Telegram Bot Token',
+    description: 'Bot token from @BotFather for hourly activity reports',
+    testable: false,
+  },
+  {
+    key: 'telegram_chat_id',
+    label: 'Telegram Chat ID',
+    description: 'Chat or group ID where hourly reports are sent',
+    testable: false,
+  },
 ];
 
 // Map integration key names to service identifiers
@@ -101,6 +113,8 @@ const mapKeyToService = (key: string): string => {
     maxmind_license_key: "maxmind",
     doorloop_api_key: "doorloop",
     resend_api_key: "resend",
+    telegram_bot_token: "telegram",
+    telegram_chat_id: "telegram",
   };
   return map[key] || key;
 };
