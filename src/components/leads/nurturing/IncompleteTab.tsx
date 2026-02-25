@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserX, Check, X, Loader2, AlertTriangle } from "lucide-react";
+import { UserX, Check, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
+// Agent name mapping (same as LeadsList)
+const AGENT_NAMES: Record<string, string> = {
+  aaron: "Aaron", esther: "Esther", nehemiah: "Nehemiah", ruth: "Ruth",
+  elijah: "Elijah", samuel: "Samuel", zacchaeus: "Zacchaeus",
+  main_inbound: "Aaron", bland_call_webhook: "Aaron", sms_inbound: "Ruth",
+  hemlane_parser: "Esther", scoring: "Nehemiah", transcript_analyst: "Nehemiah",
+  task_dispatcher: "Nehemiah", recapture: "Elijah", showing_confirmation: "Samuel",
+  "twilio-inbound": "Aaron", "sms-inbound": "Ruth", "hemlane-parser": "Esther",
+  "notification-dispatcher": "Nehemiah", campaign: "Elijah", campaign_sms: "Ruth",
+  "welcome-sequence": "Elijah", "campaign-voice": "Elijah",
+};
+
 interface IncompleteLead {
   id: string;
   full_name: string | null;
@@ -27,6 +39,9 @@ interface IncompleteLead {
   lead_score: number | null;
   source: string | null;
   created_at: string;
+  nextAgent?: string | null;
+  nextAction?: string | null;
+  nextScheduled?: string | null;
 }
 
 interface IncompleteTabProps {
@@ -57,9 +72,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
       .select("id, full_name, phone, email, status, lead_score, source, created_at")
       .eq("organization_id", userRecord.organization_id)
       .neq("status", "lost")
-      .or(
-        "full_name.is.null,phone.is.null,email.is.null"
-      )
+      .or("full_name.is.null,phone.is.null,email.is.null")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -68,12 +81,38 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
       return;
     }
 
-    // Filter further: exclude leads that have all 3 fields (the OR filter catches any null)
     const incomplete = (data || []).filter(
       (l) => !l.full_name || !l.phone || !l.email
     );
 
-    setLeads(incomplete);
+    // Fetch next agent_task for each incomplete lead
+    if (incomplete.length > 0) {
+      const ids = incomplete.map((l) => l.id);
+      const { data: tasks } = await supabase
+        .from("agent_tasks")
+        .select("lead_id, agent_type, action_type, scheduled_for")
+        .in("lead_id", ids)
+        .in("status", ["pending", "in_progress"])
+        .order("scheduled_for", { ascending: true });
+
+      const taskMap: Record<string, { agent_type: string; action_type: string; scheduled_for: string }> = {};
+      if (tasks) {
+        for (const t of tasks) {
+          if (!taskMap[t.lead_id]) taskMap[t.lead_id] = t;
+        }
+      }
+
+      for (const lead of incomplete) {
+        const task = taskMap[lead.id];
+        if (task) {
+          lead.nextAgent = AGENT_NAMES[task.agent_type] || task.agent_type;
+          lead.nextAction = task.action_type;
+          lead.nextScheduled = task.scheduled_for;
+        }
+      }
+    }
+
+    setLeads(incomplete as IncompleteLead[]);
     onCountChange(incomplete.length);
     setLoading(false);
   };
@@ -97,7 +136,6 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
       updated_at: new Date().toISOString(),
     };
 
-    // Sync first/last name when updating full_name
     if (editing.field === "full_name") {
       const parts = editValue.trim().split(" ");
       updateData.first_name = parts[0] || null;
@@ -116,16 +154,9 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
       return;
     }
 
-    toast.success("Updated", { description: `${editing.field.replace("_", " ")} saved.` });
+    toast.success("Updated", { description: `${editing.field.replace(/_/g, " ")} saved.` });
 
-    // Update local state
-    setLeads((prev) =>
-      prev.map((l) =>
-        l.id === editing.leadId ? { ...l, [editing.field]: editValue.trim() } : l
-      )
-    );
-
-    // Remove from list if now complete
+    // Update local state and remove from list if now complete
     setLeads((prev) => {
       const updated = prev.map((l) =>
         l.id === editing.leadId ? { ...l, [editing.field]: editValue.trim() } : l
@@ -188,7 +219,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
           className="text-sm text-blue-600 hover:underline cursor-pointer flex items-center gap-1"
           onClick={() => startEdit(lead.id, field, value)}
         >
-          + Add {field.replace("_", " ")}
+          + Add {field.replace(/_/g, " ")}
         </button>
       );
     }
@@ -240,7 +271,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
               <TableHead>Phone</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Source</TableHead>
+              <TableHead>Next Action</TableHead>
               <TableHead>Created</TableHead>
             </TableRow>
           </TableHeader>
@@ -262,8 +293,20 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
                       {lead.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {lead.source || "—"}
+                  <TableCell>
+                    {lead.nextAgent ? (
+                      <div className="text-sm">
+                        <span className="font-medium text-[#370d4b]">{lead.nextAgent}</span>
+                        <span className="text-muted-foreground"> · {lead.nextAction}</span>
+                        {lead.nextScheduled && (
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(lead.nextScheduled), "MMM d, h:mm a")}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No action scheduled</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(lead.created_at), "MMM d")}
