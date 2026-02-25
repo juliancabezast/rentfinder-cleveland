@@ -600,6 +600,7 @@ serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         showing_id: showing.id,
+        lead_id: leadId,
         message: "Showing booked successfully.",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

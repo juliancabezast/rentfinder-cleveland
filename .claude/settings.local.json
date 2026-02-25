@@ -67,7 +67,10 @@
       "Bash(export SUPABASE_ACCESS_TOKEN=\"sbp_00a96b581a771c79435383f9e8b1c96b35626e34\" && npx supabase projects list 2>&1)",
       "Bash(SUPABASE_ACCESS_TOKEN=\"sbp_00a96b581a771c79435383f9e8b1c96b35626e34\" npx supabase:*)",
       "Bash(git status:*)",
-      "Bash(git add src/components/leads/CsvImportDialog.tsx src/pages/leads/LeadsList.tsx && git commit -m \"$\\(cat <<'EOF'\nfeat: enhanced CSV import with phone dedup, property assignment, audit log\n\n- Property selector in Step 1: assign all imports to a specific property\n- Phone dedup: normalizes to last 10 digits, checks against existing DB\n  leads AND within the batch to prevent duplicates\n- Sets stage='prospect' on all imported records\n- Creates system lead_note for each import: \"Imported via CSV upload by\n  [user] on [date]\" with property info\n- Updated result screen: shows duplicate count, missing phone count,\n  assigned property badge\n- Builds full_name from first_name + last_name if not provided\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push origin main 2>&1)"
+      "Bash(git add src/components/leads/CsvImportDialog.tsx src/pages/leads/LeadsList.tsx && git commit -m \"$\\(cat <<'EOF'\nfeat: enhanced CSV import with phone dedup, property assignment, audit log\n\n- Property selector in Step 1: assign all imports to a specific property\n- Phone dedup: normalizes to last 10 digits, checks against existing DB\n  leads AND within the batch to prevent duplicates\n- Sets stage='prospect' on all imported records\n- Creates system lead_note for each import: \"Imported via CSV upload by\n  [user] on [date]\" with property info\n- Updated result screen: shows duplicate count, missing phone count,\n  assigned property badge\n- Builds full_name from first_name + last_name if not provided\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push origin main 2>&1)",
+      "Bash(open:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_05357b6cf938526921753a46354cbe8fffd978d3 npx supabase:*)",
+      "WebFetch(domain:api.telegram.org)"
     ]
   }
 }

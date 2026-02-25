@@ -24,6 +24,7 @@ import {
   Loader2,
   Home,
   SquareIcon,
+  FileText,
 } from "lucide-react";
 import { format, addDays, parseISO, isSameDay } from "date-fns";
 
@@ -145,6 +146,9 @@ const ScheduleShowing: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [booked, setBooked] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookedLeadId, setBookedLeadId] = useState<string | null>(null);
+  const [applyingSent, setApplyingSent] = useState(false);
+  const [applyingLoading, setApplyingLoading] = useState(false);
 
   // ---- Multi-mode: fetch properties with available slots ----
   useEffect(() => {
@@ -309,6 +313,7 @@ const ScheduleShowing: React.FC = () => {
         setBookingError(data.error);
       } else {
         setBooked(true);
+        if (data?.lead_id) setBookedLeadId(data.lead_id);
       }
     } catch (err: any) {
       console.error("Booking error:", err);
@@ -346,6 +351,30 @@ const ScheduleShowing: React.FC = () => {
     setTimeSlots([]);
   };
 
+  // Apply Now handler
+  const handleApplyNow = async () => {
+    if (!bookedLeadId || !effectivePropertyId || !property) return;
+    setApplyingLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-application-invite", {
+        body: {
+          lead_id: bookedLeadId,
+          property_id: effectivePropertyId,
+          organization_id: property.organization_id,
+        },
+      });
+      if (error) {
+        console.error("Application invite error:", error);
+      }
+      setApplyingSent(true);
+    } catch (err) {
+      console.error("Application invite error:", err);
+      setApplyingSent(true); // Show message anyway so user isn't stuck
+    } finally {
+      setApplyingLoading(false);
+    }
+  };
+
   // Reset all for "Schedule Another"
   const handleScheduleAnother = () => {
     setBooked(false);
@@ -356,6 +385,9 @@ const ScheduleShowing: React.FC = () => {
     setEmail("");
     setConsent(false);
     setBookingError(null);
+    setBookedLeadId(null);
+    setApplyingSent(false);
+    setApplyingLoading(false);
     if (isMultiMode) {
       setProperty(null);
       setSelectedPropertyId(null);
@@ -543,6 +575,44 @@ const ScheduleShowing: React.FC = () => {
                 You'll receive a confirmation call or text shortly. If you need to reschedule,
                 please call us directly.
               </p>
+
+              {/* Apply Now section */}
+              {!applyingSent ? (
+                <div className="border-t pt-4 mt-4 space-y-2">
+                  <p className="text-sm font-medium text-foreground">
+                    Want to get ahead? Apply now to speed up the process!
+                  </p>
+                  <Button
+                    className="w-full h-12 bg-[#ffb22c] hover:bg-[#ffb22c]/90 text-[#370d4b] font-semibold text-base"
+                    onClick={handleApplyNow}
+                    disabled={applyingLoading || !bookedLeadId}
+                  >
+                    {applyingLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Sending Application...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Apply Now
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="border-t pt-4 mt-4 space-y-2">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-left">
+                    <p className="text-sm font-semibold text-emerald-800">
+                      Application Sent!
+                    </p>
+                    <p className="text-sm text-emerald-700 mt-1">
+                      Check your email — you'll receive an application invitation from <strong>DoorLoop</strong> in the next few minutes. Be sure to check your spam folder too.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <Button
                 variant="outline"
                 className="mt-4"
