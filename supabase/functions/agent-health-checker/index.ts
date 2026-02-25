@@ -125,18 +125,11 @@ serve(async (req: Request) => {
               message = "API key not set";
               break;
             }
-            const resp = await fetch("https://api.resend.com/emails", {
-              method: "POST",
+            // Use GET /domains to verify API key without sending an actual email
+            const resp = await fetch("https://api.resend.com/domains", {
               headers: {
                 Authorization: `Bearer ${apiKey}`,
-                "Content-Type": "application/json",
               },
-              body: JSON.stringify({
-                from: "Rent Finder Cleveland <support@rentfindercleveland.com>",
-                to: ["delivered@resend.dev"],
-                subject: "Health Check",
-                html: "<p>OK</p>",
-              }),
             });
             status = resp.ok ? "connected" : "error";
             message = resp.ok ? "OK" : `HTTP ${resp.status}`;
