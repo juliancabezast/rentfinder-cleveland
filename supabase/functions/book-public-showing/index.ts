@@ -240,10 +240,13 @@ serve(async (req: Request) => {
       if (!leadEmail && existingLead.email) {
         leadEmail = existingLead.email;
       }
-      // Update email if they provided a new one and lead didn't have one
-      if (email && !existingLead.email) {
-        await supabase.from("leads").update({ email }).eq("id", leadId);
-      }
+      // Update lead with property + email if needed
+      const leadUpdate: Record<string, any> = {
+        interested_property_id: property_id,
+        updated_at: new Date().toISOString(),
+      };
+      if (email && !existingLead.email) leadUpdate.email = email;
+      await supabase.from("leads").update(leadUpdate).eq("id", leadId);
     } else {
       const { data: newLead, error: leadErr } = await supabase
         .from("leads")
@@ -254,6 +257,7 @@ serve(async (req: Request) => {
           email: leadEmail,
           source: "website",
           status: "new",
+          interested_property_id: property_id,
           sms_consent: consent?.sms_consent ?? false,
           call_consent: consent?.call_consent ?? false,
         })
@@ -386,6 +390,7 @@ serve(async (req: Request) => {
         lead_score: newScore,
         is_priority: true,
         priority_reason: "Showing requested (+30 pts)",
+        interested_property_id: property_id,
         updated_at: new Date().toISOString(),
       })
       .eq("id", leadId);
@@ -460,6 +465,98 @@ serve(async (req: Request) => {
         // Don't fail the booking if email fails
         console.error("Confirmation email failed:", emailErr);
       }
+    }
+
+    // ── DoorLoop: Create prospect (if API key configured & not already synced) ──
+    try {
+      // Check if lead already has a DoorLoop prospect ID
+      const { data: leadForDl } = await supabase
+        .from("leads")
+        .select("doorloop_prospect_id")
+        .eq("id", leadId)
+        .single();
+
+      if (!leadForDl?.doorloop_prospect_id) {
+        // Get DoorLoop API key
+        const { data: creds } = await supabase
+          .from("organization_credentials")
+          .select("doorloop_api_key")
+          .eq("organization_id", organization_id)
+          .single();
+
+        if (creds?.doorloop_api_key) {
+          const dlHeaders = {
+            "Authorization": `Bearer ${creds.doorloop_api_key}`,
+            "Content-Type": "application/json",
+          };
+
+          // Search for existing prospect by phone to avoid duplicates
+          const searchResp = await fetch(
+            `https://app.doorloop.com/api/v1/prospects?filter_phone=${encodeURIComponent(formattedPhone)}&page_size=1`,
+            { headers: dlHeaders }
+          );
+
+          let doorloopProspectId: string | null = null;
+
+          if (searchResp.ok) {
+            const searchData = await searchResp.json();
+            if (searchData?.data?.length > 0) {
+              doorloopProspectId = String(searchData.data[0].id);
+              console.log("DoorLoop: Found existing prospect:", doorloopProspectId);
+            }
+          }
+
+          // Create new prospect if not found
+          if (!doorloopProspectId) {
+            const nameParts = full_name.trim().split(/\s+/);
+            const firstName = nameParts[0] || "";
+            const lastName = nameParts.slice(1).join(" ") || "";
+
+            const createResp = await fetch("https://app.doorloop.com/api/v1/prospects", {
+              method: "POST",
+              headers: dlHeaders,
+              body: JSON.stringify({
+                first_name: firstName,
+                last_name: lastName || firstName,
+                phone: formattedPhone,
+                email: leadEmail || undefined,
+              }),
+            });
+
+            if (createResp.ok) {
+              const createData = await createResp.json();
+              doorloopProspectId = String(createData.id);
+              console.log("DoorLoop: Created prospect:", doorloopProspectId);
+            } else {
+              const errText = await createResp.text();
+              console.error("DoorLoop prospect creation failed:", createResp.status, errText);
+            }
+          }
+
+          // Store the DoorLoop prospect ID on the lead
+          if (doorloopProspectId) {
+            await supabase
+              .from("leads")
+              .update({ doorloop_prospect_id: doorloopProspectId })
+              .eq("id", leadId);
+
+            // Log the sync
+            await supabase.from("doorloop_sync_log").insert({
+              organization_id,
+              entity_type: "prospect",
+              sync_direction: "push",
+              local_id: leadId,
+              doorloop_id: doorloopProspectId,
+              status: "success",
+              action_taken: "Created/linked prospect from public showing booking",
+              details: { property_id, showing_id: showing.id },
+            });
+          }
+        }
+      }
+    } catch (dlErr) {
+      // Don't fail the booking if DoorLoop sync fails
+      console.error("DoorLoop sync error:", dlErr);
     }
 
     // ── System log ────────────────────────────────────────────────────
