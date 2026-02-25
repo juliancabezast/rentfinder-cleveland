@@ -8,6 +8,8 @@ import { ShowingCard, ShowingCardSkeleton } from "@/components/dashboard/Showing
 
 
 import { VoiceQualityWidget } from "@/components/dashboard/VoiceQualityWidget";
+import { TopPropertiesWidget } from "@/components/dashboard/TopPropertiesWidget";
+import { TopSourcesWidget } from "@/components/dashboard/TopSourcesWidget";
 import {
   DashboardCustomizer,
   DashboardPrefs,
@@ -64,6 +66,18 @@ interface PeriodStats {
   callMinutes: number;
 }
 
+interface PropertyInterest {
+  property_id: string;
+  address: string;
+  city: string;
+  lead_count: number;
+}
+
+interface SourceCount {
+  source: string;
+  count: number;
+}
+
 interface PriorityLead {
   id: string;
   full_name: string | null;
@@ -95,6 +109,9 @@ export const AdminDashboard = () => {
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('total');
   const [priorityLeads, setPriorityLeads] = useState<PriorityLead[]>([]);
   const [upcomingShowings, setUpcomingShowings] = useState<TodayShowing[]>([]);
+  const [topProperties, setTopProperties] = useState<PropertyInterest[]>([]);
+  const [topSources, setTopSources] = useState<SourceCount[]>([]);
+  const [totalLeadsForSources, setTotalLeadsForSources] = useState(0);
 
   // Dashboard customization state
   const [showCustomizer, setShowCustomizer] = useState(false);
@@ -151,6 +168,8 @@ export const AdminDashboard = () => {
           leadsThisWeekResult,
           leadsLastWeekResult,
           pendingTasksResult,
+          leadsWithPropertyResult,
+          leadsSourceResult,
         ] = await Promise.all([
           supabase.rpc('get_dashboard_summary'),
           supabase
@@ -180,23 +199,32 @@ export const AdminDashboard = () => {
             .from("properties")
             .select("address, city, zip_code")
             .eq("organization_id", userRecord.organization_id),
-          // Leads today
+          // Leads today (only complete)
           supabase
             .from("leads")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", userRecord.organization_id)
+            .not("full_name", "is", null)
+            .not("phone", "is", null)
+            .not("email", "is", null)
             .gte("created_at", todayStart),
-          // Leads this week
+          // Leads this week (only complete)
           supabase
             .from("leads")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", userRecord.organization_id)
+            .not("full_name", "is", null)
+            .not("phone", "is", null)
+            .not("email", "is", null)
             .gte("created_at", thisWeekStart.toISOString()),
-          // Leads last week
+          // Leads last week (only complete)
           supabase
             .from("leads")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", userRecord.organization_id)
+            .not("full_name", "is", null)
+            .not("phone", "is", null)
+            .not("email", "is", null)
             .gte("created_at", lastWeekStart.toISOString())
             .lt("created_at", thisWeekStart.toISOString()),
           // Pending agent tasks
@@ -205,6 +233,18 @@ export const AdminDashboard = () => {
             .select("id", { count: "exact", head: true })
             .eq("organization_id", userRecord.organization_id)
             .in("status", ["pending", "in_progress"]),
+          // Leads with property interest (for top properties widget)
+          supabase
+            .from("leads")
+            .select("interested_property_id, properties(id, address, city)")
+            .eq("organization_id", userRecord.organization_id)
+            .not("interested_property_id", "is", null)
+            .not("status", "eq", "lost"),
+          // Lead sources (for top sources widget)
+          supabase
+            .from("leads")
+            .select("source")
+            .eq("organization_id", userRecord.organization_id),
         ]);
 
         if (summaryResult.error) console.error("Dashboard summary RPC error:", summaryResult.error);
@@ -267,6 +307,36 @@ export const AdminDashboard = () => {
           }))
         );
 
+        // Process top properties by interest
+        const propCounts: Record<string, { address: string; city: string; count: number }> = {};
+        (leadsWithPropertyResult.data || []).forEach((l: any) => {
+          const pid = l.interested_property_id;
+          if (!pid || !l.properties) return;
+          if (!propCounts[pid]) {
+            propCounts[pid] = { address: l.properties.address, city: l.properties.city, count: 0 };
+          }
+          propCounts[pid].count++;
+        });
+        const sortedProps = Object.entries(propCounts)
+          .map(([id, data]) => ({ property_id: id, ...data, lead_count: data.count }))
+          .sort((a, b) => b.lead_count - a.lead_count)
+          .slice(0, 3);
+        setTopProperties(sortedProps);
+
+        // Process top lead sources
+        const sourceCounts: Record<string, number> = {};
+        const sourceRows = leadsSourceResult.data || [];
+        sourceRows.forEach((l: any) => {
+          const src = l.source || "unknown";
+          sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+        });
+        const sortedSources = Object.entries(sourceCounts)
+          .map(([source, count]) => ({ source, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 3);
+        setTopSources(sortedSources);
+        setTotalLeadsForSources(sourceRows.length);
+
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         toast.error("Failed to load dashboard data");
@@ -291,17 +361,23 @@ export const AdminDashboard = () => {
         else if (statsPeriod === 'week') periodStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString();
         else if (statsPeriod === 'month') periodStart = startOfMonth(now).toISOString();
 
-        // Row 1: leads + hot leads (filtered by period)
+        // Row 1: leads + hot leads (filtered by period, only complete leads)
         let leadsQuery = supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
-          .eq("organization_id", userRecord.organization_id);
+          .eq("organization_id", userRecord.organization_id)
+          .not("full_name", "is", null)
+          .not("phone", "is", null)
+          .not("email", "is", null);
         if (periodStart) leadsQuery = leadsQuery.gte("created_at", periodStart);
 
         let hotQuery = supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", userRecord.organization_id)
+          .not("full_name", "is", null)
+          .not("phone", "is", null)
+          .not("email", "is", null)
           .gte("lead_score", 80)
           .not("status", "in", '("lost","converted")');
         if (periodStart) hotQuery = hotQuery.gte("created_at", periodStart);
@@ -523,6 +599,16 @@ export const AdminDashboard = () => {
                   impact={periodStats?.callsMade && periodStats.callsMade > 10 ? "high" : periodStats?.callsMade && periodStats.callsMade > 0 ? "medium" : undefined}
                   loading={loading || periodLoading}
                 />
+              </div>
+            </div>
+
+            {/* Row 3: Top Properties + Top Sources (each spans 2 cols) */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+              <div className="animate-fade-up stagger-5">
+                <TopPropertiesWidget data={topProperties} loading={loading} />
+              </div>
+              <div className="animate-fade-up stagger-6">
+                <TopSourcesWidget data={topSources} total={totalLeadsForSources} loading={loading} />
               </div>
             </div>
           </div>
