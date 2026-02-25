@@ -43,6 +43,11 @@ import {
   Upload,
   Sparkles,
   Building2,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -203,6 +208,13 @@ const LeadsList: React.FC = () => {
   // Dialogs
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+  const [recalcResult, setRecalcResult] = useState<{
+    checked: number;
+    updated: number;
+    avgBefore: number;
+    avgAfter: number;
+  } | null>(null);
 
   // IDs of leads with active showings (for filter)
   const [leadsWithShowings, setLeadsWithShowings] = useState<Set<string>>(new Set());
@@ -476,6 +488,56 @@ const LeadsList: React.FC = () => {
     }
   };
 
+  const handleRecalculateScores = async () => {
+    if (!userRecord?.organization_id) return;
+    setRecalculating(true);
+    setRecalcResult(null);
+
+    try {
+      // Get avg score BEFORE
+      const { data: beforeData } = await supabase
+        .from("leads")
+        .select("lead_score")
+        .eq("organization_id", userRecord.organization_id)
+        .not("status", "in", '("lost","converted")');
+
+      const scoresBefore = (beforeData || []).map((l) => l.lead_score || 0);
+      const avgBefore = scoresBefore.length > 0
+        ? Math.round(scoresBefore.reduce((a, b) => a + b, 0) / scoresBefore.length)
+        : 0;
+
+      // Run recalculation
+      const { data, error } = await supabase.rpc("recalculate_lead_scores");
+      if (error) throw error;
+
+      const result = Array.isArray(data) ? data[0] : data;
+      const checked = result?.leads_checked || 0;
+      const updated = result?.leads_updated || 0;
+
+      // Get avg score AFTER
+      const { data: afterData } = await supabase
+        .from("leads")
+        .select("lead_score")
+        .eq("organization_id", userRecord.organization_id)
+        .not("status", "in", '("lost","converted")');
+
+      const scoresAfter = (afterData || []).map((l) => l.lead_score || 0);
+      const avgAfter = scoresAfter.length > 0
+        ? Math.round(scoresAfter.reduce((a, b) => a + b, 0) / scoresAfter.length)
+        : 0;
+
+      setRecalcResult({ checked, updated, avgBefore, avgAfter });
+
+      // Refresh the leads list
+      fetchLeads();
+    } catch (err) {
+      console.error("Recalculate error:", err);
+      toast.error("Failed to recalculate scores.");
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
   const SortableHeader: React.FC<{ field: SortField; children: React.ReactNode }> = ({
     field,
     children,
@@ -616,19 +678,84 @@ const LeadsList: React.FC = () => {
             onToggleFilter={handleToggleFilter}
             loading={loading}
           />
-          {permissions.canEditLeadInfo && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/leads/nurturing")}
-              className="shrink-0"
-            >
-              <Sparkles className="h-4 w-4 mr-1.5" />
-              Clean Data
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {permissions.canEditLeadInfo && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRecalculateScores}
+                disabled={recalculating}
+                className="shrink-0"
+              >
+                {recalculating ? (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-1.5" />
+                )}
+                <span className="hidden sm:inline">{recalculating ? "Recalculating..." : "Recalculate Scores"}</span>
+              </Button>
+            )}
+            {permissions.canEditLeadInfo && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/leads/nurturing")}
+                className="shrink-0"
+              >
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                Clean Data
+              </Button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Score Recalculation Result Banner */}
+      {recalcResult && (
+        <div className="rounded-xl border bg-white/80 backdrop-blur p-4 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              <RefreshCw className="h-4 w-4 text-[#370d4b]" />
+              <span className="font-medium">{recalcResult.updated}</span>
+              <span className="text-muted-foreground">of {recalcResult.checked} updated</span>
+            </div>
+            <div className="h-4 w-px bg-border" />
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-muted-foreground">Avg score:</span>
+              <span className="font-mono text-muted-foreground">{recalcResult.avgBefore}</span>
+              <span className="text-muted-foreground">&rarr;</span>
+              <span className="font-mono font-bold">{recalcResult.avgAfter}</span>
+              {recalcResult.avgAfter !== recalcResult.avgBefore && (
+                <span className={`flex items-center gap-0.5 text-xs font-semibold ${
+                  recalcResult.avgAfter > recalcResult.avgBefore ? "text-green-600" : "text-red-600"
+                }`}>
+                  {recalcResult.avgAfter > recalcResult.avgBefore ? (
+                    <TrendingUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <TrendingDown className="h-3.5 w-3.5" />
+                  )}
+                  {recalcResult.avgAfter > recalcResult.avgBefore ? "+" : ""}
+                  {recalcResult.avgAfter - recalcResult.avgBefore}
+                </span>
+              )}
+              {recalcResult.avgAfter === recalcResult.avgBefore && (
+                <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                  <Minus className="h-3.5 w-3.5" />
+                  No change
+                </span>
+              )}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0 shrink-0"
+            onClick={() => setRecalcResult(null)}
+          >
+            &times;
+          </Button>
+        </div>
+      )}
 
       {/* Table */}
       <Card variant="glass">

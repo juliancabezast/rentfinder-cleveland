@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Building2, Filter, Globe } from "lucide-react";
+import { Plus, Search, Building2, Filter, Globe, LayoutGrid, TableProperties } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +28,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertyForm } from "@/components/properties/PropertyForm";
 import { ZillowImportDialog } from "@/components/properties/ZillowImportDialog";
+import { PropertiesTable } from "@/components/properties/PropertiesTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -54,6 +55,7 @@ const PropertiesList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [formOpen, setFormOpen] = useState(false);
   const [zillowOpen, setZillowOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
@@ -157,22 +159,44 @@ const PropertiesList: React.FC = () => {
             Manage your property listings ({filteredProperties.length} total)
           </p>
         </div>
-        {permissions.canCreateProperty && (
-          <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <div className="flex border rounded-lg overflow-hidden">
             <Button
-              variant="outline"
-              onClick={() => setZillowOpen(true)}
-              className="min-h-[44px] border-[#370d4b]/30 text-[#370d4b] hover:bg-[#370d4b]/5"
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="icon"
+              className={`h-9 w-9 rounded-none ${viewMode === "grid" ? "bg-[#370d4b] text-white" : ""}`}
+              onClick={() => setViewMode("grid")}
+              title="Grid view"
             >
-              <Globe className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Import Zillow</span>
+              <LayoutGrid className="h-4 w-4" />
             </Button>
-            <Button onClick={() => setFormOpen(true)} className="min-h-[44px] bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
-              <Plus className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Add Property</span>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="icon"
+              className={`h-9 w-9 rounded-none ${viewMode === "table" ? "bg-[#370d4b] text-white" : ""}`}
+              onClick={() => setViewMode("table")}
+              title="Table view"
+            >
+              <TableProperties className="h-4 w-4" />
             </Button>
           </div>
-        )}
+          {permissions.canCreateProperty && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setZillowOpen(true)}
+                className="min-h-[44px] border-[#370d4b]/30 text-[#370d4b] hover:bg-[#370d4b]/5"
+              >
+                <Globe className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Import Zillow</span>
+              </Button>
+              <Button onClick={() => setFormOpen(true)} className="min-h-[44px] bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Add Property</span>
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -203,7 +227,7 @@ const PropertiesList: React.FC = () => {
           </div>
         </div>
 
-      {/* Properties Grid */}
+      {/* Properties Grid / Table */}
       {loading ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -232,6 +256,8 @@ const PropertiesList: React.FC = () => {
             />
           </CardContent>
         </Card>
+      ) : viewMode === "table" ? (
+        <PropertiesTable properties={filteredProperties} allProperties={properties} onRefresh={fetchProperties} />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProperties.map((property, index) => (

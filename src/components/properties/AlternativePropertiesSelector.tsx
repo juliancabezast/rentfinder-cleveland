@@ -50,8 +50,9 @@ export const AlternativePropertiesSelector: React.FC<AlternativePropertiesSelect
       ['available', 'coming_soon'].includes(p.status)
   );
 
-  const selectedProperties = filteredProperties.filter((p) =>
-    selectedIds.includes(p.id)
+  // Show badges for ALL selected properties (even if status changed to rented/in_leasing)
+  const selectedProperties = availableProperties.filter(
+    (p) => p.id !== excludePropertyId && selectedIds.includes(p.id)
   );
 
   const toggleProperty = (propertyId: string) => {
