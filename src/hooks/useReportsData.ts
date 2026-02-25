@@ -344,7 +344,7 @@ export function useReportsData(dateRange: DateRange | undefined) {
       });
 
       const propShowingCounts = new Map<string, number>();
-      allShowings.forEach(s => {
+      showings.forEach(s => {
         if (s.property_id) {
           propShowingCounts.set(s.property_id, (propShowingCounts.get(s.property_id) || 0) + 1);
         }
