@@ -104,89 +104,127 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Score each property ──────────────────────────────────────
+    // ── Score each property (weighted category system) ────────────
+    // Score = earned / possible × 100 — only active categories count
+    // so properties with different strengths get meaningfully different %
     const scored = properties
       .filter((p) => p.id !== excludePropertyId)
       .map((p) => {
-        let score = 40; // Base score
+        let earned = 0;
+        let possible = 0;
         const reasons: string[] = [];
 
-        // ── Bedrooms match ───────────────────────────────────
-        if (refBedrooms !== null) {
-          if (p.bedrooms === refBedrooms) {
-            score += 25;
-            reasons.push("Exact bedroom match");
-          } else if (Math.abs(p.bedrooms - refBedrooms) === 1) {
-            score += 10;
-            reasons.push("Close bedroom match");
-          }
-        }
-
-        // ── Bathrooms match ──────────────────────────────────
-        if (refBathrooms !== null) {
-          if (p.bathrooms === refBathrooms) {
-            score += 20;
-            reasons.push("Exact bathroom match");
-          } else if (Math.abs(p.bathrooms - refBathrooms) === 1) {
-            score += 10;
-            reasons.push("Close bathroom match");
-          }
-        }
-
-        // ── Rent / Budget match ──────────────────────────────
-        if (refRent) {
-          const ratio = p.rent_price / refRent;
-          if (ratio >= 0.8 && ratio <= 1.2) {
-            score += 15;
-            reasons.push("Similar price range");
-          } else if (ratio >= 0.5 && ratio <= 1.5) {
-            score += 5;
-            reasons.push("Within price range");
-          }
-
-          // Also check budget_min
-          if (lead.budget_min && p.rent_price >= lead.budget_min) {
-            score += 3;
-          }
-        }
-
-        // ── Zip code proximity (same zip ≈ within 1 mile) ───
-        if (refZip) {
+        // ── Location (30 pts max) ──────────────────────────────
+        // Same zip ≈ within 1 mile, nearby zips ≈ 2-5 miles
+        if (refZip && p.zip_code) {
+          possible += 30;
           if (p.zip_code === refZip) {
-            score += 20;
+            earned += 30;
             reasons.push("Same neighborhood");
-          } else if (refCity && p.city?.toLowerCase() === refCity.toLowerCase()) {
-            score += 5;
-            reasons.push("Same city");
+          } else {
+            // Compare zip prefixes for metro proximity
+            const samePrefix = refZip.slice(0, 3) === p.zip_code.slice(0, 3);
+            if (samePrefix) {
+              const refNum = parseInt(refZip.slice(-2), 10);
+              const pNum = parseInt(p.zip_code.slice(-2), 10);
+              const zipDist = Math.abs(refNum - pNum);
+              if (zipDist <= 5) {
+                earned += 20;
+                reasons.push("Nearby area");
+              } else if (zipDist <= 15) {
+                earned += 10;
+                reasons.push("Same area");
+              } else {
+                earned += 5;
+                reasons.push("Same metro");
+              }
+            }
+            // Different prefix → 0 pts (different metro entirely)
           }
         }
 
-        // ── Section 8 / Voucher match ────────────────────────
+        // ── Bedrooms (25 pts max) ──────────────────────────────
+        if (refBedrooms !== null && p.bedrooms !== null) {
+          possible += 25;
+          const diff = Math.abs(p.bedrooms - refBedrooms);
+          if (diff === 0) {
+            earned += 25;
+            reasons.push("Exact bedroom match");
+          } else if (diff === 1) {
+            earned += 12;
+            reasons.push("Close bedroom count");
+          }
+          // diff ≥ 2 → 0 pts
+        }
+
+        // ── Bathrooms (20 pts max) ─────────────────────────────
+        if (refBathrooms !== null && p.bathrooms !== null) {
+          possible += 20;
+          const diff = Math.abs(p.bathrooms - refBathrooms);
+          if (diff === 0) {
+            earned += 20;
+            reasons.push("Exact bathroom match");
+          } else if (diff === 1) {
+            earned += 10;
+            reasons.push("Close bathroom count");
+          }
+        }
+
+        // ── Price (15 pts max) ─────────────────────────────────
+        if (refRent && p.rent_price) {
+          possible += 15;
+          const ratio = p.rent_price / refRent;
+          if (ratio >= 0.9 && ratio <= 1.1) {
+            earned += 15;
+            reasons.push("Very similar price");
+          } else if (ratio >= 0.8 && ratio <= 1.2) {
+            earned += 10;
+            reasons.push("Similar price range");
+          } else if (ratio >= 0.6 && ratio <= 1.5) {
+            earned += 5;
+            reasons.push("Within budget range");
+          }
+        }
+
+        // ── Section 8 / Voucher (10 pts max) ───────────────────
         if (lead.has_voucher) {
+          possible += 10;
           if (p.section_8_accepted) {
-            score += 10;
+            earned += 10;
             reasons.push("Accepts Section 8");
           } else {
-            score -= 30;
-            reasons.push("Does not accept Section 8");
+            earned -= 15; // Hard penalty — deal-breaker for voucher holders
+            reasons.push("No Section 8");
           }
 
-          if (lead.voucher_amount && p.rent_price <= lead.voucher_amount) {
-            score += 10;
-            reasons.push("Voucher covers rent");
+          if (lead.voucher_amount && p.rent_price) {
+            possible += 5;
+            if (p.rent_price <= lead.voucher_amount) {
+              earned += 5;
+              reasons.push("Voucher covers rent");
+            }
           }
         }
 
-        // ── Availability bonus ───────────────────────────────
+        // ── Availability (5 pts — always counted) ──────────────
+        possible += 5;
         if (p.status === "available") {
-          score += 5;
+          earned += 5;
           reasons.push("Available now");
         }
+
+        // ── Final score ────────────────────────────────────────
+        // Min denominator of 30 so leads with no prefs get honest low scores
+        const effectivePossible = Math.max(possible, 30);
+        const rawScore = Math.round(
+          (Math.max(earned, 0) / effectivePossible) * 100
+        );
+        const matchScore = Math.max(0, Math.min(99, rawScore)); // cap at 99 — no "perfect" match
 
         return {
           ...p,
           property_id: p.id, // SmartMatches.tsx expects property_id
-          match_score: Math.max(0, Math.min(100, score)),
+          match_score: matchScore,
           match_reasons: reasons,
           photos: Array.isArray(p.photos) ? p.photos : [],
         };
