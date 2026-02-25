@@ -232,6 +232,63 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         console.error("Error updating lead status:", leadError);
       }
 
+      // Mark corresponding slot + buffer slots as booked
+      if (showingData?.id) {
+        const slotDateStr = format(selectedDate, "yyyy-MM-dd");
+        const slotTimeStr = `${selectedTime}:00`; // "HH:MM" -> "HH:MM:00"
+
+        // Mark the booked slot
+        await supabase
+          .from("showing_available_slots")
+          .update({
+            is_booked: true,
+            booked_showing_id: showingData.id,
+            booked_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("property_id", selectedPropertyId)
+          .eq("slot_date", slotDateStr)
+          .eq("slot_time", slotTimeStr)
+          .eq("is_booked", false);
+
+        // Buffer slots (before & after, 30-min increments)
+        const [bH, bM] = selectedTime.split(":").map(Number);
+
+        // Buffer AFTER
+        const afterTotal = bH * 60 + bM + 30;
+        const afterTime = `${String(Math.floor(afterTotal / 60)).padStart(2, "0")}:${String(afterTotal % 60).padStart(2, "0")}:00`;
+        await supabase
+          .from("showing_available_slots")
+          .update({
+            is_booked: true,
+            booked_showing_id: showingData.id,
+            booked_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("property_id", selectedPropertyId)
+          .eq("slot_date", slotDateStr)
+          .eq("slot_time", afterTime)
+          .eq("is_booked", false);
+
+        // Buffer BEFORE
+        const beforeTotal = bH * 60 + bM - 30;
+        if (beforeTotal >= 0) {
+          const beforeTime = `${String(Math.floor(beforeTotal / 60)).padStart(2, "0")}:${String(beforeTotal % 60).padStart(2, "0")}:00`;
+          await supabase
+            .from("showing_available_slots")
+            .update({
+              is_booked: true,
+              booked_showing_id: showingData.id,
+              booked_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("property_id", selectedPropertyId)
+            .eq("slot_date", slotDateStr)
+            .eq("slot_time", beforeTime)
+            .eq("is_booked", false);
+        }
+      }
+
       // Schedule Samuel confirmation task (24h before showing)
       if (showingData?.id) {
         const confirmationTime = new Date(scheduledAt.getTime() - 24 * 60 * 60 * 1000);

@@ -188,12 +188,14 @@ function normalizePhone(phone: string): string {
   return digits.slice(-10);
 }
 
-// Smart initial score based on available data (mirrors Esther's scoring logic)
+// Smart initial score — mirrors DB recalculate_lead_scores() formula
 function calculateImportScore(lead: Record<string, unknown>, hasPropertyAssigned: boolean): number {
-  let score = 50; // base
-  if (hasPropertyAssigned) score += 10; // property_matched
-  if (lead.phone && lead.email) score += 5; // complete_contact
-  if (lead.has_voucher === true || (lead.voucher_amount && Number(lead.voucher_amount) > 0)) score += 15; // section8_voucher
+  let score = 30; // base
+  if (lead.phone) score += 5;
+  if (lead.email) score += 5;
+  if (lead.phone && lead.email) score += 3; // complete contact bonus
+  if (hasPropertyAssigned) score += 5;
+  if (lead.has_voucher === true || (lead.voucher_amount && Number(lead.voucher_amount) > 0)) score += 10;
   return Math.min(score, 100);
 }
 

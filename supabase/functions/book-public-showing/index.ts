@@ -250,14 +250,16 @@ serve(async (req: Request) => {
       })
       .eq("id", slot.id);
 
-    // ── Mark buffer slot (next 30-min slot on same date) ──────────────
+    // ── Mark buffer slots (before AND after on same date) ─────────────
     const [hStr, mStr] = slot_time.split(":");
     const h = parseInt(hStr, 10);
     const m = parseInt(mStr, 10);
-    const bufferMinutes = m + 30;
-    const bufferH = h + Math.floor(bufferMinutes / 60);
-    const bufferM = bufferMinutes % 60;
-    const bufferTime = `${String(bufferH).padStart(2, "0")}:${String(bufferM).padStart(2, "0")}:00`;
+
+    // Buffer AFTER (+30 min)
+    const afterMinutes = m + 30;
+    const afterH = h + Math.floor(afterMinutes / 60);
+    const afterM = afterMinutes % 60;
+    const bufferAfter = `${String(afterH).padStart(2, "0")}:${String(afterM).padStart(2, "0")}:00`;
 
     await supabase
       .from("showing_available_slots")
@@ -269,8 +271,29 @@ serve(async (req: Request) => {
       })
       .eq("property_id", property_id)
       .eq("slot_date", slot_date)
-      .eq("slot_time", bufferTime)
+      .eq("slot_time", bufferAfter)
       .eq("is_booked", false);
+
+    // Buffer BEFORE (-30 min)
+    const beforeTotal = h * 60 + m - 30;
+    if (beforeTotal >= 0) {
+      const beforeH = Math.floor(beforeTotal / 60);
+      const beforeM = beforeTotal % 60;
+      const bufferBefore = `${String(beforeH).padStart(2, "0")}:${String(beforeM).padStart(2, "0")}:00`;
+
+      await supabase
+        .from("showing_available_slots")
+        .update({
+          is_booked: true,
+          booked_showing_id: showing.id,
+          booked_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("property_id", property_id)
+        .eq("slot_date", slot_date)
+        .eq("slot_time", bufferBefore)
+        .eq("is_booked", false);
+    }
 
     // ── Update lead status to showing_scheduled ───────────────────────
     await supabase

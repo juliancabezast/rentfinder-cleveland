@@ -92,17 +92,27 @@ export const ManageSlotsTab: React.FC = () => {
     return map;
   }, [slots]);
 
-  // Build set of buffer slots (slot after a booked slot)
+  // Build set of buffer slots (slot before AND after a booked slot)
   const bufferSet = useMemo(() => {
     const set = new Set<string>();
     slots.forEach((s) => {
       if (s.is_booked) {
-        // Find next 30-min slot on same date
         const idx = TIME_SLOTS.indexOf(s.slot_time);
-        if (idx >= 0 && idx < TIME_SLOTS.length - 1) {
-          set.add(slotKey(s.slot_date, TIME_SLOTS[idx + 1]));
+        if (idx >= 0) {
+          // Buffer AFTER
+          if (idx < TIME_SLOTS.length - 1) {
+            set.add(slotKey(s.slot_date, TIME_SLOTS[idx + 1]));
+          }
+          // Buffer BEFORE
+          if (idx > 0) {
+            set.add(slotKey(s.slot_date, TIME_SLOTS[idx - 1]));
+          }
         }
       }
+    });
+    // Don't mark actually booked slots as buffer
+    slots.forEach((s) => {
+      if (s.is_booked) set.delete(slotKey(s.slot_date, s.slot_time));
     });
     return set;
   }, [slots]);
@@ -171,7 +181,8 @@ export const ManageSlotsTab: React.FC = () => {
         .update({ is_enabled: !existing.is_enabled, updated_at: new Date().toISOString() })
         .eq("id", existing.id);
       if (error) {
-        toast({ title: "Error", description: "Failed to update slot.", variant: "destructive" });
+        console.error("Slot update error:", error);
+        toast({ title: "Error", description: `Failed to update slot: ${error.message}`, variant: "destructive" });
       }
     } else {
       // Insert new enabled slot
@@ -184,7 +195,8 @@ export const ManageSlotsTab: React.FC = () => {
         created_by: userRecord?.id,
       });
       if (error) {
-        toast({ title: "Error", description: "Failed to create slot.", variant: "destructive" });
+        console.error("Slot insert error:", error);
+        toast({ title: "Error", description: `Failed to create slot: ${error.message}`, variant: "destructive" });
       }
     }
     setSaving(false);
@@ -594,7 +606,7 @@ export const ManageSlotsTab: React.FC = () => {
           <div className="h-4 w-4 rounded border border-blue-200 bg-blue-50 flex items-center justify-center text-[8px]">
             ○
           </div>
-          <span>20-min buffer</span>
+          <span>Buffer (before &amp; after)</span>
         </div>
       </div>
     </div>
