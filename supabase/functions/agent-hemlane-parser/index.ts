@@ -1129,7 +1129,7 @@ async function upsertLead(
       lead_id: leadId,
       consent_type: consentType,
       granted: true,
-      method: "web_form",
+      method: "listing_inquiry",
       evidence_text: evidenceText,
     });
     if (consentErr) {
@@ -1285,7 +1285,18 @@ serve(async (req: Request) => {
     const svixTimestamp = req.headers.get("svix-timestamp");
     const svixSignature = req.headers.get("svix-signature");
 
-    if (svixId && svixTimestamp && svixSignature) {
+    if (webhookSecret) {
+      // When a webhook secret is configured, signature verification is MANDATORY
+      if (!svixId || !svixTimestamp || !svixSignature) {
+        console.error("Esther: missing Svix signature headers (verification required)");
+        return new Response(
+          JSON.stringify({ error: "Missing webhook signature headers" }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
       const verified = await verifyWebhookSignature(
         rawBody,
         svixId,

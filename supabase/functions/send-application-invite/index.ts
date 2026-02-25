@@ -47,6 +47,7 @@ serve(async (req: Request) => {
       .from("properties")
       .select("address, city, state, zip_code, doorloop_property_id")
       .eq("id", property_id)
+      .eq("organization_id", organization_id)
       .single();
 
     const propertyAddress = property

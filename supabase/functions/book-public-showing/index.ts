@@ -292,7 +292,17 @@ serve(async (req: Request) => {
 
     // ── Build scheduled_at datetime ───────────────────────────────────
     // slot_time is "HH:MM:SS", slot_date is "YYYY-MM-DD"
-    const scheduledAt = `${slot_date}T${slot_time}-05:00`; // America/New_York (EST)
+    // Compute UTC offset dynamically from org timezone to handle DST correctly
+    const orgTz = "America/New_York"; // TODO: read from organization_settings
+    const localDt = new Date(`${slot_date}T12:00:00Z`);
+    const localStr = localDt.toLocaleString("en-US", { timeZone: orgTz });
+    const localParsed = new Date(localStr);
+    const offsetMs = localDt.getTime() - localParsed.getTime();
+    const offsetHours = Math.round(offsetMs / 3600000);
+    const offsetSign = offsetHours >= 0 ? "+" : "-";
+    const offsetAbs = String(Math.abs(offsetHours)).padStart(2, "0");
+    const tzOffset = `${offsetSign}${offsetAbs}:00`;
+    const scheduledAt = `${slot_date}T${slot_time}${tzOffset}`;
     const durationMinutes = slot.duration_minutes || 30;
 
     // ── Create showing ────────────────────────────────────────────────
@@ -317,8 +327,8 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Mark slot as booked ───────────────────────────────────────────
-    await supabase
+    // ── Mark slot as booked (with race condition protection) ──────────
+    const { data: bookedSlot, error: bookErr } = await supabase
       .from("showing_available_slots")
       .update({
         is_booked: true,
@@ -326,31 +336,47 @@ serve(async (req: Request) => {
         booked_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", slot.id);
+      .eq("id", slot.id)
+      .eq("is_booked", false)  // Only update if still available (atomic check)
+      .select("id")
+      .single();
+
+    if (bookErr || !bookedSlot) {
+      // Slot was taken by another request — delete the showing we just created
+      await supabase.from("showings").delete().eq("id", showing.id);
+      return new Response(
+        JSON.stringify({ error: "That time slot was just taken. Please choose another." }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // ── Mark buffer slots (before AND after on same date) ─────────────
     const [hStr, mStr] = slot_time.split(":");
     const h = parseInt(hStr, 10);
     const m = parseInt(mStr, 10);
 
-    // Buffer AFTER (+30 min)
-    const afterMinutes = m + 30;
-    const afterH = h + Math.floor(afterMinutes / 60);
-    const afterM = afterMinutes % 60;
-    const bufferAfter = `${String(afterH).padStart(2, "0")}:${String(afterM).padStart(2, "0")}:00`;
-
-    await supabase
-      .from("showing_available_slots")
-      .update({
-        is_booked: true,
-        booked_showing_id: showing.id,
-        booked_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("property_id", property_id)
-      .eq("slot_date", slot_date)
-      .eq("slot_time", bufferAfter)
-      .eq("is_booked", false);
+    // Block slots for full duration + 30min buffer after
+    // E.g., 45min showing = block next slot (at +30) AND the one after (+60)
+    const bufferSlots = Math.ceil((durationMinutes + 30) / 30);
+    for (let i = 1; i < bufferSlots; i++) {
+      const totalMin = h * 60 + m + (i * 30);
+      const bH = Math.floor(totalMin / 60);
+      const bM = totalMin % 60;
+      if (bH >= 24) break;
+      const bufferTime = `${String(bH).padStart(2, "0")}:${String(bM).padStart(2, "0")}:00`;
+      await supabase
+        .from("showing_available_slots")
+        .update({
+          is_booked: true,
+          booked_showing_id: showing.id,
+          booked_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("property_id", property_id)
+        .eq("slot_date", slot_date)
+        .eq("slot_time", bufferTime)
+        .eq("is_booked", false);
+    }
 
     // Buffer BEFORE (-30 min)
     const beforeTotal = h * 60 + m - 30;
@@ -592,7 +618,7 @@ serve(async (req: Request) => {
       recorded_at: now.toISOString(),
       period_start: now.toISOString(),
       period_end: now.toISOString(),
-      service: "openai", // Platform processing cost
+      service: "platform",
       usage_quantity: 1,
       usage_unit: "booking",
       unit_cost: 0.0,

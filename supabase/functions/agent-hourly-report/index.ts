@@ -30,10 +30,25 @@ const AGENT_LABELS: Record<string, string> = {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
+// Convert a local-timezone midnight to UTC ISO string
+function localMidnightToUtc(dateStr: string, tz: string): string {
+  // dateStr format: "YYYY-MM-DD"
+  // Create a date at noon UTC to avoid DST edge cases, then compute offset
+  const noon = new Date(`${dateStr}T12:00:00Z`);
+  // Get the local time representation in the target timezone
+  const localStr = noon.toLocaleString("en-US", { timeZone: tz });
+  const localNoon = new Date(localStr);
+  // Offset = UTC noon - local noon (in ms)
+  const offsetMs = noon.getTime() - localNoon.getTime();
+  // Midnight local = midnight + offset to get UTC
+  const midnightLocal = new Date(`${dateStr}T00:00:00Z`);
+  const midnightUtc = new Date(midnightLocal.getTime() + offsetMs);
+  return midnightUtc.toISOString();
+}
+
 function startOfDay(date: Date, tz: string): string {
-  // Get the date string in the target timezone, then build ISO start-of-day
-  const parts = date.toLocaleDateString("en-CA", { timeZone: tz }).split("-");
-  return `${parts[0]}-${parts[1]}-${parts[2]}T00:00:00.000Z`;
+  const dateStr = date.toLocaleDateString("en-CA", { timeZone: tz });
+  return localMidnightToUtc(dateStr, tz);
 }
 
 function startOfWeek(date: Date, tz: string): string {
@@ -41,17 +56,16 @@ function startOfWeek(date: Date, tz: string): string {
   const dayStr = date.toLocaleDateString("en-US", { timeZone: tz, weekday: "short" });
   const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   const dayOfWeek = dayMap[dayStr] ?? 0;
-  const monday = new Date(date.getTime() - dayOfWeek * 86400000 + (dayOfWeek === 0 ? -6 : 1 - dayOfWeek) * 86400000);
-  // Re-derive: go back to Monday
+  // Go back to Monday
   const msBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const mon = new Date(date.getTime() - msBack * 86400000);
-  const monParts = mon.toLocaleDateString("en-CA", { timeZone: tz }).split("-");
-  return `${monParts[0]}-${monParts[1]}-${monParts[2]}T00:00:00.000Z`;
+  const monStr = mon.toLocaleDateString("en-CA", { timeZone: tz });
+  return localMidnightToUtc(monStr, tz);
 }
 
 function startOfMonth(date: Date, tz: string): string {
   const parts = date.toLocaleDateString("en-CA", { timeZone: tz }).split("-");
-  return `${parts[0]}-${parts[1]}-01T00:00:00.000Z`;
+  return localMidnightToUtc(`${parts[0]}-${parts[1]}-01`, tz);
 }
 
 function countByField(rows: any[], field: string): Record<string, number> {

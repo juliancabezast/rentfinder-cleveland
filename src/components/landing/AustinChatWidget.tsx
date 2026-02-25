@@ -393,9 +393,9 @@ export const AustinChatWidget: React.FC = () => {
                       />
                       <label htmlFor="chat-sms-consent" className="text-[10px] leading-tight text-muted-foreground cursor-pointer">
                         {SMS_CONSENT_LANGUAGE} View our{" "}
-                        <a href="https://rentfindercleveland.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
+                        <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
                         {" "}and{" "}
-                        <a href="https://rentfindercleveland.com/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-primary underline" onClick={(e) => e.stopPropagation()}>Terms</a>.
+                        <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-primary underline" onClick={(e) => e.stopPropagation()}>Terms</a>.
                       </label>
                     </div>
                     <Button type="submit" size="sm" className="w-full" disabled={isSubmitting}>

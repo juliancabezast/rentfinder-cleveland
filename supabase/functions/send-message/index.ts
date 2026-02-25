@@ -17,6 +17,10 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  // HTML escape helper to prevent XSS in emails
+  const escapeHtml = (str: string) =>
+    str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
   let lead_id = "", channel = "", organization_id = "";
   try {
     const parsed = await req.json();
@@ -79,13 +83,26 @@ serve(async (req: Request) => {
           }
         );
       }
-    } catch {
+    } catch (complianceErr) {
+      console.warn("Joseph compliance check unavailable, using manual check:", complianceErr);
       // If compliance function doesn't exist, proceed with manual consent check
       if (channel === "sms" && !lead.sms_consent) {
         return new Response(
           JSON.stringify({
             success: false,
             error: "Lead has not consented to SMS messages.",
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      if (channel === "whatsapp" && !lead.sms_consent) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Lead has not consented to WhatsApp messages.",
           }),
           {
             status: 403,
@@ -117,7 +134,20 @@ serve(async (req: Request) => {
 
       const sid = creds?.twilio_account_sid;
       const token = creds?.twilio_auth_token;
-      const fromPhone = creds?.twilio_phone_number || "+12162383390";
+      const fromPhone = creds?.twilio_phone_number;
+
+      if (!fromPhone) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Twilio phone number not configured. Add it in Settings → Integrations.",
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
 
       if (!sid || !token) {
         return new Response(
@@ -189,8 +219,8 @@ serve(async (req: Request) => {
                 <h1 style="margin:0;color:#ffb22c;font-size:20px;">Rent Finder Cleveland</h1>
               </div>
               <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
-                <p>Hi <strong>${lead.full_name || "there"}</strong>,</p>
-                <p>${messageBody.replace(/\n/g, "<br>")}</p>
+                <p>Hi <strong>${escapeHtml(lead.full_name || "there")}</strong>,</p>
+                <p>${escapeHtml(messageBody).replace(/\n/g, "<br>")}</p>
                 <br>
                 <p style="color:#666;font-size:14px;">— Rent Finder Cleveland</p>
               </div>
@@ -250,8 +280,8 @@ serve(async (req: Request) => {
         p_total_cost: channel === "email" ? 0.0 : 0.0079,
         p_lead_id: lead_id,
       });
-    } catch {
-      // Non-blocking
+    } catch (costErr) {
+      console.warn("Cost recording failed:", costErr);
     }
 
     // Log successful message
@@ -265,7 +295,9 @@ serve(async (req: Request) => {
         details: { channel, message_id: messageId, lead_id },
         related_lead_id: lead_id,
       });
-    } catch { /* non-blocking */ }
+    } catch (logErr) {
+      console.warn("System log insert failed:", logErr);
+    }
 
     return new Response(
       JSON.stringify({ success: true, message_id: messageId }),
@@ -282,7 +314,7 @@ serve(async (req: Request) => {
       await supabase.from("system_logs").insert({
         organization_id: organization_id || null,
         level: "error",
-        category: "twilio",
+        category: channel === "email" ? "general" : "twilio",
         event_type: "message_send_error",
         message: `Failed to send message: ${(err as Error).message || "Unknown error"}`,
         details: { error: String(err), channel, lead_id },

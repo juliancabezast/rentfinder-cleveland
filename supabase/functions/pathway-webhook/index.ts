@@ -54,6 +54,19 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  // ── Verify webhook authenticity ──────────────────────────────────────
+  const webhookSecret = Deno.env.get("BLAND_WEBHOOK_SECRET");
+  if (webhookSecret) {
+    const authHeader = req.headers.get("authorization") || "";
+    const providedSecret = req.headers.get("x-webhook-secret") || authHeader.replace("Bearer ", "");
+    if (providedSecret !== webhookSecret) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: invalid webhook secret" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+  }
+
   let body: Record<string, unknown> = {};
   try {
     body = await req.json();
@@ -216,8 +229,14 @@ serve(async (req: Request) => {
         );
       }
 
-      // Create showing
-      const scheduledAt = `${slotDate}T${slotTime}-05:00`; // EST
+      // Create showing — compute UTC offset dynamically to handle DST
+      const orgTz = "America/New_York"; // TODO: read from organization_settings
+      const tzRef = new Date(`${slotDate}T12:00:00Z`);
+      const tzLocal = new Date(tzRef.toLocaleString("en-US", { timeZone: orgTz }));
+      const tzOffsetHrs = Math.round((tzRef.getTime() - tzLocal.getTime()) / 3600000);
+      const tzSign = tzOffsetHrs >= 0 ? "+" : "-";
+      const tzAbs = String(Math.abs(tzOffsetHrs)).padStart(2, "0");
+      const scheduledAt = `${slotDate}T${slotTime}${tzSign}${tzAbs}:00`;
       const { data: showing, error: showingErr } = await supabase
         .from("showings")
         .insert({
@@ -299,8 +318,8 @@ serve(async (req: Request) => {
               queue: true,
             },
           });
-        } catch {
-          // Non-blocking email
+        } catch (emailErr) {
+          console.warn("Confirmation email failed (non-blocking):", emailErr);
         }
       }
 
@@ -316,7 +335,7 @@ serve(async (req: Request) => {
           related_lead_id: lead_id,
           related_showing_id: showing.id,
         });
-      } catch { /* non-blocking */ }
+      } catch (logErr) { console.warn("Non-blocking operation failed:", logErr); }
 
       return new Response(
         JSON.stringify({
@@ -333,7 +352,7 @@ serve(async (req: Request) => {
 
     // ── ACTION: send_application ──────────────────────────────────────
     if (action === "send_application") {
-      // Create agent task for Caleb (DoorLoop push) to send application
+      // Create agent task for Ezra (DoorLoop Bridge) to send application
       await supabase.from("agent_tasks").insert({
         organization_id,
         agent_key: "ezra",
@@ -394,7 +413,7 @@ serve(async (req: Request) => {
           details: { lead_id, property_id, lead_email, call_id: call_id || null },
           related_lead_id: lead_id,
         });
-      } catch { /* non-blocking */ }
+      } catch (logErr) { console.warn("Non-blocking operation failed:", logErr); }
 
       return new Response(
         JSON.stringify({
@@ -464,7 +483,7 @@ serve(async (req: Request) => {
           details: { lead_id, property_id, callback_time, scheduled_for: scheduledFor, call_id: call_id || null },
           related_lead_id: lead_id,
         });
-      } catch { /* non-blocking */ }
+      } catch (logErr) { console.warn("Non-blocking operation failed:", logErr); }
 
       return new Response(
         JSON.stringify({
@@ -501,7 +520,7 @@ serve(async (req: Request) => {
         details: { error: String(error), action: body?.action },
         related_lead_id: body?.lead_id || null,
       });
-    } catch { /* non-blocking */ }
+    } catch (logErr) { console.warn("Non-blocking operation failed:", logErr); }
 
     return new Response(
       JSON.stringify({ error: (error as Error).message || "Internal error" }),

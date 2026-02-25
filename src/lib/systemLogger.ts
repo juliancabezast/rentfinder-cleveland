@@ -74,7 +74,7 @@ export async function logSystemEvent(params: LogEventParams): Promise<{ success:
       try {
         const adminEmail = params.organization_id
           ? await getOrgAdminEmail(params.organization_id)
-          : "admin@rentfindercleveland.com";
+          : null;
 
         if (adminEmail) {
           await supabase.functions.invoke("send-notification-email", {
@@ -90,7 +90,7 @@ export async function logSystemEvent(params: LogEventParams): Promise<{ success:
                   <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Time:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${new Date().toISOString()}</td></tr>
                   ${params.details ? `<tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Details:</strong></td><td style="padding: 8px; border: 1px solid #ddd;"><pre style="margin: 0; white-space: pre-wrap;">${JSON.stringify(params.details, null, 2)}</pre></td></tr>` : ""}
                 </table>
-                <p>Review this in your <a href="https://cleveland-lease-buddy.lovable.app/system-logs">System Logs</a>.</p>
+                <p>Review this in your <a href="${window?.location?.origin || "https://rentfindercleveland.com"}/system-logs">System Logs</a>.</p>
               `,
               notification_type: "critical_error",
               organization_id: params.organization_id,

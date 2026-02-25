@@ -112,7 +112,7 @@ new → contacted → engaged → nurturing → qualified → showing_scheduled 
 ## Workflow Shortcuts
 - **"go"** - Commit all changes with a descriptive message and push to origin. Always do both steps without asking.
 - **"lovable"** - Do a git pull from the remote repository before doing anything else. No confirmation needed.
-- **"md"** - Generate exhaustively comprehensive project documentation (1500+ lines minimum). Check `~/Desktop/md/` for existing `PROJECT_COMPLETE_Rent_Finder_Cleveland_MD*.md` files, find the highest number, and create the next version. Use `PROJECT.md` as source of truth. Must include ALL sections with full detail:
+- **"md"** - Generate exhaustively comprehensive project documentation (1500+ lines minimum). Check `md/` (in the project root) for existing `PROJECT_COMPLETE_Rent_Finder_Cleveland_MD*.md` files, find the highest number, and create the next version. Use `PROJECT.md` as source of truth. Must include ALL sections with full detail:
   1. **Project Overview**: Vision, SaaS model, multi-app architecture (3 domains), core problems, target users (5 roles)
   2. **Current State**: Completion status per phase, ALL codebase statistics (LOC, tables, RLS policies, functions, triggers, migrations, edge functions, pages, components, hooks, cron jobs)
   3. **Tech Stack**: Core platform, ALL external integrations with their edge functions

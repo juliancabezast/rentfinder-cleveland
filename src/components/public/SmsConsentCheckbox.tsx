@@ -52,7 +52,7 @@ export const SmsConsentCheckbox: React.FC<SmsConsentCheckboxProps> = ({
       >
         {SMS_CONSENT_LANGUAGE} View our{" "}
         <a
-          href="https://rentfindercleveland.com/privacy-policy"
+          href="/privacy-policy"
           target="_blank"
           rel="noopener noreferrer"
           className="text-primary underline hover:no-underline"
@@ -62,7 +62,7 @@ export const SmsConsentCheckbox: React.FC<SmsConsentCheckboxProps> = ({
         </a>{" "}
         and{" "}
         <a
-          href="https://rentfindercleveland.com/terms-and-conditions"
+          href="/terms-and-conditions"
           target="_blank"
           rel="noopener noreferrer"
           className="text-primary underline hover:no-underline"

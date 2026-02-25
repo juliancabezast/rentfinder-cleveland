@@ -66,7 +66,7 @@ serve(async (req: Request) => {
       const { data: userRecord } = await supabase
         .from("users")
         .select("organization_id")
-        .eq("id", user.id)
+        .eq("auth_user_id", user.id)
         .single();
 
       organizationId = userRecord?.organization_id || null;

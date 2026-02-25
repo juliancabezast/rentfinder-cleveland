@@ -44,8 +44,10 @@ function predictConversion(lead: Record<string, unknown>, stats: {
     showing_scheduled: 0.2,
     showed: 0.3,
     in_application: 0.4,
+    converted: 0.5,
+    lost: -0.1,
   };
-  const statusWeight = statusWeights[status] || 0;
+  const statusWeight = statusWeights[status] ?? 0;
   if (statusWeight > 0.1) {
     probability += statusWeight;
     factors.push({
@@ -217,7 +219,7 @@ serve(async (req: Request) => {
       await supabase.from("system_logs").insert({
         organization_id,
         level: "info",
-        category: "openai",
+        category: "general",
         event_type: "conversion_predicted",
         message: `Conversion prediction for lead: ${prediction.predicted_outcome} (${Math.round(prediction.conversion_probability * 100)}%)`,
         details: { lead_id, probability: prediction.conversion_probability, outcome: prediction.predicted_outcome, factors_count: prediction.factors.length },
@@ -237,7 +239,7 @@ serve(async (req: Request) => {
       await supabase.from("system_logs").insert({
         organization_id: organization_id || null,
         level: "error",
-        category: "openai",
+        category: "general",
         event_type: "conversion_prediction_error",
         message: `Failed to predict conversion: ${(err as Error).message || "Unknown error"}`,
         details: { error: String(err), lead_id },

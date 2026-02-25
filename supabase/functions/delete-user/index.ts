@@ -134,27 +134,31 @@ serve(async (req: Request) => {
     // Also clean up any granted_by references
     await supabase.from("investor_property_access").update({ granted_by: null }).eq("granted_by", user_id);
 
-    // ── 7. Delete the public.users record ───────────────────────────
+    // ── 7. Delete the auth.users record FIRST ─────────────────────
+    // (prevents orphaned state where user can still log in without a profile)
+    if (targetUser.auth_user_id) {
+      const { error: authDeleteErr } = await supabase.auth.admin.deleteUser(targetUser.auth_user_id);
+      if (authDeleteErr) {
+        console.error("Failed to delete auth user:", authDeleteErr);
+        return new Response(
+          JSON.stringify({ error: `Failed to delete auth user: ${authDeleteErr.message}` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // ── 8. Delete the public.users record ───────────────────────────
     const { error: deleteErr } = await supabase
       .from("users")
       .delete()
       .eq("id", user_id);
 
     if (deleteErr) {
-      console.error("Failed to delete public.users row:", deleteErr);
+      console.error("Failed to delete public.users row (auth already deleted):", deleteErr);
       return new Response(
-        JSON.stringify({ error: `Failed to delete user: ${deleteErr.message}` }),
+        JSON.stringify({ error: `Failed to delete user profile: ${deleteErr.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-
-    // ── 8. Delete the auth.users record ─────────────────────────────
-    if (targetUser.auth_user_id) {
-      const { error: authDeleteErr } = await supabase.auth.admin.deleteUser(targetUser.auth_user_id);
-      if (authDeleteErr) {
-        console.error("Failed to delete auth user (public.users already deleted):", authDeleteErr);
-        // Non-fatal: the public record is already gone
-      }
     }
 
     // ── 9. Log the deletion ─────────────────────────────────────────

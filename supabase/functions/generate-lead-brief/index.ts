@@ -30,12 +30,13 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Gather all lead data ───────────────────────────────────────
+    // ── Gather all lead data (scoped by org via lead's own org_id) ──
     const { data: lead } = await supabase
       .from("leads")
       .select("*")
       .eq("id", lead_id)
       .single();
+    // Note: lead.organization_id is used below to scope all related queries
 
     if (!lead) {
       return new Response(
@@ -86,6 +87,7 @@ serve(async (req: Request) => {
     const openaiKey = creds?.openai_api_key;
 
     let brief: string;
+    let actualCost = 0.001; // Default cost estimate, overwritten by actual usage
 
     if (openaiKey) {
       // ── Generate AI brief via OpenAI ─────────────────────────────
@@ -163,6 +165,11 @@ serve(async (req: Request) => {
 
       const aiData = await aiResp.json();
       brief = aiData.choices?.[0]?.message?.content || "Unable to generate brief.";
+      // Capture token usage for cost calculation
+      const promptTokens = aiData.usage?.prompt_tokens || 0;
+      const completionTokens = aiData.usage?.completion_tokens || 0;
+      // GPT-4o-mini pricing: $0.15/1M input, $0.60/1M output
+      actualCost = (promptTokens * 0.00000015) + (completionTokens * 0.0000006);
     } else {
       // ── Fallback: Generate rule-based brief ──────────────────────
       const parts: string[] = [];
@@ -211,17 +218,18 @@ serve(async (req: Request) => {
     // ── Record cost ────────────────────────────────────────────────
     if (openaiKey) {
       try {
+        const cost = actualCost;
         await supabase.rpc("zacchaeus_record_cost", {
           p_organization_id: lead.organization_id,
           p_service: "openai",
           p_usage_quantity: 1,
           p_usage_unit: "lead_brief",
-          p_unit_cost: 0.001,
-          p_total_cost: 0.001,
+          p_unit_cost: cost,
+          p_total_cost: cost,
           p_lead_id: lead_id,
         });
-      } catch {
-        // Non-blocking
+      } catch (costErr) {
+        console.warn("Cost recording failed:", costErr);
       }
     }
 

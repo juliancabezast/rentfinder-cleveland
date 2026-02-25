@@ -727,7 +727,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
     setSendingCampaign(true);
     setCampaignProgress({ sent: 0, total: leads.length });
 
-    const bookingUrl = `https://rentfindercleveland.com/p/schedule-showing/${prop.id}`;
+    const bookingUrl = `${window.location.origin}/p/schedule-showing/${prop.id}`;
 
     let sentCount = 0;
     for (const lead of leads) {

@@ -147,7 +147,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         const propertyAddr = showing.properties?.address || "the property";
         const showingDate = format(parseISO(showing.scheduled_at), "EEEE, MMM d 'at' h:mm a");
 
-        const smsBody = `Hi ${leadName}, your property showing at ${propertyAddr} on ${showingDate} has been cancelled. To reschedule, visit: https://rentfindercleveland.com/p/book-showing`;
+        const smsBody = `Hi ${leadName}, your property showing at ${propertyAddr} on ${showingDate} has been cancelled. To reschedule, visit: ${window.location.origin}/p/book-showing`;
 
         try {
           await supabase.functions.invoke("send-message", {
@@ -227,7 +227,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
             body: {
               lead_id: showing.lead_id,
               channel: "email",
-              body: `Your property showing at ${propertyAddr} on ${showingDate} needs to be rescheduled.\n\nPlease pick a new time that works for you:\n\n<a href="https://rentfindercleveland.com/p/book-showing" style="display:inline-block;background-color:#370d4b;color:#ffffff;font-weight:bold;font-size:16px;padding:14px 32px;border-radius:8px;text-decoration:none;margin:8px 0;">Reschedule Showing</a>\n\nWe look forward to seeing you!`,
+              body: `Your property showing at ${propertyAddr} on ${showingDate} needs to be rescheduled.\n\nPlease pick a new time that works for you:\n\n<a href="${window.location.origin}/p/book-showing" style="display:inline-block;background-color:#370d4b;color:#ffffff;font-weight:bold;font-size:16px;padding:14px 32px;border-radius:8px;text-decoration:none;margin:8px 0;">Reschedule Showing</a>\n\nWe look forward to seeing you!`,
               organization_id: userRecord.organization_id,
             },
           });
@@ -243,7 +243,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
             body: {
               lead_id: showing.lead_id,
               channel: "sms",
-              body: `Hi ${leadName}, your showing at ${propertyAddr} on ${showingDate} needs to be rescheduled. Pick a new time: https://rentfindercleveland.com/p/book-showing`,
+              body: `Hi ${leadName}, your showing at ${propertyAddr} on ${showingDate} needs to be rescheduled. Pick a new time: ${window.location.origin}/p/book-showing`,
               organization_id: userRecord.organization_id,
             },
           });

@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Rate limit: max emails per batch to stay within Resend limits
+// Rate limit: max emails per org per batch to stay within Resend limits
 const BATCH_SIZE = 10;
 const DELAY_MS = 1500; // 1.5s between emails (safe for Resend 10/sec limit)
 
@@ -18,176 +18,191 @@ serve(async (req: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-    // Get org
-    const { data: org } = await supabase
-      .from("organizations")
-      .select("id")
-      .limit(1)
-      .single();
-
-    if (!org) {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
       return new Response(
-        JSON.stringify({ error: "No organization found" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get Resend API key
-    let resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
-    if (!resendApiKey) {
-      const { data: creds } = await supabase
-        .from("organization_credentials")
-        .select("resend_api_key")
-        .eq("organization_id", org.id)
-        .single();
-      if (creds?.resend_api_key) resendApiKey = creds.resend_api_key;
-    }
-
-    if (!resendApiKey) {
-      return new Response(
-        JSON.stringify({ error: "No Resend API key configured" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Fetch queued emails (oldest first, limited batch)
-    const { data: queued, error: fetchErr } = await supabase
-      .from("email_events")
-      .select("id, recipient_email, subject, details, organization_id")
-      .eq("organization_id", org.id)
-      .filter("details->>status", "eq", "queued")
-      .order("created_at", { ascending: true })
-      .limit(BATCH_SIZE);
-
-    if (fetchErr) {
-      return new Response(
-        JSON.stringify({ error: `Failed to fetch queue: ${fetchErr.message}` }),
+        JSON.stringify({ error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    if (!queued || queued.length === 0) {
+    // Get ALL organizations
+    const { data: orgs } = await supabase
+      .from("organizations")
+      .select("id, name");
+
+    if (!orgs || orgs.length === 0) {
       return new Response(
-        JSON.stringify({ message: "No queued emails", sent: 0, failed: 0 }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "No organizations found" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    let sent = 0;
-    let failed = 0;
-    const errors: string[] = [];
+    const allResults: any[] = [];
 
-    for (const email of queued) {
-      try {
-        const html = email.details?.html;
-        if (!email.recipient_email || !email.subject || !html) {
-          // Mark as failed — missing data
-          await supabase
-            .from("email_events")
-            .update({ details: { ...email.details, status: "failed", error: "Missing email data" } })
-            .eq("id", email.id);
-          failed++;
-          continue;
-        }
-
-        const fromName = email.details?.from_name || "Rent Finder Cleveland";
-        const fromAddress = `${fromName} <support@rentfindercleveland.com>`;
-
-        // Send via Resend
-        const resendResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: fromAddress,
-            to: [email.recipient_email],
-            subject: email.subject,
-            html,
-          }),
-        });
-
-        const resendData = await resendResponse.json();
-
-        if (resendResponse.ok) {
-          // Mark as sent
-          await supabase
-            .from("email_events")
-            .update({
-              resend_email_id: resendData.id,
-              details: {
-                ...email.details,
-                status: "sent",
-                sent_at: new Date().toISOString(),
-                resend_email_id: resendData.id,
-              },
-            })
-            .eq("id", email.id);
-
-          // Record cost
-          try {
-            await supabase.rpc("zacchaeus_record_cost", {
-              p_organization_id: email.organization_id,
-              p_service: "resend",
-              p_usage_quantity: 1,
-              p_usage_unit: "email",
-              p_unit_cost: 0.0,
-              p_total_cost: 0.0,
-              p_lead_id: email.details?.related_entity_type === "lead"
-                ? email.details?.related_entity_id
-                : null,
-            });
-          } catch { /* non-blocking */ }
-
-          sent++;
-        } else {
-          const errMsg = resendData.message || `HTTP ${resendResponse.status}`;
-          await supabase
-            .from("email_events")
-            .update({
-              details: {
-                ...email.details,
-                status: "failed",
-                error: errMsg,
-                failed_at: new Date().toISOString(),
-              },
-            })
-            .eq("id", email.id);
-          errors.push(`${email.recipient_email}: ${errMsg}`);
-          failed++;
-        }
-
-        // Rate limiting delay
-        await new Promise((r) => setTimeout(r, DELAY_MS));
-      } catch (err) {
-        errors.push(`${email.recipient_email}: ${String(err).slice(0, 100)}`);
-        failed++;
+    for (const org of orgs) {
+      // Get Resend API key for this org
+      let resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
+      if (!resendApiKey) {
+        const { data: creds } = await supabase
+          .from("organization_credentials")
+          .select("resend_api_key")
+          .eq("organization_id", org.id)
+          .single();
+        if (creds?.resend_api_key) resendApiKey = creds.resend_api_key;
       }
+
+      if (!resendApiKey) {
+        continue; // Skip orgs without Resend key
+      }
+
+      // Get org's sender domain from settings, fallback to rentfindercleveland.com
+      const { data: orgSettings } = await supabase
+        .from("organization_settings")
+        .select("value")
+        .eq("organization_id", org.id)
+        .eq("key", "sender_domain")
+        .single();
+      const senderDomain = orgSettings?.value || "rentfindercleveland.com";
+
+      // Fetch queued emails for THIS org (oldest first, limited batch)
+      const { data: queued, error: fetchErr } = await supabase
+        .from("email_events")
+        .select("id, recipient_email, subject, details, organization_id")
+        .eq("organization_id", org.id)
+        .filter("details->>status", "eq", "queued")
+        .order("created_at", { ascending: true })
+        .limit(BATCH_SIZE);
+
+      if (fetchErr) {
+        console.error(`Failed to fetch queue for org ${org.id}:`, fetchErr.message);
+        allResults.push({ org_id: org.id, error: fetchErr.message, sent: 0, failed: 0 });
+        continue;
+      }
+
+      if (!queued || queued.length === 0) {
+        continue; // No queued emails for this org
+      }
+
+      let sent = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (const email of queued) {
+        try {
+          const html = email.details?.html;
+          if (!email.recipient_email || !email.subject || !html) {
+            await supabase
+              .from("email_events")
+              .update({ details: { ...email.details, status: "failed", error: "Missing email data" } })
+              .eq("id", email.id);
+            failed++;
+            continue;
+          }
+
+          const fromName = email.details?.from_name || "Rent Finder Cleveland";
+          const fromAddress = `${fromName} <support@${senderDomain}>`;
+
+          // Send via Resend
+          const resendResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: fromAddress,
+              to: [email.recipient_email],
+              subject: email.subject,
+              html,
+            }),
+          });
+
+          const resendData = await resendResponse.json();
+
+          if (resendResponse.ok) {
+            await supabase
+              .from("email_events")
+              .update({
+                resend_email_id: resendData.id,
+                details: {
+                  ...email.details,
+                  status: "sent",
+                  sent_at: new Date().toISOString(),
+                  resend_email_id: resendData.id,
+                },
+              })
+              .eq("id", email.id);
+
+            // Record cost
+            try {
+              await supabase.rpc("zacchaeus_record_cost", {
+                p_organization_id: email.organization_id,
+                p_service: "resend",
+                p_usage_quantity: 1,
+                p_usage_unit: "email",
+                p_unit_cost: 0.0,
+                p_total_cost: 0.0,
+                p_lead_id: email.details?.related_entity_type === "lead"
+                  ? email.details?.related_entity_id
+                  : null,
+              });
+            } catch (costErr) {
+              console.warn("Cost recording failed:", costErr);
+            }
+
+            sent++;
+          } else {
+            const errMsg = resendData.message || `HTTP ${resendResponse.status}`;
+            await supabase
+              .from("email_events")
+              .update({
+                details: {
+                  ...email.details,
+                  status: "failed",
+                  error: errMsg,
+                  failed_at: new Date().toISOString(),
+                },
+              })
+              .eq("id", email.id);
+            errors.push(`${email.recipient_email}: ${errMsg}`);
+            failed++;
+          }
+
+          // Rate limiting delay between emails
+          if (queued.indexOf(email) < queued.length - 1) {
+            await new Promise((r) => setTimeout(r, DELAY_MS));
+          }
+        } catch (err) {
+          console.warn(`Email processing error for ${email.recipient_email}:`, err);
+          errors.push(`${email.recipient_email}: ${String(err).slice(0, 100)}`);
+          failed++;
+        }
+      }
+
+      // System log per org
+      if (sent > 0 || failed > 0) {
+        try {
+          await supabase.from("system_logs").insert({
+            organization_id: org.id,
+            level: failed > 0 ? "warning" : "info",
+            category: "general",
+            event_type: "email_queue_processed",
+            message: `Email queue processed: ${sent} sent, ${failed} failed out of ${queued.length}`,
+            details: { sent, failed, total: queued.length, errors: errors.slice(0, 10) },
+          });
+        } catch (logErr) {
+          console.warn("System log insert failed:", logErr);
+        }
+      }
+
+      allResults.push({ org_id: org.id, sent, failed, total: queued.length });
     }
 
-    // System log
-    await supabase.from("system_logs").insert({
-      organization_id: org.id,
-      level: "info",
-      category: "general",
-      event_type: "email_queue_processed",
-      message: `Email queue processed: ${sent} sent, ${failed} failed out of ${queued.length}`,
-      details: { sent, failed, total: queued.length, errors: errors.slice(0, 10) },
-    });
-
     return new Response(
-      JSON.stringify({
-        message: "Queue processed",
-        total: queued.length,
-        sent,
-        failed,
-        errors: errors.slice(0, 10),
-      }),
+      JSON.stringify({ message: "Queue processed", results: allResults }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

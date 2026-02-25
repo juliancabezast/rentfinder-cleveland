@@ -47,7 +47,7 @@ serve(async (req: Request) => {
       const senderName = from_name || "Rent Finder Cleveland";
       const { error: queueErr } = await supabase.from("email_events").insert({
         organization_id,
-        event_type: "sent",
+        event_type: "delivery_delayed",
         recipient_email: to,
         subject,
         details: {
@@ -90,8 +90,19 @@ serve(async (req: Request) => {
       throw new Error("No Resend API key configured");
     }
 
+    // Get org's sender domain, fallback to default
+    let senderDomain = "rentfindercleveland.com";
+    if (organization_id) {
+      const { data: domainSetting } = await supabase
+        .from("organization_settings")
+        .select("value")
+        .eq("organization_id", organization_id)
+        .eq("key", "sender_domain")
+        .single();
+      if (domainSetting?.value) senderDomain = domainSetting.value;
+    }
     const senderName = from_name || "Rent Finder Cleveland";
-    const fromAddress = `${senderName} <support@rentfindercleveland.com>`;
+    const fromAddress = `${senderName} <support@${senderDomain}>`;
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -147,8 +158,8 @@ serve(async (req: Request) => {
           p_total_cost: 0.0,
           p_lead_id: related_entity_type === "lead" ? related_entity_id : null,
         });
-      } catch {
-        // Non-blocking
+      } catch (costErr) {
+        console.warn("Cost recording failed:", costErr);
       }
     }
 
@@ -163,7 +174,9 @@ serve(async (req: Request) => {
           message: `Email sent to ${to}: "${subject}"`,
           details: { notification_type: notification_type || "notification", resend_email_id: resendEmailId, related_entity_id, related_entity_type },
         });
-      } catch { /* non-blocking */ }
+      } catch (logErr) {
+        console.warn("System log insert failed:", logErr);
+      }
     }
 
     return new Response(
@@ -183,7 +196,9 @@ serve(async (req: Request) => {
         message: `Failed to send email to ${to || "unknown"}: ${(error as Error).message || "Unknown error"}`,
         details: { error: String(error), to, subject, notification_type },
       });
-    } catch { /* non-blocking */ }
+    } catch (logErr) {
+      console.warn("Error log insert failed:", logErr);
+    }
 
     return new Response(
       JSON.stringify({

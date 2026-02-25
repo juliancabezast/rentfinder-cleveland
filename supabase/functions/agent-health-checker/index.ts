@@ -247,15 +247,15 @@ serve(async (req: Request) => {
     try {
       await supabase.rpc("zacchaeus_record_cost", {
         p_organization_id: organization_id,
-        p_service: "openai",
+        p_service: "platform",
         p_usage_quantity: 1,
         p_usage_unit: "health_check",
         p_unit_cost: 0,
         p_total_cost: 0,
         p_lead_id: null,
       });
-    } catch {
-      // Non-blocking
+    } catch (costErr) {
+      console.warn("Cost recording failed:", costErr);
     }
 
     return new Response(
