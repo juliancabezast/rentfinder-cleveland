@@ -58,7 +58,6 @@ serve(async (req: Request) => {
       .select("id, full_name, phone, email, status")
       .eq("organization_id", org.id)
       .is("doorloop_prospect_id", null)
-      .not("phone", "is", null)
       .order("created_at", { ascending: false });
 
     if (leadsErr) {
@@ -98,70 +97,47 @@ serve(async (req: Request) => {
       try {
         // Clean phone
         const cleanPhone = (lead.phone || "").replace(/\D/g, "");
-        if (!cleanPhone || cleanPhone.length < 10) {
-          skipped++;
-          continue;
-        }
-
-        const phoneForSearch = cleanPhone.length === 11 && cleanPhone.startsWith("1")
+        const phoneForCreate = cleanPhone.length === 11 && cleanPhone.startsWith("1")
           ? cleanPhone.slice(1)
           : cleanPhone;
 
-        // Search for existing prospect by phone
-        const searchResp = await fetch(
-          `https://app.doorloop.com/api/tenants?filter_phone=${encodeURIComponent(phoneForSearch)}&page_size=1`,
-          { headers: new Headers(dlHeaders) }
-        );
+        const nameParts = (lead.full_name || "Lead").trim().split(/\s+/);
+        const firstName = nameParts[0] || "Lead";
+        const lastName = nameParts.slice(1).join(" ") || firstName;
 
-        let doorloopId: string | null = null;
+        const dlStatus = statusMap[lead.status] || "NEW";
 
-        if (searchResp.ok) {
-          const searchData = await searchResp.json();
-          if (searchData?.data?.length > 0) {
-            doorloopId = String(searchData.data[0].id);
-          }
-        }
+        // Always create a new prospect in DoorLoop (no dedup)
+        const createResp = await fetch("https://app.doorloop.com/api/tenants", {
+          method: "POST",
+          headers: new Headers(dlHeaders),
+          body: JSON.stringify({
+            firstName,
+            lastName,
+            ...(phoneForCreate.length >= 10
+              ? { phones: [{ type: "Mobile", number: phoneForCreate }] }
+              : {}),
+            ...(lead.email ? { emails: [{ type: "Primary", address: lead.email }] } : {}),
+            prospectInfo: {
+              status: dlStatus,
+            },
+          }),
+        });
 
-        // Create if not found
-        if (!doorloopId) {
-          const nameParts = (lead.full_name || "Lead").trim().split(/\s+/);
-          const firstName = nameParts[0] || "Lead";
-          const lastName = nameParts.slice(1).join(" ") || firstName;
+        if (createResp.ok) {
+          const createData = await createResp.json();
+          const doorloopId = String(createData.id);
 
-          const dlStatus = statusMap[lead.status] || "NEW";
-
-          const createResp = await fetch("https://app.doorloop.com/api/tenants", {
-            method: "POST",
-            headers: new Headers(dlHeaders),
-            body: JSON.stringify({
-              firstName,
-              lastName,
-              phones: [{ type: "Mobile", number: phoneForSearch }],
-              ...(lead.email ? { emails: [{ type: "Primary", address: lead.email }] } : {}),
-              prospectInfo: {
-                status: dlStatus,
-              },
-            }),
-          });
-
-          if (createResp.ok) {
-            const createData = await createResp.json();
-            doorloopId = String(createData.id);
-          } else {
-            const errText = await createResp.text();
-            errors.push(`${lead.full_name}: ${createResp.status} ${errText.slice(0, 100)}`);
-            failed++;
-            continue;
-          }
-        }
-
-        // Update lead with DoorLoop ID
-        if (doorloopId) {
+          // Update lead with DoorLoop ID
           await supabase
             .from("leads")
             .update({ doorloop_prospect_id: doorloopId })
             .eq("id", lead.id);
           synced++;
+        } else {
+          const errText = await createResp.text();
+          errors.push(`${lead.full_name}: ${createResp.status} ${errText.slice(0, 100)}`);
+          failed++;
         }
 
         // Rate limiting: small delay between requests
