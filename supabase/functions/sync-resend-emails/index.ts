@@ -1,0 +1,283 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+interface ResendEmail {
+  id: string;
+  to: string[];
+  from: string;
+  created_at: string;
+  subject: string;
+  last_event: string;
+  bcc: string | null;
+  cc: string | null;
+  reply_to: string | null;
+  scheduled_at: string | null;
+}
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  try {
+    const { organization_id } = await req.json();
+
+    if (!organization_id) {
+      return new Response(
+        JSON.stringify({ error: "Missing organization_id" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Get Resend API key ────────────────────────────────────────
+    let resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
+
+    if (!resendApiKey) {
+      const { data: creds } = await supabase
+        .from("organization_credentials")
+        .select("resend_api_key")
+        .eq("organization_id", organization_id)
+        .single();
+      if (creds?.resend_api_key) resendApiKey = creds.resend_api_key;
+    }
+
+    if (!resendApiKey) {
+      return new Response(
+        JSON.stringify({ error: "No Resend API key configured" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Fetch ALL emails from Resend (paginated, max 100 per page) ──
+    const allResendEmails: ResendEmail[] = [];
+    let afterCursor: string | null = null;
+    let hasMore = true;
+    let pageCount = 0;
+    const MAX_PAGES = 20; // Safety limit: 20 pages × 100 = 2000 emails max
+
+    while (hasMore && pageCount < MAX_PAGES) {
+      const url = new URL("https://api.resend.com/emails");
+      url.searchParams.set("limit", "100");
+      if (afterCursor) url.searchParams.set("after", afterCursor);
+
+      const resp = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${resendApiKey}` },
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error(`Resend list error (${resp.status}):`, errText);
+        // If list endpoint not supported, fall back to sync-by-id
+        if (resp.status === 404 || resp.status === 405) {
+          return await syncByExistingIds(supabase, resendApiKey, organization_id);
+        }
+        throw new Error(`Resend API error: ${resp.status} — ${errText}`);
+      }
+
+      const body = await resp.json();
+      const emails: ResendEmail[] = body.data || [];
+      allResendEmails.push(...emails);
+      hasMore = body.has_more === true;
+
+      if (emails.length > 0) {
+        afterCursor = emails[emails.length - 1].id;
+      } else {
+        hasMore = false;
+      }
+      pageCount++;
+    }
+
+    // ── Get existing resend_email_ids from our DB ─────────────────
+    const { data: existing } = await supabase
+      .from("email_events")
+      .select("resend_email_id")
+      .eq("organization_id", organization_id)
+      .not("resend_email_id", "is", null);
+
+    const existingIds = new Set((existing || []).map((e) => e.resend_email_id));
+
+    // ── Upsert each Resend email into email_events ────────────────
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    for (const email of allResendEmails) {
+      const recipient = email.to?.[0] || "";
+      const lastEvent = email.last_event || "sent";
+
+      // Map Resend last_event to our status
+      const statusMap: Record<string, string> = {
+        sent: "sent",
+        delivered: "delivered",
+        delivery_delayed: "queued",
+        complained: "complained",
+        bounced: "bounced",
+        opened: "opened",
+        clicked: "clicked",
+      };
+      const mappedStatus = statusMap[lastEvent] || lastEvent;
+
+      if (existingIds.has(email.id)) {
+        // Update existing record with latest delivery status
+        const { error: updateErr } = await supabase
+          .from("email_events")
+          .update({
+            details: supabase.rpc ? undefined : undefined, // We need to merge, use raw update
+            event_type: lastEvent === "delivery_delayed" ? "delivery_delayed" : "sent",
+          })
+          .eq("resend_email_id", email.id)
+          .eq("organization_id", organization_id);
+
+        // Use a separate query to update details with merge
+        await supabase.rpc("jsonb_merge_email_details", {
+          p_resend_id: email.id,
+          p_org_id: organization_id,
+          p_status: mappedStatus,
+          p_last_event: lastEvent,
+        }).catch(() => {
+          // If RPC doesn't exist, do a direct update
+          return supabase
+            .from("email_events")
+            .update({
+              details: {
+                status: mappedStatus,
+                last_event: lastEvent,
+                synced_at: new Date().toISOString(),
+              },
+            })
+            .eq("resend_email_id", email.id)
+            .eq("organization_id", organization_id);
+        });
+
+        updated++;
+      } else {
+        // Create new record for email not in our DB
+        const { error: insertErr } = await supabase.from("email_events").insert({
+          organization_id,
+          event_type: lastEvent === "delivery_delayed" ? "delivery_delayed" : "sent",
+          recipient_email: recipient,
+          subject: email.subject || "(no subject)",
+          resend_email_id: email.id,
+          created_at: email.created_at,
+          details: {
+            status: mappedStatus,
+            last_event: lastEvent,
+            from: email.from,
+            synced_from_resend: true,
+            synced_at: new Date().toISOString(),
+          },
+        });
+
+        if (insertErr) {
+          console.warn(`Insert failed for ${email.id}:`, insertErr.message);
+          skipped++;
+        } else {
+          created++;
+        }
+      }
+    }
+
+    // ── Log sync ──────────────────────────────────────────────────
+    try {
+      await supabase.from("system_logs").insert({
+        organization_id,
+        level: "info",
+        category: "general",
+        event_type: "resend_sync",
+        message: `Resend sync: ${allResendEmails.length} total, ${created} new, ${updated} updated, ${skipped} skipped`,
+        details: {
+          total_from_resend: allResendEmails.length,
+          created,
+          updated,
+          skipped,
+          pages_fetched: pageCount,
+        },
+      });
+    } catch { /* non-blocking */ }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        total_from_resend: allResendEmails.length,
+        created,
+        updated,
+        skipped,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (err) {
+    console.error("sync-resend-emails error:", err);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: (err as Error).message || "Sync failed",
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+// ── Fallback: sync by existing IDs if list endpoint not available ──
+async function syncByExistingIds(
+  supabase: any,
+  apiKey: string,
+  organizationId: string
+) {
+  const { data: records } = await supabase
+    .from("email_events")
+    .select("id, resend_email_id, details")
+    .eq("organization_id", organizationId)
+    .not("resend_email_id", "is", null);
+
+  if (!records || records.length === 0) {
+    return new Response(
+      JSON.stringify({ success: true, total_from_resend: 0, created: 0, updated: 0, skipped: 0, message: "No emails to sync" }),
+      { status: 200, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" } }
+    );
+  }
+
+  let updated = 0;
+  for (const record of records) {
+    try {
+      const resp = await fetch(`https://api.resend.com/emails/${record.resend_email_id}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!resp.ok) continue;
+
+      const emailData = await resp.json();
+      const lastEvent = emailData.last_event || "sent";
+
+      await supabase
+        .from("email_events")
+        .update({
+          details: {
+            ...(record.details || {}),
+            status: lastEvent === "delivered" ? "delivered" : lastEvent,
+            last_event: lastEvent,
+            synced_at: new Date().toISOString(),
+          },
+        })
+        .eq("id", record.id);
+
+      updated++;
+    } catch (e) {
+      console.warn(`Failed to sync ${record.resend_email_id}:`, e);
+    }
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, total_from_resend: records.length, created: 0, updated, skipped: 0, fallback: true }),
+    { status: 200, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" } }
+  );
+}

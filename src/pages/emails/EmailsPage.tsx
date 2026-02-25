@@ -44,6 +44,9 @@ import {
   User,
   FileText,
   Timer,
+  CloudDownload,
+  MousePointerClick,
+  Ban,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -77,7 +80,11 @@ interface InboundEmail {
 const STATUS_OPTIONS = [
   { value: "all", label: "All Statuses" },
   { value: "sent", label: "Sent" },
+  { value: "delivered", label: "Delivered" },
+  { value: "opened", label: "Opened" },
+  { value: "clicked", label: "Clicked" },
   { value: "queued", label: "Queued" },
+  { value: "bounced", label: "Bounced" },
   { value: "failed", label: "Failed" },
 ];
 
@@ -97,27 +104,69 @@ const eventTypeLabel = (type: string | null): string => {
   return map[type] || type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-const getEmailStatus = (email: EmailEvent): "sent" | "queued" | "failed" | "unknown" => {
+type EmailStatus = "delivered" | "opened" | "clicked" | "sent" | "queued" | "bounced" | "complained" | "failed" | "unknown";
+
+const getEmailStatus = (email: EmailEvent): EmailStatus => {
+  const lastEvent = email.details?.last_event;
   const status = email.details?.status;
+
+  // Resend sync statuses (most specific first)
+  if (lastEvent === "clicked" || status === "clicked") return "clicked";
+  if (lastEvent === "opened" || status === "opened") return "opened";
+  if (lastEvent === "delivered" || status === "delivered") return "delivered";
+  if (lastEvent === "bounced" || status === "bounced") return "bounced";
+  if (lastEvent === "complained" || status === "complained") return "complained";
+
+  // Original statuses
   if (status === "queued" && !email.resend_email_id) return "queued";
   if (status === "failed" || email.event_type === "failed") return "failed";
-  if (email.resend_email_id || status === "sent") return "sent";
+  if (email.resend_email_id || status === "sent" || lastEvent === "sent") return "sent";
   return "unknown";
 };
 
 const StatusBadge = ({ email }: { email: EmailEvent }) => {
   const status = getEmailStatus(email);
   switch (status) {
-    case "sent":
+    case "delivered":
       return (
         <Badge className="bg-green-50 text-green-700 border-green-200 font-medium">
-          <CheckCircle2 className="h-3 w-3 mr-1" />Sent
+          <CheckCircle2 className="h-3 w-3 mr-1" />Delivered
+        </Badge>
+      );
+    case "opened":
+      return (
+        <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-medium">
+          <MailOpen className="h-3 w-3 mr-1" />Opened
+        </Badge>
+      );
+    case "clicked":
+      return (
+        <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 font-medium">
+          <MousePointerClick className="h-3 w-3 mr-1" />Clicked
+        </Badge>
+      );
+    case "sent":
+      return (
+        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium">
+          <Send className="h-3 w-3 mr-1" />Sent
         </Badge>
       );
     case "queued":
       return (
         <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-medium">
           <Clock className="h-3 w-3 mr-1" />Queued
+        </Badge>
+      );
+    case "bounced":
+      return (
+        <Badge className="bg-red-50 text-red-700 border-red-200 font-medium">
+          <Ban className="h-3 w-3 mr-1" />Bounced
+        </Badge>
+      );
+    case "complained":
+      return (
+        <Badge className="bg-orange-50 text-orange-700 border-orange-200 font-medium">
+          <AlertTriangle className="h-3 w-3 mr-1" />Spam
         </Badge>
       );
     case "failed":
@@ -149,6 +198,7 @@ const EmailsPage = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [forceSending, setForceSending] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   // Receiving state
   const [inbound, setInbound] = useState<InboundEmail[]>([]);
@@ -161,9 +211,13 @@ const EmailsPage = () => {
 
   // Stats
   const [sentCount, setSentCount] = useState(0);
+  const [deliveredCount, setDeliveredCount] = useState(0);
+  const [openedCount, setOpenedCount] = useState(0);
   const [queuedCount, setQueuedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
+  const [bouncedCount, setBouncedCount] = useState(0);
   const [receivedCount, setReceivedCount] = useState(0);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
 
   const fetchEmails = async () => {
     if (!userRecord?.organization_id) return;
@@ -184,13 +238,30 @@ const EmailsPage = () => {
         query = query.or(`recipient_email.ilike.%${search}%,subject.ilike.%${search}%`);
       }
 
+      // Status filtering — uses details->last_event or details->status from Resend sync
       if (statusFilter !== "all") {
-        if (statusFilter === "sent") {
-          query = query.not("resend_email_id", "is", null);
-        } else if (statusFilter === "queued") {
-          query = query.is("resend_email_id", null).eq("event_type", "delivery_delayed");
-        } else if (statusFilter === "failed") {
-          query = query.eq("event_type", "failed");
+        switch (statusFilter) {
+          case "delivered":
+            query = query.contains("details", { last_event: "delivered" });
+            break;
+          case "opened":
+            query = query.contains("details", { last_event: "opened" });
+            break;
+          case "clicked":
+            query = query.contains("details", { last_event: "clicked" });
+            break;
+          case "sent":
+            query = query.not("resend_email_id", "is", null);
+            break;
+          case "queued":
+            query = query.is("resend_email_id", null).eq("event_type", "delivery_delayed");
+            break;
+          case "bounced":
+            query = query.contains("details", { last_event: "bounced" });
+            break;
+          case "failed":
+            query = query.eq("event_type", "failed");
+            break;
         }
       }
 
@@ -200,33 +271,66 @@ const EmailsPage = () => {
       setEmails(data || []);
       setTotal(count || 0);
 
-      // Counts for stats
-      const { count: sentC } = await supabase
+      // ── Compute stats from ALL emails (not just current page) ──
+      // Fetch all details for counting — use a lightweight query
+      const { data: allEmails } = await supabase
         .from("email_events")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", userRecord.organization_id)
-        .not("resend_email_id", "is", null);
-      setSentCount(sentC || 0);
+        .select("resend_email_id, event_type, details")
+        .eq("organization_id", userRecord.organization_id);
 
-      const { count: queuedC } = await supabase
-        .from("email_events")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", userRecord.organization_id)
-        .is("resend_email_id", null)
-        .eq("event_type", "delivery_delayed");
-      setQueuedCount(queuedC || 0);
-
-      const { count: failedC } = await supabase
-        .from("email_events")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", userRecord.organization_id)
-        .eq("event_type", "failed");
-      setFailedCount(failedC || 0);
+      let sent = 0, delivered = 0, opened = 0, queued = 0, failed = 0, bounced = 0;
+      for (const e of allEmails || []) {
+        const le = e.details?.last_event;
+        const st = e.details?.status;
+        if (le === "clicked" || st === "clicked") { opened++; continue; }
+        if (le === "opened" || st === "opened") { opened++; continue; }
+        if (le === "delivered" || st === "delivered") { delivered++; continue; }
+        if (le === "bounced" || st === "bounced") { bounced++; continue; }
+        if ((st === "queued" && !e.resend_email_id)) { queued++; continue; }
+        if (st === "failed" || e.event_type === "failed") { failed++; continue; }
+        if (e.resend_email_id || st === "sent" || le === "sent") { sent++; continue; }
+        sent++; // fallback
+      }
+      setSentCount(sent);
+      setDeliveredCount(delivered);
+      setOpenedCount(opened);
+      setQueuedCount(queued);
+      setFailedCount(failed);
+      setBouncedCount(bounced);
     } catch (err) {
       console.error("Error fetching emails:", err);
       toast.error("Failed to load email activity");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncFromResend = async () => {
+    if (!userRecord?.organization_id) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-resend-emails", {
+        body: { organization_id: userRecord.organization_id },
+      });
+      if (error) throw error;
+
+      const result = data as any;
+      if (result?.success) {
+        const parts = [];
+        if (result.created > 0) parts.push(`${result.created} new`);
+        if (result.updated > 0) parts.push(`${result.updated} updated`);
+        if (parts.length === 0) parts.push("Already in sync");
+        toast.success(`Resend sync: ${parts.join(", ")} (${result.total_from_resend} total)`);
+        setLastSyncAt(new Date().toISOString());
+        fetchEmails();
+      } else {
+        toast.error(result?.error || "Sync failed");
+      }
+    } catch (err) {
+      console.error("Resend sync error:", err);
+      toast.error("Failed to sync from Resend");
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -308,10 +412,14 @@ const EmailsPage = () => {
     const errorMessage = d.error || d.error_message;
     const queuedAt = d.queued_at;
     const sentAt = d.sent_at;
+    const lastEvent = d.last_event;
+    const syncedFromResend = d.synced_from_resend === true;
+    const syncedAt = d.synced_at;
+    const fromAddress = d.from;
     const relatedId = d.showing_id || d.lead_id || email.lead_id;
     const relatedType = d.showing_id ? "Showing" : d.lead_id || email.lead_id ? "Lead" : null;
 
-    return { hasHtml, notificationType, errorMessage, queuedAt, sentAt, relatedId, relatedType };
+    return { hasHtml, notificationType, errorMessage, queuedAt, sentAt, lastEvent, syncedFromResend, syncedAt, fromAddress, relatedId, relatedType };
   };
 
   return (
@@ -322,9 +430,23 @@ const EmailsPage = () => {
           <h1 className="text-2xl font-bold text-foreground">Emails</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Monitor outgoing and incoming email activity
+            {lastSyncAt && (
+              <span className="ml-2 text-xs">
+                — Last sync: {formatDistanceToNow(new Date(lastSyncAt), { addSuffix: true })}
+              </span>
+            )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            size="sm"
+            onClick={syncFromResend}
+            disabled={syncing}
+            variant="default"
+          >
+            <CloudDownload className={`h-4 w-4 mr-1.5 ${syncing ? "animate-bounce" : ""}`} />
+            {syncing ? "Syncing..." : "Sync from Resend"}
+          </Button>
           {queuedCount > 0 && (
             <Button
               size="sm"
@@ -344,57 +466,41 @@ const EmailsPage = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Sent</p>
+            <p className="text-xl font-bold">{sentCount}</p>
+          </CardContent>
+        </Card>
         <Card className="border-l-4 border-l-green-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Delivered</p>
-                <p className="text-2xl font-bold mt-1">{sentCount}</p>
-              </div>
-              <div className="p-2.5 rounded-full bg-green-50">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              </div>
-            </div>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Delivered</p>
+            <p className="text-xl font-bold text-green-700">{deliveredCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Opened</p>
+            <p className="text-xl font-bold text-blue-700">{openedCount}</p>
           </CardContent>
         </Card>
         <Card className={`border-l-4 ${queuedCount > 0 ? "border-l-amber-500" : "border-l-slate-200"}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Queued</p>
-                <p className="text-2xl font-bold mt-1">{queuedCount}</p>
-              </div>
-              <div className={`p-2.5 rounded-full ${queuedCount > 0 ? "bg-amber-50" : "bg-slate-50"}`}>
-                <Clock className={`h-5 w-5 ${queuedCount > 0 ? "text-amber-600" : "text-slate-400"}`} />
-              </div>
-            </div>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Queued</p>
+            <p className={`text-xl font-bold ${queuedCount > 0 ? "text-amber-600" : ""}`}>{queuedCount}</p>
           </CardContent>
         </Card>
-        <Card className={`border-l-4 ${failedCount > 0 ? "border-l-red-500" : "border-l-slate-200"}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Failed</p>
-                <p className="text-2xl font-bold mt-1">{failedCount}</p>
-              </div>
-              <div className={`p-2.5 rounded-full ${failedCount > 0 ? "bg-red-50" : "bg-slate-50"}`}>
-                <XCircle className={`h-5 w-5 ${failedCount > 0 ? "text-red-600" : "text-slate-400"}`} />
-              </div>
-            </div>
+        <Card className={`border-l-4 ${bouncedCount > 0 ? "border-l-red-400" : "border-l-slate-200"}`}>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Bounced</p>
+            <p className={`text-xl font-bold ${bouncedCount > 0 ? "text-red-600" : ""}`}>{bouncedCount}</p>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-purple-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Received</p>
-                <p className="text-2xl font-bold mt-1">{receivedCount}</p>
-              </div>
-              <div className="p-2.5 rounded-full bg-purple-50">
-                <Inbox className="h-5 w-5 text-purple-600" />
-              </div>
-            </div>
+        <Card className={`border-l-4 ${failedCount > 0 ? "border-l-red-600" : "border-l-slate-200"}`}>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Failed</p>
+            <p className={`text-xl font-bold ${failedCount > 0 ? "text-red-700" : ""}`}>{failedCount}</p>
           </CardContent>
         </Card>
       </div>
@@ -692,6 +798,44 @@ const EmailsPage = () => {
                     </div>
                   </div>
 
+                  {/* From address (shown for synced emails) */}
+                  {info.fromAddress && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40">
+                      <Mail className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">From</p>
+                        <p className="text-sm font-medium truncate">{info.fromAddress}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Delivery tracking from Resend */}
+                  {info.lastEvent && info.lastEvent !== "sent" && (
+                    <div className={`flex items-start gap-3 p-3 rounded-lg border ${
+                      info.lastEvent === "delivered" ? "bg-green-50 border-green-200" :
+                      info.lastEvent === "opened" ? "bg-blue-50 border-blue-200" :
+                      info.lastEvent === "clicked" ? "bg-indigo-50 border-indigo-200" :
+                      info.lastEvent === "bounced" ? "bg-red-50 border-red-200" :
+                      info.lastEvent === "complained" ? "bg-orange-50 border-orange-200" :
+                      "bg-muted/40 border-muted"
+                    }`}>
+                      <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${
+                        info.lastEvent === "delivered" ? "text-green-600" :
+                        info.lastEvent === "opened" ? "text-blue-600" :
+                        info.lastEvent === "clicked" ? "text-indigo-600" :
+                        info.lastEvent === "bounced" ? "text-red-600" :
+                        "text-muted-foreground"
+                      }`} />
+                      <div>
+                        <p className="text-xs font-medium capitalize">{info.lastEvent}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Delivery event from Resend
+                          {info.syncedAt && ` — synced ${formatDistanceToNow(new Date(info.syncedAt), { addSuffix: true })}`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Queue info for queued emails */}
                   {status === "queued" && info.queuedAt && (
                     <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
@@ -705,8 +849,8 @@ const EmailsPage = () => {
                     </div>
                   )}
 
-                  {/* Error info for failed emails */}
-                  {status === "failed" && info.errorMessage && (
+                  {/* Error info for failed/bounced emails */}
+                  {(status === "failed" || status === "bounced") && info.errorMessage && (
                     <div className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-200">
                       <XCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
                       <div>
@@ -714,6 +858,13 @@ const EmailsPage = () => {
                         <p className="text-sm text-red-700">{info.errorMessage}</p>
                       </div>
                     </div>
+                  )}
+
+                  {/* Synced from Resend indicator */}
+                  {info.syncedFromResend && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <CloudDownload className="h-3 w-3" /> Imported from Resend
+                    </p>
                   )}
                 </div>
 
