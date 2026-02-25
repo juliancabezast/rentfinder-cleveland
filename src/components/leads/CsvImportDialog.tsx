@@ -22,12 +22,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Upload,
   Download,
-  FileSpreadsheet,
   Loader2,
   AlertCircle,
   Check,
   ChevronRight,
-  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,7 +52,6 @@ const MAPPABLE_FIELDS = [
   { key: "has_voucher", label: "Has Voucher", required: false },
   { key: "voucher_amount", label: "Voucher Amount", required: false },
   { key: "housing_authority", label: "Housing Authority", required: false },
-  { key: "bedrooms_needed", label: "Bedrooms Needed", required: false },
   { key: "preferred_language", label: "Language", required: false },
   { key: "source", label: "Source", required: false },
   { key: "notes", label: "Notes", required: false },
@@ -103,10 +100,6 @@ const COLUMN_ALIASES: Record<string, MappableFieldKey> = {
   // Housing Authority
   "housing authority": "housing_authority", housing_authority: "housing_authority",
   authority: "housing_authority",
-  // Bedrooms
-  "bedrooms needed": "bedrooms_needed", bedrooms_needed: "bedrooms_needed",
-  bedrooms: "bedrooms_needed", beds: "bedrooms_needed", br: "bedrooms_needed",
-  rooms: "bedrooms_needed",
   // Language
   language: "preferred_language", lang: "preferred_language",
   preferred_language: "preferred_language", idioma: "preferred_language",
@@ -196,6 +189,8 @@ function calculateImportScore(lead: Record<string, unknown>, hasPropertyAssigned
   if (lead.phone && lead.email) score += 3; // complete contact bonus
   if (hasPropertyAssigned) score += 5;
   if (lead.has_voucher === true || (lead.voucher_amount && Number(lead.voucher_amount) > 0)) score += 10;
+  // Note: status, showings, calls, and note-keyword bonuses are applied
+  // by the DB recalculate_lead_scores() function on rescan, not at import
   return Math.min(score, 100);
 }
 
@@ -287,6 +282,12 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
     try {
       const { headers, data } = await parseFile(selectedFile);
+
+      if (data.length === 0) {
+        toast.error("File is empty or has no data rows.");
+        return;
+      }
+
       setFileHeaders(headers);
       setFileData(data);
 
@@ -379,8 +380,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         switch (ourField) {
           case "budget_min":
           case "budget_max":
-          case "voucher_amount":
-          case "bedrooms_needed": {
+          case "voucher_amount": {
             const numVal = parseFloat(value);
             if (!isNaN(numVal)) lead[ourField] = numVal;
             break;
@@ -519,7 +519,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           source: (cleanLead.source as string) || "csv_import",
           stage: "prospect",
           full_name: analyzed.name !== "—" ? analyzed.name : null,
-          ...(phone ? { phone } : {}),
+          phone: phone || null,
           ...(email ? { email } : {}),
           ...(effectivePropertyId ? { interested_property_id: effectivePropertyId } : {}),
         };
@@ -618,11 +618,10 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         email: "john@example.com",
         budget_min: "800",
         budget_max: "1200",
-        move_in_date: "2025-03-01",
+        move_in_date: "2026-04-01",
         has_voucher: "false",
         voucher_amount: "",
         housing_authority: "",
-        bedrooms_needed: "2",
         preferred_language: "en",
         source: "referral",
         notes: "Prefers first floor",
@@ -635,11 +634,10 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         email: "maria@example.com",
         budget_min: "1000",
         budget_max: "1500",
-        move_in_date: "2025-02-15",
+        move_in_date: "2026-03-15",
         has_voucher: "true",
         voucher_amount: "1200",
         housing_authority: "CMHA",
-        bedrooms_needed: "3",
         preferred_language: "es",
         source: "website",
         notes: "Spanish speaking preferred",
