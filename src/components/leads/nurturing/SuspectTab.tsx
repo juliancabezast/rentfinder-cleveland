@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, Trash2, Pencil, Check, X, Loader2 } from "lucide-react";
+import { AlertTriangle, Trash2, Pencil, Check, X, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Table,
@@ -187,6 +188,63 @@ function analyzeLead(lead: { full_name: string | null; phone: string | null; ema
   ];
 }
 
+// ── Name cleaning / restoration ──
+
+const JUNK_WORDS = [
+  "com", "comments", "comment", "hemlane", "reply", "subject",
+  "fwd", "re", "via", "click", "here", "view", "unsubscribe",
+  "mailto", "http", "https", "www", "notification", "alert",
+  "digest", "daily", "update", "message", "new", "lead",
+];
+
+/** Strip junk words and artifacts from a name, return cleaned version or null if unsalvageable */
+function cleanName(name: string | null): string | null {
+  if (!name) return null;
+
+  let cleaned = name
+    // Remove URLs
+    .replace(/https?:\/\/\S+/gi, "")
+    // Remove email addresses
+    .replace(/\S+@\S+\.\S+/g, "")
+    // Remove .com and similar
+    .replace(/\.\w{2,4}\b/g, "")
+    // Remove HTML-like tags
+    .replace(/<[^>]+>/g, "")
+    // Remove special characters except hyphens and apostrophes
+    .replace(/[^a-zA-ZÀ-ÿ\s'-]/g, " ");
+
+  // Remove junk words (case-insensitive, whole words)
+  const words = cleaned.split(/\s+/).filter((w) => {
+    const lower = w.toLowerCase().replace(/[^a-z]/g, "");
+    return lower.length > 0 && !JUNK_WORDS.includes(lower);
+  });
+
+  if (words.length === 0) return null;
+
+  // Capitalize each word properly
+  const result = words
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ")
+    .trim();
+
+  return result.length >= 2 ? result : null;
+}
+
+/** Try to produce a cleaned version of each field for a lead */
+function suggestRestore(lead: SuspectLead): { full_name?: string; phone?: string; email?: string } | null {
+  const suggestions: Record<string, string> = {};
+
+  // Name: clean it
+  if (lead.alerts.some((a) => a.field === "full_name") && lead.full_name) {
+    const cleaned = cleanName(lead.full_name);
+    if (cleaned && cleaned !== lead.full_name) {
+      suggestions.full_name = cleaned;
+    }
+  }
+
+  return Object.keys(suggestions).length > 0 ? suggestions : null;
+}
+
 // ── Component ──
 
 type EditingCell = { leadId: string; field: "full_name" | "phone" | "email" } | null;
@@ -200,6 +258,15 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SuspectLead | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState<{
+    lead: SuspectLead;
+    suggestions: Record<string, string>;
+  } | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreAllProgress, setRestoreAllProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   useEffect(() => {
     fetchSuspect();
@@ -337,6 +404,104 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     setDeleteTarget(null);
   };
 
+  const handleRestoreClick = (lead: SuspectLead) => {
+    const suggestions = suggestRestore(lead);
+    if (!suggestions) {
+      toast.error("Can't auto-fix", { description: "No valid name could be extracted. Edit manually or delete." });
+      return;
+    }
+    setRestoreTarget({ lead, suggestions });
+  };
+
+  const handleRestoreConfirm = async () => {
+    if (!restoreTarget) return;
+    setRestoring(true);
+
+    const { lead, suggestions } = restoreTarget;
+    const updateData: Record<string, any> = {
+      ...suggestions,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (suggestions.full_name) {
+      const parts = suggestions.full_name.trim().split(" ");
+      updateData.first_name = parts[0] || null;
+      updateData.last_name = parts.slice(1).join(" ") || null;
+    }
+
+    const { error } = await supabase
+      .from("leads")
+      .update(updateData)
+      .eq("id", lead.id);
+
+    setRestoring(false);
+
+    if (error) {
+      toast.error("Restore failed", { description: error.message });
+      return;
+    }
+
+    toast.success("Lead restored", {
+      description: `${lead.full_name} → ${suggestions.full_name || lead.full_name}`,
+    });
+
+    // Re-analyze
+    setLeads((prev) => {
+      const updated = prev.map((l) => {
+        if (l.id !== lead.id) return l;
+        const newLead = { ...l, ...suggestions };
+        const newAlerts = analyzeLead(newLead);
+        return { ...newLead, alerts: newAlerts } as SuspectLead;
+      });
+      const stillSuspect = updated.filter((l) => l.alerts.length > 0);
+      onCountChange(stillSuspect.length);
+      return stillSuspect;
+    });
+
+    setRestoreTarget(null);
+  };
+
+  const handleRestoreAll = async () => {
+    // Collect all restorable leads
+    const restorable = leads
+      .map((lead) => ({ lead, suggestions: suggestRestore(lead) }))
+      .filter((r): r is { lead: SuspectLead; suggestions: Record<string, string> } => r.suggestions !== null);
+
+    if (restorable.length === 0) {
+      toast.info("No leads can be auto-restored. Edit or delete them manually.");
+      return;
+    }
+
+    setRestoreAllProgress({ current: 0, total: restorable.length });
+    let succeeded = 0;
+
+    for (let i = 0; i < restorable.length; i++) {
+      const { lead, suggestions } = restorable[i];
+      setRestoreAllProgress({ current: i + 1, total: restorable.length });
+
+      const updateData: Record<string, any> = {
+        ...suggestions,
+        updated_at: new Date().toISOString(),
+      };
+      if (suggestions.full_name) {
+        const parts = suggestions.full_name.trim().split(" ");
+        updateData.first_name = parts[0] || null;
+        updateData.last_name = parts.slice(1).join(" ") || null;
+      }
+
+      const { error } = await supabase
+        .from("leads")
+        .update(updateData)
+        .eq("id", lead.id);
+
+      if (!error) succeeded++;
+    }
+
+    setRestoreAllProgress(null);
+    toast.success(`Restored ${succeeded} of ${restorable.length} leads`);
+    fetchSuspect();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") saveEdit();
     if (e.key === "Escape") cancelEdit();
@@ -407,10 +572,33 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        {leads.length} lead{leads.length !== 1 ? "s" : ""} need review.
-        Click on flagged fields to fix them, or delete junk leads.
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {leads.length} lead{leads.length !== 1 ? "s" : ""} need review.
+          Click on flagged fields to fix them, or delete junk leads.
+        </p>
+        {!restoreAllProgress && leads.some((l) => suggestRestore(l)) && (
+          <Button onClick={handleRestoreAll} className="bg-[#370d4b] hover:bg-[#370d4b]/90">
+            <Wand2 className="h-4 w-4 mr-1.5" />
+            Restore All ({leads.filter((l) => suggestRestore(l)).length})
+          </Button>
+        )}
+      </div>
+
+      {restoreAllProgress && (
+        <div className="rounded-lg border p-4 bg-muted/30">
+          <div className="flex items-center gap-3 mb-2">
+            <Loader2 className="h-4 w-4 animate-spin text-[#370d4b]" />
+            <span className="text-sm font-medium">
+              Restoring {restoreAllProgress.current} of {restoreAllProgress.total}...
+            </span>
+          </div>
+          <Progress
+            value={(restoreAllProgress.current / restoreAllProgress.total) * 100}
+            className="h-2"
+          />
+        </div>
+      )}
 
       <div className="rounded-md border">
         <Table>
@@ -422,7 +610,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
               <TableHead>Email</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-24"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -456,15 +644,28 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
                   {format(new Date(lead.created_at), "MMM d")}
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => setDeleteTarget(lead)}
-                    title="Delete this lead"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    {suggestRestore(lead) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-[#370d4b] hover:text-[#370d4b] hover:bg-purple-50"
+                        onClick={() => handleRestoreClick(lead)}
+                        title="Restore — clean up this lead"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => setDeleteTarget(lead)}
+                      title="Delete this lead"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -501,6 +702,58 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
                 </>
               ) : (
                 "Delete Lead"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore confirmation */}
+      <AlertDialog open={!!restoreTarget} onOpenChange={(open) => !open && setRestoreTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5 text-[#370d4b]" />
+              Restore Lead
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Clean up this lead's data and move it to the main Leads list:</p>
+                {restoreTarget?.suggestions.full_name && (
+                  <div className="rounded-lg border p-3 bg-muted/30 space-y-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">Before:</span>
+                      <span className="line-through text-red-600">{restoreTarget.lead.full_name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">After:</span>
+                      <span className="font-medium text-green-700">{restoreTarget.suggestions.full_name}</span>
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Phone and email will be kept as-is.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={restoring}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRestoreConfirm}
+              disabled={restoring}
+              className="bg-[#370d4b] hover:bg-[#370d4b]/90"
+            >
+              {restoring ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  Restoring...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4 mr-1.5" />
+                  Restore
+                </>
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
