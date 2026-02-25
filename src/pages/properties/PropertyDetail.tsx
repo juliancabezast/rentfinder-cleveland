@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PropertyForm } from '@/components/properties/PropertyForm';
+import { ReassignLeadsDialog } from '@/components/properties/ReassignLeadsDialog';
 import {
   ArrowLeft,
   Edit,
@@ -52,6 +53,7 @@ import {
   ExternalLink,
   Video,
   View,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -139,6 +141,8 @@ const PropertyDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [allProperties, setAllProperties] = useState<any[]>([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   useEffect(() => {
@@ -238,6 +242,17 @@ const PropertyDetail: React.FC = () => {
 
         if (showingsData) {
           setUpcomingShowings(showingsData as Showing[]);
+        }
+
+        // Fetch all org properties for reassign dialog
+        const { data: allPropsData } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('organization_id', organization.id)
+          .order('address');
+
+        if (allPropsData) {
+          setAllProperties(allPropsData);
         }
       } catch (error) {
         console.error('Error fetching property:', error);
@@ -735,11 +750,22 @@ const PropertyDetail: React.FC = () => {
 
           {/* Recent Leads */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Recent Leads
               </CardTitle>
+              {recentLeads.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1.5 border-[#370d4b]/30 text-[#370d4b] hover:bg-[#370d4b]/5"
+                  onClick={() => setReassignOpen(true)}
+                >
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                  Reassign
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {recentLeads.length === 0 ? (
@@ -769,6 +795,29 @@ const PropertyDetail: React.FC = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Reassign Leads Dialog */}
+          {property && (
+            <ReassignLeadsDialog
+              open={reassignOpen}
+              onOpenChange={setReassignOpen}
+              sourceProperty={property as any}
+              allProperties={allProperties}
+              onSuccess={() => {
+                setRecentLeads([]);
+                // Re-fetch leads
+                supabase
+                  .from('leads')
+                  .select('id, full_name, first_name, last_name, status, created_at')
+                  .eq('interested_property_id', id!)
+                  .order('created_at', { ascending: false })
+                  .limit(5)
+                  .then(({ data }) => {
+                    if (data) setRecentLeads(data);
+                  });
+              }}
+            />
+          )}
 
           {/* Upcoming Showings */}
           <Card>
