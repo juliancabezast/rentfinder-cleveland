@@ -1,54 +1,28 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { EnableSlotsDialog, EditSlotData } from "./EnableSlotsDialog";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Copy,
-  Briefcase,
   CalendarDays,
-  Loader2,
+  Clock,
   Link2,
+  Pencil,
+  Plus,
+  Trash2,
+  Loader2,
 } from "lucide-react";
-import {
-  format,
-  addDays,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
-  isSameDay,
-  addWeeks,
-  subWeeks,
-} from "date-fns";
+import { format, parseISO } from "date-fns";
 
-type SlotRow =
-  import("@/integrations/supabase/types").Database["public"]["Tables"]["showing_available_slots"]["Row"];
-
-interface PropertyOption {
-  id: string;
-  address: string;
-  city: string;
-  status: string;
-}
-
-// Time slots from 8:00 AM to 7:00 PM in 30-min increments
-const TIME_SLOTS: string[] = [];
-for (let h = 8; h <= 18; h++) {
-  TIME_SLOTS.push(`${String(h).padStart(2, "0")}:00:00`);
-  if (h < 19) TIME_SLOTS.push(`${String(h).padStart(2, "0")}:30:00`);
+interface DateGroup {
+  date: string;
+  available: number;
+  booked: number;
+  slots: { time: string; is_booked: boolean; id: string }[];
 }
 
 function formatTime(t: string) {
@@ -59,556 +33,276 @@ function formatTime(t: string) {
   return `${display}:${m} ${ampm}`;
 }
 
-function slotKey(date: string, time: string) {
-  return `${date}__${time}`;
-}
-
 export const ManageSlotsTab: React.FC = () => {
   const { userRecord } = useAuth();
   const { toast } = useToast();
 
-  const [properties, setProperties] = useState<PropertyOption[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
-  const [weekStart, setWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 1 })
-  );
-  const [slots, setSlots] = useState<SlotRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [propertiesLoading, setPropertiesLoading] = useState(true);
+  const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editData, setEditData] = useState<EditSlotData | null>(null);
+  const [deletingDate, setDeletingDate] = useState<string | null>(null);
 
   const orgId = userRecord?.organization_id;
 
-  const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
-  const weekDays = useMemo(
-    () => eachDayOfInterval({ start: weekStart, end: weekEnd }),
-    [weekStart, weekEnd]
-  );
-
-  // Build lookup map: "date__time" -> slot
-  const slotMap = useMemo(() => {
-    const map = new Map<string, SlotRow>();
-    slots.forEach((s) => map.set(slotKey(s.slot_date, s.slot_time), s));
-    return map;
-  }, [slots]);
-
-  // Build set of buffer slots (slot before AND after a booked slot)
-  const bufferSet = useMemo(() => {
-    const set = new Set<string>();
-    slots.forEach((s) => {
-      if (s.is_booked) {
-        const idx = TIME_SLOTS.indexOf(s.slot_time);
-        if (idx >= 0) {
-          // Buffer AFTER
-          if (idx < TIME_SLOTS.length - 1) {
-            set.add(slotKey(s.slot_date, TIME_SLOTS[idx + 1]));
-          }
-          // Buffer BEFORE
-          if (idx > 0) {
-            set.add(slotKey(s.slot_date, TIME_SLOTS[idx - 1]));
-          }
-        }
-      }
-    });
-    // Don't mark actually booked slots as buffer
-    slots.forEach((s) => {
-      if (s.is_booked) set.delete(slotKey(s.slot_date, s.slot_time));
-    });
-    return set;
-  }, [slots]);
-
-  // Fetch properties
-  useEffect(() => {
-    if (!orgId) return;
-    (async () => {
-      setPropertiesLoading(true);
-      const { data, error } = await supabase
-        .from("properties")
-        .select("id, address, city, status")
-        .eq("organization_id", orgId)
-        .in("status", ["available", "coming_soon"])
-        .order("address");
-      if (error) {
-        console.error("Error fetching properties:", error);
-      } else {
-        setProperties(data || []);
-        if (data && data.length > 0 && !selectedPropertyId) {
-          setSelectedPropertyId(data[0].id);
-        }
-      }
-      setPropertiesLoading(false);
-    })();
-  }, [orgId]);
-
-  // Fetch slots when property or week changes
+  // Fetch upcoming slots grouped by date
   const fetchSlots = useCallback(async () => {
-    if (!selectedPropertyId) return;
+    if (!orgId) return;
     setLoading(true);
+
+    const today = format(new Date(), "yyyy-MM-dd");
+
     const { data, error } = await supabase
       .from("showing_available_slots")
-      .select("*")
-      .eq("property_id", selectedPropertyId)
-      .gte("slot_date", format(weekStart, "yyyy-MM-dd"))
-      .lte("slot_date", format(weekEnd, "yyyy-MM-dd"));
+      .select("id, slot_date, slot_time, is_booked, is_enabled")
+      .eq("organization_id", orgId)
+      .eq("is_enabled", true)
+      .gte("slot_date", today)
+      .order("slot_date")
+      .order("slot_time");
 
     if (error) {
       console.error("Error fetching slots:", error);
       toast({ title: "Error", description: "Failed to load slots.", variant: "destructive" });
-    } else {
-      setSlots(data || []);
+      setLoading(false);
+      return;
     }
+
+    // Group by date, deduplicate times (since slots exist per property)
+    const groupMap = new Map<string, { times: Map<string, { is_booked: boolean; id: string }> }>();
+
+    (data || []).forEach((s) => {
+      if (!groupMap.has(s.slot_date)) {
+        groupMap.set(s.slot_date, { times: new Map() });
+      }
+      const group = groupMap.get(s.slot_date)!;
+      const existing = group.times.get(s.slot_time);
+      // A time is "booked" if ALL property slots for that time are booked
+      // A time is "available" if ANY property slot for that time is available
+      if (!existing) {
+        group.times.set(s.slot_time, { is_booked: s.is_booked, id: s.id });
+      } else if (!s.is_booked) {
+        // If any slot for this time is available, mark it as available
+        existing.is_booked = false;
+      }
+    });
+
+    const groups: DateGroup[] = [];
+    groupMap.forEach((val, date) => {
+      const slots = Array.from(val.times.entries())
+        .map(([time, info]) => ({ time, is_booked: info.is_booked, id: info.id }))
+        .sort((a, b) => a.time.localeCompare(b.time));
+
+      // Deduplicate times (show each time once regardless of how many properties)
+      const seenTimes = new Set<string>();
+      const uniqueSlots = slots.filter((s) => {
+        if (seenTimes.has(s.time)) return false;
+        seenTimes.add(s.time);
+        return true;
+      });
+
+      groups.push({
+        date,
+        available: uniqueSlots.filter((s) => !s.is_booked).length,
+        booked: uniqueSlots.filter((s) => s.is_booked).length,
+        slots: uniqueSlots,
+      });
+    });
+
+    setDateGroups(groups);
     setLoading(false);
-  }, [selectedPropertyId, weekStart, weekEnd]);
+  }, [orgId]);
 
   useEffect(() => {
     fetchSlots();
   }, [fetchSlots]);
 
-  // Toggle a single slot
-  const toggleSlot = async (date: string, time: string) => {
-    if (!orgId || !selectedPropertyId) return;
-    const key = slotKey(date, time);
-    const existing = slotMap.get(key);
-
-    // If booked or is buffer, don't allow toggle
-    if (existing?.is_booked || bufferSet.has(key)) return;
-
-    setSaving(true);
-    if (existing) {
-      // Toggle is_enabled
-      const { error } = await supabase
-        .from("showing_available_slots")
-        .update({ is_enabled: !existing.is_enabled, updated_at: new Date().toISOString() })
-        .eq("id", existing.id);
-      if (error) {
-        console.error("Slot update error:", error);
-        toast({ title: "Error", description: `Failed to update slot: ${error.message}`, variant: "destructive" });
-      }
-    } else {
-      // Insert new enabled slot
-      const { error } = await supabase.from("showing_available_slots").insert({
-        organization_id: orgId,
-        property_id: selectedPropertyId,
-        slot_date: date,
-        slot_time: time,
-        is_enabled: true,
-        created_by: userRecord?.id,
-      });
-      if (error) {
-        console.error("Slot insert error:", error);
-        toast({ title: "Error", description: `Failed to create slot: ${error.message}`, variant: "destructive" });
-      }
-    }
-    setSaving(false);
-    fetchSlots();
-  };
-
-  // Bulk enable: Mon-Fri 9:00-17:00
-  const enableWeekdayBusiness = async () => {
-    if (!orgId || !selectedPropertyId) return;
-    setSaving(true);
-    const rows: Array<{
-      organization_id: string;
-      property_id: string;
-      slot_date: string;
-      slot_time: string;
-      is_enabled: boolean;
-      created_by: string | undefined;
-    }> = [];
-
-    weekDays.forEach((day) => {
-      const dow = day.getDay();
-      if (dow === 0 || dow === 6) return; // Skip weekends
-      TIME_SLOTS.forEach((time) => {
-        const [h] = time.split(":");
-        const hour = parseInt(h, 10);
-        if (hour >= 9 && hour < 17) {
-          const dateStr = format(day, "yyyy-MM-dd");
-          const key = slotKey(dateStr, time);
-          const existing = slotMap.get(key);
-          if (!existing?.is_booked && !bufferSet.has(key)) {
-            rows.push({
-              organization_id: orgId,
-              property_id: selectedPropertyId,
-              slot_date: dateStr,
-              slot_time: time,
-              is_enabled: true,
-              created_by: userRecord?.id,
-            });
-          }
-        }
-      });
-    });
-
-    if (rows.length > 0) {
-      const { error } = await supabase
-        .from("showing_available_slots")
-        .upsert(rows, { onConflict: "organization_id,property_id,slot_date,slot_time" });
-      if (error) {
-        toast({ title: "Error", description: "Failed to enable slots.", variant: "destructive" });
-      } else {
-        toast({ title: "Slots enabled", description: `${rows.length} Mon-Fri business hour slots enabled.` });
-      }
-    }
-    setSaving(false);
-    fetchSlots();
-  };
-
-  // Enable all slots in the week
-  const enableAllDay = async () => {
-    if (!orgId || !selectedPropertyId) return;
-    setSaving(true);
-    const rows: Array<{
-      organization_id: string;
-      property_id: string;
-      slot_date: string;
-      slot_time: string;
-      is_enabled: boolean;
-      created_by: string | undefined;
-    }> = [];
-
-    weekDays.forEach((day) => {
-      TIME_SLOTS.forEach((time) => {
-        const dateStr = format(day, "yyyy-MM-dd");
-        const key = slotKey(dateStr, time);
-        const existing = slotMap.get(key);
-        if (!existing?.is_booked && !bufferSet.has(key)) {
-          rows.push({
-            organization_id: orgId,
-            property_id: selectedPropertyId,
-            slot_date: dateStr,
-            slot_time: time,
-            is_enabled: true,
-            created_by: userRecord?.id,
-          });
-        }
-      });
-    });
-
-    if (rows.length > 0) {
-      const { error } = await supabase
-        .from("showing_available_slots")
-        .upsert(rows, { onConflict: "organization_id,property_id,slot_date,slot_time" });
-      if (error) {
-        toast({ title: "Error", description: "Failed to enable slots.", variant: "destructive" });
-      } else {
-        toast({ title: "All slots enabled", description: `${rows.length} slots enabled for the week.` });
-      }
-    }
-    setSaving(false);
-    fetchSlots();
-  };
-
-  // Copy current week's enabled slots to next week
-  const copyToNextWeek = async () => {
-    if (!orgId || !selectedPropertyId) return;
-    setSaving(true);
-
-    const enabledSlots = slots.filter((s) => s.is_enabled);
-    if (enabledSlots.length === 0) {
-      toast({ title: "No slots to copy", description: "Enable some slots first.", variant: "destructive" });
-      setSaving(false);
-      return;
-    }
-
-    const rows = enabledSlots.map((s) => {
-      const originalDate = new Date(s.slot_date + "T00:00:00");
-      const nextWeekDate = addDays(originalDate, 7);
-      return {
-        organization_id: orgId,
-        property_id: selectedPropertyId,
-        slot_date: format(nextWeekDate, "yyyy-MM-dd"),
-        slot_time: s.slot_time,
-        is_enabled: true,
-        created_by: userRecord?.id,
-      };
-    });
+  // Delete all slots for a given date
+  const handleDeleteDate = async (date: string) => {
+    if (!orgId) return;
+    setDeletingDate(date);
 
     const { error } = await supabase
       .from("showing_available_slots")
-      .upsert(rows, { onConflict: "organization_id,property_id,slot_date,slot_time" });
+      .delete()
+      .eq("organization_id", orgId)
+      .eq("slot_date", date)
+      .eq("is_booked", false);
+
     if (error) {
-      toast({ title: "Error", description: "Failed to copy slots.", variant: "destructive" });
+      console.error("Delete error:", error);
+      toast({ title: "Error", description: `Failed to delete slots: ${error.message}`, variant: "destructive" });
     } else {
-      toast({
-        title: "Copied to next week",
-        description: `${rows.length} slots copied to ${format(addWeeks(weekStart, 1), "MMM d")} - ${format(addWeeks(weekEnd, 1), "MMM d")}.`,
-      });
+      toast({ title: "Deleted", description: `Available slots for ${format(parseISO(date), "MMM d")} removed.` });
+      fetchSlots();
     }
-    setSaving(false);
+    setDeletingDate(null);
   };
 
-  // Get cell styling based on slot state
-  const getCellStyle = (date: string, time: string) => {
-    const key = slotKey(date, time);
-    const existing = slotMap.get(key);
-    const isBuffer = bufferSet.has(key);
-
-    if (existing?.is_booked) {
-      return {
-        className: "bg-blue-100 border-blue-300 dark:bg-blue-900/40 dark:border-blue-700 cursor-not-allowed",
-        label: "Booked",
-        clickable: false,
-      };
-    }
-    if (isBuffer) {
-      return {
-        className: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 cursor-not-allowed",
-        label: "Buffer",
-        clickable: false,
-      };
-    }
-    if (existing?.is_enabled) {
-      return {
-        className:
-          "bg-emerald-100 border-emerald-300 dark:bg-emerald-900/40 dark:border-emerald-700 hover:bg-emerald-200 cursor-pointer",
-        label: "Available",
-        clickable: true,
-      };
-    }
-    return {
-      className: "bg-muted border-border hover:bg-muted/80 cursor-pointer",
-      label: "",
-      clickable: true,
-    };
-  };
-
-  // Count stats
-  const stats = useMemo(() => {
+  // Summary stats
+  const totals = useMemo(() => {
     let available = 0;
     let booked = 0;
-    let buffers = 0;
-    slots.forEach((s) => {
-      if (s.is_booked) booked++;
-      else if (s.is_enabled) available++;
+    dateGroups.forEach((g) => {
+      available += g.available;
+      booked += g.booked;
     });
-    buffers = bufferSet.size;
-    return { available, booked, buffers };
-  }, [slots, bufferSet]);
-
-  if (propertiesLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-[400px] w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (properties.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-muted-foreground text-center py-8">
-            No available properties found. Add properties with status "available" or "coming soon" first.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+    return { available, booked };
+  }, [dateGroups]);
 
   return (
     <div className="space-y-4">
-      {/* Controls row */}
-      <Card variant="glass">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            {/* Property selector */}
-            <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
-              <SelectTrigger className="w-full lg:w-80 min-h-[44px]">
-                <SelectValue placeholder="Select property" />
-              </SelectTrigger>
-              <SelectContent>
-                {properties.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.address}, {p.city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {/* Top controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          onClick={() => { setEditData(null); setDialogOpen(true); }}
+          className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
+          Enable Slots
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const url = `${window.location.origin}/p/book-showing`;
+            navigator.clipboard.writeText(url);
+            toast({ title: "Booking link copied!", description: url });
+          }}
+        >
+          <Link2 className="h-4 w-4 mr-1.5" />
+          Copy Booking Link
+        </Button>
 
-            {/* Week navigation */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setWeekStart(subWeeks(weekStart, 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-medium min-w-[180px] text-center">
-                {format(weekStart, "MMM d")} - {format(weekEnd, "MMM d, yyyy")}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setWeekStart(addWeeks(weekStart, 1))}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Bulk actions */}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={enableWeekdayBusiness}
-                disabled={saving}
-              >
-                <Briefcase className="h-4 w-4 mr-1" />
-                Mon-Fri 9-5
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={enableAllDay}
-                disabled={saving}
-              >
-                <CalendarDays className="h-4 w-4 mr-1" />
-                Enable All
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyToNextWeek}
-                disabled={saving}
-              >
-                <Copy className="h-4 w-4 mr-1" />
-                Copy → Next Week
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const url = `${window.location.origin}/p/book-showing`;
-                  navigator.clipboard.writeText(url);
-                  toast({ title: "Booking link copied!", description: url });
-                }}
-              >
-                <Link2 className="h-4 w-4 mr-1" />
-                Copy Booking Link
-              </Button>
-              {selectedPropertyId && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const url = `${window.location.origin}/p/schedule-showing/${selectedPropertyId}`;
-                    navigator.clipboard.writeText(url);
-                    toast({ title: "Property link copied!", description: url });
-                  }}
-                >
-                  <Link2 className="h-4 w-4 mr-1" />
-                  Copy Property Link
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Stats */}
-      <div className="flex gap-4 flex-wrap">
-        <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
-          {stats.available} Available
-        </Badge>
-        <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-          {stats.booked} Booked
-        </Badge>
-        <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-          {stats.buffers} Buffer
-        </Badge>
+        {/* Stats */}
+        <div className="flex gap-2 ml-auto">
+          <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
+            {totals.available} Available
+          </Badge>
+          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+            {totals.booked} Booked
+          </Badge>
+        </div>
       </div>
 
-      {/* Weekly grid */}
-      <Card variant="glass">
-        <CardContent className="p-2 sm:p-4 overflow-x-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="min-w-[700px]">
-              {/* Header row: day names */}
-              <div className="grid grid-cols-[80px_repeat(7,1fr)] gap-1 mb-1">
-                <div className="text-xs font-medium text-muted-foreground flex items-center justify-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Time
-                </div>
-                {weekDays.map((day) => (
-                  <div
-                    key={day.toISOString()}
-                    className={`text-center text-xs font-medium p-1.5 rounded-md ${
-                      isSameDay(day, new Date())
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    <div>{format(day, "EEE")}</div>
-                    <div className="text-sm font-semibold">{format(day, "d")}</div>
-                  </div>
-                ))}
-              </div>
+      {/* Slots list */}
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
+        </div>
+      ) : dateGroups.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <CalendarDays className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="font-medium text-muted-foreground">No slots enabled yet</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Click "Enable Slots" to add available times for showings.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {dateGroups.map((group) => {
+            const dateObj = parseISO(group.date);
+            return (
+              <Card key={group.date} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    {/* Date info */}
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-lg bg-[#370d4b]/10 flex flex-col items-center justify-center shrink-0">
+                        <span className="text-[10px] font-semibold text-[#370d4b] uppercase leading-none">
+                          {format(dateObj, "MMM")}
+                        </span>
+                        <span className="text-lg font-bold text-[#370d4b] leading-none">
+                          {format(dateObj, "d")}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">
+                          {format(dateObj, "EEEE")}
+                        </p>
+                        <div className="flex gap-2 mt-0.5">
+                          <span className="text-xs text-emerald-700">{group.available} available</span>
+                          {group.booked > 0 && (
+                            <span className="text-xs text-blue-700">{group.booked} booked</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Time rows */}
-              {TIME_SLOTS.map((time) => (
-                <div key={time} className="grid grid-cols-[80px_repeat(7,1fr)] gap-1 mb-1">
-                  <div className="text-xs text-muted-foreground flex items-center justify-end pr-2 font-mono">
-                    {formatTime(time)}
+                    {/* Edit / Delete buttons */}
+                    <div className="flex items-center gap-1">
+                      {group.available > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-[#370d4b]"
+                          onClick={() => {
+                            setEditData({
+                              date: group.date,
+                              slots: group.slots.map((s) => s.time),
+                            });
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {group.available > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-destructive"
+                          disabled={deletingDate === group.date}
+                          onClick={() => handleDeleteDate(group.date)}
+                        >
+                          {deletingDate === group.date ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  {weekDays.map((day) => {
-                    const dateStr = format(day, "yyyy-MM-dd");
-                    const cell = getCellStyle(dateStr, time);
-                    return (
-                      <button
-                        key={`${dateStr}-${time}`}
-                        className={`h-8 rounded border text-[10px] font-medium transition-colors ${cell.className}`}
-                        disabled={!cell.clickable || saving}
-                        onClick={() => cell.clickable && toggleSlot(dateStr, time)}
-                        title={
-                          cell.label
-                            ? `${cell.label} — ${formatTime(time)}`
-                            : `Click to enable — ${formatTime(time)}`
-                        }
+
+                  {/* Time chips */}
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {group.slots.map((slot) => (
+                      <span
+                        key={slot.time}
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                          slot.is_booked
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-emerald-100 text-emerald-800"
+                        }`}
                       >
-                        {cell.label === "Booked" && "●"}
-                        {cell.label === "Buffer" && "○"}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                        <Clock className="h-3 w-3" />
+                        {formatTime(slot.time)}
+                        {slot.is_booked && " (booked)"}
+                      </span>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <div className="h-4 w-4 rounded border bg-muted" />
-          <span>Not enabled (click to enable)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-4 w-4 rounded border border-emerald-300 bg-emerald-100" />
-          <span>Available (click to disable)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-4 w-4 rounded border border-blue-300 bg-blue-100 flex items-center justify-center text-[8px]">
-            ●
-          </div>
-          <span>Booked</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-4 w-4 rounded border border-blue-200 bg-blue-50 flex items-center justify-center text-[8px]">
-            ○
-          </div>
-          <span>Buffer (before &amp; after)</span>
-        </div>
-      </div>
+      {/* Dialog */}
+      {orgId && (
+        <EnableSlotsDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onSuccess={fetchSlots}
+          orgId={orgId}
+          editData={editData}
+        />
+      )}
     </div>
   );
 };
