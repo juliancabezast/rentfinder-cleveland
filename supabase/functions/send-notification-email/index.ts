@@ -45,20 +45,22 @@ serve(async (req: Request) => {
     // ── QUEUE MODE: Insert into email_events as "queued" for agent processing ──
     if (queue && organization_id) {
       const senderName = from_name || "Rent Finder Cleveland";
-      await supabase.from("email_events").insert({
+      const { error: queueErr } = await supabase.from("email_events").insert({
         organization_id,
-        event_type: notification_type || "notification",
+        event_type: "sent",
         recipient_email: to,
         subject,
         details: {
           html,
           from_name: senderName,
           status: "queued",
+          notification_type: notification_type || "notification",
           related_entity_id: related_entity_id || null,
           related_entity_type: related_entity_type || null,
           queued_at: new Date().toISOString(),
         },
       });
+      if (queueErr) console.error("Queue insert error:", queueErr.message);
 
       console.log(`Email queued for ${to}: "${subject}"`);
 
@@ -120,12 +122,13 @@ serve(async (req: Request) => {
     if (organization_id) {
       await supabase.from("email_events").insert({
         organization_id,
-        event_type: notification_type || "notification",
+        event_type: "sent",
         recipient_email: to,
         subject,
         resend_email_id: resendEmailId,
         details: {
           status: "sent",
+          notification_type: notification_type || "notification",
           related_entity_id: related_entity_id || null,
           related_entity_type: related_entity_type || null,
         },

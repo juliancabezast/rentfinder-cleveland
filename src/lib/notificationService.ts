@@ -29,9 +29,10 @@ interface SendEmailParams {
   organizationId?: string;
   relatedEntityId?: string;
   relatedEntityType?: string;
+  queue?: boolean;
 }
 
-// Fire-and-forget email sender - doesn't block UI
+// Fire-and-forget email sender - queues by default to respect Resend rate limits
 export function sendNotificationEmail(params: SendEmailParams): void {
   supabase.functions
     .invoke("send-notification-email", {
@@ -43,6 +44,7 @@ export function sendNotificationEmail(params: SendEmailParams): void {
         organization_id: params.organizationId,
         related_entity_id: params.relatedEntityId,
         related_entity_type: params.relatedEntityType,
+        queue: params.queue !== false,
       },
     })
     .catch((err) => {
