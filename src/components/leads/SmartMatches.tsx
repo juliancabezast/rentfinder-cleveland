@@ -22,6 +22,7 @@ interface PropertyMatch {
   address: string;
   rent_price: number;
   bedrooms: number;
+  bathrooms: number;
   zip_code: string;
   match_score: number;
   match_reasons: string[];
@@ -224,7 +225,7 @@ export const SmartMatches: React.FC<SmartMatchesProps> = ({ leadId, leadName }) 
                             <span className="truncate">{match.address}</span>
                           </p>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {match.bedrooms}BR · ${match.rent_price.toLocaleString()} · {match.zip_code}
+                            {match.bedrooms}BR / {match.bathrooms}BA · ${match.rent_price.toLocaleString()} · {match.zip_code}
                           </p>
                         </div>
                         <Badge variant="outline" className={matchLevel.color}>

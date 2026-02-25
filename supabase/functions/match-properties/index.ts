@@ -30,11 +30,11 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Get lead preferences ───────────────────────────────────────
+    // ── Get lead with preferences + interested property ──────────
     const { data: lead } = await supabase
       .from("leads")
       .select(
-        "id, budget_min, budget_max, bedrooms_needed, has_voucher, voucher_amount, preferred_areas, preferred_language"
+        "id, budget_min, budget_max, bedrooms_needed, has_voucher, voucher_amount, interested_property_id, interested_zip_codes"
       )
       .eq("id", lead_id)
       .eq("organization_id", organization_id)
@@ -47,8 +47,36 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Query available properties ─────────────────────────────────
-    let query = supabase
+    // ── Build reference from interested property or lead prefs ───
+    let refBedrooms: number | null = lead.bedrooms_needed;
+    let refBathrooms: number | null = null;
+    let refRent: number | null = lead.budget_max;
+    let refZip: string | null = null;
+    let excludePropertyId: string | null = null;
+
+    if (lead.interested_property_id) {
+      const { data: refProp } = await supabase
+        .from("properties")
+        .select("id, bedrooms, bathrooms, rent_price, zip_code")
+        .eq("id", lead.interested_property_id)
+        .single();
+
+      if (refProp) {
+        excludePropertyId = refProp.id;
+        if (!refBedrooms) refBedrooms = refProp.bedrooms;
+        if (!refBathrooms) refBathrooms = refProp.bathrooms;
+        if (!refRent) refRent = refProp.rent_price;
+        refZip = refProp.zip_code;
+      }
+    }
+
+    // Use interested_zip_codes as fallback for zip
+    if (!refZip && lead.interested_zip_codes && lead.interested_zip_codes.length > 0) {
+      refZip = lead.interested_zip_codes[0];
+    }
+
+    // ── Query available properties ───────────────────────────────
+    const { data: properties } = await supabase
       .from("properties")
       .select(
         "id, address, unit_number, city, state, zip_code, bedrooms, bathrooms, square_feet, rent_price, deposit_amount, status, section_8_accepted, photos, property_type, description, amenities"
@@ -57,8 +85,6 @@ serve(async (req: Request) => {
       .in("status", ["available", "coming_soon"])
       .order("rent_price", { ascending: true });
 
-    const { data: properties } = await query;
-
     if (!properties || properties.length === 0) {
       return new Response(
         JSON.stringify({ matches: [] }),
@@ -66,69 +92,89 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Score each property ────────────────────────────────────────
-    const scored = properties.map((p) => {
-      let score = 50; // Base score
-      const reasons: string[] = [];
+    // ── Score each property ──────────────────────────────────────
+    const scored = properties
+      .filter((p) => p.id !== excludePropertyId)
+      .map((p) => {
+        let score = 40; // Base score
+        const reasons: string[] = [];
 
-      // Budget match
-      if (lead.budget_max && p.rent_price <= lead.budget_max) {
-        score += 20;
-        reasons.push("Within budget");
-      } else if (lead.budget_max && p.rent_price <= lead.budget_max * 1.1) {
-        score += 10;
-        reasons.push("Slightly over budget");
-      } else if (lead.budget_max && p.rent_price > lead.budget_max * 1.2) {
-        score -= 20;
-        reasons.push("Over budget");
-      }
-
-      if (lead.budget_min && p.rent_price >= lead.budget_min) {
-        score += 5;
-      }
-
-      // Bedrooms match
-      if (lead.bedrooms_needed && p.bedrooms === lead.bedrooms_needed) {
-        score += 20;
-        reasons.push("Exact bedroom match");
-      } else if (
-        lead.bedrooms_needed &&
-        Math.abs(p.bedrooms - lead.bedrooms_needed) === 1
-      ) {
-        score += 10;
-        reasons.push("Close bedroom match");
-      }
-
-      // Section 8 / Voucher match
-      if (lead.has_voucher) {
-        if (p.section_8_accepted) {
-          score += 15;
-          reasons.push("Accepts Section 8");
-        } else {
-          score -= 30;
-          reasons.push("Does not accept Section 8");
+        // ── Bedrooms match ───────────────────────────────────
+        if (refBedrooms !== null) {
+          if (p.bedrooms === refBedrooms) {
+            score += 25;
+            reasons.push("Exact bedroom match");
+          } else if (Math.abs(p.bedrooms - refBedrooms) === 1) {
+            score += 10;
+            reasons.push("Close bedroom match");
+          }
         }
 
-        // Check if voucher covers rent
-        if (lead.voucher_amount && p.rent_price <= lead.voucher_amount) {
-          score += 10;
-          reasons.push("Voucher covers rent");
+        // ── Bathrooms match ──────────────────────────────────
+        if (refBathrooms !== null) {
+          if (p.bathrooms === refBathrooms) {
+            score += 20;
+            reasons.push("Exact bathroom match");
+          } else if (Math.abs(p.bathrooms - refBathrooms) === 1) {
+            score += 10;
+            reasons.push("Close bathroom match");
+          }
         }
-      }
 
-      // Availability bonus
-      if (p.status === "available") {
-        score += 5;
-        reasons.push("Available now");
-      }
+        // ── Rent / Budget match ──────────────────────────────
+        if (refRent) {
+          const ratio = p.rent_price / refRent;
+          if (ratio >= 0.8 && ratio <= 1.2) {
+            score += 15;
+            reasons.push("Similar price range");
+          } else if (ratio >= 0.5 && ratio <= 1.5) {
+            score += 5;
+            reasons.push("Within price range");
+          }
 
-      return {
-        ...p,
-        match_score: Math.max(0, Math.min(100, score)),
-        match_reasons: reasons,
-        photos: Array.isArray(p.photos) ? p.photos : [],
-      };
-    });
+          // Also check budget_min
+          if (lead.budget_min && p.rent_price >= lead.budget_min) {
+            score += 3;
+          }
+        }
+
+        // ── Zip code proximity (same zip ≈ within 1 mile) ───
+        if (refZip) {
+          if (p.zip_code === refZip) {
+            score += 20;
+            reasons.push("Same neighborhood");
+          }
+        }
+
+        // ── Section 8 / Voucher match ────────────────────────
+        if (lead.has_voucher) {
+          if (p.section_8_accepted) {
+            score += 10;
+            reasons.push("Accepts Section 8");
+          } else {
+            score -= 30;
+            reasons.push("Does not accept Section 8");
+          }
+
+          if (lead.voucher_amount && p.rent_price <= lead.voucher_amount) {
+            score += 10;
+            reasons.push("Voucher covers rent");
+          }
+        }
+
+        // ── Availability bonus ───────────────────────────────
+        if (p.status === "available") {
+          score += 5;
+          reasons.push("Available now");
+        }
+
+        return {
+          ...p,
+          match_score: Math.max(0, Math.min(100, score)),
+          match_reasons: reasons,
+          photos: Array.isArray(p.photos) ? p.photos : [],
+        };
+      });
 
     // Sort by score descending, take top 10
     scored.sort((a, b) => b.match_score - a.match_score);
@@ -142,7 +188,16 @@ serve(async (req: Request) => {
         category: "general",
         event_type: "properties_matched",
         message: `Matched ${topMatches.length} properties for lead (top score: ${topMatches[0]?.match_score || 0})`,
-        details: { lead_id, total_properties: properties.length, top_matches: topMatches.length, top_score: topMatches[0]?.match_score || 0 },
+        details: {
+          lead_id,
+          total_properties: properties.length,
+          top_matches: topMatches.length,
+          top_score: topMatches[0]?.match_score || 0,
+          ref_bedrooms: refBedrooms,
+          ref_bathrooms: refBathrooms,
+          ref_zip: refZip,
+          ref_rent: refRent,
+        },
         related_lead_id: lead_id,
       });
     } catch { /* non-blocking */ }
@@ -157,7 +212,6 @@ serve(async (req: Request) => {
   } catch (err) {
     console.error("match-properties error:", err);
 
-    // Log error
     try {
       await supabase.from("system_logs").insert({
         organization_id: organization_id || null,
