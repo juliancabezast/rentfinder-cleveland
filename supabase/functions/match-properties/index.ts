@@ -52,12 +52,14 @@ serve(async (req: Request) => {
     let refBathrooms: number | null = null;
     let refRent: number | null = lead.budget_max;
     let refZip: string | null = null;
+    let refCity: string | null = null;
+    let refState: string | null = null;
     let excludePropertyId: string | null = null;
 
     if (lead.interested_property_id) {
       const { data: refProp } = await supabase
         .from("properties")
-        .select("id, bedrooms, bathrooms, rent_price, zip_code")
+        .select("id, bedrooms, bathrooms, rent_price, zip_code, city, state")
         .eq("id", lead.interested_property_id)
         .single();
 
@@ -67,6 +69,8 @@ serve(async (req: Request) => {
         if (!refBathrooms) refBathrooms = refProp.bathrooms;
         if (!refRent) refRent = refProp.rent_price;
         refZip = refProp.zip_code;
+        refCity = refProp.city;
+        refState = refProp.state;
       }
     }
 
@@ -75,15 +79,23 @@ serve(async (req: Request) => {
       refZip = lead.interested_zip_codes[0];
     }
 
-    // ── Query available properties ───────────────────────────────
-    const { data: properties } = await supabase
+    // ── Query available properties (same city when known) ─────────
+    let query = supabase
       .from("properties")
       .select(
         "id, address, unit_number, city, state, zip_code, bedrooms, bathrooms, square_feet, rent_price, deposit_amount, status, section_8_accepted, photos, property_type, description, amenities"
       )
       .eq("organization_id", organization_id)
-      .in("status", ["available", "coming_soon"])
-      .order("rent_price", { ascending: true });
+      .in("status", ["available", "coming_soon"]);
+
+    // Filter to same city — never suggest St. Louis to a Cleveland lead
+    if (refCity) {
+      query = query.ilike("city", refCity);
+    } else if (refState) {
+      query = query.eq("state", refState);
+    }
+
+    const { data: properties } = await query.order("rent_price", { ascending: true });
 
     if (!properties || properties.length === 0) {
       return new Response(
@@ -143,6 +155,9 @@ serve(async (req: Request) => {
           if (p.zip_code === refZip) {
             score += 20;
             reasons.push("Same neighborhood");
+          } else if (refCity && p.city?.toLowerCase() === refCity.toLowerCase()) {
+            score += 5;
+            reasons.push("Same city");
           }
         }
 
@@ -197,6 +212,7 @@ serve(async (req: Request) => {
           ref_bedrooms: refBedrooms,
           ref_bathrooms: refBathrooms,
           ref_zip: refZip,
+          ref_city: refCity,
           ref_rent: refRent,
         },
         related_lead_id: lead_id,
