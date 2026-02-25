@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Calendar, Clock, MapPin, User, CalendarDays, Plus, FileText, Map, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDial
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
 import { MyRouteTab } from "@/components/showings/MyRouteTab";
 import { ManageSlotsTab } from "@/components/showings/ManageSlotsTab";
+import { ShowingDetailDialog } from "@/components/showings/ShowingDetailDialog";
 
 interface ShowingWithDetails {
   id: string;
@@ -65,7 +66,6 @@ const statusColors: Record<string, string> = {
 };
 
 const ShowingsList: React.FC = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { userRecord } = useAuth();
   const permissions = usePermissions();
@@ -90,6 +90,8 @@ const ShowingsList: React.FC = () => {
     leadId: string;
     propertyAddress?: string;
   } | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedShowingId, setSelectedShowingId] = useState<string | null>(null);
 
   const fetchShowings = async () => {
     if (!userRecord?.organization_id) return;
@@ -300,7 +302,7 @@ const ShowingsList: React.FC = () => {
                     animationDelay: `${Math.min(index * 0.05, 0.3)}s`,
                     animationFillMode: "both",
                   }}
-                  onClick={() => navigate(`/leads/${showing.lead_id}`)}
+                  onClick={() => { setSelectedShowingId(showing.id); setDetailDialogOpen(true); }}
                 >
                   <CardContent className="p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -403,6 +405,18 @@ const ShowingsList: React.FC = () => {
           onSuccess={fetchShowings}
         />
       )}
+
+      {/* Showing Detail Dialog */}
+      <ShowingDetailDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        showingId={selectedShowingId}
+        onSuccess={fetchShowings}
+        onOpenReport={(showingId, leadId, propertyAddress) => {
+          setSelectedShowingForReport({ id: showingId, leadId, propertyAddress });
+          setReportDialogOpen(true);
+        }}
+      />
     </div>
   );
 };
