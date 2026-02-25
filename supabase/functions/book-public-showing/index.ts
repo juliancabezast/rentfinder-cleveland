@@ -295,11 +295,40 @@ serve(async (req: Request) => {
         .eq("is_booked", false);
     }
 
-    // ── Update lead status to showing_scheduled ───────────────────────
+    // ── Update lead status + boost score +30 (Hot Lead) ────────────────
+    const { data: currentLead } = await supabase
+      .from("leads")
+      .select("lead_score")
+      .eq("id", leadId)
+      .single();
+
+    const previousScore = currentLead?.lead_score ?? 50;
+    const newScore = Math.min(previousScore + 30, 100);
+
     await supabase
       .from("leads")
-      .update({ status: "showing_scheduled", updated_at: new Date().toISOString() })
+      .update({
+        status: "showing_scheduled",
+        lead_score: newScore,
+        is_priority: true,
+        priority_reason: "Showing requested (+30 pts)",
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", leadId);
+
+    // Record score change in audit trail
+    await supabase.from("lead_score_history").insert({
+      lead_id: leadId,
+      organization_id,
+      previous_score: previousScore,
+      new_score: newScore,
+      change_amount: 30,
+      reason_code: "showing_requested",
+      reason_text: "Lead requested a property showing — automatic Hot Lead boost",
+      triggered_by: "engagement",
+      related_showing_id: showing.id,
+      changed_by_agent: "book-public-showing",
+    });
 
     // ── Schedule Samuel confirmation task (24h before showing) ────────
     const showingDate = new Date(scheduledAt);

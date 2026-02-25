@@ -219,11 +219,23 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
       if (showingError) throw showingError;
 
-      // Update lead status to showing_scheduled
+      // Update lead status + boost score +30 (Hot Lead)
+      const { data: currentLead } = await supabase
+        .from("leads")
+        .select("lead_score")
+        .eq("id", selectedLeadId)
+        .single();
+
+      const previousScore = currentLead?.lead_score ?? 50;
+      const newScore = Math.min(previousScore + 30, 100);
+
       const { error: leadError } = await supabase
         .from("leads")
         .update({
           status: "showing_scheduled",
+          lead_score: newScore,
+          is_priority: true,
+          priority_reason: "Showing requested (+30 pts)",
           updated_at: new Date().toISOString(),
         })
         .eq("id", selectedLeadId);
@@ -231,6 +243,20 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       if (leadError) {
         console.error("Error updating lead status:", leadError);
       }
+
+      // Record score change in audit trail
+      await supabase.from("lead_score_history").insert({
+        lead_id: selectedLeadId,
+        organization_id: userRecord.organization_id,
+        previous_score: previousScore,
+        new_score: newScore,
+        change_amount: 30,
+        reason_code: "showing_requested",
+        reason_text: "Showing scheduled — automatic Hot Lead boost",
+        triggered_by: "engagement",
+        related_showing_id: showingData?.id,
+        changed_by_user_id: userRecord.id,
+      });
 
       // Mark corresponding slot + buffer slots as booked
       if (showingData?.id) {
