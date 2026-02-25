@@ -15,11 +15,7 @@ import {
 } from '@/components/ui/select';
 import {
   Phone,
-  Brain,
-  MessageSquare,
   ShieldCheck,
-  RefreshCw,
-  Server,
   Bot,
   Search,
   Filter,
@@ -34,12 +30,9 @@ import { ActivityFeedItem } from './agents/ActivityFeedItem';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 const CATEGORY_CONFIG = [
-  { key: 'voice', label: 'Voice Agents', icon: Phone },
-  { key: 'intelligence', label: 'Intelligence Agents', icon: Brain },
-  { key: 'communication', label: 'Communication Agents', icon: MessageSquare },
-  { key: 'verification', label: 'Verification Agents', icon: ShieldCheck },
-  { key: 'sync', label: 'Sync Agents', icon: RefreshCw },
-  { key: 'system', label: 'System Agents', icon: Server },
+  { key: 'qualification', label: 'Qualification', icon: Phone },
+  { key: 'leasing', label: 'Leasing', icon: Bot },
+  { key: 'closing', label: 'Closing', icon: ShieldCheck },
 ];
 
 export const AgentsTab: React.FC = () => {

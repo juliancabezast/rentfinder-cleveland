@@ -45,63 +45,70 @@ interface AgentTask {
   max_attempts: number | null;
 }
 
-// Map agent_type to biblical names — 13 operational agents + 1 webhook
+// Map agent_type to the 5 real agents
 const AGENT_NAMES: Record<string, string> = {
-  // Actual DB agent_keys
+  aaron: "Aaron",
+  esther: "Esther",
+  nehemiah: "Nehemiah",
+  elijah: "Elijah",
+  samuel: "Samuel",
   main_inbound: "Aaron",
-  bland_call_webhook: "Deborah",
-  sms_inbound: "Ruth",
+  bland_call_webhook: "Aaron",
+  sms_inbound: "Elijah",
   hemlane_parser: "Esther",
-  scoring: "Daniel",
-  transcript_analyst: "Isaiah",
+  scoring: "Nehemiah",
+  transcript_analyst: "Nehemiah",
   task_dispatcher: "Nehemiah",
   recapture: "Elijah",
   showing_confirmation: "Samuel",
-  conversion_predictor: "Solomon",
-  insight_generator: "Moses",
-  report_generator: "David",
-  doorloop_pull: "Ezra",
-  cost_tracker: "Zacchaeus",
-  // Legacy agent_type values
+  conversion_predictor: "Nehemiah",
+  insight_generator: "Nehemiah",
+  report_generator: "Nehemiah",
+  doorloop_pull: "Samuel",
+  cost_tracker: "Nehemiah",
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
   campaign_voice: "Elijah",
-  campaign_sms: "Ruth",
+  campaign_sms: "Elijah",
 };
 
-// Agent type to color mapping (by department)
+// Agent colors by department
+// Qualification (teal): Aaron, Esther, Nehemiah
+// Leasing (amber): Elijah
+// Closing (green): Samuel
 const AGENT_COLORS: Record<string, string> = {
-  // Recepción (teal)
+  // Qualification (teal)
+  aaron: "bg-teal-100 text-teal-700 border-teal-200",
+  esther: "bg-teal-100 text-teal-700 border-teal-200",
+  nehemiah: "bg-teal-100 text-teal-700 border-teal-200",
   main_inbound: "bg-teal-100 text-teal-700 border-teal-200",
   bland_call_webhook: "bg-teal-100 text-teal-700 border-teal-200",
-  sms_inbound: "bg-teal-100 text-teal-700 border-teal-200",
   hemlane_parser: "bg-teal-100 text-teal-700 border-teal-200",
-  // Evaluación (blue)
-  scoring: "bg-blue-100 text-blue-700 border-blue-200",
-  transcript_analyst: "bg-blue-100 text-blue-700 border-blue-200",
-  // Operaciones (purple)
-  task_dispatcher: "bg-purple-100 text-purple-700 border-purple-200",
-  // Ventas (amber)
+  scoring: "bg-teal-100 text-teal-700 border-teal-200",
+  transcript_analyst: "bg-teal-100 text-teal-700 border-teal-200",
+  task_dispatcher: "bg-teal-100 text-teal-700 border-teal-200",
+  conversion_predictor: "bg-teal-100 text-teal-700 border-teal-200",
+  insight_generator: "bg-teal-100 text-teal-700 border-teal-200",
+  report_generator: "bg-teal-100 text-teal-700 border-teal-200",
+  cost_tracker: "bg-teal-100 text-teal-700 border-teal-200",
+  // Leasing (amber)
+  elijah: "bg-amber-100 text-amber-700 border-amber-200",
   recapture: "bg-amber-100 text-amber-700 border-amber-200",
-  showing_confirmation: "bg-amber-100 text-amber-700 border-amber-200",
-  // Inteligencia (green)
-  conversion_predictor: "bg-green-100 text-green-700 border-green-200",
-  insight_generator: "bg-green-100 text-green-700 border-green-200",
-  report_generator: "bg-green-100 text-green-700 border-green-200",
-  // Administración (slate)
-  doorloop_pull: "bg-slate-100 text-slate-700 border-slate-200",
-  cost_tracker: "bg-slate-100 text-slate-700 border-slate-200",
-  // Legacy
-  no_show_followup: "bg-red-100 text-red-700 border-red-200",
-  no_show_follow_up: "bg-red-100 text-red-700 border-red-200",
-  post_showing: "bg-green-100 text-green-700 border-green-200",
+  sms_inbound: "bg-amber-100 text-amber-700 border-amber-200",
   campaign: "bg-amber-100 text-amber-700 border-amber-200",
   campaign_voice: "bg-amber-100 text-amber-700 border-amber-200",
   campaign_sms: "bg-amber-100 text-amber-700 border-amber-200",
   welcome_sequence: "bg-amber-100 text-amber-700 border-amber-200",
+  // Closing (green)
+  samuel: "bg-green-100 text-green-700 border-green-200",
+  showing_confirmation: "bg-green-100 text-green-700 border-green-200",
+  doorloop_pull: "bg-green-100 text-green-700 border-green-200",
+  no_show_followup: "bg-green-100 text-green-700 border-green-200",
+  no_show_follow_up: "bg-green-100 text-green-700 border-green-200",
+  post_showing: "bg-green-100 text-green-700 border-green-200",
 };
 
 // Status colors

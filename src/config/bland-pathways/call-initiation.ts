@@ -49,7 +49,7 @@ export interface BlandSendCallPayload {
   record: boolean; // true for compliance
   wait_for_greeting: boolean; // true — wait for "hello" before speaking
   request_data: BlandCallbackRequestData;
-  webhook: string; // post-call webhook: bland-call-webhook (Deborah)
+  webhook: string; // post-call webhook: pathway-webhook
   metadata: {
     agent_key: string; // "elijah" or "callback_outbound"
     call_type: string; // "outbound_callback"

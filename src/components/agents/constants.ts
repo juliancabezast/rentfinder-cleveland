@@ -1,6 +1,7 @@
-import { Phone, Brain, Settings, Megaphone, Lightbulb, Shield, LucideIcon } from "lucide-react";
+import { Phone, ClipboardCheck, Handshake, LucideIcon } from "lucide-react";
 
 // Department definitions with colors and icons
+// 3 departments reflecting the leasing pipeline: Qualification → Leasing → Closing
 export interface DepartmentConfig {
   key: string;
   label: string;
@@ -13,100 +14,65 @@ export interface DepartmentConfig {
 
 export const DEPARTMENTS: DepartmentConfig[] = [
   {
-    key: "recepcion",
-    label: "Reception",
+    key: "calificacion",
+    label: "Qualification",
     icon: Phone,
     color: "border-teal-500",
     bgColor: "bg-teal-50 dark:bg-teal-950/30",
     dotColor: "bg-teal-500",
-    agentKeys: ["main_inbound", "bland_call_webhook", "sms_inbound", "hemlane_parser"],
+    agentKeys: ["aaron", "esther", "nehemiah"],
   },
   {
-    key: "evaluacion",
-    label: "Evaluation",
-    icon: Brain,
-    color: "border-blue-500",
-    bgColor: "bg-blue-50 dark:bg-blue-950/30",
-    dotColor: "bg-blue-500",
-    agentKeys: ["scoring", "transcript_analyst"],
-  },
-  {
-    key: "operaciones",
-    label: "Operations",
-    icon: Settings,
-    color: "border-purple-500",
-    bgColor: "bg-purple-50 dark:bg-purple-950/30",
-    dotColor: "bg-purple-500",
-    agentKeys: ["task_dispatcher"],
-  },
-  {
-    key: "ventas",
-    label: "Sales",
-    icon: Megaphone,
+    key: "leasing",
+    label: "Leasing",
+    icon: ClipboardCheck,
     color: "border-amber-500",
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
     dotColor: "bg-amber-500",
-    agentKeys: ["recapture", "showing_confirmation"],
+    agentKeys: ["elijah"],
   },
   {
-    key: "inteligencia",
-    label: "Intelligence",
-    icon: Lightbulb,
+    key: "cierre",
+    label: "Closing",
+    icon: Handshake,
     color: "border-green-500",
     bgColor: "bg-green-50 dark:bg-green-950/30",
     dotColor: "bg-green-500",
-    agentKeys: ["conversion_predictor", "insight_generator", "report_generator"],
-  },
-  {
-    key: "administracion",
-    label: "Administration",
-    icon: Shield,
-    color: "border-slate-500",
-    bgColor: "bg-slate-50 dark:bg-slate-950/30",
-    dotColor: "bg-slate-500",
-    agentKeys: ["doorloop_pull", "cost_tracker"],
+    agentKeys: ["samuel"],
   },
 ];
 
-// Biblical name → functional name mapping (canonical source)
+// 5 agents — canonical display names
+// All old agent_keys map to one of the 5 real agents
 export const AGENT_DISPLAY_NAMES: Record<string, string> = {
-  // By agent_key
-  main_inbound: "Inbound Calls",
-  bland_call_webhook: "Call Processor & Smart Matcher",
-  sms_inbound: "SMS Conversational Agent",
-  hemlane_parser: "Hemlane Email Parser",
-  scoring: "Lead Scoring (AI)",
-  transcript_analyst: "Transcript Analyst",
-  task_dispatcher: "Operations Director",
-  recapture: "Outbound Sales & Recapture",
-  showing_confirmation: "Showing Lifecycle",
-  conversion_predictor: "Conversion Predictor",
-  insight_generator: "Insight Generator",
-  report_generator: "Report Generator",
-  doorloop_pull: "Doorloop Bridge",
-  cost_tracker: "Health & Cost Monitor",
-  // By biblical_name
-  aaron: "Inbound Calls",
-  deborah: "Call Processor & Smart Matcher",
-  ruth: "SMS Conversational Agent",
-  esther: "Hemlane Email Parser",
-  daniel: "Lead Scoring (AI)",
-  isaiah: "Transcript Analyst",
-  nehemiah: "Operations Director",
-  elijah: "Outbound Sales & Recapture",
-  samuel: "Showing Lifecycle",
-  solomon: "Conversion Predictor",
-  moses: "Insight Generator",
-  david: "Report Generator",
-  ezra: "Doorloop Bridge",
-  zacchaeus: "Health & Cost Monitor",
-  // Legacy agent_type values
-  no_show_followup: "Showing Lifecycle",
-  no_show_follow_up: "Showing Lifecycle",
-  post_showing: "Showing Lifecycle",
-  campaign: "Outbound Sales & Recapture",
-  campaign_voice: "Outbound Sales & Recapture",
-  welcome_sequence: "Outbound Sales & Recapture",
+  // Primary agent_keys (new canonical keys)
+  aaron: "Voice Reception",
+  esther: "Email Reception",
+  nehemiah: "Qualification Director",
+  elijah: "Leasing Consultant",
+  samuel: "Closing Agent",
+  // Legacy agent_keys → mapped to the 5 real agents
+  main_inbound: "Voice Reception",
+  bland_call_webhook: "Voice Reception",
+  sms_inbound: "Leasing Consultant",
+  hemlane_parser: "Email Reception",
+  scoring: "Qualification Director",
+  transcript_analyst: "Qualification Director",
+  task_dispatcher: "Qualification Director",
+  recapture: "Leasing Consultant",
+  showing_confirmation: "Closing Agent",
+  conversion_predictor: "Qualification Director",
+  insight_generator: "Qualification Director",
+  report_generator: "Qualification Director",
+  doorloop_pull: "Closing Agent",
+  cost_tracker: "Qualification Director",
+  no_show_followup: "Closing Agent",
+  no_show_follow_up: "Closing Agent",
+  post_showing: "Closing Agent",
+  campaign: "Leasing Consultant",
+  campaign_voice: "Leasing Consultant",
+  welcome_sequence: "Leasing Consultant",
+  campaign_sms: "Leasing Consultant",
 };
 
 // Status visual config
@@ -118,9 +84,40 @@ export const STATUS_CONFIG: Record<string, { color: string; bgColor: string; pul
   degraded: { color: "text-amber-500", bgColor: "bg-amber-500" },
 };
 
+// Legacy agent_key → canonical agent_key mapping
+const LEGACY_TO_CANONICAL: Record<string, string> = {
+  main_inbound: "aaron",
+  bland_call_webhook: "aaron",
+  hemlane_parser: "esther",
+  scoring: "nehemiah",
+  transcript_analyst: "nehemiah",
+  task_dispatcher: "nehemiah",
+  conversion_predictor: "nehemiah",
+  insight_generator: "nehemiah",
+  report_generator: "nehemiah",
+  cost_tracker: "nehemiah",
+  sms_inbound: "elijah",
+  recapture: "elijah",
+  campaign: "elijah",
+  campaign_voice: "elijah",
+  campaign_sms: "elijah",
+  welcome_sequence: "elijah",
+  showing_confirmation: "samuel",
+  doorloop_pull: "samuel",
+  no_show_followup: "samuel",
+  no_show_follow_up: "samuel",
+  post_showing: "samuel",
+};
+
+// Helper: resolve a legacy key to its canonical agent
+export function resolveAgentKey(agentKey: string): string {
+  return LEGACY_TO_CANONICAL[agentKey] || agentKey;
+}
+
 // Helper: find which department an agent belongs to
 export function getDepartmentForAgent(agentKey: string): DepartmentConfig | undefined {
-  return DEPARTMENTS.find((d) => d.agentKeys.includes(agentKey));
+  const canonical = resolveAgentKey(agentKey);
+  return DEPARTMENTS.find((d) => d.agentKeys.includes(canonical));
 }
 
 // Helper: get display name for an agent

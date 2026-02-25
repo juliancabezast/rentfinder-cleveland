@@ -54,38 +54,46 @@ import { CsvImportDialog } from "@/components/leads/CsvImportDialog";
 import LeadFilterPills, { ActiveFilters, FilterCounts } from "@/components/leads/LeadFilterPills";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Biblical agent name mapping — 13 operational agents + 1 webhook
-// Keys match agent_type values from agent_tasks table (underscore format from DB)
+// Agent name mapping — 5 operational agents across 3 departments
+// Qualification: Aaron (voice), Esther (email), Nehemiah (director)
+// Leasing: Elijah (consultant)
+// Closing: Samuel (closing agent)
 const AGENT_BIBLICAL_NAMES: Record<string, string> = {
-  // Actual DB agent_keys (underscore format — from agent_tasks.agent_type)
+  // Canonical agent keys
+  aaron: "Aaron",
+  esther: "Esther",
+  nehemiah: "Nehemiah",
+  elijah: "Elijah",
+  samuel: "Samuel",
+  // Legacy DB agent_keys → mapped to 5 real agents
   main_inbound: "Aaron",
-  bland_call_webhook: "Deborah",
-  sms_inbound: "Ruth",
+  bland_call_webhook: "Aaron",
+  sms_inbound: "Elijah",
   hemlane_parser: "Esther",
-  scoring: "Daniel",
-  transcript_analyst: "Isaiah",
+  scoring: "Nehemiah",
+  transcript_analyst: "Nehemiah",
   task_dispatcher: "Nehemiah",
   recapture: "Elijah",
   showing_confirmation: "Samuel",
-  conversion_predictor: "Solomon",
-  insight_generator: "Moses",
-  report_generator: "David",
-  doorloop_pull: "Ezra",
-  cost_tracker: "Zacchaeus",
-  // Edge function names (hyphen format — in case agent_type uses this format)
+  conversion_predictor: "Nehemiah",
+  insight_generator: "Nehemiah",
+  report_generator: "Nehemiah",
+  doorloop_pull: "Samuel",
+  cost_tracker: "Nehemiah",
+  // Legacy hyphen-format keys
   "twilio-inbound": "Aaron",
-  "bland-call-webhook": "Deborah",
-  "sms-inbound": "Ruth",
+  "bland-call-webhook": "Aaron",
+  "sms-inbound": "Elijah",
   "hemlane-parser": "Esther",
-  "transcript-analyst": "Isaiah",
+  "transcript-analyst": "Nehemiah",
   "task-dispatcher": "Nehemiah",
   "showing-confirmation": "Samuel",
-  "conversion-predictor": "Solomon",
-  "insight-generator": "Moses",
-  "report-generator": "David",
-  "doorloop-pull": "Ezra",
-  "cost-tracker": "Zacchaeus",
-  // Legacy agent_type values (tasks from before reorganization)
+  "conversion-predictor": "Nehemiah",
+  "insight-generator": "Nehemiah",
+  "report-generator": "Nehemiah",
+  "doorloop-pull": "Samuel",
+  "cost-tracker": "Nehemiah",
+  // Legacy task types
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
   post_showing: "Samuel",
@@ -94,13 +102,14 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   campaign: "Elijah",
   campaign_voice: "Elijah",
   welcome_sequence: "Elijah",
+  campaign_sms: "Elijah",
   "campaign-orchestrator": "Nehemiah",
   "campaign-voice": "Elijah",
   "welcome-sequence": "Elijah",
   "notification-dispatcher": "Nehemiah",
   "compliance-check": "Nehemiah",
-  "sheets-backup": "Ezra",
-  "smart-matcher": "Deborah",
+  "sheets-backup": "Nehemiah",
+  "smart-matcher": "Nehemiah",
 };
 
 type Lead = Tables<"leads">;

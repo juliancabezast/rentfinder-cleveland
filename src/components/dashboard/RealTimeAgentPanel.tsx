@@ -51,27 +51,34 @@ interface NextTaskRow {
 // ── Agent names ──────────────────────────────────────────────────────
 
 const AGENT_NAMES: Record<string, string> = {
+  // Canonical agent keys
+  aaron: "Aaron",
+  esther: "Esther",
+  nehemiah: "Nehemiah",
+  elijah: "Elijah",
+  samuel: "Samuel",
+  // Legacy DB agent_keys → mapped to 5 real agents
   main_inbound: "Aaron",
-  bland_call_webhook: "Deborah",
-  sms_inbound: "Ruth",
+  bland_call_webhook: "Aaron",
+  sms_inbound: "Elijah",
   hemlane_parser: "Esther",
-  scoring: "Daniel",
-  transcript_analyst: "Isaiah",
+  scoring: "Nehemiah",
+  transcript_analyst: "Nehemiah",
   task_dispatcher: "Nehemiah",
   recapture: "Elijah",
   showing_confirmation: "Samuel",
-  conversion_predictor: "Solomon",
-  insight_generator: "Moses",
-  report_generator: "David",
-  doorloop_pull: "Ezra",
-  cost_tracker: "Zacchaeus",
+  conversion_predictor: "Nehemiah",
+  insight_generator: "Nehemiah",
+  report_generator: "Nehemiah",
+  doorloop_pull: "Samuel",
+  cost_tracker: "Nehemiah",
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
   campaign_voice: "Elijah",
-  campaign_sms: "Ruth",
+  campaign_sms: "Elijah",
 };
 
 // ── Source → agent that brought the lead in ──────────────────────────
@@ -80,7 +87,7 @@ const SOURCE_INFO: Record<string, { agent: string; action: string; updateAction:
   hemlane_email: { agent: "Esther", action: "registered via Hemlane", updateAction: "updated via Hemlane" },
   inbound_call: { agent: "Aaron", action: "registered via inbound call", updateAction: "updated via inbound call" },
   website: { agent: "Aaron", action: "captured from website", updateAction: "updated from website" },
-  sms: { agent: "Ruth", action: "registered via inbound SMS", updateAction: "updated via SMS" },
+  sms: { agent: "Elijah", action: "registered via inbound SMS", updateAction: "updated via SMS" },
   referral: { agent: "Aaron", action: "registered as referral", updateAction: "updated referral" },
   manual: { agent: "—", action: "entered manually", updateAction: "updated manually" },
   campaign: { agent: "Elijah", action: "captured in outbound campaign", updateAction: "updated in campaign" },

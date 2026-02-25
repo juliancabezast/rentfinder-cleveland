@@ -22,31 +22,34 @@ interface AgentTask {
   context: Record<string, unknown> | null;
 }
 
-// Map agent_type to biblical names — 13 operational agents + 1 webhook
+// Map agent_type to the 5 real agents
 const AGENT_NAMES: Record<string, string> = {
-  // Actual DB agent_keys
+  aaron: "Aaron",
+  esther: "Esther",
+  nehemiah: "Nehemiah",
+  elijah: "Elijah",
+  samuel: "Samuel",
   main_inbound: "Aaron",
-  bland_call_webhook: "Deborah",
-  sms_inbound: "Ruth",
+  bland_call_webhook: "Aaron",
+  sms_inbound: "Elijah",
   hemlane_parser: "Esther",
-  scoring: "Daniel",
-  transcript_analyst: "Isaiah",
+  scoring: "Nehemiah",
+  transcript_analyst: "Nehemiah",
   task_dispatcher: "Nehemiah",
   recapture: "Elijah",
   showing_confirmation: "Samuel",
-  conversion_predictor: "Solomon",
-  insight_generator: "Moses",
-  report_generator: "David",
-  doorloop_pull: "Ezra",
-  cost_tracker: "Zacchaeus",
-  // Legacy agent_type values
+  conversion_predictor: "Nehemiah",
+  insight_generator: "Nehemiah",
+  report_generator: "Nehemiah",
+  doorloop_pull: "Samuel",
+  cost_tracker: "Nehemiah",
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
   campaign_voice: "Elijah",
-  campaign_sms: "Ruth",
+  campaign_sms: "Elijah",
 };
 
 // Action type icons
