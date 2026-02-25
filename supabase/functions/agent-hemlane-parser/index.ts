@@ -927,36 +927,60 @@ async function upsertLead(
   }
 
   // ── Dup check 3: by full name + same source (prevents digest/single email duplicates) ──
-  if (lead.name && lead.name.length > 2) {
+  const trimmedName = lead.name?.trim() || null;
+  if (trimmedName && trimmedName.length > 2) {
     const { data: existing, error: dup3Err } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
-      .ilike("full_name", lead.name)
+      .ilike("full_name", trimmedName)
       .limit(1)
       .maybeSingle();
 
     if (dup3Err) console.error(`Esther: dup check 3 (name) query failed: ${dup3Err.message}`);
 
     if (existing) {
-      console.log(`Esther: found name dup "${lead.name}" → ${existing.id} (no phone/email match but same name + hemlane source)`);
+      console.log(`Esther: found name dup "${trimmedName}" → ${existing.id} (no phone/email match but same name + hemlane source)`);
       return updateExistingLead(existing, "name dup");
+    }
+  }
+
+  // ── Dup check 3b: by full name + same property (catches daily digest duplicates) ──
+  // Hemlane sends individual notifications during the day and a digest at night.
+  // Both have different emailIds, so the idempotency check won't catch them.
+  // This check has NO time limit — if the same name inquired about the same property
+  // at any point, it's the same person.
+  if (trimmedName && trimmedName.length > 2 && propertyId) {
+    const { data: existing, error: dup3bErr } = await supabase
+      .from("leads")
+      .select("id, full_name, source_detail, phone, email, interested_property_id")
+      .eq("organization_id", organizationId)
+      .eq("interested_property_id", propertyId)
+      .ilike("full_name", trimmedName)
+      .limit(1)
+      .maybeSingle();
+
+    if (dup3bErr) console.error(`Esther: dup check 3b (name+property) query failed: ${dup3bErr.message}`);
+
+    if (existing) {
+      console.log(`Esther: found name+property dup "${trimmedName}" at property ${propertyId} → ${existing.id}`);
+      return updateExistingLead(existing, "name+property dup");
     }
   }
 
   // ── Dup check 4: same property + time window (Hemlane multi-email) ──
   // Hemlane often sends 2-3 emails for the same inquiry (name in one, phone in another).
-  // If a hemlane lead was created in the last 15 min for the same property, merge.
+  // Window: 24 hours — covers individual notification (morning) + digest (night).
   if (propertyId) {
-    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: recentSameProperty, error: dup4Err } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
       .eq("interested_property_id", propertyId)
-      .gte("created_at", fifteenMinAgo)
+      .gte("created_at", twentyFourHoursAgo)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -964,7 +988,7 @@ async function upsertLead(
     if (dup4Err) console.error(`Esther: dup check 4 (property+time) query failed: ${dup4Err.message}`);
 
     if (recentSameProperty) {
-      console.log(`Esther: found recent lead for same property (15m window) → ${recentSameProperty.id} "${recentSameProperty.full_name}"`);
+      console.log(`Esther: found recent lead for same property (24h window) → ${recentSameProperty.id} "${recentSameProperty.full_name}"`);
       return updateExistingLead(recentSameProperty, "property+time dup");
     }
   }
