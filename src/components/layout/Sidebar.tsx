@@ -39,7 +39,7 @@ const operationsNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Leads', href: '/leads', icon: Users },
-  { title: 'Lead Hygiene', href: '/leads/hygiene', icon: Sparkles, permission: 'canEditLeadInfo' },
+  { title: 'Nurturing Leads', href: '/leads/hygiene', icon: Sparkles, permission: 'canEditLeadInfo' },
 ];
 
 // LEASING section

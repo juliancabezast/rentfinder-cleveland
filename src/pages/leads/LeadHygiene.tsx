@@ -45,7 +45,7 @@ const LeadHygiene: React.FC = () => {
               className="text-2xl md:text-3xl font-bold text-[#370d4b]"
               style={{ fontFamily: "Montserrat" }}
             >
-              Lead Hygiene
+              Nurturing Leads
             </h1>
           </div>
           <p className="text-muted-foreground mt-1">
