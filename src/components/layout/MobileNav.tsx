@@ -17,7 +17,6 @@ import {
   FileText,
   Brain,
   Bot,
-  UserPlus,
   UserCheck,
   Mail,
 } from 'lucide-react';
@@ -38,31 +37,30 @@ interface NavItem {
   permission?: keyof ReturnType<typeof usePermissions>;
 }
 
-// Main bottom bar items (most used)
+// Main bottom bar items (pipeline core)
 const mainNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Leads', href: '/leads', icon: Users },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
+  { title: 'Properties', href: '/properties', icon: Building2 },
 ];
 
-// Leasing items in the More sheet
-const leasingNavItems: NavItem[] = [
+// Pipeline + Properties items in the More sheet
+const pipelineMoreItems: NavItem[] = [
   { title: 'Applicants', href: '/applicants', icon: UserCheck },
-  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
   { title: 'Knowledge Hub', href: '/knowledge', icon: Brain, permission: 'canAccessInsightGenerator' },
+  { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
+  { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
 ];
 
-// Admin/More items
-const moreNavItems: NavItem[] = [
-  { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
-  { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
-  { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
-  { title: 'Demo Requests', href: '/demo-requests', icon: UserPlus, permission: 'canModifySettings' },
-  { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
+// Admin items
+const adminNavItems: NavItem[] = [
+  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
+  { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
+  { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
 ];
 
@@ -74,10 +72,10 @@ export const MobileNav: React.FC = () => {
     (item) => !item.permission || permissions[item.permission]
   );
 
-  const filteredLeasingItems = filterItems(leasingNavItems);
-  const filteredMoreItems = filterItems(moreNavItems);
+  const filteredPipelineMore = filterItems(pipelineMoreItems);
+  const filteredAdminItems = filterItems(adminNavItems);
 
-  const hasMoreItems = filteredLeasingItems.length > 0 || filteredMoreItems.length > 0;
+  const hasMoreItems = filteredPipelineMore.length > 0 || filteredAdminItems.length > 0;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/80 dark:bg-card/80 backdrop-blur-xl border-t border-white/30 z-50 safe-area-inset-bottom">
@@ -121,14 +119,14 @@ export const MobileNav: React.FC = () => {
                 <SheetTitle>More Options</SheetTitle>
               </SheetHeader>
               <div className="py-4 space-y-4">
-                {/* Leasing Section */}
-                {filteredLeasingItems.length > 0 && (
+                {/* Pipeline & Communications */}
+                {filteredPipelineMore.length > 0 && (
                   <div>
                     <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Leasing
+                      Pipeline & Comms
                     </p>
                     <div className="grid grid-cols-3 gap-3">
-                      {filteredLeasingItems.map((item) => (
+                      {filteredPipelineMore.map((item) => (
                         <NavLink
                           key={item.href}
                           to={item.href}
@@ -147,18 +145,18 @@ export const MobileNav: React.FC = () => {
                   </div>
                 )}
 
-                {filteredMoreItems.length > 0 && filteredLeasingItems.length > 0 && (
+                {filteredAdminItems.length > 0 && filteredPipelineMore.length > 0 && (
                   <Separator />
                 )}
 
-                {/* Admin Section */}
-                {filteredMoreItems.length > 0 && (
+                {/* Analytics & System */}
+                {filteredAdminItems.length > 0 && (
                   <div>
                     <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Admin
+                      Analytics & System
                     </p>
                     <div className="grid grid-cols-3 gap-3">
-                      {filteredMoreItems.map((item) => (
+                      {filteredAdminItems.map((item) => (
                         <NavLink
                           key={item.href}
                           to={item.href}

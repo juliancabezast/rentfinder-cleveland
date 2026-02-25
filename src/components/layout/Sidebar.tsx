@@ -19,7 +19,6 @@ import {
   FileText,
   Brain,
   Bot,
-  UserPlus,
   Sparkles,
   UserCheck,
   Mail,
@@ -36,31 +35,38 @@ interface NavItem {
   end?: boolean;
 }
 
-// OPERATIONS section
-const operationsNavItems: NavItem[] = [
+// PIPELINE — core lead flow
+const pipelineNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { title: 'Properties', href: '/properties', icon: Building2 },
-  { title: 'Nurturing Leads', href: '/leads/nurturing', icon: Sparkles, permission: 'canEditLeadInfo' },
   { title: 'Leads', href: '/leads', icon: Users },
+  { title: 'Nurturing Leads', href: '/leads/nurturing', icon: Sparkles, permission: 'canEditLeadInfo' },
+  { title: 'Showings', href: '/showings', icon: CalendarDays },
+  { title: 'Applicants', href: '/applicants', icon: UserCheck },
 ];
 
-// LEASING section
-const leasingNavItems: NavItem[] = [
-  { title: 'Applicants', href: '/applicants', icon: UserCheck },
-  { title: 'Showings', href: '/showings', icon: CalendarDays },
-  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
+// PROPERTIES — inventory
+const propertiesNavItems: NavItem[] = [
+  { title: 'Properties', href: '/properties', icon: Building2 },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
 ];
 
-// ADMIN section
-const adminNavItems: NavItem[] = [
-  { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
+// COMMUNICATIONS — contact channels
+const commsNavItems: NavItem[] = [
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
-  { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
-  { title: 'Demo Requests', href: '/demo-requests', icon: UserPlus, permission: 'canModifySettings' },
-  { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
+  { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
+];
+
+// ANALYTICS — data & reports
+const analyticsNavItems: NavItem[] = [
+  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
+];
+
+// SYSTEM — config & technical
+const systemNavItems: NavItem[] = [
+  { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
+  { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
   { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
 ];
 
@@ -85,9 +91,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
     (item) => !item.permission || permissions[item.permission]
   );
 
-  const filteredOperationsItems = filterItems(operationsNavItems);
-  const filteredLeasingItems = filterItems(leasingNavItems);
-  const filteredAdminItems = filterItems(adminNavItems);
+  const filteredPipelineItems = filterItems(pipelineNavItems);
+  const filteredPropertiesItems = filterItems(propertiesNavItems);
+  const filteredCommsItems = filterItems(commsNavItems);
+  const filteredAnalyticsItems = filterItems(analyticsNavItems);
+  const filteredSystemItems = filterItems(systemNavItems);
   const showKnowledgeHub = !knowledgeHubItem.permission || permissions[knowledgeHubItem.permission];
 
   const renderNavItem = (item: NavItem) => (
@@ -156,19 +164,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
       {/* Navigation - Scrollable */}
       <ScrollArea className="flex-1 py-4">
         <nav aria-label="Primary" className="px-2 space-y-1">
-          {/* OPERATIONS Section */}
+          {/* PIPELINE Section */}
           {!collapsed && (
             <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-              Operations
+              Pipeline
             </p>
           )}
-          {filteredOperationsItems.map(renderNavItem)}
+          {filteredPipelineItems.map(renderNavItem)}
 
-          {/* LEASING Section */}
-          {renderSection('Leasing', filteredLeasingItems)}
+          {/* PROPERTIES Section */}
+          {renderSection('Properties', filteredPropertiesItems)}
 
-          {/* ADMIN Section */}
-          {renderSection('Admin', filteredAdminItems)}
+          {/* COMMUNICATIONS Section */}
+          {renderSection('Communications', filteredCommsItems)}
+
+          {/* ANALYTICS Section */}
+          {renderSection('Analytics', filteredAnalyticsItems)}
+
+          {/* SYSTEM Section */}
+          {renderSection('System', filteredSystemItems)}
         </nav>
       </ScrollArea>
 
