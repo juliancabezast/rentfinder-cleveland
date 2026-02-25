@@ -300,7 +300,7 @@ const ShowingsList: React.FC = () => {
                     animationDelay: `${Math.min(index * 0.05, 0.3)}s`,
                     animationFillMode: "both",
                   }}
-                  onClick={() => navigate(`/showings/${showing.id}`)}
+                  onClick={() => navigate(`/leads/${showing.lead_id}`)}
                 >
                   <CardContent className="p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
