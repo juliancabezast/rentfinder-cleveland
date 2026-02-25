@@ -170,6 +170,7 @@ serve(async (req: Request) => {
 
         return {
           ...p,
+          property_id: p.id, // SmartMatches.tsx expects property_id
           match_score: Math.max(0, Math.min(100, score)),
           match_reasons: reasons,
           photos: Array.isArray(p.photos) ? p.photos : [],

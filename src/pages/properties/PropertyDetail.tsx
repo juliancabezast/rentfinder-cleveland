@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
@@ -801,11 +802,10 @@ const PropertyDetail: React.FC = () => {
             <ReassignLeadsDialog
               open={reassignOpen}
               onOpenChange={setReassignOpen}
-              sourceProperty={property as any}
+              sourceProperty={property as Tables<"properties">}
               allProperties={allProperties}
               onSuccess={() => {
                 setRecentLeads([]);
-                // Re-fetch leads
                 supabase
                   .from('leads')
                   .select('id, full_name, first_name, last_name, status, created_at')
@@ -814,7 +814,8 @@ const PropertyDetail: React.FC = () => {
                   .limit(5)
                   .then(({ data }) => {
                     if (data) setRecentLeads(data);
-                  });
+                  })
+                  .catch((err) => console.error('Error refetching leads:', err));
               }}
             />
           )}
