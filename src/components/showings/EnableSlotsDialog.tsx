@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useOrganizationSettings, DEFAULT_SETTINGS } from "@/hooks/useOrganizationSettings";
 
 export interface EditSlotData {
   date: string; // yyyy-MM-dd
@@ -86,6 +87,9 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loadingProps, setLoadingProps] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [dayOffWarning, setDayOffWarning] = useState(false);
+
+  const { getSetting, loading: settingsLoading } = useOrganizationSettings();
 
   const isEditMode = !!editData;
 
@@ -149,9 +153,13 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
         setExcludedIds(excluded);
       } else {
         setSelectedDate(undefined);
+        setDayOffWarning(false);
+        // Use defaults from settings if available
+        const savedBuffer = getSetting('buffer_minutes', DEFAULT_SETTINGS.buffer_minutes);
+        const bufVal = String(savedBuffer);
         setStartTime("09:00:00");
         setEndTime("17:00:00");
-        setBuffer("30");
+        setBuffer(BUFFER_OPTIONS.some((b) => b.value === bufVal) ? bufVal : "30");
         setExcludedIds(new Set());
       }
       setLoadingProps(false);
@@ -337,13 +345,45 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    setDayOffWarning(false);
+                    if (date && !isEditMode) {
+                      const dayOfWeek = String(date.getDay());
+                      const weeklySchedule = getSetting(
+                        'showing_weekly_schedule',
+                        DEFAULT_SETTINGS.showing_weekly_schedule
+                      ) as Record<string, { start: string; end: string } | null> | null;
+                      if (weeklySchedule) {
+                        const dayConfig = weeklySchedule[dayOfWeek];
+                        if (dayConfig) {
+                          setStartTime(dayConfig.start + ":00");
+                          setEndTime(dayConfig.end + ":00");
+                        } else {
+                          setDayOffWarning(true);
+                        }
+                      }
+                      const savedBuffer = getSetting('buffer_minutes', DEFAULT_SETTINGS.buffer_minutes);
+                      const bufVal = String(savedBuffer);
+                      if (BUFFER_OPTIONS.some((b) => b.value === bufVal)) {
+                        setBuffer(bufVal);
+                      }
+                    }
+                  }}
                   disabled={(date) => isBefore(date, startOfDay(new Date()))}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
           </div>
+
+          {/* Day OFF warning */}
+          {dayOffWarning && selectedDate && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+              <strong>{format(selectedDate, "EEEE")}</strong> is marked as OFF in your weekly schedule.
+              You can still create slots if needed.
+            </div>
+          )}
 
           {/* Time Range */}
           <div className="grid grid-cols-2 gap-4">

@@ -34,6 +34,15 @@ export const DEFAULT_SETTINGS = {
   // Showings settings
   default_duration_minutes: 30,
   buffer_minutes: 15,
+  showing_weekly_schedule: {
+    "0": null,
+    "1": { start: "09:00", end: "17:00" },
+    "2": { start: "09:00", end: "17:00" },
+    "3": { start: "09:00", end: "17:00" },
+    "4": { start: "09:00", end: "17:00" },
+    "5": { start: "09:00", end: "17:00" },
+    "6": null,
+  } as Record<string, { start: string; end: string } | null>,
 
   // Compliance settings
   recording_disclosure_text: "This call may be recorded for quality assurance and training purposes.",
