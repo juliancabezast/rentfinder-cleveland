@@ -37,11 +37,18 @@ import {
   XCircle,
   RefreshCw,
   AlertTriangle,
+  Zap,
+  Eye,
+  ExternalLink,
+  Calendar,
+  User,
+  FileText,
+  Timer,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 interface EmailEvent {
@@ -74,19 +81,57 @@ const STATUS_OPTIONS = [
   { value: "failed", label: "Failed" },
 ];
 
-const statusBadge = (email: EmailEvent) => {
-  const status = email.details?.status || (email.resend_email_id ? "sent" : "unknown");
+// Friendly labels for event types
+const eventTypeLabel = (type: string | null): string => {
+  const map: Record<string, string> = {
+    delivery_delayed: "Queued",
+    email_sent: "Notification",
+    showing_confirmation: "Showing Confirmation",
+    showing_reminder: "Showing Reminder",
+    lead_welcome: "Welcome Email",
+    password_reset: "Password Reset",
+    invite: "Team Invite",
+    failed: "Failed",
+  };
+  if (!type) return "Email";
+  return map[type] || type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+const getEmailStatus = (email: EmailEvent): "sent" | "queued" | "failed" | "unknown" => {
+  const status = email.details?.status;
+  if (status === "queued" && !email.resend_email_id) return "queued";
+  if (status === "failed" || email.event_type === "failed") return "failed";
+  if (email.resend_email_id || status === "sent") return "sent";
+  return "unknown";
+};
+
+const StatusBadge = ({ email }: { email: EmailEvent }) => {
+  const status = getEmailStatus(email);
   switch (status) {
     case "sent":
-      return <Badge className="bg-green-100 text-green-700 border-green-200"><CheckCircle2 className="h-3 w-3 mr-1" />Sent</Badge>;
+      return (
+        <Badge className="bg-green-50 text-green-700 border-green-200 font-medium">
+          <CheckCircle2 className="h-3 w-3 mr-1" />Sent
+        </Badge>
+      );
     case "queued":
-      return <Badge className="bg-amber-100 text-amber-700 border-amber-200"><Clock className="h-3 w-3 mr-1" />Queued</Badge>;
+      return (
+        <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-medium">
+          <Clock className="h-3 w-3 mr-1" />Queued
+        </Badge>
+      );
     case "failed":
-      return <Badge className="bg-red-100 text-red-700 border-red-200"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+      return (
+        <Badge className="bg-red-50 text-red-700 border-red-200 font-medium">
+          <XCircle className="h-3 w-3 mr-1" />Failed
+        </Badge>
+      );
     default:
-      return email.resend_email_id
-        ? <Badge className="bg-green-100 text-green-700 border-green-200"><CheckCircle2 className="h-3 w-3 mr-1" />Sent</Badge>
-        : <Badge variant="outline"><AlertTriangle className="h-3 w-3 mr-1" />Unknown</Badge>;
+      return (
+        <Badge variant="outline" className="font-medium">
+          <AlertTriangle className="h-3 w-3 mr-1" />Unknown
+        </Badge>
+      );
   }
 };
 
@@ -100,8 +145,10 @@ const EmailsPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedEmail, setSelectedEmail] = useState<EmailEvent | null>(null);
+  const [showHtmlPreview, setShowHtmlPreview] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
+  const [forceSending, setForceSending] = useState(false);
 
   // Receiving state
   const [inbound, setInbound] = useState<InboundEmail[]>([]);
@@ -153,7 +200,7 @@ const EmailsPage = () => {
       setEmails(data || []);
       setTotal(count || 0);
 
-      // Counts for stats — fetch separately for accuracy
+      // Counts for stats
       const { count: sentC } = await supabase
         .from("email_events")
         .select("id", { count: "exact", head: true })
@@ -220,6 +267,23 @@ const EmailsPage = () => {
     else fetchInbound();
   };
 
+  const forceProcessQueue = async () => {
+    setForceSending(true);
+    try {
+      const { error } = await supabase.functions.invoke("process-email-queue", {
+        body: {},
+      });
+      if (error) throw error;
+      toast.success("Queue processed — emails sent");
+      fetchEmails();
+    } catch (err) {
+      console.error("Force send error:", err);
+      toast.error("Failed to process queue");
+    } finally {
+      setForceSending(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "sending") fetchEmails();
     else fetchInbound();
@@ -236,6 +300,20 @@ const EmailsPage = () => {
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const inboundTotalPages = Math.ceil(inboundTotal / PAGE_SIZE);
 
+  // Parse details for display in the detail dialog
+  const parseEmailDetails = (email: EmailEvent) => {
+    const d = email.details || {};
+    const hasHtml = !!d.html;
+    const notificationType = d.notification_type || d.type || email.event_type;
+    const errorMessage = d.error || d.error_message;
+    const queuedAt = d.queued_at;
+    const sentAt = d.sent_at;
+    const relatedId = d.showing_id || d.lead_id || email.lead_id;
+    const relatedType = d.showing_id ? "Showing" : d.lead_id || email.lead_id ? "Lead" : null;
+
+    return { hasHtml, notificationType, errorMessage, queuedAt, sentAt, relatedId, relatedType };
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -243,78 +321,78 @@ const EmailsPage = () => {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Emails</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Outgoing and incoming email activity
+            Monitor outgoing and incoming email activity
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={refreshAll}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          {queuedCount > 0 && (
+            <Button
+              size="sm"
+              onClick={forceProcessQueue}
+              disabled={forceSending}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              <Zap className="h-4 w-4 mr-1.5" />
+              {forceSending ? "Processing..." : `Force Send (${queuedCount})`}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={refreshAll}>
+            <RefreshCw className="h-4 w-4 mr-1.5" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <Card>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-green-500">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Mail className="h-4 w-4 text-blue-600" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{total}</p>
-                <p className="text-xs text-muted-foreground">Total Sent</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Delivered</p>
+                <p className="text-2xl font-bold mt-1">{sentCount}</p>
+              </div>
+              <div className="p-2.5 rounded-full bg-green-50">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={`border-l-4 ${queuedCount > 0 ? "border-l-amber-500" : "border-l-slate-200"}`}>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{sentCount}</p>
-                <p className="text-xs text-muted-foreground">Delivered</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Queued</p>
+                <p className="text-2xl font-bold mt-1">{queuedCount}</p>
+              </div>
+              <div className={`p-2.5 rounded-full ${queuedCount > 0 ? "bg-amber-50" : "bg-slate-50"}`}>
+                <Clock className={`h-5 w-5 ${queuedCount > 0 ? "text-amber-600" : "text-slate-400"}`} />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={`border-l-4 ${failedCount > 0 ? "border-l-red-500" : "border-l-slate-200"}`}>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-100">
-                <Clock className="h-4 w-4 text-amber-600" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{queuedCount}</p>
-                <p className="text-xs text-muted-foreground">Queued</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Failed</p>
+                <p className="text-2xl font-bold mt-1">{failedCount}</p>
+              </div>
+              <div className={`p-2.5 rounded-full ${failedCount > 0 ? "bg-red-50" : "bg-slate-50"}`}>
+                <XCircle className={`h-5 w-5 ${failedCount > 0 ? "text-red-600" : "text-slate-400"}`} />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-purple-500">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100">
-                <XCircle className="h-4 w-4 text-red-600" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{failedCount}</p>
-                <p className="text-xs text-muted-foreground">Failed</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Received</p>
+                <p className="text-2xl font-bold mt-1">{receivedCount}</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Inbox className="h-4 w-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{receivedCount}</p>
-                <p className="text-xs text-muted-foreground">Received</p>
+              <div className="p-2.5 rounded-full bg-purple-50">
+                <Inbox className="h-5 w-5 text-purple-600" />
               </div>
             </div>
           </CardContent>
@@ -325,10 +403,12 @@ const EmailsPage = () => {
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setLoading(true); }}>
         <TabsList>
           <TabsTrigger value="sending" className="gap-2">
-            <Send className="h-4 w-4" /> Sending
+            <Send className="h-4 w-4" /> Outgoing
+            {total > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{total}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="receiving" className="gap-2">
-            <Inbox className="h-4 w-4" /> Receiving
+            <Inbox className="h-4 w-4" /> Incoming
+            {receivedCount > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{receivedCount}</Badge>}
           </TabsTrigger>
         </TabsList>
 
@@ -361,9 +441,9 @@ const EmailsPage = () => {
           <Card>
             <CardContent className="p-0">
               {loading ? (
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-3">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
+                    <Skeleton key={i} className="h-12 w-full rounded-md" />
                   ))}
                 </div>
               ) : emails.length === 0 ? (
@@ -377,38 +457,67 @@ const EmailsPage = () => {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Status</TableHead>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead>Recipient</TableHead>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead className="hidden md:table-cell">Subject</TableHead>
+                      <TableHead className="hidden lg:table-cell w-[130px]">Category</TableHead>
+                      <TableHead className="w-[160px]">Sent</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {emails.map((email) => (
-                      <TableRow
-                        key={email.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setSelectedEmail(email)}
-                      >
-                        <TableCell>{statusBadge(email)}</TableCell>
-                        <TableCell className="font-medium text-sm">
-                          {email.recipient_email || "—"}
-                        </TableCell>
-                        <TableCell className="text-sm max-w-xs truncate">
-                          {email.subject || "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {email.event_type || "—"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {format(new Date(email.created_at), "MMM d, yyyy h:mm a")}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {emails.map((email) => {
+                      const status = getEmailStatus(email);
+                      const isQueued = status === "queued";
+                      const queuedAt = email.details?.queued_at;
+                      return (
+                        <TableRow
+                          key={email.id}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setSelectedEmail(email)}
+                        >
+                          <TableCell>
+                            <StatusBadge email={email} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {email.recipient_email || "—"}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate md:hidden mt-0.5">
+                                {email.subject || "No subject"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <p className="text-sm max-w-xs truncate text-muted-foreground">
+                              {email.subject || "—"}
+                            </p>
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <span className="text-xs text-muted-foreground">
+                              {eventTypeLabel(email.details?.notification_type || email.event_type)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {isQueued ? (
+                              <div className="flex items-center gap-1.5">
+                                <Timer className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+                                <span className="text-xs text-amber-600 font-medium">
+                                  {queuedAt
+                                    ? formatDistanceToNow(new Date(queuedAt), { addSuffix: false })
+                                    : "Pending"}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {format(new Date(email.created_at), "MMM d, h:mm a")}
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
@@ -419,7 +528,7 @@ const EmailsPage = () => {
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Page {page + 1} of {totalPages}
+                Page {page + 1} of {totalPages} ({total} emails)
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>
@@ -452,55 +561,61 @@ const EmailsPage = () => {
           <Card>
             <CardContent className="p-0">
               {loading ? (
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-3">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
+                    <Skeleton key={i} className="h-12 w-full rounded-md" />
                   ))}
                 </div>
               ) : inbound.length === 0 ? (
                 <div className="p-12">
                   <EmptyState
                     icon={Inbox}
-                    title="No inbound emails"
-                    description="Incoming emails from Hemlane and other sources will appear here"
+                    title="No inbound emails yet"
+                    description="Incoming emails from Hemlane and other sources will appear here once the Resend webhook is configured"
                   />
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Status</TableHead>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead>From</TableHead>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Preview</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead className="hidden md:table-cell">Subject</TableHead>
+                      <TableHead className="hidden lg:table-cell">Preview</TableHead>
+                      <TableHead className="w-[160px]">Date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {inbound.map((email) => (
                       <TableRow
                         key={email.id}
-                        className="cursor-pointer hover:bg-muted/50"
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => setSelectedInbound(email)}
                       >
                         <TableCell>
-                          <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                          <Badge className="bg-purple-50 text-purple-700 border-purple-200 font-medium">
                             <MailOpen className="h-3 w-3 mr-1" />Received
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-medium text-sm">
-                          {email.recipient || "—"}
+                        <TableCell>
+                          <p className="font-medium text-sm truncate">{email.recipient || "—"}</p>
                         </TableCell>
-                        <TableCell className="text-sm max-w-xs truncate">
-                          {email.subject || "—"}
+                        <TableCell className="hidden md:table-cell">
+                          <p className="text-sm max-w-xs truncate text-muted-foreground">
+                            {email.subject || "—"}
+                          </p>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                          {email.body?.substring(0, 60) || "—"}
+                        <TableCell className="hidden lg:table-cell">
+                          <p className="text-xs text-muted-foreground max-w-[200px] truncate">
+                            {email.body?.substring(0, 80) || "—"}
+                          </p>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {email.sent_at
-                            ? format(new Date(email.sent_at), "MMM d, yyyy h:mm a")
-                            : "—"}
+                        <TableCell>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {email.sent_at
+                              ? format(new Date(email.sent_at), "MMM d, h:mm a")
+                              : "—"}
+                          </span>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -514,7 +629,7 @@ const EmailsPage = () => {
           {inboundTotalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Page {inboundPage + 1} of {inboundTotalPages}
+                Page {inboundPage + 1} of {inboundTotalPages} ({inboundTotal} emails)
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={inboundPage === 0} onClick={() => setInboundPage(inboundPage - 1)}>
@@ -529,96 +644,177 @@ const EmailsPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Sending Detail Dialog */}
-      <Dialog open={!!selectedEmail} onOpenChange={() => setSelectedEmail(null)}>
+      {/* ── Sending Detail Dialog ── */}
+      <Dialog open={!!selectedEmail && !showHtmlPreview} onOpenChange={() => setSelectedEmail(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Email Details</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-muted-foreground" />
+              Email Details
+            </DialogTitle>
           </DialogHeader>
-          {selectedEmail && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <div className="mt-1">{statusBadge(selectedEmail)}</div>
+          {selectedEmail && (() => {
+            const info = parseEmailDetails(selectedEmail);
+            const status = getEmailStatus(selectedEmail);
+            return (
+              <div className="space-y-5">
+                {/* Status + Date row */}
+                <div className="flex items-center justify-between">
+                  <StatusBadge email={selectedEmail} />
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(selectedEmail.created_at), "MMM d, yyyy 'at' h:mm a")}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Date</p>
-                  <p className="text-sm font-medium mt-1">
-                    {format(new Date(selectedEmail.created_at), "MMM d, yyyy h:mm:ss a")}
-                  </p>
+
+                {/* Info grid */}
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40">
+                    <User className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Recipient</p>
+                      <p className="text-sm font-medium truncate">{selectedEmail.recipient_email || "—"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40">
+                    <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Subject</p>
+                      <p className="text-sm font-medium">{selectedEmail.subject || "—"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40">
+                    <Send className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Category</p>
+                      <p className="text-sm font-medium">{eventTypeLabel(info.notificationType)}</p>
+                    </div>
+                  </div>
+
+                  {/* Queue info for queued emails */}
+                  {status === "queued" && info.queuedAt && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                      <Timer className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-amber-600 font-medium">Queued</p>
+                        <p className="text-sm text-amber-700">
+                          Waiting {formatDistanceToNow(new Date(info.queuedAt))} — next queue run every 2 min
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error info for failed emails */}
+                  {status === "failed" && info.errorMessage && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-200">
+                      <XCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-red-600 font-medium">Error</p>
+                        <p className="text-sm text-red-700">{info.errorMessage}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  {info.hasHtml && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowHtmlPreview(true)}
+                      className="gap-1.5"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Preview Email
+                    </Button>
+                  )}
+                  {selectedEmail.resend_email_id && (
+                    <span className="text-xs text-muted-foreground ml-auto font-mono">
+                      ID: {selectedEmail.resend_email_id}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Recipient</p>
-                <p className="text-sm font-medium mt-1">{selectedEmail.recipient_email || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Subject</p>
-                <p className="text-sm font-medium mt-1">{selectedEmail.subject || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Type</p>
-                <p className="text-sm font-medium mt-1">{selectedEmail.event_type || "—"}</p>
-              </div>
-              {selectedEmail.resend_email_id && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Resend ID</p>
-                  <p className="text-sm font-mono mt-1">{selectedEmail.resend_email_id}</p>
-                </div>
-              )}
-              {selectedEmail.details && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Details</p>
-                  <pre className="text-xs mt-1 p-3 rounded-lg bg-muted overflow-auto max-h-48">
-                    {JSON.stringify(selectedEmail.details, null, 2)}
-                  </pre>
-                </div>
-              )}
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── HTML Preview Dialog ── */}
+      <Dialog open={showHtmlPreview} onOpenChange={() => setShowHtmlPreview(false)}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-muted-foreground" />
+              Email Preview
+            </DialogTitle>
+          </DialogHeader>
+          {selectedEmail?.details?.html && (
+            <div className="border rounded-lg overflow-hidden bg-white">
+              <iframe
+                srcDoc={selectedEmail.details.html}
+                className="w-full h-[60vh] border-0"
+                sandbox="allow-same-origin"
+                title="Email preview"
+              />
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Receiving Detail Dialog */}
+      {/* ── Receiving Detail Dialog ── */}
       <Dialog open={!!selectedInbound} onOpenChange={() => setSelectedInbound(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Inbound Email</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <MailOpen className="h-5 w-5 text-muted-foreground" />
+              Inbound Email
+            </DialogTitle>
           </DialogHeader>
           {selectedInbound && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <Badge className="bg-purple-100 text-purple-700 border-purple-200 mt-1">
-                    <MailOpen className="h-3 w-3 mr-1" />Received
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Date</p>
-                  <p className="text-sm font-medium mt-1">
-                    {selectedInbound.sent_at
-                      ? format(new Date(selectedInbound.sent_at), "MMM d, yyyy h:mm:ss a")
-                      : "—"}
-                  </p>
-                </div>
+            <div className="space-y-5">
+              {/* Status + Date row */}
+              <div className="flex items-center justify-between">
+                <Badge className="bg-purple-50 text-purple-700 border-purple-200 font-medium">
+                  <MailOpen className="h-3 w-3 mr-1" />Received
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  {selectedInbound.sent_at
+                    ? format(new Date(selectedInbound.sent_at), "MMM d, yyyy 'at' h:mm a")
+                    : "—"}
+                </span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">From</p>
-                <p className="text-sm font-medium mt-1">{selectedInbound.recipient || "—"}</p>
-              </div>
-              {selectedInbound.subject && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Subject</p>
-                  <p className="text-sm font-medium mt-1">{selectedInbound.subject}</p>
+
+              {/* Info */}
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40">
+                  <User className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">From</p>
+                    <p className="text-sm font-medium truncate">{selectedInbound.recipient || "—"}</p>
+                  </div>
                 </div>
-              )}
-              <div>
-                <p className="text-xs text-muted-foreground">Body</p>
-                <pre className="text-xs mt-1 p-3 rounded-lg bg-muted overflow-auto max-h-64 whitespace-pre-wrap">
-                  {selectedInbound.body || "No content"}
-                </pre>
+
+                {selectedInbound.subject && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40">
+                    <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Subject</p>
+                      <p className="text-sm font-medium">{selectedInbound.subject}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">Message</p>
+                  <div className="p-3 rounded-lg bg-muted/40 max-h-64 overflow-y-auto">
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {selectedInbound.body || "No content"}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
