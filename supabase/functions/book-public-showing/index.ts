@@ -15,6 +15,8 @@ function showingConfirmationEmail(data: {
   dateFormatted: string;
   timeFormatted: string;
   duration: number;
+  googleCalUrl: string;
+  icsDataUri: string;
 }) {
   return `
 <!DOCTYPE html>
@@ -49,6 +51,14 @@ function showingConfirmationEmail(data: {
           </tr>
         </table>
       </div>
+      <div style="text-align:center;margin:20px 0;">
+        <a href="${data.googleCalUrl}" target="_blank" style="display:inline-block;background-color:#370d4b;color:#ffffff;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;margin:0 6px 8px;">
+          Add to Google Calendar
+        </a>
+        <a href="${data.icsDataUri}" download="showing.ics" style="display:inline-block;background-color:#ffffff;color:#370d4b;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;border:1px solid #370d4b;margin:0 6px 8px;">
+          Download .ics
+        </a>
+      </div>
       <p style="margin:16px 0 0;color:#666;font-size:13px;line-height:1.5;">
         You'll receive a confirmation call approximately 24 hours before your showing.
         If you need to reschedule or cancel, please call us directly.
@@ -80,6 +90,66 @@ function formatDateHuman(d: string): string {
     day: "numeric",
     year: "numeric",
   });
+}
+
+// ── Calendar helpers ─────────────────────────────────────────────────
+function buildGoogleCalUrl(data: {
+  title: string;
+  location: string;
+  slotDate: string;
+  slotTime: string;
+  durationMin: number;
+}): string {
+  // slotDate: "YYYY-MM-DD", slotTime: "HH:MM:SS"
+  const start = data.slotDate.replace(/-/g, "") + "T" + data.slotTime.replace(/:/g, "").slice(0, 6);
+  const [h, m] = data.slotTime.split(":").map(Number);
+  const endTotal = h * 60 + m + data.durationMin;
+  const eH = String(Math.floor(endTotal / 60)).padStart(2, "0");
+  const eM = String(endTotal % 60).padStart(2, "0");
+  const end = data.slotDate.replace(/-/g, "") + "T" + eH + eM + "00";
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: data.title,
+    dates: `${start}/${end}`,
+    details: `Property showing at ${data.location}`,
+    location: data.location,
+    ctz: "America/New_York",
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function buildIcsDataUri(data: {
+  title: string;
+  location: string;
+  slotDate: string;
+  slotTime: string;
+  durationMin: number;
+}): string {
+  const start = data.slotDate.replace(/-/g, "") + "T" + data.slotTime.replace(/:/g, "").slice(0, 6);
+  const [h, m] = data.slotTime.split(":").map(Number);
+  const endTotal = h * 60 + m + data.durationMin;
+  const eH = String(Math.floor(endTotal / 60)).padStart(2, "0");
+  const eM = String(endTotal % 60).padStart(2, "0");
+  const end = data.slotDate.replace(/-/g, "") + "T" + eH + eM + "00";
+  const uid = crypto.randomUUID();
+  const now = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//RentFinderCleveland//Showing//EN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${now}`,
+    `DTSTART;TZID=America/New_York:${start}`,
+    `DTEND;TZID=America/New_York:${end}`,
+    `SUMMARY:${data.title}`,
+    `LOCATION:${data.location}`,
+    `DESCRIPTION:Property showing at ${data.location}`,
+    "STATUS:CONFIRMED",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+  return "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
 }
 
 serve(async (req: Request) => {
@@ -116,21 +186,25 @@ serve(async (req: Request) => {
     const { data: slot, error: slotErr } = await supabase
       .from("showing_available_slots")
       .select("id, is_booked, is_enabled, duration_minutes")
+      .eq("organization_id", organization_id)
       .eq("property_id", property_id)
       .eq("slot_date", slot_date)
       .eq("slot_time", slot_time)
-      .single();
+      .eq("is_enabled", true)
+      .eq("is_booked", false)
+      .maybeSingle();
 
-    if (slotErr || !slot) {
+    if (slotErr) {
+      console.error("Slot lookup error:", slotErr);
       return new Response(
-        JSON.stringify({ error: "This time slot is no longer available. Please select another." }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Error checking slot availability. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (slot.is_booked || !slot.is_enabled) {
+    if (!slot) {
       return new Response(
-        JSON.stringify({ error: "This slot was just booked by someone else. Please pick a different time." }),
+        JSON.stringify({ error: "This time slot is no longer available. Please select another." }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -354,6 +428,15 @@ serve(async (req: Request) => {
     // ── Send confirmation email (if lead has email) ───────────────────
     if (leadEmail) {
       try {
+        const calTitle = `Property Showing — ${property?.address || "Tour"}`;
+        const calData = {
+          title: calTitle,
+          location: propertyAddress,
+          slotDate: slot_date,
+          slotTime: slot_time,
+          durationMin: durationMinutes,
+        };
+
         await supabase.functions.invoke("send-notification-email", {
           body: {
             to: leadEmail,
@@ -364,6 +447,8 @@ serve(async (req: Request) => {
               dateFormatted: formatDateHuman(slot_date),
               timeFormatted: formatTimeHuman(slot_time),
               duration: durationMinutes,
+              googleCalUrl: buildGoogleCalUrl(calData),
+              icsDataUri: buildIcsDataUri(calData),
             }),
             notification_type: "showing_confirmation",
             organization_id,

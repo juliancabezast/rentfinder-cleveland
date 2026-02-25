@@ -290,7 +290,20 @@ const ScheduleShowing: React.FC = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to extract specific error message from edge function response
+        let msg = "Something went wrong while booking. Please try again or call us directly.";
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch {}
+        setBookingError(msg);
+        setSubmitting(false);
+        return;
+      }
 
       if (data?.error) {
         setBookingError(data.error);
