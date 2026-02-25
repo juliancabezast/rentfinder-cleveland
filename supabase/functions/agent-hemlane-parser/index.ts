@@ -1493,6 +1493,7 @@ serve(async (req: Request) => {
                     related_entity_id: result.leadId,
                     related_entity_type: "lead",
                     from_name: "Rent Finder Cleveland",
+                    queue: true,
                   },
                 });
                 digestFollowUps.push(`email → ${lead.email}`);
@@ -1647,6 +1648,7 @@ serve(async (req: Request) => {
             related_entity_id: result.leadId,
             related_entity_type: "lead",
             from_name: "Rent Finder Cleveland",
+            queue: true,
           },
         });
         followUpActions.push("info-request email sent");

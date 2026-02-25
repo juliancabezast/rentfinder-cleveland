@@ -459,6 +459,7 @@ serve(async (req: Request) => {
             organization_id,
             related_entity_id: showing.id,
             related_entity_type: "showing",
+            queue: true,
           },
         });
       } catch (emailErr) {

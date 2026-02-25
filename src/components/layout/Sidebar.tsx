@@ -22,6 +22,7 @@ import {
   UserPlus,
   Sparkles,
   UserCheck,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -54,6 +55,7 @@ const leasingNavItems: NavItem[] = [
 
 // ADMIN section
 const adminNavItems: NavItem[] = [
+  { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
   { title: 'Demo Requests', href: '/demo-requests', icon: UserPlus, permission: 'canModifySettings' },

@@ -19,6 +19,7 @@ import {
   Bot,
   UserPlus,
   UserCheck,
+  Mail,
 } from 'lucide-react';
 import {
   Sheet,
@@ -56,6 +57,7 @@ const leasingNavItems: NavItem[] = [
 
 // Admin/More items
 const moreNavItems: NavItem[] = [
+  { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
   { title: 'Demo Requests', href: '/demo-requests', icon: UserPlus, permission: 'canModifySettings' },

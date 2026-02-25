@@ -199,6 +199,7 @@ serve(async (req: Request) => {
             organization_id,
             related_entity_id: lead_id,
             related_entity_type: "lead",
+            queue: true,
           },
         });
 

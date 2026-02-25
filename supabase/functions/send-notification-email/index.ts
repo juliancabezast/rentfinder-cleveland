@@ -29,6 +29,7 @@ serve(async (req: Request) => {
       related_entity_id,
       related_entity_type,
       from_name,
+      queue,  // If true, queue email instead of sending immediately
     } = parsed;
 
     if (!to || !subject || !html) {
@@ -41,8 +42,34 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Get Resend API key ────────────────────────────────────────────
-    // Try org-specific key first, then fall back to env var
+    // ── QUEUE MODE: Insert into email_events as "queued" for agent processing ──
+    if (queue && organization_id) {
+      const senderName = from_name || "Rent Finder Cleveland";
+      await supabase.from("email_events").insert({
+        organization_id,
+        event_type: notification_type || "notification",
+        recipient_email: to,
+        subject,
+        details: {
+          html,
+          from_name: senderName,
+          status: "queued",
+          related_entity_id: related_entity_id || null,
+          related_entity_type: related_entity_type || null,
+          queued_at: new Date().toISOString(),
+        },
+      });
+
+      console.log(`Email queued for ${to}: "${subject}"`);
+
+      return new Response(
+        JSON.stringify({ success: true, queued: true, message: "Email queued for agent processing" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── IMMEDIATE MODE: Send via Resend right now ──
+    // Get Resend API key — try env var first, then org-specific
     let resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
 
     if (organization_id && !resendApiKey) {
@@ -61,11 +88,9 @@ serve(async (req: Request) => {
       throw new Error("No Resend API key configured");
     }
 
-    // ── Determine sender ──────────────────────────────────────────────
     const senderName = from_name || "Rent Finder Cleveland";
     const fromAddress = `${senderName} <support@rentfindercleveland.com>`;
 
-    // ── Send email via Resend API ─────────────────────────────────────
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -91,22 +116,23 @@ serve(async (req: Request) => {
 
     const resendEmailId = resendData.id;
 
-    // ── Log to email_events table ─────────────────────────────────────
+    // Log to email_events table
     if (organization_id) {
       await supabase.from("email_events").insert({
         organization_id,
-        email_type: notification_type || "notification",
+        event_type: notification_type || "notification",
         recipient_email: to,
         subject,
         resend_email_id: resendEmailId,
-        status: "sent",
-        related_entity_id: related_entity_id || null,
-        related_entity_type: related_entity_type || null,
-        sent_at: new Date().toISOString(),
+        details: {
+          status: "sent",
+          related_entity_id: related_entity_id || null,
+          related_entity_type: related_entity_type || null,
+        },
       });
     }
 
-    // ── Record cost ───────────────────────────────────────────────────
+    // Record cost (non-blocking)
     if (organization_id) {
       try {
         await supabase.rpc("zacchaeus_record_cost", {
@@ -119,11 +145,11 @@ serve(async (req: Request) => {
           p_lead_id: related_entity_type === "lead" ? related_entity_id : null,
         });
       } catch {
-        // Non-blocking cost recording
+        // Non-blocking
       }
     }
 
-    // Log successful email
+    // System log (non-blocking)
     if (organization_id) {
       try {
         await supabase.from("system_logs").insert({
@@ -138,14 +164,8 @@ serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        resend_email_id: resendEmailId,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ success: true, resend_email_id: resendEmailId }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("send-notification-email error:", error);
