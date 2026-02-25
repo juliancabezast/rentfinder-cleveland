@@ -90,6 +90,7 @@ const App = () => (
                 <Route path="/terms-and-conditions" element={<TermsOfService />} />
                 <Route path="/p/refer/:referralCode" element={<ReferralPage />} />
                 <Route path="/sms-signup" element={<SmsSignup />} />
+                <Route path="/p/book-showing" element={<ScheduleShowing />} />
                 <Route path="/p/schedule-showing/:propertyId" element={<ScheduleShowing />} />
 
                 {/* Public auth routes */}

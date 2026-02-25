@@ -21,6 +21,7 @@ import {
   Briefcase,
   CalendarDays,
   Loader2,
+  Link2,
 } from "lucide-react";
 import {
   format,
@@ -466,6 +467,32 @@ export const ManageSlotsTab: React.FC = () => {
                 <Copy className="h-4 w-4 mr-1" />
                 Copy → Next Week
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = `${window.location.origin}/p/book-showing`;
+                  navigator.clipboard.writeText(url);
+                  toast({ title: "Booking link copied!", description: url });
+                }}
+              >
+                <Link2 className="h-4 w-4 mr-1" />
+                Copy Booking Link
+              </Button>
+              {selectedPropertyId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const url = `${window.location.origin}/p/schedule-showing/${selectedPropertyId}`;
+                    navigator.clipboard.writeText(url);
+                    toast({ title: "Property link copied!", description: url });
+                  }}
+                >
+                  <Link2 className="h-4 w-4 mr-1" />
+                  Copy Property Link
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>

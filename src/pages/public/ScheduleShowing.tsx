@@ -30,6 +30,10 @@ import { format, addDays, parseISO, isSameDay } from "date-fns";
 type Property =
   import("@/integrations/supabase/types").Database["public"]["Tables"]["properties"]["Row"];
 
+interface PropertyWithSlots extends Property {
+  available_slot_count: number;
+}
+
 interface AvailableSlot {
   slot_time: string;
   duration_minutes: number;
@@ -43,16 +47,87 @@ function formatTime(t: string) {
   return `${display}:${m} ${ampm}`;
 }
 
+function getPhotoUrl(property: Property): string | null {
+  if (!property?.photos) return null;
+  const photos = property.photos as any;
+  if (Array.isArray(photos) && photos.length > 0) {
+    return typeof photos[0] === "string" ? photos[0] : photos[0]?.url || null;
+  }
+  return null;
+}
+
+/* ---- Property Select Card (multi-mode) ---- */
+const PropertySelectCard: React.FC<{
+  property: PropertyWithSlots;
+  onClick: () => void;
+}> = ({ property, onClick }) => {
+  const photoUrl = getPhotoUrl(property);
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#370d4b] hover:bg-[#370d4b]/5 transition-all text-left"
+    >
+      <div className="h-16 w-24 rounded-lg overflow-hidden shrink-0 bg-muted">
+        {photoUrl ? (
+          <img src={photoUrl} alt={property.address} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Home className="h-6 w-6 text-muted-foreground/50" />
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm truncate">
+          {property.address}
+          {property.unit_number && `, Unit ${property.unit_number}`}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {property.city}, {property.state} {property.zip_code}
+        </p>
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
+            <BedDouble className="h-2.5 w-2.5" /> {property.bedrooms}
+          </Badge>
+          <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
+            <Bath className="h-2.5 w-2.5" /> {property.bathrooms}
+          </Badge>
+          <Badge className="bg-[#370d4b] text-white text-[10px] h-5">
+            ${property.rent_price?.toLocaleString()}/mo
+          </Badge>
+          {property.section_8_accepted && (
+            <Badge variant="secondary" className="text-[10px] h-5">Section 8</Badge>
+          )}
+        </div>
+      </div>
+      <Badge variant="outline" className="shrink-0 text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50">
+        {property.available_slot_count} {property.available_slot_count === 1 ? "slot" : "slots"}
+      </Badge>
+    </button>
+  );
+};
+
+/* ================================================================ */
+
 const ScheduleShowing: React.FC = () => {
   const { propertyId } = useParams<{ propertyId: string }>();
+  const isMultiMode = !propertyId;
+
+  // Multi-mode: property selection
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [properties, setProperties] = useState<PropertyWithSlots[]>([]);
+  const [propertiesLoading, setPropertiesLoading] = useState(isMultiMode);
+
+  // Effective property ID (from URL or user selection)
+  const effectivePropertyId = propertyId || selectedPropertyId;
 
   // State
   const [property, setProperty] = useState<Property | null>(null);
-  const [propertyLoading, setPropertyLoading] = useState(true);
+  const [propertyLoading, setPropertyLoading] = useState(!!propertyId);
   const [propertyError, setPropertyError] = useState<string | null>(null);
 
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
-  const [datesLoading, setDatesLoading] = useState(true);
+  const [datesLoading, setDatesLoading] = useState(!!propertyId);
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [timeSlots, setTimeSlots] = useState<AvailableSlot[]>([]);
@@ -71,24 +146,63 @@ const ScheduleShowing: React.FC = () => {
   const [booked, setBooked] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
-  // Current step
-  const step = useMemo(() => {
-    if (booked) return 5;
-    if (selectedTime) return 4;
-    if (selectedDate) return 3;
-    if (property) return 2;
-    return 1;
-  }, [property, selectedDate, selectedTime, booked]);
+  // ---- Multi-mode: fetch properties with available slots ----
+  useEffect(() => {
+    if (!isMultiMode) return;
+    (async () => {
+      setPropertiesLoading(true);
+      const today = format(new Date(), "yyyy-MM-dd");
+      const maxDate = format(addDays(new Date(), 30), "yyyy-MM-dd");
+
+      const { data: slotData } = await supabase
+        .from("showing_available_slots")
+        .select("property_id")
+        .eq("is_enabled", true)
+        .eq("is_booked", false)
+        .gte("slot_date", today)
+        .lte("slot_date", maxDate);
+
+      if (!slotData || slotData.length === 0) {
+        setProperties([]);
+        setPropertiesLoading(false);
+        return;
+      }
+
+      const slotCounts = new Map<string, number>();
+      slotData.forEach((s) => {
+        slotCounts.set(s.property_id, (slotCounts.get(s.property_id) || 0) + 1);
+      });
+      const uniqueIds = [...slotCounts.keys()];
+
+      const { data: propData } = await supabase
+        .from("properties")
+        .select("*")
+        .in("id", uniqueIds)
+        .in("status", ["available", "coming_soon"])
+        .order("address");
+
+      if (propData) {
+        setProperties(
+          propData.map((p) => ({
+            ...p,
+            available_slot_count: slotCounts.get(p.id) || 0,
+          }))
+        );
+      }
+      setPropertiesLoading(false);
+    })();
+  }, [isMultiMode]);
 
   // ---- Fetch property ----
   useEffect(() => {
-    if (!propertyId) return;
+    if (!effectivePropertyId) return;
     (async () => {
       setPropertyLoading(true);
+      setPropertyError(null);
       const { data, error } = await supabase
         .from("properties")
         .select("*")
-        .eq("id", propertyId)
+        .eq("id", effectivePropertyId)
         .single();
 
       if (error || !data) {
@@ -98,11 +212,11 @@ const ScheduleShowing: React.FC = () => {
       }
       setPropertyLoading(false);
     })();
-  }, [propertyId]);
+  }, [effectivePropertyId]);
 
   // ---- Fetch available dates (next 30 days) ----
   useEffect(() => {
-    if (!propertyId) return;
+    if (!effectivePropertyId) return;
     (async () => {
       setDatesLoading(true);
       const today = format(new Date(), "yyyy-MM-dd");
@@ -111,7 +225,7 @@ const ScheduleShowing: React.FC = () => {
       const { data, error } = await supabase
         .from("showing_available_slots")
         .select("slot_date")
-        .eq("property_id", propertyId)
+        .eq("property_id", effectivePropertyId)
         .eq("is_enabled", true)
         .eq("is_booked", false)
         .gte("slot_date", today)
@@ -123,11 +237,11 @@ const ScheduleShowing: React.FC = () => {
       }
       setDatesLoading(false);
     })();
-  }, [propertyId]);
+  }, [effectivePropertyId]);
 
   // ---- Fetch slots for selected date ----
   useEffect(() => {
-    if (!propertyId || !selectedDate) return;
+    if (!effectivePropertyId || !selectedDate) return;
     (async () => {
       setSlotsLoading(true);
       setSelectedTime(null);
@@ -136,7 +250,7 @@ const ScheduleShowing: React.FC = () => {
       const { data, error } = await supabase
         .from("showing_available_slots")
         .select("slot_time, duration_minutes")
-        .eq("property_id", propertyId)
+        .eq("property_id", effectivePropertyId)
         .eq("slot_date", dateStr)
         .eq("is_enabled", true)
         .eq("is_booked", false)
@@ -147,7 +261,7 @@ const ScheduleShowing: React.FC = () => {
       }
       setSlotsLoading(false);
     })();
-  }, [propertyId, selectedDate]);
+  }, [effectivePropertyId, selectedDate]);
 
   // ---- Handle booking ----
   const handleBook = async () => {
@@ -157,7 +271,7 @@ const ScheduleShowing: React.FC = () => {
     }
     setConsentError(false);
     if (!fullName.trim() || !phone.trim()) return;
-    if (!selectedDate || !selectedTime || !propertyId || !property) return;
+    if (!selectedDate || !selectedTime || !effectivePropertyId || !property) return;
 
     setSubmitting(true);
     setBookingError(null);
@@ -165,7 +279,7 @@ const ScheduleShowing: React.FC = () => {
     try {
       const { data, error } = await supabase.functions.invoke("book-public-showing", {
         body: {
-          property_id: propertyId,
+          property_id: effectivePropertyId,
           organization_id: property.organization_id,
           slot_date: format(selectedDate, "yyyy-MM-dd"),
           slot_time: selectedTime,
@@ -206,19 +320,41 @@ const ScheduleShowing: React.FC = () => {
   };
 
   // Property photo
-  const photoUrl = useMemo(() => {
-    if (!property?.photos) return null;
-    const photos = property.photos as any;
-    if (Array.isArray(photos) && photos.length > 0) {
-      return typeof photos[0] === "string" ? photos[0] : photos[0]?.url || null;
+  const photoUrl = useMemo(() => getPhotoUrl(property!), [property?.photos]);
+
+  // Reset to property selection (multi-mode)
+  const handleChangeProperty = () => {
+    setProperty(null);
+    setSelectedPropertyId(null);
+    setPropertyError(null);
+    setSelectedDate(undefined);
+    setSelectedTime(null);
+    setAvailableDates([]);
+    setTimeSlots([]);
+  };
+
+  // Reset all for "Schedule Another"
+  const handleScheduleAnother = () => {
+    setBooked(false);
+    setSelectedDate(undefined);
+    setSelectedTime(null);
+    setFullName("");
+    setPhone("");
+    setEmail("");
+    setConsent(false);
+    setBookingError(null);
+    if (isMultiMode) {
+      setProperty(null);
+      setSelectedPropertyId(null);
+      setAvailableDates([]);
+      setTimeSlots([]);
     }
-    return null;
-  }, [property?.photos]);
+  };
 
   // ---- RENDER ----
 
-  // Loading state
-  if (propertyLoading) {
+  // Loading state (direct URL mode only)
+  if (propertyId && propertyLoading) {
     return (
       <div className="min-h-screen bg-[#f4f1f1] flex items-center justify-center p-4">
         <div className="w-full max-w-[640px] space-y-4">
@@ -230,8 +366,8 @@ const ScheduleShowing: React.FC = () => {
     );
   }
 
-  // Error state
-  if (propertyError || !property) {
+  // Error state (direct URL mode only)
+  if (propertyId && (propertyError || !property)) {
     return (
       <div className="min-h-screen bg-[#f4f1f1] flex items-center justify-center p-4">
         <Card className="w-full max-w-[640px]">
@@ -260,50 +396,119 @@ const ScheduleShowing: React.FC = () => {
       </div>
 
       <div className="max-w-[640px] mx-auto px-4 py-6 space-y-6">
-        {/* Step 1: Property Card (always visible) */}
-        <Card className="overflow-hidden">
-          {photoUrl && (
-            <div className="aspect-video overflow-hidden">
-              <img
-                src={photoUrl}
-                alt={property.address}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          <CardContent className="p-4 space-y-2">
-            <h2 className="text-lg font-bold flex items-center gap-1.5">
-              <MapPin className="h-4 w-4 text-[#370d4b] shrink-0" />
-              {property.address}
-              {property.unit_number && `, Unit ${property.unit_number}`}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {property.city}, {property.state} {property.zip_code}
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Badge variant="outline" className="gap-1">
-                <BedDouble className="h-3 w-3" /> {property.bedrooms} bed
-              </Badge>
-              <Badge variant="outline" className="gap-1">
-                <Bath className="h-3 w-3" /> {property.bathrooms} bath
-              </Badge>
-              <Badge className="bg-[#370d4b] text-white gap-1">
-                <DollarSign className="h-3 w-3" /> ${property.rent_price?.toLocaleString()}/mo
-              </Badge>
-              {property.square_feet && (
-                <Badge variant="outline" className="gap-1">
-                  <SquareIcon className="h-3 w-3" /> {property.square_feet} sqft
-                </Badge>
-              )}
-              {property.section_8_accepted && (
-                <Badge variant="secondary">Section 8 OK</Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Success screen (step 5) */}
-        {booked ? (
+        {/* Multi-mode: Property Selection Grid */}
+        {isMultiMode && !property && (
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Home className="h-5 w-5 text-[#370d4b]" />
+                <h3 className="font-semibold text-lg">Select a Property</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Choose the property you'd like to tour:
+              </p>
+              {propertiesLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-24 rounded-xl" />
+                  ))}
+                </div>
+              ) : properties.length === 0 ? (
+                <div className="text-center py-6">
+                  <Home className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    No properties with available showing times right now.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Please check back later or call us directly.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {properties.map((prop) => (
+                    <PropertySelectCard
+                      key={prop.id}
+                      property={prop}
+                      onClick={() => setSelectedPropertyId(prop.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Multi-mode: loading selected property */}
+        {isMultiMode && selectedPropertyId && propertyLoading && (
+          <div className="space-y-4">
+            <Skeleton className="h-[200px] w-full rounded-xl" />
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        )}
+
+        {/* Property Card (visible once property is loaded) */}
+        {property && (
+          <>
+            <Card className="overflow-hidden">
+              {photoUrl && (
+                <div className="aspect-video overflow-hidden">
+                  <img
+                    src={photoUrl}
+                    alt={property.address}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <CardContent className="p-4 space-y-2">
+                <h2 className="text-lg font-bold flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-[#370d4b] shrink-0" />
+                  {property.address}
+                  {property.unit_number && `, Unit ${property.unit_number}`}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {property.city}, {property.state} {property.zip_code}
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Badge variant="outline" className="gap-1">
+                    <BedDouble className="h-3 w-3" /> {property.bedrooms} bed
+                  </Badge>
+                  <Badge variant="outline" className="gap-1">
+                    <Bath className="h-3 w-3" /> {property.bathrooms} bath
+                  </Badge>
+                  <Badge className="bg-[#370d4b] text-white gap-1">
+                    <DollarSign className="h-3 w-3" /> ${property.rent_price?.toLocaleString()}/mo
+                  </Badge>
+                  {property.square_feet && (
+                    <Badge variant="outline" className="gap-1">
+                      <SquareIcon className="h-3 w-3" /> {property.square_feet} sqft
+                    </Badge>
+                  )}
+                  {property.section_8_accepted && (
+                    <Badge variant="secondary">Section 8 OK</Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Change Property button (multi-mode only) */}
+            {isMultiMode && !booked && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs -mt-4"
+                onClick={handleChangeProperty}
+              >
+                <ArrowLeft className="h-3 w-3 mr-1" />
+                Change Property
+              </Button>
+            )}
+          </>
+        )}
+
+        {/* Success screen */}
+        {property && booked ? (
           <Card>
             <CardContent className="p-8 text-center space-y-4">
               <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
@@ -328,23 +533,15 @@ const ScheduleShowing: React.FC = () => {
               <Button
                 variant="outline"
                 className="mt-4"
-                onClick={() => {
-                  setBooked(false);
-                  setSelectedDate(undefined);
-                  setSelectedTime(null);
-                  setFullName("");
-                  setPhone("");
-                  setEmail("");
-                  setConsent(false);
-                }}
+                onClick={handleScheduleAnother}
               >
                 Schedule Another Showing
               </Button>
             </CardContent>
           </Card>
-        ) : (
+        ) : property && !booked ? (
           <>
-            {/* Step 2: Calendar */}
+            {/* Step 1: Calendar */}
             <Card>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-1">
@@ -390,7 +587,7 @@ const ScheduleShowing: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Step 3: Time Slots */}
+            {/* Step 2: Time Slots */}
             {selectedDate && (
               <Card>
                 <CardContent className="p-4 space-y-3">
@@ -448,7 +645,7 @@ const ScheduleShowing: React.FC = () => {
               </Card>
             )}
 
-            {/* Step 4: Contact Form */}
+            {/* Step 3: Contact Form */}
             {selectedTime && (
               <Card>
                 <CardContent className="p-4 space-y-4">
@@ -556,7 +753,7 @@ const ScheduleShowing: React.FC = () => {
               </Card>
             )}
           </>
-        )}
+        ) : null}
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground pb-4">

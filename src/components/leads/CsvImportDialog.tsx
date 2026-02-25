@@ -41,13 +41,13 @@ interface CsvImportDialogProps {
   properties: { id: string; address: string }[];
 }
 
-// All mappable fields
+// All mappable fields — phone and email are both optional, but at least one is required
 const MAPPABLE_FIELDS = [
-  { key: "phone", label: "Phone", required: true },
+  { key: "phone", label: "Phone", required: false },
+  { key: "email", label: "Email", required: false },
   { key: "first_name", label: "First Name", required: false },
   { key: "last_name", label: "Last Name", required: false },
   { key: "full_name", label: "Full Name", required: false },
-  { key: "email", label: "Email", required: false },
   { key: "budget_min", label: "Budget Min", required: false },
   { key: "budget_max", label: "Budget Max", required: false },
   { key: "move_in_date", label: "Move-in Date", required: false },
@@ -62,63 +62,101 @@ const MAPPABLE_FIELDS = [
 
 type MappableFieldKey = typeof MAPPABLE_FIELDS[number]["key"];
 
-// Auto-mapping aliases
+// Auto-mapping aliases (header name → field key)
 const COLUMN_ALIASES: Record<string, MappableFieldKey> = {
-  phone: "phone",
-  "phone number": "phone",
-  "phone_number": "phone",
-  telephone: "phone",
-  mobile: "phone",
-  cell: "phone",
-  "cell phone": "phone",
-  "first name": "first_name",
-  firstname: "first_name",
-  "first_name": "first_name",
-  "last name": "last_name",
-  lastname: "last_name",
-  "last_name": "last_name",
-  "full name": "full_name",
-  fullname: "full_name",
-  "full_name": "full_name",
-  name: "full_name",
-  email: "email",
-  "email address": "email",
-  "email_address": "email",
-  "e-mail": "email",
-  "budget min": "budget_min",
-  "budget_min": "budget_min",
-  "min budget": "budget_min",
-  "budget max": "budget_max",
-  "budget_max": "budget_max",
-  "max budget": "budget_max",
-  budget: "budget_max",
-  "move in date": "move_in_date",
-  "move_in_date": "move_in_date",
-  "move-in date": "move_in_date",
-  "move in": "move_in_date",
-  movein: "move_in_date",
-  "has voucher": "has_voucher",
-  "has_voucher": "has_voucher",
-  voucher: "has_voucher",
-  "voucher amount": "voucher_amount",
-  "voucher_amount": "voucher_amount",
-  "housing authority": "housing_authority",
-  "housing_authority": "housing_authority",
+  // Phone
+  phone: "phone", "phone number": "phone", phone_number: "phone", telephone: "phone",
+  mobile: "phone", cell: "phone", "cell phone": "phone", tel: "phone", "phone no": "phone",
+  "phone_no": "phone", "contact phone": "phone", "contact_phone": "phone",
+  "primary phone": "phone", "primary_phone": "phone", "mobile phone": "phone",
+  "mobile_phone": "phone", "cell_phone": "phone", celular: "phone", telefono: "phone",
+  // Email
+  email: "email", "email address": "email", email_address: "email", "e-mail": "email",
+  "e_mail": "email", mail: "email", correo: "email", "email_id": "email",
+  "contact email": "email", "contact_email": "email",
+  // First Name
+  "first name": "first_name", firstname: "first_name", first_name: "first_name",
+  fname: "first_name", "given name": "first_name", given_name: "first_name",
+  nombre: "first_name",
+  // Last Name
+  "last name": "last_name", lastname: "last_name", last_name: "last_name",
+  lname: "last_name", surname: "last_name", "family name": "last_name",
+  family_name: "last_name", apellido: "last_name",
+  // Full Name
+  "full name": "full_name", fullname: "full_name", full_name: "full_name",
+  name: "full_name", "contact name": "full_name", contact_name: "full_name",
+  "client name": "full_name", client_name: "full_name", "customer name": "full_name",
+  customer_name: "full_name", "lead name": "full_name", lead_name: "full_name",
+  contact: "full_name", "nombre completo": "full_name",
+  // Budget
+  "budget min": "budget_min", budget_min: "budget_min", "min budget": "budget_min",
+  "budget max": "budget_max", budget_max: "budget_max", "max budget": "budget_max",
+  budget: "budget_max", rent: "budget_max", "max rent": "budget_max",
+  // Move-in Date
+  "move in date": "move_in_date", move_in_date: "move_in_date", "move-in date": "move_in_date",
+  "move in": "move_in_date", movein: "move_in_date", "move_date": "move_in_date",
+  "movein_date": "move_in_date", "desired move in": "move_in_date",
+  "desired_move_in": "move_in_date",
+  // Voucher
+  "has voucher": "has_voucher", has_voucher: "has_voucher", voucher: "has_voucher",
+  "voucher amount": "voucher_amount", voucher_amount: "voucher_amount",
+  // Housing Authority
+  "housing authority": "housing_authority", housing_authority: "housing_authority",
   authority: "housing_authority",
-  "bedrooms needed": "bedrooms_needed",
-  "bedrooms_needed": "bedrooms_needed",
-  bedrooms: "bedrooms_needed",
-  beds: "bedrooms_needed",
-  br: "bedrooms_needed",
-  language: "preferred_language",
-  lang: "preferred_language",
-  source: "source",
-  "lead source": "source",
-  notes: "notes",
-  note: "notes",
-  comments: "notes",
-  comment: "notes",
+  // Bedrooms
+  "bedrooms needed": "bedrooms_needed", bedrooms_needed: "bedrooms_needed",
+  bedrooms: "bedrooms_needed", beds: "bedrooms_needed", br: "bedrooms_needed",
+  rooms: "bedrooms_needed",
+  // Language
+  language: "preferred_language", lang: "preferred_language",
+  preferred_language: "preferred_language", idioma: "preferred_language",
+  // Source
+  source: "source", "lead source": "source", lead_source: "source",
+  "referral source": "source", referral_source: "source", origin: "source",
+  "how heard": "source", how_heard: "source", fuente: "source",
+  // Notes
+  notes: "notes", note: "notes", comments: "notes", comment: "notes",
+  "private notes": "notes", private_notes: "notes", "internal notes": "notes",
+  internal_notes: "notes", remarks: "notes", memo: "notes", description: "notes",
+  notas: "notes",
 };
+
+// Content-based column detection: analyze sample data to guess field type
+function detectFieldByContent(
+  values: string[],
+  alreadyMapped: Set<string>
+): MappableFieldKey | null {
+  const nonEmpty = values.filter((v) => v && v.trim().length > 0);
+  if (nonEmpty.length === 0) return null;
+
+  const threshold = 0.5; // at least 50% of non-empty values must match the pattern
+
+  // Email: contains @
+  if (!alreadyMapped.has("email")) {
+    const emailCount = nonEmpty.filter((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())).length;
+    if (emailCount / nonEmpty.length >= threshold) return "email";
+  }
+
+  // Phone: 7-15 digits (may have +, -, spaces, parens)
+  if (!alreadyMapped.has("phone")) {
+    const phoneCount = nonEmpty.filter((v) => {
+      const digits = v.replace(/\D/g, "");
+      return digits.length >= 7 && digits.length <= 15;
+    }).length;
+    if (phoneCount / nonEmpty.length >= threshold) return "phone";
+  }
+
+  // Full name: 2+ words, all alphabetic/spaces, not too long
+  if (!alreadyMapped.has("full_name")) {
+    const nameCount = nonEmpty.filter((v) => {
+      const trimmed = v.trim();
+      return /^[a-zA-ZÀ-ÿ\s'-]{2,60}$/.test(trimmed) && trimmed.includes(" ");
+    }).length;
+    if (nameCount / nonEmpty.length >= threshold) return "full_name";
+  }
+
+  return null;
+}
 
 interface ValidationIssue {
   row: number;
@@ -129,7 +167,7 @@ interface ValidationIssue {
 
 interface ImportResult {
   imported: number;
-  skippedMissingPhone: number;
+  skippedMissingContact: number;
   skippedDuplicate: number;
   issues: Array<{ row: number; reason: string }>;
   propertyName?: string;
@@ -227,13 +265,34 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       setFileHeaders(headers);
       setFileData(data);
 
-      // Auto-map columns
+      // Auto-map columns: 1) alias match, 2) content-based detection
       const autoMapping: Record<string, string> = {};
+      const alreadyMapped = new Set<string>();
+
+      // Pass 1: match by header name aliases
       headers.forEach((header) => {
         const normalizedHeader = header.toLowerCase().trim();
         const mappedField = COLUMN_ALIASES[normalizedHeader];
-        autoMapping[header] = mappedField || "skip";
+        if (mappedField) {
+          autoMapping[header] = mappedField;
+          alreadyMapped.add(mappedField);
+        }
       });
+
+      // Pass 2: for unmapped columns, detect by analyzing data content
+      const sampleRows = data.slice(0, 10);
+      headers.forEach((header) => {
+        if (autoMapping[header]) return; // already mapped
+        const sampleValues = sampleRows.map((row) => row[header] || "");
+        const detected = detectFieldByContent(sampleValues, alreadyMapped);
+        if (detected) {
+          autoMapping[header] = detected;
+          alreadyMapped.add(detected);
+        } else {
+          autoMapping[header] = "skip";
+        }
+      });
+
       setColumnMapping(autoMapping);
 
       // Move to step 2
@@ -248,9 +307,10 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
     setColumnMapping((prev) => ({ ...prev, [fileColumn]: ourField }));
   };
 
-  // Check if phone is mapped
-  const isPhoneMapped = useMemo(() => {
-    return Object.values(columnMapping).includes("phone");
+  // At least phone or email must be mapped
+  const isPhoneOrEmailMapped = useMemo(() => {
+    const mapped = Object.values(columnMapping);
+    return mapped.includes("phone") || mapped.includes("email");
   }, [columnMapping]);
 
   // Preview rows (first 3)
@@ -258,7 +318,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
     return fileData.slice(0, 3);
   }, [fileData]);
 
-  // Validate and prepare leads
+  // Validate and prepare leads — require phone OR email
   const validateAndPrepareLeads = useMemo(() => {
     if (step !== 3) return { validLeads: [], issues: [], skippedCount: 0 };
 
@@ -267,29 +327,32 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
     let skippedCount = 0;
 
     const phoneColumn = Object.entries(columnMapping).find(([_, field]) => field === "phone")?.[0];
+    const emailColumn = Object.entries(columnMapping).find(([_, field]) => field === "email")?.[0];
 
     fileData.forEach((row, index) => {
       const rowNum = index + 2; // +2 for header row and 0-indexing
 
-      // Check phone
+      // Check phone OR email — at least one must exist
       const phoneValue = phoneColumn ? row[phoneColumn]?.trim() : "";
-      if (!phoneValue) {
+      const emailValue = emailColumn ? row[emailColumn]?.trim() : "";
+      if (!phoneValue && !emailValue) {
         skippedCount++;
-        issues.push({ row: rowNum, reason: "Missing phone number" });
+        issues.push({ row: rowNum, reason: "Missing phone and email" });
         return;
       }
 
       // Build lead object
       const lead: Record<string, unknown> = {
-        phone: phoneValue,
         source: "csv_import",
         status: "new",
         lead_score: 50,
       };
+      if (phoneValue) lead.phone = phoneValue;
+      if (emailValue) lead.email = emailValue;
 
       // Map other fields
       Object.entries(columnMapping).forEach(([fileCol, ourField]) => {
-        if (ourField === "skip" || ourField === "phone") return;
+        if (ourField === "skip" || ourField === "phone" || ourField === "email") return;
 
         const value = row[fileCol]?.trim();
         if (!value) return;
@@ -298,22 +361,23 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           case "budget_min":
           case "budget_max":
           case "voucher_amount":
-          case "bedrooms_needed":
+          case "bedrooms_needed": {
             const numVal = parseFloat(value);
             if (!isNaN(numVal)) {
               lead[ourField] = numVal;
             }
             break;
+          }
           case "has_voucher":
             lead[ourField] = ["true", "yes", "1", "y"].includes(value.toLowerCase());
             break;
-          case "move_in_date":
-            // Try to parse date
+          case "move_in_date": {
             const dateVal = new Date(value);
             if (!isNaN(dateVal.getTime())) {
               lead[ourField] = dateVal.toISOString().split("T")[0];
             }
             break;
+          }
           default:
             lead[ourField] = value;
         }
@@ -334,15 +398,15 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       const { validLeads, issues, skippedCount } = validateAndPrepareLeads;
 
       if (validLeads.length === 0) {
-        toast.error("No valid leads to import. All rows are missing phone numbers.");
+        toast.error("No valid leads to import. All rows are missing phone and email.");
         setImporting(false);
         return;
       }
 
-      // 1. Fetch existing phones for dedup
+      // 1. Fetch existing phones and emails for dedup
       const { data: existingLeads } = await supabase
         .from("leads")
-        .select("phone")
+        .select("phone, email")
         .eq("organization_id", userRecord.organization_id);
 
       const existingPhones = new Set(
@@ -351,26 +415,43 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           .filter(Boolean)
           .map((p) => normalizePhone(p))
       );
+      const existingEmails = new Set(
+        (existingLeads || [])
+          .map((l) => l.email)
+          .filter(Boolean)
+          .map((e) => e.toLowerCase().trim())
+      );
 
-      // 2. Split into new vs duplicate
+      // 2. Split into new vs duplicate (match by phone first, then email)
       const newLeads: Record<string, unknown>[] = [];
       const dupIssues: Array<{ row: number; reason: string }> = [];
-      const seenInBatch = new Set<string>();
+      const seenPhonesInBatch = new Set<string>();
+      const seenEmailsInBatch = new Set<string>();
 
       validLeads.forEach((lead, idx) => {
-        const phone = normalizePhone(lead.phone as string);
-        if (existingPhones.has(phone) || seenInBatch.has(phone)) {
+        const phone = lead.phone ? normalizePhone(lead.phone as string) : "";
+        const email = lead.email ? (lead.email as string).toLowerCase().trim() : "";
+
+        // Check phone dedup
+        if (phone && (existingPhones.has(phone) || seenPhonesInBatch.has(phone))) {
           dupIssues.push({ row: idx + 2, reason: "Duplicate phone (already in database)" });
-        } else {
-          seenInBatch.add(phone);
-          newLeads.push(lead);
+          return;
         }
+        // Check email dedup (only if no phone or phone is new)
+        if (!phone && email && (existingEmails.has(email) || seenEmailsInBatch.has(email))) {
+          dupIssues.push({ row: idx + 2, reason: "Duplicate email (already in database)" });
+          return;
+        }
+
+        if (phone) seenPhonesInBatch.add(phone);
+        if (email) seenEmailsInBatch.add(email);
+        newLeads.push(lead);
       });
 
       if (newLeads.length === 0) {
         setImportResult({
           imported: 0,
-          skippedMissingPhone: skippedCount,
+          skippedMissingContact: skippedCount,
           skippedDuplicate: dupIssues.length,
           issues: [...issues, ...dupIssues],
         });
@@ -385,15 +466,17 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
       // Extract notes separately — leads table has no "notes" column
       const leadNoteTexts: Map<string, string> = new Map();
-      const leadsWithOrg = newLeads.map((lead) => {
+      const leadsWithOrg = newLeads.map((lead, idx) => {
         const firstName = (lead.first_name as string) || "";
         const lastName = (lead.last_name as string) || "";
         const fullName = (lead.full_name as string) || [firstName, lastName].filter(Boolean).join(" ");
-        const phone = lead.phone as string;
+        const phone = (lead.phone as string) || "";
+        const email = (lead.email as string) || "";
 
-        // Save notes text for later, keyed by phone
+        // Save notes text for later, keyed by phone or email
+        const dedupKey = phone ? normalizePhone(phone) : email.toLowerCase().trim();
         if (lead.notes) {
-          leadNoteTexts.set(normalizePhone(phone), lead.notes as string);
+          leadNoteTexts.set(dedupKey, lead.notes as string);
         }
 
         // Remove fields that don't exist in leads table
@@ -402,10 +485,11 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         return {
           ...leadWithoutNotes,
           organization_id: userRecord.organization_id,
-          phone,
           source: (leadWithoutNotes.source as string) || "csv_import",
           stage: "prospect",
           full_name: fullName || null,
+          ...(phone ? { phone } : {}),
+          ...(email ? { email } : {}),
           ...(effectivePropertyId ? { interested_property_id: effectivePropertyId } : {}),
         };
       });
@@ -414,15 +498,29 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       const { error } = await supabase.from("leads").insert(leadsWithOrg as any);
       if (error) throw error;
 
-      // 5. Create audit notes — fetch the newly inserted lead IDs by phone
-      const insertedPhones = leadsWithOrg.map((l) => l.phone);
-      const { data: insertedLeads } = await supabase
-        .from("leads")
-        .select("id, phone")
-        .eq("organization_id", userRecord.organization_id)
-        .in("phone", insertedPhones);
+      // 5. Create audit notes — fetch the newly inserted lead IDs by phone or email
+      const insertedPhones = leadsWithOrg.map((l) => l.phone).filter(Boolean);
+      const insertedEmails = leadsWithOrg.filter((l) => !l.phone).map((l) => l.email).filter(Boolean);
 
-      if (insertedLeads && insertedLeads.length > 0) {
+      let insertedLeads: { id: string; phone: string | null; email: string | null }[] = [];
+      if (insertedPhones.length > 0) {
+        const { data } = await supabase
+          .from("leads")
+          .select("id, phone, email")
+          .eq("organization_id", userRecord.organization_id)
+          .in("phone", insertedPhones);
+        if (data) insertedLeads.push(...(data as typeof insertedLeads));
+      }
+      if (insertedEmails.length > 0) {
+        const { data } = await supabase
+          .from("leads")
+          .select("id, phone, email")
+          .eq("organization_id", userRecord.organization_id)
+          .in("email", insertedEmails);
+        if (data) insertedLeads.push(...(data as typeof insertedLeads));
+      }
+
+      if (insertedLeads.length > 0) {
         const uploaderName = userRecord.full_name || userRecord.email || "Unknown user";
         const now = new Date().toLocaleDateString("en-US", {
           year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
@@ -440,7 +538,10 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
             note_type: "system",
           });
           // CSV notes column (if provided)
-          const csvNote = leadNoteTexts.get(normalizePhone(lead.phone));
+          const dedupKey = lead.phone
+            ? normalizePhone(lead.phone)
+            : lead.email?.toLowerCase().trim() || "";
+          const csvNote = leadNoteTexts.get(dedupKey);
           if (csvNote) {
             allNotes.push({
               lead_id: lead.id,
@@ -457,7 +558,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
       setImportResult({
         imported: newLeads.length,
-        skippedMissingPhone: skippedCount,
+        skippedMissingContact: skippedCount,
         skippedDuplicate: dupIssues.length,
         issues: [...issues, ...dupIssues],
         propertyName: selectedProp?.address,
@@ -627,7 +728,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                   ))}
                 </div>
                 <p className="text-muted-foreground">
-                  Your file must have a header row. Phone number is required for each lead.
+                  Your file must have a header row. Each row needs at least a phone or email.
                 </p>
                 <Button
                   variant="link"
@@ -681,13 +782,13 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           {/* Step 2: Column Mapping */}
           {step === 2 && (
             <div className="space-y-4">
-              {/* Phone warning */}
-              {!isPhoneMapped && (
+              {/* Contact info warning */}
+              {!isPhoneOrEmailMapped && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>
-                    <strong>Phone is required.</strong> Please map one of your columns to
-                    "Phone".
+                    <strong>Phone or Email required.</strong> Map at least one column to
+                    "Phone" or "Email" to continue.
                   </span>
                 </div>
               )}
@@ -794,12 +895,12 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 </div>
                 {validateAndPrepareLeads.skippedCount > 0 && (
                   <div className="flex items-center justify-between text-sm text-amber-600">
-                    <span>Will be skipped (missing phone):</span>
+                    <span>Will be skipped (no phone or email):</span>
                     <span className="font-medium">{validateAndPrepareLeads.skippedCount}</span>
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Duplicates will be detected by phone number during import.
+                  Duplicates will be detected by phone or email during import.
                 </p>
                 {selectedPropertyId && selectedPropertyId !== "none" && (
                   <div className="flex items-center justify-between text-sm">
@@ -891,19 +992,19 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 )}
               </div>
 
-              {(importResult.skippedDuplicate > 0 || importResult.skippedMissingPhone > 0) && (
+              {(importResult.skippedDuplicate > 0 || importResult.skippedMissingContact > 0) && (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                     <div className="text-sm space-y-1">
                       {importResult.skippedDuplicate > 0 && (
                         <p className="font-medium text-amber-800">
-                          {importResult.skippedDuplicate} skipped (duplicate phone)
+                          {importResult.skippedDuplicate} skipped (duplicate)
                         </p>
                       )}
-                      {importResult.skippedMissingPhone > 0 && (
+                      {importResult.skippedMissingContact > 0 && (
                         <p className="font-medium text-amber-800">
-                          {importResult.skippedMissingPhone} skipped (missing phone)
+                          {importResult.skippedMissingContact} skipped (missing phone & email)
                         </p>
                       )}
                       <ScrollArea className="max-h-[100px] mt-2">
@@ -946,7 +1047,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
               </Button>
               <Button
                 onClick={() => setStep(3)}
-                disabled={!isPhoneMapped}
+                disabled={!isPhoneOrEmailMapped}
                 className="bg-[#370d4b] hover:bg-[#370d4b]/90"
               >
                 Continue
