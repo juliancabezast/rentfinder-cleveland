@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { DuplicatesTab } from "@/components/leads/hygiene/DuplicatesTab";
-import { IncompleteTab } from "@/components/leads/hygiene/IncompleteTab";
-import { StaleTab } from "@/components/leads/hygiene/StaleTab";
+import { DuplicatesTab } from "@/components/leads/nurturing/DuplicatesTab";
+import { IncompleteTab } from "@/components/leads/nurturing/IncompleteTab";
+import { StaleTab } from "@/components/leads/nurturing/StaleTab";
 
 const LeadHygiene: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();

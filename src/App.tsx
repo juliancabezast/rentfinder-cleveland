@@ -146,7 +146,7 @@ const App = () => (
             />
 
             <Route
-              path="/leads/hygiene"
+              path="/leads/nurturing"
               element={
                 <ProtectedRoute allowedRoles={["super_admin", "admin", "editor"]}>
                   <MainLayout>

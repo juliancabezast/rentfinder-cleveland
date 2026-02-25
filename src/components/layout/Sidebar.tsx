@@ -38,8 +38,8 @@ interface NavItem {
 const operationsNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Properties', href: '/properties', icon: Building2 },
+  { title: 'Nurturing Leads', href: '/leads/nurturing', icon: Sparkles, permission: 'canEditLeadInfo' },
   { title: 'Leads', href: '/leads', icon: Users },
-  { title: 'Nurturing Leads', href: '/leads/hygiene', icon: Sparkles, permission: 'canEditLeadInfo' },
 ];
 
 // LEASING section
