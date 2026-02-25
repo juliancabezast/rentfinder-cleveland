@@ -21,6 +21,7 @@ const Dashboard = lazy(() => import("./pages/dashboard"));
 const PropertiesList = lazy(() => import("./pages/properties/PropertiesList"));
 const PropertyDetail = lazy(() => import("./pages/properties/PropertyDetail"));
 const LeadsList = lazy(() => import("./pages/leads/LeadsList"));
+const LeadHygiene = lazy(() => import("./pages/leads/LeadHygiene"));
 const LeadDetail = lazy(() => import("./pages/leads/LeadDetail"));
 const ShowingsList = lazy(() => import("./pages/showings/ShowingsList"));
 const CallsList = lazy(() => import("./pages/calls/CallsList"));
@@ -139,6 +140,17 @@ const App = () => (
                 <ProtectedRoute>
                   <MainLayout>
                     <LeadsList />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/leads/hygiene"
+              element={
+                <ProtectedRoute allowedRoles={["super_admin", "admin", "editor"]}>
+                  <MainLayout>
+                    <LeadHygiene />
                   </MainLayout>
                 </ProtectedRoute>
               }
