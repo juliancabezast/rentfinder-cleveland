@@ -41,6 +41,8 @@ import {
   ArrowUp,
   ArrowDown,
   Upload,
+  Sparkles,
+  Building2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -182,6 +184,8 @@ const LeadsList: React.FC = () => {
   const filterParam = searchParams.get("filter");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [propertyFilter, setPropertyFilter] = useState("all");
+  const [properties, setProperties] = useState<{ id: string; address: string }[]>([]);
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(() => {
     if (filterParam === "priority") return { ...DEFAULT_FILTERS, priority: true };
     if (filterParam === "human_controlled") return { ...DEFAULT_FILTERS, humanControlled: true };
@@ -280,6 +284,20 @@ const LeadsList: React.FC = () => {
     fetchFilterCounts();
   }, [fetchFilterCounts]);
 
+  // Fetch properties for the property filter dropdown
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (!userRecord?.organization_id) return;
+      const { data } = await supabase
+        .from("properties")
+        .select("id, address")
+        .eq("organization_id", userRecord.organization_id)
+        .order("address");
+      if (data) setProperties(data);
+    };
+    fetchProperties();
+  }, [userRecord?.organization_id]);
+
   const fetchLeads = async () => {
     if (!userRecord?.organization_id) return;
 
@@ -322,6 +340,9 @@ const LeadsList: React.FC = () => {
       }
       if (sourceFilter !== "all") {
         query = query.eq("source", sourceFilter);
+      }
+      if (propertyFilter !== "all") {
+        query = query.eq("interested_property_id", propertyFilter);
       }
 
       // Apply toggle filters
@@ -411,6 +432,7 @@ const LeadsList: React.FC = () => {
     userRecord?.organization_id,
     statusFilter,
     sourceFilter,
+    propertyFilter,
     activeFilters,
     leadsWithShowings,
     searchQuery,
@@ -489,7 +511,7 @@ const LeadsList: React.FC = () => {
       {/* Filters */}
       <div className="glass-card rounded-xl p-4 mb-6 space-y-4">
         {/* Row 1: Search + Dropdowns */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {/* Search */}
           <div className="relative sm:col-span-2">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -543,15 +565,50 @@ const LeadsList: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Property */}
+          <Select
+            value={propertyFilter || "all"}
+            onValueChange={(v) => {
+              setPropertyFilter(v);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger>
+              <Building2 className="h-4 w-4 mr-1.5 text-muted-foreground shrink-0" />
+              <SelectValue placeholder="Property" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Properties</SelectItem>
+              {properties.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.address}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Row 2: Toggle Pills */}
-        <LeadFilterPills
-          activeFilters={activeFilters}
-          filterCounts={filterCounts}
-          onToggleFilter={handleToggleFilter}
-          loading={loading}
-        />
+        {/* Row 2: Toggle Pills + Clean Data */}
+        <div className="flex items-center justify-between gap-4">
+          <LeadFilterPills
+            activeFilters={activeFilters}
+            filterCounts={filterCounts}
+            onToggleFilter={handleToggleFilter}
+            loading={loading}
+          />
+          {permissions.canEditLeadInfo && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/leads/nurturing")}
+              className="shrink-0"
+            >
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Clean Data
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
