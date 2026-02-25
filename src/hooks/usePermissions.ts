@@ -31,6 +31,7 @@ export interface Permissions {
   canCreateLead: boolean;
   canChangeLeadStatus: boolean;
   canMarkDoNotContact: boolean;
+  canDeleteLead: boolean;
   canTakeHumanControl: boolean;
   canReleaseHumanControl: boolean;
 
@@ -119,6 +120,7 @@ const createPermissions = (role: AppRole | null): Permissions => {
     canCreateLead: isEditorOrAbove || isLeasingAgent,
     canChangeLeadStatus: isEditorOrAbove || isLeasingAgent,
     canMarkDoNotContact: isEditorOrAbove,
+    canDeleteLead: isAdminOrAbove,
     canTakeHumanControl: isEditorOrAbove || isLeasingAgent,
     canReleaseHumanControl: isEditorOrAbove || isLeasingAgent,
 

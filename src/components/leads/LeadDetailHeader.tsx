@@ -28,6 +28,7 @@ import {
   Building2,
   StickyNote,
   Search,
+  Trash2,
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,10 +76,12 @@ interface LeadDetailHeaderProps {
     canScheduleShowing: boolean;
     canEditLeadInfo: boolean;
     canTakeHumanControl: boolean;
+    canDeleteLead: boolean;
   };
   onScheduleShowing: () => void;
   onEdit: () => void;
   onTakeControl: () => void;
+  onDelete: () => void;
   onBriefGenerated: () => void;
   onPropertyMatched?: () => void;
   notesCount?: number;
@@ -143,6 +146,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   onScheduleShowing,
   onEdit,
   onTakeControl,
+  onDelete,
   onBriefGenerated,
   onPropertyMatched,
   notesCount = 0,
@@ -152,6 +156,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   const [callViaAgentOpen, setCallViaAgentOpen] = useState(false);
   const [callViaAgentLoading, setCallViaAgentLoading] = useState(false);
   const [generatingBrief, setGeneratingBrief] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Property Match state
   const [matchingProperty, setMatchingProperty] = useState(false);
@@ -444,6 +449,17 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                 Take Control
               </Button>
             )}
+            {permissions.canDeleteLead && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteOpen(true)}
+                className="bg-white border-[#ef4444] text-[#ef4444] hover:bg-red-50 h-9"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            )}
           </div>
         </div>
 
@@ -598,6 +614,27 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
           </div>
         )}
       </div>
+
+      {/* Delete Lead Confirmation Dialog */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete <strong>{leadName}</strong>? This will remove the lead and all associated data (calls, showings, tasks, score history). This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { setDeleteOpen(false); onDelete(); }}
+              className="bg-[#ef4444] hover:bg-[#dc2626] text-white"
+            >
+              Delete Lead
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Call via Agent Confirmation Dialog */}
       <AlertDialog open={callViaAgentOpen} onOpenChange={setCallViaAgentOpen}>

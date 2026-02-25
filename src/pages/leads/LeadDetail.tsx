@@ -316,10 +316,24 @@ const LeadDetail: React.FC = () => {
           canScheduleShowing: permissions.canScheduleShowing,
           canEditLeadInfo: permissions.canEditLeadInfo,
           canTakeHumanControl: permissions.canTakeHumanControl,
+          canDeleteLead: permissions.canDeleteLead,
         }}
         onScheduleShowing={() => setScheduleShowingOpen(true)}
         onEdit={() => setEditOpen(true)}
         onTakeControl={() => setTakeoverOpen(true)}
+        onDelete={async () => {
+          if (!lead) return;
+          const { error } = await supabase
+            .from("leads")
+            .delete()
+            .eq("id", lead.id);
+          if (error) {
+            toast({ title: "Error", description: `Failed to delete lead: ${error.message}`, variant: "destructive" });
+          } else {
+            toast({ title: "Lead deleted", description: `${lead.full_name || lead.first_name || "Lead"} has been removed.` });
+            navigate("/leads");
+          }
+        }}
         onBriefGenerated={fetchLead}
         onPropertyMatched={fetchLead}
         notesCount={notesCount}
