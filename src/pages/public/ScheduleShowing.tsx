@@ -178,7 +178,7 @@ const ScheduleShowing: React.FC = () => {
         .from("properties")
         .select("*")
         .in("id", uniqueIds)
-        .in("status", ["available", "coming_soon"])
+        .eq("status", "available")
         .order("address");
 
       if (propData) {

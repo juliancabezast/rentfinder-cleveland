@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { format, isBefore, startOfDay } from "date-fns";
-import { CalendarIcon, Loader2, X } from "lucide-react";
+import { CalendarIcon, Loader2, X, MapPin } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -112,7 +112,16 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
       setSelectedDate(new Date(editData.date + "T12:00:00"));
       if (editData.slots.length > 0) {
         setStartTime(editData.slots[0]);
-        setEndTime(editData.slots[editData.slots.length - 1]);
+        // End time must be AFTER last slot (last slot + 30 min) so calculation includes it
+        const lastSlot = editData.slots[editData.slots.length - 1];
+        const [lh, lm] = lastSlot.split(":").map(Number);
+        const endMin = lh * 60 + lm + 30;
+        const eH = Math.floor(endMin / 60);
+        const eM = endMin % 60;
+        const computedEnd = `${String(eH).padStart(2, "0")}:${String(eM).padStart(2, "0")}:00`;
+        // Pick the closest TIME_OPTIONS value >= computedEnd
+        const match = TIME_OPTIONS.find((t) => t.value >= computedEnd);
+        setEndTime(match ? match.value : TIME_OPTIONS[TIME_OPTIONS.length - 1].value);
       }
     } else {
       setSelectedDate(undefined);
@@ -128,6 +137,32 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  };
+
+  // Group properties by city
+  const cityGroups = useMemo(() => {
+    const map = new Map<string, PropertyOption[]>();
+    properties.forEach((p) => {
+      const city = p.city || "Other";
+      if (!map.has(city)) map.set(city, []);
+      map.get(city)!.push(p);
+    });
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [properties]);
+
+  const toggleCity = (city: string) => {
+    const cityProps = cityGroups.find(([c]) => c === city)?.[1] || [];
+    const cityIds = cityProps.map((p) => p.id);
+    const allExcluded = cityIds.every((id) => excludedIds.has(id));
+    setExcludedIds((prev) => {
+      const next = new Set(prev);
+      if (allExcluded) {
+        cityIds.forEach((id) => next.delete(id));
+      } else {
+        cityIds.forEach((id) => next.add(id));
+      }
       return next;
     });
   };
@@ -328,8 +363,8 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
             </Select>
           </div>
 
-          {/* Exclude Properties — Toggle Badges */}
-          {properties.length > 1 && (
+          {/* Exclude Properties — Grouped by City */}
+          {properties.length > 0 && (
             <div className="space-y-2">
               <Label>
                 Properties
@@ -342,30 +377,68 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {properties.map((p) => {
-                    const isExcluded = excludedIds.has(p.id);
+                <div className="space-y-3">
+                  {cityGroups.map(([city, cityProps]) => {
+                    const cityIds = cityProps.map((p) => p.id);
+                    const allExcluded = cityIds.every((id) => excludedIds.has(id));
+                    const someExcluded = cityIds.some((id) => excludedIds.has(id));
+                    const activeCount = cityIds.filter((id) => !excludedIds.has(id)).length;
+
                     return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => toggleExclude(p.id)}
-                        className={cn(
-                          "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all border",
-                          isExcluded
-                            ? "bg-muted text-muted-foreground border-border line-through opacity-50"
-                            : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
-                        )}
-                      >
-                        {isExcluded && <X className="h-3 w-3" />}
-                        {p.address}
-                      </button>
+                      <div key={city} className="space-y-1.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleCity(city)}
+                          className={cn(
+                            "flex items-center gap-1.5 text-xs font-semibold transition-colors",
+                            allExcluded
+                              ? "text-muted-foreground"
+                              : "text-[#370d4b]"
+                          )}
+                        >
+                          <MapPin className="h-3 w-3" />
+                          {city}
+                          <span className="font-normal text-muted-foreground">
+                            ({activeCount}/{cityProps.length})
+                          </span>
+                          {allExcluded && (
+                            <span className="text-[10px] text-muted-foreground font-normal ml-0.5">— tap to enable</span>
+                          )}
+                          {!allExcluded && someExcluded && (
+                            <span className="text-[10px] text-muted-foreground font-normal ml-0.5">— tap to disable all</span>
+                          )}
+                          {!someExcluded && cityProps.length > 1 && (
+                            <span className="text-[10px] text-muted-foreground font-normal ml-0.5">— tap to disable all</span>
+                          )}
+                        </button>
+                        <div className="flex flex-wrap gap-1.5 pl-4">
+                          {cityProps.map((p) => {
+                            const isExcluded = excludedIds.has(p.id);
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => toggleExclude(p.id)}
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-all border",
+                                  isExcluded
+                                    ? "bg-muted text-muted-foreground border-border line-through opacity-50"
+                                    : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                                )}
+                              >
+                                {isExcluded && <X className="h-2.5 w-2.5" />}
+                                {p.address}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
               )}
               {excludedIds.size > 0 && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground mt-1">
                   {excludedIds.size} excluded — slots will not be created for these
                 </p>
               )}
