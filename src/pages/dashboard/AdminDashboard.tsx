@@ -9,7 +9,7 @@ import { ShowingCard, ShowingCardSkeleton } from "@/components/dashboard/Showing
 
 import { VoiceQualityWidget } from "@/components/dashboard/VoiceQualityWidget";
 import { TopPropertiesWidget } from "@/components/dashboard/TopPropertiesWidget";
-import { TopSourcesWidget } from "@/components/dashboard/TopSourcesWidget";
+import { NurturingWidget } from "@/components/dashboard/NurturingWidget";
 import {
   DashboardCustomizer,
   DashboardPrefs,
@@ -73,10 +73,6 @@ interface PropertyInterest {
   lead_count: number;
 }
 
-interface SourceCount {
-  source: string;
-  count: number;
-}
 
 interface PriorityLead {
   id: string;
@@ -110,9 +106,6 @@ export const AdminDashboard = () => {
   const [priorityLeads, setPriorityLeads] = useState<PriorityLead[]>([]);
   const [upcomingShowings, setUpcomingShowings] = useState<TodayShowing[]>([]);
   const [topProperties, setTopProperties] = useState<PropertyInterest[]>([]);
-  const [topSources, setTopSources] = useState<SourceCount[]>([]);
-  const [totalLeadsForSources, setTotalLeadsForSources] = useState(0);
-
   // Dashboard customization state
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [prefs, setPrefs] = useState<DashboardPrefs>(getDefaultPrefs());
@@ -169,7 +162,6 @@ export const AdminDashboard = () => {
           leadsLastWeekResult,
           pendingTasksResult,
           leadsWithPropertyResult,
-          leadsSourceResult,
         ] = await Promise.all([
           supabase.rpc('get_dashboard_summary'),
           supabase
@@ -240,11 +232,6 @@ export const AdminDashboard = () => {
             .eq("organization_id", userRecord.organization_id)
             .not("interested_property_id", "is", null)
             .not("status", "eq", "lost"),
-          // Lead sources (for top sources widget)
-          supabase
-            .from("leads")
-            .select("source")
-            .eq("organization_id", userRecord.organization_id),
         ]);
 
         if (summaryResult.error) console.error("Dashboard summary RPC error:", summaryResult.error);
@@ -320,22 +307,8 @@ export const AdminDashboard = () => {
         const sortedProps = Object.entries(propCounts)
           .map(([id, data]) => ({ property_id: id, ...data, lead_count: data.count }))
           .sort((a, b) => b.lead_count - a.lead_count)
-          .slice(0, 3);
+          .slice(0, 5);
         setTopProperties(sortedProps);
-
-        // Process top lead sources
-        const sourceCounts: Record<string, number> = {};
-        const sourceRows = leadsSourceResult.data || [];
-        sourceRows.forEach((l: any) => {
-          const src = l.source || "unknown";
-          sourceCounts[src] = (sourceCounts[src] || 0) + 1;
-        });
-        const sortedSources = Object.entries(sourceCounts)
-          .map(([source, count]) => ({ source, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 3);
-        setTopSources(sortedSources);
-        setTotalLeadsForSources(sourceRows.length);
 
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -608,7 +581,7 @@ export const AdminDashboard = () => {
                 <TopPropertiesWidget data={topProperties} loading={loading} />
               </div>
               <div className="animate-fade-up stagger-6">
-                <TopSourcesWidget data={topSources} total={totalLeadsForSources} loading={loading} />
+                <NurturingWidget loading={loading} />
               </div>
             </div>
           </div>

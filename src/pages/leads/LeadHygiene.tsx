@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Sparkles, Copy, UserX, Clock, RefreshCw } from "lucide-react";
+import { Sparkles, Copy, UserX, Clock, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { DuplicatesTab } from "@/components/leads/nurturing/DuplicatesTab";
 import { IncompleteTab } from "@/components/leads/nurturing/IncompleteTab";
 import { StaleTab } from "@/components/leads/nurturing/StaleTab";
+import { SuspectTab } from "@/components/leads/nurturing/SuspectTab";
 
 const LeadHygiene: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -17,7 +18,7 @@ const LeadHygiene: React.FC = () => {
   const { userRecord } = useAuth();
   const permissions = usePermissions();
 
-  const [counts, setCounts] = useState({ duplicates: 0, incomplete: 0, stale: 0 });
+  const [counts, setCounts] = useState({ duplicates: 0, incomplete: 0, stale: 0, suspect: 0 });
   const [refreshKey, setRefreshKey] = useState(0);
 
   const activeTab = searchParams.get("tab") || "duplicates";
@@ -83,7 +84,13 @@ const LeadHygiene: React.FC = () => {
             {counts.stale} stale
           </Badge>
         )}
-        {counts.duplicates === 0 && counts.incomplete === 0 && counts.stale === 0 && (
+        {counts.suspect > 0 && (
+          <Badge className="bg-red-100 text-red-800 hover:bg-red-100 text-sm px-3 py-1">
+            <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+            {counts.suspect} suspect
+          </Badge>
+        )}
+        {counts.duplicates === 0 && counts.incomplete === 0 && counts.stale === 0 && counts.suspect === 0 && (
           <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-sm px-3 py-1">
             Database is clean
           </Badge>
@@ -105,6 +112,10 @@ const LeadHygiene: React.FC = () => {
             <Clock className="h-4 w-4" />
             Stale
           </TabsTrigger>
+          <TabsTrigger value="suspect" className="gap-1.5">
+            <AlertTriangle className="h-4 w-4" />
+            Suspect
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="duplicates" className="mt-4">
@@ -123,6 +134,12 @@ const LeadHygiene: React.FC = () => {
           <StaleTab
             refreshKey={refreshKey}
             onCountChange={(n) => setCounts((c) => ({ ...c, stale: n }))}
+          />
+        </TabsContent>
+        <TabsContent value="suspect" className="mt-4">
+          <SuspectTab
+            refreshKey={refreshKey}
+            onCountChange={(n) => setCounts((c) => ({ ...c, suspect: n }))}
           />
         </TabsContent>
       </Tabs>
