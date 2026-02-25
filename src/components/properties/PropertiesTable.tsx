@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -10,7 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { AlternativePropertiesSelector } from "./AlternativePropertiesSelector";
+import { ReassignLeadsDialog } from "./ReassignLeadsDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -28,15 +30,17 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   available: { label: "Available", className: "bg-green-100 text-green-800" },
   coming_soon: { label: "Coming Soon", className: "bg-amber-100 text-amber-800" },
   in_leasing_process: { label: "In Leasing", className: "bg-purple-100 text-purple-800" },
-  rented: { label: "Rented", className: "bg-gray-100 text-gray-600" },
+  rented: { label: "Rented", className: "bg-gray-200 text-gray-600" },
 };
 
 export const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, allProperties, onRefresh }) => {
   const navigate = useNavigate();
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
   const [localOverrides, setLocalOverrides] = useState<Record<string, string[]>>({});
+  const [reassignProperty, setReassignProperty] = useState<Property | null>(null);
 
-  // Use ALL org properties for the selector so it works regardless of status filter
+  // ALL org properties for selector — unaffected by status filter
   const availableForSelector = allProperties.map((p) => ({
     id: p.id,
     address: p.address,
@@ -55,9 +59,9 @@ export const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, al
   };
 
   const handleAlternativesChange = async (propertyId: string, newIds: string[]) => {
-    // Optimistic local update — no loading flash
     setLocalOverrides((prev) => ({ ...prev, [propertyId]: newIds }));
     setSavingId(propertyId);
+    setSavedId(null);
 
     const { error } = await supabase
       .from("properties")
@@ -70,7 +74,6 @@ export const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, al
     setSavingId(null);
 
     if (error) {
-      // Revert optimistic update
       setLocalOverrides((prev) => {
         const next = { ...prev };
         delete next[propertyId];
@@ -80,34 +83,46 @@ export const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, al
       return;
     }
 
-    toast.success("Redirect properties updated");
+    // Brief checkmark feedback
+    setSavedId(propertyId);
+    setTimeout(() => setSavedId(null), 1500);
   };
 
+  // Sort: rented first (need redirect attention), then by address
+  const sorted = [...properties].sort((a, b) => {
+    const aRented = a.status === "rented" ? 0 : 1;
+    const bRented = b.status === "rented" ? 0 : 1;
+    if (aRented !== bRented) return aRented - bRented;
+    return a.address.localeCompare(b.address);
+  });
+
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Address</TableHead>
-            <TableHead>Unit</TableHead>
-            <TableHead>Beds/Bath</TableHead>
-            <TableHead>Rent</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="min-w-[300px]">Redirect To</TableHead>
-            <TableHead>Updated</TableHead>
+            <TableHead className="min-w-[200px]">Address</TableHead>
+            <TableHead className="min-w-[60px]">Unit</TableHead>
+            <TableHead className="min-w-[90px]">Beds/Bath</TableHead>
+            <TableHead className="min-w-[80px]">Rent</TableHead>
+            <TableHead className="min-w-[100px]">Status</TableHead>
+            <TableHead className="min-w-[280px]">Redirect To</TableHead>
+            <TableHead className="min-w-[90px]">Leads</TableHead>
+            <TableHead className="min-w-[70px]">Updated</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {properties.map((property) => {
+          {sorted.map((property) => {
             const status = STATUS_CONFIG[property.status] || STATUS_CONFIG.available;
             const altIds = getAltIds(property);
             const isRented = property.status === "rented";
             const isSaving = savingId === property.id;
+            const justSaved = savedId === property.id;
 
             return (
               <TableRow
                 key={property.id}
-                className={isRented ? "bg-muted/50" : ""}
+                className={isRented ? "bg-muted/40" : ""}
               >
                 <TableCell>
                   <button
@@ -132,19 +147,35 @@ export const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, al
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="relative">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <AlternativePropertiesSelector
+                        selectedIds={altIds}
+                        onChange={(ids) => handleAlternativesChange(property.id, ids)}
+                        availableProperties={availableForSelector}
+                        excludePropertyId={property.id}
+                        compact
+                      />
+                    </div>
                     {isSaving && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                     )}
-                    <AlternativePropertiesSelector
-                      selectedIds={altIds}
-                      onChange={(ids) => handleAlternativesChange(property.id, ids)}
-                      availableProperties={availableForSelector}
-                      excludePropertyId={property.id}
-                    />
+                    {justSaved && !isSaving && (
+                      <Check className="h-4 w-4 text-green-600 shrink-0" />
+                    )}
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground hover:text-[#370d4b]"
+                    onClick={() => setReassignProperty(property)}
+                    title="Reassign leads to another property"
+                  >
+                    <Users className="h-3.5 w-3.5 mr-1" />
+                    Reassign
+                  </Button>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                   {format(new Date(property.updated_at), "MMM d")}
@@ -154,6 +185,18 @@ export const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, al
           })}
         </TableBody>
       </Table>
+      {/* Reassign Leads Dialog */}
+      {reassignProperty && (
+        <ReassignLeadsDialog
+          open={!!reassignProperty}
+          onOpenChange={(open) => {
+            if (!open) setReassignProperty(null);
+          }}
+          sourceProperty={reassignProperty}
+          allProperties={allProperties}
+          onSuccess={onRefresh}
+        />
+      )}
     </div>
   );
 };

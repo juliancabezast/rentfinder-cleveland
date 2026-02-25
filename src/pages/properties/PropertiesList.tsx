@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, Search, Building2, Filter, Globe, LayoutGrid, TableProperties } from "lucide-react";
+import { Plus, Search, Building2, Filter, Globe, LayoutGrid, TableProperties, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -29,6 +22,7 @@ import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertyForm } from "@/components/properties/PropertyForm";
 import { ZillowImportDialog } from "@/components/properties/ZillowImportDialog";
 import { PropertiesTable } from "@/components/properties/PropertiesTable";
+import { CheckPropertiesDialog } from "@/components/properties/CheckPropertiesDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -46,12 +40,11 @@ const STATUS_OPTIONS = [
 ];
 
 const PropertiesList: React.FC = () => {
-  const navigate = useNavigate();
   const { userRecord } = useAuth();
   const permissions = usePermissions();
   const { toast } = useToast();
 
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [allProperties, setAllProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -59,26 +52,21 @@ const PropertiesList: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [zillowOpen, setZillowOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [checkOpen, setCheckOpen] = useState(false);
 
   const fetchProperties = async () => {
     if (!userRecord?.organization_id) return;
 
     setLoading(true);
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from("properties")
         .select("*")
         .eq("organization_id", userRecord.organization_id)
         .order("created_at", { ascending: false });
 
-      if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
-      }
-
-      const { data, error } = await query;
-
       if (error) throw error;
-      setProperties(data || []);
+      setAllProperties(data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
       toast({
@@ -93,13 +81,16 @@ const PropertiesList: React.FC = () => {
 
   useEffect(() => {
     fetchProperties();
-  }, [userRecord?.organization_id, statusFilter]);
+  }, [userRecord?.organization_id]);
 
-  const filteredProperties = properties.filter((property) => {
-    const searchLower = searchQuery.toLowerCase();
+  // Client-side filtering (status + search) — instant, no loading flicker
+  const filteredProperties = allProperties.filter((property) => {
+    if (statusFilter !== "all" && property.status !== statusFilter) return false;
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
     return (
-      property.address.toLowerCase().includes(searchLower) ||
-      property.city.toLowerCase().includes(searchLower) ||
+      property.address.toLowerCase().includes(q) ||
+      property.city.toLowerCase().includes(q) ||
       property.zip_code.includes(searchQuery)
     );
   });
@@ -146,6 +137,18 @@ const PropertiesList: React.FC = () => {
     </Card>
   );
 
+  const TableRowSkeleton = () => (
+    <div className="flex items-center gap-4 px-4 py-3 border-b">
+      <Skeleton className="h-4 w-48" />
+      <Skeleton className="h-4 w-12" />
+      <Skeleton className="h-4 w-20" />
+      <Skeleton className="h-4 w-16" />
+      <Skeleton className="h-6 w-20 rounded-full" />
+      <Skeleton className="h-9 w-64" />
+      <Skeleton className="h-4 w-16" />
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -161,25 +164,38 @@ const PropertiesList: React.FC = () => {
         </div>
         <div className="flex gap-2 items-center">
           <div className="flex border rounded-lg overflow-hidden">
-            <Button
-              variant={viewMode === "grid" ? "default" : "ghost"}
-              size="icon"
-              className={`h-9 w-9 rounded-none ${viewMode === "grid" ? "bg-[#370d4b] text-white" : ""}`}
+            <button
+              className={`h-9 w-9 flex items-center justify-center transition-colors ${
+                viewMode === "grid"
+                  ? "bg-[#370d4b] text-white"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
               onClick={() => setViewMode("grid")}
               title="Grid view"
             >
               <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="icon"
-              className={`h-9 w-9 rounded-none ${viewMode === "table" ? "bg-[#370d4b] text-white" : ""}`}
+            </button>
+            <button
+              className={`h-9 w-9 flex items-center justify-center transition-colors ${
+                viewMode === "table"
+                  ? "bg-[#370d4b] text-white"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
               onClick={() => setViewMode("table")}
               title="Table view"
             >
               <TableProperties className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setCheckOpen(true)}
+            className="min-h-[44px] border-amber-300 text-amber-700 hover:bg-amber-50"
+            disabled={allProperties.length === 0}
+          >
+            <ClipboardCheck className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Check Properties</span>
+          </Button>
           {permissions.canCreateProperty && (
             <>
               <Button
@@ -202,38 +218,46 @@ const PropertiesList: React.FC = () => {
       {/* Filters */}
       <div className="glass-card rounded-xl p-4 mb-6">
         <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by address, city, or zip..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 min-h-[44px]"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by address, city, or zip..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 min-h-[44px]"
+            />
           </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </div>
 
       {/* Properties Grid / Table */}
       {loading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <PropertyCardSkeleton key={i} />
-          ))}
-        </div>
+        viewMode === "table" ? (
+          <div className="rounded-md border bg-background">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <TableRowSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <PropertyCardSkeleton key={i} />
+            ))}
+          </div>
+        )
       ) : filteredProperties.length === 0 ? (
         <Card variant="glass">
           <CardContent className="p-0">
@@ -257,7 +281,11 @@ const PropertiesList: React.FC = () => {
           </CardContent>
         </Card>
       ) : viewMode === "table" ? (
-        <PropertiesTable properties={filteredProperties} allProperties={properties} onRefresh={fetchProperties} />
+        <PropertiesTable
+          properties={filteredProperties}
+          allProperties={allProperties}
+          onRefresh={fetchProperties}
+        />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProperties.map((property, index) => (
@@ -299,6 +327,13 @@ const PropertiesList: React.FC = () => {
         open={zillowOpen}
         onOpenChange={setZillowOpen}
         onSuccess={fetchProperties}
+      />
+
+      {/* Check Properties Dialog */}
+      <CheckPropertiesDialog
+        open={checkOpen}
+        onOpenChange={setCheckOpen}
+        properties={allProperties}
       />
 
       {/* Create/Edit Property Dialog */}
