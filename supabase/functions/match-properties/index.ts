@@ -34,7 +34,7 @@ serve(async (req: Request) => {
     const { data: lead } = await supabase
       .from("leads")
       .select(
-        "id, budget_min, budget_max, bedrooms_needed, has_voucher, voucher_amount, interested_property_id, interested_zip_codes"
+        "id, budget_min, budget_max, has_voucher, voucher_amount, interested_property_id, interested_zip_codes"
       )
       .eq("id", lead_id)
       .eq("organization_id", organization_id)
@@ -48,7 +48,7 @@ serve(async (req: Request) => {
     }
 
     // ── Build reference from interested property or lead prefs ───
-    let refBedrooms: number | null = lead.bedrooms_needed;
+    let refBedrooms: number | null = null;
     let refBathrooms: number | null = null;
     let refRent: number | null = lead.budget_max;
     let refZip: string | null = null;
