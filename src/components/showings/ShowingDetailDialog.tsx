@@ -80,6 +80,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
   const [cancelMode, setCancelMode] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
 
   useEffect(() => {
     if (!open || !showingId) {
@@ -189,6 +190,92 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       toast({ title: "Error", description: `Failed to cancel: ${err.message}`, variant: "destructive" });
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!showing || !userRecord?.organization_id) return;
+    setRescheduling(true);
+
+    try {
+      // 1. Update showing status
+      const { error: updateErr } = await supabase
+        .from("showings")
+        .update({
+          status: "rescheduled",
+          cancellation_reason: "Rescheduled by admin",
+          cancelled_at: new Date().toISOString(),
+        })
+        .eq("id", showing.id);
+
+      if (updateErr) throw updateErr;
+
+      // 2. Unbook the time slot
+      await supabase
+        .from("showing_available_slots")
+        .update({ is_booked: false, booked_showing_id: null })
+        .eq("booked_showing_id", showing.id);
+
+      // 3. Send reschedule email to lead
+      const leadName = showing.leads?.full_name || "there";
+      const propertyAddr = showing.properties?.address || "the property";
+      const showingDate = format(parseISO(showing.scheduled_at), "EEEE, MMM d 'at' h:mm a");
+
+      if (showing.leads?.email) {
+        try {
+          await supabase.functions.invoke("send-message", {
+            body: {
+              lead_id: showing.lead_id,
+              channel: "email",
+              body: `Hi ${leadName},\n\nYour property showing at ${propertyAddr} on ${showingDate} needs to be rescheduled.\n\nPlease pick a new time that works for you:\nhttps://rentfindercleveland.com/p/book-showing\n\nWe look forward to seeing you!\n\nRent Finder Cleveland`,
+              organization_id: userRecord.organization_id,
+            },
+          });
+        } catch (emailErr) {
+          console.warn("Email send failed (non-fatal):", emailErr);
+        }
+      }
+
+      // Also send SMS if phone available
+      if (showing.leads?.phone) {
+        try {
+          await supabase.functions.invoke("send-message", {
+            body: {
+              lead_id: showing.lead_id,
+              channel: "sms",
+              body: `Hi ${leadName}, your showing at ${propertyAddr} on ${showingDate} needs to be rescheduled. Pick a new time: https://rentfindercleveland.com/p/book-showing`,
+              organization_id: userRecord.organization_id,
+            },
+          });
+        } catch (smsErr) {
+          console.warn("SMS send failed (non-fatal):", smsErr);
+        }
+      }
+
+      // 4. Log
+      await supabase.from("system_logs").insert({
+        organization_id: userRecord.organization_id,
+        level: "info",
+        category: "general",
+        event_type: "showing_rescheduled",
+        message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${propertyAddr} was rescheduled`,
+        related_lead_id: showing.lead_id,
+        related_showing_id: showing.id,
+        details: { rescheduled_by: userRecord.id },
+      });
+
+      toast({
+        title: "Showing rescheduled",
+        description: `${showing.leads?.full_name || "Lead"} has been notified to pick a new time.`,
+      });
+
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (err: any) {
+      console.error("Reschedule error:", err);
+      toast({ title: "Error", description: `Failed to reschedule: ${err.message}`, variant: "destructive" });
+    } finally {
+      setRescheduling(false);
     }
   };
 
@@ -380,6 +467,15 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                     Submit Report
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReschedule}
+                  disabled={rescheduling}
+                >
+                  {rescheduling ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
+                  Reschedule
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
