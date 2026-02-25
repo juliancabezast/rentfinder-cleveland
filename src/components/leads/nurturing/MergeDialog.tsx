@@ -185,43 +185,78 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
   const handleMerge = async () => {
     setMerging(true);
 
-    // Build field overrides: only include fields where loser was selected
-    const overrides: Record<string, any> = {};
-    if (winnerFull && loserFull) {
-      for (const f of MERGE_FIELDS) {
-        if (selections[f.key] === "loser") {
-          overrides[f.key] = loserFull[f.key];
+    try {
+      // 1. Build field overrides from selections
+      const overrides: Record<string, any> = {};
+      if (winnerFull && loserFull) {
+        for (const f of MERGE_FIELDS) {
+          if (selections[f.key] === "loser") {
+            overrides[f.key] = loserFull[f.key];
+          }
+        }
+        if (overrides.full_name) {
+          const parts = String(overrides.full_name).trim().split(" ");
+          overrides.first_name = parts[0] || null;
+          overrides.last_name = parts.slice(1).join(" ") || null;
         }
       }
-      // Sync first/last name if full_name comes from loser
-      if (overrides.full_name) {
-        const parts = String(overrides.full_name).trim().split(" ");
-        overrides.first_name = parts[0] || null;
-        overrides.last_name = parts.slice(1).join(" ") || null;
+
+      // 2. Apply field overrides to winner
+      if (Object.keys(overrides).length > 0) {
+        overrides.updated_at = new Date().toISOString();
+        const { error: updateErr } = await supabase
+          .from("leads")
+          .update(overrides)
+          .eq("id", winner.id);
+        if (updateErr) throw new Error(`Update winner failed: ${updateErr.message}`);
       }
+
+      // 3. Re-point related records from loser → winner
+      const relatedTables = [
+        "lead_notes", "calls", "showings", "agent_tasks",
+        "lead_score_history", "consent_log", "communications",
+      ];
+
+      for (const table of relatedTables) {
+        const { error: moveErr } = await supabase
+          .from(table)
+          .update({ lead_id: winner.id })
+          .eq("lead_id", loser.id);
+        // Ignore errors on tables that may have unique constraints or missing lead_id
+        if (moveErr) {
+          console.warn(`Merge: moving ${table} records: ${moveErr.message}`);
+        }
+      }
+
+      // 4. Log the merge as a note on the winner
+      await supabase.from("lead_notes").insert({
+        lead_id: winner.id,
+        user_id: userRecord?.id || null,
+        note: `Merged duplicate lead (${loser.full_name || loser.id.slice(0, 8)}) into this record. Fields kept from duplicate: ${Object.keys(overrides).filter(k => k !== "updated_at").join(", ") || "none"}.`,
+        created_at: new Date().toISOString(),
+      });
+
+      // 5. Delete the loser lead
+      const { error: deleteErr } = await supabase
+        .from("leads")
+        .delete()
+        .eq("id", loser.id);
+      if (deleteErr) throw new Error(`Delete duplicate failed: ${deleteErr.message}`);
+
+      setMerging(false);
+      setConfirmOpen(false);
+
+      toast.success("Leads merged successfully", {
+        description: `${loser.full_name || "Duplicate"} merged into ${winner.full_name || "Primary lead"}.`,
+      });
+
+      onOpenChange(false);
+      onMergeComplete();
+    } catch (err: any) {
+      setMerging(false);
+      setConfirmOpen(false);
+      toast.error("Merge failed", { description: err.message });
     }
-
-    const { data, error } = await supabase.rpc("merge_leads", {
-      p_winner_id: winner.id,
-      p_loser_id: loser.id,
-      p_field_overrides: overrides,
-      p_merged_by_user_id: userRecord?.id || null,
-    });
-
-    setMerging(false);
-    setConfirmOpen(false);
-
-    if (error) {
-      toast.error("Merge failed", { description: error.message });
-      return;
-    }
-
-    toast.success("Leads merged successfully", {
-      description: `${loser.full_name || "Duplicate"} merged into ${winner.full_name || "Primary lead"}.`,
-    });
-
-    onOpenChange(false);
-    onMergeComplete();
   };
 
   const totalRecordsToMove = Object.values(relatedCounts).reduce((a, b) => a + b, 0);

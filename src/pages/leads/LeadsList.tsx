@@ -227,32 +227,27 @@ const LeadsList: React.FC = () => {
 
     try {
       // Parallel count queries
+      // Base filter: only complete leads (name + phone + email)
+      const completeLeadBase = () =>
+        supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .not("full_name", "is", null)
+          .not("phone", "is", null)
+          .not("email", "is", null);
+
       const [priorityRes, humanRes, moveInRes, section8Res, showingsRes] = await Promise.all([
         // Priority count
-        supabase
-          .from("leads")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId)
-          .eq("is_priority", true),
+        completeLeadBase().eq("is_priority", true),
         // Human controlled count
-        supabase
-          .from("leads")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId)
-          .eq("is_human_controlled", true),
+        completeLeadBase().eq("is_human_controlled", true),
         // Move-in soon count
-        supabase
-          .from("leads")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId)
+        completeLeadBase()
           .gte("move_in_date", today.toISOString().split("T")[0])
           .lte("move_in_date", in20Days.toISOString().split("T")[0]),
         // Section 8 count (has_voucher = true OR voucher_status = 'active')
-        supabase
-          .from("leads")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId)
-          .or("has_voucher.eq.true,voucher_status.eq.active"),
+        completeLeadBase().or("has_voucher.eq.true,voucher_status.eq.active"),
         // Get lead IDs with active showings
         supabase
           .from("showings")
@@ -334,7 +329,10 @@ const LeadsList: React.FC = () => {
         `,
           { count: "exact" }
         )
-        .eq("organization_id", userRecord.organization_id);
+        .eq("organization_id", userRecord.organization_id)
+        .not("full_name", "is", null)
+        .not("phone", "is", null)
+        .not("email", "is", null);
 
       // Apply dropdown filters
       if (statusFilter !== "all") {
