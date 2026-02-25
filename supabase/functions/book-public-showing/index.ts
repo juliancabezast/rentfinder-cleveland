@@ -252,7 +252,7 @@ serve(async (req: Request) => {
           full_name: full_name.trim(),
           phone: formattedPhone,
           email: leadEmail,
-          source: "web_schedule",
+          source: "website",
           status: "new",
           sms_consent: consent?.sms_consent ?? false,
           call_consent: consent?.call_consent ?? false,
@@ -263,7 +263,7 @@ serve(async (req: Request) => {
       if (leadErr || !newLead) {
         console.error("Lead creation error:", leadErr);
         return new Response(
-          JSON.stringify({ error: "Failed to register your information. Please try again." }),
+          JSON.stringify({ error: `Failed to register: ${leadErr?.message || "Unknown error"}. Please try again.` }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -308,7 +308,7 @@ serve(async (req: Request) => {
     if (showingErr || !showing) {
       console.error("Showing creation error:", showingErr);
       return new Response(
-        JSON.stringify({ error: "Failed to create showing. Please try again." }),
+        JSON.stringify({ error: `Failed to create showing: ${showingErr?.message || "Unknown error"}. Please try again.` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -421,7 +421,7 @@ serve(async (req: Request) => {
         property_id,
         property_address: propertyAddress,
         scheduled_at: scheduledAt,
-        source: "web_schedule",
+        source: "website",
       },
     });
 
@@ -475,7 +475,7 @@ serve(async (req: Request) => {
         property_id,
         slot_date,
         slot_time,
-        source: "web_schedule",
+        source: "website",
         lead_is_new: !existingLead,
       },
       related_lead_id: leadId,
