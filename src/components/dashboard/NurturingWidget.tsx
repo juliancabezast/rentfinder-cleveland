@@ -4,21 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, UserX, Copy, Clock, CheckCircle2, ArrowRight } from "lucide-react";
+import { Sparkles, UserX, Copy, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface NurturingStats {
   incomplete: number;
   duplicates: number;
-  stale: number;
+  forReview: number;
   graduatedThisWeek: number;
 }
 
 export const NurturingWidget: React.FC<{ loading?: boolean }> = ({ loading: parentLoading = false }) => {
   const { userRecord } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<NurturingStats>({ incomplete: 0, duplicates: 0, stale: 0, graduatedThisWeek: 0 });
+  const [stats, setStats] = useState<NurturingStats>({ incomplete: 0, duplicates: 0, forReview: 0, graduatedThisWeek: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,18 +40,13 @@ export const NurturingWidget: React.FC<{ loading?: boolean }> = ({ loading: pare
         .neq("status", "lost")
         .or("full_name.is.null,phone.is.null,email.is.null");
 
-      // 2. Stale: leads with no activity for 14+ days in active statuses
-      const staleDate = new Date();
-      staleDate.setDate(staleDate.getDate() - 14);
-      const { count: staleCount } = await supabase
+      // 2. For Review: leads with junk name patterns
+      const { count: reviewCount } = await supabase
         .from("leads")
         .select("id", { count: "exact", head: true })
         .eq("organization_id", orgId)
-        .in("status", ["new", "contacted", "engaged", "nurturing", "qualified"])
-        .not("full_name", "is", null)
-        .not("phone", "is", null)
-        .not("email", "is", null)
-        .lt("last_contact_at", staleDate.toISOString());
+        .neq("status", "lost")
+        .or("full_name.ilike.%.com%,full_name.ilike.%http%,full_name.ilike.%@%,full_name.ilike.%comments%,full_name.ilike.%unsubscribe%,full_name.ilike.%mailto:%,full_name.ilike.%subject:%,full_name.ilike.%reply%");
 
       // 3. Graduated this week: leads updated this week that now have all 3 fields
       //    and were updated well after creation (enriched after being incomplete)
@@ -98,7 +93,7 @@ export const NurturingWidget: React.FC<{ loading?: boolean }> = ({ loading: pare
       setStats({
         incomplete: incompleteCount || 0,
         duplicates: dupGroups,
-        stale: staleCount || 0,
+        forReview: reviewCount || 0,
         graduatedThisWeek: graduatedCount || 0,
       });
     } catch (err) {
@@ -126,7 +121,7 @@ export const NurturingWidget: React.FC<{ loading?: boolean }> = ({ loading: pare
     );
   }
 
-  const total = stats.incomplete + stats.duplicates + stats.stale;
+  const total = stats.incomplete + stats.duplicates + stats.forReview;
   const items = [
     {
       label: "Incomplete",
@@ -145,12 +140,12 @@ export const NurturingWidget: React.FC<{ loading?: boolean }> = ({ loading: pare
       tab: "duplicates",
     },
     {
-      label: "Stale",
-      count: stats.stale,
-      icon: Clock,
-      color: "text-gray-600",
-      bg: "bg-gray-50",
-      tab: "stale",
+      label: "For Review",
+      count: stats.forReview,
+      icon: AlertTriangle,
+      color: "text-red-600",
+      bg: "bg-red-50",
+      tab: "suspect",
     },
     {
       label: "Graduated this week",
