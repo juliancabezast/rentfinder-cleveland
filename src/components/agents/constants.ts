@@ -1,7 +1,7 @@
-import { Phone, ClipboardCheck, Handshake, LucideIcon } from "lucide-react";
+import { Phone, ClipboardCheck, Handshake, Shield, LucideIcon } from "lucide-react";
 
 // Department definitions with colors and icons
-// 3 departments reflecting the leasing pipeline: Qualification → Leasing → Closing
+// 4 departments: Qualification → Leasing → Closing + System
 export interface DepartmentConfig {
   key: string;
   label: string;
@@ -29,7 +29,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
     color: "border-amber-500",
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
     dotColor: "bg-amber-500",
-    agentKeys: ["elijah"],
+    agentKeys: ["elijah", "ruth"],
   },
   {
     key: "cierre",
@@ -40,39 +40,49 @@ export const DEPARTMENTS: DepartmentConfig[] = [
     dotColor: "bg-green-500",
     agentKeys: ["samuel"],
   },
+  {
+    key: "sistema",
+    label: "System",
+    icon: Shield,
+    color: "border-slate-500",
+    bgColor: "bg-slate-50 dark:bg-slate-950/30",
+    dotColor: "bg-slate-500",
+    agentKeys: ["zacchaeus"],
+  },
 ];
 
-// 5 agents — canonical display names
-// All old agent_keys map to one of the 5 real agents
+// 7 agents — canonical display names
 export const AGENT_DISPLAY_NAMES: Record<string, string> = {
-  // Primary agent_keys (new canonical keys)
-  aaron: "Voice Reception",
+  // Primary agent_keys
+  aaron: "Inbound & Outbound Calls",
   esther: "Email Reception",
-  nehemiah: "Qualification Director",
+  nehemiah: "Qualification Analyst",
+  ruth: "SMS Agent",
   elijah: "Leasing Consultant",
   samuel: "Closing Agent",
-  // Legacy agent_keys → mapped to the 5 real agents
-  main_inbound: "Voice Reception",
-  bland_call_webhook: "Voice Reception",
-  sms_inbound: "Leasing Consultant",
+  zacchaeus: "Health & Cost Monitor",
+  // Legacy agent_keys → mapped to 7 real agents
+  main_inbound: "Inbound & Outbound Calls",
+  bland_call_webhook: "Inbound & Outbound Calls",
+  sms_inbound: "SMS Agent",
   hemlane_parser: "Email Reception",
-  scoring: "Qualification Director",
-  transcript_analyst: "Qualification Director",
-  task_dispatcher: "Qualification Director",
+  scoring: "Qualification Analyst",
+  transcript_analyst: "Qualification Analyst",
+  task_dispatcher: "Qualification Analyst",
   recapture: "Leasing Consultant",
   showing_confirmation: "Closing Agent",
-  conversion_predictor: "Qualification Director",
-  insight_generator: "Qualification Director",
-  report_generator: "Qualification Director",
+  conversion_predictor: "Qualification Analyst",
+  insight_generator: "Qualification Analyst",
+  report_generator: "Qualification Analyst",
   doorloop_pull: "Closing Agent",
-  cost_tracker: "Qualification Director",
+  cost_tracker: "Health & Cost Monitor",
   no_show_followup: "Closing Agent",
   no_show_follow_up: "Closing Agent",
   post_showing: "Closing Agent",
   campaign: "Leasing Consultant",
   campaign_voice: "Leasing Consultant",
   welcome_sequence: "Leasing Consultant",
-  campaign_sms: "Leasing Consultant",
+  campaign_sms: "SMS Agent",
 };
 
 // Status visual config
@@ -95,18 +105,18 @@ const LEGACY_TO_CANONICAL: Record<string, string> = {
   conversion_predictor: "nehemiah",
   insight_generator: "nehemiah",
   report_generator: "nehemiah",
-  cost_tracker: "nehemiah",
-  sms_inbound: "elijah",
+  sms_inbound: "ruth",
+  campaign_sms: "ruth",
   recapture: "elijah",
   campaign: "elijah",
   campaign_voice: "elijah",
-  campaign_sms: "elijah",
   welcome_sequence: "elijah",
   showing_confirmation: "samuel",
   doorloop_pull: "samuel",
   no_show_followup: "samuel",
   no_show_follow_up: "samuel",
   post_showing: "samuel",
+  cost_tracker: "zacchaeus",
 };
 
 // Helper: resolve a legacy key to its canonical agent

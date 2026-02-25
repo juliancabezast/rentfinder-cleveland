@@ -56,21 +56,23 @@ import { CsvImportDialog } from "@/components/leads/CsvImportDialog";
 import LeadFilterPills, { ActiveFilters, FilterCounts } from "@/components/leads/LeadFilterPills";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Agent name mapping — 5 operational agents across 3 departments
-// Qualification: Aaron (voice), Esther (email), Nehemiah (director)
-// Leasing: Elijah (consultant)
-// Closing: Samuel (closing agent)
+// Agent name mapping — 7 agents across 4 departments
+// Qualification: Aaron (calls), Esther (email), Nehemiah (analyst)
+// Leasing: Elijah (consultant), Ruth (SMS)
+// Closing: Samuel | System: Zacchaeus
 const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   // Canonical agent keys
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
+  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
-  // Legacy DB agent_keys → mapped to 5 real agents
+  zacchaeus: "Zacchaeus",
+  // Legacy DB agent_keys → mapped to 7 real agents
   main_inbound: "Aaron",
   bland_call_webhook: "Aaron",
-  sms_inbound: "Elijah",
+  sms_inbound: "Ruth",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -81,11 +83,11 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   insight_generator: "Nehemiah",
   report_generator: "Nehemiah",
   doorloop_pull: "Samuel",
-  cost_tracker: "Nehemiah",
+  cost_tracker: "Zacchaeus",
   // Legacy hyphen-format keys
   "twilio-inbound": "Aaron",
   "bland-call-webhook": "Aaron",
-  "sms-inbound": "Elijah",
+  "sms-inbound": "Ruth",
   "hemlane-parser": "Esther",
   "transcript-analyst": "Nehemiah",
   "task-dispatcher": "Nehemiah",
@@ -94,7 +96,7 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   "insight-generator": "Nehemiah",
   "report-generator": "Nehemiah",
   "doorloop-pull": "Samuel",
-  "cost-tracker": "Nehemiah",
+  "cost-tracker": "Zacchaeus",
   // Legacy task types
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
@@ -104,7 +106,7 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   campaign: "Elijah",
   campaign_voice: "Elijah",
   welcome_sequence: "Elijah",
-  campaign_sms: "Elijah",
+  campaign_sms: "Ruth",
   "campaign-orchestrator": "Nehemiah",
   "campaign-voice": "Elijah",
   "welcome-sequence": "Elijah",

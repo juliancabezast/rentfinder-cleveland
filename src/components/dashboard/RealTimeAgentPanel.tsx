@@ -51,16 +51,16 @@ interface NextTaskRow {
 // ── Agent names ──────────────────────────────────────────────────────
 
 const AGENT_NAMES: Record<string, string> = {
-  // Canonical agent keys
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
+  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
-  // Legacy DB agent_keys → mapped to 5 real agents
+  zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
   bland_call_webhook: "Aaron",
-  sms_inbound: "Elijah",
+  sms_inbound: "Ruth",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -71,14 +71,14 @@ const AGENT_NAMES: Record<string, string> = {
   insight_generator: "Nehemiah",
   report_generator: "Nehemiah",
   doorloop_pull: "Samuel",
-  cost_tracker: "Nehemiah",
+  cost_tracker: "Zacchaeus",
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
   campaign_voice: "Elijah",
-  campaign_sms: "Elijah",
+  campaign_sms: "Ruth",
 };
 
 // ── Source → agent that brought the lead in ──────────────────────────
@@ -87,7 +87,7 @@ const SOURCE_INFO: Record<string, { agent: string; action: string; updateAction:
   hemlane_email: { agent: "Esther", action: "registered via Hemlane", updateAction: "updated via Hemlane" },
   inbound_call: { agent: "Aaron", action: "registered via inbound call", updateAction: "updated via inbound call" },
   website: { agent: "Aaron", action: "captured from website", updateAction: "updated from website" },
-  sms: { agent: "Elijah", action: "registered via inbound SMS", updateAction: "updated via SMS" },
+  sms: { agent: "Ruth", action: "registered via inbound SMS", updateAction: "updated via SMS" },
   referral: { agent: "Aaron", action: "registered as referral", updateAction: "updated referral" },
   manual: { agent: "—", action: "entered manually", updateAction: "updated manually" },
   campaign: { agent: "Elijah", action: "captured in outbound campaign", updateAction: "updated in campaign" },

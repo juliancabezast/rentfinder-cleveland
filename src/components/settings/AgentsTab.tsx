@@ -33,6 +33,7 @@ const CATEGORY_CONFIG = [
   { key: 'qualification', label: 'Qualification', icon: Phone },
   { key: 'leasing', label: 'Leasing', icon: Bot },
   { key: 'closing', label: 'Closing', icon: ShieldCheck },
+  { key: 'system', label: 'System', icon: Activity },
 ];
 
 export const AgentsTab: React.FC = () => {

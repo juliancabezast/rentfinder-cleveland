@@ -22,16 +22,18 @@ interface AgentTask {
   context: Record<string, unknown> | null;
 }
 
-// Map agent_type to the 5 real agents
+// Map agent_type to the 7 real agents
 const AGENT_NAMES: Record<string, string> = {
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
+  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
+  zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
   bland_call_webhook: "Aaron",
-  sms_inbound: "Elijah",
+  sms_inbound: "Ruth",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -42,14 +44,14 @@ const AGENT_NAMES: Record<string, string> = {
   insight_generator: "Nehemiah",
   report_generator: "Nehemiah",
   doorloop_pull: "Samuel",
-  cost_tracker: "Nehemiah",
+  cost_tracker: "Zacchaeus",
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
   campaign_voice: "Elijah",
-  campaign_sms: "Elijah",
+  campaign_sms: "Ruth",
 };
 
 // Action type icons

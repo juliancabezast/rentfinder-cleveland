@@ -45,16 +45,18 @@ interface AgentTask {
   max_attempts: number | null;
 }
 
-// Map agent_type to the 5 real agents
+// Map agent_type to the 7 real agents
 const AGENT_NAMES: Record<string, string> = {
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
+  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
+  zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
   bland_call_webhook: "Aaron",
-  sms_inbound: "Elijah",
+  sms_inbound: "Ruth",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -65,20 +67,21 @@ const AGENT_NAMES: Record<string, string> = {
   insight_generator: "Nehemiah",
   report_generator: "Nehemiah",
   doorloop_pull: "Samuel",
-  cost_tracker: "Nehemiah",
+  cost_tracker: "Zacchaeus",
   no_show_followup: "Samuel",
   no_show_follow_up: "Samuel",
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
   campaign_voice: "Elijah",
-  campaign_sms: "Elijah",
+  campaign_sms: "Ruth",
 };
 
 // Agent colors by department
 // Qualification (teal): Aaron, Esther, Nehemiah
-// Leasing (amber): Elijah
+// Leasing (amber): Elijah, Ruth
 // Closing (green): Samuel
+// System (slate): Zacchaeus
 const AGENT_COLORS: Record<string, string> = {
   // Qualification (teal)
   aaron: "bg-teal-100 text-teal-700 border-teal-200",
@@ -93,9 +96,9 @@ const AGENT_COLORS: Record<string, string> = {
   conversion_predictor: "bg-teal-100 text-teal-700 border-teal-200",
   insight_generator: "bg-teal-100 text-teal-700 border-teal-200",
   report_generator: "bg-teal-100 text-teal-700 border-teal-200",
-  cost_tracker: "bg-teal-100 text-teal-700 border-teal-200",
   // Leasing (amber)
   elijah: "bg-amber-100 text-amber-700 border-amber-200",
+  ruth: "bg-amber-100 text-amber-700 border-amber-200",
   recapture: "bg-amber-100 text-amber-700 border-amber-200",
   sms_inbound: "bg-amber-100 text-amber-700 border-amber-200",
   campaign: "bg-amber-100 text-amber-700 border-amber-200",
@@ -109,6 +112,9 @@ const AGENT_COLORS: Record<string, string> = {
   no_show_followup: "bg-green-100 text-green-700 border-green-200",
   no_show_follow_up: "bg-green-100 text-green-700 border-green-200",
   post_showing: "bg-green-100 text-green-700 border-green-200",
+  // System (slate)
+  zacchaeus: "bg-slate-100 text-slate-700 border-slate-200",
+  cost_tracker: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
 // Status colors
