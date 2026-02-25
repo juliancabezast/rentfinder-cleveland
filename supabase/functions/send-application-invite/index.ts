@@ -81,11 +81,10 @@ serve(async (req: Request) => {
             body: JSON.stringify({
               firstName,
               lastName,
-              phones: lead.phone ? [{ type: "MOBILE", number: lead.phone }] : [],
-              ...(lead.email ? { emails: [{ type: "PERSONAL", address: lead.email }] } : {}),
+              phones: lead.phone ? [{ type: "Mobile", number: lead.phone }] : [],
+              ...(lead.email ? { emails: [{ type: "Primary", address: lead.email }] } : {}),
               prospectInfo: {
                 status: "SHOWING_SCHEDULED",
-                leadSource: "WEBSITE",
               },
             }),
           });

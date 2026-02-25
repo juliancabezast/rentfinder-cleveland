@@ -518,11 +518,10 @@ serve(async (req: Request) => {
               body: JSON.stringify({
                 firstName,
                 lastName: lastName || firstName,
-                phones: [{ type: "MOBILE", number: formattedPhone }],
-                ...(leadEmail ? { emails: [{ type: "PERSONAL", address: leadEmail }] } : {}),
+                phones: [{ type: "Mobile", number: formattedPhone }],
+                ...(leadEmail ? { emails: [{ type: "Primary", address: leadEmail }] } : {}),
                 prospectInfo: {
                   status: "SHOWING_SCHEDULED",
-                  leadSource: "WEBSITE",
                 },
               }),
             });
