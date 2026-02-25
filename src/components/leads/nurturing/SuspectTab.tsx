@@ -230,19 +230,15 @@ function cleanName(name: string | null): string | null {
   return result.length >= 2 ? result : null;
 }
 
-/** Try to produce a cleaned version of each field for a lead */
-function suggestRestore(lead: SuspectLead): { full_name?: string; phone?: string; email?: string } | null {
-  const suggestions: Record<string, string> = {};
+/** Check if this lead has name alerts (meaning Restore button should show) */
+function hasNameAlert(lead: SuspectLead): boolean {
+  return lead.alerts.some((a) => a.field === "full_name");
+}
 
-  // Name: clean it
-  if (lead.alerts.some((a) => a.field === "full_name") && lead.full_name) {
-    const cleaned = cleanName(lead.full_name);
-    if (cleaned && cleaned !== lead.full_name) {
-      suggestions.full_name = cleaned;
-    }
-  }
-
-  return Object.keys(suggestions).length > 0 ? suggestions : null;
+/** Try to produce a cleaned name, or null if nothing salvageable */
+function suggestCleanedName(lead: SuspectLead): string | null {
+  if (!lead.full_name) return null;
+  return cleanName(lead.full_name);
 }
 
 // ── Component ──
@@ -405,12 +401,14 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
   };
 
   const handleRestoreClick = (lead: SuspectLead) => {
-    const suggestions = suggestRestore(lead);
-    if (!suggestions) {
-      toast.error("Can't auto-fix", { description: "No valid name could be extracted. Edit manually or delete." });
-      return;
+    const cleaned = suggestCleanedName(lead);
+    if (cleaned) {
+      // Show preview dialog
+      setRestoreTarget({ lead, suggestions: { full_name: cleaned } });
+    } else {
+      // No auto-suggestion — open inline edit on name
+      startEdit(lead.id, "full_name", "");
     }
-    setRestoreTarget({ lead, suggestions });
   };
 
   const handleRestoreConfirm = async () => {
@@ -462,10 +460,11 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
   };
 
   const handleRestoreAll = async () => {
-    // Collect all restorable leads
+    // Collect all leads with a valid auto-clean suggestion
     const restorable = leads
-      .map((lead) => ({ lead, suggestions: suggestRestore(lead) }))
-      .filter((r): r is { lead: SuspectLead; suggestions: Record<string, string> } => r.suggestions !== null);
+      .map((lead) => ({ lead, cleaned: suggestCleanedName(lead) }))
+      .filter((r): r is { lead: SuspectLead; cleaned: string } => r.cleaned !== null)
+      .map((r) => ({ lead: r.lead, suggestions: { full_name: r.cleaned } }));
 
     if (restorable.length === 0) {
       toast.info("No leads can be auto-restored. Edit or delete them manually.");
@@ -577,10 +576,10 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
           {leads.length} lead{leads.length !== 1 ? "s" : ""} need review.
           Click on flagged fields to fix them, or delete junk leads.
         </p>
-        {!restoreAllProgress && leads.some((l) => suggestRestore(l)) && (
+        {!restoreAllProgress && leads.some((l) => suggestCleanedName(l)) && (
           <Button onClick={handleRestoreAll} className="bg-[#370d4b] hover:bg-[#370d4b]/90">
             <Wand2 className="h-4 w-4 mr-1.5" />
-            Restore All ({leads.filter((l) => suggestRestore(l)).length})
+            Restore All ({leads.filter((l) => suggestCleanedName(l)).length})
           </Button>
         )}
       </div>
@@ -645,7 +644,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    {suggestRestore(lead) && (
+                    {hasNameAlert(lead) && (
                       <Button
                         variant="ghost"
                         size="icon"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserX, Check, X, Loader2 } from "lucide-react";
+import { UserX, Check, X, Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -58,6 +68,8 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
   const [editing, setEditing] = useState<EditingCell>(null);
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<IncompleteLead | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchIncomplete();
@@ -174,6 +186,43 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
     if (e.key === "Escape") cancelEdit();
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+
+    const leadIdTables = [
+      "lead_notes", "calls", "showings", "agent_tasks",
+      "lead_score_history", "consent_log", "communications",
+      "cost_records", "lead_predictions", "competitor_mentions",
+    ];
+    for (const table of leadIdTables) {
+      await supabase.from(table).delete().eq("lead_id", deleteTarget.id);
+    }
+    await supabase.from("system_logs").update({ related_lead_id: null }).eq("related_lead_id", deleteTarget.id);
+    await supabase.from("referrals").delete().eq("referrer_lead_id", deleteTarget.id);
+    await supabase.from("referrals").update({ referred_lead_id: null }).eq("referred_lead_id", deleteTarget.id);
+
+    const { error } = await supabase.from("leads").delete().eq("id", deleteTarget.id);
+    setDeleting(false);
+
+    if (error) {
+      toast.error("Delete failed", { description: error.message });
+      setDeleteTarget(null);
+      return;
+    }
+
+    toast.success("Lead deleted", {
+      description: `${deleteTarget.full_name || "Lead"} permanently removed.`,
+    });
+
+    setLeads((prev) => {
+      const remaining = prev.filter((l) => l.id !== deleteTarget.id);
+      onCountChange(remaining.length);
+      return remaining;
+    });
+    setDeleteTarget(null);
+  };
+
   const getSeverity = (lead: IncompleteLead): { label: string; color: string } => {
     if (!lead.full_name) return { label: "Missing name", color: "bg-red-100 text-red-800" };
     if (!lead.phone && !lead.email) return { label: "No contact info", color: "bg-red-100 text-red-800" };
@@ -273,6 +322,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
               <TableHead>Status</TableHead>
               <TableHead>Next Action</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -311,12 +361,57 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(lead.created_at), "MMM d")}
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => setDeleteTarget(lead)}
+                      title="Delete this lead"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Delete Lead
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Permanently delete <strong>{deleteTarget?.full_name || "this lead"}</strong> and all
+              associated records?
+              <br /><br />
+              <strong>This cannot be undone.</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Lead"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
