@@ -227,7 +227,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
             body: {
               lead_id: showing.lead_id,
               channel: "email",
-              body: `Hi ${leadName},\n\nYour property showing at ${propertyAddr} on ${showingDate} needs to be rescheduled.\n\nPlease pick a new time that works for you:\nhttps://rentfindercleveland.com/p/book-showing\n\nWe look forward to seeing you!\n\nRent Finder Cleveland`,
+              body: `Your property showing at ${propertyAddr} on ${showingDate} needs to be rescheduled.\n\nPlease pick a new time that works for you:\n\n<a href="https://rentfindercleveland.com/p/book-showing" style="display:inline-block;background-color:#370d4b;color:#ffffff;font-weight:bold;font-size:16px;padding:14px 32px;border-radius:8px;text-decoration:none;margin:8px 0;">Reschedule Showing</a>\n\nWe look forward to seeing you!`,
               organization_id: userRecord.organization_id,
             },
           });
