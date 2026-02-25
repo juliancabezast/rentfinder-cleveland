@@ -796,6 +796,7 @@ const LeadsList: React.FC = () => {
         open={importOpen}
         onOpenChange={setImportOpen}
         onSuccess={fetchLeads}
+        properties={properties}
       />
     </div>
   );

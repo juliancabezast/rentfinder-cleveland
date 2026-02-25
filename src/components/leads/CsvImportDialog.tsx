@@ -38,6 +38,7 @@ interface CsvImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  properties: { id: string; address: string }[];
 }
 
 // All mappable fields
@@ -128,20 +129,32 @@ interface ValidationIssue {
 
 interface ImportResult {
   imported: number;
-  skipped: number;
+  skippedMissingPhone: number;
+  skippedDuplicate: number;
   issues: Array<{ row: number; reason: string }>;
+  propertyName?: string;
+}
+
+// Normalize phone to last 10 digits for dedup matching
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.slice(-10);
 }
 
 export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
   open,
   onOpenChange,
   onSuccess,
+  properties,
 }) => {
   const { userRecord } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Wizard step (1, 2, or 3)
   const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  // Property assignment
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
 
   // File state
   const [file, setFile] = useState<File | null>(null);
@@ -322,28 +335,107 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
       if (validLeads.length === 0) {
         toast.error("No valid leads to import. All rows are missing phone numbers.");
+        setImporting(false);
         return;
       }
 
-      // Add organization_id to all leads and cast properly
-      const leadsWithOrg = validLeads.map((lead) => ({
-        ...lead,
-        organization_id: userRecord.organization_id,
-        phone: lead.phone as string,
-        source: (lead.source as string) || "csv_import",
-      }));
+      // 1. Fetch existing phones for dedup
+      const { data: existingLeads } = await supabase
+        .from("leads")
+        .select("phone")
+        .eq("organization_id", userRecord.organization_id);
 
-      const { error } = await supabase.from("leads").insert(leadsWithOrg as any);
+      const existingPhones = new Set(
+        (existingLeads || [])
+          .map((l) => l.phone)
+          .filter(Boolean)
+          .map((p) => normalizePhone(p))
+      );
 
-      if (error) throw error;
+      // 2. Split into new vs duplicate
+      const newLeads: Record<string, unknown>[] = [];
+      const dupIssues: Array<{ row: number; reason: string }> = [];
+      const seenInBatch = new Set<string>();
 
-      setImportResult({
-        imported: validLeads.length,
-        skipped: skippedCount,
-        issues,
+      validLeads.forEach((lead, idx) => {
+        const phone = normalizePhone(lead.phone as string);
+        if (existingPhones.has(phone) || seenInBatch.has(phone)) {
+          dupIssues.push({ row: idx + 2, reason: "Duplicate phone (already in database)" });
+        } else {
+          seenInBatch.add(phone);
+          newLeads.push(lead);
+        }
       });
 
-      toast.success(`Successfully imported ${validLeads.length} leads`);
+      if (newLeads.length === 0) {
+        setImportResult({
+          imported: 0,
+          skippedMissingPhone: skippedCount,
+          skippedDuplicate: dupIssues.length,
+          issues: [...issues, ...dupIssues],
+        });
+        toast.warning("All leads already exist in the database.");
+        setImporting(false);
+        return;
+      }
+
+      // 3. Build leads with org, stage, property, full_name
+      const effectivePropertyId = selectedPropertyId && selectedPropertyId !== "none" ? selectedPropertyId : null;
+      const selectedProp = effectivePropertyId ? properties.find((p) => p.id === effectivePropertyId) : null;
+      const leadsWithOrg = newLeads.map((lead) => {
+        const firstName = (lead.first_name as string) || "";
+        const lastName = (lead.last_name as string) || "";
+        const fullName = (lead.full_name as string) || [firstName, lastName].filter(Boolean).join(" ");
+        return {
+          ...lead,
+          organization_id: userRecord.organization_id,
+          phone: lead.phone as string,
+          source: (lead.source as string) || "csv_import",
+          stage: "prospect",
+          full_name: fullName || null,
+          ...(effectivePropertyId ? { interested_property_id: effectivePropertyId } : {}),
+        };
+      });
+
+      // 4. Insert leads
+      const { error } = await supabase.from("leads").insert(leadsWithOrg as any);
+      if (error) throw error;
+
+      // 5. Create audit notes — fetch the newly inserted lead IDs by phone
+      const insertedPhones = leadsWithOrg.map((l) => l.phone);
+      const { data: insertedLeads } = await supabase
+        .from("leads")
+        .select("id, phone")
+        .eq("organization_id", userRecord.organization_id)
+        .in("phone", insertedPhones);
+
+      if (insertedLeads && insertedLeads.length > 0) {
+        const uploaderName = userRecord.full_name || userRecord.email || "Unknown user";
+        const now = new Date().toLocaleDateString("en-US", {
+          year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+        });
+        const propertyNote = selectedProp ? ` — assigned to ${selectedProp.address}` : "";
+
+        const notes = insertedLeads.map((lead) => ({
+          lead_id: lead.id,
+          organization_id: userRecord.organization_id,
+          created_by: userRecord.id,
+          content: `Imported via CSV upload by ${uploaderName} on ${now}${propertyNote}`,
+          note_type: "system",
+        }));
+
+        await supabase.from("lead_notes").insert(notes as any);
+      }
+
+      setImportResult({
+        imported: newLeads.length,
+        skippedMissingPhone: skippedCount,
+        skippedDuplicate: dupIssues.length,
+        issues: [...issues, ...dupIssues],
+        propertyName: selectedProp?.address,
+      });
+
+      toast.success(`Successfully imported ${newLeads.length} prospects`);
     } catch (error) {
       console.error("Import error:", error);
       toast.error("Failed to import leads. Please try again.");
@@ -416,6 +508,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         setFileData([]);
         setColumnMapping({});
         setImportResult(null);
+        setSelectedPropertyId("");
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -518,6 +611,29 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                   Download template (.xlsx)
                 </Button>
               </div>
+
+              {/* Property Assignment */}
+              {properties.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Assign to property</Label>
+                  <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a property (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No property assignment</SelectItem>
+                      {properties.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.address}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    All imported prospects will be linked to this property.
+                  </p>
+                </div>
+              )}
 
               {/* File Input */}
               <div className="space-y-2">
@@ -645,7 +761,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Ready to import:</span>
                   <span className="text-lg font-bold text-[#370d4b]">
-                    {validateAndPrepareLeads.validLeads.length} leads
+                    {validateAndPrepareLeads.validLeads.length} prospects
                   </span>
                 </div>
                 {validateAndPrepareLeads.skippedCount > 0 && (
@@ -654,6 +770,23 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                     <span className="font-medium">{validateAndPrepareLeads.skippedCount}</span>
                   </div>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  Duplicates will be detected by phone number during import.
+                </p>
+                {selectedPropertyId && selectedPropertyId !== "none" && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Assigned property:</span>
+                    <span className="font-medium text-[#370d4b]">
+                      {properties.find((p) => p.id === selectedPropertyId)?.address}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm">
+                  <span>Stage:</span>
+                  <span className="px-2 py-0.5 bg-[#370d4b]/10 text-[#370d4b] rounded text-xs font-medium">
+                    Prospect
+                  </span>
+                </div>
               </div>
 
               {/* Validation issues */}
@@ -708,23 +841,43 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           {step === 3 && importResult && (
             <div className="space-y-4">
               <div className="flex flex-col items-center justify-center py-6">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                  <Check className="h-8 w-8 text-green-600" />
+                <div className={cn(
+                  "w-16 h-16 rounded-full flex items-center justify-center mb-4",
+                  importResult.imported > 0 ? "bg-green-100" : "bg-amber-100"
+                )}>
+                  <Check className={cn(
+                    "h-8 w-8",
+                    importResult.imported > 0 ? "text-green-600" : "text-amber-600"
+                  )} />
                 </div>
                 <h3 className="text-lg font-semibold text-[#370d4b]">Import Complete!</h3>
                 <p className="text-muted-foreground text-sm mt-1">
-                  Successfully imported {importResult.imported} leads
+                  {importResult.imported > 0
+                    ? `Successfully imported ${importResult.imported} prospects`
+                    : "No new prospects were imported"}
                 </p>
+                {importResult.propertyName && (
+                  <span className="mt-2 px-2 py-1 bg-[#370d4b]/10 text-[#370d4b] rounded text-xs">
+                    Assigned to: {importResult.propertyName}
+                  </span>
+                )}
               </div>
 
-              {importResult.skipped > 0 && (
+              {(importResult.skippedDuplicate > 0 || importResult.skippedMissingPhone > 0) && (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                    <div className="text-sm">
-                      <p className="font-medium text-amber-800">
-                        {importResult.skipped} rows were skipped
-                      </p>
+                    <div className="text-sm space-y-1">
+                      {importResult.skippedDuplicate > 0 && (
+                        <p className="font-medium text-amber-800">
+                          {importResult.skippedDuplicate} skipped (duplicate phone)
+                        </p>
+                      )}
+                      {importResult.skippedMissingPhone > 0 && (
+                        <p className="font-medium text-amber-800">
+                          {importResult.skippedMissingPhone} skipped (missing phone)
+                        </p>
+                      )}
                       <ScrollArea className="max-h-[100px] mt-2">
                         <div className="space-y-1">
                           {importResult.issues.slice(0, 10).map((issue, idx) => (
@@ -792,7 +945,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4" />
-                    Import {validateAndPrepareLeads.validLeads.length} Leads
+                    Import {validateAndPrepareLeads.validLeads.length} Prospects
                   </>
                 )}
               </Button>
