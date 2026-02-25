@@ -57,7 +57,7 @@ import { format, addDays, startOfDay } from "date-fns";
 import { ScoreDisplay } from "@/components/leads/ScoreDisplay";
 import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
 import { LeadForm } from "@/components/leads/LeadForm";
-import { CsvImportDialog } from "@/components/leads/CsvImportDialog";
+import { CsvImportDialog, type PropertyInfo } from "@/components/leads/CsvImportDialog";
 import LeadFilterPills, { ActiveFilters, FilterCounts } from "@/components/leads/LeadFilterPills";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -192,7 +192,7 @@ const LeadsList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
-  const [properties, setProperties] = useState<{ id: string; address: string }[]>([]);
+  const [properties, setProperties] = useState<PropertyInfo[]>([]);
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(() => {
     if (filterParam === "priority") return { ...DEFAULT_FILTERS, priority: true };
     if (filterParam === "human_controlled") return { ...DEFAULT_FILTERS, humanControlled: true };
@@ -308,7 +308,7 @@ const LeadsList: React.FC = () => {
       if (!userRecord?.organization_id) return;
       const { data } = await supabase
         .from("properties")
-        .select("id, address")
+        .select("id, address, city, bedrooms, bathrooms, rent_price")
         .eq("organization_id", userRecord.organization_id)
         .order("address");
       if (data) setProperties(data);
