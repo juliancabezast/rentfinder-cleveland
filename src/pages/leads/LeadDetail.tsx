@@ -323,29 +323,22 @@ const LeadDetail: React.FC = () => {
         onTakeControl={() => setTakeoverOpen(true)}
         onDelete={async () => {
           if (!lead) return;
-          const lid = lead.id;
           try {
-            // 1. Delete RESTRICT FK tables (no cascade)
-            await supabase.from("showings").delete().eq("lead_id", lid);
-            await supabase.from("cost_records").delete().eq("lead_id", lid);
-            await supabase.from("lead_notes" as any).delete().eq("lead_id", lid);
-            await supabase.from("lead_field_changes" as any).delete().eq("lead_id", lid);
-            await supabase.from("campaign_recipients" as any).delete().eq("lead_id", lid);
-            await supabase.from("conversion_predictions" as any).delete().eq("lead_id", lid);
-            await supabase.from("email_events" as any).delete().eq("lead_id", lid);
-            await supabase.from("transcript_analyses" as any).delete().eq("lead_id", lid);
-            await supabase.from("lead_property_interests" as any).delete().eq("lead_id", lid);
-            // 2. Nullify SET NULL FK tables
-            await supabase.from("calls").update({ lead_id: null } as any).eq("lead_id", lid);
-            await supabase.from("communications").update({ lead_id: null } as any).eq("lead_id", lid);
-            await supabase.from("competitor_mentions" as any).update({ lead_id: null } as any).eq("lead_id", lid);
-            await supabase.from("agent_activity_log" as any).update({ related_lead_id: null } as any).eq("related_lead_id", lid);
-            await supabase.from("notifications").update({ related_lead_id: null } as any).eq("related_lead_id", lid);
-            await supabase.from("system_logs").update({ related_lead_id: null } as any).eq("related_lead_id", lid);
-            // 3. Now delete the lead (CASCADE handles agent_tasks, consent_log, score_history, predictions, referrals)
-            const { error } = await supabase.from("leads").delete().eq("id", lid);
-            if (error) throw error;
-            toast({ title: "Lead deleted", description: `${lead.full_name || lead.first_name || "Lead"} has been removed.` });
+            const { data, error } = await supabase.functions.invoke("delete-lead", {
+              body: { lead_id: lead.id },
+            });
+            if (error) {
+              let msg = error.message;
+              try {
+                const ctx = (error as any)?.context;
+                if (ctx && typeof ctx.json === "function") {
+                  const body = await ctx.json();
+                  if (body?.error) msg = body.error;
+                }
+              } catch {}
+              throw new Error(msg);
+            }
+            toast({ title: "Lead deleted", description: data?.message || "Lead has been removed." });
             navigate("/leads");
           } catch (err: any) {
             toast({ title: "Error", description: `Failed to delete lead: ${err.message}`, variant: "destructive" });
