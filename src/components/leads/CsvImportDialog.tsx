@@ -365,10 +365,12 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         return;
       }
 
+      // Leads with email but no phone → import as "nurturing"
+      const hasPhoneOnly = !!phoneValue;
       const lead: Record<string, unknown> & { _rowNum: number } = {
         _rowNum: rowNum,
         source: "csv_import",
-        status: "new",
+        status: hasPhoneOnly ? "new" : "nurturing",
       };
       if (phoneValue) lead.phone = phoneValue;
       if (emailValue) lead.email = emailValue;
@@ -519,7 +521,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           source: (cleanLead.source as string) || "csv_import",
           stage: "prospect",
           full_name: analyzed.name !== "—" ? analyzed.name : null,
-          phone: phone || null,
+          ...(phone ? { phone } : {}),
           ...(email ? { email } : {}),
           ...(effectivePropertyId ? { interested_property_id: effectivePropertyId } : {}),
         };
