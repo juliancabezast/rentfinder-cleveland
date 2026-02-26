@@ -83,6 +83,9 @@ export const AGENT_DISPLAY_NAMES: Record<string, string> = {
   campaign_voice: "Leasing Consultant",
   welcome_sequence: "Leasing Consultant",
   campaign_sms: "SMS Agent",
+  notification_dispatcher: "Qualification Analyst",
+  health_monitor: "Health & Cost Monitor",
+  system_logger: "Qualification Analyst",
 };
 
 // KPI definitions per agent — 3 KPIs each
@@ -162,6 +165,9 @@ const LEGACY_TO_CANONICAL: Record<string, string> = {
   no_show_follow_up: "samuel",
   post_showing: "samuel",
   cost_tracker: "zacchaeus",
+  health_monitor: "zacchaeus",
+  notification_dispatcher: "nehemiah",
+  system_logger: "nehemiah",
 };
 
 // Helper: resolve a legacy key to its canonical agent

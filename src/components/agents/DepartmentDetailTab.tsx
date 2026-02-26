@@ -37,7 +37,7 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
   const deptActivity = useMemo(
     () =>
       activityLog.filter((log) =>
-        deptAgents.some((a) => a.agent_key === log.agent_key)
+        deptAgents.some((a) => a.agent_key === resolveAgentKey(log.agent_key))
       ).slice(0, 10),
     [activityLog, deptAgents]
   );
@@ -120,7 +120,7 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
                 : 0;
             const functionalName = getAgentDisplayName(agent.agent_key, agent.biblical_name, agent.display_role);
             const recentActivity = activityLog
-              .filter((l) => l.agent_key === agent.agent_key)
+              .filter((l) => resolveAgentKey(l.agent_key) === agent.agent_key)
               .slice(0, 3);
 
             return (

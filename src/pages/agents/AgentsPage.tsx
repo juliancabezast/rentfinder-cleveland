@@ -14,6 +14,7 @@ import { ActivityLogTab } from "@/components/agents/ActivityLogTab";
 import { ScheduleTab } from "@/components/agents/ScheduleTab";
 import { DepartmentDetailTab } from "@/components/agents/DepartmentDetailTab";
 import type { Agent, AgentTask, ActivityLog, AgentStats } from "@/components/agents/types";
+import { resolveAgentKey } from "@/components/agents/constants";
 
 const AgentsPage: React.FC = () => {
   const { userRecord } = useAuth();
@@ -49,7 +50,8 @@ const AgentsPage: React.FC = () => {
       if (error) throw error;
       const counts: Record<string, number> = {};
       data?.forEach((task) => {
-        counts[task.agent_type] = (counts[task.agent_type] || 0) + 1;
+        const canonical = resolveAgentKey(task.agent_type);
+        counts[canonical] = (counts[canonical] || 0) + 1;
       });
       return counts;
     },
@@ -89,9 +91,9 @@ const AgentsPage: React.FC = () => {
         `)
         .eq("organization_id", userRecord.organization_id)
         .eq("status", "pending")
-        .gte("scheduled_for", now.toISOString())
         .lte("scheduled_for", tomorrow.toISOString())
-        .order("scheduled_for", { ascending: true });
+        .order("scheduled_for", { ascending: true })
+        .limit(100);
       if (error) throw error;
       return data as AgentTask[];
     },

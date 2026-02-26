@@ -21,7 +21,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Activity } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { AGENT_DISPLAY_NAMES } from "./constants";
+import { AGENT_DISPLAY_NAMES, resolveAgentKey } from "./constants";
 import type { Agent, ActivityLog } from "./types";
 
 interface ActivityLogTabProps {
@@ -41,7 +41,7 @@ export const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
   const filtered = useMemo(() => {
     return activityLog.filter((log) => {
       const matchesStatus = statusFilter === "all" || log.status === statusFilter;
-      const matchesAgent = agentFilter === "all" || log.agent_key === agentFilter;
+      const matchesAgent = agentFilter === "all" || resolveAgentKey(log.agent_key) === agentFilter;
       return matchesStatus && matchesAgent;
     });
   }, [activityLog, statusFilter, agentFilter]);
@@ -114,7 +114,8 @@ export const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
               </TableHeader>
               <TableBody>
                 {filtered.map((log, index) => {
-                  const agent = agents.find((a) => a.agent_key === log.agent_key);
+                  const canonicalKey = resolveAgentKey(log.agent_key);
+                  const agent = agents.find((a) => a.agent_key === canonicalKey);
                   return (
                     <TableRow
                       key={log.id}
