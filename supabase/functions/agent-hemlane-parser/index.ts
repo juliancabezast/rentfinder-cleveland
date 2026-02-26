@@ -969,18 +969,20 @@ async function upsertLead(
     }
   }
 
-  // ── Dup check 4: same property + time window (Hemlane multi-email) ──
-  // Hemlane often sends 2-3 emails for the same inquiry (name in one, phone in another).
-  // Window: 24 hours — covers individual notification (morning) + digest (night).
+  // ── Dup check 4: same property + short time window (Hemlane multi-email) ──
+  // Hemlane sends 2-3 emails for the same inquiry (name in one, phone in another).
+  // Only merge if the existing lead is INCOMPLETE (no name or placeholder name),
+  // meaning it's likely the same person's fragmented Hemlane notification.
+  // Never merge two leads that both have real names — they're different people.
   if (propertyId) {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     const { data: recentSameProperty, error: dup4Err } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
       .eq("interested_property_id", propertyId)
-      .gte("created_at", twentyFourHoursAgo)
+      .gte("created_at", tenMinAgo)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -988,8 +990,20 @@ async function upsertLead(
     if (dup4Err) console.error(`Esther: dup check 4 (property+time) query failed: ${dup4Err.message}`);
 
     if (recentSameProperty) {
-      console.log(`Esther: found recent lead for same property (24h window) → ${recentSameProperty.id} "${recentSameProperty.full_name}"`);
-      return updateExistingLead(recentSameProperty, "property+time dup");
+      // Only merge if existing lead is incomplete (no real name) or incoming has no name
+      const existingHasRealName = recentSameProperty.full_name
+        && !recentSameProperty.full_name.startsWith("Hemlane Lead")
+        && recentSameProperty.full_name.length > 2;
+      const incomingHasRealName = trimmedName && trimmedName.length > 2;
+
+      // If both have real names and they differ, these are different people
+      if (existingHasRealName && incomingHasRealName
+        && recentSameProperty.full_name!.toLowerCase() !== trimmedName!.toLowerCase()) {
+        console.log(`Esther: dup check 4 skipped — different names: "${recentSameProperty.full_name}" vs "${trimmedName}"`);
+      } else {
+        console.log(`Esther: found recent lead for same property (10min window) → ${recentSameProperty.id} "${recentSameProperty.full_name}"`);
+        return updateExistingLead(recentSameProperty, "property+time dup");
+      }
     }
   }
 
