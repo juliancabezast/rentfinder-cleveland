@@ -35,7 +35,7 @@ interface FunnelData {
   period: { from: string; to: string };
 }
 
-// Gradient from primary purple (#370d4b) to accent gold (#ffb22c)
+// Gradient from primary purple (#4F46E5) to accent gold (#ffb22c)
 const FUNNEL_COLORS = [
   "hsl(280, 73%, 17%)",  // New - deep purple
   "hsl(280, 65%, 25%)",  // Contacted

@@ -346,7 +346,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
                   <TableCell>
                     {lead.nextAgent ? (
                       <div className="text-sm">
-                        <span className="font-medium text-[#370d4b]">{lead.nextAgent}</span>
+                        <span className="font-medium text-[#4F46E5]">{lead.nextAgent}</span>
                         <span className="text-muted-foreground"> · {lead.nextAction}</span>
                         {lead.nextScheduled && (
                           <div className="text-xs text-muted-foreground">

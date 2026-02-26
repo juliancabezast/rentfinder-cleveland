@@ -468,7 +468,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
                             "flex items-center gap-1.5 text-xs font-semibold transition-colors",
                             allExcluded
                               ? "text-muted-foreground"
-                              : "text-[#370d4b]"
+                              : "text-[#4F46E5]"
                           )}
                         >
                           <MapPin className="h-3 w-3" />
@@ -548,7 +548,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           <Button
             onClick={handleSubmit}
             disabled={submitting || !selectedDate || previewSlots.length === 0}
-            className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+            className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
           >
             {submitting ? (
               <>

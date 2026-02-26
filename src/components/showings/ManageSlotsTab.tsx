@@ -156,7 +156,7 @@ export const ManageSlotsTab: React.FC = () => {
       <div className="flex flex-wrap items-center gap-3">
         <Button
           onClick={() => { setEditData(null); setDialogOpen(true); }}
-          className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+          className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
         >
           <Plus className="h-4 w-4 mr-1.5" />
           Enable Slots
@@ -212,11 +212,11 @@ export const ManageSlotsTab: React.FC = () => {
                   <div className="flex items-start justify-between gap-3">
                     {/* Date info */}
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-[#370d4b]/10 flex flex-col items-center justify-center shrink-0">
-                        <span className="text-[10px] font-semibold text-[#370d4b] uppercase leading-none">
+                      <div className="h-12 w-12 rounded-lg bg-[#4F46E5]/10 flex flex-col items-center justify-center shrink-0">
+                        <span className="text-[10px] font-semibold text-[#4F46E5] uppercase leading-none">
                           {format(dateObj, "MMM")}
                         </span>
-                        <span className="text-lg font-bold text-[#370d4b] leading-none">
+                        <span className="text-lg font-bold text-[#4F46E5] leading-none">
                           {format(dateObj, "d")}
                         </span>
                       </div>
@@ -239,7 +239,7 @@ export const ManageSlotsTab: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-muted-foreground hover:text-[#370d4b]"
+                          className="text-muted-foreground hover:text-[#4F46E5]"
                           onClick={() => {
                             setEditData({
                               date: group.date,

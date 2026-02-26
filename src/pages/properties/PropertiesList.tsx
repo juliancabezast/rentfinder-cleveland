@@ -167,7 +167,7 @@ const PropertiesList: React.FC = () => {
             <button
               className={`h-9 w-9 flex items-center justify-center transition-colors ${
                 viewMode === "grid"
-                  ? "bg-[#370d4b] text-white"
+                  ? "bg-[#4F46E5] text-white"
                   : "text-muted-foreground hover:bg-muted"
               }`}
               onClick={() => setViewMode("grid")}
@@ -178,7 +178,7 @@ const PropertiesList: React.FC = () => {
             <button
               className={`h-9 w-9 flex items-center justify-center transition-colors ${
                 viewMode === "table"
-                  ? "bg-[#370d4b] text-white"
+                  ? "bg-[#4F46E5] text-white"
                   : "text-muted-foreground hover:bg-muted"
               }`}
               onClick={() => setViewMode("table")}
@@ -201,7 +201,7 @@ const PropertiesList: React.FC = () => {
               <Button
                 variant="outline"
                 onClick={() => setZillowOpen(true)}
-                className="min-h-[44px] border-[#370d4b]/30 text-[#370d4b] hover:bg-[#370d4b]/5"
+                className="min-h-[44px] border-[#4F46E5]/30 text-[#4F46E5] hover:bg-[#4F46E5]/5"
               >
                 <Globe className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Import Zillow</span>

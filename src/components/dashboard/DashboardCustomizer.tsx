@@ -15,7 +15,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   BarChart3,
-  Mic,
   Zap,
   Calendar,
   DollarSign,
@@ -43,15 +42,6 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     defaultOrder: 1,
     minRole: "editor",
     span: "full",
-  },
-  {
-    id: "ai_agent_performance",
-    label: "AI Agent Performance",
-    icon: <Mic className="h-4 w-4" />,
-    defaultVisible: true,
-    defaultOrder: 3,
-    minRole: "admin",
-    span: "half",
   },
   {
     id: "priority_leads",
@@ -82,6 +72,19 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
   },
 ];
 
+export const STAT_CARD_DEFS = [
+  { id: "total_doors", label: "Total Doors" },
+  { id: "leads", label: "Leads" },
+  { id: "hot_leads", label: "Hot Leads" },
+  { id: "showings", label: "Showings" },
+  { id: "applicants", label: "Applicants" },
+  { id: "sms_sent", label: "SMS Sent" },
+  { id: "emails_sent", label: "Emails Sent" },
+  { id: "emails_parsed", label: "Emails Parsed" },
+  { id: "calls_made", label: "Calls Made" },
+  { id: "agent_queue", label: "Agent Queue" },
+];
+
 export interface WidgetPreference {
   id: string;
   visible: boolean;
@@ -91,6 +94,7 @@ export interface WidgetPreference {
 export interface DashboardPrefs {
   widgets: WidgetPreference[];
   layout: "comfortable" | "compact";
+  statCards: Record<string, boolean>;
 }
 
 export const getDefaultPrefs = (): DashboardPrefs => ({
@@ -100,6 +104,7 @@ export const getDefaultPrefs = (): DashboardPrefs => ({
     order: w.defaultOrder,
   })),
   layout: "comfortable",
+  statCards: Object.fromEntries(STAT_CARD_DEFS.map((sc) => [sc.id, true])),
 });
 
 export const loadDashboardPrefs = (userId: string): DashboardPrefs => {
@@ -107,7 +112,13 @@ export const loadDashboardPrefs = (userId: string): DashboardPrefs => {
   const saved = localStorage.getItem(key);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      const defaults = getDefaultPrefs();
+      return {
+        ...defaults,
+        ...parsed,
+        statCards: { ...defaults.statCards, ...(parsed.statCards || {}) },
+      };
     } catch {
       return getDefaultPrefs();
     }
@@ -140,6 +151,13 @@ export const DashboardCustomizer: React.FC<DashboardCustomizerProps> = ({
       w.id === widgetId ? { ...w, visible: !w.visible } : w
     );
     onPrefsChange({ ...prefs, widgets: updatedWidgets });
+  };
+
+  const toggleStatCard = (cardId: string) => {
+    onPrefsChange({
+      ...prefs,
+      statCards: { ...prefs.statCards, [cardId]: !prefs.statCards[cardId] },
+    });
   };
 
   const setLayout = (layout: "comfortable" | "compact") => {
@@ -182,6 +200,29 @@ export const DashboardCustomizer: React.FC<DashboardCustomizerProps> = ({
                     <Switch
                       checked={isWidgetVisible(widget.id)}
                       onCheckedChange={() => toggleWidget(widget.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Individual Stat Card Toggles */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Stat cards:
+              </h3>
+              <div className="space-y-3">
+                {STAT_CARD_DEFS.map((card) => (
+                  <div
+                    key={card.id}
+                    className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <span className="text-sm font-medium">{card.label}</span>
+                    <Switch
+                      checked={prefs.statCards[card.id] ?? true}
+                      onCheckedChange={() => toggleStatCard(card.id)}
                     />
                   </div>
                 ))}

@@ -491,10 +491,10 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Zillow Re-sync (edit mode only) */}
         {property?.id && (
-          <Card className="border-[#370d4b]/20">
+          <Card className="border-[#4F46E5]/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Globe className="h-4 w-4 text-[#370d4b]" />
+                <Globe className="h-4 w-4 text-[#4F46E5]" />
                 Sync from Zillow
               </CardTitle>
             </CardHeader>
@@ -524,9 +524,9 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
 
               {/* Zillow variance popup */}
               {zillowChanges && Object.keys(zillowChanges).length > 0 && (
-                <div className="rounded-lg border border-[#370d4b]/30 bg-[#370d4b]/5 p-4 space-y-3">
+                <div className="rounded-lg border border-[#4F46E5]/30 bg-[#4F46E5]/5 p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[#370d4b] flex items-center gap-2">
+                    <span className="text-sm font-semibold text-[#4F46E5] flex items-center gap-2">
                       <AlertCircle className="h-4 w-4" />
                       {Object.keys(zillowChanges).length} difference{Object.keys(zillowChanges).length > 1 ? 's' : ''} found
                     </span>
@@ -562,7 +562,7 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
                           <div className="flex items-center gap-2 text-sm min-w-0">
                             <span className="text-muted-foreground line-through truncate">{truncCurrent}</span>
                             <span className="text-muted-foreground">→</span>
-                            <span className="text-[#370d4b] font-medium truncate">{truncIncoming}</span>
+                            <span className="text-[#4F46E5] font-medium truncate">{truncIncoming}</span>
                           </div>
                         </div>
                       );
@@ -582,7 +582,7 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
                       type="button"
                       size="sm"
                       onClick={applyZillowChanges}
-                      className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+                      className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
                     >
                       <Check className="h-4 w-4 mr-1" />
                       Apply Selected
@@ -951,7 +951,7 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
                       size="sm"
                       onClick={generateAiDescription}
                       disabled={generatingDesc}
-                      className="h-7 px-2 text-xs text-[#370d4b] hover:bg-[#370d4b]/10"
+                      className="h-7 px-2 text-xs text-[#4F46E5] hover:bg-[#4F46E5]/10"
                     >
                       {generatingDesc ? (
                         <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Generating...</>
@@ -985,7 +985,7 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
                       size="sm"
                       onClick={generateAiNotes}
                       disabled={generatingNotes}
-                      className="h-7 px-2 text-xs text-[#370d4b] hover:bg-[#370d4b]/10"
+                      className="h-7 px-2 text-xs text-[#4F46E5] hover:bg-[#4F46E5]/10"
                     >
                       {generatingNotes ? (
                         <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Generating...</>
@@ -1046,7 +1046,7 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
                 size="sm"
                 onClick={generateAiPetPolicy}
                 disabled={generatingPetPolicy}
-                className="h-7 px-2 text-xs text-[#370d4b] hover:bg-[#370d4b]/10"
+                className="h-7 px-2 text-xs text-[#4F46E5] hover:bg-[#4F46E5]/10"
               >
                 {generatingPetPolicy ? (
                   <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Generating...</>

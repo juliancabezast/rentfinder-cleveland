@@ -72,7 +72,10 @@
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_05357b6cf938526921753a46354cbe8fffd978d3 npx supabase:*)",
       "WebFetch(domain:api.telegram.org)",
       "WebFetch(domain:app.doorloop.com)",
-      "WebFetch(domain:api.doorloop.com)"
+      "WebFetch(domain:api.doorloop.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

@@ -47,7 +47,7 @@ AI-powered lead management SaaS for property management. Automates the rental le
 - **Edge Functions**: Deno (not Node.js) — 24 local functions in `supabase/functions/`, ~20 more deployed via Lovable
 - **Auth**: Supabase Auth — roles: super_admin, admin, editor, viewer, leasing_agent
 - **Font**: Montserrat
-- **Design colors**: Primary #370d4b (purple), Accent #ffb22c (gold), Background #f4f1f1
+- **Design colors**: Primary #4F46E5 (indigo), Accent #ffb22c (gold), Background #f3f4f6 (cool gray). iOS 26 glass aesthetic.
 
 ## Architecture
 

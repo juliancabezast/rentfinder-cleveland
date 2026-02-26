@@ -365,7 +365,7 @@ Return ONLY the description text, no quotes or labels.`,
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-[#370d4b]" />
+            <Globe className="h-5 w-5 text-[#4F46E5]" />
             Import from Zillow
           </DialogTitle>
           <DialogDescription>
@@ -416,7 +416,7 @@ Return ONLY the description text, no quotes or labels.`,
               <Button
                 onClick={handleFetch}
                 disabled={!url.trim() || loading}
-                className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+                className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
               >
                 {loading ? (
                   <>
@@ -460,7 +460,7 @@ Return ONLY the description text, no quotes or labels.`,
             <Card>
               <CardContent className="pt-4 space-y-2">
                 <div className="flex items-center gap-2 text-lg font-semibold">
-                  <Home className="h-5 w-5 text-[#370d4b]" />
+                  <Home className="h-5 w-5 text-[#4F46E5]" />
                   {property.address}
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -487,15 +487,15 @@ Return ONLY the description text, no quotes or labels.`,
                 onChange={(e) => handleScreenshotUpload(e.target.files)}
               />
               {aiExtracting ? (
-                <div className="flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-[#370d4b]/30 bg-[#370d4b]/5">
-                  <Loader2 className="h-5 w-5 animate-spin text-[#370d4b]" />
-                  <span className="text-sm text-[#370d4b] font-medium">AI analyzing screenshots...</span>
+                <div className="flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-[#4F46E5]/30 bg-[#4F46E5]/5">
+                  <Loader2 className="h-5 w-5 animate-spin text-[#4F46E5]" />
+                  <span className="text-sm text-[#4F46E5] font-medium">AI analyzing screenshots...</span>
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-[#370d4b]/50 hover:bg-[#370d4b]/5 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-[#4F46E5]/50 hover:bg-[#4F46E5]/5 transition-colors cursor-pointer"
                 >
                   <ImageIcon className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
@@ -507,10 +507,10 @@ Return ONLY the description text, no quotes or labels.`,
 
             {/* AI extraction results popup */}
             {aiResults && Object.keys(aiResults).length > 0 && (
-              <Card className="border-[#370d4b]/30 bg-[#370d4b]/5">
+              <Card className="border-[#4F46E5]/30 bg-[#4F46E5]/5">
                 <CardContent className="pt-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[#370d4b] flex items-center gap-2">
+                    <span className="text-sm font-semibold text-[#4F46E5] flex items-center gap-2">
                       <CheckCircle className="h-4 w-4" />
                       AI found these details
                     </span>
@@ -564,7 +564,7 @@ Return ONLY the description text, no quotes or labels.`,
                     <Button
                       size="sm"
                       onClick={applyAiResults}
-                      className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+                      className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
                     >
                       <Check className="h-4 w-4 mr-1" />
                       Apply Selected
@@ -734,7 +734,7 @@ Return ONLY the description text, no quotes or labels.`,
                   size="sm"
                   onClick={generateAiDescription}
                   disabled={generatingDesc}
-                  className="h-7 px-2 text-xs text-[#370d4b] hover:bg-[#370d4b]/10"
+                  className="h-7 px-2 text-xs text-[#4F46E5] hover:bg-[#4F46E5]/10"
                 >
                   {generatingDesc ? (
                     <>
@@ -789,7 +789,7 @@ Return ONLY the description text, no quotes or labels.`,
         {/* ── Step 3: Saving ───────────────────────────────────────── */}
         {step === "saving" && (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-[#370d4b]" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#4F46E5]" />
             <p className="text-muted-foreground">Saving property...</p>
           </div>
         )}

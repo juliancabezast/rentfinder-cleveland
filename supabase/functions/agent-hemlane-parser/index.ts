@@ -1404,6 +1404,17 @@ serve(async (req: Request) => {
     }
 
     // ── 4. Detect email type and parse ──────────────────────────────
+
+    // Skip non-lead emails from Hemlane (CSV exports, system notifications)
+    const isNonLeadEmail = /Prospective Tenant Download|Your Hemlane .* Download|Payment Received|Maintenance Request/i.test(subject);
+    if (isNonLeadEmail) {
+      console.log(`Esther: skipping non-lead email — "${subject}"`);
+      return new Response(
+        JSON.stringify({ message: "Skipped — not a lead email", subject }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const isDigest = /Property Listings Update|Daily Leads Update/i.test(subject);
 
     if (isDigest) {

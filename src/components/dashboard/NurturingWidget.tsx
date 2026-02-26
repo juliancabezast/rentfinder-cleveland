@@ -162,7 +162,7 @@ export const NurturingWidget: React.FC<{ loading?: boolean }> = ({ loading: pare
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#370d4b]" />
+            <Sparkles className="h-5 w-5 text-[#4F46E5]" />
             Nurturing Leads
           </CardTitle>
           {total > 0 && (

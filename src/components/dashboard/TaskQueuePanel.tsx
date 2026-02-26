@@ -16,6 +16,10 @@ import {
   ChevronRight,
   AlertTriangle,
   Clock,
+  Calendar,
+  Send,
+  RotateCcw,
+  UserCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,6 +75,21 @@ const ACTION_LABELS: Record<string, string> = {
   notify: "send notification",
 };
 
+// More descriptive labels based on agent_type (overrides action_type labels)
+const AGENT_TYPE_LABELS: Record<string, string> = {
+  welcome_sequence: "send welcome email",
+  recapture: "recapture lead",
+  campaign: "run outreach campaign",
+  campaign_voice: "make outbound call",
+  campaign_sms: "send campaign SMS",
+  showing_confirmation: "confirm showing",
+  no_show_followup: "follow up no-show",
+  no_show_follow_up: "follow up no-show",
+  post_showing: "do post-showing follow-up",
+  sms_inbound: "process inbound SMS",
+  doorloop_pull: "sync with DoorLoop",
+};
+
 const ACTION_ICONS: Record<string, React.ElementType> = {
   call: Phone,
   sms: MessageSquare,
@@ -78,6 +97,21 @@ const ACTION_ICONS: Record<string, React.ElementType> = {
   voice: Phone,
   notify: Mail,
   sequence: Zap,
+};
+
+// Smarter icon based on agent_type
+const AGENT_TYPE_ICONS: Record<string, React.ElementType> = {
+  welcome_sequence: Send,
+  campaign_voice: Phone,
+  campaign_sms: MessageSquare,
+  campaign: Zap,
+  sms_inbound: MessageSquare,
+  showing_confirmation: Calendar,
+  no_show_followup: RotateCcw,
+  no_show_follow_up: RotateCcw,
+  post_showing: UserCheck,
+  recapture: Phone,
+  doorloop_pull: Zap,
 };
 
 // ── Component ────────────────────────────────────────────────────────
@@ -149,7 +183,7 @@ export const TaskQueuePanel = () => {
   // ── Render ───────────────────────────────────────────────────────────
 
   return (
-    <Card variant="glass" className="h-full border-l-2 border-l-emerald-400/50">
+    <Card variant="glass" className="h-full flex flex-col border-l-2 border-l-emerald-400/50">
       {/* Header */}
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -187,7 +221,7 @@ export const TaskQueuePanel = () => {
       </CardHeader>
 
       {/* Content */}
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -209,14 +243,14 @@ export const TaskQueuePanel = () => {
             description="No pending tasks — agents are all caught up"
           />
         ) : (
-          <ScrollArea className="h-[calc(50vh-140px)] 2xl:h-[calc(100vh-280px)] min-h-[200px]">
+          <ScrollArea className="flex-1">
             <div className="space-y-2">
               {tasks.map((task, index) => {
                 const isOverdue = isPast(new Date(task.scheduled_for)) && task.status === "pending";
                 const isInProgress = task.status === "in_progress";
                 const agentName = getAgentName(task.agent_type);
-                const actionLabel = ACTION_LABELS[task.action_type] || task.action_type.replace(/_/g, " ");
-                const ActionIcon = ACTION_ICONS[task.action_type] || Zap;
+                const actionLabel = AGENT_TYPE_LABELS[task.agent_type] || ACTION_LABELS[task.action_type] || task.action_type.replace(/_/g, " ");
+                const ActionIcon = AGENT_TYPE_ICONS[task.agent_type] || ACTION_ICONS[task.action_type] || Zap;
                 const leadName = getLeadName(task.leads);
                 const scheduledTime = new Date(task.scheduled_for);
 

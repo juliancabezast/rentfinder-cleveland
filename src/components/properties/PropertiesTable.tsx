@@ -126,7 +126,7 @@ export const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, al
               >
                 <TableCell>
                   <button
-                    className="text-sm font-medium text-left hover:text-[#370d4b] hover:underline cursor-pointer"
+                    className="text-sm font-medium text-left hover:text-[#4F46E5] hover:underline cursor-pointer"
                     onClick={() => navigate(`/properties/${property.id}`)}
                   >
                     {property.address}
@@ -169,7 +169,7 @@ export const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, al
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs text-muted-foreground hover:text-[#370d4b]"
+                    className="h-7 text-xs text-muted-foreground hover:text-[#4F46E5]"
                     onClick={() => setReassignProperty(property)}
                     title="Reassign leads to another property"
                   >

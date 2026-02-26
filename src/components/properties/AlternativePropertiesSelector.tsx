@@ -104,7 +104,7 @@ export const AlternativePropertiesSelector: React.FC<AlternativePropertiesSelect
             className={cn(
               "w-full justify-between",
               compact && "h-8 text-xs",
-              compact && selectedIds.length > 0 && "border-[#370d4b]/30"
+              compact && selectedIds.length > 0 && "border-[#4F46E5]/30"
             )}
             disabled={isLoading}
           >

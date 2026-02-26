@@ -323,7 +323,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
         {mergeableCount > 1 && !mergeAllProgress && (
           <Button
             onClick={handleMergeAll}
-            className="bg-[#370d4b] hover:bg-[#370d4b]/90"
+            className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
           >
             <Merge className="h-4 w-4 mr-1.5" />
             Merge All ({mergeableCount})
@@ -332,10 +332,10 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
       </div>
 
       {mergeAllProgress && (
-        <Card className="border-[#370d4b]/30">
+        <Card className="border-[#4F46E5]/30">
           <CardContent className="py-4">
             <div className="flex items-center gap-3 mb-2">
-              <Loader2 className="h-4 w-4 animate-spin text-[#370d4b]" />
+              <Loader2 className="h-4 w-4 animate-spin text-[#4F46E5]" />
               <span className="text-sm font-medium">
                 Merging {mergeAllProgress.current} of {mergeAllProgress.total}...
               </span>

@@ -335,7 +335,7 @@ export const RealTimeAgentPanel = () => {
                         isNew
                           ? "bg-emerald-100 text-emerald-600"
                           : isUpdated
-                            ? "bg-[#370d4b]/10 text-[#370d4b]"
+                            ? "bg-[#4F46E5]/10 text-[#4F46E5]"
                             : "bg-blue-100 text-blue-600"
                       )}>
                         <UserPlus className="h-3.5 w-3.5" />
@@ -349,7 +349,7 @@ export const RealTimeAgentPanel = () => {
                         isNew
                           ? "bg-emerald-500 hover:bg-emerald-500"
                           : isUpdated
-                            ? "bg-[#370d4b] hover:bg-[#370d4b]"
+                            ? "bg-[#4F46E5] hover:bg-[#4F46E5]"
                             : "bg-blue-500 hover:bg-blue-500"
                       )}>
                         {isNew ? "NEW LEAD" : isUpdated ? "UPDATED" : "ACTIVITY"}
@@ -360,7 +360,7 @@ export const RealTimeAgentPanel = () => {
                     <p className="text-sm leading-snug ml-9">
                       <span className={cn(
                         "font-semibold",
-                        isUpdated ? "text-[#370d4b]" : "text-teal-600"
+                        isUpdated ? "text-[#4F46E5]" : "text-teal-600"
                       )}>
                         {sourceInfo.agent}
                       </span>

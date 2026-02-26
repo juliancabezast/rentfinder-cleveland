@@ -489,7 +489,7 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
             <Button
               onClick={() => setConfirmOpen(true)}
               disabled={loading}
-              className="bg-[#370d4b] hover:bg-[#370d4b]/90"
+              className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
             >
               <Merge className="h-4 w-4 mr-1.5" />
               Merge Leads
@@ -522,7 +522,7 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
             <AlertDialogAction
               onClick={handleMerge}
               disabled={merging}
-              className="bg-[#370d4b] hover:bg-[#370d4b]/90"
+              className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
             >
               {merging ? (
                 <>

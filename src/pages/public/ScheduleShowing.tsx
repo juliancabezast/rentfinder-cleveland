@@ -67,7 +67,7 @@ const PropertySelectCard: React.FC<{
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#370d4b] hover:bg-[#370d4b]/5 transition-all text-left"
+      className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-all text-left"
     >
       <div className="h-16 w-24 rounded-lg overflow-hidden shrink-0 bg-muted">
         {photoUrl ? (
@@ -93,7 +93,7 @@ const PropertySelectCard: React.FC<{
           <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
             <Bath className="h-2.5 w-2.5" /> {property.bathrooms}
           </Badge>
-          <Badge className="bg-[#370d4b] text-white text-[10px] h-5">
+          <Badge className="bg-[#4F46E5] text-white text-[10px] h-5">
             ${property.rent_price?.toLocaleString()}/mo
           </Badge>
           {property.section_8_accepted && (
@@ -431,7 +431,7 @@ const ScheduleShowing: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#f4f1f1]">
       {/* Header bar */}
-      <div className="bg-[#370d4b] text-white py-3 px-4">
+      <div className="bg-[#4F46E5] text-white py-3 px-4">
         <div className="max-w-[640px] mx-auto flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-[#ffb22c]" />
           <span className="font-semibold text-sm tracking-wide" style={{ fontFamily: "Montserrat, sans-serif" }}>
@@ -447,7 +447,7 @@ const ScheduleShowing: React.FC = () => {
           <Card>
             <CardContent className="p-4 space-y-4">
               <div className="flex items-center gap-2 mb-1">
-                <Home className="h-5 w-5 text-[#370d4b]" />
+                <Home className="h-5 w-5 text-[#4F46E5]" />
                 <h3 className="font-semibold text-lg">Select a Property</h3>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -508,7 +508,7 @@ const ScheduleShowing: React.FC = () => {
               )}
               <CardContent className="p-4 space-y-2">
                 <h2 className="text-lg font-bold flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-[#370d4b] shrink-0" />
+                  <MapPin className="h-4 w-4 text-[#4F46E5] shrink-0" />
                   {property.address}
                   {property.unit_number && `, Unit ${property.unit_number}`}
                 </h2>
@@ -522,7 +522,7 @@ const ScheduleShowing: React.FC = () => {
                   <Badge variant="outline" className="gap-1">
                     <Bath className="h-3 w-3" /> {property.bathrooms} bath
                   </Badge>
-                  <Badge className="bg-[#370d4b] text-white gap-1">
+                  <Badge className="bg-[#4F46E5] text-white gap-1">
                     <DollarSign className="h-3 w-3" /> ${property.rent_price?.toLocaleString()}/mo
                   </Badge>
                   {property.square_feet && (
@@ -583,7 +583,7 @@ const ScheduleShowing: React.FC = () => {
                     Want to get ahead? Apply now to speed up the process!
                   </p>
                   <Button
-                    className="w-full h-12 bg-[#ffb22c] hover:bg-[#ffb22c]/90 text-[#370d4b] font-semibold text-base"
+                    className="w-full h-12 bg-[#ffb22c] hover:bg-[#ffb22c]/90 text-[#4F46E5] font-semibold text-base"
                     onClick={handleApplyNow}
                     disabled={applyingLoading || !bookedLeadId}
                   >
@@ -628,7 +628,7 @@ const ScheduleShowing: React.FC = () => {
             <Card>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="h-6 w-6 rounded-full bg-[#370d4b] text-white flex items-center justify-center text-xs font-bold">
+                  <div className="h-6 w-6 rounded-full bg-[#4F46E5] text-white flex items-center justify-center text-xs font-bold">
                     1
                   </div>
                   <h3 className="font-semibold">Pick a Date</h3>
@@ -675,7 +675,7 @@ const ScheduleShowing: React.FC = () => {
               <Card>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="h-6 w-6 rounded-full bg-[#370d4b] text-white flex items-center justify-center text-xs font-bold">
+                    <div className="h-6 w-6 rounded-full bg-[#4F46E5] text-white flex items-center justify-center text-xs font-bold">
                       2
                     </div>
                     <h3 className="font-semibold">
@@ -713,8 +713,8 @@ const ScheduleShowing: React.FC = () => {
                           variant={selectedTime === slot.slot_time ? "default" : "outline"}
                           className={`h-11 rounded-lg text-sm font-medium transition-all ${
                             selectedTime === slot.slot_time
-                              ? "bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
-                              : "hover:border-[#370d4b] hover:text-[#370d4b]"
+                              ? "bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
+                              : "hover:border-[#4F46E5] hover:text-[#4F46E5]"
                           }`}
                           onClick={() => setSelectedTime(slot.slot_time)}
                         >
@@ -733,7 +733,7 @@ const ScheduleShowing: React.FC = () => {
               <Card>
                 <CardContent className="p-4 space-y-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="h-6 w-6 rounded-full bg-[#370d4b] text-white flex items-center justify-center text-xs font-bold">
+                    <div className="h-6 w-6 rounded-full bg-[#4F46E5] text-white flex items-center justify-center text-xs font-bold">
                       3
                     </div>
                     <h3 className="font-semibold">Your Information</h3>
@@ -815,7 +815,7 @@ const ScheduleShowing: React.FC = () => {
                     )}
 
                     <Button
-                      className="w-full h-12 bg-[#370d4b] hover:bg-[#370d4b]/90 text-white font-semibold text-base"
+                      className="w-full h-12 bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white font-semibold text-base"
                       onClick={handleBook}
                       disabled={submitting || !fullName.trim() || !phone.trim()}
                     >

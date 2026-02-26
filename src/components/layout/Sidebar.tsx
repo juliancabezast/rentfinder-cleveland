@@ -16,7 +16,6 @@ import {
   ChevronRight,
   MapPin,
   Target,
-  FileText,
   Brain,
   Bot,
   Sparkles,
@@ -25,7 +24,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 
 interface NavItem {
   title: string;
@@ -67,7 +65,6 @@ const analyticsNavItems: NavItem[] = [
 const systemNavItems: NavItem[] = [
   { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
-  { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
 ];
 
 // Knowledge Hub — pinned at bottom
@@ -104,13 +101,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
       to={item.href}
       end={item.end}
       className={cn(
-        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
-        'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground',
+        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-semibold transition-all duration-200',
+        'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
         collapsed && 'justify-center px-2'
       )}
-      activeClassName="bg-white/15 text-sidebar-foreground font-semibold hover:!bg-white/20"
+      activeClassName="!bg-indigo-50 !text-indigo-600 !font-bold"
     >
-      <item.icon className="h-5 w-5 shrink-0" />
+      <item.icon className="h-[18px] w-[18px] shrink-0" />
       {!collapsed && <span>{item.title}</span>}
     </NavLink>
   );
@@ -120,9 +117,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
 
     return (
       <>
-        {showSeparator && <Separator className="my-3 bg-sidebar-border" />}
+        {showSeparator && <div className="my-3 mx-3 h-px bg-slate-100" />}
         {!collapsed && (
-          <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+          <p className="px-3 py-1.5 text-[12px] font-bold text-slate-500 uppercase tracking-[0.08em]">
             {label}
           </p>
         )}
@@ -135,12 +132,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
     <aside
       aria-label="Main navigation"
       className={cn(
-        'hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 border-r border-sidebar-border z-40',
+        'hidden lg:flex flex-col fixed left-0 top-0 h-screen transition-all duration-300 z-40',
+        'bg-white/80 backdrop-blur-xl border-r border-slate-200/60',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Organization Logo/Name */}
-      <header className="h-16 flex items-center px-4 border-b border-sidebar-border flex-shrink-0">
+      <header className="h-16 flex items-center px-4 border-b border-slate-100 flex-shrink-0">
         {organization?.logo_url ? (
           <img
             src={organization.logo_url}
@@ -149,11 +147,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
           />
         ) : (
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0" aria-hidden="true">
-              <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-sm" aria-hidden="true">
+              <Building2 className="h-4 w-4 text-white" />
             </div>
             {!collapsed && (
-              <span className="font-semibold text-sm truncate">
+              <span className="font-semibold text-sm text-slate-900 truncate">
                 {organization?.name || 'Rent Finder'}
               </span>
             )}
@@ -163,10 +161,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
 
       {/* Navigation - Scrollable */}
       <ScrollArea className="flex-1 py-4">
-        <nav aria-label="Primary" className="px-2 space-y-1">
+        <nav aria-label="Primary" className="px-2 space-y-0.5">
           {/* PIPELINE Section */}
           {!collapsed && (
-            <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+            <p className="px-3 py-1.5 text-[12px] font-bold text-slate-500 uppercase tracking-[0.08em]">
               Pipeline
             </p>
           )}
@@ -187,10 +185,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
       </ScrollArea>
 
       {/* Knowledge Hub + Collapse Button - Fixed at bottom */}
-      <div className="flex-shrink-0 border-t border-sidebar-border">
+      <div className="flex-shrink-0 border-t border-slate-100">
         {showKnowledgeHub && (
           <div className="px-2 pt-3">
-            {renderNavItem(knowledgeHubItem)}
+            <NavLink
+              to={knowledgeHubItem.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-semibold transition-all duration-200',
+                'bg-indigo-50 text-indigo-600 hover:bg-indigo-100',
+                collapsed && 'justify-center px-2'
+              )}
+              activeClassName="!bg-indigo-100 !text-indigo-700 !font-bold"
+            >
+              <span className="relative flex shrink-0">
+                <knowledgeHubItem.icon className="h-[18px] w-[18px]" />
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-indigo-500 animate-ping opacity-75" />
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-indigo-500" />
+              </span>
+              {!collapsed && <span>{knowledgeHubItem.title}</span>}
+            </NavLink>
           </div>
         )}
         {/* Collapse Button */}
@@ -200,7 +213,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             size="sm"
             onClick={() => onCollapse(!collapsed)}
             className={cn(
-              'w-full text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              'w-full text-slate-400 hover:bg-slate-50 hover:text-slate-600',
               collapsed && 'px-2'
             )}
           >

@@ -1,7 +1,7 @@
 // Email template helper functions for notification emails
 // Brand colors matching the app design system
 const BRAND = {
-  primary: "#370d4b",
+  primary: "#4F46E5",
   accent: "#ffb22c",
   background: "#f4f1f1",
   textDark: "#1a1a1a",

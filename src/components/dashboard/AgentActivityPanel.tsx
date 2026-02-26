@@ -123,7 +123,7 @@ export const AgentActivityPanel = () => {
   // ── Render ───────────────────────────────────────────────────────────
 
   return (
-    <Card variant="glass" className="h-full border-l-2 border-l-purple-400/50">
+    <Card variant="glass" className="h-full flex flex-col border-l-2 border-l-purple-400/50">
       {/* Header */}
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -156,7 +156,7 @@ export const AgentActivityPanel = () => {
       </CardHeader>
 
       {/* Content */}
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -177,7 +177,7 @@ export const AgentActivityPanel = () => {
             description="Agent actions will appear here as they execute"
           />
         ) : (
-          <ScrollArea className="h-[calc(100vh-280px)] min-h-[200px]">
+          <ScrollArea className="flex-1">
             <div className="space-y-2">
               {entries.map((entry, index) => {
                 const style = getStatusStyle(entry.status);

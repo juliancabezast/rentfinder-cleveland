@@ -736,7 +736,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 <html>
 <body style="margin:0;padding:0;background-color:#f4f1f1;font-family:'Helvetica Neue',Arial,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:24px;">
-    <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+    <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
       <h1 style="margin:0;color:#ffb22c;font-size:20px;">Rent Finder Cleveland</h1>
     </div>
     <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
@@ -825,13 +825,13 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           <div
             className={cn(
               "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors",
-              step >= s ? "bg-[#370d4b] text-white" : "bg-[#e5e7eb] text-[#6b7280]"
+              step >= s ? "bg-[#4F46E5] text-white" : "bg-[#e5e7eb] text-[#6b7280]"
             )}
           >
             {step > s ? <Check className="h-4 w-4" /> : s}
           </div>
           {idx < 1 && (
-            <div className={cn("w-12 h-0.5 transition-colors", step > s ? "bg-[#370d4b]" : "bg-[#e5e7eb]")} />
+            <div className={cn("w-12 h-0.5 transition-colors", step > s ? "bg-[#4F46E5]" : "bg-[#e5e7eb]")} />
           )}
         </React.Fragment>
       ))}
@@ -860,7 +860,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           {step === 1 && (
             <div className="space-y-4">
               <div className="rounded-lg bg-[#f4f1f1] p-4 text-sm space-y-3">
-                <p className="font-medium text-[#370d4b]">Supported formats:</p>
+                <p className="font-medium text-[#4F46E5]">Supported formats:</p>
                 <div className="flex flex-wrap gap-2">
                   {[".csv", ".tsv", ".xlsx", ".xls"].map((ext) => (
                     <span key={ext} className="px-2 py-1 bg-white border border-[#e5e7eb] rounded text-xs font-mono">
@@ -871,7 +871,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 <p className="text-muted-foreground">
                   Upload your file — columns, property, and duplicates are detected automatically.
                 </p>
-                <Button variant="link" size="sm" className="p-0 h-auto text-[#370d4b]" onClick={downloadTemplate}>
+                <Button variant="link" size="sm" className="p-0 h-auto text-[#4F46E5]" onClick={downloadTemplate}>
                   <Download className="h-3 w-3 mr-1" />
                   Download template (.xlsx)
                 </Button>
@@ -891,7 +891,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
               </div>
 
               {analyzing && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#370d4b]/5 text-[#370d4b] text-sm">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#4F46E5]/5 text-[#4F46E5] text-sm">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Analyzing file...</span>
                 </div>
@@ -934,7 +934,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                     No property detected
                   </span>
                 )}
-                <span className="px-2 py-1 bg-[#370d4b]/10 text-[#370d4b] rounded font-medium">
+                <span className="px-2 py-1 bg-[#4F46E5]/10 text-[#4F46E5] rounded font-medium">
                   Stage: Prospect
                 </span>
                 {preImportAnalysis.newLeads.length > 0 && (
@@ -962,7 +962,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                     className={cn(
                       "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                       reviewTab === "import"
-                        ? "border-[#370d4b] text-[#370d4b]"
+                        ? "border-[#4F46E5] text-[#4F46E5]"
                         : "border-transparent text-muted-foreground hover:text-foreground"
                     )}
                   >
@@ -1078,7 +1078,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                     (importResult.imported > 0 || importResult.updated > 0) ? "text-green-600" : "text-amber-600"
                   )} />
                 </div>
-                <h3 className="text-lg font-semibold text-[#370d4b]">Import Complete!</h3>
+                <h3 className="text-lg font-semibold text-[#4F46E5]">Import Complete!</h3>
                 <p className="text-muted-foreground text-sm mt-1">
                   {importResult.imported > 0 && importResult.updated > 0
                     ? `${importResult.imported} imported, ${importResult.updated} updated`
@@ -1089,7 +1089,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                     : "No changes were made"}
                 </p>
                 {importResult.propertyName && (
-                  <span className="mt-2 px-2 py-1 bg-[#370d4b]/10 text-[#370d4b] rounded text-xs flex items-center gap-1">
+                  <span className="mt-2 px-2 py-1 bg-[#4F46E5]/10 text-[#4F46E5] rounded text-xs flex items-center gap-1">
                     <Building2 className="h-3 w-3" />
                     {importResult.propertyName}
                   </span>
@@ -1125,18 +1125,18 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
               {/* Email Campaign Section */}
               {importResult.leadsWithEmail.length > 0 && preImportAnalysis?.detectedProperty && !campaignDone && (
-                <div className="rounded-lg bg-[#370d4b]/5 border border-[#370d4b]/20 p-4">
+                <div className="rounded-lg bg-[#4F46E5]/5 border border-[#4F46E5]/20 p-4">
                   <div className="flex items-start gap-3">
-                    <Mail className="h-5 w-5 text-[#370d4b] mt-0.5 shrink-0" />
+                    <Mail className="h-5 w-5 text-[#4F46E5] mt-0.5 shrink-0" />
                     <div className="flex-1">
-                      <p className="font-medium text-[#370d4b] text-sm">Send Showing Invitation</p>
+                      <p className="font-medium text-[#4F46E5] text-sm">Send Showing Invitation</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Send a branded email inviting {importResult.leadsWithEmail.length} leads to schedule a showing at{" "}
                         <strong>{preImportAnalysis.detectedProperty.address}</strong>.
                       </p>
                       <Button
                         size="sm"
-                        className="mt-3 bg-[#370d4b] hover:bg-[#370d4b]/90"
+                        className="mt-3 bg-[#4F46E5] hover:bg-[#4F46E5]/90"
                         onClick={handleSendCampaign}
                         disabled={sendingCampaign}
                       >
@@ -1190,7 +1190,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
               <Button
                 onClick={handleImport}
                 disabled={importing || !preImportAnalysis || (preImportAnalysis.newLeads.length === 0 && preImportAnalysis.duplicates.length === 0)}
-                className="bg-[#370d4b] hover:bg-[#370d4b]/90"
+                className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
               >
                 {importing ? (
                   <>
@@ -1217,7 +1217,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           {step === 2 && importResult && (
             <>
               <div />
-              <Button onClick={handleFinish} className="bg-[#370d4b] hover:bg-[#370d4b]/90">
+              <Button onClick={handleFinish} className="bg-[#4F46E5] hover:bg-[#4F46E5]/90">
                 Done
               </Button>
             </>

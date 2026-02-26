@@ -2,12 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 
- * Rent Finder Cleveland Design System - Modern 2026
- * Primary: #370d4b (Deep Purple - headers, primary buttons)
+/*
+ * Rent Finder Cleveland Design System - iOS 26 Glass
+ * Primary: #4F46E5 (Indigo - headers, primary buttons)
  * Accent: #ffb22c (Gold - CTAs, highlights, active states)
- * Background: Gradient (purple → amber → green tints)
- * Surface: Glassmorphism cards
+ * Background: Clean cool gray with subtle glass
+ * Surface: Frosted glass cards (iOS 26 style)
  * Success: #22C55E (Green - positive states)
  * Error: #EF4444 (Red - errors, alerts)
  * Warning: #F59E0B (Amber - warnings)
@@ -15,141 +15,141 @@
 
 @layer base {
   :root {
-    /* Primary - Deep Purple */
-    --primary: 280 73% 17%;
+    /* Primary - Indigo */
+    --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
-    
+
     /* Accent - Gold */
     --accent: 40 100% 59%;
-    --accent-foreground: 280 73% 17%;
-    
-    /* Backgrounds - Light lavender tint */
-    --background: 270 30% 97%;
-    --foreground: 0 0% 10%;
-    
+    --accent-foreground: 239 50% 20%;
+
+    /* Backgrounds - Clean cool gray */
+    --background: 220 14% 96%;
+    --foreground: 222 47% 11%;
+
     /* Cards & Surfaces */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
-    
+    --card-foreground: 222 47% 11%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    
-    /* Secondary - Lighter purple tint */
-    --secondary: 280 30% 94%;
-    --secondary-foreground: 280 73% 17%;
-    
-    /* Muted - Subdued elements */
-    --muted: 0 5% 90%;
-    --muted-foreground: 0 0% 42%;
-    
+    --popover-foreground: 222 47% 11%;
+
+    /* Secondary */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 215 25% 27%;
+
+    /* Muted */
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%;
+
     /* Semantic States */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
-    
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
+
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 10%;
-    
+
     --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
-    
+
     /* UI Elements */
-    --border: 0 5% 88%;
-    --input: 0 5% 88%;
-    --ring: 280 73% 17%;
-    
-    --radius: 0.75rem;
-    
-    /* Sidebar */
-    --sidebar-background: 280 73% 17%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 40 100% 59%;
-    --sidebar-primary-foreground: 280 73% 17%;
-    --sidebar-accent: 280 60% 25%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 280 50% 25%;
-    --sidebar-ring: 40 100% 59%;
-    
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 239 84% 67%;
+
+    --radius: 0.875rem;
+
+    /* Sidebar - White Glass (iOS 26) */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 226 100% 97%;
+    --sidebar-accent-foreground: 239 84% 58%;
+    --sidebar-border: 220 13% 93%;
+    --sidebar-ring: 239 84% 67%;
+
     /* Chart Colors */
-    --chart-1: 280 73% 17%;
+    --chart-1: 239 84% 67%;
     --chart-2: 40 100% 59%;
     --chart-3: 142 71% 45%;
     --chart-4: 38 92% 50%;
     --chart-5: 0 84% 60%;
 
-    /* Modern Design System - Gradients & Effects */
-    --gradient-primary: linear-gradient(135deg, #f8f4ff 0%, #f0eaf8 50%, #f5f0ff 100%);
-    --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%);
-    --gradient-accent: linear-gradient(135deg, #370d4b 0%, #5a1d7a 100%);
+    /* iOS 26 Glass Design System */
+    --gradient-primary: linear-gradient(145deg, #f8f9ff 0%, #f3f4f6 50%, #f8fafc 100%);
+    --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.72) 100%);
+    --gradient-accent: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
     --gradient-success: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
-    
-    /* Glassmorphism */
-    --glass-bg: rgba(255, 255, 255, 0.75);
-    --glass-border: rgba(255, 255, 255, 0.4);
-    --glass-shadow: 0 8px 32px rgba(55, 13, 75, 0.08);
-    
-    /* Modern Shadows */
-    --shadow-xs: 0 1px 2px rgba(55, 13, 75, 0.03);
-    --shadow-sm: 0 2px 8px rgba(55, 13, 75, 0.04);
-    --shadow-md: 0 4px 16px rgba(55, 13, 75, 0.06);
-    --shadow-lg: 0 8px 32px rgba(55, 13, 75, 0.08);
-    --shadow-xl: 0 16px 48px rgba(55, 13, 75, 0.12);
+
+    /* Glassmorphism - iOS 26 frosted glass */
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(0, 0, 0, 0.04);
+    --glass-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+
+    /* Shadows - Ultra soft (iOS 26) */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+    --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.06);
+    --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.08);
   }
 
   .dark {
-    --primary: 40 100% 59%;
-    --primary-foreground: 280 73% 17%;
-    
-    --accent: 280 60% 40%;
-    --accent-foreground: 0 0% 100%;
-    
-    --background: 280 30% 8%;
-    --foreground: 0 0% 95%;
-    
-    --card: 280 25% 12%;
-    --card-foreground: 0 0% 95%;
-    
-    --popover: 280 25% 12%;
-    --popover-foreground: 0 0% 95%;
-    
-    --secondary: 280 20% 18%;
-    --secondary-foreground: 0 0% 95%;
-    
-    --muted: 280 15% 20%;
-    --muted-foreground: 0 0% 65%;
-    
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+
+    --accent: 40 100% 59%;
+    --accent-foreground: 239 50% 20%;
+
+    --background: 224 71% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
-    
+
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
-    
+
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 10%;
-    
+
     --info: 217 80% 50%;
     --info-foreground: 0 0% 100%;
-    
-    --border: 280 15% 22%;
-    --input: 280 15% 22%;
-    --ring: 40 100% 59%;
-    
-    --sidebar-background: 280 30% 8%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 40 100% 59%;
-    --sidebar-primary-foreground: 280 73% 17%;
-    --sidebar-accent: 280 25% 18%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 280 20% 20%;
-    --sidebar-ring: 40 100% 59%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 239 84% 67%;
+
+    --sidebar-background: 224 71% 4%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 239 84% 67%;
 
     /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, #1a0d24 0%, #2d1f3d 50%, #1a2e1a 100%);
-    --gradient-card: linear-gradient(145deg, rgba(45,31,61,0.9) 0%, rgba(35,25,45,0.8) 100%);
-    --glass-bg: rgba(45, 31, 61, 0.75);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --gradient-primary: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    --gradient-card: linear-gradient(145deg, rgba(30,27,75,0.9) 0%, rgba(15,23,42,0.8) 100%);
+    --glass-bg: rgba(30, 27, 75, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -157,11 +157,11 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
-  
+
   html {
     font-family: 'Montserrat', sans-serif;
     scroll-behavior: smooth;
@@ -196,17 +196,19 @@
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
-  
+
   /* Ensure minimum touch target size (WCAG 2.5.5) */
   button, a, [role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
-  
-  /* Exception for inline and icon buttons */
+
+  /* Exception for inline, icon, and close buttons */
   .inline-button, button.h-auto, a.h-auto,
   button[class*="h-5"], button[class*="h-6"], button[class*="h-7"],
-  a[class*="inline"], span[role="button"] {
+  button[class*="h-8"], button[class*="h-9"],
+  a[class*="inline"], span[role="button"],
+  .close-btn {
     min-height: unset;
     min-width: unset;
   }
@@ -217,28 +219,28 @@
   .text-gradient {
     @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
   }
-  
+
   .bg-gradient-primary {
     @apply bg-gradient-to-r from-primary to-primary/80;
   }
-  
+
   .bg-gradient-accent {
     @apply bg-gradient-to-r from-accent to-accent/80;
   }
-  
-  /* Modern gradient background */
+
+  /* Modern gradient background — subtle iOS 26 */
   .main-gradient-bg {
     background: var(--gradient-primary);
     min-height: 100vh;
   }
 
-  /* Glassmorphism card */
+  /* Glassmorphism card — iOS 26 frosted glass */
   .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border: 0.5px solid var(--glass-border);
+    box-shadow: var(--shadow-md);
   }
 
   .glass-card-hover {
@@ -246,9 +248,9 @@
   }
 
   .glass-card-hover:hover {
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: var(--shadow-xl);
-    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
   }
 
   /* Modern shadows */
@@ -262,7 +264,7 @@
   .shadow-card {
     box-shadow: var(--shadow-sm);
   }
-  
+
   .shadow-card-hover {
     box-shadow: var(--shadow-md);
   }
@@ -367,4 +369,51 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+/* Leaflet overrides — iOS 26 glass */
+.leaflet-container {
+  z-index: 0;
+  border-radius: 16px;
+  font-family: 'Montserrat', sans-serif;
+}
+.leaflet-zip-tooltip {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px) saturate(1.8);
+}
+.leaflet-zip-popup .leaflet-popup-content-wrapper {
+  border-radius: 16px;
+  font-family: 'Montserrat', sans-serif;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.12);
+  border: 0.5px solid rgba(99, 102, 241, 0.06);
+}
+.leaflet-zip-popup .leaflet-popup-content {
+  margin: 16px 18px;
+}
+.leaflet-zip-popup .leaflet-popup-tip {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+}
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+}
+.leaflet-control-zoom a {
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 18px !important;
+  color: #4F46E5 !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+.leaflet-control-zoom a:hover {
+  background: #eef2ff !important;
+  color: #4F46E5 !important;
 }

@@ -150,7 +150,7 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
                     No leads assigned
                   </Badge>
                 ) : (
-                  <Badge className="bg-[#370d4b] text-white">
+                  <Badge className="bg-[#4F46E5] text-white">
                     {leadCount} lead{leadCount > 1 ? "s" : ""} assigned
                   </Badge>
                 )}
@@ -260,7 +260,7 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
           <Button
             onClick={handleReassign}
             disabled={!targetPropertyId || leadCount === 0 || reassigning}
-            className="bg-[#370d4b] hover:bg-[#370d4b]/90 text-white"
+            className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
           >
             {reassigning ? (
               <>

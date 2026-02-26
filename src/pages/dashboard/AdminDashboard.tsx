@@ -7,7 +7,6 @@ import { PriorityLeadCard, PriorityLeadCardSkeleton } from "@/components/dashboa
 import { ShowingCard, ShowingCardSkeleton } from "@/components/dashboard/ShowingCard";
 
 
-import { VoiceQualityWidget } from "@/components/dashboard/VoiceQualityWidget";
 import { TopPropertiesWidget } from "@/components/dashboard/TopPropertiesWidget";
 import { NurturingWidget } from "@/components/dashboard/NurturingWidget";
 import {
@@ -61,6 +60,7 @@ interface DashboardStats {
 interface PeriodStats {
   totalLeads: number;
   hotLeads: number;
+  showingsCount: number;
   smsSent: number;
   emailsSent: number;
   emailsParsed: number;
@@ -140,6 +140,10 @@ export const AdminDashboard = () => {
 
   const isWidgetVisible = (widgetId: string) => {
     return prefs.widgets.find((w) => w.id === widgetId)?.visible ?? true;
+  };
+
+  const isStatCardVisible = (cardId: string) => {
+    return prefs.statCards?.[cardId] ?? true;
   };
 
   // Helper: base query for clean leads (complete + no junk names)
@@ -384,8 +388,16 @@ export const AdminDashboard = () => {
           .eq("organization_id", userRecord.organization_id)
           .eq("status", "in_application");
 
-        const [leadsRes, hotRes, smsRes, emailRes, parsedRes, callsRes, applicantsRes] = await Promise.all([
-          leadsQuery, hotQuery, smsQuery, emailQuery, parsedQuery, callsQuery, applicantsQuery,
+        // Showings count for period
+        let showingsCountQuery = supabase
+          .from("showings")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", userRecord.organization_id)
+          .not("status", "in", '("cancelled","no_show")');
+        if (periodStart) showingsCountQuery = showingsCountQuery.gte("scheduled_at", periodStart);
+
+        const [leadsRes, hotRes, smsRes, emailRes, parsedRes, callsRes, applicantsRes, showingsCountRes] = await Promise.all([
+          leadsQuery, hotQuery, smsQuery, emailQuery, parsedQuery, callsQuery, applicantsQuery, showingsCountQuery,
         ]);
 
         const callRows = callsRes.data || [];
@@ -394,6 +406,7 @@ export const AdminDashboard = () => {
         setPeriodStats({
           totalLeads: leadsRes.count || 0,
           hotLeads: hotRes.count || 0,
+          showingsCount: showingsCountRes.count || 0,
           smsSent: smsRes.count || 0,
           emailsSent: emailRes.count || 0,
           emailsParsed: parsedRes.count || 0,
@@ -441,9 +454,13 @@ export const AdminDashboard = () => {
 
 
   return (
-    <div className="flex gap-6">
+    <div className={cn(
+      "grid gap-6 grid-cols-1",
+      "xl:grid-cols-[1fr_360px]",
+      "2xl:grid-cols-[1fr_340px_340px]"
+    )}>
       {/* Main Dashboard Content */}
-      <div className="flex-1 min-w-0 space-y-6">
+      <div className="min-w-0 space-y-6 xl:min-h-[500px]">
         {/* Welcome Header with Customize Button */}
         <div className="flex items-start justify-between gap-4">
           <DashboardGreeting />
@@ -474,7 +491,7 @@ export const AdminDashboard = () => {
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                     statsPeriod === key
-                      ? "bg-white text-[#370d4b] shadow-sm"
+                      ? "bg-white text-[#4F46E5] shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -483,107 +500,128 @@ export const AdminDashboard = () => {
               ))}
             </div>
 
-            {/* Row 1: Portfolio + Leads */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="animate-fade-up stagger-1">
-                <StatCard
-                  title="Total Doors"
-                  value={stats?.totalDoors || 0}
-                  subtitle={`${stats?.totalDistinctProperties || 0} properties`}
-                  icon={DoorOpen}
-                  impact={stats?.totalDoors && stats.totalDoors > 10 ? "high" : stats?.totalDoors && stats.totalDoors > 5 ? "medium" : "low"}
-                  loading={loading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-2">
-                <StatCard
-                  title="Leads"
-                  value={periodStats?.totalLeads || 0}
-                  subtitle={`${stats?.leadsToday || 0} today`}
-                  icon={Users}
-                  trend={stats?.leadsLastWeek
-                    ? { value: Math.round(((stats.leadsThisWeek - stats.leadsLastWeek) / stats.leadsLastWeek) * 100), isPositive: stats.leadsThisWeek >= stats.leadsLastWeek }
-                    : stats?.leadsThisWeek
-                      ? { value: 100, isPositive: true }
-                      : undefined}
-                  impact={periodStats?.totalLeads && periodStats.totalLeads > 20 ? "high" : periodStats?.totalLeads && periodStats.totalLeads > 10 ? "medium" : "low"}
-                  loading={loading || periodLoading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-3">
-                <StatCard
-                  title="Hot Leads"
-                  value={periodStats?.hotLeads || 0}
-                  subtitle="score 80+"
-                  icon={Flame}
-                  impact={periodStats?.hotLeads && periodStats.hotLeads > 0 ? "high" : periodStats?.hotLeads === 0 ? "low" : undefined}
-                  loading={loading || periodLoading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-4">
-                <StatCard
-                  title="Agent Queue"
-                  value={stats?.pendingTasks || 0}
-                  subtitle="pending tasks"
-                  icon={ListChecks}
-                  impact={stats?.pendingTasks && stats.pendingTasks > 20 ? "high" : stats?.pendingTasks && stats.pendingTasks > 0 ? "medium" : undefined}
-                  loading={loading}
-                />
-              </div>
+            {/* Row 1: Portfolio + Leads + Showings + Applicants */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+              {isStatCardVisible("total_doors") && (
+                <div className="animate-fade-up stagger-1">
+                  <StatCard
+                    title="Total Doors"
+                    value={stats?.totalDoors || 0}
+                    subtitle={`${stats?.totalDistinctProperties || 0} properties`}
+                    icon={DoorOpen}
+                    loading={loading}
+                  />
+                </div>
+              )}
+              {isStatCardVisible("leads") && (
+                <div className="animate-fade-up stagger-2">
+                  <StatCard
+                    title="Leads"
+                    value={periodStats?.totalLeads || 0}
+                    subtitle={`${stats?.leadsToday || 0} today`}
+                    icon={Users}
+                    trend={stats?.leadsLastWeek
+                      ? { value: Math.round(((stats.leadsThisWeek - stats.leadsLastWeek) / stats.leadsLastWeek) * 100), isPositive: stats.leadsThisWeek >= stats.leadsLastWeek }
+                      : stats?.leadsThisWeek
+                        ? { value: 100, isPositive: true }
+                        : undefined}
+                    loading={loading || periodLoading}
+                  />
+                </div>
+              )}
+              {isStatCardVisible("hot_leads") && (
+                <div className="animate-fade-up stagger-3">
+                  <StatCard
+                    title="Hot Leads"
+                    value={periodStats?.hotLeads || 0}
+                    subtitle="score 80+"
+                    icon={Flame}
+                    loading={loading || periodLoading}
+                  />
+                </div>
+              )}
+              {isStatCardVisible("showings") && (
+                <div className="animate-fade-up stagger-4">
+                  <StatCard
+                    title="Showings"
+                    value={periodStats?.showingsCount || 0}
+                    subtitle="scheduled"
+                    icon={Calendar}
+                    loading={loading || periodLoading}
+                    onClick={() => navigate("/showings")}
+                  />
+                </div>
+              )}
+              {isStatCardVisible("applicants") && (
+                <div className="animate-fade-up stagger-5 cursor-pointer" onClick={() => navigate("/applicants")}>
+                  <StatCard
+                    title="Applicants"
+                    value={periodStats?.applicationsSent || 0}
+                    subtitle="in application"
+                    icon={FileText}
+                    loading={loading || periodLoading}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Row 2: Communications + Applications */}
+            {/* Row 2: Communications + Agent Queue */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              <div className="animate-fade-up stagger-5">
-                <StatCard
-                  title="SMS Sent"
-                  value={periodStats?.smsSent || 0}
-                  subtitle="outbound"
-                  icon={MessageSquare}
-                  impact={periodStats?.smsSent && periodStats.smsSent > 50 ? "high" : periodStats?.smsSent && periodStats.smsSent > 10 ? "medium" : undefined}
-                  loading={loading || periodLoading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-6">
-                <StatCard
-                  title="Emails Sent"
-                  value={periodStats?.emailsSent || 0}
-                  subtitle="outbound"
-                  icon={Mail}
-                  impact={periodStats?.emailsSent && periodStats.emailsSent > 50 ? "high" : periodStats?.emailsSent && periodStats.emailsSent > 10 ? "medium" : undefined}
-                  loading={loading || periodLoading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-7">
-                <StatCard
-                  title="Emails Parsed"
-                  value={periodStats?.emailsParsed || 0}
-                  subtitle="via Esther"
-                  icon={Inbox}
-                  impact={periodStats?.emailsParsed && periodStats.emailsParsed > 0 ? "medium" : undefined}
-                  loading={loading || periodLoading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-8">
-                <StatCard
-                  title="Calls Made"
-                  value={periodStats?.callsMade || 0}
-                  subtitle={`${periodStats?.callMinutes || 0} min on calls`}
-                  icon={Phone}
-                  impact={periodStats?.callsMade && periodStats.callsMade > 10 ? "high" : periodStats?.callsMade && periodStats.callsMade > 0 ? "medium" : undefined}
-                  loading={loading || periodLoading}
-                />
-              </div>
-              <div className="animate-fade-up stagger-8 cursor-pointer" onClick={() => navigate("/applicants")}>
-                <StatCard
-                  title="Applicants"
-                  value={periodStats?.applicationsSent || 0}
-                  subtitle="in application"
-                  icon={FileText}
-                  impact={periodStats?.applicationsSent && periodStats.applicationsSent > 0 ? "high" : undefined}
-                  loading={loading || periodLoading}
-                />
-              </div>
+              {isStatCardVisible("sms_sent") && (
+                <div className="animate-fade-up stagger-6">
+                  <StatCard
+                    title="SMS Sent"
+                    value={periodStats?.smsSent || 0}
+                    subtitle="outbound"
+                    icon={MessageSquare}
+                    loading={loading || periodLoading}
+                  />
+                </div>
+              )}
+              {isStatCardVisible("emails_sent") && (
+                <div className="animate-fade-up stagger-7">
+                  <StatCard
+                    title="Emails Sent"
+                    value={periodStats?.emailsSent || 0}
+                    subtitle="outbound"
+                    icon={Mail}
+                    loading={loading || periodLoading}
+                  />
+                </div>
+              )}
+              {isStatCardVisible("emails_parsed") && (
+                <div className="animate-fade-up stagger-8">
+                  <StatCard
+                    title="Emails Parsed"
+                    value={periodStats?.emailsParsed || 0}
+                    subtitle="inbound"
+                    icon={Inbox}
+                    loading={loading || periodLoading}
+                  />
+                </div>
+              )}
+              {isStatCardVisible("calls_made") && (
+                <div className="animate-fade-up stagger-9">
+                  <StatCard
+                    title="Calls Made"
+                    value={periodStats?.callsMade || 0}
+                    subtitle={`${periodStats?.callMinutes || 0} min on calls`}
+                    icon={Phone}
+                    loading={loading || periodLoading}
+                  />
+                </div>
+              )}
+              {isStatCardVisible("agent_queue") && (
+                <div className="animate-fade-up stagger-10">
+                  <StatCard
+                    title="Agent Queue"
+                    value={stats?.pendingTasks || 0}
+                    subtitle="pending tasks"
+                    icon={ListChecks}
+                    loading={loading}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Row 3: Top Properties + Top Sources (each spans 2 cols) */}
@@ -595,13 +633,6 @@ export const AdminDashboard = () => {
                 <NurturingWidget loading={loading} />
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Voice Quality Widget */}
-        {isWidgetVisible("ai_agent_performance") && (
-          <div className="animate-fade-up stagger-5">
-            <VoiceQualityWidget />
           </div>
         )}
 

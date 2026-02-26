@@ -41,9 +41,9 @@ const LeadHygiene: React.FC = () => {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-[#370d4b]" />
+            <Sparkles className="h-6 w-6 text-[#4F46E5]" />
             <h1
-              className="text-2xl md:text-3xl font-bold text-[#370d4b]"
+              className="text-2xl md:text-3xl font-bold text-[#4F46E5]"
               style={{ fontFamily: "Montserrat" }}
             >
               Nurturing Leads

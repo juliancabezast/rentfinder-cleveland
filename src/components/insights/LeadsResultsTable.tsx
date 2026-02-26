@@ -95,7 +95,7 @@ export const LeadsResultsTable: React.FC<LeadsResultsTableProps> = ({
       >
         <div className="flex items-center gap-1">
           {children}
-          <SortIcon className={`h-3 w-3 ${isActive ? "text-[#370d4b]" : "text-muted-foreground"}`} />
+          <SortIcon className={`h-3 w-3 ${isActive ? "text-[#4F46E5]" : "text-muted-foreground"}`} />
         </div>
       </TableHead>
     );

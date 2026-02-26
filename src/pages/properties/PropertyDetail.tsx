@@ -760,7 +760,7 @@ const PropertyDetail: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs gap-1.5 border-[#370d4b]/30 text-[#370d4b] hover:bg-[#370d4b]/5"
+                  className="h-7 text-xs gap-1.5 border-[#4F46E5]/30 text-[#4F46E5] hover:bg-[#4F46E5]/5"
                   onClick={() => setReassignOpen(true)}
                 >
                   <ArrowRightLeft className="h-3.5 w-3.5" />

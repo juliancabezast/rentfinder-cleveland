@@ -577,7 +577,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
           Click on flagged fields to fix them, or delete junk leads.
         </p>
         {!restoreAllProgress && leads.some((l) => suggestCleanedName(l)) && (
-          <Button onClick={handleRestoreAll} className="bg-[#370d4b] hover:bg-[#370d4b]/90">
+          <Button onClick={handleRestoreAll} className="bg-[#4F46E5] hover:bg-[#4F46E5]/90">
             <Wand2 className="h-4 w-4 mr-1.5" />
             Restore All ({leads.filter((l) => suggestCleanedName(l)).length})
           </Button>
@@ -587,7 +587,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
       {restoreAllProgress && (
         <div className="rounded-lg border p-4 bg-muted/30">
           <div className="flex items-center gap-3 mb-2">
-            <Loader2 className="h-4 w-4 animate-spin text-[#370d4b]" />
+            <Loader2 className="h-4 w-4 animate-spin text-[#4F46E5]" />
             <span className="text-sm font-medium">
               Restoring {restoreAllProgress.current} of {restoreAllProgress.total}...
             </span>
@@ -648,7 +648,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-[#370d4b] hover:text-[#370d4b] hover:bg-purple-50"
+                        className="h-8 w-8 text-[#4F46E5] hover:text-[#4F46E5] hover:bg-purple-50"
                         onClick={() => handleRestoreClick(lead)}
                         title="Restore — clean up this lead"
                       >
@@ -712,7 +712,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Wand2 className="h-5 w-5 text-[#370d4b]" />
+              <Wand2 className="h-5 w-5 text-[#4F46E5]" />
               Restore Lead
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -741,7 +741,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
             <AlertDialogAction
               onClick={handleRestoreConfirm}
               disabled={restoring}
-              className="bg-[#370d4b] hover:bg-[#370d4b]/90"
+              className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
             >
               {restoring ? (
                 <>

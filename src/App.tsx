@@ -31,7 +31,6 @@ const KnowledgeHub = lazy(() => import("./pages/insights/KnowledgeHub"));
 const UsersList = lazy(() => import("./pages/users/UsersList"));
 const UserDetail = lazy(() => import("./pages/users/UserDetail"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
-const SystemLogs = lazy(() => import("./pages/SystemLogs"));
 const CostDashboard = lazy(() => import("./pages/costs/CostDashboard"));
 const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
 
@@ -303,17 +302,6 @@ const App = () => (
                 <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
                   <MainLayout>
                     <Settings />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/logs"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
-                  <MainLayout>
-                    <SystemLogs />
                   </MainLayout>
                 </ProtectedRoute>
               }

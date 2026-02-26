@@ -20,7 +20,6 @@ import {
   Sparkles,
   UserCog,
   Settings,
-  FileText,
   DollarSign,
   MapPin,
   Shield,
@@ -45,7 +44,6 @@ const mainNavItems: NavItem[] = [
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'My Route', href: '/showings/route', icon: Map, permission: 'canViewOwnRoute' },
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
-  { title: 'Documents', href: '/documents', icon: FileText, permission: 'canViewDocuments' },
 ];
 
 const analyticsNavItems: NavItem[] = [
@@ -60,7 +58,6 @@ const adminNavItems: NavItem[] = [
   { title: 'Referrals', href: '/settings', icon: Gift, permission: 'canViewReferrals' },
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
-  { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
 ];
 
@@ -93,20 +90,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <a href="#main-content" className="skip-to-content">
         Skip to main content
       </a>
-      
+
       {/* Desktop Sidebar */}
       <Sidebar collapsed={sidebarCollapsed} onCollapse={setSidebarCollapsed} />
 
       {/* Mobile Sidebar Sheet */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="w-72 p-0 bg-sidebar text-sidebar-foreground">
+        <SheetContent side="left" className="w-72 p-0 bg-white/90 backdrop-blur-xl text-slate-900">
           {/* Organization Logo/Name */}
-          <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
+          <div className="h-16 flex items-center px-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-sidebar-primary flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm">
+                <Building2 className="h-4 w-4 text-white" />
               </div>
-              <span className="font-semibold text-sm">
+              <span className="font-semibold text-sm text-slate-900">
                 {organization?.name || 'Rent Finder'}
               </span>
             </div>
@@ -114,19 +111,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
           {/* Navigation */}
           <ScrollArea className="flex-1 py-4">
-            <nav className="px-2 space-y-1">
+            <nav className="px-2 space-y-0.5">
               {filteredNavItems.map((item) => (
                 <NavLink
                   key={item.href}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200',
-                    'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground'
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
+                    'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                   )}
-                  activeClassName="!bg-amber-400 !text-gray-900 font-semibold shadow-lg shadow-amber-400/20 hover:!bg-amber-400 hover:!text-gray-900"
+                  activeClassName="!bg-indigo-50 !text-indigo-600 font-semibold"
                 >
-                  <item.icon className="h-5 w-5 shrink-0" />
+                  <item.icon className="h-[18px] w-[18px] shrink-0" />
                   <span>{item.title}</span>
                 </NavLink>
               ))}
@@ -141,14 +138,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
       )}>
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
-        
-        {/* Gradient accent line */}
-        <div 
-          className="h-0.5 w-full"
-          style={{ background: 'linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 50%, transparent 100%)' }}
+
+        {/* Animated accent line */}
+        <div
+          className="h-[2px] w-full"
+          style={{
+            background: 'linear-gradient(90deg, transparent, #6366F1, #4F46E5, #6366F1, transparent)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 2.5s linear infinite',
+          }}
         />
 
-        {/* Page Content with gradient overlay for depth */}
+        {/* Page Content */}
         <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
           <div className="w-full animate-fade-up">
             {children}

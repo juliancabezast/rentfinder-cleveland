@@ -32,7 +32,7 @@ export const OrganizationTab: React.FC = () => {
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [timezone, setTimezone] = useState('America/New_York');
-  const [primaryColor, setPrimaryColor] = useState('#370d4b');
+  const [primaryColor, setPrimaryColor] = useState('#4F46E5');
   const [accentColor, setAccentColor] = useState('#ffb22c');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export const OrganizationTab: React.FC = () => {
     if (organization) {
       setName(organization.name || '');
       setTimezone(organization.timezone || 'America/New_York');
-      setPrimaryColor(organization.primary_color || '#370d4b');
+      setPrimaryColor(organization.primary_color || '#4F46E5');
       setAccentColor(organization.accent_color || '#ffb22c');
       setLogoUrl(organization.logo_url);
     }
@@ -61,7 +61,7 @@ export const OrganizationTab: React.FC = () => {
         setState(data.state || '');
         setZipCode(data.zip_code || '');
         setTimezone(data.timezone || 'America/New_York');
-        setPrimaryColor(data.primary_color || '#370d4b');
+        setPrimaryColor(data.primary_color || '#4F46E5');
         setAccentColor(data.accent_color || '#ffb22c');
         setLogoUrl(data.logo_url);
       }
@@ -275,7 +275,7 @@ export const OrganizationTab: React.FC = () => {
                 <Input
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
-                  placeholder="#370d4b"
+                  placeholder="#4F46E5"
                   className="flex-1"
                 />
               </div>
