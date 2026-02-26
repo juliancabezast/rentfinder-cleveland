@@ -149,11 +149,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Page Content */}
         <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
-          {/* Animated background — floating green orbs */}
+          {/* Animated background — floating gold orbs */}
           <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" style={{ marginLeft: sidebarCollapsed ? '4rem' : '16rem' }}>
-            <div className="absolute rounded-full w-[900px] h-[900px] -top-[200px] -right-[100px] animate-float-fast" style={{ background: 'radial-gradient(circle, rgba(34,197,94,0.28) 0%, rgba(34,197,94,0.10) 35%, transparent 65%)' }} />
-            <div className="absolute rounded-full w-[800px] h-[800px] top-[25%] -left-[100px] animate-float-fast-reverse" style={{ background: 'radial-gradient(circle, rgba(74,222,128,0.24) 0%, rgba(74,222,128,0.08) 35%, transparent 65%)' }} />
-            <div className="absolute rounded-full w-[700px] h-[700px] bottom-[-5%] right-[5%] animate-float-fast" style={{ background: 'radial-gradient(circle, rgba(22,163,74,0.22) 0%, rgba(22,163,74,0.07) 35%, transparent 65%)', animationDelay: '-4s' }} />
+            <div className="absolute rounded-full w-[900px] h-[900px] -top-[200px] -right-[100px] animate-float-fast" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.28) 0%, rgba(255,178,44,0.10) 35%, transparent 65%)' }} />
+            <div className="absolute rounded-full w-[800px] h-[800px] top-[25%] -left-[100px] animate-float-fast-reverse" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.24) 0%, rgba(255,178,44,0.08) 35%, transparent 65%)' }} />
+            <div className="absolute rounded-full w-[700px] h-[700px] bottom-[-5%] right-[5%] animate-float-fast" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.22) 0%, rgba(255,178,44,0.07) 35%, transparent 65%)', animationDelay: '-4s' }} />
           </div>
           <div className="relative z-10 w-full animate-fade-up">
             {children}
