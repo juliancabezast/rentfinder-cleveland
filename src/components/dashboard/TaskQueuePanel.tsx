@@ -296,15 +296,32 @@ export const TaskQueuePanel = () => {
                       )}
                     </div>
 
-                    {/* Row 2: agent + action */}
-                    <p className="text-sm leading-snug ml-8">
-                      <span className="font-semibold text-emerald-700 dark:text-emerald-400">
-                        {agentName}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {" "}will {actionLabel}
-                      </span>
-                    </p>
+                    {/* Row 2: agent + action + method badge */}
+                    <div className="flex items-center gap-1.5 ml-8 flex-wrap">
+                      <p className="text-sm leading-snug">
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                          {agentName}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {" "}will {actionLabel}
+                        </span>
+                      </p>
+                      {(task.action_type === "call" || task.action_type === "voice") && (
+                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-0.5 bg-blue-50 text-blue-600 border-blue-200">
+                          <Phone className="h-2.5 w-2.5" /> Call
+                        </Badge>
+                      )}
+                      {(task.action_type === "sms") && (
+                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-0.5 bg-green-50 text-green-600 border-green-200">
+                          <MessageSquare className="h-2.5 w-2.5" /> SMS
+                        </Badge>
+                      )}
+                      {(task.action_type === "email" || task.action_type === "notify" || task.action_type === "sequence") && (
+                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-0.5 bg-purple-50 text-purple-600 border-purple-200">
+                          <Mail className="h-2.5 w-2.5" /> Email
+                        </Badge>
+                      )}
+                    </div>
 
                     {/* Row 3: lead name */}
                     <div className="flex items-center gap-1 ml-8 mt-0.5">

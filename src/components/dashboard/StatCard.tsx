@@ -43,8 +43,8 @@ const useCountUp = (targetValue: string | number, duration: number = 600) => {
   const animationRef = useRef<number>();
 
   useEffect(() => {
-    // Only animate once on first valid target, and only for numeric values
-    if (target === null || hasAnimated.current) {
+    // Only animate once on first valid non-zero target
+    if (target === null || target === 0 || hasAnimated.current) {
       setDisplayValue(targetValue);
       return;
     }

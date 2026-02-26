@@ -360,12 +360,13 @@ export const AdminDashboard = () => {
           .eq("category", "twilio");
         if (periodStart) smsQuery = smsQuery.gte("created_at", periodStart);
 
-        // Emails: count from system_logs where send-notification-email logged success
+        // Emails: count unique emails sent (distinct resend_email_id)
         let emailQuery = supabase
-          .from("system_logs")
-          .select("id", { count: "exact", head: true })
+          .from("email_events")
+          .select("resend_email_id")
           .eq("organization_id", userRecord.organization_id)
-          .eq("event_type", "email_sent");
+          .in("event_type", ["sent", "delivered", "delivery_delayed"])
+          .limit(5000);
         if (periodStart) emailQuery = emailQuery.gte("created_at", periodStart);
 
         let parsedQuery = supabase
@@ -408,7 +409,7 @@ export const AdminDashboard = () => {
           hotLeads: hotRes.count || 0,
           showingsCount: showingsCountRes.count || 0,
           smsSent: smsRes.count || 0,
-          emailsSent: emailRes.count || 0,
+          emailsSent: new Set((emailRes.data || []).map((e: { resend_email_id: string }) => e.resend_email_id)).size,
           emailsParsed: parsedRes.count || 0,
           callsMade: callRows.length,
           callMinutes: Math.round(totalSeconds / 60),
@@ -636,133 +637,6 @@ export const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Main Widget Grid - auto-fill to avoid gaps */}
-        {(() => {
-          const widgetIds = ["priority_leads", "upcoming_showings"];
-          const visibleWidgets = widgetIds.filter((id) => isWidgetVisible(id));
-          const visibleCount = visibleWidgets.length;
-
-          if (visibleCount === 0) return null;
-
-          // Build grid classes based on visible count
-          const getGridClass = () => {
-            if (visibleCount === 1) return "grid gap-6 grid-cols-1";
-            return cn(
-              "grid gap-6",
-              prefs.layout === "comfortable"
-                ? "grid-cols-1 lg:grid-cols-2"
-                : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
-            );
-          };
-
-          // Should last item span full width? (odd count, 2-column layout)
-          const shouldLastSpanFull = visibleCount > 1 && visibleCount % 2 === 1 && prefs.layout === "comfortable";
-
-          const renderWidget = (widgetId: string, isLast: boolean) => {
-            const spanFull = isLast && shouldLastSpanFull;
-            const wrapperClass = spanFull ? "lg:col-span-2" : "";
-
-            switch (widgetId) {
-              case "priority_leads":
-                return (
-                  <div key={widgetId} className={wrapperClass}>
-                    <Card variant="glass" className="h-full">
-                      <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-lg">Priority Leads</CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate("/leads?filter=priority")}
-                        >
-                          View All <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </CardHeader>
-                      <CardContent>
-                        <ScrollArea className="h-[400px]">
-                          <div className="space-y-3">
-                            {loading ? (
-                              Array.from({ length: 3 }).map((_, i) => (
-                                <PriorityLeadCardSkeleton key={i} />
-                              ))
-                            ) : priorityLeads.length > 0 ? (
-                              priorityLeads.map((lead) => (
-                                <PriorityLeadCard
-                                  key={lead.id}
-                                  lead={lead}
-                                  onTakeControl={handleTakeControl}
-                                />
-                              ))
-                            ) : (
-                              <EmptyState
-                                icon={Zap}
-                                title="No priority leads"
-                                description="Leads with score 85+ will appear here"
-                                action={{ label: "View all leads", onClick: () => navigate("/leads") }}
-                              />
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </CardContent>
-                    </Card>
-                  </div>
-                );
-              case "upcoming_showings":
-                return (
-                  <div key={widgetId} className={wrapperClass}>
-                    <Card variant="glass" className="h-full">
-                      <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-lg">Upcoming Showings</CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate("/showings")}
-                        >
-                          View All <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </CardHeader>
-                      <CardContent>
-                        <ScrollArea className="h-[400px]">
-                          <div className="space-y-3">
-                            {loading ? (
-                              Array.from({ length: 3 }).map((_, i) => (
-                                <ShowingCardSkeleton key={i} variant="compact" />
-                              ))
-                            ) : upcomingShowings.length > 0 ? (
-                              upcomingShowings.map((showing) => (
-                                <ShowingCard
-                                  key={showing.id}
-                                  showing={showing}
-                                  variant="compact"
-                                />
-                              ))
-                            ) : (
-                              <EmptyState
-                                icon={Calendar}
-                                title="No upcoming showings"
-                                description="Schedule a showing from the leads page"
-                                action={{ label: "View showings", onClick: () => navigate("/showings") }}
-                              />
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </CardContent>
-                    </Card>
-                  </div>
-                );
-              default:
-                return null;
-            }
-          };
-
-          return (
-            <div className={getGridClass()}>
-              {visibleWidgets.map((widgetId, index) =>
-                renderWidget(widgetId, index === visibleWidgets.length - 1)
-              )}
-            </div>
-          );
-        })()}
-
         {/* Dashboard Customizer Sheet */}
         <DashboardCustomizer
           open={showCustomizer}
@@ -773,17 +647,129 @@ export const AdminDashboard = () => {
         />
       </div>
 
-      {/* Live Panels - Right Side */}
-      <div className="hidden xl:block w-[380px] 2xl:w-[780px] shrink-0">
-        <div className="sticky top-4 flex flex-col 2xl:flex-row gap-4">
-          <div className="w-full 2xl:w-[380px]">
-            <AgentActivityPanel />
-          </div>
-          <div className="w-full 2xl:w-[380px]">
-            <TaskQueuePanel />
-          </div>
+      {/* Live Panels - Right Side (grid items) */}
+      <div className={cn(
+        "hidden xl:flex xl:flex-col gap-4",
+        "xl:col-start-2 xl:row-start-1",
+        "2xl:contents"
+      )}>
+        <div className="flex-1 min-h-0 2xl:col-start-2 2xl:row-start-1">
+          <AgentActivityPanel />
+        </div>
+        <div className="flex-1 min-h-0 2xl:col-start-3 2xl:row-start-1">
+          <TaskQueuePanel />
         </div>
       </div>
+
+      {/* Priority Leads + Upcoming Showings - full width below */}
+      {(() => {
+        const widgetIds = ["priority_leads", "upcoming_showings"];
+        const visibleWidgets = widgetIds.filter((id) => isWidgetVisible(id));
+        if (visibleWidgets.length === 0) return null;
+
+        const renderWidget = (widgetId: string) => {
+          switch (widgetId) {
+            case "priority_leads":
+              return (
+                <div key={widgetId}>
+                  <Card variant="glass" className="h-full">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg">Priority Leads</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate("/leads?filter=priority")}
+                      >
+                        View All <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[400px]">
+                        <div className="space-y-3">
+                          {loading ? (
+                            Array.from({ length: 3 }).map((_, i) => (
+                              <PriorityLeadCardSkeleton key={i} />
+                            ))
+                          ) : priorityLeads.length > 0 ? (
+                            priorityLeads.map((lead) => (
+                              <PriorityLeadCard
+                                key={lead.id}
+                                lead={lead}
+                                onTakeControl={handleTakeControl}
+                              />
+                            ))
+                          ) : (
+                            <EmptyState
+                              icon={Zap}
+                              title="No priority leads"
+                              description="Leads with score 85+ will appear here"
+                              action={{ label: "View all leads", onClick: () => navigate("/leads") }}
+                            />
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            case "upcoming_showings":
+              return (
+                <div key={widgetId}>
+                  <Card variant="glass" className="h-full">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg">Upcoming Showings</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate("/showings")}
+                      >
+                        View All <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[400px]">
+                        <div className="space-y-3">
+                          {loading ? (
+                            Array.from({ length: 3 }).map((_, i) => (
+                              <ShowingCardSkeleton key={i} variant="compact" />
+                            ))
+                          ) : upcomingShowings.length > 0 ? (
+                            upcomingShowings.map((showing) => (
+                              <ShowingCard
+                                key={showing.id}
+                                showing={showing}
+                                variant="compact"
+                              />
+                            ))
+                          ) : (
+                            <EmptyState
+                              icon={Calendar}
+                              title="No upcoming showings"
+                              description="Schedule a showing from the leads page"
+                              action={{ label: "View showings", onClick: () => navigate("/showings") }}
+                            />
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            default:
+              return null;
+          }
+        };
+
+        return (
+          <div className={cn(
+            "grid gap-6",
+            visibleWidgets.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2",
+            "xl:col-span-2 2xl:col-span-3"
+          )}>
+            {visibleWidgets.map((widgetId) => renderWidget(widgetId))}
+          </div>
+        );
+      })()}
     </div>
   );
 };
