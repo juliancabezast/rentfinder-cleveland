@@ -327,22 +327,24 @@
   }
 }
 
-/* Subtle floating background orbs */
-@keyframes float-slow {
+/* Floating background orbs */
+@keyframes float-fast {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 15px) scale(0.95); }
+  25% { transform: translate(50px, -35px) scale(1.06); }
+  50% { transform: translate(-30px, 25px) scale(0.94); }
+  75% { transform: translate(20px, -15px) scale(1.03); }
 }
-@keyframes float-slow-reverse {
+@keyframes float-fast-reverse {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-25px, 20px) scale(0.95); }
-  66% { transform: translate(15px, -25px) scale(1.05); }
+  25% { transform: translate(-40px, 30px) scale(0.95); }
+  50% { transform: translate(35px, -40px) scale(1.06); }
+  75% { transform: translate(-20px, 10px) scale(0.97); }
 }
-.animate-float-slow {
-  animation: float-slow 20s ease-in-out infinite;
+.animate-float-fast {
+  animation: float-fast 10s ease-in-out infinite;
 }
-.animate-float-slow-reverse {
-  animation: float-slow-reverse 25s ease-in-out infinite;
+.animate-float-fast-reverse {
+  animation: float-fast-reverse 12s ease-in-out infinite;
 }
 
 /* Toast progress bar animation */
