@@ -243,31 +243,12 @@
     box-shadow: var(--shadow-md);
   }
 
-  .glass-card-hover {
-    @apply transition-all duration-300;
-  }
-
-  .glass-card-hover:hover {
-    background: rgba(255, 255, 255, 0.88);
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-1px);
-  }
-
   /* Modern shadows */
   .shadow-modern-xs { box-shadow: var(--shadow-xs); }
   .shadow-modern-sm { box-shadow: var(--shadow-sm); }
   .shadow-modern-md { box-shadow: var(--shadow-md); }
   .shadow-modern-lg { box-shadow: var(--shadow-lg); }
   .shadow-modern-xl { box-shadow: var(--shadow-xl); }
-
-  /* Legacy shadow utilities */
-  .shadow-card {
-    box-shadow: var(--shadow-sm);
-  }
-
-  .shadow-card-hover {
-    box-shadow: var(--shadow-md);
-  }
 
   /* Stagger animations */
   .stagger-1 { animation-delay: 0.05s; }
@@ -346,20 +327,22 @@
   }
 }
 
-/* Subtle drifting background lines */
-@keyframes drift-slow {
-  0% { transform: translateX(-50%); }
-  100% { transform: translateX(0%); }
+/* Subtle floating background orbs */
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 15px) scale(0.95); }
 }
-@keyframes drift-slow-v {
-  0% { transform: translateY(-50%); }
-  100% { transform: translateY(0%); }
+@keyframes float-slow-reverse {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-25px, 20px) scale(0.95); }
+  66% { transform: translate(15px, -25px) scale(1.05); }
 }
-.animate-drift-slow {
-  animation: drift-slow 30s linear infinite;
+.animate-float-slow {
+  animation: float-slow 20s ease-in-out infinite;
 }
-.animate-drift-slow-v {
-  animation: drift-slow-v 25s linear infinite;
+.animate-float-slow-reverse {
+  animation: float-slow-reverse 25s ease-in-out infinite;
 }
 
 /* Toast progress bar animation */

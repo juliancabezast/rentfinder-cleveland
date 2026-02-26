@@ -29,7 +29,8 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Safety net: revert any "processing" emails stuck for more than 5 minutes (crashed runs)
-    await supabase.rpc("unstick_processing_emails");
+    const { error: unstickErr } = await supabase.rpc("unstick_processing_emails");
+    if (unstickErr) console.warn("unstick_processing_emails failed:", unstickErr.message);
 
     // Get ALL organizations
     const { data: orgs } = await supabase

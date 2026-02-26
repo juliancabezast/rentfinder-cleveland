@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Clock, Zap, CheckCircle, XCircle, AlertTriangle, Layers, Activity } from "lucide-react";
+import { Clock, Zap, CheckCircle, XCircle, Layers, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { DEPARTMENTS, STATUS_CONFIG, getAgentDisplayName, AGENT_KPIS, resolveAgentKey } from "./constants";

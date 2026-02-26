@@ -6,7 +6,6 @@ import {
   priorityLeadTemplate,
   noShowTemplate,
   criticalErrorTemplate,
-  testEmailTemplate,
 } from "./emailTemplates";
 
 // Default notification preferences
@@ -173,34 +172,4 @@ export function sendCriticalErrorNotification(params: {
     notificationType: "critical_error",
     organizationId,
   });
-}
-
-// Send test email
-export async function sendTestEmail(params: {
-  adminEmail: string;
-  organizationId: string;
-}): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { data, error } = await supabase.functions.invoke("send-notification-email", {
-      body: {
-        to: params.adminEmail,
-        subject: "✅ Rent Finder Cleveland — Email Test Successful",
-        html: testEmailTemplate(),
-        notification_type: "test",
-        organization_id: params.organizationId,
-      },
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    return { success: true };
-  } catch (err) {
-    console.error("Test email failed:", err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Failed to send test email",
-    };
-  }
 }

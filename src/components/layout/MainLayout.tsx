@@ -148,16 +148,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         />
 
         {/* Page Content */}
-        <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto relative">
-          {/* Subtle animated background lines */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.03]">
-            <div className="absolute w-[200%] h-[1px] top-[20%] bg-gradient-to-r from-transparent via-foreground to-transparent animate-drift-slow" />
-            <div className="absolute w-[200%] h-[1px] top-[45%] bg-gradient-to-r from-transparent via-foreground to-transparent animate-drift-slow" style={{ animationDelay: '-8s' }} />
-            <div className="absolute w-[200%] h-[1px] top-[70%] bg-gradient-to-r from-transparent via-foreground to-transparent animate-drift-slow" style={{ animationDelay: '-16s' }} />
-            <div className="absolute w-[1px] h-[200%] left-[25%] bg-gradient-to-b from-transparent via-foreground to-transparent animate-drift-slow-v" />
-            <div className="absolute w-[1px] h-[200%] left-[60%] bg-gradient-to-b from-transparent via-foreground to-transparent animate-drift-slow-v" style={{ animationDelay: '-12s' }} />
+        <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
+          {/* Subtle animated background — floating gradient orbs */}
+          <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" style={{ marginLeft: sidebarCollapsed ? '4rem' : '16rem' }}>
+            <div className="absolute rounded-full w-[600px] h-[600px] -top-[200px] -right-[200px] bg-primary/[0.02] blur-3xl animate-float-slow" />
+            <div className="absolute rounded-full w-[500px] h-[500px] top-[40%] -left-[150px] bg-accent/[0.03] blur-3xl animate-float-slow-reverse" />
+            <div className="absolute rounded-full w-[400px] h-[400px] bottom-[10%] right-[20%] bg-primary/[0.015] blur-3xl animate-float-slow" style={{ animationDelay: '-10s' }} />
           </div>
-          <div className="relative w-full animate-fade-up">
+          <div className="relative z-10 w-full animate-fade-up">
             {children}
           </div>
         </main>

@@ -94,7 +94,7 @@ serve(async (req: Request) => {
         .limit(200),
       supabase
         .from("properties")
-        .select("id, address, city, state, zip_code, rent_amount, bedrooms, bathrooms, status, property_type, is_section8_eligible")
+        .select("id, address, city, state, zip_code, rent_price, bedrooms, bathrooms, status, property_type, section_8_accepted")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(100),

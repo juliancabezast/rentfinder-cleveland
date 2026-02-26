@@ -74,6 +74,8 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
       ]).then(([leadRes, showingRes]) => {
         if (leadRes.data) setLeadData(leadRes.data);
         if (showingRes.data) setShowingData(showingRes.data);
+      }).catch((err) => {
+        console.error("Failed to fetch showing/lead data:", err);
       });
     }
   }, [open, leadId, showingId]);
