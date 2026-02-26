@@ -326,7 +326,7 @@ export const IntegrationStatusMini: React.FC = () => {
         </div>
 
         {/* Service Status Dots */}
-        <div className="flex items-center gap-3 overflow-x-auto">
+        <div className="flex items-center gap-0 overflow-x-auto">
           {SERVICE_ORDER.map((service) => {
             const status = getServiceStatus(service);
             const health = healthMap.get(service);
@@ -335,7 +335,7 @@ export const IntegrationStatusMini: React.FC = () => {
             return (
               <Tooltip key={service}>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1.5 shrink-0 cursor-default">
+                  <div className="flex items-center justify-center gap-1.5 w-[90px] shrink-0 cursor-default">
                     <span className="relative flex h-2 w-2">
                       {shouldPulse(status) && (
                         <span
