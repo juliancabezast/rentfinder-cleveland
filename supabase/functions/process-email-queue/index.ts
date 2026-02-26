@@ -28,6 +28,9 @@ serve(async (req: Request) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // Safety net: revert any "processing" emails stuck for more than 5 minutes (crashed runs)
+    await supabase.rpc("unstick_processing_emails");
+
     // Get ALL organizations
     const { data: orgs } = await supabase
       .from("organizations")
@@ -67,14 +70,12 @@ serve(async (req: Request) => {
         .single();
       const senderDomain = orgSettings?.value || "rentfindercleveland.com";
 
-      // Fetch queued emails for THIS org (oldest first, limited batch)
+      // Atomically claim queued emails (prevents duplicate sends on concurrent runs)
       const { data: queued, error: fetchErr } = await supabase
-        .from("email_events")
-        .select("id, recipient_email, subject, details, organization_id")
-        .eq("organization_id", org.id)
-        .filter("details->>status", "eq", "queued")
-        .order("created_at", { ascending: true })
-        .limit(BATCH_SIZE);
+        .rpc("claim_queued_emails", {
+          p_organization_id: org.id,
+          p_batch_size: BATCH_SIZE,
+        });
 
       if (fetchErr) {
         console.error(`Failed to fetch queue for org ${org.id}:`, fetchErr.message);
@@ -177,6 +178,11 @@ serve(async (req: Request) => {
           }
         } catch (err) {
           console.warn(`Email processing error for ${email.recipient_email}:`, err);
+          // Revert to queued so it can be retried on next run
+          await supabase
+            .from("email_events")
+            .update({ details: { ...email.details, status: "queued" } })
+            .eq("id", email.id);
           errors.push(`${email.recipient_email}: ${String(err).slice(0, 100)}`);
           failed++;
         }

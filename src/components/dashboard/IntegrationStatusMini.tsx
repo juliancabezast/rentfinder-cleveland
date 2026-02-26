@@ -304,10 +304,10 @@ export const IntegrationStatusMini: React.FC = () => {
 
   return (
     <TooltipProvider>
-      <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50 max-w-[700px] overflow-x-auto scrollbar-thin">
+      <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-full bg-muted/50 border border-border/50 max-w-[800px] overflow-x-auto scrollbar-thin">
         {/* Overall Status Indicator */}
-        <div className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-border/50">
-          <span className="relative flex h-2 w-2">
+        <div className="flex items-center gap-2 shrink-0 pr-3 border-r border-border/50">
+          <span className="relative flex h-2.5 w-2.5">
             {(overallStatus.status === "healthy" || overallStatus.status === "down") && (
               <span
                 className={cn(
@@ -317,16 +317,16 @@ export const IntegrationStatusMini: React.FC = () => {
               />
             )}
             <span
-              className={cn("relative inline-flex rounded-full h-2 w-2", getOverallDotColor())}
+              className={cn("relative inline-flex rounded-full h-2.5 w-2.5", getOverallDotColor())}
             />
           </span>
-          <span className={cn("text-[10px] font-medium", getOverallTextColor())}>
+          <span className={cn("text-xs font-semibold", getOverallTextColor())}>
             {overallStatus.label}
           </span>
         </div>
 
         {/* Service Status Dots */}
-        <div className="flex items-center gap-2 overflow-x-auto">
+        <div className="flex items-center gap-3 overflow-x-auto">
           {SERVICE_ORDER.map((service) => {
             const status = getServiceStatus(service);
             const health = healthMap.get(service);
@@ -335,8 +335,8 @@ export const IntegrationStatusMini: React.FC = () => {
             return (
               <Tooltip key={service}>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1 shrink-0 cursor-default">
-                    <span className="relative flex h-1.5 w-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0 cursor-default">
+                    <span className="relative flex h-2 w-2">
                       {shouldPulse(status) && (
                         <span
                           className={cn(
@@ -356,12 +356,12 @@ export const IntegrationStatusMini: React.FC = () => {
                       )}
                       <span
                         className={cn(
-                          "relative inline-flex rounded-full h-1.5 w-1.5",
+                          "relative inline-flex rounded-full h-2 w-2",
                           getStatusDotClasses(status)
                         )}
                       />
                     </span>
-                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
                       {displayName}
                     </span>
                   </div>
@@ -402,7 +402,7 @@ export const IntegrationStatusMini: React.FC = () => {
 
         {/* Last Check Time */}
         {lastCheckTime && (
-          <span className="text-[9px] text-muted-foreground whitespace-nowrap shrink-0 pl-1 border-l border-border/50">
+          <span className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0 pl-2 border-l border-border/50">
             {formatDistanceToNow(lastCheckTime, { addSuffix: true })}
           </span>
         )}
@@ -413,12 +413,12 @@ export const IntegrationStatusMini: React.FC = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-5 w-5 shrink-0 ml-1"
+              className="h-6 w-6 shrink-0 ml-1"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
               <RefreshCw
-                className={cn("h-3 w-3 transition-transform", isRefreshing && "animate-spin")}
+                className={cn("h-3.5 w-3.5 transition-transform", isRefreshing && "animate-spin")}
               />
             </Button>
           </TooltipTrigger>

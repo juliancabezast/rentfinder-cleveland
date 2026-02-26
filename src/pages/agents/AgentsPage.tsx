@@ -2,24 +2,26 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Activity, Calendar, Layers } from "lucide-react";
+import { Bot, Calendar, Layers, LayoutDashboard, ScrollText, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { addHours } from "date-fns";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
 import { AgentMetricsBar } from "@/components/agents/AgentMetricsBar";
-import { OverviewTab } from "@/components/agents/OverviewTab";
-import { ActivityLogTab } from "@/components/agents/ActivityLogTab";
-import { ScheduleTab } from "@/components/agents/ScheduleTab";
+import { DashboardTab } from "@/components/agents/DashboardTab";
 import { DepartmentDetailTab } from "@/components/agents/DepartmentDetailTab";
+import { ScheduleTab } from "@/components/agents/ScheduleTab";
 import type { Agent, AgentTask, ActivityLog, AgentStats } from "@/components/agents/types";
 import { resolveAgentKey } from "@/components/agents/constants";
+
+const SystemLogs = React.lazy(() => import("@/pages/SystemLogs"));
+const CostDashboard = React.lazy(() => import("@/pages/costs/CostDashboard"));
 
 const AgentsPage: React.FC = () => {
   const { userRecord } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   // Fetch agents
   const { data: agents, isLoading: agentsLoading } = useQuery({
@@ -59,7 +61,7 @@ const AgentsPage: React.FC = () => {
   });
 
   // Fetch activity log
-  const { data: activityLog, isLoading: activityLoading } = useQuery({
+  const { data: activityLog } = useQuery({
     queryKey: ["agent-activity-log-page", userRecord?.organization_id],
     queryFn: async () => {
       if (!userRecord?.organization_id) return [];
@@ -190,39 +192,39 @@ const AgentsPage: React.FC = () => {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="inline-flex w-full sm:w-auto h-auto">
-          <TabsTrigger value="overview" className="flex-1 sm:flex-initial gap-2">
-            <Bot className="h-4 w-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="activity" className="flex-1 sm:flex-initial gap-2">
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Activity</span>
-          </TabsTrigger>
-          <TabsTrigger value="schedule" className="flex-1 sm:flex-initial gap-2">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Schedule</span>
+          <TabsTrigger value="dashboard" className="flex-1 sm:flex-initial gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            <span className="hidden sm:inline">Dashboard</span>
           </TabsTrigger>
           <TabsTrigger value="department" className="flex-1 sm:flex-initial gap-2">
             <Layers className="h-4 w-4" />
             <span className="hidden sm:inline">By Dept</span>
           </TabsTrigger>
+          <TabsTrigger value="schedule" className="flex-1 sm:flex-initial gap-2">
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">Schedule</span>
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="flex-1 sm:flex-initial gap-2">
+            <ScrollText className="h-4 w-4" />
+            <span className="hidden sm:inline">Logs</span>
+          </TabsTrigger>
+          <TabsTrigger value="costs" className="flex-1 sm:flex-initial gap-2">
+            <DollarSign className="h-4 w-4" />
+            <span className="hidden sm:inline">Costs</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-4">
-          <OverviewTab
-            agents={agents || []}
-            pendingTasks={pendingTasks || {}}
-            organizationId={userRecord?.organization_id}
-            onToggleAgent={handleToggle}
-            isToggling={toggleMutation.isPending}
-          />
+        <TabsContent value="dashboard" className="mt-4">
+          <DashboardTab stats={stats} />
         </TabsContent>
 
-        <TabsContent value="activity" className="mt-4">
-          <ActivityLogTab
-            activityLog={activityLog || []}
+        <TabsContent value="department" className="mt-4">
+          <DepartmentDetailTab
             agents={agents || []}
-            isLoading={activityLoading}
+            pendingTasks={pendingTasks || {}}
+            activityLog={activityLog || []}
+            onToggleAgent={handleToggle}
+            isToggling={toggleMutation.isPending}
           />
         </TabsContent>
 
@@ -233,12 +235,16 @@ const AgentsPage: React.FC = () => {
           />
         </TabsContent>
 
-        <TabsContent value="department" className="mt-4">
-          <DepartmentDetailTab
-            agents={agents || []}
-            pendingTasks={pendingTasks || {}}
-            activityLog={activityLog || []}
-          />
+        <TabsContent value="logs" className="mt-4">
+          <React.Suspense fallback={<Skeleton className="h-[500px]" />}>
+            <SystemLogs />
+          </React.Suspense>
+        </TabsContent>
+
+        <TabsContent value="costs" className="mt-4">
+          <React.Suspense fallback={<Skeleton className="h-[500px]" />}>
+            <CostDashboard />
+          </React.Suspense>
         </TabsContent>
       </Tabs>
     </div>

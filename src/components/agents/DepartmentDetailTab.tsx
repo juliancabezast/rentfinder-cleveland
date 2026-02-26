@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -9,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Clock, Zap, CheckCircle, XCircle, AlertTriangle, Layers } from "lucide-react";
+import { Clock, Zap, CheckCircle, XCircle, AlertTriangle, Layers, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { DEPARTMENTS, STATUS_CONFIG, getAgentDisplayName, AGENT_KPIS, resolveAgentKey } from "./constants";
@@ -19,12 +20,16 @@ interface DepartmentDetailTabProps {
   agents: Agent[];
   pendingTasks: Record<string, number>;
   activityLog: ActivityLog[];
+  onToggleAgent: (agentId: string, isEnabled: boolean) => void;
+  isToggling: boolean;
 }
 
 export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
   agents,
   pendingTasks,
   activityLog,
+  onToggleAgent,
+  isToggling,
 }) => {
   const [selectedDept, setSelectedDept] = useState(DEPARTMENTS[0].key);
   const dept = DEPARTMENTS.find((d) => d.key === selectedDept)!;
@@ -105,11 +110,13 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
       {/* Agent detail cards */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         {deptAgents.length === 0 ? (
-          <EmptyState
-            icon={Layers}
-            title="No agents"
-            description="No agents found for this department"
-          />
+          <div className="col-span-full">
+            <EmptyState
+              icon={Layers}
+              title="No agents"
+              description="No agents found for this department"
+            />
+          </div>
         ) : (
           deptAgents.map((agent) => {
             const statusConfig = STATUS_CONFIG[agent.status] || STATUS_CONFIG.idle;
@@ -140,9 +147,11 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
                       </h3>
                       <p className="text-xs text-muted-foreground">{functionalName}</p>
                     </div>
-                    <Badge variant={agent.is_enabled ? "default" : "secondary"} className="text-xs">
-                      {agent.is_enabled ? "ON" : "OFF"}
-                    </Badge>
+                    <Switch
+                      checked={agent.is_enabled}
+                      onCheckedChange={(checked) => onToggleAgent(agent.id, checked)}
+                      disabled={isToggling}
+                    />
                   </div>
 
                   {/* Stats grid */}
@@ -247,6 +256,49 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
           })
         )}
       </div>
+
+      {/* Department activity feed */}
+      {deptActivity.length > 0 && (
+        <Card variant="glass">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Activity className="h-4 w-4 text-purple-500" />
+              Recent Activity — {dept.label}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-1.5">
+              {deptActivity.map((log) => {
+                const agentName = getAgentDisplayName(resolveAgentKey(log.agent_key), "", "");
+                return (
+                  <div key={log.id} className="flex items-center gap-3 text-xs py-1.5 border-b last:border-b-0">
+                    <span className={cn(
+                      "h-2 w-2 rounded-full shrink-0",
+                      log.status === "success" ? "bg-green-500" :
+                      log.status === "failure" ? "bg-red-500" : "bg-gray-400"
+                    )} />
+                    <span className="font-medium text-foreground/80 w-20 shrink-0 truncate">{agentName}</span>
+                    <span className="text-muted-foreground truncate flex-1">{log.action.replace(/_/g, " ")}</span>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[10px] shrink-0",
+                        log.status === "success" && "bg-green-100 text-green-700",
+                        log.status === "failure" && "bg-red-100 text-red-700"
+                      )}
+                    >
+                      {log.status}
+                    </Badge>
+                    <span className="text-muted-foreground shrink-0 w-20 text-right">
+                      {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
