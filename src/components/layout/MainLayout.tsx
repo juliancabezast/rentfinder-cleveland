@@ -151,9 +151,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
           {/* Subtle animated background — floating gradient orbs */}
           <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" style={{ marginLeft: sidebarCollapsed ? '4rem' : '16rem' }}>
-            <div className="absolute rounded-full w-[600px] h-[600px] -top-[200px] -right-[200px] bg-primary/[0.02] blur-3xl animate-float-slow" />
-            <div className="absolute rounded-full w-[500px] h-[500px] top-[40%] -left-[150px] bg-accent/[0.03] blur-3xl animate-float-slow-reverse" />
-            <div className="absolute rounded-full w-[400px] h-[400px] bottom-[10%] right-[20%] bg-primary/[0.015] blur-3xl animate-float-slow" style={{ animationDelay: '-10s' }} />
+            <div className="absolute rounded-full w-[700px] h-[700px] -top-[200px] -right-[100px] blur-2xl animate-float-slow" style={{ background: 'radial-gradient(circle, rgba(79,70,229,0.07) 0%, transparent 70%)' }} />
+            <div className="absolute rounded-full w-[600px] h-[600px] top-[35%] -left-[100px] blur-2xl animate-float-slow-reverse" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.06) 0%, transparent 70%)' }} />
+            <div className="absolute rounded-full w-[500px] h-[500px] bottom-[5%] right-[15%] blur-2xl animate-float-slow" style={{ background: 'radial-gradient(circle, rgba(79,70,229,0.05) 0%, transparent 70%)', animationDelay: '-10s' }} />
           </div>
           <div className="relative z-10 w-full animate-fade-up">
             {children}
