@@ -184,7 +184,6 @@ const SCORE_BUCKETS: { tier: string; min: number; max: number; color: string }[]
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
-  hemlane_email: "Hemlane Email",
   hemlane: "Hemlane",
   website: "Website",
   inbound_call: "Inbound Call",
@@ -193,6 +192,12 @@ const SOURCE_LABELS: Record<string, string> = {
   campaign: "Campaign",
   csv_import: "CSV Import",
   manual: "Manual",
+  user: "Manual",
+};
+
+// Sources that should be merged into a single key
+const SOURCE_MERGE: Record<string, string> = {
+  hemlane_email: "hemlane",
 };
 
 const AGENT_LABELS: Record<string, string> = {
@@ -411,8 +416,9 @@ export function useDashboardAnalytics() {
 
       // ── Leads by Source ────────────────────────────────────────
       const srcMap = new Map<string, { count: number; showingLeadIds: Set<string> }>();
+      const resolveSource = (src: string) => SOURCE_MERGE[src] || src;
       lds.forEach((l) => {
-        const src = l.source || "unknown";
+        const src = resolveSource(l.source || "unknown");
         if (!srcMap.has(src)) srcMap.set(src, { count: 0, showingLeadIds: new Set() });
         srcMap.get(src)!.count++;
       });
@@ -420,7 +426,7 @@ export function useDashboardAnalytics() {
       const showingLeadIds = new Set(shs.map((s) => s.lead_id).filter(Boolean));
       lds.forEach((l) => {
         if (showingLeadIds.has(l.id) || ["showing_scheduled", "showed", "in_application", "converted"].includes(l.status)) {
-          const src = l.source || "unknown";
+          const src = resolveSource(l.source || "unknown");
           srcMap.get(src)?.showingLeadIds.add(l.id);
         }
       });
