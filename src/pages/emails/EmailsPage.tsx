@@ -209,15 +209,16 @@ const EmailsPage = () => {
 
   const PAGE_SIZE = 50;
 
-  // Stats
-  const [sentCount, setSentCount] = useState(0);
-  const [deliveredCount, setDeliveredCount] = useState(0);
-  const [openedCount, setOpenedCount] = useState(0);
+  // Stats (cumulative — matches Resend dashboard)
+  const [sentCount, setSentCount] = useState(0);       // total sent (includes delivered, opened, etc.)
+  const [deliveredCount, setDeliveredCount] = useState(0); // delivered (includes opened/clicked)
+  const [openedCount, setOpenedCount] = useState(0);    // opened (includes clicked)
   const [queuedCount, setQueuedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
   const [bouncedCount, setBouncedCount] = useState(0);
   const [receivedCount, setReceivedCount] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [autoSynced, setAutoSynced] = useState(false);
 
   const fetchEmails = async () => {
     if (!userRecord?.organization_id) return;
@@ -278,18 +279,29 @@ const EmailsPage = () => {
         .select("resend_email_id, event_type, details")
         .eq("organization_id", userRecord.organization_id);
 
+      // Cumulative stats (like Resend dashboard): delivered includes opened, sent includes delivered
       let sent = 0, delivered = 0, opened = 0, queued = 0, failed = 0, bounced = 0;
       for (const e of allEmails || []) {
         const le = e.details?.last_event;
         const st = e.details?.status;
-        if (le === "clicked" || st === "clicked") { opened++; continue; }
-        if (le === "opened" || st === "opened") { opened++; continue; }
-        if (le === "delivered" || st === "delivered") { delivered++; continue; }
-        if (le === "bounced" || st === "bounced") { bounced++; continue; }
-        if ((st === "queued" && !e.resend_email_id)) { queued++; continue; }
-        if (st === "failed" || e.event_type === "failed") { failed++; continue; }
-        if (e.resend_email_id || st === "sent" || le === "sent") { sent++; continue; }
-        sent++; // fallback
+
+        // Classify each email into its HIGHEST status
+        const isClicked = le === "clicked" || st === "clicked";
+        const isOpened = isClicked || le === "opened" || st === "opened";
+        const isDelivered = isOpened || le === "delivered" || st === "delivered";
+        const isBounced = le === "bounced" || st === "bounced";
+        const isQueued = st === "queued" && !e.resend_email_id;
+        const isFailed = st === "failed" || e.event_type === "failed";
+        const isSent = isDelivered || isBounced || e.resend_email_id || st === "sent" || le === "sent";
+
+        // Cumulative counting: opened emails are ALSO counted as delivered and sent
+        if (isQueued) { queued++; continue; }
+        if (isFailed) { failed++; continue; }
+        if (isBounced) { bounced++; sent++; continue; }
+
+        if (isSent) sent++;
+        if (isDelivered) delivered++;
+        if (isOpened) opened++;
       }
       setSentCount(sent);
       setDeliveredCount(delivered);
@@ -388,6 +400,27 @@ const EmailsPage = () => {
     }
   };
 
+  // Auto-sync from Resend on first load to ensure fresh data
+  useEffect(() => {
+    if (!userRecord?.organization_id || autoSynced) return;
+    setAutoSynced(true);
+    // Run sync in background — don't block UI
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("sync-resend-emails", {
+          body: { organization_id: userRecord.organization_id },
+        });
+        if (!error && data?.success) {
+          setLastSyncAt(new Date().toISOString());
+          // Refresh stats after sync
+          fetchEmails();
+        }
+      } catch {
+        // Non-blocking — if sync fails, stats still show from DB
+      }
+    })();
+  }, [userRecord?.organization_id]);
+
   useEffect(() => {
     if (activeTab === "sending") fetchEmails();
     else fetchInbound();
@@ -465,45 +498,55 @@ const EmailsPage = () => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">Sent</p>
-            <p className="text-xl font-bold">{sentCount}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">Delivered</p>
-            <p className="text-xl font-bold text-green-700">{deliveredCount}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">Opened</p>
-            <p className="text-xl font-bold text-blue-700">{openedCount}</p>
-          </CardContent>
-        </Card>
-        <Card className={`border-l-4 ${queuedCount > 0 ? "border-l-amber-500" : "border-l-slate-200"}`}>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">Queued</p>
-            <p className={`text-xl font-bold ${queuedCount > 0 ? "text-amber-600" : ""}`}>{queuedCount}</p>
-          </CardContent>
-        </Card>
-        <Card className={`border-l-4 ${bouncedCount > 0 ? "border-l-red-400" : "border-l-slate-200"}`}>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">Bounced</p>
-            <p className={`text-xl font-bold ${bouncedCount > 0 ? "text-red-600" : ""}`}>{bouncedCount}</p>
-          </CardContent>
-        </Card>
-        <Card className={`border-l-4 ${failedCount > 0 ? "border-l-red-600" : "border-l-slate-200"}`}>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">Failed</p>
-            <p className={`text-xl font-bold ${failedCount > 0 ? "text-red-700" : ""}`}>{failedCount}</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Stats — cumulative with rates like Resend dashboard */}
+      {(() => {
+        const deliveryRate = sentCount > 0 ? ((deliveredCount / sentCount) * 100).toFixed(1) : "0.0";
+        const openRate = deliveredCount > 0 ? ((openedCount / deliveredCount) * 100).toFixed(1) : "0.0";
+        const bounceRate = sentCount > 0 ? ((bouncedCount / sentCount) * 100).toFixed(1) : "0.0";
+        return (
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            <Card className="border-l-4 border-l-emerald-500">
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Sent</p>
+                <p className="text-xl font-bold">{sentCount}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-green-500">
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Delivered</p>
+                <p className="text-xl font-bold text-green-700">{deliveredCount}</p>
+                <p className="text-[11px] text-green-600 font-medium">{deliveryRate}%</p>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-blue-500">
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Opened</p>
+                <p className="text-xl font-bold text-blue-700">{openedCount}</p>
+                <p className="text-[11px] text-blue-600 font-medium">{openRate}%</p>
+              </CardContent>
+            </Card>
+            <Card className={`border-l-4 ${queuedCount > 0 ? "border-l-amber-500" : "border-l-slate-200"}`}>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Queued</p>
+                <p className={`text-xl font-bold ${queuedCount > 0 ? "text-amber-600" : ""}`}>{queuedCount}</p>
+              </CardContent>
+            </Card>
+            <Card className={`border-l-4 ${bouncedCount > 0 ? "border-l-red-400" : "border-l-slate-200"}`}>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Bounced</p>
+                <p className={`text-xl font-bold ${bouncedCount > 0 ? "text-red-600" : ""}`}>{bouncedCount}</p>
+                <p className="text-[11px] text-red-500 font-medium">{bounceRate}%</p>
+              </CardContent>
+            </Card>
+            <Card className={`border-l-4 ${failedCount > 0 ? "border-l-red-600" : "border-l-slate-200"}`}>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Failed</p>
+                <p className={`text-xl font-bold ${failedCount > 0 ? "text-red-700" : ""}`}>{failedCount}</p>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setLoading(true); }}>

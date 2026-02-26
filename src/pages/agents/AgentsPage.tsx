@@ -12,8 +12,10 @@ import { AgentMetricsBar } from "@/components/agents/AgentMetricsBar";
 import { DashboardTab } from "@/components/agents/DashboardTab";
 import { DepartmentDetailTab } from "@/components/agents/DepartmentDetailTab";
 import { ScheduleTab } from "@/components/agents/ScheduleTab";
+import { AgentsTab } from "@/components/settings/AgentsTab";
 import type { Agent, AgentTask, ActivityLog, AgentStats } from "@/components/agents/types";
 import { resolveAgentKey } from "@/components/agents/constants";
+import { Users } from "lucide-react";
 
 const SystemLogs = React.lazy(() => import("@/pages/SystemLogs"));
 const CostDashboard = React.lazy(() => import("@/pages/costs/CostDashboard"));
@@ -196,6 +198,10 @@ const AgentsPage: React.FC = () => {
             <LayoutDashboard className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
           </TabsTrigger>
+          <TabsTrigger value="fleet" className="flex-1 sm:flex-initial gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Fleet</span>
+          </TabsTrigger>
           <TabsTrigger value="department" className="flex-1 sm:flex-initial gap-2">
             <Layers className="h-4 w-4" />
             <span className="hidden sm:inline">By Dept</span>
@@ -216,6 +222,10 @@ const AgentsPage: React.FC = () => {
 
         <TabsContent value="dashboard" className="mt-4">
           <DashboardTab stats={stats} />
+        </TabsContent>
+
+        <TabsContent value="fleet" className="mt-4">
+          <AgentsTab />
         </TabsContent>
 
         <TabsContent value="department" className="mt-4">

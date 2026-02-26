@@ -73,20 +73,28 @@ interface Investor {
   email: string | null;
 }
 
+interface Property {
+  id: string;
+  address: string;
+  unit_number: string | null;
+}
+
 export const InvestorReportsTab: React.FC = () => {
   const { userRecord } = useAuth();
   const { getSetting, updateMultipleSettings, loading: settingsLoading } = useOrganizationSettings();
   
   const [reports, setReports] = useState<InvestorReport[]>([]);
   const [investors, setInvestors] = useState<Investor[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [resending, setResending] = useState<string | null>(null);
   const [previewReport, setPreviewReport] = useState<InvestorReport | null>(null);
-  
+
   // Generate dialog state
   const [generateOpen, setGenerateOpen] = useState(false);
   const [selectedInvestor, setSelectedInvestor] = useState<string>("all");
+  const [selectedProperty, setSelectedProperty] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() || 12);
   const [selectedYear, setSelectedYear] = useState<number>(
     new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear()
@@ -133,6 +141,14 @@ export const InvestorReportsTab: React.FC = () => {
           setInvestors(investorsData || []);
         }
 
+        // Fetch properties
+        const { data: propsData } = await supabase
+          .from("properties")
+          .select("id, address, unit_number")
+          .eq("organization_id", userRecord.organization_id)
+          .order("address");
+        setProperties(propsData || []);
+
         // Load settings
         setReportsEnabled(getSetting("investor_reports_enabled", true));
         setSendDay(getSetting("investor_reports_send_day", 1));
@@ -175,6 +191,7 @@ export const InvestorReportsTab: React.FC = () => {
             organization_id: userRecord.organization_id,
             month: selectedMonth,
             year: selectedYear,
+            property_id: selectedProperty !== "all" ? selectedProperty : undefined,
           },
         });
 
@@ -192,6 +209,7 @@ export const InvestorReportsTab: React.FC = () => {
             month: selectedMonth,
             year: selectedYear,
             send_email: true,
+            property_id: selectedProperty !== "all" ? selectedProperty : undefined,
           },
         });
 
@@ -457,6 +475,22 @@ export const InvestorReportsTab: React.FC = () => {
                   {investors.map((inv) => (
                     <SelectItem key={inv.id} value={inv.id}>
                       {inv.full_name || inv.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Property</Label>
+              <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select property" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Properties</SelectItem>
+                  {properties.map((prop) => (
+                    <SelectItem key={prop.id} value={prop.id}>
+                      {prop.address}{prop.unit_number ? ` #${prop.unit_number}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

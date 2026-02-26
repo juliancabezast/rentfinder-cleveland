@@ -224,6 +224,92 @@ serve(async (req: Request) => {
         break;
       }
 
+      case "telegram": {
+        const botToken = creds?.telegram_bot_token;
+        const chatId = creds?.telegram_chat_id;
+        if (!botToken || !chatId) {
+          message = "Telegram credentials not configured (need Bot Token + Chat ID)";
+          break;
+        }
+        try {
+          const resp = await fetch(
+            `https://api.telegram.org/bot${botToken}/sendMessage`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: chatId,
+                text: "Rent Finder connection test successful! Your Telegram integration is working.",
+              }),
+            }
+          );
+          const result = await resp.json();
+          if (result.ok) {
+            success = true;
+            message = "Connected — Test message sent to Telegram";
+          } else {
+            message = `Telegram API error: ${result.description || resp.status}`;
+          }
+        } catch (e) {
+          message = `Connection error: ${(e as Error).message}`;
+        }
+        break;
+      }
+
+      case "resend_send": {
+        const apiKey = creds?.resend_api_key || Deno.env.get("RESEND_API_KEY");
+        if (!apiKey) {
+          message = "Resend API key not configured";
+          break;
+        }
+        try {
+          // Get org sender domain
+          const { data: orgSettings } = await supabase
+            .from("organization_settings")
+            .select("value")
+            .eq("organization_id", organization_id)
+            .eq("key", "sender_domain")
+            .single();
+          const senderDomain = orgSettings?.value || "rentfindercleveland.com";
+
+          // Get admin email
+          const { data: org } = await supabase
+            .from("organizations")
+            .select("owner_email")
+            .eq("id", organization_id)
+            .single();
+          const recipientEmail = org?.owner_email;
+          if (!recipientEmail) {
+            message = "No owner email found for this organization";
+            break;
+          }
+
+          const resp = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: `Rent Finder <noreply@${senderDomain}>`,
+              to: [recipientEmail],
+              subject: "Rent Finder — Email Integration Test",
+              html: `<p>This is a test email from Rent Finder.</p><p>Your email sending integration is working correctly.</p><p><small>Sent at ${new Date().toISOString()}</small></p>`,
+            }),
+          });
+          if (resp.ok) {
+            success = true;
+            message = `Test email sent to ${recipientEmail}`;
+          } else {
+            const errData = await resp.json();
+            message = `Send failed: ${errData.message || resp.status}`;
+          }
+        } catch (e) {
+          message = `Connection error: ${(e as Error).message}`;
+        }
+        break;
+      }
+
       case "google_sheets": {
         const cred = creds?.google_sheets_credentials;
         if (!cred) {

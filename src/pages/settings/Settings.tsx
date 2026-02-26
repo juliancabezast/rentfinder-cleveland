@@ -2,14 +2,12 @@ import React from 'react';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrganizationTab } from '@/components/settings/OrganizationTab';
-import { AgentsTab } from '@/components/settings/AgentsTab';
 import { LeadCaptureTab } from '@/components/settings/LeadCaptureTab';
 import { ScoringTab } from '@/components/settings/ScoringTab';
 import { CommunicationsTab } from '@/components/settings/CommunicationsTab';
 import { ShowingsTab } from '@/components/settings/ShowingsTab';
 import { ComplianceTab } from '@/components/settings/ComplianceTab';
 import { IntegrationKeysTab } from '@/components/settings/IntegrationKeysTab';
-import { InvestorReportsTab } from '@/components/settings/InvestorReportsTab';
 import { DemoDataTab } from '@/components/settings/DemoDataTab';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -35,16 +33,12 @@ const Settings: React.FC = () => {
         <TabsList className="inline-flex flex-wrap h-auto gap-1">
           <TabsTrigger value="organization">Organization</TabsTrigger>
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
-          <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="lead-capture">Lead Capture</TabsTrigger>
           <TabsTrigger value="scoring">Scoring</TabsTrigger>
           <TabsTrigger value="communications">Communications</TabsTrigger>
           <TabsTrigger value="showings">Showings</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="investor-reports">Investor Reports</TabsTrigger>
-          )}
           {isAdmin && (
             <TabsTrigger value="demo-data">Demo Data</TabsTrigger>
           )}
@@ -61,10 +55,6 @@ const Settings: React.FC = () => {
             </React.Suspense>
           </TabsContent>
         )}
-
-        <TabsContent value="agents">
-          <AgentsTab />
-        </TabsContent>
 
         <TabsContent value="lead-capture">
           <LeadCaptureTab />
@@ -89,12 +79,6 @@ const Settings: React.FC = () => {
         <TabsContent value="integrations">
           <IntegrationKeysTab />
         </TabsContent>
-
-        {isAdmin && (
-          <TabsContent value="investor-reports">
-            <InvestorReportsTab />
-          </TabsContent>
-        )}
 
         {isAdmin && (
           <TabsContent value="demo-data">

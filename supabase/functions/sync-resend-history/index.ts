@@ -104,18 +104,64 @@ serve(async (req: Request) => {
         await new Promise((r) => setTimeout(r, 200));
       }
 
-      // Insert new emails into email_events
+      // Upsert emails: insert new ones, update existing with fresh delivery status
       let inserted = 0;
+      let updated = 0;
       let skipped = 0;
       const errors: string[] = [];
 
+      const statusMap: Record<string, string> = {
+        sent: "sent",
+        delivered: "delivered",
+        delivery_delayed: "queued",
+        complained: "complained",
+        bounced: "bounced",
+        opened: "opened",
+        clicked: "clicked",
+      };
+
       for (const email of allEmails) {
+        const lastEvent = email.last_event || "sent";
+        const mappedStatus = statusMap[lastEvent] || lastEvent;
+
         if (existingIds.has(email.id)) {
-          skipped++;
+          // Fetch current details to merge
+          const { data: current } = await supabase
+            .from("email_events")
+            .select("details")
+            .eq("resend_email_id", email.id)
+            .eq("organization_id", org.id)
+            .single();
+
+          const currentStatus = current?.details?.status;
+          const currentLastEvent = current?.details?.last_event;
+
+          // Only update if Resend has a newer/more advanced status
+          const statusOrder = ["queued", "sent", "delivered", "opened", "clicked"];
+          const currentIdx = statusOrder.indexOf(currentStatus || "");
+          const newIdx = statusOrder.indexOf(mappedStatus);
+
+          if (newIdx > currentIdx || mappedStatus === "bounced" || mappedStatus === "complained") {
+            await supabase
+              .from("email_events")
+              .update({
+                details: {
+                  ...(current?.details || {}),
+                  status: mappedStatus,
+                  last_event: lastEvent,
+                  synced_at: new Date().toISOString(),
+                },
+              })
+              .eq("resend_email_id", email.id)
+              .eq("organization_id", org.id);
+            updated++;
+          } else {
+            skipped++;
+          }
           continue;
         }
 
-        // Only import emails from our domains
+        // Only import NEW emails from our domains
         const fromAddr = email.from || "";
         const isFromAppDomain = APP_DOMAINS.some((d) => fromAddr.includes(d));
         if (!isFromAppDomain) {
@@ -125,7 +171,6 @@ serve(async (req: Request) => {
 
         // Map last_event to valid event_type
         const validTypes = ["sent", "delivered", "opened", "clicked", "bounced", "complained", "delivery_delayed"];
-        const lastEvent = email.last_event || "sent";
         const eventType = validTypes.includes(lastEvent) ? lastEvent : "sent";
 
         const recipientEmail = Array.isArray(email.to)
@@ -139,15 +184,18 @@ serve(async (req: Request) => {
           subject: email.subject || null,
           resend_email_id: email.id,
           details: {
+            status: mappedStatus,
+            last_event: lastEvent,
             from: email.from || null,
             to: email.to || null,
             cc: email.cc || null,
             bcc: email.bcc || null,
             reply_to: email.reply_to || null,
-            last_event: email.last_event || null,
             created_at_resend: email.created_at || null,
             direction: "outbound",
             notification_type: "outbound",
+            synced_at: new Date().toISOString(),
+            synced_from_resend: true,
           },
         }).select("id");
 
@@ -165,11 +213,11 @@ serve(async (req: Request) => {
         level: "info",
         category: "general",
         event_type: "resend_history_sync",
-        message: `Resend history sync: ${inserted} imported, ${skipped} skipped, ${allEmails.length} total from Resend (${pageCount} pages)`,
-        details: { inserted, skipped, total_fetched: allEmails.length, pages: pageCount, errors: errors.slice(0, 10) },
+        message: `Resend history sync: ${inserted} imported, ${updated} updated, ${skipped} skipped, ${allEmails.length} total from Resend (${pageCount} pages)`,
+        details: { inserted, updated, skipped, total_fetched: allEmails.length, pages: pageCount, errors: errors.slice(0, 10) },
       });
 
-      allResults.push({ org_id: org.id, inserted, skipped, total_fetched: allEmails.length, pages: pageCount, errors: errors.slice(0, 5) });
+      allResults.push({ org_id: org.id, inserted, updated, skipped, total_fetched: allEmails.length, pages: pageCount, errors: errors.slice(0, 5) });
     }
 
     return new Response(

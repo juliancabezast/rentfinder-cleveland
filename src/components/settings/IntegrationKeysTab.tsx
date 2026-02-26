@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertTriangle, Eye, EyeOff, Check, X } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff, Check, X, Send, Loader2, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -95,7 +95,7 @@ const INTEGRATION_KEYS: IntegrationKey[] = [
     key: 'telegram_chat_id',
     label: 'Telegram Chat ID',
     description: 'Chat or group ID where hourly reports are sent',
-    testable: false,
+    testable: true,
   },
 ];
 
@@ -134,6 +134,7 @@ export const IntegrationKeysTab: React.FC = () => {
   const [testing, setTesting] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [testStatuses, setTestStatuses] = useState<Record<string, TestStatus>>({});
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   useEffect(() => {
     const fetchCredentials = async () => {
@@ -177,6 +178,7 @@ export const IntegrationKeysTab: React.FC = () => {
           maxmind: ['maxmind_account_id', 'maxmind_license_key'],
           doorloop: ['doorloop_api_key'],
           resend: ['resend_api_key'],
+          telegram: ['telegram_bot_token', 'telegram_chat_id'],
         };
         (logsResult.data || []).forEach((row: any) => {
           const keys = serviceToKeys[row.service];
@@ -320,6 +322,27 @@ export const IntegrationKeysTab: React.FC = () => {
     );
   };
 
+  const handleSendTestEmail = async () => {
+    if (!userRecord?.organization_id) return;
+    setSendingTestEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('test-integration', {
+        body: { service: 'resend_send', organization_id: userRecord.organization_id },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast.success(data.message || 'Test email sent');
+      } else {
+        toast.error(data?.message || 'Failed to send test email');
+      }
+    } catch (err) {
+      console.error('Send test email error:', err);
+      toast.error('Failed to send test email');
+    } finally {
+      setSendingTestEmail(false);
+    }
+  };
+
   if (loading) {
     return <div className="animate-pulse h-64 bg-muted rounded-lg" />;
   }
@@ -359,7 +382,7 @@ export const IntegrationKeysTab: React.FC = () => {
                       {testStatuses[integration.key] && (
                         <TooltipContent>
                           <p className="text-xs">
-                            {testStatuses[integration.key].success ? '✅ Connected' : '❌ Failed'}
+                            {testStatuses[integration.key].success ? 'Connected' : 'Failed'}
                             <br />
                             Tested {formatDistanceToNow(new Date(testStatuses[integration.key].testedAt), { addSuffix: true })}
                           </p>
@@ -444,6 +467,54 @@ export const IntegrationKeysTab: React.FC = () => {
               )}
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Tests</CardTitle>
+          <CardDescription>Functional tests that send real messages to verify integrations end-to-end</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <Mail className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Send Test Email</p>
+                <p className="text-xs text-muted-foreground">Sends a real test email via Resend to the org admin</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSendTestEmail}
+              disabled={sendingTestEmail || !credentials['resend_api_key']}
+              className="gap-2"
+            >
+              {sendingTestEmail ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {sendingTestEmail ? 'Sending...' : 'Send'}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                <Mail className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Email Receive (Inbound)</p>
+                <p className="text-xs text-muted-foreground">Esther webhook processes incoming emails from Resend/Hemlane</p>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">Webhook-based</span>
+          </div>
         </CardContent>
       </Card>
     </div>

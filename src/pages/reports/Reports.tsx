@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/table";
 import { useReportsData, exportReportToCSV } from "@/hooks/useReportsData";
 import { LeadFunnelCard } from "@/components/reports/LeadFunnelCard";
+import { InvestorReportsTab } from "@/components/settings/InvestorReportsTab";
 import { cn } from "@/lib/utils";
 
 const CHART_COLORS = [
@@ -543,6 +544,11 @@ const Reports: React.FC = () => {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Investor Reports Section */}
+      <div className="border-t pt-6">
+        <InvestorReportsTab />
       </div>
     </div>
   );

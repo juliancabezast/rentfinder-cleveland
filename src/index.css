@@ -346,6 +346,22 @@
   }
 }
 
+/* Subtle drifting background lines */
+@keyframes drift-slow {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
+}
+@keyframes drift-slow-v {
+  0% { transform: translateY(-50%); }
+  100% { transform: translateY(0%); }
+}
+.animate-drift-slow {
+  animation: drift-slow 30s linear infinite;
+}
+.animate-drift-slow-v {
+  animation: drift-slow-v 25s linear infinite;
+}
+
 /* Toast progress bar animation */
 @keyframes toast-progress-shrink {
   from {

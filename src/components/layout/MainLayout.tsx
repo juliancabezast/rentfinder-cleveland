@@ -139,19 +139,25 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       )}>
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
 
-        {/* Animated accent line */}
+        {/* Animated accent line — red to green health gradient */}
         <div
           className="h-[2px] w-full"
           style={{
-            background: 'linear-gradient(90deg, transparent, #6366F1, #4F46E5, #6366F1, transparent)',
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 2.5s linear infinite',
+            background: 'linear-gradient(90deg, #ef4444, #f59e0b 40%, #22c55e 100%)',
           }}
         />
 
         {/* Page Content */}
-        <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
-          <div className="w-full animate-fade-up">
+        <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto relative">
+          {/* Subtle animated background lines */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.03]">
+            <div className="absolute w-[200%] h-[1px] top-[20%] bg-gradient-to-r from-transparent via-foreground to-transparent animate-drift-slow" />
+            <div className="absolute w-[200%] h-[1px] top-[45%] bg-gradient-to-r from-transparent via-foreground to-transparent animate-drift-slow" style={{ animationDelay: '-8s' }} />
+            <div className="absolute w-[200%] h-[1px] top-[70%] bg-gradient-to-r from-transparent via-foreground to-transparent animate-drift-slow" style={{ animationDelay: '-16s' }} />
+            <div className="absolute w-[1px] h-[200%] left-[25%] bg-gradient-to-b from-transparent via-foreground to-transparent animate-drift-slow-v" />
+            <div className="absolute w-[1px] h-[200%] left-[60%] bg-gradient-to-b from-transparent via-foreground to-transparent animate-drift-slow-v" style={{ animationDelay: '-12s' }} />
+          </div>
+          <div className="relative w-full animate-fade-up">
             {children}
           </div>
         </main>
