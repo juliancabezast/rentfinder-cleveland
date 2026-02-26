@@ -149,11 +149,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Page Content */}
         <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
-          {/* Subtle animated background — floating gradient orbs */}
+          {/* Animated background — floating gradient orbs */}
           <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" style={{ marginLeft: sidebarCollapsed ? '4rem' : '16rem' }}>
-            <div className="absolute rounded-full w-[700px] h-[700px] -top-[200px] -right-[100px] blur-2xl animate-float-slow" style={{ background: 'radial-gradient(circle, rgba(79,70,229,0.07) 0%, transparent 70%)' }} />
-            <div className="absolute rounded-full w-[600px] h-[600px] top-[35%] -left-[100px] blur-2xl animate-float-slow-reverse" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.06) 0%, transparent 70%)' }} />
-            <div className="absolute rounded-full w-[500px] h-[500px] bottom-[5%] right-[15%] blur-2xl animate-float-slow" style={{ background: 'radial-gradient(circle, rgba(79,70,229,0.05) 0%, transparent 70%)', animationDelay: '-10s' }} />
+            <div className="absolute rounded-full w-[800px] h-[800px] -top-[300px] -right-[200px] animate-float-slow" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, rgba(99,102,241,0.06) 40%, transparent 70%)' }} />
+            <div className="absolute rounded-full w-[700px] h-[700px] top-[30%] -left-[200px] animate-float-slow-reverse" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.14) 0%, rgba(255,178,44,0.04) 40%, transparent 70%)' }} />
+            <div className="absolute rounded-full w-[600px] h-[600px] bottom-[0%] right-[10%] animate-float-slow" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0.03) 40%, transparent 70%)', animationDelay: '-10s' }} />
           </div>
           <div className="relative z-10 w-full animate-fade-up">
             {children}
