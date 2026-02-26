@@ -226,13 +226,13 @@ export const IntegrationStatusMini: React.FC = () => {
     const allUnknown = statuses.every((s) => s === "unknown");
     const hasDown = statuses.some((s) => s === "down");
     const hasDegraded = statuses.some((s) => s === "degraded");
-    const allHealthy = statuses.every((s) => s === "healthy" || s === "not_configured");
+    const allHealthyOrIgnored = statuses.every((s) => s === "healthy" || s === "not_configured" || s === "unknown");
 
     if (allUnknown) return { status: "unknown", label: "Checking..." };
     if (hasDown) return { status: "down", label: "Issues" };
     if (hasDegraded) return { status: "degraded", label: "Degraded" };
-    if (allHealthy) return { status: "healthy", label: "Live" };
-    return { status: "unknown", label: "Checking..." };
+    if (allHealthyOrIgnored) return { status: "healthy", label: "Live" };
+    return { status: "healthy", label: "Live" };
   }, [healthMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get the most recent last_checked_at across all services
