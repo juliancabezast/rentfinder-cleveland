@@ -16,6 +16,38 @@ const TASK_TIMEOUT_MS = 30_000; // 30s per task
 // Exponential backoff schedule (minutes)
 const BACKOFF_MINUTES = [5, 15, 60, 240, 720, 1440, 2880];
 
+// Legacy agent_type → canonical agent_key mapping (mirrors frontend constants.ts)
+const LEGACY_TO_CANONICAL: Record<string, string> = {
+  main_inbound: "aaron",
+  bland_call_webhook: "aaron",
+  hemlane_parser: "esther",
+  scoring: "nehemiah",
+  transcript_analyst: "nehemiah",
+  task_dispatcher: "nehemiah",
+  conversion_predictor: "nehemiah",
+  insight_generator: "nehemiah",
+  report_generator: "nehemiah",
+  notification_dispatcher: "nehemiah",
+  system_logger: "nehemiah",
+  sms_inbound: "ruth",
+  campaign_sms: "ruth",
+  recapture: "elijah",
+  campaign: "elijah",
+  campaign_voice: "elijah",
+  welcome_sequence: "elijah",
+  showing_confirmation: "samuel",
+  doorloop_pull: "samuel",
+  no_show_followup: "samuel",
+  no_show_follow_up: "samuel",
+  post_showing: "samuel",
+  cost_tracker: "zacchaeus",
+  health_monitor: "zacchaeus",
+};
+
+function resolveAgentKey(agentType: string): string {
+  return LEGACY_TO_CANONICAL[agentType] || agentType;
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface OrgCreds {
@@ -29,6 +61,7 @@ interface OrgCreds {
 interface OrgSettings {
   sender_domain: string;
   outbound_pathway_id: string | null;
+  org_name: string;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -335,13 +368,13 @@ async function handleWelcomeSequence(
       {
         body: {
           to: email,
-          subject: "Welcome to Home Guard Management!",
-          html: buildWelcomeEmail(firstName, propertyInfo),
+          subject: `Welcome to ${settings.org_name}!`,
+          html: buildWelcomeEmail(firstName, propertyInfo, settings.sender_domain, settings.org_name),
           notification_type: "welcome_sequence",
           organization_id: task.organization_id,
           related_entity_id: task.lead_id,
           related_entity_type: "lead",
-          from_name: "Home Guard Management",
+          from_name: settings.org_name,
           queue: true,
         },
       }
@@ -356,7 +389,7 @@ async function handleWelcomeSequence(
       body: {
         lead_id: task.lead_id,
         channel: "sms",
-        body: `Hi ${firstName}! Welcome to Home Guard Management. We're excited to help you find your next home in Cleveland. Check out available properties at rentfindercleveland.com. Reply with any questions!`,
+        body: `Hi ${firstName}! Welcome to ${settings.org_name}. We're excited to help you find your next home. Check out available properties at ${settings.sender_domain}. Reply with any questions!`,
         organization_id: task.organization_id,
       },
     });
@@ -629,14 +662,14 @@ function buildShowingConfirmationEmail(
   </div>`;
 }
 
-function buildWelcomeEmail(firstName: string, propertyInfo: string): string {
+function buildWelcomeEmail(firstName: string, propertyInfo: string, senderDomain: string, orgName: string): string {
   return `<div style="font-family:'Montserrat',sans-serif;max-width:600px;margin:0 auto;padding:24px;">
     <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
-      <h1 style="margin:0;color:#ffb22c;font-size:20px;">Home Guard Management</h1>
+      <h1 style="margin:0;color:#ffb22c;font-size:20px;">${escapeHtml(orgName)}</h1>
     </div>
     <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
       <h2 style="color:#370d4b;margin-top:0;">Welcome, ${escapeHtml(firstName)}!</h2>
-      <p>Thank you for your interest in our rental properties. We're excited to help you find your next home in Cleveland.</p>
+      <p>Thank you for your interest in our rental properties. We're excited to help you find your next home.</p>
       ${propertyInfo}
       <p><strong>Here's what happens next:</strong></p>
       <ul style="color:#444;">
@@ -645,9 +678,9 @@ function buildWelcomeEmail(firstName: string, propertyInfo: string): string {
         <li>Our team is available to answer any questions</li>
       </ul>
       <div style="text-align:center;margin:24px 0;">
-        <a href="https://rentfindercleveland.com" style="background-color:#ffb22c;color:#370d4b;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Browse Available Properties</a>
+        <a href="https://${senderDomain}/p/book-showing" style="background-color:#ffb22c;color:#370d4b;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Book a Showing</a>
       </div>
-      <p style="color:#666;font-size:14px;">— Home Guard Management</p>
+      <p style="color:#666;font-size:14px;">— ${escapeHtml(orgName)}</p>
     </div>
   </div>`;
 }
@@ -814,6 +847,7 @@ serve(async (req: Request) => {
         sender_domain:
           settingsMap["sender_domain"] || "rentfindercleveland.com",
         outbound_pathway_id: settingsMap["outbound_pathway_id"] || null,
+        org_name: org.name || "Home Guard Management",
       };
 
       // Atomically claim pending tasks
@@ -836,6 +870,9 @@ serve(async (req: Request) => {
       if (!tasks || tasks.length === 0) continue;
 
       for (const task of tasks) {
+        const taskStart = Date.now();
+        const canonicalAgent = resolveAgentKey(task.agent_type);
+
         try {
           const result = await withTimeout(
             dispatchTask(supabase, task, orgCreds, orgSettings),
@@ -849,6 +886,28 @@ serve(async (req: Request) => {
             status: "completed",
             reason: result,
           });
+
+          const execMs = Date.now() - taskStart;
+
+          // Log activity + update counters (non-blocking)
+          try {
+            await Promise.all([
+              supabase.from("agent_activity_log").insert({
+                organization_id: org.id,
+                agent_key: canonicalAgent,
+                action: task.action_type || task.agent_type,
+                status: "success",
+                message: result,
+                execution_ms: execMs,
+              }),
+              supabase.rpc("log_agent_execution", {
+                p_organization_id: org.id,
+                p_agent_key: canonicalAgent,
+                p_success: true,
+                p_execution_ms: execMs,
+              }),
+            ]);
+          } catch { /* non-blocking */ }
         } catch (err) {
           const errMsg =
             err instanceof Error ? err.message : String(err);
@@ -864,6 +923,28 @@ serve(async (req: Request) => {
             status: "failed",
             reason: errMsg,
           });
+
+          const execMs = Date.now() - taskStart;
+
+          // Log failure + update counters (non-blocking)
+          try {
+            await Promise.all([
+              supabase.from("agent_activity_log").insert({
+                organization_id: org.id,
+                agent_key: canonicalAgent,
+                action: task.action_type || task.agent_type,
+                status: "failure",
+                message: errMsg.slice(0, 500),
+                execution_ms: execMs,
+              }),
+              supabase.rpc("log_agent_execution", {
+                p_organization_id: org.id,
+                p_agent_key: canonicalAgent,
+                p_success: false,
+                p_execution_ms: execMs,
+              }),
+            ]);
+          } catch { /* non-blocking */ }
         }
 
         // Delay between tasks
