@@ -42,7 +42,8 @@ import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from "date-fn
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { RealTimeAgentPanel } from "@/components/dashboard/RealTimeAgentPanel";
+import { AgentActivityPanel } from "@/components/dashboard/AgentActivityPanel";
+import { TaskQueuePanel } from "@/components/dashboard/TaskQueuePanel";
 
 type StatsPeriod = 'day' | 'week' | 'month' | 'total';
 
@@ -741,10 +742,15 @@ export const AdminDashboard = () => {
         />
       </div>
 
-      {/* Real-Time Agent Panel - Right Side */}
-      <div className="hidden xl:block w-[380px] shrink-0">
-        <div className="sticky top-4">
-          <RealTimeAgentPanel />
+      {/* Live Panels - Right Side */}
+      <div className="hidden xl:block w-[380px] 2xl:w-[780px] shrink-0">
+        <div className="sticky top-4 flex flex-col 2xl:flex-row gap-4">
+          <div className="w-full 2xl:w-[380px]">
+            <AgentActivityPanel />
+          </div>
+          <div className="w-full 2xl:w-[380px]">
+            <TaskQueuePanel />
+          </div>
         </div>
       </div>
     </div>
