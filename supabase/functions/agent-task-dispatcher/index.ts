@@ -663,26 +663,94 @@ function buildShowingConfirmationEmail(
 }
 
 function buildWelcomeEmail(firstName: string, propertyInfo: string, senderDomain: string, orgName: string): string {
-  return `<div style="font-family:'Montserrat',sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-    <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
-      <h1 style="margin:0;color:#ffb22c;font-size:20px;">${escapeHtml(orgName)}</h1>
-    </div>
-    <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
-      <h2 style="color:#370d4b;margin-top:0;">Welcome, ${escapeHtml(firstName)}!</h2>
-      <p>Thank you for your interest in our rental properties. We're excited to help you find your next home.</p>
-      ${propertyInfo}
-      <p><strong>Here's what happens next:</strong></p>
-      <ul style="color:#444;">
-        <li>We'll match you with available properties based on your preferences</li>
-        <li>You can schedule a showing at your convenience</li>
-        <li>Our team is available to answer any questions</li>
-      </ul>
-      <div style="text-align:center;margin:24px 0;">
-        <a href="https://${senderDomain}/p/book-showing" style="background-color:#ffb22c;color:#370d4b;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Book a Showing</a>
-      </div>
-      <p style="color:#666;font-size:14px;">— ${escapeHtml(orgName)}</p>
-    </div>
-  </div>`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to ${escapeHtml(orgName)}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3eef8;font-family:'Montserrat','Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f3eef8;">
+<tr><td style="padding:24px 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;">
+
+  <!-- Header -->
+  <tr><td style="background:linear-gradient(135deg,#370d4b 0%,#5a1d7a 100%);padding:32px 32px 24px;border-radius:16px 16px 0 0;text-align:center;">
+    <h1 style="margin:0 0 4px;color:#ffb22c;font-size:24px;font-weight:700;letter-spacing:-0.5px;">${escapeHtml(orgName)}</h1>
+    <p style="margin:0;color:rgba(255,255,255,0.7);font-size:13px;">Quality Rental Homes in Cleveland</p>
+  </td></tr>
+
+  <!-- Body -->
+  <tr><td style="background-color:#ffffff;padding:32px;border-left:1px solid #e5e5e5;border-right:1px solid #e5e5e5;">
+
+    <h2 style="color:#370d4b;margin:0 0 16px;font-size:22px;font-weight:700;">Welcome, ${escapeHtml(firstName)}!</h2>
+
+    <p style="color:#444;font-size:15px;line-height:1.6;margin:0 0 20px;">
+      Thank you for your interest in our rental properties. We're excited to help you find your next home in Cleveland.
+    </p>
+
+    ${propertyInfo}
+
+    <!-- Steps -->
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0;">
+      <tr><td style="padding:12px 16px;background-color:#f9f5fc;border-radius:10px;">
+        <p style="margin:0 0 12px;font-weight:600;color:#370d4b;font-size:15px;">Here's what happens next:</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="padding:6px 0;vertical-align:top;width:28px;"><span style="display:inline-block;width:22px;height:22px;background-color:#370d4b;color:#ffb22c;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;">1</span></td>
+            <td style="padding:6px 0;color:#444;font-size:14px;line-height:1.5;">We'll match you with available properties based on your preferences</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;vertical-align:top;width:28px;"><span style="display:inline-block;width:22px;height:22px;background-color:#370d4b;color:#ffb22c;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;">2</span></td>
+            <td style="padding:6px 0;color:#444;font-size:14px;line-height:1.5;">Schedule a showing at your convenience</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;vertical-align:top;width:28px;"><span style="display:inline-block;width:22px;height:22px;background-color:#370d4b;color:#ffb22c;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;">3</span></td>
+            <td style="padding:6px 0;color:#444;font-size:14px;line-height:1.5;">Apply online and move in!</td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+
+    <!-- CTA Buttons -->
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:28px 0 24px;">
+      <tr><td style="text-align:center;">
+        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="https://${senderDomain}/p/book-showing" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="17%" fillcolor="#ffb22c" stroke="f"><v:textbox inset="0,0,0,0"><center style="color:#370d4b;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;">Book a Showing</center></v:textbox></v:roundrect><![endif]-->
+        <!--[if !mso]><!-->
+        <a href="https://${senderDomain}/p/book-showing" style="display:inline-block;background-color:#ffb22c;color:#370d4b;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;line-height:1;">Book a Showing</a>
+        <!--<![endif]-->
+      </td></tr>
+      <tr><td style="text-align:center;padding-top:12px;">
+        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="https://homeguard.app.doorloop.com/tenant-portal/rental-applications/listing?source=rfc" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="17%" fillcolor="#370d4b" stroke="f"><v:textbox inset="0,0,0,0"><center style="color:#ffffff;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;">Apply Now</center></v:textbox></v:roundrect><![endif]-->
+        <!--[if !mso]><!-->
+        <a href="https://homeguard.app.doorloop.com/tenant-portal/rental-applications/listing?source=rfc" style="display:inline-block;background-color:#370d4b;color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;line-height:1;">Apply Now</a>
+        <!--<![endif]-->
+      </td></tr>
+    </table>
+
+    <!-- Section 8 Badge -->
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px;">
+      <tr><td style="text-align:center;padding:14px 20px;background:linear-gradient(135deg,#e8f5e9 0%,#f1f8e9 100%);border-radius:10px;border:1px solid #c8e6c9;">
+        <p style="margin:0;color:#2e7d32;font-size:14px;font-weight:600;">
+          &#10003; We accept Section 8 Housing Choice Vouchers
+        </p>
+      </td></tr>
+    </table>
+
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="background-color:#faf8ff;padding:24px 32px;border-radius:0 0 16px 16px;border:1px solid #e5e5e5;border-top:none;text-align:center;">
+    <p style="margin:0 0 8px;color:#666;font-size:13px;">Questions? Simply reply to this email — we're here to help.</p>
+    <p style="margin:0;color:#999;font-size:12px;">${escapeHtml(orgName)} &middot; Cleveland, OH</p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
 }
 
 function buildNoShowEmail(firstName: string, address: string): string {
