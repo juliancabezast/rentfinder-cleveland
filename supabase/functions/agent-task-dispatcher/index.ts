@@ -967,6 +967,8 @@ serve(async (req: Request) => {
                 status: "success",
                 message: result,
                 execution_ms: execMs,
+                related_lead_id: task.lead_id || null,
+                related_task_id: task.id,
               }),
               supabase.rpc("log_agent_execution", {
                 p_organization_id: org.id,
@@ -1004,6 +1006,8 @@ serve(async (req: Request) => {
                 status: "failure",
                 message: errMsg.slice(0, 500),
                 execution_ms: execMs,
+                related_lead_id: task.lead_id || null,
+                related_task_id: task.id,
               }),
               supabase.rpc("log_agent_execution", {
                 p_organization_id: org.id,

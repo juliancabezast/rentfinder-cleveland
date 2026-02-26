@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Activity, RefreshCw, Clock } from "lucide-react";
+import { Activity, RefreshCw, Clock, User, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow, format } from "date-fns";
@@ -24,6 +24,8 @@ interface ActivityEntry {
   message: string;
   execution_ms: number | null;
   created_at: string;
+  related_lead_id: string | null;
+  leads: { full_name: string; interested_property_id: string | null; properties: { address: string } | null } | null;
 }
 
 // ── Agent biblical names ─────────────────────────────────────────────
@@ -73,7 +75,10 @@ export const AgentActivityPanel = () => {
       if (!orgId) return [];
       const { data, error } = await supabase
         .from("agent_activity_log")
-        .select("id, agent_key, action, status, message, execution_ms, created_at")
+        .select(`
+          id, agent_key, action, status, message, execution_ms, created_at, related_lead_id,
+          leads:related_lead_id (full_name, interested_property_id, properties:interested_property_id (address))
+        `)
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(30);
@@ -172,12 +177,14 @@ export const AgentActivityPanel = () => {
             description="Agent actions will appear here as they execute"
           />
         ) : (
-          <ScrollArea className="h-[calc(50vh-140px)] 2xl:h-[calc(100vh-280px)] min-h-[200px]">
+          <ScrollArea className="h-[calc(100vh-280px)] min-h-[200px]">
             <div className="space-y-2">
               {entries.map((entry, index) => {
                 const style = getStatusStyle(entry.status);
                 const agentName = getAgentName(entry.agent_key);
                 const time = new Date(entry.created_at);
+                const leadName = entry.leads?.full_name;
+                const propertyAddress = entry.leads?.properties?.address;
 
                 return (
                   <div
@@ -218,7 +225,25 @@ export const AgentActivityPanel = () => {
                       </span>
                     </p>
 
-                    {/* Row 3: execution time */}
+                    {/* Row 3: lead + property */}
+                    {(leadName || propertyAddress) && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 ml-8 mt-1">
+                        {leadName && (
+                          <span className="flex items-center gap-1 text-[11px] text-foreground/70">
+                            <User className="h-3 w-3 shrink-0" />
+                            {leadName}
+                          </span>
+                        )}
+                        {propertyAddress && (
+                          <span className="flex items-center gap-1 text-[11px] text-foreground/70">
+                            <Home className="h-3 w-3 shrink-0" />
+                            <span className="truncate max-w-[180px]">{propertyAddress}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Row 4: execution time */}
                     {entry.execution_ms != null && entry.execution_ms > 0 && (
                       <p className="text-[10px] text-muted-foreground ml-8 mt-0.5">
                         {entry.execution_ms}ms
