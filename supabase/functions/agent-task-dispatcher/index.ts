@@ -69,10 +69,33 @@ interface OrgCreds {
   resend_api_key: string | null;
 }
 
+interface EmailButton {
+  text: string;
+  url: string;
+  style: "primary" | "secondary";
+}
+
+interface EmailTemplateConfig {
+  subject?: string;
+  headerTitle: string;
+  headerSubtitle?: string;
+  bodyParagraphs: string[];
+  buttons: EmailButton[];
+  showPropertyCard: boolean;
+  showSteps: boolean;
+  stepTexts?: string[];
+  showSection8Badge: boolean;
+  footerText: string;
+}
+
+// deno-lint-ignore no-explicit-any
+type EmailTemplatesMap = Record<string, any>;
+
 interface OrgSettings {
   sender_domain: string;
   outbound_pathway_id: string | null;
   org_name: string;
+  email_templates: EmailTemplatesMap | null;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -276,17 +299,34 @@ async function handleShowingConfirmation(
 
   // Fallback: Email
   if (lead.email) {
+    const firstName = lead.full_name?.split(" ")[0] || "there";
+    const customConfig = settings.email_templates?.showing_confirmation as EmailTemplateConfig | undefined;
+    let html: string;
+    let subject: string;
+
+    if (customConfig) {
+      const vars: Record<string, string> = {
+        "{firstName}": firstName,
+        "{fullName}": lead.full_name || firstName,
+        "{propertyAddress}": propertyAddress,
+        "{showingDate}": dateStr,
+        "{orgName}": settings.org_name,
+        "{senderDomain}": settings.sender_domain,
+      };
+      html = buildEmailFromConfig(customConfig, vars);
+      subject = interpolateVars(customConfig.subject || `Showing Reminder — ${propertyAddress}`, vars);
+    } else {
+      html = buildShowingConfirmationEmail(lead.full_name || "there", propertyAddress, dateStr);
+      subject = `Showing Reminder — ${propertyAddress}`;
+    }
+
     const { error } = await supabase.functions.invoke(
       "send-notification-email",
       {
         body: {
           to: lead.email,
-          subject: `Showing Reminder — ${propertyAddress}`,
-          html: buildShowingConfirmationEmail(
-            lead.full_name || "there",
-            propertyAddress,
-            dateStr
-          ),
+          subject,
+          html,
           notification_type: "showing_confirmation",
           organization_id: task.organization_id,
           related_entity_id: task.lead_id,
@@ -356,22 +396,47 @@ async function handleWelcomeSequence(
 
     // Get property info if available
     let propertyInfo = "";
+    let propData: { address?: string; rent_price?: number; bedrooms?: number; bathrooms?: number } | null = null;
     if (ctx.interested_property_id || lead.interested_property_id) {
       const { data: prop } = await supabase
         .from("properties")
-        .select("address, rent_amount, bedrooms, bathrooms")
+        .select("address, rent_price, bedrooms, bathrooms")
         .eq("id", ctx.interested_property_id || lead.interested_property_id)
         .single();
 
       if (prop) {
+        propData = prop;
         propertyInfo = `
           <div style="background-color:#f9f5fc;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #370d4b;">
             <p style="margin:0 0 4px;font-weight:600;color:#370d4b;">${escapeHtml(prop.address)}</p>
             <p style="margin:0;color:#666;">
-              ${prop.bedrooms ? `${prop.bedrooms} bed` : ""}${prop.bathrooms ? ` / ${prop.bathrooms} bath` : ""}${prop.rent_amount ? ` — $${prop.rent_amount}/mo` : ""}
+              ${prop.bedrooms ? `${prop.bedrooms} bed` : ""}${prop.bathrooms ? ` / ${prop.bathrooms} bath` : ""}${prop.rent_price ? ` — $${prop.rent_price}/mo` : ""}
             </p>
           </div>`;
       }
+    }
+
+    // Check for custom template
+    const customConfig = settings.email_templates?.welcome as EmailTemplateConfig | undefined;
+    let html: string;
+    let subject: string;
+
+    if (customConfig) {
+      const vars: Record<string, string> = {
+        "{firstName}": firstName,
+        "{fullName}": lead.full_name || firstName,
+        "{propertyAddress}": propData?.address || "",
+        "{propertyRent}": propData?.rent_price ? `$${propData.rent_price}` : "",
+        "{propertyBeds}": propData?.bedrooms ? String(propData.bedrooms) : "",
+        "{propertyBaths}": propData?.bathrooms ? String(propData.bathrooms) : "",
+        "{orgName}": settings.org_name,
+        "{senderDomain}": settings.sender_domain,
+      };
+      html = buildEmailFromConfig(customConfig, vars, propertyInfo || undefined);
+      subject = interpolateVars(customConfig.subject || `Welcome to ${settings.org_name}!`, vars);
+    } else {
+      html = buildWelcomeEmail(firstName, propertyInfo, settings.sender_domain, settings.org_name);
+      subject = `Welcome to ${settings.org_name}!`;
     }
 
     const { error } = await supabase.functions.invoke(
@@ -379,8 +444,8 @@ async function handleWelcomeSequence(
       {
         body: {
           to: email,
-          subject: `Welcome to ${settings.org_name}!`,
-          html: buildWelcomeEmail(firstName, propertyInfo, settings.sender_domain, settings.org_name),
+          subject,
+          html,
           notification_type: "welcome_sequence",
           organization_id: task.organization_id,
           related_entity_id: task.lead_id,
@@ -533,7 +598,8 @@ async function handleRecapture(
 async function handleNoShowFollowup(
   supabase: SupabaseClient,
   task: AgentTask,
-  lead: AgentTask
+  lead: AgentTask,
+  settings: OrgSettings
 ): Promise<string> {
   const ctx = task.context || {};
   const firstName = lead.full_name?.split(" ")[0] || "there";
@@ -555,13 +621,32 @@ async function handleNoShowFollowup(
   }
 
   if (lead.email) {
+    const customConfig = settings.email_templates?.no_show as EmailTemplateConfig | undefined;
+    let html: string;
+    let subject: string;
+
+    if (customConfig) {
+      const vars: Record<string, string> = {
+        "{firstName}": firstName,
+        "{fullName}": lead.full_name || firstName,
+        "{propertyAddress}": propertyAddress,
+        "{orgName}": settings.org_name,
+        "{senderDomain}": settings.sender_domain,
+      };
+      html = buildEmailFromConfig(customConfig, vars);
+      subject = interpolateVars(customConfig.subject || `We Missed You — ${propertyAddress}`, vars);
+    } else {
+      html = buildNoShowEmail(firstName, propertyAddress);
+      subject = `Missed Showing — ${propertyAddress}`;
+    }
+
     const { error } = await supabase.functions.invoke(
       "send-notification-email",
       {
         body: {
           to: lead.email,
-          subject: `Missed Showing — ${propertyAddress}`,
-          html: buildNoShowEmail(firstName, propertyAddress),
+          subject,
+          html,
           notification_type: "no_show_followup",
           organization_id: task.organization_id,
           related_entity_id: task.lead_id,
@@ -579,20 +664,40 @@ async function handleNoShowFollowup(
 async function handlePostShowing(
   supabase: SupabaseClient,
   task: AgentTask,
-  lead: AgentTask
+  lead: AgentTask,
+  settings: OrgSettings
 ): Promise<string> {
   const ctx = task.context || {};
   const firstName = lead.full_name?.split(" ")[0] || "there";
   const propertyAddress = ctx.property_address || "the property";
 
   if (lead.email) {
+    const customConfig = settings.email_templates?.post_showing as EmailTemplateConfig | undefined;
+    let html: string;
+    let subject: string;
+
+    if (customConfig) {
+      const vars: Record<string, string> = {
+        "{firstName}": firstName,
+        "{fullName}": lead.full_name || firstName,
+        "{propertyAddress}": propertyAddress,
+        "{orgName}": settings.org_name,
+        "{senderDomain}": settings.sender_domain,
+      };
+      html = buildEmailFromConfig(customConfig, vars);
+      subject = interpolateVars(customConfig.subject || `Next Steps — ${propertyAddress}`, vars);
+    } else {
+      html = buildPostShowingEmail(firstName, propertyAddress);
+      subject = `Next Steps — ${propertyAddress}`;
+    }
+
     const { error } = await supabase.functions.invoke(
       "send-notification-email",
       {
         body: {
           to: lead.email,
-          subject: `Next Steps — ${propertyAddress}`,
-          html: buildPostShowingEmail(firstName, propertyAddress),
+          subject,
+          html,
           notification_type: "post_showing",
           organization_id: task.organization_id,
           related_entity_id: task.lead_id,
@@ -605,7 +710,7 @@ async function handlePostShowing(
   }
 
   if (lead.phone) {
-    const smsBody = `Hi ${firstName}! Thanks for visiting ${propertyAddress} today. If you'd like to move forward with an application, reply APPLY or visit rentfindercleveland.com.`;
+    const smsBody = `Hi ${firstName}! Thanks for visiting ${propertyAddress} today. If you'd like to move forward with an application, reply APPLY or visit ${settings.sender_domain}.`;
 
     const { error } = await supabase.functions.invoke("send-message", {
       body: {
@@ -648,7 +753,97 @@ async function handleCampaign(
   return "Campaign task logged (stub handler)";
 }
 
-// ── Email Templates ──────────────────────────────────────────────────────────
+// ── Config-driven Email Renderer ─────────────────────────────────────────────
+
+function interpolateVars(text: string, vars: Record<string, string>): string {
+  return Object.entries(vars).reduce(
+    (result, [key, value]) => result.replaceAll(key, escapeHtml(value)),
+    text
+  );
+}
+
+function buildEmailFromConfig(
+  config: EmailTemplateConfig,
+  vars: Record<string, string>,
+  propertyInfoHtml?: string
+): string {
+  const v = (text: string) => interpolateVars(text, vars);
+  const PRIMARY = "#370d4b";
+  const GOLD = "#ffb22c";
+
+  const headerHtml = `<tr>
+    <td style="background:linear-gradient(135deg,${PRIMARY} 0%,#5b1a7a 100%);padding:32px 30px;text-align:center;">
+      <h1 style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:26px;font-weight:700;color:#ffffff;">${v(config.headerTitle)}</h1>
+      ${config.headerSubtitle ? `<p style="margin:8px 0 0;font-family:Montserrat,Arial,sans-serif;font-size:14px;color:${GOLD};font-weight:500;">${v(config.headerSubtitle)}</p>` : ""}
+      <div style="width:60px;height:3px;background:${GOLD};margin:16px auto 0;border-radius:2px;"></div>
+    </td>
+  </tr>`;
+
+  const bodyHtml = config.bodyParagraphs
+    .map((p) => `<p style="margin:0 0 14px;font-family:Montserrat,Arial,sans-serif;font-size:15px;line-height:1.6;color:#333333;">${v(p)}</p>`)
+    .join("\n");
+
+  let propHtml = "";
+  if (config.showPropertyCard && propertyInfoHtml) {
+    propHtml = `<div style="background:#f8f5ff;border-left:4px solid ${PRIMARY};border-radius:8px;padding:16px 20px;margin:20px 0;">${propertyInfoHtml}</div>`;
+  } else if (config.showPropertyCard && vars["{propertyAddress}"]) {
+    propHtml = `<div style="background:#f8f5ff;border-left:4px solid ${PRIMARY};border-radius:8px;padding:16px 20px;margin:20px 0;">
+      <p style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:14px;color:#555;"><strong>${v("{propertyAddress}")}</strong></p>
+    </div>`;
+  }
+
+  let stepsHtml = "";
+  if (config.showSteps && config.stepTexts?.length) {
+    stepsHtml = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+      ${config.stepTexts.map((step, i) => `<tr>
+        <td width="36" valign="top" style="padding-bottom:12px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:${PRIMARY};color:#fff;font-family:Montserrat,Arial,sans-serif;font-size:14px;font-weight:700;text-align:center;line-height:28px;">${i + 1}</div>
+        </td>
+        <td style="padding:4px 0 12px 10px;font-family:Montserrat,Arial,sans-serif;font-size:14px;color:#444;line-height:1.5;">${v(step)}</td>
+      </tr>`).join("")}
+    </table>`;
+  }
+
+  let buttonsHtml = "";
+  if (config.buttons.length) {
+    buttonsHtml = `<div style="text-align:center;margin:24px 0;">
+      ${config.buttons.map((btn) => {
+        const bg = btn.style === "primary" ? PRIMARY : GOLD;
+        const color = btn.style === "primary" ? "#ffffff" : "#1a1a1a";
+        return `<a href="${v(btn.url)}" style="display:inline-block;background:${bg};color:${color};font-family:Montserrat,Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:8px;margin:6px 8px;">${v(btn.text)}</a>`;
+      }).join("\n")}
+    </div>`;
+  }
+
+  const section8Html = config.showSection8Badge
+    ? `<div style="text-align:center;margin:20px 0;">
+         <span style="display:inline-block;background:#e8f5e9;color:#2e7d32;font-family:Montserrat,Arial,sans-serif;font-size:13px;font-weight:600;padding:8px 18px;border-radius:20px;border:1px solid #c8e6c9;">Section 8 Vouchers Accepted</span>
+       </div>`
+    : "";
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f1f1;font-family:Montserrat,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1f1;padding:20px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+        ${headerHtml}
+        <tr><td style="padding:30px;">
+          ${bodyHtml}
+          ${propHtml}
+          ${stepsHtml}
+          ${buttonsHtml}
+          ${section8Html}
+        </td></tr>
+        <tr><td style="padding:20px 30px;text-align:center;background:#f7f5fa;border-top:1px solid #e8e5ed;">
+          <p style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:13px;color:#888;">${v(config.footerText)}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+// ── Hardcoded Email Templates (fallback) ────────────────────────────────────
 
 function buildShowingConfirmationEmail(
   name: string,
@@ -829,9 +1024,9 @@ async function dispatchTask(
     case "recapture":
       return handleRecapture(supabase, task, lead, creds, settings);
     case "no_show_followup":
-      return handleNoShowFollowup(supabase, task, lead);
+      return handleNoShowFollowup(supabase, task, lead, settings);
     case "post_showing":
-      return handlePostShowing(supabase, task, lead);
+      return handlePostShowing(supabase, task, lead, settings);
     case "notification_dispatcher":
       return handleNotificationDispatch(supabase, task);
     case "campaign_voice":
@@ -912,9 +1107,10 @@ serve(async (req: Request) => {
         .from("organization_settings")
         .select("key, value")
         .eq("organization_id", org.id)
-        .in("key", ["sender_domain", "outbound_pathway_id"]);
+        .in("key", ["sender_domain", "outbound_pathway_id", "email_templates"]);
 
-      const settingsMap: Record<string, string> = {};
+      // deno-lint-ignore no-explicit-any
+      const settingsMap: Record<string, any> = {};
       for (const s of settingsRows || []) {
         settingsMap[s.key] = s.value;
       }
@@ -927,11 +1123,23 @@ serve(async (req: Request) => {
         resend_api_key: creds?.resend_api_key || null,
       };
 
+      // Parse email_templates: value is JSONB, may be an object or stringified JSON
+      let emailTemplates: EmailTemplatesMap | null = null;
+      if (settingsMap["email_templates"]) {
+        const raw = settingsMap["email_templates"];
+        emailTemplates = typeof raw === "string" ? JSON.parse(raw) : raw;
+        // Only keep if it has at least one key
+        if (emailTemplates && Object.keys(emailTemplates).length === 0) {
+          emailTemplates = null;
+        }
+      }
+
       const orgSettings: OrgSettings = {
         sender_domain:
-          settingsMap["sender_domain"] || "rentfindercleveland.com",
-        outbound_pathway_id: settingsMap["outbound_pathway_id"] || null,
+          String(settingsMap["sender_domain"] || "rentfindercleveland.com"),
+        outbound_pathway_id: settingsMap["outbound_pathway_id"] ? String(settingsMap["outbound_pathway_id"]) : null,
         org_name: org.name || "Home Guard Management",
+        email_templates: emailTemplates,
       };
 
       // Atomically claim pending tasks

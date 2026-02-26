@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Sparkles, Copy, UserX, Clock, RefreshCw, AlertTriangle } from "lucide-react";
+import { Sparkles, Copy, UserX, Clock, RefreshCw, AlertTriangle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { DuplicatesTab } from "@/components/leads/nurturing/DuplicatesTab";
 import { IncompleteTab } from "@/components/leads/nurturing/IncompleteTab";
 import { StaleTab } from "@/components/leads/nurturing/StaleTab";
 import { SuspectTab } from "@/components/leads/nurturing/SuspectTab";
+import { EmailTemplatesTab } from "@/components/leads/nurturing/EmailTemplatesTab";
 
 const LeadHygiene: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -116,6 +117,10 @@ const LeadHygiene: React.FC = () => {
             <AlertTriangle className="h-4 w-4" />
             For Review
           </TabsTrigger>
+          <TabsTrigger value="email_templates" className="gap-1.5">
+            <Mail className="h-4 w-4" />
+            Email Templates
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="duplicates" className="mt-4">
@@ -141,6 +146,9 @@ const LeadHygiene: React.FC = () => {
             refreshKey={refreshKey}
             onCountChange={(n) => setCounts((c) => ({ ...c, suspect: n }))}
           />
+        </TabsContent>
+        <TabsContent value="email_templates" className="mt-4">
+          <EmailTemplatesTab refreshKey={refreshKey} />
         </TabsContent>
       </Tabs>
     </div>
