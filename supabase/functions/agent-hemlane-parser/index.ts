@@ -926,93 +926,55 @@ async function upsertLead(
     if (existing) return updateExistingLead(existing, "email dup");
   }
 
-  // ── Dup check 3: by full name + same source (prevents digest/single email duplicates) ──
+  // ── Dup check 3: Hemlane fragmented notification merge ──────────────
+  // Hemlane sends 2 emails per inquiry within SECONDS of each other:
+  //   "New inquiry for {property}" → has email + phone, NO name
+  //   "Rental Message from {property}" → has name + message, NO email/phone
+  // We ONLY merge when:
+  //   - Same property
+  //   - Within 2 minutes (these pairs arrive within seconds)
+  //   - Existing lead is INCOMPLETE (placeholder name or no phone)
+  //   - We provide the missing piece
+  // This is the ONLY non-identity-based merge. All other merges require
+  // matching phone or email. Different people = different leads, ALWAYS.
   const trimmedName = lead.name?.trim() || null;
-  if (trimmedName && trimmedName.length > 2) {
-    const { data: existing, error: dup3Err } = await supabase
-      .from("leads")
-      .select("id, full_name, source_detail, phone, email, interested_property_id")
-      .eq("organization_id", organizationId)
-      .eq("source", "hemlane_email")
-      .ilike("full_name", trimmedName)
-      .limit(1)
-      .maybeSingle();
-
-    if (dup3Err) console.error(`Esther: dup check 3 (name) query failed: ${dup3Err.message}`);
-
-    if (existing) {
-      console.log(`Esther: found name dup "${trimmedName}" → ${existing.id} (no phone/email match but same name + hemlane source)`);
-      return updateExistingLead(existing, "name dup");
-    }
-  }
-
-  // ── Dup check 3b: by full name + same property (catches daily digest duplicates) ──
-  // Hemlane sends individual notifications during the day and a digest at night.
-  // Both have different emailIds, so the idempotency check won't catch them.
-  // This check has NO time limit — if the same name inquired about the same property
-  // at any point, it's the same person.
-  if (trimmedName && trimmedName.length > 2 && propertyId) {
-    const { data: existing, error: dup3bErr } = await supabase
-      .from("leads")
-      .select("id, full_name, source_detail, phone, email, interested_property_id")
-      .eq("organization_id", organizationId)
-      .eq("interested_property_id", propertyId)
-      .ilike("full_name", trimmedName)
-      .limit(1)
-      .maybeSingle();
-
-    if (dup3bErr) console.error(`Esther: dup check 3b (name+property) query failed: ${dup3bErr.message}`);
-
-    if (existing) {
-      console.log(`Esther: found name+property dup "${trimmedName}" at property ${propertyId} → ${existing.id}`);
-      return updateExistingLead(existing, "name+property dup");
-    }
-  }
-
-  // ── Dup check 4: same property + short time window (Hemlane multi-email) ──
-  // Hemlane sends 2-3 emails for the same inquiry (name in one, phone in another).
-  // Only merge if the existing lead is INCOMPLETE (no name or placeholder name),
-  // meaning it's likely the same person's fragmented Hemlane notification.
-  // Never merge two leads that both have real names — they're different people.
   if (propertyId) {
-    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const { data: recentSameProperty, error: dup4Err } = await supabase
+    const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: recentSameProperty, error: dup3Err } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
       .eq("interested_property_id", propertyId)
-      .gte("created_at", tenMinAgo)
+      .gte("created_at", twoMinAgo)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(3);
 
-    if (dup4Err) console.error(`Esther: dup check 4 (property+time) query failed: ${dup4Err.message}`);
+    if (dup3Err) console.error(`Esther: dup check 3 (fragment-merge) query failed: ${dup3Err.message}`);
 
     if (recentSameProperty) {
-      // Only merge if existing lead is incomplete (no real name) or incoming has no name
-      const existingHasRealName = recentSameProperty.full_name
-        && !recentSameProperty.full_name.startsWith("Hemlane Lead")
-        && recentSameProperty.full_name.length > 2;
-      const incomingHasRealName = trimmedName && trimmedName.length > 2;
+      for (const candidate of recentSameProperty) {
+        const isPlaceholderName = !candidate.full_name
+          || candidate.full_name.startsWith("Hemlane Lead");
+        const candidateMissingPhone = !candidate.phone;
+        const weHaveName = trimmedName && trimmedName.length > 2;
+        const weHavePhone = !!phone;
 
-      // If both have real names and they differ, these are different people
-      if (existingHasRealName && incomingHasRealName
-        && recentSameProperty.full_name!.toLowerCase() !== trimmedName!.toLowerCase()) {
-        console.log(`Esther: dup check 4 skipped — different names: "${recentSameProperty.full_name}" vs "${trimmedName}"`);
-      } else {
-        console.log(`Esther: found recent lead for same property (10min window) → ${recentSameProperty.id} "${recentSameProperty.full_name}"`);
-        return updateExistingLead(recentSameProperty, "property+time dup");
+        // Only merge if existing lead is truly incomplete and we fill the gap
+        if ((isPlaceholderName && weHaveName) || (candidateMissingPhone && weHavePhone)) {
+          console.log(`Esther: fragment-merge (2min) → ${candidate.id} "${candidate.full_name}" + incoming "${trimmedName || phone}"`);
+          return updateExistingLead(candidate, "fragment-merge");
+        }
       }
     }
   }
 
-  // ── Dup check 5: phone digits embedded in existing lead name ──
+  // ── Dup check 4: phone digits embedded in existing lead name ──────
   // Catches "Hemlane Lead (614) 972-3153" when new email has name but same phone.
   if (phone) {
     const phoneDigits = phone.replace(/\D/g, "").slice(-7); // last 7 digits
     if (phoneDigits.length === 7) {
-      const { data: phoneInName, error: dup5Err } = await supabase
+      const { data: phoneInName, error: dup4Err } = await supabase
         .from("leads")
         .select("id, full_name, source_detail, phone, email, interested_property_id")
         .eq("organization_id", organizationId)
@@ -1021,52 +983,11 @@ async function upsertLead(
         .limit(1)
         .maybeSingle();
 
-      if (dup5Err) console.error(`Esther: dup check 5 (phone-in-name) query failed: ${dup5Err.message}`);
+      if (dup4Err) console.error(`Esther: dup check 4 (phone-in-name) query failed: ${dup4Err.message}`);
 
       if (phoneInName) {
         console.log(`Esther: found phone-in-name match → ${phoneInName.id} "${phoneInName.full_name}" (phone digits ${phoneDigits})`);
         return updateExistingLead(phoneInName, "phone-in-name dup");
-      }
-    }
-  }
-
-  // ── Dup check 6: recent incomplete hemlane lead (no property match fallback) ──
-  // If no match yet, look for a hemlane lead created in last 5 min that's missing
-  // name or phone, and this new lead provides the complementary piece.
-  {
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const hasComplementaryInfo = (lead.name && lead.name.length > 2) || phone;
-
-    if (hasComplementaryInfo) {
-      const { data: recentIncomplete, error: dup6Err } = await supabase
-        .from("leads")
-        .select("id, full_name, source_detail, phone, email, interested_property_id")
-        .eq("organization_id", organizationId)
-        .eq("source", "hemlane_email")
-        .gte("created_at", fiveMinAgo)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (dup6Err) console.error(`Esther: dup check 6 (recent-incomplete) query failed: ${dup6Err.message}`);
-
-      if (recentIncomplete) {
-        for (const candidate of recentIncomplete) {
-          // Skip if properties conflict (different properties = different leads)
-          const propertiesConflict = propertyId && candidate.interested_property_id
-            && propertyId !== candidate.interested_property_id;
-          if (propertiesConflict) continue;
-
-          const candidateMissingName = !candidate.full_name || candidate.full_name.startsWith("Hemlane Lead");
-          const candidateMissingPhone = !candidate.phone;
-          const weHaveName = lead.name && lead.name.length > 2;
-          const weHavePhone = !!phone;
-
-          // Merge if we provide what they're missing
-          if ((candidateMissingName && weHaveName) || (candidateMissingPhone && weHavePhone)) {
-            console.log(`Esther: found recent incomplete lead → ${candidate.id} "${candidate.full_name}" (complementary info match)`);
-            return updateExistingLead(candidate, "recent-incomplete dup");
-          }
-        }
       }
     }
   }
