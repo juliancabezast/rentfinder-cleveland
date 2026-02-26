@@ -826,6 +826,11 @@ async function dispatchTask(
     case "campaign_voice":
     case "campaign":
       return handleCampaign(supabase, task, lead);
+    case "conversion_predictor":
+    case "lead_scoring":
+    case "doorloop_pull":
+      // No handler yet — auto-complete these task types
+      return `Auto-completed ${task.agent_type} (no handler)`;
     default:
       throw new Error(`Unknown agent_type: ${task.agent_type}`);
   }

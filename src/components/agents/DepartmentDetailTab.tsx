@@ -132,20 +132,20 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
 
             return (
               <Card key={agent.id} variant="glass" className="overflow-hidden">
-                <CardContent className="p-4">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-foreground flex items-center gap-2">
-                        <span className="relative flex h-2.5 w-2.5 shrink-0">
-                          {statusConfig.pulse && (
-                            <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", statusConfig.bgColor)} />
-                          )}
-                          <span className={cn("relative inline-flex rounded-full h-2.5 w-2.5", statusConfig.bgColor)} />
-                        </span>
-                        {agent.biblical_name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">{functionalName}</p>
+                <CardContent className="p-4 space-y-3">
+                  {/* Header: name + role + status + toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="relative flex h-2.5 w-2.5 shrink-0">
+                        {statusConfig.pulse && (
+                          <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", statusConfig.bgColor)} />
+                        )}
+                        <span className={cn("relative inline-flex rounded-full h-2.5 w-2.5", statusConfig.bgColor)} />
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-sm text-foreground leading-tight">{agent.biblical_name}</h3>
+                        <p className="text-[11px] text-muted-foreground truncate">{functionalName}</p>
+                      </div>
                     </div>
                     <Switch
                       checked={agent.is_enabled}
@@ -154,98 +154,79 @@ export const DepartmentDetailTab: React.FC<DepartmentDetailTabProps> = ({
                     />
                   </div>
 
-                  {/* Stats grid */}
-                  <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-                    <div className="bg-muted/30 rounded p-2">
-                      <p className="text-sm font-bold text-green-600">{agent.successes_today}</p>
-                      <p className="text-[10px] text-muted-foreground">Success</p>
-                    </div>
-                    <div className="bg-muted/30 rounded p-2">
-                      <p className={cn("text-sm font-bold", agent.failures_today > 0 ? "text-red-600" : "text-muted-foreground")}>{agent.failures_today}</p>
-                      <p className="text-[10px] text-muted-foreground">Failures</p>
-                    </div>
-                    <div className="bg-muted/30 rounded p-2">
-                      <p className={cn("text-sm font-bold", pending > 0 ? "text-amber-600" : "text-muted-foreground")}>{pending}</p>
-                      <p className="text-[10px] text-muted-foreground">Pending</p>
-                    </div>
+                  {/* Compact stats row */}
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                      <span className="font-semibold text-green-600">{agent.successes_today}</span>
+                    </span>
+                    {agent.failures_today > 0 && (
+                      <span className="flex items-center gap-1">
+                        <XCircle className="h-3 w-3 text-red-500" />
+                        <span className="font-semibold text-red-600">{agent.failures_today}</span>
+                      </span>
+                    )}
+                    {pending > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3 text-amber-500" />
+                        <span className="font-semibold text-amber-600">{pending}</span>
+                      </span>
+                    )}
+                    <span className="ml-auto text-muted-foreground">
+                      {agent.last_execution_at
+                        ? formatDistanceToNow(new Date(agent.last_execution_at), { addSuffix: true })
+                        : "Never run"}
+                    </span>
                   </div>
 
-                  {/* KPIs */}
-                  {(() => {
-                    const canonical = resolveAgentKey(agent.agent_key);
-                    const kpis = AGENT_KPIS[canonical];
-                    if (!kpis) return null;
-                    return (
-                      <div className="space-y-1.5 mb-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">KPIs</p>
-                        {kpis.map((kpi, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">{kpi.label}</span>
-                            <span className="font-medium">
-                              {agent.executions_today > 0 ? (
-                                idx === 0 ? `${agent.successes_today} ${kpi.metric}` :
-                                idx === 1 ? `${Math.round((agent.successes_today / agent.executions_today) * 100)}%` :
-                                agent.avg_execution_ms ? `${(agent.avg_execution_ms / 1000).toFixed(1)}s` : "—"
-                              ) : (
-                                <span className="text-muted-foreground">No data</span>
-                              )}
-                            </span>
-                          </div>
-                        ))}
+                  {/* Success rate bar */}
+                  {agent.executions_today > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-muted-foreground">Success rate</span>
+                        <span className="font-semibold">{successRate}%</span>
                       </div>
-                    );
-                  })()}
-
-                  {/* Progress bar */}
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-3">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all"
-                      style={{ width: `${successRate}%` }}
-                    />
-                  </div>
-
-                  {/* Services */}
-                  {agent.required_services && agent.required_services.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {agent.required_services.map((svc) => (
-                        <Badge key={svc} variant="outline" className="text-[10px]">{svc}</Badge>
-                      ))}
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            successRate >= 80 ? "bg-green-500" : successRate >= 50 ? "bg-amber-500" : "bg-red-500"
+                          )}
+                          style={{ width: `${successRate}%` }}
+                        />
+                      </div>
                     </div>
                   )}
 
-                  {/* Last execution + avg time */}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {agent.last_execution_at
-                        ? formatDistanceToNow(new Date(agent.last_execution_at), { addSuffix: true })
-                        : "Never"}
-                    </span>
-                    {agent.avg_execution_ms && (
-                      <span className="flex items-center gap-1">
+                  {/* Services + speed */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {agent.required_services && agent.required_services.map((svc) => (
+                      <Badge key={svc} variant="outline" className="text-[9px] h-4 px-1.5">{svc}</Badge>
+                    ))}
+                    {agent.avg_execution_ms != null && agent.avg_execution_ms > 0 && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground ml-auto">
                         <Zap className="h-3 w-3" />
-                        {Math.round(agent.avg_execution_ms)}ms avg
+                        {Math.round(agent.avg_execution_ms)}ms
                       </span>
                     )}
                   </div>
 
-                  {/* Recent activity */}
+                  {/* Recent activity — compact */}
                   {recentActivity.length > 0 && (
                     <div className="border-t pt-2 space-y-1">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Recent Activity</p>
                       {recentActivity.map((log) => (
-                        <div key={log.id} className="flex items-center justify-between text-xs">
-                          <span className="truncate max-w-[200px]">{log.action}</span>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] ml-1",
-                              log.status === "success" && "bg-green-100 text-green-700",
-                              log.status === "failure" && "bg-red-100 text-red-700"
-                            )}
-                          >
+                        <div key={log.id} className="flex items-center gap-2 text-[11px]">
+                          <span className={cn(
+                            "h-1.5 w-1.5 rounded-full shrink-0",
+                            log.status === "success" ? "bg-green-500" : log.status === "failure" ? "bg-red-500" : "bg-gray-400"
+                          )} />
+                          <span className="text-muted-foreground truncate">{log.action.replace(/_/g, " ")}</span>
+                          <span className={cn(
+                            "text-[10px] ml-auto shrink-0 font-medium",
+                            log.status === "success" ? "text-green-600" : log.status === "failure" ? "text-red-600" : "text-muted-foreground"
+                          )}>
                             {log.status}
-                          </Badge>
+                          </span>
                         </div>
                       ))}
                     </div>

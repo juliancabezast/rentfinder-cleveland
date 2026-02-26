@@ -240,8 +240,45 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
   const handleMerge = (group: DuplicateGroup) => {
     const winnerId = selectedWinners[group.key];
     const winner = group.leads.find((l) => l.id === winnerId)!;
-    const loser = group.leads.find((l) => l.id !== winnerId)!;
-    setMergeTarget({ winner, loser, groupKey: group.key });
+    if (group.leads.length === 2) {
+      const loser = group.leads.find((l) => l.id !== winnerId)!;
+      setMergeTarget({ winner, loser, groupKey: group.key });
+    } else {
+      // 3+ leads: merge all non-primary into primary sequentially
+      handleMergeGroup(group, winnerId);
+    }
+  };
+
+  const handleMergeGroup = async (group: DuplicateGroup, winnerId: string) => {
+    const losers = group.leads.filter((l) => l.id !== winnerId);
+    const winner = group.leads.find((l) => l.id === winnerId)!;
+    let succeeded = 0;
+    let failed = 0;
+
+    setMergeAllProgress({
+      current: 0,
+      total: losers.length,
+      currentName: winner.full_name || winner.id.slice(0, 8),
+    });
+
+    for (let i = 0; i < losers.length; i++) {
+      setMergeAllProgress({
+        current: i + 1,
+        total: losers.length,
+        currentName: losers[i].full_name || losers[i].id.slice(0, 8),
+      });
+      try {
+        await performMerge(winnerId, losers[i].id, userRecord?.id || null);
+        succeeded++;
+      } catch (err: any) {
+        console.error(`Merge failed for ${losers[i].id}:`, err.message);
+        failed++;
+      }
+    }
+
+    setMergeAllProgress(null);
+    toast.success(`Merged ${succeeded} lead${succeeded !== 1 ? "s" : ""} into ${winner.full_name || "primary"}${failed > 0 ? ` (${failed} failed)` : ""}`);
+    fetchAndDetect();
   };
 
   const handleMergeComplete = () => {
@@ -250,32 +287,34 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
   };
 
   const handleMergeAll = async () => {
-    // Only auto-merge groups with exactly 2 leads
-    const mergeable = groups.filter((g) => g.leads.length === 2);
-    if (mergeable.length === 0) return;
+    if (groups.length === 0) return;
 
-    setMergeAllProgress({ current: 0, total: mergeable.length, currentName: "" });
+    // Count total merge operations (each non-primary lead is one merge)
+    const totalOps = groups.reduce((sum, g) => sum + (g.leads.length - 1), 0);
+    setMergeAllProgress({ current: 0, total: totalOps, currentName: "" });
     let succeeded = 0;
     let failed = 0;
+    let opIndex = 0;
 
-    for (let i = 0; i < mergeable.length; i++) {
-      const group = mergeable[i];
+    for (const group of groups) {
       const winnerId = selectedWinners[group.key] || group.leads[0].id;
-      const winner = group.leads.find((l) => l.id === winnerId)!;
-      const loser = group.leads.find((l) => l.id !== winnerId)!;
+      const losers = group.leads.filter((l) => l.id !== winnerId);
 
-      setMergeAllProgress({
-        current: i + 1,
-        total: mergeable.length,
-        currentName: winner.full_name || winner.id.slice(0, 8),
-      });
+      for (const loser of losers) {
+        opIndex++;
+        setMergeAllProgress({
+          current: opIndex,
+          total: totalOps,
+          currentName: loser.full_name || loser.id.slice(0, 8),
+        });
 
-      try {
-        await performMerge(winner.id, loser.id, userRecord?.id || null);
-        succeeded++;
-      } catch (err: any) {
-        console.error(`Merge failed for group ${group.key}:`, err.message);
-        failed++;
+        try {
+          await performMerge(winnerId, loser.id, userRecord?.id || null);
+          succeeded++;
+        } catch (err: any) {
+          console.error(`Merge failed for group ${group.key}:`, err.message);
+          failed++;
+        }
       }
     }
 
@@ -311,7 +350,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
     );
   }
 
-  const mergeableCount = groups.filter((g) => g.leads.length === 2).length;
+  const mergeableCount = groups.length;
 
   return (
     <div className="space-y-4">
@@ -362,12 +401,10 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
                   {group.reason}
                 </Badge>
               </CardTitle>
-              {group.leads.length === 2 && (
-                <Button size="sm" onClick={() => handleMerge(group)}>
-                  <Merge className="h-4 w-4 mr-1.5" />
-                  Merge
-                </Button>
-              )}
+              <Button size="sm" onClick={() => handleMerge(group)}>
+                <Merge className="h-4 w-4 mr-1.5" />
+                {group.leads.length > 2 ? `Merge ${group.leads.length - 1} into Primary` : "Merge"}
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -445,7 +482,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
 
             {group.leads.length > 2 && (
               <p className="text-xs text-muted-foreground mt-2">
-                This group has more than 2 leads. Merge them in pairs by selecting a primary and clicking Merge on each pair.
+                Select the primary lead to keep, then click Merge to combine all others into it.
               </p>
             )}
           </CardContent>
