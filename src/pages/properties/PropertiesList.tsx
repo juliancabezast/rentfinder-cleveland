@@ -1,5 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Search, Building2, Filter, Globe, LayoutGrid, TableProperties, ClipboardCheck } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  Plus,
+  Search,
+  Building2,
+  Filter,
+  Globe,
+  LayoutGrid,
+  TableProperties,
+  ClipboardCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,10 +27,12 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { PropertyCard } from "@/components/properties/PropertyCard";
+import {
+  PropertyGroupCard,
+  type PropertyGroupData,
+} from "@/components/properties/PropertyGroupCard";
 import { PropertyForm } from "@/components/properties/PropertyForm";
 import { ZillowImportDialog } from "@/components/properties/ZillowImportDialog";
-import { PropertiesTable } from "@/components/properties/PropertiesTable";
 import { CheckPropertiesDialog } from "@/components/properties/CheckPropertiesDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,29 +55,46 @@ const PropertiesList: React.FC = () => {
   const permissions = usePermissions();
   const { toast } = useToast();
 
+  const [groups, setGroups] = useState<PropertyGroupData[]>([]);
   const [allProperties, setAllProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [formOpen, setFormOpen] = useState(false);
   const [zillowOpen, setZillowOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [addingUnitGroupId, setAddingUnitGroupId] = useState<string | null>(null);
   const [checkOpen, setCheckOpen] = useState(false);
 
-  const fetchProperties = async () => {
+  const fetchData = async () => {
     if (!userRecord?.organization_id) return;
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch groups with nested units
+      const { data: groupsData, error: groupsErr } = await supabase
+        .from("property_groups")
+        .select(
+          `*, properties!property_group_id (
+            id, unit_number, bedrooms, bathrooms, rent_price, status, photos, square_feet
+          )`
+        )
+        .eq("organization_id", userRecord.organization_id)
+        .order("address");
+
+      if (groupsErr) throw groupsErr;
+
+      // Also fetch all properties flat (for CheckProperties dialog + form editing)
+      const { data: propsData, error: propsErr } = await supabase
         .from("properties")
         .select("*")
         .eq("organization_id", userRecord.organization_id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setAllProperties(data || []);
+      if (propsErr) throw propsErr;
+
+      setGroups((groupsData || []) as unknown as PropertyGroupData[]);
+      setAllProperties(propsData || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
       toast({
@@ -80,31 +108,51 @@ const PropertiesList: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchProperties();
+    fetchData();
   }, [userRecord?.organization_id]);
 
-  // Client-side filtering (status + search) — instant, no loading flicker
-  const filteredProperties = allProperties.filter((property) => {
-    if (statusFilter !== "all" && property.status !== statusFilter) return false;
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      property.address.toLowerCase().includes(q) ||
-      property.city.toLowerCase().includes(q) ||
-      property.zip_code.includes(searchQuery)
-    );
-  });
+  // Client-side filtering on groups
+  const filteredGroups = useMemo(() => {
+    return groups.filter((group) => {
+      // Status filter: group passes if any unit matches status
+      if (statusFilter !== "all") {
+        const units = group.properties || [];
+        if (!units.some((u) => u.status === statusFilter)) return false;
+      }
+      // Search filter
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        group.address.toLowerCase().includes(q) ||
+        group.city.toLowerCase().includes(q) ||
+        group.zip_code.includes(searchQuery)
+      );
+    });
+  }, [groups, statusFilter, searchQuery]);
 
-  const handleEdit = (property: Property) => {
-    setEditingProperty(property);
-    setFormOpen(true);
-  };
+  // Total unit count for display
+  const totalUnits = groups.reduce(
+    (sum, g) => sum + (g.properties?.length || 0),
+    0
+  );
 
   const handleFormSuccess = () => {
     setFormOpen(false);
     setEditingProperty(null);
-    fetchProperties();
+    setAddingUnitGroupId(null);
+    fetchData();
   };
+
+  const handleAddUnit = (groupId: string) => {
+    setAddingUnitGroupId(groupId);
+    setEditingProperty(null);
+    setFormOpen(true);
+  };
+
+  // Find the group for the unit being added
+  const addingToGroup = addingUnitGroupId
+    ? groups.find((g) => g.id === addingUnitGroupId)
+    : null;
 
   // Convert Property to the format expected by PropertyForm
   const propertyForForm = editingProperty
@@ -116,37 +164,26 @@ const PropertiesList: React.FC = () => {
         amenities: Array.isArray(editingProperty.amenities)
           ? (editingProperty.amenities as string[])
           : null,
-        alternative_property_ids: Array.isArray(editingProperty.alternative_property_ids)
+        alternative_property_ids: Array.isArray(
+          editingProperty.alternative_property_ids
+        )
           ? (editingProperty.alternative_property_ids as string[])
           : null,
       }
     : null;
 
-  const PropertyCardSkeleton = () => (
+  const CardSkeleton = () => (
     <Card variant="glass" className="overflow-hidden">
-      <Skeleton className="aspect-video w-full" />
+      <Skeleton className="aspect-[16/8] w-full" />
       <CardContent className="p-4 space-y-3">
-        <Skeleton className="h-6 w-24" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-        <div className="flex gap-4">
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <div className="flex justify-between">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-20" />
         </div>
       </CardContent>
     </Card>
-  );
-
-  const TableRowSkeleton = () => (
-    <div className="flex items-center gap-4 px-4 py-3 border-b">
-      <Skeleton className="h-4 w-48" />
-      <Skeleton className="h-4 w-12" />
-      <Skeleton className="h-4 w-20" />
-      <Skeleton className="h-4 w-16" />
-      <Skeleton className="h-6 w-20 rounded-full" />
-      <Skeleton className="h-9 w-64" />
-      <Skeleton className="h-4 w-16" />
-    </div>
   );
 
   return (
@@ -159,34 +196,10 @@ const PropertiesList: React.FC = () => {
             Properties
           </h1>
           <p className="text-muted-foreground">
-            Manage your property listings ({filteredProperties.length} total)
+            {filteredGroups.length} building{filteredGroups.length !== 1 ? "s" : ""}, {totalUnits} unit{totalUnits !== 1 ? "s" : ""} total
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          <div className="flex border rounded-lg overflow-hidden">
-            <button
-              className={`h-9 w-9 flex items-center justify-center transition-colors ${
-                viewMode === "grid"
-                  ? "bg-[#4F46E5] text-white"
-                  : "text-muted-foreground hover:bg-muted"
-              }`}
-              onClick={() => setViewMode("grid")}
-              title="Grid view"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              className={`h-9 w-9 flex items-center justify-center transition-colors ${
-                viewMode === "table"
-                  ? "bg-[#4F46E5] text-white"
-                  : "text-muted-foreground hover:bg-muted"
-              }`}
-              onClick={() => setViewMode("table")}
-              title="Table view"
-            >
-              <TableProperties className="h-4 w-4" />
-            </button>
-          </div>
           <Button
             variant="outline"
             onClick={() => setCheckOpen(true)}
@@ -206,7 +219,14 @@ const PropertiesList: React.FC = () => {
                 <Globe className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Import Zillow</span>
               </Button>
-              <Button onClick={() => setFormOpen(true)} className="min-h-[44px] bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
+              <Button
+                onClick={() => {
+                  setAddingUnitGroupId(null);
+                  setEditingProperty(null);
+                  setFormOpen(true);
+                }}
+                className="min-h-[44px] bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+              >
                 <Plus className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Add Property</span>
               </Button>
@@ -243,22 +263,14 @@ const PropertiesList: React.FC = () => {
         </div>
       </div>
 
-      {/* Properties Grid / Table */}
+      {/* Buildings Grid */}
       {loading ? (
-        viewMode === "table" ? (
-          <div className="rounded-md border bg-background">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <TableRowSkeleton key={i} />
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <PropertyCardSkeleton key={i} />
-            ))}
-          </div>
-        )
-      ) : filteredProperties.length === 0 ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : filteredGroups.length === 0 ? (
         <Card variant="glass">
           <CardContent className="p-0">
             <EmptyState
@@ -270,7 +282,9 @@ const PropertiesList: React.FC = () => {
                   : "Add your first property to get started with lead management."
               }
               action={
-                permissions.canCreateProperty && !searchQuery && statusFilter === "all"
+                permissions.canCreateProperty &&
+                !searchQuery &&
+                statusFilter === "all"
                   ? {
                       label: "Add Property",
                       onClick: () => setFormOpen(true),
@@ -280,42 +294,22 @@ const PropertiesList: React.FC = () => {
             />
           </CardContent>
         </Card>
-      ) : viewMode === "table" ? (
-        <PropertiesTable
-          properties={filteredProperties}
-          allProperties={allProperties}
-          onRefresh={fetchProperties}
-        />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredProperties.map((property, index) => (
+          {filteredGroups.map((group, index) => (
             <div
-              key={property.id}
+              key={group.id}
               className="animate-fade-up"
               style={{
                 animationDelay: `${Math.min(index * 0.05, 0.3)}s`,
                 animationFillMode: "both",
               }}
             >
-              <PropertyCard
-                property={{
-                  id: property.id,
-                  address: property.address,
-                  unit_number: property.unit_number,
-                  city: property.city,
-                  state: property.state,
-                  zip_code: property.zip_code,
-                  bedrooms: property.bedrooms,
-                  bathrooms: property.bathrooms,
-                  square_feet: property.square_feet,
-                  rent_price: property.rent_price,
-                  status: property.status,
-                  section_8_accepted: property.section_8_accepted,
-                  photos: Array.isArray(property.photos)
-                    ? (property.photos as string[])
-                    : null,
-                }}
-                onEdit={() => handleEdit(property)}
+              <PropertyGroupCard
+                group={group}
+                onAddUnit={
+                  permissions.canCreateProperty ? handleAddUnit : undefined
+                }
               />
             </div>
           ))}
@@ -326,7 +320,7 @@ const PropertiesList: React.FC = () => {
       <ZillowImportDialog
         open={zillowOpen}
         onOpenChange={setZillowOpen}
-        onSuccess={fetchProperties}
+        onSuccess={fetchData}
       />
 
       {/* Check Properties Dialog */}
@@ -336,26 +330,36 @@ const PropertiesList: React.FC = () => {
         properties={allProperties}
       />
 
-      {/* Create/Edit Property Dialog */}
+      {/* Create/Edit Unit Dialog */}
       <Dialog
         open={formOpen}
         onOpenChange={(open) => {
           setFormOpen(open);
-          if (!open) setEditingProperty(null);
+          if (!open) {
+            setEditingProperty(null);
+            setAddingUnitGroupId(null);
+          }
         }}
       >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingProperty ? "Edit Property" : "Add New Property"}
+              {editingProperty
+                ? "Edit Unit"
+                : addingToGroup
+                  ? `Add Unit to ${addingToGroup.address}`
+                  : "Add New Property"}
             </DialogTitle>
           </DialogHeader>
           <PropertyForm
             property={propertyForForm}
+            propertyGroupId={addingUnitGroupId || undefined}
+            propertyGroupAddress={addingToGroup?.address}
             onSuccess={handleFormSuccess}
             onCancel={() => {
               setFormOpen(false);
               setEditingProperty(null);
+              setAddingUnitGroupId(null);
             }}
           />
         </DialogContent>

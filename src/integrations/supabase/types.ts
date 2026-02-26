@@ -2281,6 +2281,7 @@ export type Database = {
           organization_id: string
           pet_policy: string | null
           photos: Json | null
+          property_group_id: string | null
           property_type: string | null
           published_on: string[] | null
           rent_price: number
@@ -2317,6 +2318,7 @@ export type Database = {
           organization_id: string
           pet_policy?: string | null
           photos?: Json | null
+          property_group_id?: string | null
           property_type?: string | null
           published_on?: string[] | null
           rent_price: number
@@ -2353,6 +2355,7 @@ export type Database = {
           organization_id?: string
           pet_policy?: string | null
           photos?: Json | null
+          property_group_id?: string | null
           property_type?: string | null
           published_on?: string[] | null
           rent_price?: number
@@ -2377,6 +2380,85 @@ export type Database = {
           },
           {
             foreignKeyName: "properties_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_property_group_id_fkey"
+            columns: ["property_group_id"]
+            isOneToOne: false
+            referencedRelation: "property_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_groups: {
+        Row: {
+          id: string
+          organization_id: string
+          address: string
+          city: string
+          state: string
+          zip_code: string
+          property_type: string | null
+          cover_photo: string | null
+          description: string | null
+          neighborhood_info: Json | null
+          section_8_accepted: boolean | null
+          hud_inspection_ready: boolean | null
+          pet_policy: string | null
+          investor_id: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          address: string
+          city?: string
+          state?: string
+          zip_code: string
+          property_type?: string | null
+          cover_photo?: string | null
+          description?: string | null
+          neighborhood_info?: Json | null
+          section_8_accepted?: boolean | null
+          hud_inspection_ready?: boolean | null
+          pet_policy?: string | null
+          investor_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          address?: string
+          city?: string
+          state?: string
+          zip_code?: string
+          property_type?: string | null
+          cover_photo?: string | null
+          description?: string | null
+          neighborhood_info?: Json | null
+          section_8_accepted?: boolean | null
+          hud_inspection_ready?: boolean | null
+          pet_policy?: string | null
+          investor_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_groups_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_groups_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

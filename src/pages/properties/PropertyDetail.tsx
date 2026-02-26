@@ -87,6 +87,7 @@ interface Property {
   pet_policy?: string | null;
   alternative_property_ids?: string[] | null;
   investor_id?: string | null;
+  property_group_id?: string | null;
   created_at?: string;
   listed_date?: string | null;
 }
@@ -186,6 +187,7 @@ const PropertyDetail: React.FC = () => {
           special_notes: propertyData.special_notes,
           pet_policy: propertyData.pet_policy,
           investor_id: propertyData.investor_id,
+          property_group_id: propertyData.property_group_id,
           created_at: propertyData.created_at,
           listed_date: propertyData.listed_date,
           photos: Array.isArray(propertyData.photos) 
@@ -369,15 +371,20 @@ const PropertyDetail: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/properties')}
-            className="mb-2"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Properties
-          </Button>
+          <div className="flex items-center gap-1 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                property.property_group_id
+                  ? navigate(`/properties/group/${property.property_group_id}`)
+                  : navigate('/properties')
+              }
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              {property.property_group_id ? property.address : 'Back to Properties'}
+            </Button>
+          </div>
           <h1 className="text-2xl font-bold text-foreground">{fullAddress}</h1>
           <p className="text-sm text-muted-foreground flex items-center gap-1">
             <MapPin className="h-4 w-4" />

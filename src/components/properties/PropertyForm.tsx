@@ -104,12 +104,16 @@ interface Property {
 
 interface PropertyFormProps {
   property?: Property | null;
+  propertyGroupId?: string;
+  propertyGroupAddress?: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
 export const PropertyForm: React.FC<PropertyFormProps> = ({
   property,
+  propertyGroupId,
+  propertyGroupAddress,
   onSuccess,
   onCancel,
 }) => {
@@ -456,6 +460,7 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
         photos: photos,
         amenities: amenities,
         alternative_property_ids: alternativePropertyIds,
+        ...(propertyGroupId ? { property_group_id: propertyGroupId } : {}),
       };
 
       if (property?.id) {

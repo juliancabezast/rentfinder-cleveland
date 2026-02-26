@@ -19,6 +19,7 @@ import LandingPage from "./pages/LandingPage";
 // Lazy-loaded protected pages for code splitting (Phase 12.3)
 const Dashboard = lazy(() => import("./pages/dashboard"));
 const PropertiesList = lazy(() => import("./pages/properties/PropertiesList"));
+const PropertyGroupDetail = lazy(() => import("./pages/properties/PropertyGroupDetail"));
 const PropertyDetail = lazy(() => import("./pages/properties/PropertyDetail"));
 const LeadsList = lazy(() => import("./pages/leads/LeadsList"));
 const LeadHygiene = lazy(() => import("./pages/leads/LeadHygiene"));
@@ -120,6 +121,17 @@ const App = () => (
                 <ProtectedRoute>
                   <MainLayout>
                     <PropertiesList />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/properties/group/:groupId"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <PropertyGroupDetail />
                   </MainLayout>
                 </ProtectedRoute>
               }

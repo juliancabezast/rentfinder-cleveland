@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { convertToWebP } from '@/lib/imageUtils';
 
 interface PhotoUploadProps {
   photos: string[];
@@ -76,15 +77,23 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
 
       try {
         for (const file of acceptedFiles) {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-          const filePath = propertyId 
+          // Convert to WebP for smaller file size
+          let uploadFile: File;
+          try {
+            uploadFile = await convertToWebP(file);
+          } catch {
+            // Fallback to original if conversion fails
+            uploadFile = file;
+          }
+
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
+          const filePath = propertyId
             ? `properties/${propertyId}/${fileName}`
             : `properties/temp/${fileName}`;
 
           const { error: uploadError } = await supabase.storage
             .from('property-photos')
-            .upload(filePath, file);
+            .upload(filePath, uploadFile);
 
           if (uploadError) {
             console.error('Upload error:', uploadError);
@@ -116,7 +125,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic', '.bmp', '.tiff', '.tif', '.gif'],
     },
     maxSize: 10 * 1024 * 1024, // 10MB
   });
@@ -230,7 +239,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
               Drag & drop photos here, or click to select
             </p>
             <p className="text-xs text-muted-foreground">
-              JPEG, PNG, WebP up to 10MB
+              Any image format up to 10MB (auto-converted to WebP)
             </p>
           </div>
         )}
