@@ -1277,6 +1277,7 @@ serve(async (req: Request) => {
   const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
   let organizationId: string | undefined;
+  const estherStartTime = Date.now();
 
   try {
     // ── 1. Read raw body & verify webhook signature ─────────────────
@@ -1558,6 +1559,27 @@ serve(async (req: Request) => {
         },
       });
 
+      // Track Esther execution (digest success)
+      try {
+        const execMs = Date.now() - estherStartTime;
+        await Promise.all([
+          supabase.from("agent_activity_log").insert({
+            organization_id: organizationId,
+            agent_key: "esther",
+            action: "digest_parsed",
+            status: "success",
+            message: `Digest: ${created} new, ${updated} updated, ${skipped} skipped`,
+            execution_ms: execMs,
+          }),
+          supabase.rpc("log_agent_execution", {
+            p_organization_id: organizationId,
+            p_agent_key: "esther",
+            p_success: true,
+            p_execution_ms: execMs,
+          }),
+        ]);
+      } catch (_) { /* non-blocking */ }
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -1733,6 +1755,28 @@ serve(async (req: Request) => {
       related_lead_id: result.leadId,
     });
 
+    // ── Track Esther execution (success) ──────────────────────────────
+    try {
+      const execMs = Date.now() - estherStartTime;
+      await Promise.all([
+        supabase.from("agent_activity_log").insert({
+          organization_id: organizationId,
+          agent_key: "esther",
+          action: "email_parsed",
+          status: "success",
+          message: `${result.isNew ? "New lead" : "Updated lead"}: ${leadInfo.name || "unknown"}${actionSuffix}`,
+          execution_ms: execMs,
+          related_lead_id: result.leadId || null,
+        }),
+        supabase.rpc("log_agent_execution", {
+          p_organization_id: organizationId,
+          p_agent_key: "esther",
+          p_success: true,
+          p_execution_ms: execMs,
+        }),
+      ]);
+    } catch (_) { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -1764,6 +1808,16 @@ serve(async (req: Request) => {
     } catch (_) {
       // Don't let logging failure mask the original error
     }
+
+    // Track Esther execution (failure)
+    try {
+      await supabase.rpc("log_agent_execution", {
+        p_organization_id: organizationId || null,
+        p_agent_key: "esther",
+        p_success: false,
+        p_execution_ms: Date.now() - estherStartTime,
+      });
+    } catch (_) { /* non-blocking */ }
 
     return new Response(
       JSON.stringify({ error: "Internal server error" }),

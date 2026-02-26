@@ -48,6 +48,17 @@ function resolveAgentKey(agentType: string): string {
   return LEGACY_TO_CANONICAL[agentType] || agentType;
 }
 
+// Determine what action was actually performed by parsing the handler result
+function parseActualAction(result: string, fallbackAction: string): string {
+  const lower = result.toLowerCase();
+  if (lower.includes("call initiated") || lower.includes("bland.ai") || lower.includes("call_id")) return "call";
+  if (lower.includes("sms sent") || lower.includes("sms fallback")) return "sms";
+  if (lower.includes("email sent") || lower.includes("email fallback") || lower.includes("notification email")) return "email";
+  if (lower.includes("lead status")) return "lead status changed";
+  if (lower.includes("showing")) return "showing created";
+  return fallbackAction || "task";
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface OrgCreds {
@@ -942,9 +953,37 @@ serve(async (req: Request) => {
 
       if (!tasks || tasks.length === 0) continue;
 
+      // ── Check which agents are disabled (toggles) ──────────────────────
+      const { data: registryRows } = await supabase
+        .from("agents_registry")
+        .select("agent_key, is_enabled")
+        .eq("organization_id", org.id);
+
+      const disabledAgents = new Set<string>(
+        (registryRows || [])
+          .filter((r: { is_enabled: boolean }) => !r.is_enabled)
+          .map((r: { agent_key: string }) => r.agent_key)
+      );
+
       for (const task of tasks) {
         const taskStart = Date.now();
         const canonicalAgent = resolveAgentKey(task.agent_type);
+
+        // ── Skip tasks for disabled agents ───────────────────────────────
+        if (disabledAgents.has(canonicalAgent)) {
+          // Return task to pending so it can run when agent is re-enabled
+          await supabase
+            .from("agent_tasks")
+            .update({ status: "pending", executed_at: null })
+            .eq("id", task.id);
+          totalSkipped++;
+          allResults.push({
+            taskId: task.id,
+            status: "skipped",
+            reason: `Agent ${canonicalAgent} is disabled`,
+          });
+          continue;
+        }
 
         try {
           const result = await withTimeout(
@@ -954,6 +993,10 @@ serve(async (req: Request) => {
 
           await completeTask(supabase, task.id);
           totalDispatched++;
+
+          // Parse actual action from result (e.g., "SMS sent" vs "call initiated")
+          const actualAction = parseActualAction(result, task.action_type);
+
           allResults.push({
             taskId: task.id,
             status: "completed",
@@ -968,7 +1011,7 @@ serve(async (req: Request) => {
               supabase.from("agent_activity_log").insert({
                 organization_id: org.id,
                 agent_key: canonicalAgent,
-                action: task.action_type || task.agent_type,
+                action: actualAction,
                 status: "success",
                 message: result,
                 execution_ms: execMs,
