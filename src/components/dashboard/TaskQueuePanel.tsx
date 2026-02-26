@@ -195,7 +195,7 @@ export const TaskQueuePanel = () => {
             </div>
             Task Queue
             {totalCount > 0 && (
-              <Badge variant="outline" className="text-[10px] h-5 ml-1">
+              <Badge variant="outline" className="text-xs h-5 ml-1">
                 {totalCount}
               </Badge>
             )}
@@ -225,7 +225,7 @@ export const TaskQueuePanel = () => {
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="p-2.5 rounded-lg border border-muted">
+              <div key={i} className="p-3 rounded-lg border border-muted">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Skeleton className="h-6 w-6 rounded-full shrink-0" />
                   <Skeleton className="h-3 w-28" />
@@ -258,7 +258,7 @@ export const TaskQueuePanel = () => {
                   <div
                     key={task.id}
                     className={cn(
-                      "p-2.5 rounded-lg border transition-all",
+                      "p-3 rounded-lg border transition-all",
                       isInProgress
                         ? "bg-blue-50/40 border-blue-200/60"
                         : isOverdue
@@ -268,36 +268,36 @@ export const TaskQueuePanel = () => {
                     )}
                   >
                     {/* Row 1: icon + scheduled time + badge */}
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1.5">
                       <div className={cn(
-                        "h-6 w-6 rounded-full flex items-center justify-center shrink-0",
+                        "h-7 w-7 rounded-full flex items-center justify-center shrink-0",
                         isInProgress
                           ? "bg-blue-100 text-blue-600"
                           : isOverdue
                             ? "bg-amber-100 text-amber-600"
                             : "bg-emerald-100 text-emerald-600"
                       )}>
-                        <ActionIcon className="h-3 w-3" />
+                        <ActionIcon className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
                         {format(scheduledTime, "MMM d, h:mm a")}
                       </span>
                       {isInProgress && (
-                        <Badge className="h-4 px-1.5 text-[10px] bg-blue-500 hover:bg-blue-500 ml-auto">
+                        <Badge className="h-5 px-2 text-xs bg-blue-500 hover:bg-blue-500 ml-auto">
                           IN PROGRESS
                         </Badge>
                       )}
                       {isOverdue && !isInProgress && (
-                        <Badge className="h-4 px-1.5 text-[10px] bg-amber-500 hover:bg-amber-500 ml-auto flex items-center gap-0.5">
-                          <AlertTriangle className="h-2.5 w-2.5" />
+                        <Badge className="h-5 px-2 text-xs bg-amber-500 hover:bg-amber-500 ml-auto flex items-center gap-0.5">
+                          <AlertTriangle className="h-3 w-3" />
                           OVERDUE
                         </Badge>
                       )}
                     </div>
 
                     {/* Row 2: agent + action + method badge */}
-                    <div className="flex items-center gap-1.5 ml-8 flex-wrap">
+                    <div className="flex items-center gap-1.5 ml-9 flex-wrap">
                       <p className="text-sm leading-snug">
                         <span className="font-semibold text-emerald-700 dark:text-emerald-400">
                           {agentName}
@@ -307,25 +307,25 @@ export const TaskQueuePanel = () => {
                         </span>
                       </p>
                       {(task.action_type === "call" || task.action_type === "voice") && (
-                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-0.5 bg-blue-50 text-blue-600 border-blue-200">
-                          <Phone className="h-2.5 w-2.5" /> Call
+                        <Badge variant="outline" className="text-xs h-5 px-2 gap-1 bg-blue-50 text-blue-600 border-blue-200">
+                          <Phone className="h-3 w-3" /> Call
                         </Badge>
                       )}
                       {(task.action_type === "sms") && (
-                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-0.5 bg-green-50 text-green-600 border-green-200">
-                          <MessageSquare className="h-2.5 w-2.5" /> SMS
+                        <Badge variant="outline" className="text-xs h-5 px-2 gap-1 bg-green-50 text-green-600 border-green-200">
+                          <MessageSquare className="h-3 w-3" /> SMS
                         </Badge>
                       )}
                       {(task.action_type === "email" || task.action_type === "notify" || task.action_type === "sequence") && (
-                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-0.5 bg-purple-50 text-purple-600 border-purple-200">
-                          <Mail className="h-2.5 w-2.5" /> Email
+                        <Badge variant="outline" className="text-xs h-5 px-2 gap-1 bg-purple-50 text-purple-600 border-purple-200">
+                          <Mail className="h-3 w-3" /> Email
                         </Badge>
                       )}
                     </div>
 
                     {/* Row 3: lead name */}
-                    <div className="flex items-center gap-1 ml-8 mt-0.5">
-                      <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <div className="flex items-center gap-1.5 ml-9 mt-1">
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       <span className="text-xs font-medium text-foreground truncate">
                         {leadName}
                       </span>

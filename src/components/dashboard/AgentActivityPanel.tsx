@@ -160,7 +160,7 @@ export const AgentActivityPanel = () => {
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="p-2.5 rounded-lg border border-muted">
+              <div key={i} className="p-3 rounded-lg border border-muted">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Skeleton className="h-6 w-6 rounded-full shrink-0" />
                   <Skeleton className="h-3 w-24" />
@@ -190,26 +190,26 @@ export const AgentActivityPanel = () => {
                   <div
                     key={entry.id}
                     className={cn(
-                      "p-2.5 rounded-lg border transition-all",
+                      "p-3 rounded-lg border transition-all",
                       style.bg,
                       index === 0 && "animate-fade-up"
                     )}
                   >
                     {/* Row 1: avatar + time + status badge */}
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1.5">
                       <div className={cn(
-                        "h-6 w-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold text-white",
+                        "h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-white",
                         style.dot
                       )}>
                         {agentName.charAt(0)}
                       </div>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {format(time, "h:mm a")} &middot;{" "}
                         {formatDistanceToNow(time, { addSuffix: true })}
                       </span>
                       <Badge
                         variant="outline"
-                        className={cn("text-[10px] h-4 px-1.5 ml-auto", style.text)}
+                        className={cn("text-xs h-5 px-2 ml-auto", style.text)}
                       >
                         {entry.status}
                       </Badge>
@@ -227,17 +227,17 @@ export const AgentActivityPanel = () => {
 
                     {/* Row 3: lead + property */}
                     {(leadName || propertyAddress) && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 ml-8 mt-1">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 ml-9 mt-1">
                         {leadName && (
-                          <span className="flex items-center gap-1 text-[11px] text-foreground/70">
-                            <User className="h-3 w-3 shrink-0" />
+                          <span className="flex items-center gap-1 text-xs text-foreground/70">
+                            <User className="h-3.5 w-3.5 shrink-0" />
                             {leadName}
                           </span>
                         )}
                         {propertyAddress && (
-                          <span className="flex items-center gap-1 text-[11px] text-foreground/70">
-                            <Home className="h-3 w-3 shrink-0" />
-                            <span className="truncate max-w-[180px]">{propertyAddress}</span>
+                          <span className="flex items-center gap-1 text-xs text-foreground/70">
+                            <Home className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate max-w-[200px]">{propertyAddress}</span>
                           </span>
                         )}
                       </div>
@@ -245,7 +245,7 @@ export const AgentActivityPanel = () => {
 
                     {/* Row 4: execution time */}
                     {entry.execution_ms != null && entry.execution_ms > 0 && (
-                      <p className="text-[10px] text-muted-foreground ml-8 mt-0.5">
+                      <p className="text-xs text-muted-foreground ml-9 mt-0.5">
                         {entry.execution_ms}ms
                       </p>
                     )}

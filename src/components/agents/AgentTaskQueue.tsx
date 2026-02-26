@@ -51,7 +51,7 @@ export const AgentTaskQueue: React.FC<AgentTaskQueueProps> = ({ agentKey, organi
       {tasks.map((task: any) => (
         <div key={task.id} className="flex items-center justify-between text-xs p-2 bg-muted/30 rounded">
           <div className="flex items-center gap-2 min-w-0">
-            <Badge variant="outline" className="text-[10px] shrink-0">
+            <Badge variant="outline" className="text-xs shrink-0">
               {task.action_type}
             </Badge>
             <span className="truncate text-muted-foreground">

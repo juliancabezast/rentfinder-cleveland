@@ -533,7 +533,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
           <p className={cn("text-xl font-bold", stats.enabled === stats.total ? "text-green-600" : "text-amber-600")}>
             {stats.enabled}/{stats.total}
           </p>
-          <p className="text-[11px] text-muted-foreground">Agents ON</p>
+          <p className="text-xs text-muted-foreground">Agents ON</p>
         </Card>
 
         {/* Pending */}
@@ -546,7 +546,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
           <p className={cn("text-xl font-bold", stats.pendingGlobal > 0 ? "text-amber-600" : "text-muted-foreground")}>
             {stats.pendingGlobal}
           </p>
-          <p className="text-[11px] text-muted-foreground">Pending</p>
+          <p className="text-xs text-muted-foreground">Pending</p>
         </Card>
 
         {/* Services */}
@@ -559,7 +559,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
           <p className={cn("text-xl font-bold", downServices.length > 0 ? "text-red-600" : "text-green-600")}>
             {healthyCount}/{totalServicesCount}
           </p>
-          <p className="text-[11px] text-muted-foreground">Services</p>
+          <p className="text-xs text-muted-foreground">Services</p>
         </Card>
 
         {/* Cost today */}
@@ -572,7 +572,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
           <p className="text-xl font-bold text-blue-600">
             ${costToday.toFixed(4)}
           </p>
-          <p className="text-[11px] text-muted-foreground">Cost Today</p>
+          <p className="text-xs text-muted-foreground">Cost Today</p>
         </Card>
 
         {/* Errors */}
@@ -585,7 +585,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
           <p className={cn("text-xl font-bold", errors24h > 0 ? "text-red-600" : "text-muted-foreground")}>
             {errors24h}
           </p>
-          <p className="text-[11px] text-muted-foreground">Errors 24h</p>
+          <p className="text-xs text-muted-foreground">Errors 24h</p>
         </Card>
 
         {/* New Leads */}
@@ -596,7 +596,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
             </div>
           </div>
           <p className="text-xl font-bold text-purple-600">{newLeadsToday}</p>
-          <p className="text-[11px] text-muted-foreground">Leads Today</p>
+          <p className="text-xs text-muted-foreground">Leads Today</p>
         </Card>
       </div>
 

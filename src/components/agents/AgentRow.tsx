@@ -129,7 +129,7 @@ export const AgentRow: React.FC<AgentRowProps> = ({
               <div className="grid grid-cols-3 gap-2">
                 {kpis.map((kpi, idx) => (
                   <div key={idx} className="rounded-lg border border-border bg-muted/30 p-2.5">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{kpi.label}</p>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">{kpi.label}</p>
                     <p className="text-sm font-semibold mt-0.5 text-foreground">
                       {agent.executions_today > 0 ? (
                         idx === 0 ? agent.successes_today :
@@ -137,7 +137,7 @@ export const AgentRow: React.FC<AgentRowProps> = ({
                         agent.avg_execution_ms ? `${(agent.avg_execution_ms / 1000).toFixed(1)}s` : "—"
                       ) : "—"}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{kpi.target}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{kpi.target}</p>
                   </div>
                 ))}
               </div>
