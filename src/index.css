@@ -23,8 +23,8 @@
     --accent: 40 100% 59%;
     --accent-foreground: 280 73% 17%;
     
-    /* Backgrounds - Slightly tinted for gradient base */
-    --background: 270 20% 98%;
+    /* Backgrounds - Light lavender tint */
+    --background: 270 30% 97%;
     --foreground: 0 0% 10%;
     
     /* Cards & Surfaces */
@@ -80,7 +80,7 @@
     --chart-5: 0 84% 60%;
 
     /* Modern Design System - Gradients & Effects */
-    --gradient-primary: linear-gradient(135deg, #faf8ff 0%, #fff9e6 50%, #f0fdf4 100%);
+    --gradient-primary: linear-gradient(135deg, #f8f4ff 0%, #f0eaf8 50%, #f5f0ff 100%);
     --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%);
     --gradient-accent: linear-gradient(135deg, #370d4b 0%, #5a1d7a 100%);
     --gradient-success: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
