@@ -246,13 +246,16 @@ export const TaskQueuePanel = () => {
           <ScrollArea className="flex-1">
             <div className="space-y-2">
               {tasks.map((task, index) => {
-                const isOverdue = isPast(new Date(task.scheduled_for)) && task.status === "pending";
                 const isInProgress = task.status === "in_progress";
+                const isUpNext = index === 0 && !isInProgress;
                 const agentName = getAgentName(task.agent_type);
                 const actionLabel = AGENT_TYPE_LABELS[task.agent_type] || ACTION_LABELS[task.action_type] || task.action_type.replace(/_/g, " ");
                 const ActionIcon = AGENT_TYPE_ICONS[task.agent_type] || ACTION_ICONS[task.action_type] || Zap;
                 const leadName = getLeadName(task.leads);
                 const scheduledTime = new Date(task.scheduled_for);
+                const timeLabel = isPast(scheduledTime)
+                  ? "Processing soon"
+                  : formatDistanceToNow(scheduledTime, { addSuffix: true });
 
                 return (
                   <div
@@ -261,9 +264,9 @@ export const TaskQueuePanel = () => {
                       "p-3 rounded-lg border transition-all",
                       isInProgress
                         ? "bg-blue-50/40 border-blue-200/60"
-                        : isOverdue
-                          ? "bg-amber-50/40 border-amber-200/60"
-                          : "bg-emerald-50/20 border-emerald-100/40",
+                        : isUpNext
+                          ? "bg-emerald-50/40 border-emerald-200/60"
+                          : "bg-muted/20 border-border/40",
                       index === 0 && "animate-fade-up"
                     )}
                   >
@@ -273,25 +276,24 @@ export const TaskQueuePanel = () => {
                         "h-7 w-7 rounded-full flex items-center justify-center shrink-0",
                         isInProgress
                           ? "bg-blue-100 text-blue-600"
-                          : isOverdue
-                            ? "bg-amber-100 text-amber-600"
-                            : "bg-emerald-100 text-emerald-600"
+                          : isUpNext
+                            ? "bg-emerald-100 text-emerald-600"
+                            : "bg-muted text-muted-foreground"
                       )}>
                         <ActionIcon className="h-3.5 w-3.5" />
                       </div>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5" />
-                        {format(scheduledTime, "MMM d, h:mm a")}
+                        {timeLabel}
                       </span>
                       {isInProgress && (
                         <Badge className="h-5 px-2 text-xs bg-blue-500 hover:bg-blue-500 ml-auto">
                           IN PROGRESS
                         </Badge>
                       )}
-                      {isOverdue && !isInProgress && (
-                        <Badge className="h-5 px-2 text-xs bg-amber-500 hover:bg-amber-500 ml-auto flex items-center gap-0.5">
-                          <AlertTriangle className="h-3 w-3" />
-                          OVERDUE
+                      {isUpNext && (
+                        <Badge className="h-5 px-2 text-xs bg-emerald-500 hover:bg-emerald-500 ml-auto">
+                          UP NEXT
                         </Badge>
                       )}
                     </div>
