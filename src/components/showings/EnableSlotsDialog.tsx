@@ -230,6 +230,10 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
       toast.error("Please select a date");
       return;
     }
+    if (dayOffWarning) {
+      toast.error("This day is marked as OFF. Change your schedule in Settings first.");
+      return;
+    }
     if (activeProperties.length === 0) {
       toast.error("No properties available. Uncheck some exclusions.");
       return;
@@ -348,7 +352,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
                   onSelect={(date) => {
                     setSelectedDate(date);
                     setDayOffWarning(false);
-                    if (date && !isEditMode) {
+                    if (date) {
                       const dayOfWeek = String(date.getDay());
                       const weeklySchedule = getSetting(
                         'showing_weekly_schedule',
@@ -377,11 +381,11 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
             </Popover>
           </div>
 
-          {/* Day OFF warning */}
+          {/* Day OFF — blocked */}
           {dayOffWarning && selectedDate && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
               <strong>{format(selectedDate, "EEEE")}</strong> is marked as OFF in your weekly schedule.
-              You can still create slots if needed.
+              You cannot create slots on this day. Change your schedule in Settings &gt; Showings first.
             </div>
           )}
 
@@ -547,7 +551,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !selectedDate || previewSlots.length === 0}
+            disabled={submitting || !selectedDate || previewSlots.length === 0 || dayOffWarning}
             className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
           >
             {submitting ? (

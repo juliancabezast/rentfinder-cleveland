@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { format, addDays, isBefore, startOfDay } from "date-fns";
-import { CalendarIcon, Search } from "lucide-react";
+import { format, isBefore, startOfDay } from "date-fns";
+import { CalendarIcon, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -38,7 +38,6 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Tables } from "@/integrations/supabase/types";
 
 interface ScheduleShowingDialogProps {
   open: boolean;
@@ -65,12 +64,11 @@ interface AgentOption {
   full_name: string;
 }
 
-const TIME_SLOTS = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-  "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-  "18:00", "18:30", "19:00",
-];
+interface AvailableSlot {
+  id: string;
+  slot_time: string;
+  duration_minutes: number;
+}
 
 const DURATION_OPTIONS = [
   { value: "15", label: "15 minutes" },
@@ -94,11 +92,15 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
   const [agents, setAgents] = useState<AgentOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
 
+  // Available slots from DB
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
   // Form state
   const [selectedLeadId, setSelectedLeadId] = useState<string>("");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [selectedDuration, setSelectedDuration] = useState<string>("30");
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -118,6 +120,16 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       }
     }
   }, [open, userRecord?.organization_id, preselectedLeadId]);
+
+  // Fetch available slots when property + date change
+  useEffect(() => {
+    if (selectedPropertyId && selectedDate && userRecord?.organization_id) {
+      fetchAvailableSlots();
+    } else {
+      setAvailableSlots([]);
+      setSelectedSlotId("");
+    }
+  }, [selectedPropertyId, selectedDate]);
 
   const fetchOptions = async () => {
     if (!userRecord?.organization_id) return;
@@ -155,22 +167,49 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     }
   };
 
+  const fetchAvailableSlots = async () => {
+    if (!userRecord?.organization_id || !selectedPropertyId || !selectedDate) return;
+
+    setLoadingSlots(true);
+    setSelectedSlotId("");
+    try {
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("showing_available_slots")
+        .select("id, slot_time, duration_minutes")
+        .eq("organization_id", userRecord.organization_id)
+        .eq("property_id", selectedPropertyId)
+        .eq("slot_date", dateStr)
+        .eq("is_enabled", true)
+        .eq("is_booked", false)
+        .order("slot_time");
+
+      if (error) throw error;
+      setAvailableSlots(data || []);
+    } catch (error) {
+      console.error("Error fetching available slots:", error);
+      setAvailableSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
   const resetForm = () => {
     if (!preselectedLeadId) {
       setSelectedLeadId("");
     }
     setSelectedPropertyId("");
     setSelectedDate(undefined);
-    setSelectedTime("");
+    setSelectedSlotId("");
     setSelectedDuration("30");
     setSelectedAgentId("");
     setNotes("");
+    setAvailableSlots([]);
   };
 
   const handleSubmit = async () => {
     if (!userRecord?.organization_id) return;
 
-    // Validation
     if (!selectedLeadId) {
       toast.error("Please select a lead");
       return;
@@ -183,24 +222,60 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       toast.error("Please select a date");
       return;
     }
-    if (!selectedTime) {
-      toast.error("Please select a time");
+    if (!selectedSlotId) {
+      toast.error("Please select an available time slot");
       return;
     }
 
-    // Check date is in the future
     const today = startOfDay(new Date());
     if (isBefore(selectedDate, today)) {
       toast.error("Date must be in the future");
       return;
     }
 
+    const slot = availableSlots.find((s) => s.id === selectedSlotId);
+    if (!slot) {
+      toast.error("Selected slot not found. Please refresh.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // Combine date and time
-      const [hours, minutes] = selectedTime.split(":").map(Number);
-      const scheduledAt = new Date(selectedDate);
-      scheduledAt.setHours(hours, minutes, 0, 0);
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const slotTime = slot.slot_time;
+      const durationMinutes = parseInt(selectedDuration) || slot.duration_minutes || 30;
+
+      // Build timezone-aware scheduled_at (same as book-public-showing)
+      const orgTz = "America/New_York";
+      const localDt = new Date(`${dateStr}T12:00:00Z`);
+      const localStr = localDt.toLocaleString("en-US", { timeZone: orgTz });
+      const localParsed = new Date(localStr);
+      const offsetMs = localDt.getTime() - localParsed.getTime();
+      const offsetHours = Math.round(offsetMs / 3600000);
+      const offsetSign = offsetHours >= 0 ? "+" : "-";
+      const offsetAbs = String(Math.abs(offsetHours)).padStart(2, "0");
+      const tzOffset = `${offsetSign}${offsetAbs}:00`;
+      const scheduledAt = `${dateStr}T${slotTime}${tzOffset}`;
+
+      // Atomically mark slot as booked FIRST (prevents race conditions)
+      const { data: bookedSlot, error: bookErr } = await supabase
+        .from("showing_available_slots")
+        .update({
+          is_booked: true,
+          booked_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", slot.id)
+        .eq("is_booked", false) // Atomic check — only if still available
+        .select("id")
+        .single();
+
+      if (bookErr || !bookedSlot) {
+        toast.error("That slot was just taken. Please pick another time.");
+        await fetchAvailableSlots(); // Refresh slots
+        setSubmitting(false);
+        return;
+      }
 
       // Create showing
       const { data: showingData, error: showingError } = await supabase
@@ -210,16 +285,66 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           lead_id: selectedLeadId,
           property_id: selectedPropertyId,
           leasing_agent_id: selectedAgentId || null,
-          scheduled_at: scheduledAt.toISOString(),
-          duration_minutes: parseInt(selectedDuration),
+          scheduled_at: scheduledAt,
+          duration_minutes: durationMinutes,
           status: "scheduled",
         })
         .select("id")
         .single();
 
-      if (showingError) throw showingError;
+      if (showingError) {
+        // Rollback slot booking
+        await supabase
+          .from("showing_available_slots")
+          .update({ is_booked: false, booked_at: null, updated_at: new Date().toISOString() })
+          .eq("id", slot.id);
+        throw showingError;
+      }
 
-      // Update lead status + boost score +30 (Hot Lead)
+      // Link slot to showing
+      await supabase
+        .from("showing_available_slots")
+        .update({ booked_showing_id: showingData.id })
+        .eq("id", slot.id);
+
+      // Mark buffer slots (before & after)
+      const [bH, bM] = slotTime.split(":").map(Number);
+
+      // Buffer AFTER (+30 min)
+      const afterTotal = bH * 60 + bM + 30;
+      const afterTime = `${String(Math.floor(afterTotal / 60)).padStart(2, "0")}:${String(afterTotal % 60).padStart(2, "0")}:00`;
+      await supabase
+        .from("showing_available_slots")
+        .update({
+          is_booked: true,
+          booked_showing_id: showingData.id,
+          booked_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("property_id", selectedPropertyId)
+        .eq("slot_date", dateStr)
+        .eq("slot_time", afterTime)
+        .eq("is_booked", false);
+
+      // Buffer BEFORE (-30 min)
+      const beforeTotal = bH * 60 + bM - 30;
+      if (beforeTotal >= 0) {
+        const beforeTime = `${String(Math.floor(beforeTotal / 60)).padStart(2, "0")}:${String(beforeTotal % 60).padStart(2, "0")}:00`;
+        await supabase
+          .from("showing_available_slots")
+          .update({
+            is_booked: true,
+            booked_showing_id: showingData.id,
+            booked_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("property_id", selectedPropertyId)
+          .eq("slot_date", dateStr)
+          .eq("slot_time", beforeTime)
+          .eq("is_booked", false);
+      }
+
+      // Update lead status + boost score +30
       const { data: currentLead } = await supabase
         .from("leads")
         .select("lead_score")
@@ -229,7 +354,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       const previousScore = currentLead?.lead_score ?? 50;
       const newScore = Math.min(previousScore + 30, 100);
 
-      const { error: leadError } = await supabase
+      await supabase
         .from("leads")
         .update({
           status: "showing_scheduled",
@@ -240,11 +365,6 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         })
         .eq("id", selectedLeadId);
 
-      if (leadError) {
-        console.error("Error updating lead status:", leadError);
-      }
-
-      // Record score change in audit trail
       await supabase.from("lead_score_history").insert({
         lead_id: selectedLeadId,
         organization_id: userRecord.organization_id,
@@ -254,114 +374,53 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         reason_code: "showing_requested",
         reason_text: "Showing scheduled — automatic Hot Lead boost",
         triggered_by: "engagement",
-        related_showing_id: showingData?.id,
+        related_showing_id: showingData.id,
         changed_by_user_id: userRecord.id,
       });
 
-      // Mark corresponding slot + buffer slots as booked
-      if (showingData?.id) {
-        const slotDateStr = format(selectedDate, "yyyy-MM-dd");
-        const slotTimeStr = `${selectedTime}:00`; // "HH:MM" -> "HH:MM:00"
+      // Schedule Samuel confirmation task (24h before)
+      const showingDate = new Date(scheduledAt);
+      const confirmationTime = new Date(showingDate.getTime() - 24 * 60 * 60 * 1000);
+      const propertyAddr = selectedProperty?.address || "Property";
 
-        // Mark the booked slot
-        await supabase
-          .from("showing_available_slots")
-          .update({
-            is_booked: true,
-            booked_showing_id: showingData.id,
-            booked_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("property_id", selectedPropertyId)
-          .eq("slot_date", slotDateStr)
-          .eq("slot_time", slotTimeStr)
-          .eq("is_booked", false);
+      await supabase.from("agent_tasks").insert({
+        organization_id: userRecord.organization_id,
+        lead_id: selectedLeadId,
+        agent_type: "showing_confirmation",
+        action_type: "call",
+        scheduled_for: confirmationTime.toISOString(),
+        max_attempts: 2,
+        status: "pending",
+        context: {
+          showing_id: showingData.id,
+          property_id: selectedPropertyId,
+          property_address: propertyAddr,
+          scheduled_at: scheduledAt,
+          source: "admin_manual",
+        },
+      });
 
-        // Buffer slots (before & after, 30-min increments)
-        const [bH, bM] = selectedTime.split(":").map(Number);
-
-        // Buffer AFTER
-        const afterTotal = bH * 60 + bM + 30;
-        const afterTime = `${String(Math.floor(afterTotal / 60)).padStart(2, "0")}:${String(afterTotal % 60).padStart(2, "0")}:00`;
-        await supabase
-          .from("showing_available_slots")
-          .update({
-            is_booked: true,
-            booked_showing_id: showingData.id,
-            booked_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("property_id", selectedPropertyId)
-          .eq("slot_date", slotDateStr)
-          .eq("slot_time", afterTime)
-          .eq("is_booked", false);
-
-        // Buffer BEFORE
-        const beforeTotal = bH * 60 + bM - 30;
-        if (beforeTotal >= 0) {
-          const beforeTime = `${String(Math.floor(beforeTotal / 60)).padStart(2, "0")}:${String(beforeTotal % 60).padStart(2, "0")}:00`;
-          await supabase
-            .from("showing_available_slots")
-            .update({
-              is_booked: true,
-              booked_showing_id: showingData.id,
-              booked_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("property_id", selectedPropertyId)
-            .eq("slot_date", slotDateStr)
-            .eq("slot_time", beforeTime)
-            .eq("is_booked", false);
-        }
-      }
-
-      // Schedule Samuel confirmation task (24h before showing)
-      if (showingData?.id) {
-        const confirmationTime = new Date(scheduledAt.getTime() - 24 * 60 * 60 * 1000);
-        const propertyAddr = selectedProperty?.address || "Property";
-
-        await supabase.from("agent_tasks").insert({
-          organization_id: userRecord.organization_id,
+      // System log
+      await supabase.from("system_logs").insert({
+        organization_id: userRecord.organization_id,
+        level: "info",
+        category: "general",
+        event_type: "admin_showing_scheduled",
+        message: `Showing scheduled by admin: ${propertyAddr} on ${dateStr} at ${formatTimeDisplay(slotTime)}`,
+        details: {
+          showing_id: showingData.id,
           lead_id: selectedLeadId,
-          agent_type: "showing_confirmation",
-          action_type: "call",
-          scheduled_for: confirmationTime.toISOString(),
-          max_attempts: 2,
-          status: "pending",
-          context: {
-            showing_id: showingData.id,
-            property_id: selectedPropertyId,
-            property_address: propertyAddr,
-            scheduled_at: scheduledAt.toISOString(),
-            source: "admin_manual",
-          },
-        });
+          property_id: selectedPropertyId,
+          scheduled_by: userRecord.id,
+          source: "admin_manual",
+          slot_id: slot.id,
+        },
+        related_lead_id: selectedLeadId,
+        related_showing_id: showingData.id,
+      });
 
-        // System log
-        await supabase.from("system_logs").insert({
-          organization_id: userRecord.organization_id,
-          level: "info",
-          category: "general",
-          event_type: "admin_showing_scheduled",
-          message: `Showing scheduled by admin: ${propertyAddr} on ${format(scheduledAt, "MMM d, yyyy")} at ${format(scheduledAt, "h:mm a")}`,
-          details: {
-            showing_id: showingData.id,
-            lead_id: selectedLeadId,
-            property_id: selectedPropertyId,
-            scheduled_by: userRecord.id,
-            source: "admin_manual",
-          },
-          related_lead_id: selectedLeadId,
-          related_showing_id: showingData.id,
-        });
-      }
-
-      toast.success(
-        `Showing scheduled for ${format(scheduledAt, "MMM d, yyyy")} at ${format(
-          scheduledAt,
-          "h:mm a"
-        )}`
-      );
+      const displayDate = format(selectedDate, "MMM d, yyyy");
+      toast.success(`Showing scheduled for ${displayDate} at ${formatTimeDisplay(slotTime)}`);
 
       resetForm();
       onOpenChange(false);
@@ -381,7 +440,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     const [hours, minutes] = time.split(":").map(Number);
     const period = hours >= 12 ? "PM" : "AM";
     const displayHours = hours % 12 || 12;
-    return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
+    return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
   };
 
   return (
@@ -390,7 +449,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Schedule Showing</DialogTitle>
           <DialogDescription>
-            Create a new property showing appointment
+            Create a new property showing from available slots
           </DialogDescription>
         </DialogHeader>
 
@@ -523,19 +582,34 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label>Time *</Label>
-              <Select value={selectedTime} onValueChange={setSelectedTime}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIME_SLOTS.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {formatTimeDisplay(time)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Time Slot *</Label>
+              {loadingSlots ? (
+                <div className="flex items-center gap-2 h-10 px-3 border rounded-md text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading slots...
+                </div>
+              ) : !selectedPropertyId || !selectedDate ? (
+                <div className="h-10 px-3 border rounded-md flex items-center text-sm text-muted-foreground">
+                  Select property & date first
+                </div>
+              ) : availableSlots.length === 0 ? (
+                <div className="h-10 px-3 border rounded-md flex items-center text-sm text-amber-600 bg-amber-50">
+                  No available slots for this date
+                </div>
+              ) : (
+                <Select value={selectedSlotId} onValueChange={setSelectedSlotId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSlots.map((slot) => (
+                      <SelectItem key={slot.id} value={slot.id}>
+                        {formatTimeDisplay(slot.slot_time)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 
@@ -559,8 +633,8 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
             <div className="space-y-2">
               <Label>Leasing Agent</Label>
-              <Select 
-                value={selectedAgentId || "none"} 
+              <Select
+                value={selectedAgentId || "none"}
                 onValueChange={(val) => setSelectedAgentId(val === "none" ? "" : val)}
               >
                 <SelectTrigger>
@@ -598,7 +672,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || !selectedSlotId}
             className="bg-accent hover:bg-accent/90 text-accent-foreground"
           >
             {submitting ? "Scheduling..." : "Schedule Showing"}

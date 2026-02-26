@@ -182,6 +182,47 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── Validate against weekly schedule ─────────────────────────────
+    {
+      const { data: scheduleSetting } = await supabase
+        .from("organization_settings")
+        .select("value")
+        .eq("organization_id", organization_id)
+        .eq("key", "showing_weekly_schedule")
+        .maybeSingle();
+
+      if (scheduleSetting?.value) {
+        const weeklySchedule = typeof scheduleSetting.value === "string"
+          ? JSON.parse(scheduleSetting.value)
+          : scheduleSetting.value;
+        const slotDateObj = new Date(slot_date + "T12:00:00");
+        const dayOfWeek = String(slotDateObj.getDay());
+        const dayConfig = weeklySchedule[dayOfWeek];
+
+        if (!dayConfig) {
+          return new Response(
+            JSON.stringify({ error: "Showings are not available on this day. Please choose another date." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Validate time within allowed hours
+        const [slotH, slotM] = slot_time.split(":").map(Number);
+        const slotMinutes = slotH * 60 + slotM;
+        const [startH, startM] = dayConfig.start.split(":").map(Number);
+        const [endH, endM] = dayConfig.end.split(":").map(Number);
+        const startMinutes = startH * 60 + startM;
+        const endMinutes = endH * 60 + endM;
+
+        if (slotMinutes < startMinutes || slotMinutes >= endMinutes) {
+          return new Response(
+            JSON.stringify({ error: `Showings on this day are only available from ${dayConfig.start} to ${dayConfig.end}.` }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
     // ── Verify slot is still available ────────────────────────────────
     const { data: slot, error: slotErr } = await supabase
       .from("showing_available_slots")

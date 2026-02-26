@@ -204,6 +204,43 @@ serve(async (req: Request) => {
         );
       }
 
+      // Validate against weekly schedule
+      {
+        const { data: scheduleSetting } = await supabase
+          .from("organization_settings")
+          .select("value")
+          .eq("organization_id", organization_id)
+          .eq("key", "showing_weekly_schedule")
+          .maybeSingle();
+
+        if (scheduleSetting?.value) {
+          const weeklySchedule = typeof scheduleSetting.value === "string"
+            ? JSON.parse(scheduleSetting.value)
+            : scheduleSetting.value;
+          const slotDateObj = new Date(slotDate + "T12:00:00");
+          const dayOfWeek = String(slotDateObj.getDay());
+          const dayConfig = weeklySchedule[dayOfWeek];
+
+          if (!dayConfig) {
+            return new Response(
+              JSON.stringify({ success: false, error: "Showings are not available on this day." }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          const [sH, sM] = slotTime.split(":").map(Number);
+          const slotMin = sH * 60 + sM;
+          const [startH, startM] = dayConfig.start.split(":").map(Number);
+          const [endH, endM] = dayConfig.end.split(":").map(Number);
+          if (slotMin < startH * 60 + startM || slotMin >= endH * 60 + endM) {
+            return new Response(
+              JSON.stringify({ success: false, error: `Showings are only available from ${dayConfig.start} to ${dayConfig.end}.` }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+      }
+
       // Check slot availability
       const { data: slot } = await supabase
         .from("showing_available_slots")
