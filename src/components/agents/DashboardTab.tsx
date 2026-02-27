@@ -112,18 +112,23 @@ function buildPlainSummary(report: SystemReport, services: IntegrationHealth[]):
     summary.push("No pending automated tasks — everything has been processed.");
   }
 
-  // 3. Errors
+  // 3. Errors — with trend awareness
+  const errorTrend = st.errors.trend as string | undefined;
+  const errorsLastHour = st.errors.lastHour as number | undefined;
   if (st.errors.count24h === 0) {
     summary.push("Zero errors in the last 24 hours — the system is running clean.");
+  } else if (errorTrend === "stopped" || errorsLastHour === 0) {
+    summary.push(`${st.errors.count24h} errors in 24h, but none in the last hour — issues appear resolved.`);
   } else if (st.errors.count24h <= 5) {
     summary.push(`Only ${st.errors.count24h} minor error${st.errors.count24h > 1 ? "s" : ""} in the last 24 hours.`);
   } else {
-    summary.push(`${st.errors.count24h} errors detected in the last 24 hours — worth reviewing.`);
+    summary.push(`${st.errors.count24h} errors in 24h (${errorsLastHour || "?"} in last hour) — worth reviewing.`);
   }
 
   // 4. Leads
-  if (st.leads.newToday > 0) {
-    summary.push(`${st.leads.newToday} new lead${st.leads.newToday > 1 ? "s" : ""} came in today.`);
+  const leadCount = st.leads.newToday;
+  if (leadCount > 0) {
+    summary.push(`${leadCount} new lead${leadCount > 1 ? "s" : ""} came in today.`);
   } else {
     summary.push("No new leads today yet.");
   }
@@ -249,6 +254,70 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
     enabled: !!orgId,
   });
 
+  // Real-time leads today count — uses DB-side Cleveland timezone
+  const { data: leadsToday } = useQuery({
+    queryKey: ["leads-today-count", orgId],
+    queryFn: async () => {
+      if (!orgId) return 0;
+      // Let Postgres compute "today" in Cleveland timezone (DST-aware)
+      const { data, error } = await supabase.rpc("count_leads_today", {
+        p_organization_id: orgId,
+      });
+      if (error) {
+        // Fallback: compute Cleveland midnight in JS
+        const clevelandNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+        clevelandNow.setHours(0, 0, 0, 0);
+        const utcNow = new Date();
+        const tzNow = new Date(utcNow.toLocaleString("en-US", { timeZone: "America/New_York" }));
+        const offset = utcNow.getTime() - tzNow.getTime();
+        const midnightUtc = new Date(clevelandNow.getTime() + offset).toISOString();
+        const { count } = await supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .gte("created_at", midnightUtc);
+        return count || 0;
+      }
+      return data || 0;
+    },
+    enabled: !!orgId,
+    refetchInterval: 30_000,
+  });
+
+  // Real-time complete leads today count
+  const { data: completeLeadsToday } = useQuery({
+    queryKey: ["complete-leads-today-count", orgId],
+    queryFn: async () => {
+      if (!orgId) return 0;
+      const { data, error } = await supabase.rpc("count_complete_leads_today", {
+        p_organization_id: orgId,
+      });
+      if (error) return 0;
+      return data || 0;
+    },
+    enabled: !!orgId,
+    refetchInterval: 30_000,
+  });
+
+  // Real-time errors 24h count
+  const { data: errorsRealtime } = useQuery({
+    queryKey: ["errors-24h-count", orgId],
+    queryFn: async () => {
+      if (!orgId) return 0;
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count, error } = await supabase
+        .from("system_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .eq("level", "error")
+        .gte("created_at", dayAgo);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!orgId,
+    refetchInterval: 30_000,
+  });
+
   const healthyCount = services?.filter((s) => s.status === "healthy").length || 0;
   const totalServicesCount = services?.length || 0;
   const downServices = services?.filter((s) => s.status === "down") || [];
@@ -337,8 +406,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
   // Use report stats if available, otherwise fall back to props
   const rStats = report?.stats;
   const costToday = rStats?.costs.totalToday || 0;
-  const errors24h = rStats?.errors.count24h || 0;
-  const newLeadsToday = rStats?.leads.newToday || 0;
+  // Use real-time queries for badges (more accurate than stale report)
+  const errors24h = errorsRealtime ?? rStats?.errors.count24h ?? 0;
+  const newLeadsToday = leadsToday ?? rStats?.leads.newToday ?? 0;
 
   return (
     <div className="space-y-4">
@@ -597,6 +667,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
           </div>
           <p className="text-xl font-bold text-purple-600">{newLeadsToday}</p>
           <p className="text-xs text-muted-foreground">Leads Today</p>
+          {completeLeadsToday != null && completeLeadsToday < newLeadsToday && (
+            <p className="text-[10px] text-muted-foreground">{completeLeadsToday} complete</p>
+          )}
         </Card>
       </div>
 

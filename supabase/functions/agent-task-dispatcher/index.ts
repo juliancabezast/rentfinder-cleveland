@@ -179,11 +179,12 @@ async function handleShowingConfirmation(
   const propertyAddress = ctx.property_address || "your scheduled property";
   const scheduledAt = ctx.scheduled_at || "";
 
-  // Format date for message
+  // Format date for message (Cleveland timezone)
   let dateStr = scheduledAt;
   try {
     const d = new Date(scheduledAt);
     dateStr = d.toLocaleDateString("en-US", {
+      timeZone: "America/New_York",
       weekday: "long",
       month: "long",
       day: "numeric",

@@ -2,29 +2,59 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { EnableSlotsDialog, EditSlotData } from "./EnableSlotsDialog";
 import {
   CalendarDays,
-  Clock,
+  ChevronLeft,
+  ChevronRight,
   Link2,
   Pencil,
   Plus,
+  Save,
+  Settings2,
   Trash2,
   Loader2,
+  User,
+  Home,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, addDays, parseISO, startOfDay } from "date-fns";
 
-interface DateGroup {
-  date: string;
-  available: number;
-  booked: number;
-  slots: { time: string; is_booked: boolean; id: string }[];
+// ── Types ────────────────────────────────────────────────────────────
+interface SlotProperty {
+  property_id: string;
+  property_address: string;
+  property_city: string;
+  is_booked: boolean;
+  lead_name: string | null;
 }
 
+interface TimeSlotGroup {
+  time: string;
+  properties: SlotProperty[];
+  totalCount: number;
+  bookedCount: number;
+}
+
+interface DayData {
+  date: string;
+  timeSlots: TimeSlotGroup[];
+  hasSlots: boolean;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────
 function formatTime(t: string) {
   const [h, m] = t.split(":");
   const hour = parseInt(h, 10);
@@ -33,33 +63,85 @@ function formatTime(t: string) {
   return `${display}:${m} ${ampm}`;
 }
 
+// ── Component ────────────────────────────────────────────────────────
 export const ManageSlotsTab: React.FC = () => {
   const { userRecord } = useAuth();
   const { toast } = useToast();
+  const { getSetting, updateMultipleSettings, loading: settingsLoading } = useOrganizationSettings();
 
-  const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [slotData, setSlotData] = useState<DayData[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editData, setEditData] = useState<EditSlotData | null>(null);
+  const [prefilledDate, setPrefilledDate] = useState<Date | undefined>();
   const [deletingDate, setDeletingDate] = useState<string | null>(null);
+
+  // Settings state
+  const [showSettings, setShowSettings] = useState(false);
+  const [defaultDuration, setDefaultDuration] = useState(30);
+  const [bufferMinutes, setBufferMinutes] = useState(15);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const orgId = userRecord?.organization_id;
 
-  // Fetch upcoming slots grouped by date
+  // Load settings
+  useEffect(() => {
+    if (!settingsLoading) {
+      setDefaultDuration(getSetting("default_duration_minutes", 30));
+      setBufferMinutes(getSetting("buffer_minutes", 15));
+    }
+  }, [settingsLoading, getSetting]);
+
+  // Week dates (7 days starting from today + weekOffset*7)
+  const weekDates = useMemo(() => {
+    const start = addDays(startOfDay(new Date()), weekOffset * 7);
+    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  }, [weekOffset]);
+
+  const weekStart = weekDates[0];
+  const weekEnd = weekDates[6];
+
+  // ── Fetch slots for current week with per-property detail ────────
   const fetchSlots = useCallback(async () => {
     if (!orgId) return;
     setLoading(true);
 
-    const today = format(new Date(), "yyyy-MM-dd");
+    const startStr = format(weekDates[0], "yyyy-MM-dd");
+    const endStr = format(weekDates[6], "yyyy-MM-dd");
 
+    // Query slots with property info and booked showing + lead name
     const { data, error } = await supabase
       .from("showing_available_slots")
-      .select("id, slot_date, slot_time, is_booked, is_enabled")
+      .select(`
+        id, slot_date, slot_time, is_booked, is_enabled, property_id,
+        properties(address, city),
+        booked_showing_id
+      `)
       .eq("organization_id", orgId)
       .eq("is_enabled", true)
-      .gte("slot_date", today)
+      .gte("slot_date", startStr)
+      .lte("slot_date", endStr)
       .order("slot_date")
       .order("slot_time");
+
+    // Fetch lead names for booked slots in a separate query
+    const bookedShowingIds = (data || [])
+      .filter((s: any) => s.booked_showing_id)
+      .map((s: any) => s.booked_showing_id);
+
+    let leadNameMap = new Map<string, string>();
+    if (bookedShowingIds.length > 0) {
+      const { data: showingsData } = await supabase
+        .from("showings")
+        .select("id, leads(full_name)")
+        .in("id", bookedShowingIds);
+      (showingsData || []).forEach((s: any) => {
+        if (s.leads?.full_name) {
+          leadNameMap.set(s.id, s.leads.full_name);
+        }
+      });
+    }
 
     if (error) {
       console.error("Error fetching slots:", error);
@@ -68,56 +150,73 @@ export const ManageSlotsTab: React.FC = () => {
       return;
     }
 
-    // Group by date, deduplicate times (since slots exist per property)
-    const groupMap = new Map<string, { times: Map<string, { is_booked: boolean; id: string }> }>();
+    // Build day data for each day in the week
+    const dayMap = new Map<string, Map<string, SlotProperty[]>>();
 
-    (data || []).forEach((s) => {
-      if (!groupMap.has(s.slot_date)) {
-        groupMap.set(s.slot_date, { times: new Map() });
-      }
-      const group = groupMap.get(s.slot_date)!;
-      const existing = group.times.get(s.slot_time);
-      // A time is "booked" if ALL property slots for that time are booked
-      // A time is "available" if ANY property slot for that time is available
-      if (!existing) {
-        group.times.set(s.slot_time, { is_booked: s.is_booked, id: s.id });
-      } else if (!s.is_booked) {
-        // If any slot for this time is available, mark it as available
-        existing.is_booked = false;
-      }
-    });
+    (data || []).forEach((s: any) => {
+      const dateKey = s.slot_date;
+      if (!dayMap.has(dateKey)) dayMap.set(dateKey, new Map());
+      const timeMap = dayMap.get(dateKey)!;
+      if (!timeMap.has(s.slot_time)) timeMap.set(s.slot_time, []);
 
-    const groups: DateGroup[] = [];
-    groupMap.forEach((val, date) => {
-      const slots = Array.from(val.times.entries())
-        .map(([time, info]) => ({ time, is_booked: info.is_booked, id: info.id }))
-        .sort((a, b) => a.time.localeCompare(b.time));
-
-      // Deduplicate times (show each time once regardless of how many properties)
-      const seenTimes = new Set<string>();
-      const uniqueSlots = slots.filter((s) => {
-        if (seenTimes.has(s.time)) return false;
-        seenTimes.add(s.time);
-        return true;
-      });
-
-      groups.push({
-        date,
-        available: uniqueSlots.filter((s) => !s.is_booked).length,
-        booked: uniqueSlots.filter((s) => s.is_booked).length,
-        slots: uniqueSlots,
+      const leadName = s.booked_showing_id ? (leadNameMap.get(s.booked_showing_id) || null) : null;
+      timeMap.get(s.slot_time)!.push({
+        property_id: s.property_id,
+        property_address: (s.properties as any)?.address || "Unknown",
+        property_city: (s.properties as any)?.city || "",
+        is_booked: s.is_booked,
+        lead_name: leadName,
       });
     });
 
-    setDateGroups(groups);
+    const days: DayData[] = weekDates.map((d) => {
+      const dateStr = format(d, "yyyy-MM-dd");
+      const timeMap = dayMap.get(dateStr);
+
+      if (!timeMap || timeMap.size === 0) {
+        return { date: dateStr, timeSlots: [], hasSlots: false };
+      }
+
+      const timeSlots: TimeSlotGroup[] = [];
+      timeMap.forEach((props, time) => {
+        timeSlots.push({
+          time,
+          properties: props.sort((a, b) => a.property_address.localeCompare(b.property_address)),
+          totalCount: props.length,
+          bookedCount: props.filter((p) => p.is_booked).length,
+        });
+      });
+
+      timeSlots.sort((a, b) => a.time.localeCompare(b.time));
+
+      return { date: dateStr, timeSlots, hasSlots: true };
+    });
+
+    setSlotData(days);
     setLoading(false);
-  }, [orgId]);
+  }, [orgId, weekDates]);
 
   useEffect(() => {
     fetchSlots();
   }, [fetchSlots]);
 
-  // Disable all unbooked slots for a given date (using UPDATE instead of DELETE for RLS compatibility)
+  // ── Summary totals (1 person = 1 slot per time) ─────────────────────
+  const totals = useMemo(() => {
+    let available = 0;
+    let booked = 0;
+    slotData.forEach((day) => {
+      day.timeSlots.forEach((ts) => {
+        if (ts.bookedCount > 0) {
+          booked += 1;
+        } else {
+          available += 1;
+        }
+      });
+    });
+    return { available, booked };
+  }, [slotData]);
+
+  // ── Delete all unbooked slots for a date ───────────────────────────
   const handleDeleteDate = async (date: string) => {
     if (!orgId) return;
     setDeletingDate(date);
@@ -130,7 +229,6 @@ export const ManageSlotsTab: React.FC = () => {
       .eq("is_booked", false);
 
     if (error) {
-      console.error("Disable error:", error);
       toast({ title: "Error", description: `Failed to remove slots: ${error.message}`, variant: "destructive" });
     } else {
       toast({ title: "Removed", description: `Available slots for ${format(parseISO(date), "MMM d")} disabled.` });
@@ -139,23 +237,54 @@ export const ManageSlotsTab: React.FC = () => {
     setDeletingDate(null);
   };
 
-  // Summary stats
-  const totals = useMemo(() => {
-    let available = 0;
-    let booked = 0;
-    dateGroups.forEach((g) => {
-      available += g.available;
-      booked += g.booked;
+  // ── Save settings ──────────────────────────────────────────────────
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await updateMultipleSettings([
+        { key: "default_duration_minutes", value: defaultDuration, category: "showings" },
+        { key: "buffer_minutes", value: bufferMinutes, category: "showings" },
+      ]);
+      sonnerToast.success("Showing settings updated");
+    } catch {
+      sonnerToast.error("Failed to save settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  // ── All unique times across the week (for row headers) ────────────
+  const allTimes = useMemo(() => {
+    const timeSet = new Set<string>();
+    slotData.forEach((day) => {
+      day.timeSlots.forEach((ts) => timeSet.add(ts.time));
     });
-    return { available, booked };
-  }, [dateGroups]);
+    return Array.from(timeSet).sort();
+  }, [slotData]);
+
+  // ── Cell color logic (binary: booked or open) ──────────────────────
+  const getCellStyle = (ts: TimeSlotGroup | undefined) => {
+    if (!ts) return "bg-slate-50 text-slate-300";
+    if (ts.bookedCount === 0) return "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100";
+    return "bg-blue-50 border-blue-200 text-blue-800";
+  };
+
+  // Check if a date is in the past
+  const isPast = (dateStr: string) => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    return dateStr < today;
+  };
 
   return (
     <div className="space-y-4">
-      {/* Top controls */}
+      {/* ── Top controls ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         <Button
-          onClick={() => { setEditData(null); setDialogOpen(true); }}
+          onClick={() => {
+            setEditData(null);
+            setPrefilledDate(undefined);
+            setDialogOpen(true);
+          }}
           className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
         >
           <Plus className="h-4 w-4 mr-1.5" />
@@ -173,8 +302,15 @@ export const ManageSlotsTab: React.FC = () => {
           <Link2 className="h-4 w-4 mr-1.5" />
           Copy Booking Link
         </Button>
+        <Button
+          variant={showSettings ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setShowSettings(!showSettings)}
+        >
+          <Settings2 className="h-4 w-4 mr-1.5" />
+          Settings
+        </Button>
 
-        {/* Stats */}
         <div className="flex gap-2 ml-auto">
           <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
             {totals.available} Available
@@ -185,122 +321,327 @@ export const ManageSlotsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Slots list */}
+      {/* ── Collapsible settings panel ───────────────────────────────── */}
+      {showSettings && (
+        <Card className="border-dashed">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="dur" className="text-xs">Default Duration (min)</Label>
+                <Input
+                  id="dur"
+                  type="number"
+                  min={15}
+                  max={120}
+                  step={15}
+                  value={defaultDuration}
+                  onChange={(e) => setDefaultDuration(parseInt(e.target.value) || 30)}
+                  className="w-24 h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="buf" className="text-xs">Buffer Between (min)</Label>
+                <Input
+                  id="buf"
+                  type="number"
+                  min={0}
+                  max={60}
+                  step={5}
+                  value={bufferMinutes}
+                  onChange={(e) => setBufferMinutes(parseInt(e.target.value) || 15)}
+                  className="w-24 h-9"
+                />
+              </div>
+              <Button size="sm" onClick={handleSaveSettings} disabled={savingSettings}>
+                <Save className="h-3.5 w-3.5 mr-1" />
+                {savingSettings ? "Saving..." : "Save"}
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                Example: {defaultDuration}min showing + {bufferMinutes}min buffer = {defaultDuration + bufferMinutes}min between slots
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Week navigation ──────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={() => setWeekOffset((w) => w - 1)} disabled={weekOffset <= 0}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="text-sm font-semibold text-center">
+          {format(weekStart, "MMM d")} – {format(weekEnd, "MMM d, yyyy")}
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => setWeekOffset((w) => w + 1)}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* ── Weekly grid ──────────────────────────────────────────────── */}
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-20 rounded-xl" />
           ))}
         </div>
-      ) : dateGroups.length === 0 ? (
+      ) : allTimes.length === 0 && slotData.every((d) => !d.hasSlots) ? (
         <Card>
           <CardContent className="py-12 text-center">
             <CalendarDays className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="font-medium text-muted-foreground">No slots enabled yet</p>
+            <p className="font-medium text-muted-foreground">No slots this week</p>
             <p className="text-sm text-muted-foreground mt-1">
               Click "Enable Slots" to add available times for showings.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {dateGroups.map((group) => {
-            const dateObj = parseISO(group.date);
-            return (
-              <Card key={group.date} className="overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    {/* Date info */}
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-[#4F46E5]/10 flex flex-col items-center justify-center shrink-0">
-                        <span className="text-[10px] font-semibold text-[#4F46E5] uppercase leading-none">
-                          {format(dateObj, "MMM")}
-                        </span>
-                        <span className="text-lg font-bold text-[#4F46E5] leading-none">
-                          {format(dateObj, "d")}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">
-                          {format(dateObj, "EEEE")}
-                        </p>
-                        <div className="flex gap-2 mt-0.5">
-                          <span className="text-xs text-emerald-700">{group.available} available</span>
-                          {group.booked > 0 && (
-                            <span className="text-xs text-blue-700">{group.booked} booked</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Edit / Delete buttons */}
-                    <div className="flex items-center gap-1">
-                      {group.available > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-[#4F46E5]"
-                          onClick={() => {
-                            setEditData({
-                              date: group.date,
-                              slots: group.slots.map((s) => s.time),
-                            });
-                            setDialogOpen(true);
-                          }}
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-xs">
+                {/* ── Column headers (days) ────────────────────────── */}
+                <thead>
+                  <tr className="border-b">
+                    <th className="w-20 p-2 text-left text-muted-foreground font-medium sticky left-0 bg-white z-10">
+                      Time
+                    </th>
+                    {slotData.map((day) => {
+                      const dateObj = parseISO(day.date);
+                      const isToday = format(new Date(), "yyyy-MM-dd") === day.date;
+                      return (
+                        <th
+                          key={day.date}
+                          className={`p-2 text-center font-medium min-w-[100px] ${
+                            isToday ? "bg-[#4F46E5]/5" : ""
+                          } ${isPast(day.date) ? "opacity-40" : ""}`}
                         >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {group.available > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-destructive"
-                          disabled={deletingDate === group.date}
-                          onClick={() => handleDeleteDate(group.date)}
-                        >
-                          {deletingDate === group.date ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                          <div className="text-[10px] text-muted-foreground uppercase">
+                            {format(dateObj, "EEE")}
+                          </div>
+                          <div className={`text-sm font-bold ${isToday ? "text-[#4F46E5]" : ""}`}>
+                            {format(dateObj, "d")}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {format(dateObj, "MMM")}
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
 
-                  {/* Time chips */}
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    {group.slots.map((slot) => (
-                      <span
-                        key={slot.time}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                          slot.is_booked
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-emerald-100 text-emerald-800"
-                        }`}
-                      >
-                        <Clock className="h-3 w-3" />
-                        {formatTime(slot.time)}
-                        {slot.is_booked && " (booked)"}
-                      </span>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                {/* ── Time rows ─────────────────────────────────────── */}
+                <tbody>
+                  {allTimes.map((time) => (
+                    <tr key={time} className="border-b last:border-b-0">
+                      <td className="p-2 font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-white z-10">
+                        {formatTime(time)}
+                      </td>
+                      {slotData.map((day) => {
+                        const ts = day.timeSlots.find((s) => s.time === time);
+                        const past = isPast(day.date);
+                        const isToday = format(new Date(), "yyyy-MM-dd") === day.date;
+
+                        if (!ts) {
+                          return (
+                            <td
+                              key={day.date}
+                              className={`p-1 text-center ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
+                            >
+                              <span className="text-slate-300">—</span>
+                            </td>
+                          );
+                        }
+
+                        return (
+                          <td
+                            key={day.date}
+                            className={`p-1 text-center ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
+                          >
+                            {(() => {
+                              const bookedProps = ts.properties.filter((p) => p.is_booked);
+                              const isBooked = bookedProps.length > 0;
+                              const firstBooked = bookedProps[0];
+
+                              return (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${getCellStyle(ts)}`}
+                                    >
+                                      {isBooked ? (
+                                        <>
+                                          <div className="font-bold truncate">
+                                            {firstBooked?.lead_name || "Booked"}
+                                          </div>
+                                          <div className="text-[10px] opacity-70 truncate">
+                                            {firstBooked?.property_address || ""}
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div className="font-bold py-0.5">Open</div>
+                                      )}
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-72 p-3" side="bottom" align="center">
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-semibold text-sm">
+                                          {formatTime(time)} — {format(parseISO(day.date), "MMM d")}
+                                        </span>
+                                        <Badge
+                                          variant="outline"
+                                          className={`text-[10px] ${isBooked ? "border-blue-200 text-blue-700" : "border-emerald-200 text-emerald-700"}`}
+                                        >
+                                          {isBooked ? `${bookedProps.length} booked` : "Open"}
+                                        </Badge>
+                                      </div>
+                                      {/* Show bookings first */}
+                                      {bookedProps.length > 0 && (
+                                        <div className="space-y-1.5">
+                                          {bookedProps.map((p) => (
+                                            <div
+                                              key={p.property_id}
+                                              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs bg-blue-50 border border-blue-100"
+                                            >
+                                              <Home className="h-3 w-3 shrink-0 text-blue-500" />
+                                              <div className="flex-1 min-w-0">
+                                                <div className="font-medium truncate">{p.property_address}</div>
+                                              </div>
+                                              <div className="flex items-center gap-1 text-blue-700 shrink-0">
+                                                <User className="h-3 w-3" />
+                                                <span className="text-[10px] font-medium truncate max-w-[80px]">
+                                                  {p.lead_name || "Booked"}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {/* Available properties */}
+                                      {ts.properties.filter((p) => !p.is_booked).length > 0 && (
+                                        <div>
+                                          <p className="text-[10px] text-muted-foreground mb-1">
+                                            {ts.properties.filter((p) => !p.is_booked).length} properties available at this time
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              );
+                            })()}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+
+                  {/* ── Action row (Add / Edit / Delete per day) ────── */}
+                  <tr>
+                    <td className="p-2 sticky left-0 bg-white z-10" />
+                    {slotData.map((day) => {
+                      const past = isPast(day.date);
+                      if (past) return <td key={day.date} className="p-1" />;
+
+                      const hasAvailable = day.timeSlots.some((ts) => ts.bookedCount < ts.totalCount);
+
+                      return (
+                        <td key={day.date} className="p-1 text-center">
+                          <div className="flex items-center justify-center gap-0.5">
+                            {day.hasSlots ? (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-[10px] text-muted-foreground hover:text-[#4F46E5]"
+                                  onClick={() => {
+                                    setEditData({
+                                      date: day.date,
+                                      slots: day.timeSlots.map((ts) => ts.time),
+                                    });
+                                    setDialogOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                {hasAvailable && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-[10px] text-muted-foreground hover:text-destructive"
+                                    disabled={deletingDate === day.date}
+                                    onClick={() => handleDeleteDate(day.date)}
+                                  >
+                                    {deletingDate === day.date ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                )}
+                              </>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-[10px] text-[#4F46E5]"
+                                onClick={() => {
+                                  setEditData(null);
+                                  setPrefilledDate(parseISO(day.date));
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-0.5" />
+                                Add
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Dialog */}
+      {/* ── Legend ────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" />
+          Open
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" />
+          Booked
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-300">—</span>
+          No slot
+        </div>
+        <div className="ml-auto text-[10px]">
+          Click any cell for details
+        </div>
+      </div>
+
+      {/* ── Dialog ───────────────────────────────────────────────────── */}
       {orgId && (
         <EnableSlotsDialog
           open={dialogOpen}
-          onOpenChange={setDialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setEditData(null);
+              setPrefilledDate(undefined);
+            }
+          }}
           onSuccess={fetchSlots}
           orgId={orgId}
           editData={editData}
+          prefilledDate={prefilledDate}
         />
       )}
     </div>

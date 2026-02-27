@@ -60,9 +60,11 @@ Every table has `organization_id`. All RLS policies scope by user's org. **Never
 ### Code Patterns
 - **Exports**: Components use named exports (`export const X`). Pages use `export default` (required for React.lazy).
 - **Imports**: Double quotes dominant. File-level consistent.
-- **Toast**: Import from `@/hooks/use-toast` directly.
+- **Toast**: Import from `@/hooks/use-toast` directly. Sonner (`toast` from `"sonner"`) also available — both Toasters mounted in App.tsx.
 - **Edge functions**: Use raw `fetch` for streaming; otherwise `supabase.functions.invoke()`.
 - **Email sending**: All frontend emails queue by default via `sendNotificationEmail()` in `src/lib/notificationService.ts` (respects Resend rate limits). Only set `queue: false` for test emails.
+- **Data fetching**: `@tanstack/react-query` (v5) used across ~33 locations. QueryClient provided in App.tsx.
+- **lucide-react `Map` icon**: Always import as `Map as MapIcon` — bare `import { Map }` shadows the native `Map` constructor and causes `TypeError: Map is not a constructor` at runtime.
 
 ### AI Agents (Biblical Names)
 12 operational agents organized by department:
@@ -107,12 +109,33 @@ Leads can be taken under manual control, pausing all AI automation. Requires man
 - **DoorLoop**: Application/lease sync
 - **Persona**: Identity verification
 
+### Timezone Handling (Cleveland = America/New_York)
+All date/time computations must be DST-aware. Never hardcode UTC offsets like `-05:00`.
+
+**In edge functions (Deno)**: Use `toLocaleDateString("en-CA", { timeZone: "America/New_York" })` for YYYY-MM-DD, or compute Cleveland midnight:
+```ts
+const orgTz = "America/New_York";
+const clevelandNow = new Date(now.toLocaleString("en-US", { timeZone: orgTz }));
+clevelandNow.setHours(0, 0, 0, 0);
+const offset = now.getTime() - new Date(now.toLocaleString("en-US", { timeZone: orgTz })).getTime();
+const todayStart = new Date(clevelandNow.getTime() + offset).toISOString(); // UTC equivalent of Cleveland midnight
+```
+
+**In frontend**: Same pattern, or use DB functions `count_leads_today(p_organization_id)` / `count_complete_leads_today(p_organization_id)` which handle timezone via `AT TIME ZONE 'America/New_York'`.
+
+**In DB functions**: Use `(NOW() AT TIME ZONE 'America/New_York')::date::timestamp AT TIME ZONE 'America/New_York'` for Cleveland midnight in UTC.
+
+### Edge Function Patterns
+- No `_shared/` directory exists — utility code is duplicated across functions (~45% duplication)
+- All Deno std imports standardized on `https://deno.land/std@0.168.0/`
+- Every query MUST filter by `organization_id` passed in the request body
+
 ## Critical Rules
 - All scoring changes MUST go through `lead_score_history` (trigger enforces this)
 - Edge functions use Deno imports (`https://deno.land/std@0.168.0/`, `https://esm.sh/`)
 - For cron-triggered agents, DB settings `app.settings.supabase_url` and `app.settings.service_role_key` must be set
 - Emails: sender domain should come from org's `sender_domain` setting, not hardcoded
-- Timezone: use dynamic DST-aware offset computation, never hardcode `-05:00`
+- Timezone: use dynamic DST-aware offset computation, never hardcode `-05:00` (see Timezone Handling section above)
 - `agent_tasks` table has NO `updated_at` column (trigger was removed) — don't add one
 
 ## Edge Functions Deployed from Local Repo

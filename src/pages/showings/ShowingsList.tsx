@@ -1,11 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Calendar, Clock, MapPin, User, CalendarDays, Plus, FileText, Map, Settings2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+  Calendar,
+  MapPin,
+  User,
+  CalendarDays,
+  Plus,
+  FileText,
+  Map as MapIcon,
+  Settings2,
+  Users,
+  Home,
+  DollarSign,
+  TrendingUp,
+  CheckCircle2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -21,7 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/hooks/use-toast";
-import { format, startOfDay, endOfDay, addDays, parseISO } from "date-fns";
+import { format, startOfDay, endOfDay, addDays, parseISO, isToday, isTomorrow } from "date-fns";
 import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
 import { MyRouteTab } from "@/components/showings/MyRouteTab";
@@ -34,13 +45,16 @@ interface ShowingWithDetails {
   status: string;
   duration_minutes: number | null;
   lead_id: string;
+  property_id?: string;
   property_address?: string;
   property_city?: string;
+  rent_price?: number | null;
   lead_name?: string;
   lead_phone?: string;
 }
 
 const STATUS_OPTIONS = [
+  { value: "active", label: "Active (Scheduled + Confirmed)" },
   { value: "all", label: "All Statuses" },
   { value: "scheduled", label: "Scheduled" },
   { value: "confirmed", label: "Confirmed" },
@@ -65,6 +79,14 @@ const statusColors: Record<string, string> = {
   rescheduled: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
 };
 
+// ── Day label helper ─────────────────────────────────────────────────
+function getDayLabel(dateStr: string): string {
+  const date = parseISO(dateStr);
+  if (isToday(date)) return `Today — ${format(date, "EEEE, MMMM d")}`;
+  if (isTomorrow(date)) return `Tomorrow — ${format(date, "EEEE, MMMM d")}`;
+  return format(date, "EEEE, MMMM d");
+}
+
 const ShowingsList: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { userRecord } = useAuth();
@@ -73,7 +95,7 @@ const ShowingsList: React.FC = () => {
 
   const [showings, setShowings] = useState<ShowingWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [dateFilter, setDateFilter] = useState("week");
 
   // Tab state from URL
@@ -102,8 +124,8 @@ const ShowingsList: React.FC = () => {
         .from("showings")
         .select(
           `
-          id, scheduled_at, status, duration_minutes, lead_id,
-          properties(address, city),
+          id, scheduled_at, status, duration_minutes, lead_id, property_id,
+          properties(address, city, rent_price),
           leads(full_name, phone)
         `
         )
@@ -128,7 +150,9 @@ const ShowingsList: React.FC = () => {
       }
 
       // Status filter
-      if (statusFilter !== "all") {
+      if (statusFilter === "active") {
+        query = query.in("status", ["scheduled", "confirmed"]);
+      } else if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
       }
 
@@ -143,8 +167,10 @@ const ShowingsList: React.FC = () => {
           status: s.status,
           duration_minutes: s.duration_minutes,
           lead_id: s.lead_id,
+          property_id: s.property_id,
           property_address: s.properties?.address,
           property_city: s.properties?.city,
+          rent_price: s.properties?.rent_price,
           lead_name: s.leads?.full_name,
           lead_phone: s.leads?.phone,
         }))
@@ -165,12 +191,68 @@ const ShowingsList: React.FC = () => {
     fetchShowings();
   }, [userRecord?.organization_id, statusFilter, dateFilter]);
 
+  // ── KPI metrics ────────────────────────────────────────────────────
+  const metrics = useMemo(() => {
+    const uniqueLeads = new Set(showings.map((s) => s.lead_id));
+    const uniqueProps = new Set(showings.filter((s) => s.property_id).map((s) => s.property_id));
+
+    // Potential monthly revenue = sum of rent_price for unique properties
+    const propRentMap = new Map<string, number>();
+    showings.forEach((s) => {
+      if (s.property_id && s.rent_price && !propRentMap.has(s.property_id)) {
+        propRentMap.set(s.property_id, s.rent_price);
+      }
+    });
+    const potentialRevenue = Array.from(propRentMap.values()).reduce((sum, r) => sum + r, 0);
+
+    // Today's showings
+    const todayCount = showings.filter((s) => {
+      try { return isToday(parseISO(s.scheduled_at)); } catch { return false; }
+    }).length;
+
+    // Confirmed rate
+    const confirmed = showings.filter((s) => s.status === "confirmed").length;
+    const confirmRate = showings.length > 0 ? Math.round((confirmed / showings.length) * 100) : 0;
+
+    return {
+      total: showings.length,
+      uniqueLeads: uniqueLeads.size,
+      uniqueProps: uniqueProps.size,
+      potentialRevenue,
+      todayCount,
+      confirmRate,
+    };
+  }, [showings]);
+
+  // ── Group showings by day ──────────────────────────────────────────
+  const groupedByDay = useMemo(() => {
+    const groups: { dateKey: string; label: string; showings: ShowingWithDetails[] }[] = [];
+    const dayMap = new Map<string, ShowingWithDetails[]>();
+
+    showings.forEach((s) => {
+      const dayKey = format(parseISO(s.scheduled_at), "yyyy-MM-dd");
+      if (!dayMap.has(dayKey)) dayMap.set(dayKey, []);
+      dayMap.get(dayKey)!.push(s);
+    });
+
+    dayMap.forEach((items, dateKey) => {
+      groups.push({
+        dateKey,
+        label: getDayLabel(dateKey),
+        showings: items,
+      });
+    });
+
+    groups.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+    return groups;
+  }, [showings]);
+
   const handleOpenReport = (e: React.MouseEvent, showing: ShowingWithDetails) => {
     e.stopPropagation();
-    setSelectedShowingForReport({ 
-      id: showing.id, 
+    setSelectedShowingForReport({
+      id: showing.id,
       leadId: showing.lead_id,
-      propertyAddress: showing.property_address
+      propertyAddress: showing.property_address,
     });
     setReportDialogOpen(true);
   };
@@ -225,7 +307,7 @@ const ShowingsList: React.FC = () => {
           </TabsTrigger>
           {permissions.canViewOwnRoute && (
             <TabsTrigger value="route" className="flex-1 sm:flex-initial gap-2">
-              <Map className="h-4 w-4" />
+              <MapIcon className="h-4 w-4" />
               <span>My Route</span>
             </TabsTrigger>
           )}
@@ -238,7 +320,74 @@ const ShowingsList: React.FC = () => {
         </TabsList>
 
         <TabsContent value="showings" className="space-y-4">
-          {/* Filters */}
+          {/* ── KPI Bubbles ──────────────────────────────────────────── */}
+          {!loading && showings.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <Card className="border-0 shadow-sm bg-gradient-to-br from-indigo-50 to-white">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                    <CalendarDays className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-indigo-700">{metrics.total}</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">Total Showings</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-50 to-white">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                    <Users className="h-5 w-5 text-violet-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-violet-700">{metrics.uniqueLeads}</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">Unique Leads</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-white">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                    <Home className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-emerald-700">{metrics.uniqueProps}</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">Properties</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm bg-gradient-to-br from-amber-50 to-white">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <DollarSign className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-amber-700">
+                      ${metrics.potentialRevenue.toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">Rent Potential/mo</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm bg-gradient-to-br from-teal-50 to-white">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="h-5 w-5 text-teal-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-teal-700">{metrics.confirmRate}%</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">Confirmed Rate</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ── Filters ──────────────────────────────────────────────── */}
           <div className="glass-card rounded-xl p-4">
             <div className="flex flex-col gap-4 sm:flex-row">
               <Select value={dateFilter} onValueChange={setDateFilter}>
@@ -256,7 +405,7 @@ const ShowingsList: React.FC = () => {
               </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
+                <SelectTrigger className="w-full sm:w-56 min-h-[44px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -270,7 +419,7 @@ const ShowingsList: React.FC = () => {
             </div>
           </div>
 
-          {/* Showings List */}
+          {/* ── Showings grouped by day ──────────────────────────────── */}
           {loading ? (
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -282,93 +431,116 @@ const ShowingsList: React.FC = () => {
               <CardContent className="p-0">
                 <EmptyState
                   icon={CalendarDays}
-                  title="No showings scheduled"
+                  title="No showings found"
                   description={
-                    statusFilter !== "all" || dateFilter !== "all"
-                      ? "No showings match your filter criteria. Try adjusting your filters."
+                    statusFilter !== "active" || dateFilter !== "all"
+                      ? "No showings match your filters. Try adjusting date range or status."
                       : "Showings will appear here when leads schedule property tours."
                   }
                 />
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {showings.map((showing, index) => (
-                <Card
-                  key={showing.id}
-                  variant="glass"
-                  className="hover:shadow-modern-lg transition-all duration-300 cursor-pointer animate-fade-up"
-                  style={{
-                    animationDelay: `${Math.min(index * 0.05, 0.3)}s`,
-                    animationFillMode: "both",
-                  }}
-                  onClick={() => { setSelectedShowingId(showing.id); setDetailDialogOpen(true); }}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                      {/* Time */}
-                      <div className="flex items-center gap-3 sm:w-32 shrink-0">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex flex-col items-center justify-center">
-                          <span className="text-xs font-medium text-primary">
-                            {format(parseISO(showing.scheduled_at), "MMM")}
-                          </span>
-                          <span className="text-lg font-bold text-primary leading-none">
-                            {format(parseISO(showing.scheduled_at), "d")}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">
-                            {format(parseISO(showing.scheduled_at), "h:mm a")}
-                          </p>
-                          {showing.duration_minutes && (
-                            <p className="text-xs text-muted-foreground">
-                              {showing.duration_minutes} min
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Details */}
-                      <div className="flex-1 min-w-0">
-                        {showing.property_address && (
-                          <p className="font-medium flex items-center gap-1 truncate">
-                            <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                            {showing.property_address}
-                            {showing.property_city && `, ${showing.property_city}`}
-                          </p>
-                        )}
-                        {showing.lead_name && (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                            <User className="h-3 w-3" />
-                            {showing.lead_name}
-                            {showing.lead_phone && ` • ${showing.lead_phone}`}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Actions and Status */}
-                      <div className="flex items-center gap-2">
-                        {canSubmitReport(showing.status) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => handleOpenReport(e, showing)}
-                          >
-                            <FileText className="h-4 w-4 mr-1" />
-                            Submit Report
-                          </Button>
-                        )}
-                        <Badge
-                          className={
-                            statusColors[showing.status] || "bg-muted text-muted-foreground"
-                          }
-                        >
-                          {showing.status.replace("_", " ")}
-                        </Badge>
-                      </div>
+            <div className="space-y-6">
+              {groupedByDay.map((group) => (
+                <div key={group.dateKey}>
+                  {/* Day header */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-8 w-8 rounded-lg bg-[#370d4b]/10 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-bold text-[#370d4b]">
+                        {format(parseISO(group.dateKey), "d")}
+                      </span>
                     </div>
-                  </CardContent>
-                </Card>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {group.label}
+                    </h3>
+                    <Badge variant="outline" className="text-[10px] ml-auto">
+                      {group.showings.length} showing{group.showings.length !== 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+
+                  {/* Showing cards for this day */}
+                  <div className="space-y-2 pl-2 border-l-2 border-[#370d4b]/10 ml-4">
+                    {group.showings.map((showing, index) => (
+                      <Card
+                        key={showing.id}
+                        variant="glass"
+                        className="hover:shadow-modern-lg transition-all duration-300 cursor-pointer animate-fade-up"
+                        style={{
+                          animationDelay: `${Math.min(index * 0.04, 0.2)}s`,
+                          animationFillMode: "both",
+                        }}
+                        onClick={() => {
+                          setSelectedShowingId(showing.id);
+                          setDetailDialogOpen(true);
+                        }}
+                      >
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            {/* Time */}
+                            <div className="flex items-center gap-2 sm:w-24 shrink-0">
+                              <div className="text-right">
+                                <p className="font-semibold text-sm">
+                                  {format(parseISO(showing.scheduled_at), "h:mm a")}
+                                </p>
+                                {showing.duration_minutes && (
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {showing.duration_minutes} min
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Details */}
+                            <div className="flex-1 min-w-0">
+                              {showing.property_address && (
+                                <p className="font-medium text-sm flex items-center gap-1 truncate">
+                                  <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                  {showing.property_address}
+                                  {showing.property_city && `, ${showing.property_city}`}
+                                  {showing.rent_price && (
+                                    <span className="text-emerald-600 text-xs font-normal ml-1">
+                                      ${showing.rent_price.toLocaleString()}/mo
+                                    </span>
+                                  )}
+                                </p>
+                              )}
+                              {showing.lead_name && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <User className="h-3 w-3" />
+                                  {showing.lead_name}
+                                  {showing.lead_phone && ` · ${showing.lead_phone}`}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Actions + Status */}
+                            <div className="flex items-center gap-2">
+                              {canSubmitReport(showing.status) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-xs"
+                                  onClick={(e) => handleOpenReport(e, showing)}
+                                >
+                                  <FileText className="h-3.5 w-3.5 mr-1" />
+                                  Report
+                                </Button>
+                              )}
+                              <Badge
+                                className={
+                                  statusColors[showing.status] || "bg-muted text-muted-foreground"
+                                }
+                              >
+                                {showing.status.replace("_", " ")}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}

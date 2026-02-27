@@ -356,6 +356,31 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
     }
   }
 
+  // ── Extract phone/email from message body if still missing ────────
+  // People often include their number in Hemlane messages ("call me at 216-555-1234")
+  if (result.message && (!result.phone || !result.email)) {
+    if (!result.phone) {
+      const msgPhone = result.message.match(
+        /(\+?1?\s*\(?\d{3}\)?\s*[-.\s]?\d{3}\s*[-.\s]?\d{4})/
+      );
+      if (msgPhone) {
+        result.phone = msgPhone[1].trim();
+        console.log(`Esther: extracted phone from message body: ${result.phone}`);
+      }
+    }
+    if (!result.email) {
+      const msgEmails = result.message.matchAll(/([\w.+-]+@[\w.-]+\.\w{2,})/g);
+      for (const m of msgEmails) {
+        const candidate = m[1].trim().toLowerCase();
+        if (!excludedDomains.some((d) => candidate.endsWith(d))) {
+          result.email = candidate;
+          console.log(`Esther: extracted email from message body: ${result.email}`);
+          break;
+        }
+      }
+    }
+  }
+
   console.log(`Esther parseEmail: name=${result.name}, property=${result.property || "NONE"}, email=${result.email}, phone=${result.phone}, message=${result.message ? "yes" : "no"}`);
   return result;
 }
@@ -769,8 +794,11 @@ async function upsertLead(
 ): Promise<{ leadId: string; isNew: boolean; missingName: boolean; missingPhone: boolean } | null> {
   const phone = lead.phone ? formatPhoneE164(lead.phone) : null;
 
-  // Only skip if we truly have nothing (no contact info AND no name/property)
-  if (!phone && !lead.email && !lead.name && !lead.property) return null;
+  // Skip if no contact info — lead is not actionable without phone or email
+  if (!phone && !lead.email) {
+    console.log(`Esther: skipping lead "${lead.name || "unknown"}" — no phone or email`);
+    return null;
+  }
 
   // Build source detail string
   const sourceVia = lead.listingSource ? ` (via ${lead.listingSource})` : "";
@@ -1537,24 +1565,30 @@ serve(async (req: Request) => {
       leadInfo.email = replyToEmail;
     }
 
-    // Only skip if we truly have NOTHING useful
-    if (!leadInfo.phone && !leadInfo.email && !leadInfo.name && !leadInfo.property) {
+    // Skip if we have NO contact info (phone or email) — lead is not actionable
+    if (!leadInfo.phone && !leadInfo.email) {
+      const hasPartialInfo = !!(leadInfo.name || leadInfo.property);
       await supabase.from("system_logs").insert({
         organization_id: organizationId,
-        level: "warning",
+        level: hasPartialInfo ? "info" : "warning",
         category: "general",
-        event_type: "esther_parse_skip",
-        message: `Esther: skipped email — no lead info found at all. Subject: ${subject}`,
+        event_type: hasPartialInfo ? "esther_no_contact_info" : "esther_parse_skip",
+        message: hasPartialInfo
+          ? `Esther: skipped lead creation — has name/property but no phone or email. Name: ${leadInfo.name || "unknown"}, Property: ${leadInfo.property || "unknown"}`
+          : `Esther: skipped email — no lead info found at all. Subject: ${subject}`,
         details: {
           email_id: emailId,
           from: fromEmail,
           subject,
+          lead_name: leadInfo.name,
+          lead_property: leadInfo.property,
+          lead_message: leadInfo.message,
           body_preview: (textBody || htmlBody).substring(0, 1500),
         },
       });
 
       return new Response(
-        JSON.stringify({ message: "Email parsed but no lead info found" }),
+        JSON.stringify({ message: hasPartialInfo ? "Lead has name/property but no contact info — skipped" : "Email parsed but no lead info found" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

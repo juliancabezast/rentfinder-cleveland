@@ -177,7 +177,7 @@ async function analyzeProperty(
   const address = prop.address;
   const zip = prop.zip_code;
   const currentRent = prop.rent_price ? `$${prop.rent_price}/month` : "unknown";
-  const currentDate = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const currentDate = new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", month: "long", year: "numeric" });
 
   const prompt = `You are a real estate market analyst. Analyze the rental market for a ${bedrooms}-bedroom ${type} located at or near "${address}", ${city}, ${state} ${zip}.
 

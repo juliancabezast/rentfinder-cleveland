@@ -33,7 +33,24 @@ serve(async (req: Request) => {
 
     const now = new Date();
     const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
+    // Get org timezone for correct "today" calculation
+    const { data: orgData } = await supabase
+      .from("organizations")
+      .select("timezone")
+      .eq("id", organization_id)
+      .single();
+
+    const orgTz = orgData?.timezone || "America/New_York";
+
+    // Compute "today start" in org timezone (DST-aware)
+    const todayInTz = new Date(now.toLocaleString("en-US", { timeZone: orgTz }));
+    todayInTz.setHours(0, 0, 0, 0);
+    // Convert back to UTC: find the offset between UTC and org timezone
+    const utcNow = now.getTime();
+    const tzNow = new Date(now.toLocaleString("en-US", { timeZone: orgTz })).getTime();
+    const tzOffset = utcNow - tzNow; // ms difference
+    const todayStart = new Date(todayInTz.getTime() + tzOffset).toISOString();
 
     // 1. Agent stats
     const { data: agents } = await supabase
@@ -86,23 +103,67 @@ serve(async (req: Request) => {
       costByService[r.service] = (costByService[r.service] || 0) + (r.total_cost || 0);
     });
 
-    // 6. Error logs (24h)
+    // 6. Error logs (24h) — with time breakdown to detect trends
     const { data: errorLogs } = await supabase
       .from("system_logs")
-      .select("level, message, category")
+      .select("level, message, category, event_type, created_at")
       .eq("organization_id", organization_id)
       .in("level", ["error", "critical"])
       .gte("created_at", dayAgo)
-      .limit(20);
+      .order("created_at", { ascending: false })
+      .limit(50);
 
     const errorCount24h = errorLogs?.length || 0;
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
+    const errorsLastHour = errorLogs?.filter((e) => e.created_at >= oneHourAgo).length || 0;
+    const errorsPrevHour = errorLogs?.filter((e) => e.created_at >= twoHoursAgo && e.created_at < oneHourAgo).length || 0;
 
-    // 7. Lead counts
-    const { count: newLeadsToday } = await supabase
-      .from("leads")
-      .select("id", { count: "exact", head: true })
+    // Group errors by event_type to detect patterns
+    const errorsByType: Record<string, { count: number; lastSeen: string; sample: string }> = {};
+    errorLogs?.forEach((e) => {
+      const key = e.event_type || e.category || "unknown";
+      if (!errorsByType[key]) {
+        errorsByType[key] = { count: 0, lastSeen: e.created_at, sample: e.message };
+      }
+      errorsByType[key].count++;
+      if (e.created_at > errorsByType[key].lastSeen) {
+        errorsByType[key].lastSeen = e.created_at;
+      }
+    });
+
+    // Detect resolved issues: errors that stopped >1h ago
+    const resolvedIssues = Object.entries(errorsByType)
+      .filter(([, v]) => v.lastSeen < oneHourAgo)
+      .map(([type, v]) => `${type} (${v.count} occurrences, last seen ${Math.round((now.getTime() - new Date(v.lastSeen).getTime()) / 60000)}min ago — likely resolved)`);
+
+    const ongoingIssues = Object.entries(errorsByType)
+      .filter(([, v]) => v.lastSeen >= oneHourAgo)
+      .map(([type, v]) => `${type}: ${v.count} occurrences, last: "${v.sample.substring(0, 100)}"`);
+
+    // 6b. Check failed tasks — distinguish old vs recent failures
+    const { data: failedTasks24h } = await supabase
+      .from("agent_tasks")
+      .select("action_type, completed_at, context")
       .eq("organization_id", organization_id)
-      .gte("created_at", todayStart);
+      .eq("status", "failed")
+      .gte("completed_at", dayAgo)
+      .order("completed_at", { ascending: false })
+      .limit(50);
+
+    const failedLastHour = failedTasks24h?.filter((t) => t.completed_at && t.completed_at >= oneHourAgo).length || 0;
+    const failedPrevHours = (failedTasks24h?.length || 0) - failedLastHour;
+
+    const failedByAction: Record<string, number> = {};
+    failedTasks24h?.forEach((t) => {
+      failedByAction[t.action_type] = (failedByAction[t.action_type] || 0) + 1;
+    });
+
+    // 7. Lead counts — use DB function for Cleveland timezone + clean filter
+    const { data: newLeadsTodayData } = await supabase.rpc("count_leads_today", {
+      p_organization_id: organization_id,
+    });
+    const newLeadsToday = newLeadsTodayData || 0;
 
     const { count: totalActiveLeads } = await supabase
       .from("leads")
@@ -124,7 +185,22 @@ serve(async (req: Request) => {
       tasks: { pending: pendingCount, failed: failedCount, inProgress: inProgressCount },
       services: { healthy: healthyServices, total: totalServices, down: downServices.map((s) => s.service) },
       costs: { totalToday: totalCostToday, byService: costByService },
-      errors: { count24h: errorCount24h, recent: errorLogs?.slice(0, 5).map((e) => e.message) || [] },
+      errors: {
+        count24h: errorCount24h,
+        lastHour: errorsLastHour,
+        prevHour: errorsPrevHour,
+        trend: errorsLastHour === 0 ? "stopped" : errorsLastHour < errorsPrevHour ? "decreasing" : errorsLastHour > errorsPrevHour ? "increasing" : "steady",
+        ongoingIssues,
+        resolvedIssues,
+        recent: errorLogs?.slice(0, 5).map((e) => e.message) || [],
+      },
+      failedTasks: {
+        total24h: failedTasks24h?.length || 0,
+        lastHour: failedLastHour,
+        prevHours: failedPrevHours,
+        byAction: failedByAction,
+        trend: failedLastHour === 0 ? "stopped" : "ongoing",
+      },
       leads: { newToday: newLeadsToday || 0, totalActive: totalActiveLeads || 0 },
       activity: {
         recentFailures: recentFailures.length,
@@ -153,12 +229,17 @@ serve(async (req: Request) => {
     if (openaiKey) {
       const prompt = `You are Zacchaeus, the AI system health monitor for a property management SaaS called Rent Finder Cleveland. Analyze the current system status and provide a concise report.
 
+IMPORTANT: Focus on what's happening RIGHT NOW, not just 24h totals. If errors occurred earlier but stopped in the last hour, the issue is likely RESOLVED — score should reflect current health, not past problems.
+
 Current System Status:
 - Agents: ${stats.agents.enabled}/${stats.agents.total} enabled, ${stats.agents.executedToday} executed today (${stats.agents.successesToday} success, ${stats.agents.failuresToday} failures)
 - Task Queue: ${stats.tasks.pending} pending, ${stats.tasks.inProgress} in progress, ${stats.tasks.failed} failed
 - Services: ${stats.services.healthy}/${stats.services.total} healthy${stats.services.down.length > 0 ? `, DOWN: ${stats.services.down.join(", ")}` : ""}
 - Costs Today: $${stats.costs.totalToday.toFixed(2)}${Object.keys(stats.costs.byService).length > 0 ? ` (${Object.entries(stats.costs.byService).map(([k, v]) => `${k}: $${v.toFixed(2)}`).join(", ")})` : ""}
-- Errors (24h): ${stats.errors.count24h}${stats.errors.recent.length > 0 ? `\n  Recent: ${stats.errors.recent.slice(0, 3).join("; ")}` : ""}
+- Errors (24h total): ${stats.errors.count24h} | Last hour: ${stats.errors.lastHour} | Previous hour: ${stats.errors.prevHour} | Trend: ${stats.errors.trend}
+${stats.errors.ongoingIssues.length > 0 ? `  ONGOING issues: ${stats.errors.ongoingIssues.join("; ")}` : "  No ongoing error patterns detected."}
+${stats.errors.resolvedIssues.length > 0 ? `  RESOLVED issues (errors stopped): ${stats.errors.resolvedIssues.join("; ")}` : ""}
+- Failed Tasks (24h): ${stats.failedTasks.total24h} total | Last hour: ${stats.failedTasks.lastHour} | Trend: ${stats.failedTasks.trend}${Object.keys(stats.failedTasks.byAction).length > 0 ? `\n  By type: ${Object.entries(stats.failedTasks.byAction).map(([k, v]) => `${k}: ${v}`).join(", ")}` : ""}
 - Leads: ${stats.leads.newToday} new today, ${stats.leads.totalActive} total active
 - Recent Activity: ${stats.activity.recentSuccesses} successes, ${stats.activity.recentFailures} failures${stats.activity.topFailureActions.length > 0 ? `\n  Top failure actions: ${stats.activity.topFailureActions.join(", ")}` : ""}
 
@@ -170,11 +251,13 @@ Respond in JSON format with:
 }
 
 Rules:
-- health_score: 10 = perfect, 1 = critical failure
-- findings: 3-5 concise observations about what's happening
-- recommendations: 2-3 actionable suggestions
+- health_score: 10 = perfect, 1 = critical. Base this on CURRENT state, not just 24h totals
+- If error trend is "stopped" and no ongoing issues, that means the problem was fixed — score 8-10
+- If all services are healthy and no ongoing errors, score should be 8+
+- findings: 3-5 concise observations about what's happening NOW
+- recommendations: 2-3 actionable suggestions (if issues are resolved, say so)
 - Be specific about numbers, don't be vague
-- If there are failures, diagnose possible causes
+- Mark resolved issues clearly as "RESOLVED" in findings
 - Keep each finding/recommendation under 100 characters`;
 
       try {

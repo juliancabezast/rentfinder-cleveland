@@ -28,7 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useOrganizationSettings, DEFAULT_SETTINGS } from "@/hooks/useOrganizationSettings";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 export interface EditSlotData {
   date: string; // yyyy-MM-dd
@@ -41,6 +41,7 @@ interface EnableSlotsDialogProps {
   onSuccess: () => void;
   orgId: string;
   editData?: EditSlotData | null;
+  prefilledDate?: Date;
 }
 
 interface PropertyOption {
@@ -78,6 +79,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   onSuccess,
   orgId,
   editData,
+  prefilledDate,
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [startTime, setStartTime] = useState("09:00:00");
@@ -87,9 +89,8 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loadingProps, setLoadingProps] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [dayOffWarning, setDayOffWarning] = useState(false);
 
-  const { getSetting, loading: settingsLoading } = useOrganizationSettings();
+  const { getSetting } = useOrganizationSettings();
 
   const isEditMode = !!editData;
 
@@ -152,10 +153,9 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
         });
         setExcludedIds(excluded);
       } else {
-        setSelectedDate(undefined);
-        setDayOffWarning(false);
+        setSelectedDate(prefilledDate || undefined);
         // Use defaults from settings if available
-        const savedBuffer = getSetting('buffer_minutes', DEFAULT_SETTINGS.buffer_minutes);
+        const savedBuffer = getSetting('buffer_minutes', 15);
         const bufVal = String(savedBuffer);
         setStartTime("09:00:00");
         setEndTime("17:00:00");
@@ -228,10 +228,6 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   const handleSubmit = async () => {
     if (!selectedDate) {
       toast.error("Please select a date");
-      return;
-    }
-    if (dayOffWarning) {
-      toast.error("This day is marked as OFF. Change your schedule in Settings first.");
       return;
     }
     if (activeProperties.length === 0) {
@@ -351,23 +347,8 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
                   selected={selectedDate}
                   onSelect={(date) => {
                     setSelectedDate(date);
-                    setDayOffWarning(false);
                     if (date) {
-                      const dayOfWeek = String(date.getDay());
-                      const weeklySchedule = getSetting(
-                        'showing_weekly_schedule',
-                        DEFAULT_SETTINGS.showing_weekly_schedule
-                      ) as Record<string, { start: string; end: string } | null> | null;
-                      if (weeklySchedule) {
-                        const dayConfig = weeklySchedule[dayOfWeek];
-                        if (dayConfig) {
-                          setStartTime(dayConfig.start + ":00");
-                          setEndTime(dayConfig.end + ":00");
-                        } else {
-                          setDayOffWarning(true);
-                        }
-                      }
-                      const savedBuffer = getSetting('buffer_minutes', DEFAULT_SETTINGS.buffer_minutes);
+                      const savedBuffer = getSetting('buffer_minutes', 15);
                       const bufVal = String(savedBuffer);
                       if (BUFFER_OPTIONS.some((b) => b.value === bufVal)) {
                         setBuffer(bufVal);
@@ -380,14 +361,6 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
               </PopoverContent>
             </Popover>
           </div>
-
-          {/* Day OFF — blocked */}
-          {dayOffWarning && selectedDate && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
-              <strong>{format(selectedDate, "EEEE")}</strong> is marked as OFF in your weekly schedule.
-              You cannot create slots on this day. Change your schedule in Settings &gt; Showings first.
-            </div>
-          )}
 
           {/* Time Range */}
           <div className="grid grid-cols-2 gap-4">
@@ -551,7 +524,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !selectedDate || previewSlots.length === 0 || dayOffWarning}
+            disabled={submitting || !selectedDate || previewSlots.length === 0}
             className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
           >
             {submitting ? (

@@ -52,6 +52,7 @@ interface DashboardStats {
   propertiesByStatus: Record<string, number>;
   activeLeads: number;
   leadsToday: number;
+  completeLeadsToday: number;
   leadsThisWeek: number;
   leadsLastWeek: number;
   pendingTasks: number;
@@ -172,8 +173,14 @@ export const AdminDashboard = () => {
 
       try {
         const today = new Date();
-        const todayStart = startOfDay(today).toISOString();
-        const todayEnd = endOfDay(today).toISOString();
+        // Compute Cleveland midnight (DST-aware)
+        const clevelandNow = new Date(today.toLocaleString("en-US", { timeZone: "America/New_York" }));
+        clevelandNow.setHours(0, 0, 0, 0);
+        const offset = today.getTime() - new Date(today.toLocaleString("en-US", { timeZone: "America/New_York" })).getTime();
+        const todayStart = new Date(clevelandNow.getTime() + offset).toISOString();
+        const clevelandEnd = new Date(today.toLocaleString("en-US", { timeZone: "America/New_York" }));
+        clevelandEnd.setHours(23, 59, 59, 999);
+        const todayEnd = new Date(clevelandEnd.getTime() + offset).toISOString();
 
         const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 });
         const lastWeekStart = new Date(thisWeekStart);
@@ -184,6 +191,7 @@ export const AdminDashboard = () => {
           upcomingShowingsResult,
           priorityLeadsResult,
           propertiesResult,
+          allLeadsTodayResult,
           leadsTodayResult,
           leadsThisWeekResult,
           leadsLastWeekResult,
@@ -218,7 +226,13 @@ export const AdminDashboard = () => {
             .from("properties")
             .select("address, city, zip_code")
             .eq("organization_id", userRecord.organization_id),
-          // Leads today (only complete + clean)
+          // Leads today — ALL leads
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .gte("created_at", todayStart),
+          // Leads today — complete + clean only
           cleanLeadCount().gte("created_at", todayStart),
           // Leads this week
           cleanLeadCount().gte("created_at", thisWeekStart.toISOString()),
@@ -267,7 +281,8 @@ export const AdminDashboard = () => {
               rented: summary.properties.rented,
             },
             activeLeads: summary.leads.active,
-            leadsToday: leadsTodayResult.count || 0,
+            leadsToday: allLeadsTodayResult.count || 0,
+            completeLeadsToday: leadsTodayResult.count || 0,
             leadsThisWeek: leadsThisWeekResult.count || 0,
             leadsLastWeek: leadsLastWeekResult.count || 0,
             pendingTasks: pendingTasksResult.count || 0,
@@ -336,8 +351,16 @@ export const AdminDashboard = () => {
 
       try {
         const now = new Date();
+        // Compute Cleveland-aware period start
+        const clevNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+        const tzOffset = now.getTime() - clevNow.getTime();
+        const clevelandStartOfDay = () => {
+          const d = new Date(clevNow);
+          d.setHours(0, 0, 0, 0);
+          return new Date(d.getTime() + tzOffset).toISOString();
+        };
         let periodStart: string | null = null;
-        if (statsPeriod === 'day') periodStart = startOfDay(now).toISOString();
+        if (statsPeriod === 'day') periodStart = clevelandStartOfDay();
         else if (statsPeriod === 'week') periodStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString();
         else if (statsPeriod === 'month') periodStart = startOfMonth(now).toISOString();
 
@@ -519,7 +542,7 @@ export const AdminDashboard = () => {
                   <StatCard
                     title="Leads"
                     value={periodStats?.totalLeads || 0}
-                    subtitle={`${stats?.leadsToday || 0} today`}
+                    subtitle={`↗ ${stats?.leadsToday || 0} today · ${stats?.completeLeadsToday || 0} complete`}
                     icon={Users}
                     trend={stats?.leadsLastWeek
                       ? { value: Math.round(((stats.leadsThisWeek - stats.leadsLastWeek) / stats.leadsLastWeek) * 100), isPositive: stats.leadsThisWeek >= stats.leadsLastWeek }

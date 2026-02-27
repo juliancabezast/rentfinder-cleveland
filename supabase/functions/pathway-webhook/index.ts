@@ -108,12 +108,12 @@ serve(async (req: Request) => {
         );
       }
 
-      const today = new Date();
-      const nextWeek = new Date(today);
-      nextWeek.setDate(today.getDate() + 7);
-
-      const todayStr = today.toISOString().split("T")[0];
-      const nextWeekStr = nextWeek.toISOString().split("T")[0];
+      // Use Cleveland timezone for "today" (DST-aware)
+      const clevelandNow = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // yyyy-MM-dd format
+      const todayStr = clevelandNow;
+      const nextWeekDate = new Date(clevelandNow + "T12:00:00Z");
+      nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+      const nextWeekStr = nextWeekDate.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
       const { data: slots } = await supabase
         .from("showing_available_slots")
@@ -204,43 +204,6 @@ serve(async (req: Request) => {
         );
       }
 
-      // Validate against weekly schedule
-      {
-        const { data: scheduleSetting } = await supabase
-          .from("organization_settings")
-          .select("value")
-          .eq("organization_id", organization_id)
-          .eq("key", "showing_weekly_schedule")
-          .maybeSingle();
-
-        if (scheduleSetting?.value) {
-          const weeklySchedule = typeof scheduleSetting.value === "string"
-            ? JSON.parse(scheduleSetting.value)
-            : scheduleSetting.value;
-          const slotDateObj = new Date(slotDate + "T12:00:00");
-          const dayOfWeek = String(slotDateObj.getDay());
-          const dayConfig = weeklySchedule[dayOfWeek];
-
-          if (!dayConfig) {
-            return new Response(
-              JSON.stringify({ success: false, error: "Showings are not available on this day." }),
-              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          const [sH, sM] = slotTime.split(":").map(Number);
-          const slotMin = sH * 60 + sM;
-          const [startH, startM] = dayConfig.start.split(":").map(Number);
-          const [endH, endM] = dayConfig.end.split(":").map(Number);
-          if (slotMin < startH * 60 + startM || slotMin >= endH * 60 + endM) {
-            return new Response(
-              JSON.stringify({ success: false, error: `Showings are only available from ${dayConfig.start} to ${dayConfig.end}.` }),
-              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-        }
-      }
-
       // Check slot availability
       const { data: slot } = await supabase
         .from("showing_available_slots")
@@ -267,7 +230,7 @@ serve(async (req: Request) => {
       }
 
       // Create showing — compute UTC offset dynamically to handle DST
-      const orgTz = "America/New_York"; // TODO: read from organization_settings
+      const orgTz = "America/New_York";
       const tzRef = new Date(`${slotDate}T12:00:00Z`);
       const tzLocal = new Date(tzRef.toLocaleString("en-US", { timeZone: orgTz }));
       const tzOffsetHrs = Math.round((tzRef.getTime() - tzLocal.getTime()) / 3600000);
