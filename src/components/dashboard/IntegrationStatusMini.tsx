@@ -304,7 +304,7 @@ export const IntegrationStatusMini: React.FC = () => {
 
   return (
     <TooltipProvider>
-      <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-full bg-muted/50 border border-border/50 max-w-[800px] overflow-x-auto scrollbar-thin">
+      <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-full bg-muted/50 border border-border/50 overflow-x-auto scrollbar-thin">
         {/* Overall Status Indicator */}
         <div className="flex items-center gap-2 shrink-0 pr-3 border-r border-border/50">
           <span className="relative flex h-2.5 w-2.5">
