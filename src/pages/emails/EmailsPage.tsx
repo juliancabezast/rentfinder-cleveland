@@ -47,12 +47,14 @@ import {
   CloudDownload,
   MousePointerClick,
   Ban,
+  Palette,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { EmailTemplatesTab } from "@/components/leads/nurturing/EmailTemplatesTab";
 
 interface EmailEvent {
   id: string;
@@ -219,6 +221,7 @@ const EmailsPage = () => {
   const [receivedCount, setReceivedCount] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [autoSynced, setAutoSynced] = useState(false);
+  const [templateRefreshKey, setTemplateRefreshKey] = useState(0);
 
   const fetchEmails = async () => {
     if (!userRecord?.organization_id) return;
@@ -380,7 +383,8 @@ const EmailsPage = () => {
 
   const refreshAll = () => {
     if (activeTab === "sending") fetchEmails();
-    else fetchInbound();
+    else if (activeTab === "receiving") fetchInbound();
+    else setTemplateRefreshKey((k) => k + 1);
   };
 
   const forceProcessQueue = async () => {
@@ -471,25 +475,29 @@ const EmailsPage = () => {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button
-            size="sm"
-            onClick={syncFromResend}
-            disabled={syncing}
-            variant="default"
-          >
-            <CloudDownload className={`h-4 w-4 mr-1.5 ${syncing ? "animate-bounce" : ""}`} />
-            {syncing ? "Syncing..." : "Sync from Resend"}
-          </Button>
-          {queuedCount > 0 && (
-            <Button
-              size="sm"
-              onClick={forceProcessQueue}
-              disabled={forceSending}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
-            >
-              <Zap className="h-4 w-4 mr-1.5" />
-              {forceSending ? "Processing..." : `Force Send (${queuedCount})`}
-            </Button>
+          {activeTab === "sending" && (
+            <>
+              <Button
+                size="sm"
+                onClick={syncFromResend}
+                disabled={syncing}
+                variant="default"
+              >
+                <CloudDownload className={`h-4 w-4 mr-1.5 ${syncing ? "animate-bounce" : ""}`} />
+                {syncing ? "Syncing..." : "Sync from Resend"}
+              </Button>
+              {queuedCount > 0 && (
+                <Button
+                  size="sm"
+                  onClick={forceProcessQueue}
+                  disabled={forceSending}
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  <Zap className="h-4 w-4 mr-1.5" />
+                  {forceSending ? "Processing..." : `Force Send (${queuedCount})`}
+                </Button>
+              )}
+            </>
           )}
           <Button variant="outline" size="sm" onClick={refreshAll}>
             <RefreshCw className="h-4 w-4 mr-1.5" />
@@ -499,7 +507,7 @@ const EmailsPage = () => {
       </div>
 
       {/* Stats — cumulative with rates like Resend dashboard */}
-      {(() => {
+      {activeTab !== "templates" && (() => {
         const deliveryRate = sentCount > 0 ? ((deliveredCount / sentCount) * 100).toFixed(1) : "0.0";
         const openRate = deliveredCount > 0 ? ((openedCount / deliveredCount) * 100).toFixed(1) : "0.0";
         const bounceRate = sentCount > 0 ? ((bouncedCount / sentCount) * 100).toFixed(1) : "0.0";
@@ -549,7 +557,7 @@ const EmailsPage = () => {
       })()}
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setLoading(true); }}>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v !== "templates") setLoading(true); }}>
         <TabsList>
           <TabsTrigger value="sending" className="gap-2">
             <Send className="h-4 w-4" /> Outgoing
@@ -558,6 +566,9 @@ const EmailsPage = () => {
           <TabsTrigger value="receiving" className="gap-2">
             <Inbox className="h-4 w-4" /> Incoming
             {receivedCount > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{receivedCount}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="gap-2">
+            <Palette className="h-4 w-4" /> Templates
           </TabsTrigger>
         </TabsList>
 
@@ -790,6 +801,11 @@ const EmailsPage = () => {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        {/* ── TEMPLATES TAB ── */}
+        <TabsContent value="templates" className="mt-4">
+          <EmailTemplatesTab refreshKey={templateRefreshKey} />
         </TabsContent>
       </Tabs>
 
