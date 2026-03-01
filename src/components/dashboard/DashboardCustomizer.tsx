@@ -62,6 +62,15 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     span: "half",
   },
   {
+    id: "agent_activity",
+    label: "Agent Activity",
+    icon: <Activity className="h-4 w-4" />,
+    defaultVisible: true,
+    defaultOrder: 6,
+    minRole: "editor",
+    span: "full",
+  },
+  {
     id: "cost_overview",
     label: "Cost Overview",
     icon: <DollarSign className="h-4 w-4" />,
@@ -114,9 +123,16 @@ export const loadDashboardPrefs = (userId: string): DashboardPrefs => {
     try {
       const parsed = JSON.parse(saved);
       const defaults = getDefaultPrefs();
+      // Merge widgets: keep saved prefs but add any new widgets from defaults
+      const savedWidgetIds = new Set((parsed.widgets || []).map((w: WidgetPreference) => w.id));
+      const mergedWidgets = [
+        ...(parsed.widgets || []),
+        ...defaults.widgets.filter((w) => !savedWidgetIds.has(w.id)),
+      ];
       return {
         ...defaults,
         ...parsed,
+        widgets: mergedWidgets,
         statCards: { ...defaults.statCards, ...(parsed.statCards || {}) },
       };
     } catch {

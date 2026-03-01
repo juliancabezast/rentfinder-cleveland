@@ -8,6 +8,7 @@ interface StatCardProps {
   title: string;
   value: string | number;
   subtitle?: string;
+  subtitle2?: string;
   icon?: LucideIcon;
   trend?: {
     value: number;
@@ -88,6 +89,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
   subtitle,
+  subtitle2,
   icon: Icon,
   trend,
   impact,
@@ -167,7 +169,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           {trend && (
             <span
               className={cn(
-                "flex items-center gap-0.5 font-medium",
+                "flex items-center gap-0.5 font-medium whitespace-nowrap",
                 trend.isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
               )}
             >
@@ -180,9 +182,12 @@ export const StatCard: React.FC<StatCardProps> = ({
             </span>
           )}
           {subtitle && (
-            <span className="text-muted-foreground">{subtitle}</span>
+            <span className="text-muted-foreground whitespace-nowrap">{subtitle}</span>
           )}
         </div>
+        {subtitle2 && (
+          <p className="text-sm text-muted-foreground mt-0.5">{subtitle2}</p>
+        )}
       </CardContent>
     </Card>
   );

@@ -1020,12 +1020,44 @@ async function upsertLead(
     }
   }
 
+  // ── Direction B: recover name from paired "Rental Message" email ──
+  // If we have no name but have a property, check system_logs for a recent
+  // esther_no_contact_info event with the same property that captured the name.
+  let recoveredName: string | null = null;
+  if (!lead.name && lead.property) {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentSkipped } = await supabase
+      .from("system_logs")
+      .select("details")
+      .eq("organization_id", organizationId)
+      .eq("event_type", "esther_no_contact_info")
+      .gte("created_at", fiveMinAgo)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (recentSkipped) {
+      const normProperty = normalizeAddress(lead.property).toLowerCase();
+      for (const log of recentSkipped) {
+        const logProperty = (log.details as any)?.lead_property;
+        const logName = (log.details as any)?.lead_name;
+        if (logName && logName.length > 2 && logProperty) {
+          const normLogProp = normalizeAddress(logProperty).toLowerCase();
+          if (normLogProp === normProperty) {
+            recoveredName = logName;
+            console.log(`Esther: recovered name "${logName}" from paired Rental Message for property "${lead.property}"`);
+            break;
+          }
+        }
+      }
+    }
+  }
+
   // Build display name
   const displayPhone = phone
     ? phone.replace(/^\+1/, "").replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3")
     : null;
   const fallbackIdentifier = displayPhone || lead.email || "unknown";
-  const fullName = lead.name || `Hemlane Lead ${fallbackIdentifier}`;
+  const fullName = lead.name || recoveredName || `Hemlane Lead ${fallbackIdentifier}`;
 
   // Create new lead — with consent flags since they initiated contact
   const { data: newLead, error: err } = await supabase
@@ -1033,8 +1065,8 @@ async function upsertLead(
     .insert({
       organization_id: organizationId,
       full_name: fullName,
-      first_name: lead.name?.split(" ")[0] || null,
-      last_name: lead.name?.split(" ").slice(1).join(" ") || null,
+      first_name: (lead.name || recoveredName)?.split(" ")[0] || null,
+      last_name: (lead.name || recoveredName)?.split(" ").slice(1).join(" ") || null,
       phone: phone || null,
       email: lead.email || null,
       source: "hemlane_email",
@@ -1586,6 +1618,56 @@ serve(async (req: Request) => {
           body_preview: (textBody || htmlBody).substring(0, 1500),
         },
       });
+
+      // ── Direction A: "Rental Message" has name but no contact info ──
+      // Hemlane sends paired emails within seconds:
+      //   "Rental Message from {property}" → has name, no phone/email
+      //   "New inquiry for {property}" → has phone/email, no name
+      // If the "New inquiry" already created a nameless lead, fix its name now.
+      if (leadInfo.name && leadInfo.name.length > 2 && leadInfo.property) {
+        const propertyId = await matchProperty(supabase, organizationId, leadInfo.property);
+        if (propertyId) {
+          const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+          const { data: recentNameless } = await supabase
+            .from("leads")
+            .select("id, full_name")
+            .eq("organization_id", organizationId)
+            .eq("source", "hemlane_email")
+            .eq("interested_property_id", propertyId)
+            .gte("created_at", fiveMinAgo)
+            .order("created_at", { ascending: false })
+            .limit(3);
+
+          if (recentNameless) {
+            for (const candidate of recentNameless) {
+              const isPlaceholder = !candidate.full_name
+                || candidate.full_name.startsWith("Hemlane Lead")
+                || /\d{7,}/.test(candidate.full_name.replace(/\D/g, ""));
+              if (isPlaceholder) {
+                const { error: fixErr } = await supabase
+                  .from("leads")
+                  .update({
+                    full_name: leadInfo.name,
+                    first_name: leadInfo.name!.split(" ")[0] || null,
+                    last_name: leadInfo.name!.split(" ").slice(1).join(" ") || null,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", candidate.id);
+                if (!fixErr) {
+                  console.log(`Esther: fixed name on lead ${candidate.id} "${candidate.full_name}" → "${leadInfo.name}" (paired-email merge)`);
+                  // Save message as note if present
+                  if (leadInfo.message) {
+                    await saveLeadNote(supabase, organizationId, candidate.id, leadInfo.message);
+                  }
+                } else {
+                  console.error(`Esther: failed to fix name on ${candidate.id}: ${fixErr.message}`);
+                }
+                break;
+              }
+            }
+          }
+        }
+      }
 
       return new Response(
         JSON.stringify({ message: hasPartialInfo ? "Lead has name/property but no contact info — skipped" : "Email parsed but no lead info found" }),

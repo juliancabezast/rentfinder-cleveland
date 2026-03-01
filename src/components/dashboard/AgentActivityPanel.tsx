@@ -59,7 +59,7 @@ const getStatusStyle = (status: string) =>
 
 // ── Component ────────────────────────────────────────────────────────
 
-export const AgentActivityPanel = () => {
+export const AgentActivityPanel = ({ variant = "sidebar" }: { variant?: "sidebar" | "inline" }) => {
   const { userRecord } = useAuth();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -122,44 +122,123 @@ export const AgentActivityPanel = () => {
 
   // ── Render ───────────────────────────────────────────────────────────
 
-  return (
-    <Card variant="glass" className="h-full flex flex-col border-l-2 border-l-purple-400/50">
-      {/* Header */}
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <div className="relative">
-              <Activity className="h-4 w-4 text-purple-500" />
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-purple-500 animate-ping" />
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-purple-500" />
-            </div>
-            Agent Activity
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
+  const isInline = variant === "inline";
+
+  const renderEntry = (entry: ActivityEntry, index: number) => {
+    const style = getStatusStyle(entry.status);
+    const agentName = getAgentName(entry.agent_key);
+    const time = new Date(entry.created_at);
+    const leadName = entry.leads?.full_name;
+    const propertyAddress = entry.leads?.properties?.address;
+
+    return (
+      <div
+        key={entry.id}
+        className={cn(
+          "p-3 rounded-lg border transition-all",
+          style.bg,
+          index === 0 && "animate-fade-up"
+        )}
+      >
+        {/* Row 1: avatar + time + status badge */}
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className={cn(
+            "h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-white",
+            style.dot
+          )}>
+            {agentName.charAt(0)}
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {format(time, "h:mm a")} &middot;{" "}
+            {formatDistanceToNow(time, { addSuffix: true })}
+          </span>
+          <Badge
+            variant="outline"
+            className={cn("text-xs h-5 px-2 ml-auto", style.text)}
           >
-            <RefreshCw
-              className={cn(
-                "h-4 w-4 text-muted-foreground hover:text-foreground transition-colors",
-                isRefreshing && "animate-spin"
-              )}
-            />
-          </Button>
+            {entry.status}
+          </Badge>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Updated {formatDistanceToNow(lastUpdate, { addSuffix: true })}
+
+        {/* Row 2: agent + action */}
+        <p className="text-sm leading-snug ml-8">
+          <span className="font-semibold text-purple-700 dark:text-purple-400">
+            {agentName}
+          </span>
+          <span className="text-muted-foreground">
+            {" "}{entry.action.replace(/_/g, " ")}
+          </span>
         </p>
+
+        {/* Row 3: lead + property */}
+        {(leadName || propertyAddress) && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 ml-9 mt-1">
+            {leadName && (
+              <span className="flex items-center gap-1 text-xs text-foreground/70">
+                <User className="h-3.5 w-3.5 shrink-0" />
+                {leadName}
+              </span>
+            )}
+            {propertyAddress && (
+              <span className="flex items-center gap-1 text-xs text-foreground/70">
+                <Home className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate max-w-[200px]">{propertyAddress}</span>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Row 4: execution time */}
+        {entry.execution_ms != null && entry.execution_ms > 0 && (
+          <p className="text-xs text-muted-foreground ml-9 mt-0.5">
+            {entry.execution_ms}ms
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Card variant="glass" className={cn(
+      "flex flex-col",
+      isInline ? "h-full" : "h-full border-l-2 border-l-purple-400/50"
+    )}>
+      {/* Header */}
+      <CardHeader className={cn("flex flex-row items-center justify-between", isInline ? "pb-2" : "pb-3")}>
+        <CardTitle className={cn("flex items-center gap-2", isInline ? "text-lg" : "text-base")}>
+          <div className="relative">
+            <Activity className="h-4 w-4 text-purple-500" />
+            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-purple-500 animate-ping" />
+            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-purple-500" />
+          </div>
+          Agent Activity
+          {!isInline && (
+            <span className="text-xs font-normal text-muted-foreground ml-1">
+              · {formatDistanceToNow(lastUpdate, { addSuffix: true })}
+            </span>
+          )}
+        </CardTitle>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCw
+            className={cn(
+              "h-4 w-4 text-muted-foreground hover:text-foreground transition-colors",
+              isRefreshing && "animate-spin"
+            )}
+          />
+        </Button>
       </CardHeader>
 
       {/* Content */}
       <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
         {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div className={cn("space-y-3", isInline && "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 space-y-0")}>
+            {Array.from({ length: isInline ? 6 : 5 }).map((_, i) => (
               <div key={i} className="p-3 rounded-lg border border-muted">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Skeleton className="h-6 w-6 rounded-full shrink-0" />
@@ -176,82 +255,16 @@ export const AgentActivityPanel = () => {
             title="No activity yet"
             description="Agent actions will appear here as they execute"
           />
+        ) : isInline ? (
+          <ScrollArea className="h-[400px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {entries.map((entry, index) => renderEntry(entry, index))}
+            </div>
+          </ScrollArea>
         ) : (
           <ScrollArea className="flex-1">
             <div className="space-y-2">
-              {entries.map((entry, index) => {
-                const style = getStatusStyle(entry.status);
-                const agentName = getAgentName(entry.agent_key);
-                const time = new Date(entry.created_at);
-                const leadName = entry.leads?.full_name;
-                const propertyAddress = entry.leads?.properties?.address;
-
-                return (
-                  <div
-                    key={entry.id}
-                    className={cn(
-                      "p-3 rounded-lg border transition-all",
-                      style.bg,
-                      index === 0 && "animate-fade-up"
-                    )}
-                  >
-                    {/* Row 1: avatar + time + status badge */}
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className={cn(
-                        "h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-white",
-                        style.dot
-                      )}>
-                        {agentName.charAt(0)}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {format(time, "h:mm a")} &middot;{" "}
-                        {formatDistanceToNow(time, { addSuffix: true })}
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className={cn("text-xs h-5 px-2 ml-auto", style.text)}
-                      >
-                        {entry.status}
-                      </Badge>
-                    </div>
-
-                    {/* Row 2: agent + action */}
-                    <p className="text-sm leading-snug ml-8">
-                      <span className="font-semibold text-purple-700 dark:text-purple-400">
-                        {agentName}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {" "}{entry.action.replace(/_/g, " ")}
-                      </span>
-                    </p>
-
-                    {/* Row 3: lead + property */}
-                    {(leadName || propertyAddress) && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 ml-9 mt-1">
-                        {leadName && (
-                          <span className="flex items-center gap-1 text-xs text-foreground/70">
-                            <User className="h-3.5 w-3.5 shrink-0" />
-                            {leadName}
-                          </span>
-                        )}
-                        {propertyAddress && (
-                          <span className="flex items-center gap-1 text-xs text-foreground/70">
-                            <Home className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate max-w-[200px]">{propertyAddress}</span>
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Row 4: execution time */}
-                    {entry.execution_ms != null && entry.execution_ms > 0 && (
-                      <p className="text-xs text-muted-foreground ml-9 mt-0.5">
-                        {entry.execution_ms}ms
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+              {entries.map((entry, index) => renderEntry(entry, index))}
             </div>
           </ScrollArea>
         )}

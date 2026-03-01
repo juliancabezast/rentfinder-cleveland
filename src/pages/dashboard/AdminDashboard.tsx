@@ -481,7 +481,6 @@ export const AdminDashboard = () => {
     <div className={cn(
       "grid gap-6 grid-cols-1",
       "xl:grid-cols-[1fr_360px]",
-      "2xl:grid-cols-[1fr_340px_340px]"
     )}>
       {/* Main Dashboard Content */}
       <div className="min-w-0 space-y-6 xl:min-h-[500px]">
@@ -542,13 +541,8 @@ export const AdminDashboard = () => {
                   <StatCard
                     title="Leads"
                     value={periodStats?.totalLeads || 0}
-                    subtitle={`↗ ${stats?.leadsToday || 0} today · ${stats?.completeLeadsToday || 0} complete`}
+                    subtitle={`${stats?.completeLeadsToday || 0} complete today`}
                     icon={Users}
-                    trend={stats?.leadsLastWeek
-                      ? { value: Math.round(((stats.leadsThisWeek - stats.leadsLastWeek) / stats.leadsLastWeek) * 100), isPositive: stats.leadsThisWeek >= stats.leadsLastWeek }
-                      : stats?.leadsThisWeek
-                        ? { value: 100, isPositive: true }
-                        : undefined}
                     loading={loading || periodLoading}
                   />
                 </div>
@@ -648,7 +642,7 @@ export const AdminDashboard = () => {
               )}
             </div>
 
-            {/* Row 3: Top Properties + Top Sources (each spans 2 cols) */}
+            {/* Row 3: Top Properties + Nurturing Leads (each spans 2 cols) */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
               <div className="animate-fade-up stagger-5">
                 <TopPropertiesWidget data={topProperties} loading={loading} />
@@ -657,6 +651,13 @@ export const AdminDashboard = () => {
                 <NurturingWidget loading={loading} />
               </div>
             </div>
+
+            {/* Row 4: Agent Activity (full width) */}
+            {isWidgetVisible("agent_activity") && (
+              <div className="animate-fade-up stagger-7">
+                <AgentActivityPanel variant="inline" />
+              </div>
+            )}
           </div>
         )}
 
@@ -670,16 +671,12 @@ export const AdminDashboard = () => {
         />
       </div>
 
-      {/* Live Panels - Right Side (grid items) */}
+      {/* Live Panel - Right Side */}
       <div className={cn(
-        "hidden xl:flex xl:flex-col gap-4",
+        "hidden xl:flex xl:flex-col",
         "xl:col-start-2 xl:row-start-1",
-        "2xl:contents"
       )}>
-        <div className="flex-1 min-h-0 2xl:col-start-2 2xl:row-start-1">
-          <AgentActivityPanel />
-        </div>
-        <div className="flex-1 min-h-0 2xl:col-start-3 2xl:row-start-1">
+        <div className="flex-1 min-h-0">
           <TaskQueuePanel />
         </div>
       </div>
@@ -787,7 +784,7 @@ export const AdminDashboard = () => {
           <div className={cn(
             "grid gap-6",
             visibleWidgets.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2",
-            "xl:col-span-2 2xl:col-span-3"
+            "xl:col-span-2"
           )}>
             {visibleWidgets.map((widgetId) => renderWidget(widgetId))}
           </div>
