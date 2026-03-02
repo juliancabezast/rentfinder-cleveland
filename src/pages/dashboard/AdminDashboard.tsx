@@ -41,7 +41,6 @@ import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from "date-fn
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { AgentActivityPanel } from "@/components/dashboard/AgentActivityPanel";
 import { TaskQueuePanel } from "@/components/dashboard/TaskQueuePanel";
 
 type StatsPeriod = 'day' | 'week' | 'month' | 'total';
@@ -480,7 +479,7 @@ export const AdminDashboard = () => {
   return (
     <div className={cn(
       "grid gap-6 grid-cols-1",
-      "xl:grid-cols-[1fr_360px]",
+      "xl:grid-cols-[1fr_360px]"
     )}>
       {/* Main Dashboard Content */}
       <div className="min-w-0 space-y-6 xl:min-h-[500px]">
@@ -652,12 +651,6 @@ export const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Row 4: Agent Activity (full width) */}
-            {isWidgetVisible("agent_activity") && (
-              <div className="animate-fade-up stagger-7">
-                <AgentActivityPanel variant="inline" />
-              </div>
-            )}
           </div>
         )}
 
@@ -672,13 +665,8 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Live Panel - Right Side */}
-      <div className={cn(
-        "hidden xl:flex xl:flex-col",
-        "xl:col-start-2 xl:row-start-1",
-      )}>
-        <div className="flex-1 min-h-0">
-          <TaskQueuePanel />
-        </div>
+      <div className="hidden xl:block xl:col-start-2 xl:row-start-1">
+        <TaskQueuePanel />
       </div>
 
       {/* Priority Leads + Upcoming Showings - full width below */}

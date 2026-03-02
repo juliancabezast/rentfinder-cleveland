@@ -78,7 +78,9 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(git:*)",
       "Bash(GIT_EDITOR=true git rebase:*)",
-      "Bash(GIT_EDITOR=\":\" git rebase:*)"
+      "Bash(GIT_EDITOR=\":\" git rebase:*)",
+      "Bash(lsof:*)",
+      "Bash(node:*)"
     ]
   }
 }
