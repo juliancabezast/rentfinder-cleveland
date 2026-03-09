@@ -397,6 +397,106 @@ const StarktankPage = () => {
         </div>
       </section>
 
+      <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="text-center mb-6">
+            <Badge variant="secondary" className="mb-4 uppercase tracking-widest text-xs">
+              Our Solution
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
+              What <span className="text-[hsl(190,80%,55%)]">Rent Finder Cleveland</span> Does
+            </h2>
+            <p className="text-lg sm:text-xl max-w-3xl mx-auto italic" style={{ color: '#94a3b8' }}>
+              We're not Zillow. We're what happens <strong className="text-[hsl(190,80%,65%)]">AFTER</strong> someone shows interest.
+            </p>
+          </FadeIn>
+
+          {/* Desktop horizontal pipeline */}
+          <FadeIn delay={300} className="hidden md:block mt-16 mb-16">
+            <div className="relative flex items-start justify-between">
+              {/* Connecting line */}
+              <div className="absolute top-10 left-[12%] right-[12%] h-[2px] overflow-hidden">
+                <div className="h-full w-full" style={{
+                  background: 'linear-gradient(90deg, hsl(190,80%,50%), hsl(170,70%,45%))',
+                  opacity: 0.3,
+                }} />
+                <div className="absolute inset-0 h-full" style={{
+                  background: 'linear-gradient(90deg, transparent, hsl(190,80%,55%), transparent)',
+                  animation: 'stark-pulse-flow 3s ease-in-out infinite',
+                }} />
+              </div>
+
+              {[
+                { icon: PhoneIncoming, title: "Lead Comes In", desc: "Call, email, SMS, web form", step: 1 },
+                { icon: Bot, title: "Instant AI Reply", desc: "24/7, English & Spanish", step: 2 },
+                { icon: BarChart3, title: "Auto Qualify & Score", desc: "AI-powered lead scoring", step: 3 },
+                { icon: CalendarCheck, title: "Schedule & Follow-Up", desc: "Showings booked, nurture automated", step: 4 },
+              ].map((item, i) => (
+                <div key={item.step} className="relative flex flex-col items-center text-center flex-1 z-10">
+                  <div
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center mb-4 border"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(45,212,191,0.15), rgba(56,189,248,0.15))',
+                      borderColor: 'rgba(45,212,191,0.3)',
+                      boxShadow: '0 0 25px rgba(45,212,191,0.15)',
+                      animation: `stark-step-glow 3s ease-in-out ${i * 0.6}s infinite`,
+                    }}
+                  >
+                    <item.icon className="w-8 h-8 text-[hsl(190,80%,55%)]" />
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-widest mb-1 text-[hsl(190,80%,55%)]">
+                    Step {item.step}
+                  </span>
+                  <h3 className="text-lg font-bold mb-1">{item.title}</h3>
+                  <p className="text-sm" style={{ color: '#94a3b8' }}>{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+
+          {/* Mobile vertical pipeline */}
+          <FadeIn delay={300} className="md:hidden mt-12 mb-12">
+            <div className="relative flex flex-col items-center gap-2">
+              {[
+                { icon: PhoneIncoming, title: "Lead Comes In", desc: "Call, email, SMS, web form", step: 1 },
+                { icon: Bot, title: "Instant AI Reply", desc: "24/7, English & Spanish", step: 2 },
+                { icon: BarChart3, title: "Auto Qualify & Score", desc: "AI-powered lead scoring", step: 3 },
+                { icon: CalendarCheck, title: "Schedule & Follow-Up", desc: "Showings booked, nurture automated", step: 4 },
+              ].map((item, i) => (
+                <div key={item.step}>
+                  <div className="flex items-center gap-5">
+                    <div
+                      className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0 border"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(45,212,191,0.15), rgba(56,189,248,0.15))',
+                        borderColor: 'rgba(45,212,191,0.3)',
+                        animation: `stark-step-glow 3s ease-in-out ${i * 0.6}s infinite`,
+                      }}
+                    >
+                      <item.icon className="w-7 h-7 text-[hsl(190,80%,55%)]" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-widest text-[hsl(190,80%,55%)]">Step {item.step}</span>
+                      <h3 className="text-base font-bold">{item.title}</h3>
+                      <p className="text-sm" style={{ color: '#94a3b8' }}>{item.desc}</p>
+                    </div>
+                  </div>
+                  {i < 3 && (
+                    <div className="w-[2px] h-8 mx-auto my-1" style={{ background: 'linear-gradient(180deg, hsl(190,80%,50%,0.4), transparent)' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={600} className="text-center">
+            <p className="text-base sm:text-lg max-w-3xl mx-auto leading-relaxed" style={{ color: '#cbd5e1' }}>
+              A clean, automated workflow that ensures no lead ever falls through the cracks — from first contact to booked showing.
+            </p>
+          </FadeIn>
+        </div>
+      </section>
+
       <style>{`
         @keyframes stark-float {
           0%, 100% { transform: translate(0, 0) scale(1); }
@@ -408,6 +508,16 @@ const StarktankPage = () => {
         @keyframes stark-twinkle {
           0%, 100% { opacity: 0.1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(1.5); }
+        }
+
+        @keyframes stark-pulse-flow {
+          0%, 100% { transform: translateX(-100%); opacity: 0; }
+          50% { transform: translateX(100%); opacity: 1; }
+        }
+
+        @keyframes stark-step-glow {
+          0%, 100% { box-shadow: 0 0 15px rgba(45,212,191,0.1); }
+          50% { box-shadow: 0 0 30px rgba(45,212,191,0.3); }
         }
       `}</style>
     </div>
