@@ -576,6 +576,69 @@ const StarktankPage = () => {
         </div>
       </section>
 
+      <section className="relative py-24 px-6 bg-background text-foreground">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="text-center mb-14">
+            <Badge variant="secondary" className="mb-4 uppercase tracking-widest text-xs">
+              Traction
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold">
+              Real Traction. <span className="text-[hsl(160,70%,40%)]">Real Results.</span>
+            </h2>
+          </FadeIn>
+
+          {/* Browser mockup screenshot placeholder */}
+          <FadeIn delay={200} className="mb-20">
+            <div className="max-w-4xl mx-auto" style={{ perspective: '1200px' }}>
+              <div className="rounded-xl overflow-hidden shadow-2xl border border-border"
+                style={{ transform: 'rotateX(2deg) rotateY(-1deg)', transformOrigin: 'center center' }}>
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border" style={{ backgroundColor: '#1e293b' }}>
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }} />
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#eab308' }} />
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+                  </div>
+                  <div className="flex-1 mx-8">
+                    <div className="rounded-md px-3 py-1 text-xs text-center" style={{ backgroundColor: '#0f172a', color: '#64748b' }}>
+                      rentfindercleveland.com/dashboard
+                    </div>
+                  </div>
+                </div>
+                <div className="aspect-video bg-muted flex items-center justify-center">
+                  <span className="text-muted-foreground text-lg font-medium">Dashboard Screenshot — Coming Soon</span>
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+
+          {/* Metrics grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mb-16">
+            {[
+              { value: "612", label: "Leads Processed" },
+              { value: "328", label: "Hot Leads Identified", sub: "AI Score 80+" },
+              { value: "1800", label: "Automated Messages Sent", sub: "SMS + Email", prefix: "+", suffix: "+" },
+              { value: "35", label: "Showings Booked", prefix: "+" },
+              { value: "56", label: "Doors Managed", sub: "across 45 Properties" },
+              { value: "25", label: "Annual Service Agreement", sub: "HomeGuard Property Management — 1-year contract signed", prefix: "$", suffix: "K" },
+            ].map((item, i) => (
+              <FadeIn key={item.label} delay={i * 100}>
+                <TractionStat {...item} />
+              </FadeIn>
+            ))}
+          </div>
+
+          {/* Quote callout */}
+          <FadeIn delay={700}>
+            <div className="max-w-4xl mx-auto rounded-2xl border border-border bg-card p-8 sm:p-10 shadow-modern-sm text-center">
+              <p className="text-lg sm:text-xl leading-relaxed text-muted-foreground italic">
+                "Work that would take a human hundreds of hours — responding to 612 leads, sending 1,800 follow-ups, scheduling 35 showings —{" "}
+                <strong className="text-foreground not-italic">done automatically by our AI agents.</strong>"
+              </p>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
       <style>{`
         @keyframes stark-float {
           0%, 100% { transform: translate(0, 0) scale(1); }
