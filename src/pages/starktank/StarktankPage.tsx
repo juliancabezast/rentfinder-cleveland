@@ -477,7 +477,7 @@ const StarktankPage = () => {
                     <span className="text-xs" style={{ color: '#94a3b8' }}>2030</span>
                   </div>
                   {/* Bar chart */}
-                  <div className="flex items-end gap-3 h-40 mb-4">
+                  <div className="flex items-end gap-3 mb-4" style={{ height: '160px' }}>
                     {[
                       { year: '2025', val: 84.73, max: 103 },
                       { year: '2026', val: 88.07, max: 103 },
@@ -486,14 +486,14 @@ const StarktankPage = () => {
                       { year: '2029', val: 98.90, max: 103 },
                       { year: '2030', val: 102.79, max: 103 },
                     ].map((d, i) => (
-                      <div key={d.year} className="flex-1 flex flex-col items-center gap-1">
+                      <div key={d.year} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
                         <span className="text-[10px] font-medium" style={{ color: '#94a3b8' }}>
                           ${d.val}B
                         </span>
                         <div
-                          className="w-full rounded-t-md transition-all duration-1000"
+                          className="w-full rounded-t-md"
                           style={{
-                            height: `${(d.val / d.max) * 100}%`,
+                            height: `${Math.round((d.val / d.max) * 120)}px`,
                             background: i === 5
                               ? 'linear-gradient(180deg, hsl(170,70%,45%), hsl(190,80%,35%))'
                               : 'linear-gradient(180deg, hsl(190,80%,55%), hsl(190,80%,35%))',
@@ -532,7 +532,7 @@ const StarktankPage = () => {
                     <span className="text-xs" style={{ color: '#94a3b8' }}>2032</span>
                   </div>
                   {/* Bar chart */}
-                  <div className="flex items-end gap-2 h-40 mb-4">
+                  <div className="flex items-end gap-2 mb-4" style={{ height: '160px' }}>
                     {[
                       { year: '2025', val: 40.19 },
                       { year: '2026', val: 47.08 },
@@ -543,21 +543,24 @@ const StarktankPage = () => {
                       { year: '2031', val: 81.53 },
                       { year: '2032', val: 88.37 },
                     ].map((d, i) => (
-                      <div key={d.year} className="flex-1 flex flex-col items-center gap-1">
+                      <div key={d.year} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
                         <span className="text-[9px] font-medium" style={{ color: '#94a3b8' }}>
                           ${d.val.toFixed(0)}B
                         </span>
                         <div
-                          className="w-full rounded-t-md transition-all duration-1000"
+                          className="w-full rounded-t-md"
                           style={{
-                            height: `${(d.val / 89) * 100}%`,
+                            height: `${Math.round((d.val / 89) * 120)}px`,
                             background: i === 7
                               ? 'linear-gradient(180deg, hsl(170,70%,45%), hsl(190,80%,35%))'
                               : 'linear-gradient(180deg, hsl(190,80%,55%), hsl(190,80%,35%))',
                             opacity: 0.65 + (i * 0.05),
                           }}
                         />
-                        <span className="text-[9px]" style={{ color: '#64748b' }}>{d.year.slice(2)}</span>
+                        <span className="text-[9px]" style={{ color: '#64748b' }}>'{d.year.slice(2)}</span>
+                      </div>
+                    ))}
+                  </div>
                       </div>
                     ))}
                   </div>
