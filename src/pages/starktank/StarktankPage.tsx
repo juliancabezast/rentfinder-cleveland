@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const FloatingShape = ({
