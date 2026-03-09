@@ -404,14 +404,70 @@ const StarktankPage = () => {
           </div>
 
           <FadeIn>
-            <div className="max-w-4xl mx-auto text-center mt-8">
-              <div className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl border border-border bg-background/80 backdrop-blur-sm shadow-modern-sm">
-                <div className="w-2 h-2 rounded-full bg-[hsl(190,80%,55%)] animate-pulse" />
-                <p className="text-lg sm:text-xl font-medium text-foreground">
-                  That's my story. Now let me show you <span className="text-[hsl(190,80%,42%)] font-bold">what I'm building</span> — and why it matters.
-                </p>
-                <ChevronDown className="w-5 h-5 text-muted-foreground animate-bounce" />
+            <div className="max-w-5xl mx-auto mt-16 mb-4 relative">
+              {/* Cinematic transition section */}
+              <div className="relative overflow-hidden rounded-3xl border border-border/50" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)' }}>
+                {/* Animated grid background */}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute inset-0" style={{
+                    backgroundImage: 'linear-gradient(hsl(190,80%,55%) 1px, transparent 1px), linear-gradient(90deg, hsl(190,80%,55%) 1px, transparent 1px)',
+                    backgroundSize: '40px 40px',
+                    animation: 'gridMove 20s linear infinite',
+                  }} />
+                </div>
+                {/* Glowing orbs */}
+                <div className="absolute -top-20 -left-20 w-60 h-60 rounded-full blur-3xl" style={{ background: 'hsl(190,80%,55%)', opacity: 0.08, animation: 'pulse 4s ease-in-out infinite' }} />
+                <div className="absolute -bottom-20 -right-20 w-60 h-60 rounded-full blur-3xl" style={{ background: 'hsl(170,70%,45%)', opacity: 0.08, animation: 'pulse 4s ease-in-out infinite 2s' }} />
+                
+                <div className="relative z-10 py-16 px-8 sm:px-12 text-center">
+                  {/* Typing line effect */}
+                  <div className="flex items-center justify-center gap-3 mb-6">
+                    <div className="h-px flex-1 max-w-[80px]" style={{ background: 'linear-gradient(90deg, transparent, hsl(190,80%,55%))' }} />
+                    <span className="text-xs uppercase tracking-[0.3em] font-semibold" style={{ color: 'hsl(190,80%,55%)' }}>Chapter II</span>
+                    <div className="h-px flex-1 max-w-[80px]" style={{ background: 'linear-gradient(270deg, transparent, hsl(190,80%,55%))' }} />
+                  </div>
+                  
+                  <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4" style={{ color: '#f8fafc' }}>
+                    That was my story.
+                  </h3>
+                  <div className="overflow-hidden">
+                    <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold" style={{
+                      background: 'linear-gradient(90deg, hsl(190,80%,55%), hsl(170,70%,50%), hsl(190,80%,55%))',
+                      backgroundSize: '200% auto',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      animation: 'shimmer 3s linear infinite',
+                    }}>
+                      Now let me show you what I'm building.
+                    </h3>
+                  </div>
+                  
+                  {/* Animated arrow */}
+                  <div className="mt-10 flex flex-col items-center gap-2">
+                    <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center" style={{
+                      borderColor: 'hsl(190,80%,55%)',
+                      animation: 'bounceDown 2s ease-in-out infinite',
+                    }}>
+                      <ChevronDown className="w-5 h-5" style={{ color: 'hsl(190,80%,55%)' }} />
+                    </div>
+                  </div>
+                </div>
               </div>
+              
+              <style>{`
+                @keyframes gridMove {
+                  0% { transform: translate(0, 0); }
+                  100% { transform: translate(40px, 40px); }
+                }
+                @keyframes shimmer {
+                  0% { background-position: 200% center; }
+                  100% { background-position: -200% center; }
+                }
+                @keyframes bounceDown {
+                  0%, 100% { transform: translateY(0); opacity: 1; }
+                  50% { transform: translateY(8px); opacity: 0.6; }
+                }
+              `}</style>
             </div>
           </FadeIn>
         </div>
