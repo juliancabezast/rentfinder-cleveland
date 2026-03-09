@@ -361,7 +361,7 @@ const StarktankPage = () => {
               Rent Finder
             </span>
             <br />
-            <span className="text-[#5856e6]">Cleveland</span>
+            <RotatingCity />
           </h1>
 
           <p className="text-xl sm:text-2xl md:text-3xl text-white/80 font-light max-w-2xl mx-auto leading-relaxed">
@@ -1033,9 +1033,7 @@ const StarktankPage = () => {
 
           <FadeIn delay={400}>
             <a
-              href="https://rentfindercleveland.com"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="mailto:contacto@juliancabezast.com?subject=Stark%20Tank%202026%20-%20Join%20The%20Project"
               className="inline-block px-10 py-4 rounded-xl text-lg font-bold tracking-wide transition-transform duration-300 hover:scale-105"
               style={{
                 background: 'linear-gradient(135deg, hsl(190,80%,50%), hsl(170,70%,45%))',
@@ -1044,7 +1042,7 @@ const StarktankPage = () => {
                 animation: 'stark-cta-pulse 2.5s ease-in-out infinite',
               }}
             >
-              Visit the Live Platform →
+              JOIN THE PROJECT ✉
             </a>
           </FadeIn>
 
@@ -1053,6 +1051,31 @@ const StarktankPage = () => {
               Stark State College | Stark Tank 2026
             </p>
           </FadeIn>
+        </div>
+      </section>
+
+      {/* Legal Disclaimers */}
+      <footer className="px-6 py-12" style={{ backgroundColor: '#070714', color: '#475569' }}>
+        <div className="max-w-4xl mx-auto space-y-4 text-center text-xs leading-relaxed">
+          <p>© {new Date().getFullYear()} Julian Cabezas. All rights reserved.</p>
+          <p>
+            <strong style={{ color: '#64748b' }}>Rent Finder Cleveland™</strong> and <strong style={{ color: '#64748b' }}>Smart Leasing AI™</strong> are trademarks owned exclusively by Julian Cabezas. 
+            All intellectual property, source code, designs, branding, and proprietary technology presented herein are the sole property of Julian Cabezas and may not be reproduced, distributed, or used without express written permission.
+          </p>
+          <p>
+            This project was developed independently by Julian Cabezas as a student at Stark State College and is presented as part of the Stark Tank 2026 competition. 
+            Stark State College is not a co-developer, co-owner, investor, or endorser of this product or business. 
+            The college's role is limited to hosting the pitch competition. No partnership, sponsorship, or institutional affiliation beyond the student–institution relationship is implied or intended.
+          </p>
+          <p>
+            The information presented is for demonstration and pitch purposes only. Metrics shown reflect real usage data from a live platform as of the presentation date. 
+            Forward-looking statements regarding growth, revenue, and market opportunity are projections and not guarantees of future performance.
+          </p>
+          <p style={{ color: '#334155' }}>
+            contacto@juliancabezast.com · Built with 💜 in Cleveland, Ohio
+          </p>
+        </div>
+      </footer>
         </div>
       </section>
 
