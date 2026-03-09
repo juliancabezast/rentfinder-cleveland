@@ -240,7 +240,7 @@ const TractionStat = ({ value, label, sub, prefix = "", suffix = "" }: { value: 
 
 const PitchDeckCarousel = () => {
   const [current, setCurrent] = useState(0);
-  const total = 10;
+  const total = PITCH_SLIDES.length;
   const touchStart = useRef(0);
 
   const go = (dir: number) => setCurrent((p) => (p + dir + total) % total);
