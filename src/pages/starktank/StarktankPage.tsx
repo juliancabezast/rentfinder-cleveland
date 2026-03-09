@@ -225,6 +225,41 @@ const StarktankPage = () => {
         </div>
       </section>
 
+      <section className="relative bg-slate-900 text-white py-20 px-6">
+        <div className="max-w-6xl mx-auto text-center">
+          <FadeIn>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+              The Problem: <span className="text-red-500">Leads Are Dying</span>
+            </h2>
+          </FadeIn>
+
+          <FadeIn delay={200}>
+            <p className="text-xl text-gray-300 max-w-4xl mx-auto mb-16 leading-relaxed">
+              When someone inquires about a rental, most property managers take over 24 hours to respond — if they respond at all. Most small and mid-size managers track leads on spreadsheets, sticky notes, or not at all. By the time they follow up, the prospect is gone.
+            </p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <FadeIn delay={400}>
+              <UrgentStat value="67%" description="of rental inquiries never receive a response within 24 hours" />
+            </FadeIn>
+            <FadeIn delay={600}>
+              <UrgentStat value="7x" description="Leads contacted within 1 hour are 7x more likely to convert" />
+            </FadeIn>
+            <FadeIn delay={800}>
+              <UrgentStat value="100x" description="Agents who reply within 5 minutes are 100x more likely to close" />
+            </FadeIn>
+          </div>
+
+          <FadeIn delay={1000}>
+            <div className="text-sm text-gray-500 space-y-1">
+              <p>Source: NS Propertese, 'How to Track Rental Leads' (2025)</p>
+              <p>Source: RubixOne, 'Real Estate Lead Response Time' (2025)</p>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
       <style>{`
         @keyframes stark-float {
           0%, 100% { transform: translate(0, 0) scale(1); }
