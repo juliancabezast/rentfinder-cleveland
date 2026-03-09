@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import photo5 from "@/assets/starktank/photo-5.jpeg";
 import photo4 from "@/assets/starktank/photo-4.jpg";
 import photo1 from "@/assets/starktank/photo-1.png";
+import photo2 from "@/assets/starktank/photo-2.png";
 
 const FloatingShape = ({
   className,
@@ -176,7 +177,7 @@ const MarketBars = () => {
 
 const GRID_ITEMS = [
   { title: "Curious Since Day One", subtitle: "1998, Colombia", image: photo1 },
-  { title: "Born to Perform", subtitle: "Always on stage, Bogotá", image: null },
+  { title: "Born to Perform", subtitle: "Always on stage, Bogotá", image: photo2 },
   { title: "2nd Place, Latam Digital Awards", subtitle: "Best Press Media Strategy (2017)", image: null },
   { title: "Speaker & Strategist", subtitle: "Digital marketing conferences, Colombia", image: photo4 },
   { title: "Project Manager — Software Building", subtitle: "Ladrillera 21, Colombia (2017)", image: photo5 },
