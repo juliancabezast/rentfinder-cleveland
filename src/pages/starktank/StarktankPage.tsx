@@ -667,6 +667,103 @@ const StarktankPage = () => {
         </div>
       </section>
 
+      {/* Revenue Model & Growth Path */}
+      <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="text-center mb-14">
+            <Badge variant="secondary" className="mb-4 uppercase tracking-widest text-xs">
+              Business Model
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold">
+              Revenue Model &amp; <span className="text-[hsl(190,80%,55%)]">Growth Path</span>
+            </h2>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+            <FadeIn delay={200}>
+              <div className="rounded-2xl p-8 border" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                <h3 className="text-xl font-bold mb-4 text-[hsl(190,80%,55%)]">SaaS — Recurring Revenue</h3>
+                <p className="text-base leading-relaxed" style={{ color: '#cbd5e1' }}>
+                  Monthly subscriptions per organization. Multi-tenant architecture means each new client plugs in without rebuilding.
+                </p>
+                <p className="text-lg font-semibold mt-4 text-[hsl(170,70%,50%)]">
+                  Every new client = recurring revenue at minimal marginal cost.
+                </p>
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={400}>
+              <div className="space-y-0">
+                {[
+                  { phase: "NOW", active: true, text: "1 active client (HomeGuard, $25K/yr signed), platform live, trademark Smart Leasing AI® registered" },
+                  { phase: "NEXT", active: false, text: "Onboard 5–10 property management companies in Northeast Ohio" },
+                  { phase: "SCALE", active: false, text: "Expand statewide, then regionally across the Midwest" },
+                ].map((step, i) => (
+                  <div key={step.phase} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border-2"
+                        style={{
+                          backgroundColor: step.active ? 'hsl(170,70%,45%)' : 'transparent',
+                          borderColor: step.active ? 'hsl(170,70%,45%)' : 'rgba(148,163,184,0.3)',
+                          color: step.active ? '#0f172a' : '#94a3b8',
+                          boxShadow: step.active ? '0 0 20px rgba(45,212,191,0.4)' : 'none',
+                        }}
+                      >
+                        {step.phase === "NOW" ? "✓" : i + 1}
+                      </div>
+                      {i < 2 && <div className="w-[2px] h-8 my-1" style={{ background: step.active ? 'hsl(170,70%,45%,0.5)' : 'rgba(148,163,184,0.15)' }} />}
+                    </div>
+                    <div className="pb-6">
+                      <span className={`text-sm font-bold uppercase tracking-widest ${step.active ? 'text-[hsl(170,70%,50%)]' : ''}`} style={step.active ? {} : { color: '#64748b' }}>
+                        {step.phase}
+                      </span>
+                      <p className="text-sm mt-1 leading-snug" style={{ color: step.active ? '#e2e8f0' : '#94a3b8' }}>
+                        {step.text}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      {/* The Pitch */}
+      <section className="relative py-24 px-6 bg-background text-foreground">
+        <div className="max-w-4xl mx-auto text-center">
+          <FadeIn>
+            <Badge variant="secondary" className="mb-4 uppercase tracking-widest text-xs">
+              The Pitch
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-12">
+              Watch the <span className="text-[hsl(190,80%,42%)]">90-Second</span> Elevator Pitch
+            </h2>
+          </FadeIn>
+
+          <FadeIn delay={300}>
+            <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl bg-muted group cursor-pointer">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                  style={{ background: 'linear-gradient(135deg, hsl(190,80%,50%), hsl(170,70%,45%))', boxShadow: '0 0 40px rgba(45,212,191,0.4)' }}>
+                  <Play className="w-8 h-8 text-white ml-1" fill="white" />
+                </div>
+              </div>
+              <span className="absolute bottom-6 left-1/2 -translate-x-1/2 text-muted-foreground text-sm font-medium">
+                Video Coming Soon
+              </span>
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={500}>
+            <p className="text-lg text-muted-foreground mt-8 font-medium">
+              Stark Tank 2026 — College Edition Pitch Competition
+            </p>
+          </FadeIn>
+        </div>
+      </section>
+
       <style>{`
         @keyframes stark-float {
           0%, 100% { transform: translate(0, 0) scale(1); }
