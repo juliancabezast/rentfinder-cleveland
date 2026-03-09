@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Building2, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import photo5 from "@/assets/starktank/photo-5.jpeg";
 import photo4 from "@/assets/starktank/photo-4.jpg";
@@ -1226,6 +1226,17 @@ const StarktankPage = () => {
         @keyframes stark-cta-pulse {
           0%, 100% { box-shadow: 0 0 30px rgba(45,212,191,0.25); }
           50% { box-shadow: 0 0 60px rgba(45,212,191,0.5); }
+        }
+
+        @keyframes stark-flip-in {
+          0% { transform: rotateY(12deg) scale(0.95); opacity: 0.3; }
+          100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+        }
+
+        @keyframes stark-shadow-fade {
+          0% { opacity: 0; }
+          30% { opacity: 1; }
+          100% { opacity: 0; }
         }
       `}</style>
     </div>
