@@ -256,10 +256,11 @@ const RotatingCity = () => {
   }, []);
 
   return (
-    <span className="inline-block relative overflow-hidden" style={{ minWidth: '5ch' }}>
+    <span className="inline-block relative overflow-hidden" style={{ minWidth: '5ch', lineHeight: 1.15, paddingBottom: '0.1em' }}>
       <span
-        className="inline-block text-[#5856e6] transition-all duration-400"
+        className="inline-block transition-all duration-400"
         style={{
+          color: 'hsl(190,80%,55%)',
           transform: animating ? 'translateY(-100%)' : 'translateY(0)',
           opacity: animating ? 0 : 1,
           transition: 'transform 0.4s ease-in-out, opacity 0.4s ease-in-out',
@@ -473,13 +474,7 @@ const StarktankPage = () => {
             <span className="text-sm font-medium tracking-widest uppercase" style={{ color: 'hsl(190,80%,55%)' }}>STARK TANK 2026</span>
           </div>
 
-          <div className="flex justify-center">
-            <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl ring-1 ring-white/20 bg-gradient-to-br from-[#5856e6] to-[#7c7ae6]">
-              <Building2 className="w-10 h-10 text-white" />
-            </div>
-          </div>
-
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mt-8">
             <span className="text-white">
               Rent Finder
             </span>
