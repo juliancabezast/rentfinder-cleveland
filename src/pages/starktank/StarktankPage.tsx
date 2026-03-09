@@ -1076,8 +1076,6 @@ const StarktankPage = () => {
           </p>
         </div>
       </footer>
-        </div>
-      </section>
 
       <style>{`
         @keyframes stark-float {
