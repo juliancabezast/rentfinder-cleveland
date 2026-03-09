@@ -308,6 +308,64 @@ const StarktankPage = () => {
         </div>
       </section>
 
+      <section className="relative py-24 px-6 bg-background text-foreground">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="text-center mb-16">
+            <Badge variant="secondary" className="mb-4 uppercase tracking-widest text-xs">
+              Market Opportunity
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
+              A Massive, <span className="text-[hsl(190,80%,42%)]">Growing Market</span>
+            </h2>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <FadeIn delay={200}>
+              <div className="rounded-3xl p-8 sm:p-10 h-full flex flex-col justify-between border border-border shadow-modern-sm"
+                style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
+                <div>
+                  <p className="text-sm uppercase tracking-widest mb-6" style={{ color: '#94a3b8' }}>
+                    U.S. Property Management Market
+                  </p>
+                  <div className="flex items-end gap-8 mb-8">
+                    <div>
+                      <span className="text-5xl sm:text-6xl font-bold text-[hsl(190,80%,55%)]">$84.73B</span>
+                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>2025</p>
+                    </div>
+                    <div className="text-3xl font-light pb-2" style={{ color: '#475569' }}>→</div>
+                    <div>
+                      <span className="text-5xl sm:text-6xl font-bold text-[hsl(170,70%,45%)]">$102.79B</span>
+                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>2030</p>
+                    </div>
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(45,212,191,0.12)' }}>
+                    <span className="text-sm font-semibold text-[hsl(170,70%,50%)]">CAGR 3.94%</span>
+                  </div>
+                </div>
+                <p className="text-xs mt-8" style={{ color: '#475569' }}>
+                  Source: Mordor Intelligence, U.S. Property Management Services Market Report
+                </p>
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={400}>
+              <div className="rounded-3xl p-8 sm:p-10 h-full flex flex-col justify-between border border-border shadow-modern-sm"
+                style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
+                <div>
+                  <p className="text-sm uppercase tracking-widest mb-6" style={{ color: '#94a3b8' }}>
+                    Global PropTech Market
+                  </p>
+                  <MarketBars />
+                </div>
+                <p className="text-xs mt-8" style={{ color: '#475569' }}>
+                  Source: Fortune Business Insights, PropTech Market Report
+                </p>
+              </div>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
       <style>{`
         @keyframes stark-float {
           0%, 100% { transform: translate(0, 0) scale(1); }
