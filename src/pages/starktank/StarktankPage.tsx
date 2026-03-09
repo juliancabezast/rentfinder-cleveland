@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const FloatingShape = ({
@@ -204,6 +204,69 @@ const TractionStat = ({ value, label, sub, prefix = "", suffix = "" }: { value: 
       <span className="text-4xl sm:text-5xl md:text-6xl font-bold text-[hsl(160,70%,40%)]">{display}</span>
       <p className="text-sm sm:text-base font-semibold text-foreground">{label}</p>
       {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+    </div>
+  );
+};
+
+const PitchDeckCarousel = () => {
+  const [current, setCurrent] = useState(0);
+  const total = 10;
+  const touchStart = useRef(0);
+
+  const go = (dir: number) => setCurrent((p) => (p + dir + total) % total);
+
+  const onTouchStart = (e: React.TouchEvent) => { touchStart.current = e.touches[0].clientX; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const diff = touchStart.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) go(diff > 0 ? 1 : -1);
+  };
+
+  return (
+    <div className="relative" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="relative aspect-video rounded-2xl overflow-hidden border" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+        {Array.from({ length: total }, (_, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
+            style={{
+              opacity: i === current ? 1 : 0,
+              pointerEvents: i === current ? 'auto' : 'none',
+              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+            }}
+          >
+            <span className="text-2xl sm:text-3xl font-bold" style={{ color: '#475569' }}>Slide {i + 1}</span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => go(-1)}
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+        style={{ background: 'rgba(0,0,0,0.5)', color: '#f8fafc' }}
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => go(1)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+        style={{ background: 'rgba(0,0,0,0.5)', color: '#f8fafc' }}
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+
+      <div className="flex justify-center gap-2 mt-5">
+        {Array.from({ length: total }, (_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className="w-2.5 h-2.5 rounded-full transition-all duration-300"
+            style={{
+              backgroundColor: i === current ? 'hsl(190,80%,55%)' : 'rgba(148,163,184,0.3)',
+              transform: i === current ? 'scale(1.3)' : 'scale(1)',
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 };
@@ -743,16 +806,14 @@ const StarktankPage = () => {
           </FadeIn>
 
           <FadeIn delay={300}>
-            <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl bg-muted group cursor-pointer">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                  style={{ background: 'linear-gradient(135deg, hsl(190,80%,50%), hsl(170,70%,45%))', boxShadow: '0 0 40px rgba(45,212,191,0.4)' }}>
-                  <Play className="w-8 h-8 text-white ml-1" fill="white" />
-                </div>
-              </div>
-              <span className="absolute bottom-6 left-1/2 -translate-x-1/2 text-muted-foreground text-sm font-medium">
-                Video Coming Soon
-              </span>
+            <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl">
+              <iframe
+                src="https://www.youtube.com/embed/OKEV-Tht7eU?rel=0"
+                title="Rent Finder Cleveland — 90-Second Elevator Pitch"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
             </div>
           </FadeIn>
 
@@ -760,6 +821,25 @@ const StarktankPage = () => {
             <p className="text-lg text-muted-foreground mt-8 font-medium">
               Stark Tank 2026 — College Edition Pitch Competition
             </p>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* Pitch Deck */}
+      <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
+        <div className="max-w-5xl mx-auto">
+          <FadeIn className="text-center mb-6">
+            <Badge variant="secondary" className="mb-4 uppercase tracking-widest text-xs">
+              Presentation
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3">
+              Pitch <span className="text-[hsl(190,80%,55%)]">Deck</span>
+            </h2>
+            <p className="text-lg" style={{ color: '#94a3b8' }}>Swipe through the full presentation.</p>
+          </FadeIn>
+
+          <FadeIn delay={300}>
+            <PitchDeckCarousel />
           </FadeIn>
         </div>
       </section>
