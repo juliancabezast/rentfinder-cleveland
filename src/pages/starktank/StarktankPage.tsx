@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Building2, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import photo5 from "@/assets/starktank/photo-5.jpeg";
 import photo4 from "@/assets/starktank/photo-4.jpg";
@@ -273,45 +273,136 @@ const RotatingCity = () => {
 
 const PitchDeckCarousel = () => {
   const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
+  const [isFlipping, setIsFlipping] = useState(false);
   const total = PITCH_SLIDES.length;
   const touchStart = useRef(0);
+  const autoTimer = useRef<ReturnType<typeof setInterval>>();
 
-  const go = (dir: number) => setCurrent((p) => (p + dir + total) % total);
+  const go = (dir: number) => {
+    if (isFlipping) return;
+    setDirection(dir);
+    setIsFlipping(true);
+    setTimeout(() => {
+      setCurrent((p) => (p + dir + total) % total);
+      setIsFlipping(false);
+    }, 500);
+  };
+
+  // Auto-advance every 15s
+  useEffect(() => {
+    autoTimer.current = setInterval(() => go(1), 15000);
+    return () => clearInterval(autoTimer.current);
+  }, [current, isFlipping]);
+
+  const resetTimer = (dir: number) => {
+    clearInterval(autoTimer.current);
+    go(dir);
+  };
 
   const onTouchStart = (e: React.TouchEvent) => { touchStart.current = e.touches[0].clientX; };
   const onTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStart.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) go(diff > 0 ? 1 : -1);
+    if (Math.abs(diff) > 50) resetTimer(diff > 0 ? 1 : -1);
   };
+
+  // Progress bar
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    setProgress(0);
+    const start = Date.now();
+    const tick = setInterval(() => {
+      const elapsed = Date.now() - start;
+      setProgress(Math.min(elapsed / 15000, 1));
+    }, 50);
+    return () => clearInterval(tick);
+  }, [current]);
 
   return (
     <div className="relative" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div className="relative aspect-video rounded-2xl overflow-hidden border" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-        {PITCH_SLIDES.map((slide, i) => (
+      {/* Progress bar */}
+      <div className="h-1 rounded-full mb-4 overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${progress * 100}%`,
+            backgroundColor: 'hsl(190,80%,55%)',
+            transition: 'width 0.1s linear',
+          }}
+        />
+      </div>
+
+      {/* Slide counter */}
+      <div className="text-center mb-3">
+        <span className="text-xs font-mono tracking-wider" style={{ color: '#64748b' }}>
+          {String(current + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
+        </span>
+      </div>
+
+      {/* 3D flip container */}
+      <div className="relative aspect-video rounded-2xl overflow-hidden border shadow-2xl" 
+        style={{ borderColor: 'rgba(255,255,255,0.1)', perspective: '1800px' }}>
+        
+        {/* Current slide */}
+        <div
+          className="absolute inset-0"
+          style={{
+            transform: isFlipping
+              ? `rotateY(${direction > 0 ? '-12deg' : '12deg'}) scale(0.95)`
+              : 'rotateY(0deg) scale(1)',
+            opacity: isFlipping ? 0 : 1,
+            transition: 'transform 0.5s ease-in-out, opacity 0.4s ease-in-out',
+            transformOrigin: direction > 0 ? 'right center' : 'left center',
+            backfaceVisibility: 'hidden',
+          }}
+        >
+          <img src={PITCH_SLIDES[current].src} alt={PITCH_SLIDES[current].title} className="w-full h-full object-contain bg-white" />
+        </div>
+
+        {/* Incoming slide */}
+        {isFlipping && (
           <div
-            key={i}
-            className="absolute inset-0 transition-opacity duration-500"
+            className="absolute inset-0"
             style={{
-              opacity: i === current ? 1 : 0,
-              pointerEvents: i === current ? 'auto' : 'none',
+              transform: `rotateY(${direction > 0 ? '12deg' : '-12deg'}) scale(0.95)`,
+              opacity: 0.7,
+              animation: 'stark-flip-in 0.5s ease-in-out forwards',
+              transformOrigin: direction > 0 ? 'left center' : 'right center',
+              backfaceVisibility: 'hidden',
             }}
           >
-            <img src={slide.src} alt={slide.title} className="w-full h-full object-contain bg-white" />
+            <img 
+              src={PITCH_SLIDES[(current + direction + total) % total].src} 
+              alt={PITCH_SLIDES[(current + direction + total) % total].title} 
+              className="w-full h-full object-contain bg-white" 
+            />
           </div>
-        ))}
+        )}
+
+        {/* Page shadow during flip */}
+        {isFlipping && (
+          <div className="absolute inset-0 pointer-events-none"
+            style={{
+              background: direction > 0
+                ? 'linear-gradient(to right, rgba(0,0,0,0.15), transparent 30%, transparent 70%, rgba(0,0,0,0.05))'
+                : 'linear-gradient(to left, rgba(0,0,0,0.15), transparent 30%, transparent 70%, rgba(0,0,0,0.05))',
+              animation: 'stark-shadow-fade 0.5s ease-in-out',
+            }}
+          />
+        )}
       </div>
 
       <button
-        onClick={() => go(-1)}
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-        style={{ background: 'rgba(0,0,0,0.5)', color: '#f8fafc' }}
+        onClick={() => resetTimer(-1)}
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
+        style={{ background: 'rgba(0,0,0,0.6)', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
       <button
-        onClick={() => go(1)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-        style={{ background: 'rgba(0,0,0,0.5)', color: '#f8fafc' }}
+        onClick={() => resetTimer(1)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
+        style={{ background: 'rgba(0,0,0,0.6)', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
       >
         <ChevronRight className="w-5 h-5" />
       </button>
@@ -320,7 +411,7 @@ const PitchDeckCarousel = () => {
         {Array.from({ length: total }, (_, i) => (
           <button
             key={i}
-            onClick={() => setCurrent(i)}
+            onClick={() => { clearInterval(autoTimer.current); setDirection(i > current ? 1 : -1); setIsFlipping(true); setTimeout(() => { setCurrent(i); setIsFlipping(false); }, 500); }}
             className="w-2.5 h-2.5 rounded-full transition-all duration-300"
             style={{
               backgroundColor: i === current ? 'hsl(190,80%,55%)' : 'rgba(148,163,184,0.3)',
@@ -379,8 +470,7 @@ const StarktankPage = () => {
         
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
-            <Sparkles className="w-4 h-4 text-[#5856e6]" />
-            <span className="text-sm font-medium tracking-widest text-[#5856e6] uppercase">STARK TANK 2026</span>
+            <span className="text-sm font-medium tracking-widest uppercase" style={{ color: 'hsl(190,80%,55%)' }}>STARK TANK 2026</span>
           </div>
 
           <div className="flex justify-center">
@@ -1136,6 +1226,17 @@ const StarktankPage = () => {
         @keyframes stark-cta-pulse {
           0%, 100% { box-shadow: 0 0 30px rgba(45,212,191,0.25); }
           50% { box-shadow: 0 0 60px rgba(45,212,191,0.5); }
+        }
+
+        @keyframes stark-flip-in {
+          0% { transform: rotateY(12deg) scale(0.95); opacity: 0.3; }
+          100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+        }
+
+        @keyframes stark-shadow-fade {
+          0% { opacity: 0; }
+          30% { opacity: 1; }
+          100% { opacity: 0; }
         }
       `}</style>
     </div>
