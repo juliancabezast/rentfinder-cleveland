@@ -825,6 +825,25 @@ const StarktankPage = () => {
         </div>
       </section>
 
+      {/* Pitch Deck */}
+      <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
+        <div className="max-w-5xl mx-auto">
+          <FadeIn className="text-center mb-6">
+            <Badge variant="secondary" className="mb-4 uppercase tracking-widest text-xs">
+              Presentation
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3">
+              Pitch <span className="text-[hsl(190,80%,55%)]">Deck</span>
+            </h2>
+            <p className="text-lg" style={{ color: '#94a3b8' }}>Swipe through the full presentation.</p>
+          </FadeIn>
+
+          <FadeIn delay={300}>
+            <PitchDeckCarousel />
+          </FadeIn>
+        </div>
+      </section>
+
       {/* Closing CTA */}
       <section className="relative min-h-[70vh] flex items-center justify-center px-6 py-24 overflow-hidden"
         style={{ background: 'linear-gradient(145deg, #0a0a1a 0%, #0f172a 45%, #1a1a2e 100%)' }}>
