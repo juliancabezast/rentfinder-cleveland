@@ -424,7 +424,7 @@ const StarktankPage = () => {
                   {/* Typing line effect */}
                   <div className="flex items-center justify-center gap-3 mb-6">
                     <div className="h-px flex-1 max-w-[80px]" style={{ background: 'linear-gradient(90deg, transparent, hsl(190,80%,55%))' }} />
-                    <span className="text-xs uppercase tracking-[0.3em] font-semibold" style={{ color: 'hsl(190,80%,55%)' }}>Chapter II</span>
+                    <span className="text-xs uppercase tracking-[0.3em] font-semibold" style={{ color: 'hsl(190,80%,55%)' }}>The Master Plan</span>
                     <div className="h-px flex-1 max-w-[80px]" style={{ background: 'linear-gradient(270deg, transparent, hsl(190,80%,55%))' }} />
                   </div>
                   
