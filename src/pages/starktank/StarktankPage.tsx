@@ -254,17 +254,16 @@ const PitchDeckCarousel = () => {
   return (
     <div className="relative" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="relative aspect-video rounded-2xl overflow-hidden border" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-        {Array.from({ length: total }, (_, i) => (
+        {PITCH_SLIDES.map((slide, i) => (
           <div
             key={i}
-            className="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
+            className="absolute inset-0 transition-opacity duration-500"
             style={{
               opacity: i === current ? 1 : 0,
               pointerEvents: i === current ? 'auto' : 'none',
-              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
             }}
           >
-            <span className="text-2xl sm:text-3xl font-bold" style={{ color: '#475569' }}>Slide {i + 1}</span>
+            <img src={slide.src} alt={slide.title} className="w-full h-full object-contain bg-white" />
           </div>
         ))}
       </div>
