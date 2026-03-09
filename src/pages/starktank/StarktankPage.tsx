@@ -308,48 +308,51 @@ const StarktankPage = () => {
         />
       </div>
 
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 py-20 text-primary-foreground">
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 py-20 text-white">
+        {/* Space-like dark background overlay */}
+        <div className="absolute inset-0 z-0" style={{ background: 'linear-gradient(145deg, #05051a 0%, #0a0a2a 40%, #0f0f35 70%, #0a0a1a 100%)' }} />
+        
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 backdrop-blur-sm">
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span className="text-sm font-medium tracking-widest text-accent uppercase">STARK TANK 2026</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+            <Sparkles className="w-4 h-4 text-[#5856e6]" />
+            <span className="text-sm font-medium tracking-widest text-[#5856e6] uppercase">STARK TANK 2026</span>
           </div>
 
           <div className="flex justify-center">
-            <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl ring-1 ring-primary-foreground/20 bg-gradient-to-br from-primary to-accent">
-              <Building2 className="w-10 h-10 text-primary-foreground" />
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl ring-1 ring-white/20 bg-gradient-to-br from-[#5856e6] to-[#7c7ae6]">
+              <Building2 className="w-10 h-10 text-white" />
             </div>
           </div>
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-primary-foreground via-primary-foreground to-primary-foreground/70 bg-clip-text text-transparent">
+            <span className="text-white">
               Rent Finder
             </span>
             <br />
-            <span className="bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">Cleveland</span>
+            <span className="text-[#5856e6]">Cleveland</span>
           </h1>
 
-          <p className="text-xl sm:text-2xl md:text-3xl text-primary-foreground/80 font-light max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl sm:text-2xl md:text-3xl text-white/80 font-light max-w-2xl mx-auto leading-relaxed">
             AI-Powered Lead Management for Property Managers
           </p>
 
           <div className="pt-6 space-y-3">
-            <p className="text-lg sm:text-xl text-primary-foreground font-medium">
+            <p className="text-lg sm:text-xl text-white font-medium">
               Julian Cabezas — Solo Founder, Developer &amp; Operator | Stark State College
             </p>
           </div>
 
-          <p className="text-base sm:text-lg text-primary-foreground/65 italic max-w-xl mx-auto pt-4">
+          <p className="text-base sm:text-lg text-white/65 italic max-w-xl mx-auto pt-4">
             International Student. Trilingual. Award-winning digital strategist turned tech founder.
           </p>
         </div>
 
         <div
-          className={`absolute bottom-10 left-1/2 -translate-x-1/2 transition-opacity duration-500 ${
+          className={`absolute bottom-10 left-1/2 -translate-x-1/2 transition-opacity duration-500 z-10 ${
             showScrollIndicator ? "opacity-100" : "opacity-0"
           }`}
         >
-          <div className="flex flex-col items-center gap-2 text-primary-foreground/65">
+          <div className="flex flex-col items-center gap-2 text-white/65">
             <span className="text-xs uppercase tracking-widest">Scroll</span>
             <ChevronDown className="w-5 h-5 animate-bounce" />
           </div>
@@ -808,7 +811,7 @@ const StarktankPage = () => {
           <FadeIn delay={300}>
             <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl">
               <iframe
-                src="https://www.youtube.com/embed/OKEV-Tht7eU?rel=0"
+                src="https://www.youtube.com/embed/OKEV-Tht7eU?rel=0&autoplay=1&mute=1"
                 title="Rent Finder Cleveland — 90-Second Elevator Pitch"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
