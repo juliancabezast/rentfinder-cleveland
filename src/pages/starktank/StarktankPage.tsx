@@ -283,12 +283,17 @@ const PitchDeckCarousel = () => {
   const go = (dir: number) => {
     if (isFlipping) return;
     setDirection(dir);
+    const next = (current + dir + total) % total;
     setIsFlipping(true);
+    // Pre-load next index so both images render during crossfade
+    setNextIdx(next);
     setTimeout(() => {
-      setCurrent((p) => (p + dir + total) % total);
+      setCurrent(next);
       setIsFlipping(false);
-    }, 350);
+    }, 700);
   };
+
+  const [nextIdx, setNextIdx] = useState(0);
 
   // Auto-advance every 15s
   useEffect(() => {
@@ -340,47 +345,27 @@ const PitchDeckCarousel = () => {
         </span>
       </div>
 
-      {/* 3D flip container */}
+      {/* Crossfade container */}
       <div className="relative aspect-video rounded-2xl overflow-hidden border shadow-2xl" 
-        style={{ borderColor: 'rgba(255,255,255,0.1)', perspective: '1800px' }}>
+        style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
         
-        {/* Current slide */}
+        {/* Next slide (behind) — fades in */}
+        {isFlipping && (
+          <div className="absolute inset-0 z-10">
+            <img src={PITCH_SLIDES[nextIdx].src} alt={PITCH_SLIDES[nextIdx].title} className="w-full h-full object-contain bg-white" />
+          </div>
+        )}
+
+        {/* Current slide — fades out on top */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 z-20"
           style={{
-            transform: isFlipping
-              ? `translateX(${direction > 0 ? '-30%' : '30%'}) scale(0.92)`
-              : 'translateX(0) scale(1)',
             opacity: isFlipping ? 0 : 1,
-            transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease-out',
+            transition: 'opacity 0.7s ease-in-out',
           }}
         >
           <img src={PITCH_SLIDES[current].src} alt={PITCH_SLIDES[current].title} className="w-full h-full object-contain bg-white" />
         </div>
-
-        {/* Incoming slide */}
-        {isFlipping && (
-          <div
-            className="absolute inset-0"
-            style={{
-              animation: 'stark-slide-in 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-              ['--slide-from' as string]: direction > 0 ? '30%' : '-30%',
-            }}
-          >
-            <img 
-              src={PITCH_SLIDES[(current + direction + total) % total].src} 
-              alt={PITCH_SLIDES[(current + direction + total) % total].title} 
-              className="w-full h-full object-contain bg-white" 
-            />
-          </div>
-        )}
-
-        {/* Soft crossfade overlay */}
-        {isFlipping && (
-          <div className="absolute inset-0 pointer-events-none bg-black/5"
-            style={{ animation: 'stark-shadow-fade 0.35s ease-out' }}
-          />
-        )}
       </div>
 
       <button
