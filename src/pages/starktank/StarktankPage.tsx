@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import photo5 from "@/assets/starktank/photo-5.jpeg";
+import photo4 from "@/assets/starktank/photo-4.jpg";
 
 const FloatingShape = ({
   className,
@@ -176,7 +177,7 @@ const GRID_ITEMS = [
   { title: "Curious Since Day One", subtitle: "1998, Colombia", image: null },
   { title: "Born to Perform", subtitle: "Always on stage, Bogotá", image: null },
   { title: "2nd Place, Latam Digital Awards", subtitle: "Best Press Media Strategy (2017)", image: null },
-  { title: "Speaker & Strategist", subtitle: "Digital marketing conferences, Colombia", image: null },
+  { title: "Speaker & Strategist", subtitle: "Digital marketing conferences, Colombia", image: photo4 },
   { title: "Project Manager — Software Building", subtitle: "Ladrillera 21, Colombia (2017)", image: photo5 },
   { title: "Content Creator", subtitle: "+100K reproductions on YouTube", image: null },
 ];
