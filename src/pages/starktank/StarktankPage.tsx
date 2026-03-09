@@ -497,6 +497,42 @@ const StarktankPage = () => {
         </div>
       </section>
 
+      <section className="relative py-24 px-6 bg-background text-foreground">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="text-center mb-16">
+            <Badge variant="secondary" className="mb-4 uppercase tracking-widest text-xs">
+              Industry Trends
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold">
+              AI in Property Management Is{" "}
+              <span className="text-[hsl(160,70%,40%)]">Exploding</span>
+            </h2>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {[
+              { value: "21% → 34%", desc: "AI adoption jumped in just one year", source: "AppFolio 2025 Benchmark Report via NAA", color: "hsl(160,70%,40%)" },
+              { value: "85%", desc: "of AI adopters report improved lead-to-lease conversion", source: "EliseAI, 2025 State of AI in Multifamily", color: "hsl(175,65%,40%)" },
+              { value: "78%", desc: "of operators admit losing business to AI-enabled competitors", source: "EliseAI, 2025 State of AI in Multifamily", color: "hsl(190,80%,42%)" },
+              { value: "44.8%", desc: "higher lead-to-lease conversion at properties using AI", source: "Zuma, Multifamily Property Management 2025", color: "hsl(150,65%,38%)" },
+            ].map((card, i) => (
+              <FadeIn key={i} delay={i * 120}>
+                <div
+                  className="group rounded-2xl border border-border bg-card p-7 sm:p-8 shadow-modern-sm hover:shadow-modern transition-all duration-300"
+                  style={{ borderTopColor: card.color, borderTopWidth: 3 }}
+                >
+                  <span className="text-4xl sm:text-5xl font-bold" style={{ color: card.color }}>
+                    {card.value}
+                  </span>
+                  <p className="text-base sm:text-lg text-muted-foreground mt-3 leading-snug">{card.desc}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-4">Source: {card.source}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <style>{`
         @keyframes stark-float {
           0%, 100% { transform: translate(0, 0) scale(1); }
