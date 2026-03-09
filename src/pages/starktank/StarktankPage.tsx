@@ -8,6 +8,29 @@ import photo2 from "@/assets/starktank/photo-2.png";
 import photo6 from "@/assets/starktank/photo-6.jpg";
 import photo3 from "@/assets/starktank/photo-3.png";
 import dashboardImg from "@/assets/starktank/dashboard-traction.png";
+import slide01 from "@/assets/starktank/slides/slide-01.png";
+import slide02 from "@/assets/starktank/slides/slide-02.png";
+import slide03 from "@/assets/starktank/slides/slide-03.png";
+import slide04 from "@/assets/starktank/slides/slide-04.png";
+import slide05 from "@/assets/starktank/slides/slide-05.png";
+import slide06 from "@/assets/starktank/slides/slide-06.png";
+import slide07 from "@/assets/starktank/slides/slide-07.png";
+import slide08 from "@/assets/starktank/slides/slide-08.png";
+import slide09 from "@/assets/starktank/slides/slide-09.png";
+import slide10 from "@/assets/starktank/slides/slide-10.png";
+
+const PITCH_SLIDES = [
+  { src: slide01, title: "AI-Powered Lead Management" },
+  { src: slide02, title: "Why Me" },
+  { src: slide03, title: "The Problem" },
+  { src: slide04, title: "A Massive Market" },
+  { src: slide05, title: "What We Do" },
+  { src: slide06, title: "AI Is Exploding" },
+  { src: slide07, title: "Everyone Wins" },
+  { src: slide08, title: "Real Traction" },
+  { src: slide09, title: "Revenue Model" },
+  { src: slide10, title: "Thank You" },
+];
 
 const FloatingShape = ({
   className,
