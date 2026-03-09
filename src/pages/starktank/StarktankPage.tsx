@@ -8,6 +8,29 @@ import photo2 from "@/assets/starktank/photo-2.png";
 import photo6 from "@/assets/starktank/photo-6.jpg";
 import photo3 from "@/assets/starktank/photo-3.png";
 import dashboardImg from "@/assets/starktank/dashboard-traction.png";
+import slide01 from "@/assets/starktank/slides/slide-01.png";
+import slide02 from "@/assets/starktank/slides/slide-02.png";
+import slide03 from "@/assets/starktank/slides/slide-03.png";
+import slide04 from "@/assets/starktank/slides/slide-04.png";
+import slide05 from "@/assets/starktank/slides/slide-05.png";
+import slide06 from "@/assets/starktank/slides/slide-06.png";
+import slide07 from "@/assets/starktank/slides/slide-07.png";
+import slide08 from "@/assets/starktank/slides/slide-08.png";
+import slide09 from "@/assets/starktank/slides/slide-09.png";
+import slide10 from "@/assets/starktank/slides/slide-10.png";
+
+const PITCH_SLIDES = [
+  { src: slide01, title: "AI-Powered Lead Management" },
+  { src: slide02, title: "Why Me" },
+  { src: slide03, title: "The Problem" },
+  { src: slide04, title: "A Massive Market" },
+  { src: slide05, title: "What We Do" },
+  { src: slide06, title: "AI Is Exploding" },
+  { src: slide07, title: "Everyone Wins" },
+  { src: slide08, title: "Real Traction" },
+  { src: slide09, title: "Revenue Model" },
+  { src: slide10, title: "Thank You" },
+];
 
 const FloatingShape = ({
   className,
@@ -217,7 +240,7 @@ const TractionStat = ({ value, label, sub, prefix = "", suffix = "" }: { value: 
 
 const PitchDeckCarousel = () => {
   const [current, setCurrent] = useState(0);
-  const total = 10;
+  const total = PITCH_SLIDES.length;
   const touchStart = useRef(0);
 
   const go = (dir: number) => setCurrent((p) => (p + dir + total) % total);
@@ -231,17 +254,16 @@ const PitchDeckCarousel = () => {
   return (
     <div className="relative" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="relative aspect-video rounded-2xl overflow-hidden border" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-        {Array.from({ length: total }, (_, i) => (
+        {PITCH_SLIDES.map((slide, i) => (
           <div
             key={i}
-            className="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
+            className="absolute inset-0 transition-opacity duration-500"
             style={{
               opacity: i === current ? 1 : 0,
               pointerEvents: i === current ? 'auto' : 'none',
-              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
             }}
           >
-            <span className="text-2xl sm:text-3xl font-bold" style={{ color: '#475569' }}>Slide {i + 1}</span>
+            <img src={slide.src} alt={slide.title} className="w-full h-full object-contain bg-white" />
           </div>
         ))}
       </div>
