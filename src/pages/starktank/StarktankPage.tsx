@@ -353,14 +353,14 @@ const PitchDeckCarousel = () => {
       </div>
 
       <button
-        onClick={() => resetTimer(-1)}
+        onClick={() => go(-1)}
         className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{ background: 'rgba(0,0,0,0.6)', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
       <button
-        onClick={() => resetTimer(1)}
+        onClick={() => go(1)}
         className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{ background: 'rgba(0,0,0,0.6)', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
       >
@@ -374,7 +374,7 @@ const PitchDeckCarousel = () => {
           return (
             <button
               key={i}
-              onClick={() => { clearInterval(autoTimer.current); setDirection(i > current ? 1 : -1); setIsFlipping(true); setTimeout(() => { setCurrent(i); setIsFlipping(false); }, 350); }}
+              onClick={() => goTo(i)}
               className="relative flex items-center justify-center rounded-full transition-all duration-300"
               style={{
                 width: isActive ? 36 : 28,
