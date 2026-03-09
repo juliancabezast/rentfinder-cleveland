@@ -557,10 +557,7 @@ const StarktankPage = () => {
                             opacity: 0.65 + (i * 0.05),
                           }}
                         />
-                        <span className="text-[9px]" style={{ color: '#64748b' }}>'{d.year.slice(2)}</span>
-                      </div>
-                    ))}
-                  </div>
+                        <span className="text-[9px]" style={{ color: '#64748b' }}>{`'${d.year.slice(2)}`}</span>
                       </div>
                     ))}
                   </div>
