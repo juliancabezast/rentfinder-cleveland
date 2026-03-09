@@ -208,6 +208,69 @@ const TractionStat = ({ value, label, sub, prefix = "", suffix = "" }: { value: 
   );
 };
 
+const PitchDeckCarousel = () => {
+  const [current, setCurrent] = useState(0);
+  const total = 10;
+  const touchStart = useRef(0);
+
+  const go = (dir: number) => setCurrent((p) => (p + dir + total) % total);
+
+  const onTouchStart = (e: React.TouchEvent) => { touchStart.current = e.touches[0].clientX; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const diff = touchStart.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) go(diff > 0 ? 1 : -1);
+  };
+
+  return (
+    <div className="relative" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="relative aspect-video rounded-2xl overflow-hidden border" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+        {Array.from({ length: total }, (_, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
+            style={{
+              opacity: i === current ? 1 : 0,
+              pointerEvents: i === current ? 'auto' : 'none',
+              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+            }}
+          >
+            <span className="text-2xl sm:text-3xl font-bold" style={{ color: '#475569' }}>Slide {i + 1}</span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => go(-1)}
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+        style={{ background: 'rgba(0,0,0,0.5)', color: '#f8fafc' }}
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => go(1)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+        style={{ background: 'rgba(0,0,0,0.5)', color: '#f8fafc' }}
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+
+      <div className="flex justify-center gap-2 mt-5">
+        {Array.from({ length: total }, (_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className="w-2.5 h-2.5 rounded-full transition-all duration-300"
+            style={{
+              backgroundColor: i === current ? 'hsl(190,80%,55%)' : 'rgba(148,163,184,0.3)',
+              transform: i === current ? 'scale(1.3)' : 'scale(1)',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const StarktankPage = () => {
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
 
