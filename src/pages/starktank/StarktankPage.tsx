@@ -7,6 +7,7 @@ import photo1 from "@/assets/starktank/photo-1.png";
 import photo2 from "@/assets/starktank/photo-2.png";
 import photo6 from "@/assets/starktank/photo-6.jpg";
 import photo3 from "@/assets/starktank/photo-3.png";
+import dashboardImg from "@/assets/starktank/dashboard-traction.png";
 
 const FloatingShape = ({
   className,
@@ -843,9 +844,7 @@ const StarktankPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="aspect-video bg-muted flex items-center justify-center">
-                  <span className="text-muted-foreground text-lg font-medium">Dashboard Screenshot — Coming Soon</span>
-                </div>
+                <img src={dashboardImg} alt="Smart Leasing AI Dashboard showing real traction metrics" className="w-full block" />
               </div>
             </div>
           </FadeIn>
