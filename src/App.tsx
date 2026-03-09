@@ -365,6 +365,9 @@ const App = () => (
               }
             />
 
+            {/* Starktank */}
+            <Route path="/starktank" element={<StarktankPage />} />
+
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
