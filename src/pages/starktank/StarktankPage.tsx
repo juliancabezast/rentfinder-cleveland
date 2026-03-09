@@ -459,53 +459,113 @@ const StarktankPage = () => {
           </FadeIn>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* U.S. Property Management Market */}
             <FadeIn delay={200}>
-              <div className="rounded-3xl p-8 sm:p-10 h-full flex flex-col justify-between border border-border shadow-modern-sm"
+              <div className="rounded-3xl p-8 h-full flex flex-col justify-between border border-border shadow-modern-sm overflow-hidden"
                 style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
                 <div>
-                  <p className="text-sm uppercase tracking-widest mb-6" style={{ color: '#94a3b8' }}>
+                  <p className="text-sm uppercase tracking-widest mb-4" style={{ color: '#94a3b8' }}>
                     U.S. Property Management Market
                   </p>
-                  <div className="flex items-end gap-8 mb-8">
-                    <div>
-                      <span className="text-5xl sm:text-6xl font-bold text-[hsl(190,80%,55%)]">$84.73B</span>
-                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>2025</p>
-                    </div>
-                    <div className="text-3xl font-light pb-2" style={{ color: '#475569' }}>→</div>
-                    <div>
-                      <span className="text-5xl sm:text-6xl font-bold text-[hsl(170,70%,45%)]">$102.79B</span>
-                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>2030</p>
-                    </div>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-3xl sm:text-4xl font-bold text-[hsl(190,80%,55%)]">$84.73B</span>
+                    <span className="text-lg font-light" style={{ color: '#475569' }}>→</span>
+                    <span className="text-3xl sm:text-4xl font-bold text-[hsl(170,70%,45%)]">$102.79B</span>
+                  </div>
+                  <div className="flex items-center gap-4 mb-6">
+                    <span className="text-xs" style={{ color: '#94a3b8' }}>2025</span>
+                    <span className="text-xs" style={{ color: '#94a3b8' }}>2030</span>
+                  </div>
+                  {/* Bar chart */}
+                  <div className="flex items-end gap-3 h-40 mb-4">
+                    {[
+                      { year: '2025', val: 84.73, max: 103 },
+                      { year: '2026', val: 88.07, max: 103 },
+                      { year: '2027', val: 91.54, max: 103 },
+                      { year: '2028', val: 95.15, max: 103 },
+                      { year: '2029', val: 98.90, max: 103 },
+                      { year: '2030', val: 102.79, max: 103 },
+                    ].map((d, i) => (
+                      <div key={d.year} className="flex-1 flex flex-col items-center gap-1">
+                        <span className="text-[10px] font-medium" style={{ color: '#94a3b8' }}>
+                          ${d.val}B
+                        </span>
+                        <div
+                          className="w-full rounded-t-md transition-all duration-1000"
+                          style={{
+                            height: `${(d.val / d.max) * 100}%`,
+                            background: i === 5
+                              ? 'linear-gradient(180deg, hsl(170,70%,45%), hsl(190,80%,35%))'
+                              : 'linear-gradient(180deg, hsl(190,80%,55%), hsl(190,80%,35%))',
+                            opacity: 0.7 + (i * 0.06),
+                          }}
+                        />
+                        <span className="text-[10px]" style={{ color: '#64748b' }}>{d.year}</span>
+                      </div>
+                    ))}
                   </div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(45,212,191,0.12)' }}>
                     <span className="text-sm font-semibold text-[hsl(170,70%,50%)]">CAGR 3.94%</span>
                   </div>
                 </div>
-                <p className="text-xs mt-8" style={{ color: '#475569' }}>
+                <p className="text-xs mt-6" style={{ color: '#475569' }}>
                   Source: Mordor Intelligence, U.S. Property Management Services Market Report
                 </p>
               </div>
             </FadeIn>
 
+            {/* Global PropTech Market */}
             <FadeIn delay={400}>
-              <div className="rounded-3xl p-8 sm:p-10 h-full flex flex-col justify-between border border-border shadow-modern-sm"
+              <div className="rounded-3xl p-8 h-full flex flex-col justify-between border border-border shadow-modern-sm overflow-hidden"
                 style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
                 <div>
-                  <p className="text-sm uppercase tracking-widest mb-6" style={{ color: '#94a3b8' }}>
+                  <p className="text-sm uppercase tracking-widest mb-4" style={{ color: '#94a3b8' }}>
                     Global PropTech Market
                   </p>
-                  <div className="flex items-end gap-8 mb-8">
-                    <div>
-                      <span className="text-5xl sm:text-6xl font-bold text-[hsl(190,80%,55%)]">$40.19B</span>
-                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>2025</p>
-                    </div>
-                    <div>
-                      <span className="text-5xl sm:text-6xl font-bold text-[hsl(170,70%,45%)]">$88.37B</span>
-                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>2032</p>
-                    </div>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-3xl sm:text-4xl font-bold text-[hsl(190,80%,55%)]">$40.19B</span>
+                    <span className="text-lg font-light" style={{ color: '#475569' }}>→</span>
+                    <span className="text-3xl sm:text-4xl font-bold text-[hsl(170,70%,45%)]">$88.37B</span>
+                  </div>
+                  <div className="flex items-center gap-4 mb-6">
+                    <span className="text-xs" style={{ color: '#94a3b8' }}>2025</span>
+                    <span className="text-xs" style={{ color: '#94a3b8' }}>2032</span>
+                  </div>
+                  {/* Bar chart */}
+                  <div className="flex items-end gap-2 h-40 mb-4">
+                    {[
+                      { year: '2025', val: 40.19 },
+                      { year: '2026', val: 47.08 },
+                      { year: '2027', val: 53.97 },
+                      { year: '2028', val: 60.86 },
+                      { year: '2029', val: 67.75 },
+                      { year: '2030', val: 74.64 },
+                      { year: '2031', val: 81.53 },
+                      { year: '2032', val: 88.37 },
+                    ].map((d, i) => (
+                      <div key={d.year} className="flex-1 flex flex-col items-center gap-1">
+                        <span className="text-[9px] font-medium" style={{ color: '#94a3b8' }}>
+                          ${d.val.toFixed(0)}B
+                        </span>
+                        <div
+                          className="w-full rounded-t-md transition-all duration-1000"
+                          style={{
+                            height: `${(d.val / 89) * 100}%`,
+                            background: i === 7
+                              ? 'linear-gradient(180deg, hsl(170,70%,45%), hsl(190,80%,35%))'
+                              : 'linear-gradient(180deg, hsl(190,80%,55%), hsl(190,80%,35%))',
+                            opacity: 0.65 + (i * 0.05),
+                          }}
+                        />
+                        <span className="text-[9px]" style={{ color: '#64748b' }}>{d.year.slice(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(45,212,191,0.12)' }}>
+                    <span className="text-sm font-semibold text-[hsl(170,70%,50%)]">CAGR 11.9%</span>
                   </div>
                 </div>
-                <p className="text-xs mt-8" style={{ color: '#475569' }}>
+                <p className="text-xs mt-6" style={{ color: '#475569' }}>
                   Source: Fortune Business Insights, PropTech Market Report
                 </p>
               </div>
