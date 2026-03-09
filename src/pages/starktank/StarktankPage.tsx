@@ -173,6 +173,85 @@ const StarktankPage = () => {
         </div>
       </section>
 
+      {/* Why Me Section */}
+      <section className="relative bg-white text-slate-900 py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Section Header */}
+          <div className="text-center mb-16 animate-fade-in" style={{ animationTimeline: 'view()' }}>
+            <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 mb-4">
+              Why Me
+            </h2>
+            <p className="text-xl sm:text-2xl text-slate-600 font-light italic max-w-3xl mx-auto">
+              "I've been building, marketing, and shipping products for years. This isn't my first time — it's my biggest bet."
+            </p>
+          </div>
+
+          {/* Photo Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {[
+              {
+                title: "Curious Since Day One",
+                subtitle: "1998, Colombia",
+              },
+              {
+                title: "Born to Perform",
+                subtitle: "Always on stage, Bogotá",
+              },
+              {
+                title: "2nd Place, Latam Digital Awards",
+                subtitle: "Best Press Media Strategy (2017)",
+              },
+              {
+                title: "Speaker & Strategist",
+                subtitle: "Digital marketing conferences, Colombia",
+              },
+              {
+                title: "Project Manager — Software Building",
+                subtitle: "Ladrillera 21, Colombia (2017)",
+              },
+              {
+                title: "Content Creator",
+                subtitle: "+100K reproductions on YouTube",
+              }
+            ].map((item, index) => (
+              <div 
+                key={index}
+                className="group flex flex-col gap-4 animate-fade-in"
+                style={{ 
+                  animationDelay: `${index * 100}ms`,
+                  animationFillMode: 'both',
+                  animationTimeline: 'view()'
+                }}
+              >
+                {/* Image Container */}
+                <div className="aspect-[4/3] w-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative">
+                  <div className="absolute inset-0 bg-slate-200 transition-transform duration-500 group-hover:scale-105 flex items-center justify-center">
+                    <span className="text-slate-400 font-medium">Image {index + 1}</span>
+                  </div>
+                </div>
+                
+                {/* Text Content */}
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 leading-tight">
+                    {item.title}
+                  </h3>
+                  <p className="text-slate-500 text-sm mt-1">
+                    {item.subtitle}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bio Paragraph */}
+          <div className="max-w-4xl mx-auto bg-slate-50 p-8 sm:p-10 rounded-3xl border border-slate-100 shadow-sm animate-fade-in" style={{ animationTimeline: 'view()' }}>
+            <p className="text-lg sm:text-xl leading-relaxed text-slate-700">
+              I'm originally from Bogotá, Colombia. I speak three languages — Spanish, English, and Portuguese. I started my first business at 22, building over 19 websites during the pandemic. I ran a digital agency, led communications for TEDx Bogotá, won a Latam Digital Award, and created campaigns for brands like Avianca and Motorola reaching over 1.5 million people. Now I'm a student at Stark State College and a member of the Student Government Association, channeling everything I've learned into Rent Finder Cleveland.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* CSS Animations */}
       <style>{`
         @keyframes float {
