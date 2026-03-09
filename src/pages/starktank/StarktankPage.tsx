@@ -172,6 +172,13 @@ const MarketBars = () => {
 };
 
 const GRID_ITEMS = [
+  { title: "Curious Since Day One", subtitle: "1998, Colombia" },
+  { title: "Born to Perform", subtitle: "Always on stage, Bogotá" },
+  { title: "2nd Place, Latam Digital Awards", subtitle: "Best Press Media Strategy (2017)" },
+  { title: "Speaker & Strategist", subtitle: "Digital marketing conferences, Colombia" },
+  { title: "Project Manager — Software Building", subtitle: "Ladrillera 21, Colombia (2017)" },
+  { title: "Content Creator", subtitle: "+100K reproductions on YouTube" },
+];
 
 const StarktankPage = () => {
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
