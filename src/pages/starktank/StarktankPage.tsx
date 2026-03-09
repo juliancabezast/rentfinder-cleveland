@@ -5,6 +5,7 @@ import photo5 from "@/assets/starktank/photo-5.jpeg";
 import photo4 from "@/assets/starktank/photo-4.jpg";
 import photo1 from "@/assets/starktank/photo-1.png";
 import photo2 from "@/assets/starktank/photo-2.png";
+import photo6 from "@/assets/starktank/photo-6.jpg";
 
 const FloatingShape = ({
   className,
@@ -181,7 +182,7 @@ const GRID_ITEMS = [
   { title: "2nd Place, Latam Digital Awards", subtitle: "Best Press Media Strategy (2017)", image: null },
   { title: "Speaker & Strategist", subtitle: "Digital marketing conferences, Colombia", image: photo4 },
   { title: "Project Manager — Software Building", subtitle: "Ladrillera 21, Colombia (2017)", image: photo5 },
-  { title: "Content Creator", subtitle: "+100K reproductions on YouTube", image: null },
+  { title: "Content Creator", subtitle: "+100K reproductions on YouTube", image: photo6 },
 ];
 
 const TractionStat = ({ value, label, sub, prefix = "", suffix = "" }: { value: string; label: string; sub?: string; prefix?: string; suffix?: string }) => {
