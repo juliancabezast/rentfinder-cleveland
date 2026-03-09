@@ -40,7 +40,8 @@ const ApplicantsPage = lazy(() => import("./pages/applicants/ApplicantsPage"));
 const EmailsPage = lazy(() => import("./pages/emails/EmailsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
- const DemoRequests = lazy(() => import("./pages/DemoRequests"));
+const DemoRequests = lazy(() => import("./pages/DemoRequests"));
+const StarktankPage = lazy(() => import("./pages/starktank/StarktankPage"));
 
 // Public pages (lazy-loaded)
 const PrivacyPolicy = lazy(() => import("./pages/public/PrivacyPolicy"));
@@ -363,6 +364,9 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+
+            {/* Starktank */}
+            <Route path="/starktank" element={<StarktankPage />} />
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
