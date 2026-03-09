@@ -743,16 +743,14 @@ const StarktankPage = () => {
           </FadeIn>
 
           <FadeIn delay={300}>
-            <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl bg-muted group cursor-pointer">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                  style={{ background: 'linear-gradient(135deg, hsl(190,80%,50%), hsl(170,70%,45%))', boxShadow: '0 0 40px rgba(45,212,191,0.4)' }}>
-                  <Play className="w-8 h-8 text-white ml-1" fill="white" />
-                </div>
-              </div>
-              <span className="absolute bottom-6 left-1/2 -translate-x-1/2 text-muted-foreground text-sm font-medium">
-                Video Coming Soon
-              </span>
+            <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl">
+              <iframe
+                src="https://www.youtube.com/embed/OKEV-Tht7eU?rel=0"
+                title="Rent Finder Cleveland — 90-Second Elevator Pitch"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
             </div>
           </FadeIn>
 
