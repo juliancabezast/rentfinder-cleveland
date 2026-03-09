@@ -314,6 +314,9 @@ const StarktankPage = () => {
         {/* Space-like dark background overlay */}
         <div className="absolute inset-0 z-0" style={{ background: 'linear-gradient(145deg, #05051a 0%, #0a0a2a 40%, #0f0f35 70%, #0a0a1a 100%)' }} />
         
+        {/* Animated stars */}
+        <ParticleField />
+        
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
             <Sparkles className="w-4 h-4 text-[#5856e6]" />
@@ -340,13 +343,12 @@ const StarktankPage = () => {
 
           <div className="pt-6 space-y-3">
             <p className="text-lg sm:text-xl text-white font-medium">
-              Julian Cabezas — Solo Founder, Developer &amp; Operator | Stark State College
+              Julian Cabezas — International Student from Colombia
+            </p>
+            <p className="text-base sm:text-lg text-white/70">
+              Senator &amp; Student | Stark State College
             </p>
           </div>
-
-          <p className="text-base sm:text-lg text-white/65 italic max-w-xl mx-auto pt-4">
-            International Student. Trilingual. Award-winning digital strategist turned tech founder.
-          </p>
         </div>
 
         <div
