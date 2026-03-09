@@ -274,42 +274,31 @@ const RotatingCity = () => {
 
 const PitchDeckCarousel = () => {
   const [current, setCurrent] = useState(0);
-  const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
-  const [isFlipping, setIsFlipping] = useState(false);
   const total = PITCH_SLIDES.length;
   const touchStart = useRef(0);
   const autoTimer = useRef<ReturnType<typeof setInterval>>();
 
-  const go = (dir: number) => {
-    if (isFlipping) return;
-    setDirection(dir);
-    const next = (current + dir + total) % total;
-    setIsFlipping(true);
-    // Pre-load next index so both images render during crossfade
-    setNextIdx(next);
-    setTimeout(() => {
-      setCurrent(next);
-      setIsFlipping(false);
-    }, 700);
+  const goTo = (idx: number) => {
+    clearInterval(autoTimer.current);
+    setCurrent(idx);
   };
 
-  const [nextIdx, setNextIdx] = useState(0);
+  const go = (dir: number) => {
+    goTo((current + dir + total) % total);
+  };
 
   // Auto-advance every 15s
   useEffect(() => {
-    autoTimer.current = setInterval(() => go(1), 15000);
+    autoTimer.current = setInterval(() => {
+      setCurrent(prev => (prev + 1) % total);
+    }, 15000);
     return () => clearInterval(autoTimer.current);
-  }, [current, isFlipping]);
-
-  const resetTimer = (dir: number) => {
-    clearInterval(autoTimer.current);
-    go(dir);
-  };
+  }, [total]);
 
   const onTouchStart = (e: React.TouchEvent) => { touchStart.current = e.touches[0].clientX; };
   const onTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStart.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) resetTimer(diff > 0 ? 1 : -1);
+    if (Math.abs(diff) > 50) go(diff > 0 ? 1 : -1);
   };
 
   // Progress bar
@@ -345,38 +334,33 @@ const PitchDeckCarousel = () => {
         </span>
       </div>
 
-      {/* Crossfade container */}
+      {/* All slides stacked — pure CSS opacity transition */}
       <div className="relative aspect-video rounded-2xl overflow-hidden border shadow-2xl" 
         style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-        
-        {/* Next slide (behind) — fades in */}
-        {isFlipping && (
-          <div className="absolute inset-0 z-10">
-            <img src={PITCH_SLIDES[nextIdx].src} alt={PITCH_SLIDES[nextIdx].title} className="w-full h-full object-contain bg-white" />
+        {PITCH_SLIDES.map((slide, i) => (
+          <div
+            key={i}
+            className="absolute inset-0"
+            style={{
+              opacity: i === current ? 1 : 0,
+              transition: 'opacity 0.8s ease-in-out',
+              zIndex: i === current ? 2 : 1,
+            }}
+          >
+            <img src={slide.src} alt={slide.title} className="w-full h-full object-contain bg-white" />
           </div>
-        )}
-
-        {/* Current slide — fades out on top */}
-        <div
-          className="absolute inset-0 z-20"
-          style={{
-            opacity: isFlipping ? 0 : 1,
-            transition: 'opacity 0.7s ease-in-out',
-          }}
-        >
-          <img src={PITCH_SLIDES[current].src} alt={PITCH_SLIDES[current].title} className="w-full h-full object-contain bg-white" />
-        </div>
+        ))}
       </div>
 
       <button
-        onClick={() => resetTimer(-1)}
+        onClick={() => go(-1)}
         className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{ background: 'rgba(0,0,0,0.6)', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
       <button
-        onClick={() => resetTimer(1)}
+        onClick={() => go(1)}
         className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{ background: 'rgba(0,0,0,0.6)', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
       >
@@ -390,7 +374,7 @@ const PitchDeckCarousel = () => {
           return (
             <button
               key={i}
-              onClick={() => { clearInterval(autoTimer.current); setDirection(i > current ? 1 : -1); setIsFlipping(true); setTimeout(() => { setCurrent(i); setIsFlipping(false); }, 350); }}
+              onClick={() => goTo(i)}
               className="relative flex items-center justify-center rounded-full transition-all duration-300"
               style={{
                 width: isActive ? 36 : 28,
