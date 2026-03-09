@@ -180,6 +180,34 @@ const GRID_ITEMS = [
   { title: "Content Creator", subtitle: "+100K reproductions on YouTube" },
 ];
 
+const TractionStat = ({ value, label, sub, prefix = "", suffix = "" }: { value: string; label: string; sub?: string; prefix?: string; suffix?: string }) => {
+  const { ref, visible } = useFadeIn(0.3);
+  const [display, setDisplay] = useState("0");
+
+  useEffect(() => {
+    if (!visible) return;
+    const target = parseInt(value, 10);
+    const duration = 1800;
+    const start = performance.now();
+    const animate = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      setDisplay(`${prefix}${Math.round(ease * target).toLocaleString()}${suffix}`);
+      if (p < 1) requestAnimationFrame(animate);
+      else setDisplay(`${prefix}${target.toLocaleString()}${suffix}`);
+    };
+    requestAnimationFrame(animate);
+  }, [visible, value, prefix, suffix]);
+
+  return (
+    <div ref={ref} className="text-center space-y-1">
+      <span className="text-4xl sm:text-5xl md:text-6xl font-bold text-[hsl(160,70%,40%)]">{display}</span>
+      <p className="text-sm sm:text-base font-semibold text-foreground">{label}</p>
+      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+    </div>
+  );
+};
+
 const StarktankPage = () => {
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
 
