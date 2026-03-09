@@ -1227,9 +1227,9 @@ const StarktankPage = () => {
           50% { box-shadow: 0 0 60px rgba(45,212,191,0.5); }
         }
 
-        @keyframes stark-flip-in {
-          0% { transform: rotateY(12deg) scale(0.95); opacity: 0.3; }
-          100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+        @keyframes stark-slide-in {
+          0% { transform: translateX(var(--slide-from)) scale(0.92); opacity: 0; }
+          100% { transform: translateX(0) scale(1); opacity: 1; }
         }
 
         @keyframes stark-shadow-fade {
