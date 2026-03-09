@@ -435,7 +435,7 @@ const StarktankPage = () => {
   }, []);
 
   return (
-    <div className="overflow-x-hidden bg-background text-foreground">
+    <div className="overflow-x-hidden bg-background text-foreground" style={{ background: '#070714' }}>
       <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
         <div
           className="absolute inset-0"
@@ -1145,7 +1145,7 @@ const StarktankPage = () => {
 
           <FadeIn delay={200}>
             <p className="text-lg sm:text-xl" style={{ color: '#94a3b8' }}>
-              Built by Julian Cabezas — Solo Founder, Developer &amp; Operator
+              Built by Julian Cabezas
             </p>
           </FadeIn>
 
