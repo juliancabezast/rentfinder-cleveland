@@ -1164,7 +1164,7 @@ const StarktankPage = () => {
             Forward-looking statements regarding growth, revenue, and market opportunity are projections and not guarantees of future performance.
           </p>
           <p className="pt-2 text-sm" style={{ color: '#2dd4bf' }}>
-            contacto@juliancabezast.com · Built with 💜 in Cleveland, Ohio
+            contacto@juliancabezast.com · Built with ❤️ by a Colombian 🇨🇴 in Cleveland, Ohio
           </p>
         </div>
       </footer>
