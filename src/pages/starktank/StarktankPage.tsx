@@ -92,6 +92,54 @@ const FadeIn = ({ children, delay = 0, className = "" }: { children: ReactNode; 
   );
 };
 
+const UrgentStat = ({ value, description }: { value: string; description: string }) => {
+  const { ref, visible } = useFadeIn(0.5);
+  const [displayValue, setDisplayValue] = useState("0");
+  
+  useEffect(() => {
+    if (!visible) return;
+    
+    const match = value.match(/^(\d+)(.*)$/);
+    if (!match) {
+      setDisplayValue(value);
+      return;
+    }
+    
+    const target = parseInt(match[1], 10);
+    const suffix = match[2];
+    const duration = 1500;
+    const startTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+      
+      const currentVal = Math.round(easeOutCubic(progress) * target);
+      setDisplayValue(`${currentVal}${suffix}`);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(value);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [visible, value]);
+
+  return (
+    <div ref={ref} className="flex flex-col items-center gap-3 text-center">
+      <span className="text-6xl sm:text-7xl font-bold text-destructive drop-shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+        {displayValue}
+      </span>
+      <p className="text-base sm:text-lg text-muted-foreground/80 leading-snug max-w-[250px] mx-auto">
+        {description}
+      </p>
+    </div>
+  );
+};
+
 const GRID_ITEMS = [
   { title: "Curious Since Day One", subtitle: "1998, Colombia" },
   { title: "Born to Perform", subtitle: "Always on stage, Bogotá" },
@@ -225,16 +273,16 @@ const StarktankPage = () => {
         </div>
       </section>
 
-      <section className="relative bg-slate-900 text-white py-20 px-6">
+      <section className="relative py-20 px-6" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
         <div className="max-w-6xl mx-auto text-center">
           <FadeIn>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-              The Problem: <span className="text-red-500">Leads Are Dying</span>
+              The Problem: <span className="text-destructive drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">Leads Are Dying</span>
             </h2>
           </FadeIn>
 
           <FadeIn delay={200}>
-            <p className="text-xl text-gray-300 max-w-4xl mx-auto mb-16 leading-relaxed">
+            <p className="text-xl max-w-4xl mx-auto mb-16 leading-relaxed" style={{ color: '#cbd5e1' }}>
               When someone inquires about a rental, most property managers take over 24 hours to respond — if they respond at all. Most small and mid-size managers track leads on spreadsheets, sticky notes, or not at all. By the time they follow up, the prospect is gone.
             </p>
           </FadeIn>
@@ -252,7 +300,7 @@ const StarktankPage = () => {
           </div>
 
           <FadeIn delay={1000}>
-            <div className="text-sm text-gray-500 space-y-1">
+            <div className="text-sm space-y-1" style={{ color: '#64748b' }}>
               <p>Source: NS Propertese, 'How to Track Rental Leads' (2025)</p>
               <p>Source: RubixOne, 'Real Estate Lead Response Time' (2025)</p>
             </div>
