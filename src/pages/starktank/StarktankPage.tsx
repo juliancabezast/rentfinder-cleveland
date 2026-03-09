@@ -376,9 +376,17 @@ const StarktankPage = () => {
               <FadeIn key={item.title} delay={i * 80}>
                 <div className="group flex flex-col gap-3">
                   <div className="aspect-[4/3] w-full rounded-2xl overflow-hidden border border-border shadow-modern-sm bg-muted">
-                    <div className="w-full h-full flex items-center justify-center transition-transform duration-500 group-hover:scale-105 bg-gradient-to-br from-muted to-secondary">
-                      <span className="text-muted-foreground text-sm font-medium select-none">Photo {i + 1}</span>
-                    </div>
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center transition-transform duration-500 group-hover:scale-105 bg-gradient-to-br from-muted to-secondary">
+                        <span className="text-muted-foreground text-sm font-medium select-none">Photo {i + 1}</span>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-card-foreground leading-tight">{item.title}</h3>
