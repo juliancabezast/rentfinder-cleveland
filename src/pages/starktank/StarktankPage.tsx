@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import photo5 from "@/assets/starktank/photo-5.jpeg";
 
 const FloatingShape = ({
   className,
@@ -172,12 +173,12 @@ const MarketBars = () => {
 };
 
 const GRID_ITEMS = [
-  { title: "Curious Since Day One", subtitle: "1998, Colombia" },
-  { title: "Born to Perform", subtitle: "Always on stage, Bogotá" },
-  { title: "2nd Place, Latam Digital Awards", subtitle: "Best Press Media Strategy (2017)" },
-  { title: "Speaker & Strategist", subtitle: "Digital marketing conferences, Colombia" },
-  { title: "Project Manager — Software Building", subtitle: "Ladrillera 21, Colombia (2017)" },
-  { title: "Content Creator", subtitle: "+100K reproductions on YouTube" },
+  { title: "Curious Since Day One", subtitle: "1998, Colombia", image: null },
+  { title: "Born to Perform", subtitle: "Always on stage, Bogotá", image: null },
+  { title: "2nd Place, Latam Digital Awards", subtitle: "Best Press Media Strategy (2017)", image: null },
+  { title: "Speaker & Strategist", subtitle: "Digital marketing conferences, Colombia", image: null },
+  { title: "Project Manager — Software Building", subtitle: "Ladrillera 21, Colombia (2017)", image: photo5 },
+  { title: "Content Creator", subtitle: "+100K reproductions on YouTube", image: null },
 ];
 
 const TractionStat = ({ value, label, sub, prefix = "", suffix = "" }: { value: string; label: string; sub?: string; prefix?: string; suffix?: string }) => {
@@ -375,9 +376,17 @@ const StarktankPage = () => {
               <FadeIn key={item.title} delay={i * 80}>
                 <div className="group flex flex-col gap-3">
                   <div className="aspect-[4/3] w-full rounded-2xl overflow-hidden border border-border shadow-modern-sm bg-muted">
-                    <div className="w-full h-full flex items-center justify-center transition-transform duration-500 group-hover:scale-105 bg-gradient-to-br from-muted to-secondary">
-                      <span className="text-muted-foreground text-sm font-medium select-none">Photo {i + 1}</span>
-                    </div>
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center transition-transform duration-500 group-hover:scale-105 bg-gradient-to-br from-muted to-secondary">
+                        <span className="text-muted-foreground text-sm font-medium select-none">Photo {i + 1}</span>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-card-foreground leading-tight">{item.title}</h3>
