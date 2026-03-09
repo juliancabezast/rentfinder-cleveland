@@ -1146,11 +1146,12 @@ const StarktankPage = () => {
       </section>
 
       {/* Legal Disclaimers */}
-      <footer className="px-6 py-12" style={{ backgroundColor: '#070714', color: '#475569' }}>
-        <div className="max-w-4xl mx-auto space-y-4 text-center text-xs leading-relaxed">
-          <p>© {new Date().getFullYear()} Julian Cabezas. All rights reserved.</p>
+      <footer className="relative px-6 py-16" style={{ background: 'linear-gradient(180deg, #070714 0%, #0f0f2a 100%)' }}>
+        <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(45,212,191,0.3) 50%, transparent 100%)' }} />
+        <div className="max-w-4xl mx-auto space-y-5 text-center text-xs leading-relaxed" style={{ color: '#94a3b8' }}>
+          <p className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>© {new Date().getFullYear()} Julian Cabezas. All rights reserved.</p>
           <p>
-            <strong style={{ color: '#64748b' }}>Rent Finder Cleveland™</strong> and <strong style={{ color: '#64748b' }}>Smart Leasing AI™</strong> are trademarks owned exclusively by Julian Cabezas. 
+            <strong style={{ color: '#c4b5fd' }}>Rent Finder Cleveland™</strong> and <strong style={{ color: '#c4b5fd' }}>Smart Leasing AI™</strong> are trademarks owned exclusively by Julian Cabezas. 
             All intellectual property, source code, designs, branding, and proprietary technology presented herein are the sole property of Julian Cabezas and may not be reproduced, distributed, or used without express written permission.
           </p>
           <p>
@@ -1162,7 +1163,7 @@ const StarktankPage = () => {
             The information presented is for demonstration and pitch purposes only. Metrics shown reflect real usage data from a live platform as of the presentation date. 
             Forward-looking statements regarding growth, revenue, and market opportunity are projections and not guarantees of future performance.
           </p>
-          <p style={{ color: '#334155' }}>
+          <p className="pt-2 text-sm" style={{ color: '#2dd4bf' }}>
             contacto@juliancabezast.com · Built with 💜 in Cleveland, Ohio
           </p>
         </div>
