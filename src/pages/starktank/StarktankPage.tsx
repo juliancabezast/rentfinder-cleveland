@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck } from "lucide-react";
+import { ChevronDown, Building2, Sparkles, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const FloatingShape = ({
@@ -526,6 +526,49 @@ const StarktankPage = () => {
                   </span>
                   <p className="text-base sm:text-lg text-muted-foreground mt-3 leading-snug">{card.desc}</p>
                   <p className="text-xs text-muted-foreground/60 mt-4">Source: {card.source}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="text-center mb-6">
+            <Badge variant="secondary" className="mb-4 uppercase tracking-widest text-xs">
+              Impact
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
+              Everyone <span className="text-[hsl(160,70%,45%)]">Wins</span>
+            </h2>
+            <p className="text-lg sm:text-xl max-w-3xl mx-auto" style={{ color: '#94a3b8' }}>
+              This isn't just a business tool — it's infrastructure that helps communities.
+            </p>
+          </FadeIn>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 mt-14">
+            {[
+              { icon: Building2, title: "Property Managers", desc: "Automated pipeline, zero leads lost, save hundreds of hours" },
+              { icon: Home, title: "Landlords", desc: "Vacancies filled faster, less lost rental income" },
+              { icon: Users, title: "Families", desc: "Find homes sooner, bilingual support, faster response" },
+              { icon: Landmark, title: "Government Agencies", desc: "Section 8 compliance, efficient housing placement" },
+              { icon: MapPin, title: "The City", desc: "Stronger neighborhoods, reduced vacancy blight, economic activity" },
+            ].map((card, i) => (
+              <FadeIn key={card.title} delay={i * 100}>
+                <div className="rounded-2xl p-6 h-full border text-center flex flex-col items-center gap-3"
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    backdropFilter: 'blur(12px)',
+                    borderColor: 'rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-1"
+                    style={{ background: 'rgba(45,212,191,0.12)' }}>
+                    <card.icon className="w-6 h-6 text-[hsl(170,70%,50%)]" />
+                  </div>
+                  <h3 className="text-base font-bold">{card.title}</h3>
+                  <p className="text-sm leading-snug" style={{ color: '#94a3b8' }}>{card.desc}</p>
                 </div>
               </FadeIn>
             ))}
