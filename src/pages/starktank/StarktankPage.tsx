@@ -493,7 +493,16 @@ const StarktankPage = () => {
                   <p className="text-sm uppercase tracking-widest mb-6" style={{ color: '#94a3b8' }}>
                     Global PropTech Market
                   </p>
-                  <MarketBars />
+                  <div className="flex items-end gap-8 mb-8">
+                    <div>
+                      <span className="text-5xl sm:text-6xl font-bold text-[hsl(190,80%,55%)]">$40.19B</span>
+                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>2025</p>
+                    </div>
+                    <div>
+                      <span className="text-5xl sm:text-6xl font-bold text-[hsl(170,70%,45%)]">$88.37B</span>
+                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>2032</p>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-xs mt-8" style={{ color: '#475569' }}>
                   Source: Fortune Business Insights, PropTech Market Report
