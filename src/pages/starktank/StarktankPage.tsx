@@ -140,14 +140,38 @@ const UrgentStat = ({ value, description }: { value: string; description: string
   );
 };
 
+const MarketBars = () => {
+  const { ref, visible } = useFadeIn(0.3);
+  const bars = [
+    { label: "2025", value: 40.19, max: 88.37, color: "hsl(190,80%,50%)" },
+    { label: "2032", value: 88.37, max: 88.37, color: "hsl(170,70%,45%)" },
+  ];
+
+  return (
+    <div ref={ref} className="flex items-end gap-6 sm:gap-10 h-[220px]">
+      {bars.map((bar) => {
+        const heightPct = (bar.value / bar.max) * 85;
+        return (
+          <div key={bar.label} className="flex flex-col items-center gap-2 flex-1">
+            <span className="text-xl sm:text-2xl font-bold" style={{ color: bar.color }}>
+              ${bar.value}B
+            </span>
+            <div className="w-full max-w-[80px] rounded-t-xl relative" style={{
+              backgroundColor: bar.color,
+              height: visible ? `${heightPct}%` : '0%',
+              transition: 'height 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              transitionDelay: bar.label === '2032' ? '0.3s' : '0s',
+              boxShadow: `0 0 30px ${bar.color}40`,
+            }} />
+            <span className="text-sm font-medium" style={{ color: '#94a3b8' }}>{bar.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 const GRID_ITEMS = [
-  { title: "Curious Since Day One", subtitle: "1998, Colombia" },
-  { title: "Born to Perform", subtitle: "Always on stage, Bogotá" },
-  { title: "2nd Place, Latam Digital Awards", subtitle: "Best Press Media Strategy (2017)" },
-  { title: "Speaker & Strategist", subtitle: "Digital marketing conferences, Colombia" },
-  { title: "Project Manager — Software Building", subtitle: "Ladrillera 21, Colombia (2017)" },
-  { title: "Content Creator", subtitle: "+100K reproductions on YouTube" },
-];
 
 const StarktankPage = () => {
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
