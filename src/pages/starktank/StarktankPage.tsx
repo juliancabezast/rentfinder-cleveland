@@ -764,6 +764,49 @@ const StarktankPage = () => {
         </div>
       </section>
 
+      {/* Closing CTA */}
+      <section className="relative min-h-[70vh] flex items-center justify-center px-6 py-24 overflow-hidden"
+        style={{ background: 'linear-gradient(145deg, #0a0a1a 0%, #0f172a 45%, #1a1a2e 100%)' }}>
+        <ParticleField />
+        <div className="relative z-10 max-w-3xl mx-auto text-center space-y-8">
+          <FadeIn>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight" style={{ color: '#f8fafc' }}>
+              The future of rental lead management is{" "}
+              <span className="text-[hsl(190,80%,55%)]">NOW.</span>
+            </h2>
+          </FadeIn>
+
+          <FadeIn delay={200}>
+            <p className="text-lg sm:text-xl" style={{ color: '#94a3b8' }}>
+              Built by Julian Cabezas — Solo Founder, Developer &amp; Operator
+            </p>
+          </FadeIn>
+
+          <FadeIn delay={400}>
+            <a
+              href="https://rentfindercleveland.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-10 py-4 rounded-xl text-lg font-bold tracking-wide transition-transform duration-300 hover:scale-105"
+              style={{
+                background: 'linear-gradient(135deg, hsl(190,80%,50%), hsl(170,70%,45%))',
+                color: '#0f172a',
+                boxShadow: '0 0 40px rgba(45,212,191,0.3)',
+                animation: 'stark-cta-pulse 2.5s ease-in-out infinite',
+              }}
+            >
+              Visit the Live Platform →
+            </a>
+          </FadeIn>
+
+          <FadeIn delay={600}>
+            <p className="text-sm font-medium" style={{ color: '#475569' }}>
+              Stark State College | Stark Tank 2026
+            </p>
+          </FadeIn>
+        </div>
+      </section>
+
       <style>{`
         @keyframes stark-float {
           0%, 100% { transform: translate(0, 0) scale(1); }
@@ -785,6 +828,11 @@ const StarktankPage = () => {
         @keyframes stark-step-glow {
           0%, 100% { box-shadow: 0 0 15px rgba(45,212,191,0.1); }
           50% { box-shadow: 0 0 30px rgba(45,212,191,0.3); }
+        }
+
+        @keyframes stark-cta-pulse {
+          0%, 100% { box-shadow: 0 0 30px rgba(45,212,191,0.25); }
+          50% { box-shadow: 0 0 60px rgba(45,212,191,0.5); }
         }
       `}</style>
     </div>
