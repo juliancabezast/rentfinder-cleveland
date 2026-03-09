@@ -238,6 +238,39 @@ const TractionStat = ({ value, label, sub, prefix = "", suffix = "" }: { value: 
   );
 };
 
+const CITIES = ["Cleveland", "Akron", "North Canton", "Canton", "Youngstown", "Elyria", "Medina", "Mansfield"];
+
+const RotatingCity = () => {
+  const [index, setIndex] = useState(0);
+  const [animating, setAnimating] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnimating(true);
+      setTimeout(() => {
+        setIndex((prev) => (prev + 1) % CITIES.length);
+        setAnimating(false);
+      }, 400);
+    }, 2800);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span className="inline-block relative overflow-hidden" style={{ minWidth: '5ch' }}>
+      <span
+        className="inline-block text-[#5856e6] transition-all duration-400"
+        style={{
+          transform: animating ? 'translateY(-100%)' : 'translateY(0)',
+          opacity: animating ? 0 : 1,
+          transition: 'transform 0.4s ease-in-out, opacity 0.4s ease-in-out',
+        }}
+      >
+        {CITIES[index]}
+      </span>
+    </span>
+  );
+};
+
 const PitchDeckCarousel = () => {
   const [current, setCurrent] = useState(0);
   const total = PITCH_SLIDES.length;
