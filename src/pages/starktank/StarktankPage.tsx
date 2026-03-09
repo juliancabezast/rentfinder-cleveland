@@ -6,6 +6,7 @@ import photo4 from "@/assets/starktank/photo-4.jpg";
 import photo1 from "@/assets/starktank/photo-1.png";
 import photo2 from "@/assets/starktank/photo-2.png";
 import photo6 from "@/assets/starktank/photo-6.jpg";
+import photo3 from "@/assets/starktank/photo-3.png";
 
 const FloatingShape = ({
   className,
@@ -179,7 +180,7 @@ const MarketBars = () => {
 const GRID_ITEMS = [
   { title: "Curious Since Day One", subtitle: "1998, Colombia", image: photo1 },
   { title: "Born to Perform", subtitle: "Always on stage, Bogotá", image: photo2 },
-  { title: "2nd Place, Latam Digital Awards", subtitle: "Best Press Media Strategy (2017)", image: null },
+  { title: "2nd Place, Latam Digital Awards", subtitle: "Best Press Media Strategy (2017)", image: photo3 },
   { title: "Speaker & Strategist", subtitle: "Digital marketing conferences, Colombia", image: photo4 },
   { title: "Project Manager — Software Building", subtitle: "Ladrillera 21, Colombia (2017)", image: photo5 },
   { title: "Content Creator", subtitle: "+100K reproductions on YouTube", image: photo6 },
