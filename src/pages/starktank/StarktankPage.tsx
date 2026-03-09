@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Building2, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Building2, PhoneIncoming, Bot, BarChart3, CalendarCheck, Home, Users, Landmark, MapPin, Play, Lightbulb, Target, AlertTriangle, TrendingUp, Cpu, Rocket, Handshake, Trophy, DollarSign, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import photo5 from "@/assets/starktank/photo-5.jpeg";
 import photo4 from "@/assets/starktank/photo-4.jpg";
@@ -20,16 +20,16 @@ import slide09 from "@/assets/starktank/slides/slide-09.png";
 import slide10 from "@/assets/starktank/slides/slide-10.png";
 
 const PITCH_SLIDES = [
-  { src: slide01, title: "AI-Powered Lead Management" },
-  { src: slide02, title: "Why Me" },
-  { src: slide03, title: "The Problem" },
-  { src: slide04, title: "A Massive Market" },
-  { src: slide05, title: "What We Do" },
-  { src: slide06, title: "AI Is Exploding" },
-  { src: slide07, title: "Everyone Wins" },
-  { src: slide08, title: "Real Traction" },
-  { src: slide09, title: "Revenue Model" },
-  { src: slide10, title: "Thank You" },
+  { src: slide01, title: "AI-Powered Lead Management", icon: Lightbulb },
+  { src: slide02, title: "Why Me", icon: Target },
+  { src: slide03, title: "The Problem", icon: AlertTriangle },
+  { src: slide04, title: "A Massive Market", icon: TrendingUp },
+  { src: slide05, title: "What We Do", icon: Cpu },
+  { src: slide06, title: "AI Is Exploding", icon: Rocket },
+  { src: slide07, title: "Everyone Wins", icon: Handshake },
+  { src: slide08, title: "Real Traction", icon: Trophy },
+  { src: slide09, title: "Revenue Model", icon: DollarSign },
+  { src: slide10, title: "Thank You", icon: Heart },
 ];
 
 const FloatingShape = ({
@@ -287,7 +287,7 @@ const PitchDeckCarousel = () => {
     setTimeout(() => {
       setCurrent((p) => (p + dir + total) % total);
       setIsFlipping(false);
-    }, 500);
+    }, 350);
   };
 
   // Auto-advance every 15s
@@ -349,12 +349,10 @@ const PitchDeckCarousel = () => {
           className="absolute inset-0"
           style={{
             transform: isFlipping
-              ? `rotateY(${direction > 0 ? '-12deg' : '12deg'}) scale(0.95)`
-              : 'rotateY(0deg) scale(1)',
+              ? `translateX(${direction > 0 ? '-30%' : '30%'}) scale(0.92)`
+              : 'translateX(0) scale(1)',
             opacity: isFlipping ? 0 : 1,
-            transition: 'transform 0.5s ease-in-out, opacity 0.4s ease-in-out',
-            transformOrigin: direction > 0 ? 'right center' : 'left center',
-            backfaceVisibility: 'hidden',
+            transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease-out',
           }}
         >
           <img src={PITCH_SLIDES[current].src} alt={PITCH_SLIDES[current].title} className="w-full h-full object-contain bg-white" />
@@ -365,11 +363,8 @@ const PitchDeckCarousel = () => {
           <div
             className="absolute inset-0"
             style={{
-              transform: `rotateY(${direction > 0 ? '12deg' : '-12deg'}) scale(0.95)`,
-              opacity: 0.7,
-              animation: 'stark-flip-in 0.5s ease-in-out forwards',
-              transformOrigin: direction > 0 ? 'left center' : 'right center',
-              backfaceVisibility: 'hidden',
+              animation: 'stark-slide-in 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+              ['--slide-from' as string]: direction > 0 ? '30%' : '-30%',
             }}
           >
             <img 
@@ -380,15 +375,10 @@ const PitchDeckCarousel = () => {
           </div>
         )}
 
-        {/* Page shadow during flip */}
+        {/* Soft crossfade overlay */}
         {isFlipping && (
-          <div className="absolute inset-0 pointer-events-none"
-            style={{
-              background: direction > 0
-                ? 'linear-gradient(to right, rgba(0,0,0,0.15), transparent 30%, transparent 70%, rgba(0,0,0,0.05))'
-                : 'linear-gradient(to left, rgba(0,0,0,0.15), transparent 30%, transparent 70%, rgba(0,0,0,0.05))',
-              animation: 'stark-shadow-fade 0.5s ease-in-out',
-            }}
+          <div className="absolute inset-0 pointer-events-none bg-black/5"
+            style={{ animation: 'stark-shadow-fade 0.35s ease-out' }}
           />
         )}
       </div>
@@ -408,18 +398,32 @@ const PitchDeckCarousel = () => {
         <ChevronRight className="w-5 h-5" />
       </button>
 
-      <div className="flex justify-center gap-2 mt-5">
-        {Array.from({ length: total }, (_, i) => (
-          <button
-            key={i}
-            onClick={() => { clearInterval(autoTimer.current); setDirection(i > current ? 1 : -1); setIsFlipping(true); setTimeout(() => { setCurrent(i); setIsFlipping(false); }, 500); }}
-            className="w-2.5 h-2.5 rounded-full transition-all duration-300"
-            style={{
-              backgroundColor: i === current ? 'hsl(190,80%,55%)' : 'rgba(148,163,184,0.3)',
-              transform: i === current ? 'scale(1.3)' : 'scale(1)',
-            }}
-          />
-        ))}
+      <div className="flex justify-center gap-3 mt-5">
+        {PITCH_SLIDES.map((slide, i) => {
+          const Icon = slide.icon;
+          const isActive = i === current;
+          return (
+            <button
+              key={i}
+              onClick={() => { clearInterval(autoTimer.current); setDirection(i > current ? 1 : -1); setIsFlipping(true); setTimeout(() => { setCurrent(i); setIsFlipping(false); }, 350); }}
+              className="relative flex items-center justify-center rounded-full transition-all duration-300"
+              style={{
+                width: isActive ? 36 : 28,
+                height: isActive ? 36 : 28,
+                backgroundColor: isActive ? 'hsl(190,80%,55%)' : 'rgba(148,163,184,0.15)',
+                border: isActive ? '2px solid hsl(190,80%,65%)' : '1px solid rgba(148,163,184,0.2)',
+                boxShadow: isActive ? '0 0 16px rgba(45,212,191,0.4)' : 'none',
+              }}
+              title={slide.title}
+            >
+              <Icon className="transition-all duration-300" style={{
+                width: isActive ? 16 : 12,
+                height: isActive ? 16 : 12,
+                color: isActive ? '#0f172a' : '#64748b',
+              }} />
+            </button>
+          );
+        })}
       </div>
     </div>
   );
