@@ -403,10 +403,14 @@ const StarktankPage = () => {
           </div>
 
           <FadeIn>
-            <div className="max-w-4xl mx-auto bg-background p-8 sm:p-10 rounded-3xl border border-border shadow-modern-sm">
-              <p className="text-lg sm:text-xl leading-relaxed text-muted-foreground">
-                I'm originally from Bogotá, Colombia. I speak three languages — Spanish, English, and Portuguese. I started my first business at 22, building over 19 websites during the pandemic. I ran a digital agency, led communications for TEDx Bogotá, won a Latam Digital Award, and created campaigns for brands like Avianca and Motorola reaching over 1.5 million people. Now I'm a student at Stark State College and a member of the Student Government Association, channeling everything I've learned into Rent Finder Cleveland.
-              </p>
+            <div className="max-w-4xl mx-auto text-center mt-8">
+              <div className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl border border-border bg-background/80 backdrop-blur-sm shadow-modern-sm">
+                <div className="w-2 h-2 rounded-full bg-[hsl(190,80%,55%)] animate-pulse" />
+                <p className="text-lg sm:text-xl font-medium text-foreground">
+                  That's my story. Now let me show you <span className="text-[hsl(190,80%,42%)] font-bold">what I'm building</span> — and why it matters.
+                </p>
+                <ChevronDown className="w-5 h-5 text-muted-foreground animate-bounce" />
+              </div>
             </div>
           </FadeIn>
         </div>
