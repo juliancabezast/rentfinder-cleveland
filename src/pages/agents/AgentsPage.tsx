@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Calendar, Layers, LayoutDashboard, ScrollText, DollarSign } from "lucide-react";
+import { Bot, Calendar, Layers, LayoutDashboard, ScrollText, DollarSign, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { addHours } from "date-fns";
@@ -13,6 +13,7 @@ import { DashboardTab } from "@/components/agents/DashboardTab";
 import { DepartmentDetailTab } from "@/components/agents/DepartmentDetailTab";
 import { ScheduleTab } from "@/components/agents/ScheduleTab";
 import { AgentsTab } from "@/components/settings/AgentsTab";
+import { EstherPipelineTab } from "@/components/agents/EstherPipelineTab";
 import type { Agent, AgentTask, ActivityLog, AgentStats } from "@/components/agents/types";
 import { resolveAgentKey } from "@/components/agents/constants";
 import { Users } from "lucide-react";
@@ -210,6 +211,10 @@ const AgentsPage: React.FC = () => {
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Schedule</span>
           </TabsTrigger>
+          <TabsTrigger value="esther" className="flex-1 sm:flex-initial gap-2">
+            <Mail className="h-4 w-4" />
+            <span className="hidden sm:inline">Esther</span>
+          </TabsTrigger>
           <TabsTrigger value="logs" className="flex-1 sm:flex-initial gap-2">
             <ScrollText className="h-4 w-4" />
             <span className="hidden sm:inline">Logs</span>
@@ -243,6 +248,10 @@ const AgentsPage: React.FC = () => {
             scheduledTasks={scheduledTasks || []}
             isLoading={scheduleLoading}
           />
+        </TabsContent>
+
+        <TabsContent value="esther" className="mt-4">
+          <EstherPipelineTab />
         </TabsContent>
 
         <TabsContent value="logs" className="mt-4">
