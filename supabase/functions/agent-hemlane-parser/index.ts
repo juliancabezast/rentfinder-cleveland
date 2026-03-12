@@ -51,7 +51,7 @@ async function verifyWebhookSignature(
   return candidates.some((s) => s.trim() === computed);
 }
 
-// ── Parse Hemlane notification email HTML ─────────────────────────────
+// ── Lead info interface ────────────────────────────────────────────────
 interface LeadInfo {
   name: string | null;
   phone: string | null;
@@ -61,20 +61,9 @@ interface LeadInfo {
   listingSource: string | null;
 }
 
-/** Extract value from "LABEL\nvalue" format common in Hemlane new-inquiry emails */
-function extractLabelValue(text: string, labelPattern: string): string | null {
-  const pattern = new RegExp(
-    `^[ \\t]*${labelPattern}[ \\t]*$\\n([^\\n]+)`,
-    "im"
-  );
-  const m = text.match(pattern);
-  return m ? m[1].trim() : null;
-}
-
-function parseHemlaneEmail(html: string, subject: string): LeadInfo {
-  // Strip HTML tags for plain-text extraction
-  const text = html
-    // Remove <style> and <script> blocks FIRST (their content leaks as false text)
+// ── Strip HTML to plain text ──────────────────────────────────────────
+function htmlToText(html: string): string {
+  return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -84,493 +73,123 @@ function parseHemlaneEmail(html: string, subject: string): LeadInfo {
     .replace(/&amp;/g, "&")
     .replace(/&#?\w+;/g, "")
     .trim();
+}
 
-  const result: LeadInfo = {
-    name: null,
-    phone: null,
-    email: null,
-    property: null,
-    message: null,
-    listingSource: null,
-  };
+// ── LLM-powered email parsing ─────────────────────────────────────────
+const LLM_PARSE_SINGLE_PROMPT = `You are an email parser for a property management company. Extract lead information from this Hemlane notification email.
 
-  // Excluded email domains (system emails, not lead emails)
+RULES:
+- Extract the prospective tenant's name, phone, email, property address, message/comments, and listing source (Zillow, Apartments.com, Zumper, etc.)
+- IGNORE system emails (from @hemlane.com, @rentfindercleveland.com) — only extract the LEAD's contact info
+- Phone numbers in footers, support lines, or "Questions?" sections are NOT lead phones — ignore them
+- If a field is not found, use null
+- For property: extract the full street address. Include unit number if present.
+- For name: extract the person's real name, not "Hemlane" or system names
+- For message: extract what the lead wrote (their inquiry text), not system boilerplate
+
+Respond with ONLY valid JSON, no markdown:
+{"name": "string|null", "phone": "string|null", "email": "string|null", "property": "string|null", "message": "string|null", "listingSource": "string|null"}`;
+
+const LLM_PARSE_DIGEST_PROMPT = `You are an email parser for a property management company. This is a Hemlane daily digest email containing MULTIPLE leads grouped by property.
+
+RULES:
+- Extract EVERY lead from the digest. Each lead has some combination of: name, email, phone, property address, listing source.
+- Properties are typically street addresses that serve as section headers. Associate each lead with its property.
+- IGNORE system emails (@hemlane.com, @rentfindercleveland.com)
+- IGNORE footer content, navigation links, boilerplate text
+- Listing sources include: Zillow, Apartments.com, Zumper, Facebook, Craigslist, Realtor.com, HotPads, Rent.com, Trulia
+- If a field is not found for a lead, use null
+- Do NOT skip leads — extract every single one even if incomplete
+
+Respond with ONLY a valid JSON array, no markdown:
+[{"name": "string|null", "phone": "string|null", "email": "string|null", "property": "string|null", "message": null, "listingSource": "string|null"}, ...]`;
+
+async function callLLMParser(
+  openaiKey: string,
+  systemPrompt: string,
+  emailContent: string,
+  subject: string
+): Promise<unknown> {
+  // Truncate to ~12k chars to stay well within token limits for gpt-4o-mini
+  const truncated = emailContent.substring(0, 12000);
+  const userMessage = `Subject: ${subject}\n\n---EMAIL BODY---\n${truncated}`;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${openaiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+      temperature: 0,
+      max_tokens: 2000,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenAI API error ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) throw new Error("Empty LLM response");
+
+  // Strip markdown fences if present
+  const cleaned = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+  return JSON.parse(cleaned);
+}
+
+function validateLeadInfo(raw: any): LeadInfo {
   const excludedDomains = ["hemlane.com", "rentfindercleveland.com", "inbound.rentfindercleveland.com"];
+  const email = typeof raw.email === "string" ? raw.email.toLowerCase().trim() : null;
+  return {
+    name: typeof raw.name === "string" && raw.name.trim().length > 1 ? raw.name.trim().substring(0, 100) : null,
+    phone: typeof raw.phone === "string" && raw.phone.replace(/\D/g, "").length >= 7 ? raw.phone.trim() : null,
+    email: email && /^[\w.+-]+@[\w.-]+\.\w{2,}$/.test(email) && !excludedDomains.some((d) => email.endsWith(d)) ? email : null,
+    property: typeof raw.property === "string" && raw.property.trim().length > 3 ? raw.property.trim().substring(0, 200) : null,
+    message: typeof raw.message === "string" && raw.message.trim().length > 0 ? raw.message.trim().substring(0, 500) : null,
+    listingSource: typeof raw.listingSource === "string" && raw.listingSource.trim().length > 0 && !/hemlane/i.test(raw.listingSource) ? raw.listingSource.trim().substring(0, 100) : null,
+  };
+}
 
-  // ── Hemlane-specific patterns (highest priority) ─────────────────
-
-  // Hemlane format: "{Name} sent a message about {Property}:"
-  const hemlaneMessagePat = text.match(
-    /([A-Za-z\u00C0-\u024F][A-Za-z\u00C0-\u024F\s'-]+?)\s+sent a message about\s+(.+?):/i
-  );
-  if (hemlaneMessagePat) {
-    result.name = hemlaneMessagePat[1].trim().substring(0, 100);
-    result.property = hemlaneMessagePat[2].trim().substring(0, 200);
-
-    // Extract message: text between "about {Property}:" and "View and Respond"
-    const msgPat = text.match(
-      /sent a message about .+?:\s*\n([\s\S]+?)(?=\s*View and Respond|\s*Available Rental|\s*$)/i
-    );
-    if (msgPat) {
-      result.message = msgPat[1].trim().substring(0, 500);
-    }
-  }
-
-  // Hemlane format: "{Name} is interested in {Property}" or "New inquiry from {Name}"
-  if (!result.name) {
-    const inquiryPat = text.match(
-      /([A-Za-z\u00C0-\u024F][A-Za-z\u00C0-\u024F\s'-]+?)\s+is interested in\s+(.+?)(?:\.|$)/im
-    );
-    if (inquiryPat) {
-      result.name = inquiryPat[1].trim().substring(0, 100);
-      if (!result.property) {
-        result.property = inquiryPat[2].trim().substring(0, 200);
-      }
-    }
-  }
-
-  if (!result.name) {
-    const fromPat = text.match(
-      /(?:inquiry|message|application)\s+from\s+([A-Za-z\u00C0-\u024F][A-Za-z\u00C0-\u024F\s'-]+?)(?:\s+for|\s+about|\s*$)/im
-    );
-    if (fromPat) {
-      result.name = fromPat[1].trim().substring(0, 100);
-    }
-  }
-
-  // Hemlane "Available Rental: {address} | ${price} per month"
-  if (!result.property) {
-    const rentalPat = text.match(
-      /Available Rental:\s*(.+?)(?:\s*\||\s*\(|$)/im
-    );
-    if (rentalPat) {
-      result.property = rentalPat[1].trim().substring(0, 200);
-    }
-  }
-
-  // ── Extract property from subject line ───────────────────────────
-  if (!result.property) {
-    const subjectPatterns = [
-      /Rental Message from\s+(.+)/i,
-      /New inquiry for\s+(.+)/i,
-      /New (?:Lead|Inquiry|Message).*?(?:for|at|[-–:])\s*(.+)/i,
-    ];
-    for (const pat of subjectPatterns) {
-      const m = subject.match(pat);
-      if (m) {
-        result.property = m[1].trim().substring(0, 200);
-        break;
-      }
-    }
-  }
-
-  // ── Generic name patterns (fallback) ─────────────────────────────
-  // Hemlane "New inquiry" format: "NAME\nValue" on separate lines
-  if (!result.name) {
-    const labelName = extractLabelValue(text, "NAME")
-      || extractLabelValue(text, "TENANT(?:\\s+NAME)?")
-      || extractLabelValue(text, "CONTACT")
-      || extractLabelValue(text, "APPLICANT");
-    if (labelName && labelName.length > 1 && labelName.length <= 100) {
-      result.name = labelName;
-    }
-  }
-  if (!result.name) {
-    const namePatterns = [
-      /Name\s*[:\-]\s*(.+)/i,
-      /Tenant(?:\s+Name)?\s*[:\-]\s*(.+)/i,
-      /Applicant\s*[:\-]\s*(.+)/i,
-      /Contact\s*[:\-]\s*(.+)/i,
-      /Lead\s*[:\-]\s*(.+)/i,
-    ];
-    for (const pat of namePatterns) {
-      const m = text.match(pat);
-      if (m) {
-        result.name = m[1].trim().substring(0, 100);
-        break;
-      }
-    }
-  }
-
-  // ── Phone patterns ───────────────────────────────────────────────
-  // Hemlane "New inquiry" format: "PHONE\n773-931-0649"
-  const labelPhone = extractLabelValue(text, "PHONE");
-  if (labelPhone && labelPhone.replace(/\D/g, "").length >= 7) {
-    result.phone = labelPhone;
-  }
-  if (!result.phone) {
-    const phonePatterns = [
-      /Phone\s*[:\-]\s*([\d\s\-().+]+)/i,
-      /Tel(?:ephone)?\s*[:\-]\s*([\d\s\-().+]+)/i,
-      /Cell\s*[:\-]\s*([\d\s\-().+]+)/i,
-      /Mobile\s*[:\-]\s*([\d\s\-().+]+)/i,
-      /(\+?1?\s*\(?\d{3}\)?\s*[-.\s]?\d{3}\s*[-.\s]?\d{4})/,
-    ];
-    for (const pat of phonePatterns) {
-      const m = text.match(pat);
-      if (m) {
-        result.phone = m[1].trim();
-        break;
-      }
-    }
-  }
-
-  // ── Reject phone if it was picked up from boilerplate/footer text ─
-  if (result.phone && !labelPhone) {
-    const phonePos = text.indexOf(result.phone);
-    if (phonePos >= 0) {
-      const contextBefore = text.substring(Math.max(0, phonePos - 80), phonePos);
-      if (/(?:Questions?\??|Contact\s+us|Support|Customer\s+Service|Help\s+(?:Line|Desk)|Hemlane)/i.test(contextBefore)) {
-        console.log(`Esther: rejected phone "${result.phone}" — found in footer/boilerplate context`);
-        result.phone = null;
-      }
-    }
-  }
-
-  // ── Email patterns (exclude system domains) ──────────────────────
-  // Hemlane "New inquiry" format: "EMAIL\nuser@example.com"
-  const labelEmail = extractLabelValue(text, "E-?MAIL");
-  if (labelEmail) {
-    const emailCandidate = labelEmail.toLowerCase();
-    if (/^[\w.+-]+@[\w.-]+\.\w{2,}$/.test(emailCandidate) && !excludedDomains.some((d) => emailCandidate.endsWith(d))) {
-      result.email = emailCandidate;
-    }
-  }
-  if (!result.email) {
-    const emailPatterns = [
-      /Email\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)/i,
-      /E-mail\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)/i,
-    ];
-    for (const pat of emailPatterns) {
-      const m = text.match(pat);
-      if (m) {
-        const candidate = m[1].trim().toLowerCase();
-        if (!excludedDomains.some((d) => candidate.endsWith(d))) {
-          result.email = candidate;
-          break;
-        }
-      }
-    }
-  }
-  // Fallback: find all emails and pick the first non-system one
-  if (!result.email) {
-    const allEmails = text.matchAll(/([\w.+-]+@[\w.-]+\.\w{2,})/g);
-    for (const m of allEmails) {
-      const candidate = m[1].trim().toLowerCase();
-      if (!excludedDomains.some((d) => candidate.endsWith(d))) {
-        result.email = candidate;
-        break;
-      }
-    }
-  }
-
-  // ── Generic property patterns (fallback) ─────────────────────────
-  if (!result.property) {
-    const labelProperty = extractLabelValue(text, "PROPERTY")
-      || extractLabelValue(text, "ADDRESS")
-      || extractLabelValue(text, "LISTING");
-    if (labelProperty) {
-      result.property = labelProperty.substring(0, 200);
-    }
-  }
-  if (!result.property) {
-    const propertyPatterns = [
-      /Property\s*[:\-]\s*(.+)/i,
-      /(?:Address|Unit|Listing)\s*[:\-]\s*(.+)/i,
-    ];
-    for (const pat of propertyPatterns) {
-      const m = text.match(pat);
-      if (m) {
-        result.property = m[1].trim().substring(0, 200);
-        break;
-      }
-    }
-  }
-
-  // ── Message patterns (fallback) ──────────────────────────────────
-  // Hemlane "New inquiry" format: "COMMENTS\nMulti-line message..."
-  if (!result.message) {
-    const commentsPat = text.match(
-      /^[ \t]*COMMENTS?[ \t]*$\n([\s\S]+?)(?=\n[ \t]*(?:PROPERTY|SOURCE|NAME|PHONE|EMAIL|SENT|DATE|Respond to)[ \t]*)/im
-    );
-    if (commentsPat) {
-      result.message = commentsPat[1].trim().substring(0, 500);
-    }
-  }
-  // Fallback: COMMENTS at end of text with no following label
-  if (!result.message) {
-    const commentsAtEnd = text.match(
-      /^[ \t]*COMMENTS?[ \t]*$\n([\s\S]+)/im
-    );
-    if (commentsAtEnd) {
-      result.message = commentsAtEnd[1].trim().substring(0, 500);
-    }
-  }
-  if (!result.message) {
-    const messagePatterns = [
-      /Message\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
-      /Notes?\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
-      /Comments?\s*[:\-]\s*([\s\S]+?)(?=\n\s*(?:Name|Phone|Email|Property|Sent|$))/i,
-    ];
-    for (const pat of messagePatterns) {
-      const m = text.match(pat);
-      if (m) {
-        result.message = m[1].trim().substring(0, 500);
-        break;
-      }
-    }
-  }
-
-  // ── Last resort: find ANY street address in the text ─────────────
-  if (!result.property) {
-    const addressPat = text.match(
-      /\b(\d+\s+[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*\s+(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Place|Pl|Court|Ct|Circle|Cir|Terrace|Ter|Parkway|Pkwy))\b/
-    );
-    if (addressPat) {
-      result.property = addressPat[1].trim().substring(0, 200);
-    }
-  }
-
-  // ── Even more aggressive: "number + words" near "Rental" or "Property" ─
-  if (!result.property) {
-    const nearRental = text.match(
-      /(?:rental|property|listing|unit|address)[:\s]*(\d+\s+[A-Za-z][\w\s,]+?)(?:\s*[\|\(\n]|$)/im
-    );
-    if (nearRental) {
-      result.property = nearRental[1].trim().substring(0, 200);
-    }
-  }
-
-  // ── Listing source (Zillow, Apartments.com, etc.) ──────────────
-  const labelSource = extractLabelValue(text, "SOURCE");
-  if (labelSource && !/hemlane/i.test(labelSource)) {
-    result.listingSource = labelSource.substring(0, 100);
-  }
-  if (!result.listingSource) {
-    const sourcePat = text.match(/Source\s*[:\-]\s*(.+)/i);
-    if (sourcePat) {
-      const src = sourcePat[1].trim();
-      if (!/hemlane/i.test(src)) {
-        result.listingSource = src.substring(0, 100);
-      }
-    }
-  }
-
-  // ── Extract phone/email from message body if still missing ────────
-  // People often include their number in Hemlane messages ("call me at 216-555-1234")
-  if (result.message && (!result.phone || !result.email)) {
-    if (!result.phone) {
-      const msgPhone = result.message.match(
-        /(\+?1?\s*\(?\d{3}\)?\s*[-.\s]?\d{3}\s*[-.\s]?\d{4})/
-      );
-      if (msgPhone) {
-        result.phone = msgPhone[1].trim();
-        console.log(`Esther: extracted phone from message body: ${result.phone}`);
-      }
-    }
-    if (!result.email) {
-      const msgEmails = result.message.matchAll(/([\w.+-]+@[\w.-]+\.\w{2,})/g);
-      for (const m of msgEmails) {
-        const candidate = m[1].trim().toLowerCase();
-        if (!excludedDomains.some((d) => candidate.endsWith(d))) {
-          result.email = candidate;
-          console.log(`Esther: extracted email from message body: ${result.email}`);
-          break;
-        }
-      }
-    }
-  }
-
-  console.log(`Esther parseEmail: name=${result.name}, property=${result.property || "NONE"}, email=${result.email}, phone=${result.phone}, message=${result.message ? "yes" : "no"}`);
+async function parseHemlaneEmailLLM(
+  openaiKey: string,
+  html: string,
+  subject: string
+): Promise<LeadInfo> {
+  const text = htmlToText(html);
+  const raw = await callLLMParser(openaiKey, LLM_PARSE_SINGLE_PROMPT, text, subject);
+  const result = validateLeadInfo(raw);
+  console.log(`Esther LLM parseEmail: name=${result.name}, property=${result.property || "NONE"}, email=${result.email}, phone=${result.phone}, message=${result.message ? "yes" : "no"}`);
   return result;
 }
 
-// ── Parse Hemlane Daily Digest ("Property Listings Update") ───────────
-function parseHemlaneDigest(html: string): LeadInfo[] {
-  const text = html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(?:p|div|tr|td|li|h[1-6])>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&#?\w+;/g, "")
-    .trim();
+async function parseHemlaneDigestLLM(
+  openaiKey: string,
+  html: string,
+  subject: string
+): Promise<LeadInfo[]> {
+  const text = htmlToText(html);
+  const raw = await callLLMParser(openaiKey, LLM_PARSE_DIGEST_PROMPT, text, subject);
 
-  const leads: LeadInfo[] = [];
-  const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
-  const excludedDomains = ["hemlane.com", "rentfindercleveland.com", "inbound.rentfindercleveland.com"];
-
-  // Known listing sources for detection
-  const LISTING_SOURCES = ["Zillow", "Zumper", "Zumper.com", "Apartments.com", "Apartments", "Hemlane", "Facebook", "Craigslist", "Realtor", "Realtor.com", "Trulia", "HotPads", "Rent.com"];
-  const listingSourceSet = new Set(LISTING_SOURCES.map((s) => s.toLowerCase()));
-
-  // Skip patterns: table headers, navigation, boilerplate
-  const isSkipLine = (l: string) =>
-    /^(CONTACT|EMAIL\s*[|I]\s*PHONE|SOURCE|DATE|\*+|-{3,}|View My Dashboard|Website|Facebook Marketplace|Twitter|LinkedIn|Past \d|Daily Leads|These prospective)/i.test(l);
-
-  // Detect address-like lines: starts with number + has street-like words, unit, or city/state/zip
-  const isAddressLine = (l: string) =>
-    /^\d+\s+\w/.test(l) && (
-      /\b(street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd|lane|ln|way|place|pl|court|ct|circle|cir|terrace|ter|parkway|pkwy)\b/i.test(l) ||
-      /,?\s*unit\s+\w/i.test(l) ||
-      /,\s*\w+,?\s*[A-Z]{2}\s*\d{5}/.test(l)  // "City, OH 44120"
-    );
-
-  // Debug: log first 30 lines to see actual text structure
-  console.log(`Esther digest: ${lines.length} non-empty lines. First 30:`);
-  for (let d = 0; d < Math.min(30, lines.length); d++) {
-    console.log(`  [${d}] "${lines[d]}"`);
+  if (!Array.isArray(raw)) {
+    console.error("Esther LLM digest: expected array, got", typeof raw);
+    return [];
   }
 
-  let currentProperty: string | null = null;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    // ── Property header detection ─────────────────────────────────
-    // Any address-like line in a digest is a property header
-    if (isAddressLine(line)) {
-      currentProperty = line;
-      console.log(`Esther digest: detected property header → "${line}"`);
-      continue;
-    }
-
-    // Line followed by dashes (alternate format)
-    if (i + 1 < lines.length && /^-{5,}$/.test(lines[i + 1]) && line.length > 3) {
-      if (!isSkipLine(line)) {
-        currentProperty = line;
-        console.log(`Esther digest: detected property header (dashes) → "${line}"`);
-      }
-      i++;
-      continue;
-    }
-
-    if (isSkipLine(line)) continue;
-
-    // ── Email detection → build lead record ───────────────────────
-    const emailMatch = line.match(/^[\s(]*([\w.+-]+@[\w.-]+\.\w{2,})[\s)]*$/);
-    if (emailMatch) {
-      const email = emailMatch[1].toLowerCase();
-      if (excludedDomains.some((d) => email.endsWith(d))) continue;
-
-      // Name: scan backwards for a non-email, non-phone, non-header, non-source line
-      let name: string | null = null;
-      for (let j = i - 1; j >= Math.max(0, i - 5); j--) {
-        const prev = lines[j];
-        if (
-          !isSkipLine(prev) &&
-          !prev.match(/[\w.+-]+@/) &&
-          !prev.match(/^\+?[\d\s\-().]{7,}$/) &&
-          !prev.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/) &&
-          !prev.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i) &&
-          !listingSourceSet.has(prev.toLowerCase()) &&
-          !isAddressLine(prev)
-        ) {
-          name = prev;
-          break;
-        }
-      }
-
-      // Phone: scan forward for a phone-like line
-      let phone: string | null = null;
-      for (let j = i + 1; j <= Math.min(lines.length - 1, i + 3); j++) {
-        const next = lines[j];
-        if (/^[\d\s\-().+]+$/.test(next) && next.replace(/\D/g, "").length >= 7) {
-          phone = next;
-          break;
-        }
-      }
-
-      // Listing source: scan forward for a known source name (within 5 lines after email)
-      let listingSource: string | null = null;
-      for (let j = i + 1; j <= Math.min(lines.length - 1, i + 6); j++) {
-        const next = lines[j];
-        if (listingSourceSet.has(next.toLowerCase())) {
-          listingSource = next;
-          break;
-        }
-        // Also try partial match for "Zumper.com" etc.
-        const srcMatch = LISTING_SOURCES.find((s) => next.toLowerCase() === s.toLowerCase());
-        if (srcMatch) {
-          listingSource = srcMatch;
-          break;
-        }
-      }
-
-      if (phone || email) {
-        const leadEntry = {
-          name: name?.substring(0, 100) || null,
-          email,
-          phone,
-          property: currentProperty,
-          message: null,
-          listingSource,
-        };
-        leads.push(leadEntry);
-        console.log(`Esther digest lead: name=${leadEntry.name}, email=${email}, property=${currentProperty || "NONE"}`);
-      }
-      continue;
-    }
-
-    // ── Phone-only detection (leads without email in digest) ─────────
-    if (/^[\d\s\-().+]+$/.test(line) && line.replace(/\D/g, "").length >= 7) {
-      const phoneVal = line;
-      // Skip if already captured by an email-based lead
-      if (leads.some((l) => l.phone === phoneVal)) continue;
-
-      // Check no email is nearby (email detection would handle that case)
-      let hasNearbyEmail = false;
-      for (let j = i + 1; j <= Math.min(lines.length - 1, i + 3); j++) {
-        if (/[\w.+-]+@[\w.-]+\.\w{2,}/.test(lines[j])) { hasNearbyEmail = true; break; }
-      }
-      if (!hasNearbyEmail) {
-        for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
-          if (/[\w.+-]+@[\w.-]+\.\w{2,}/.test(lines[j])) { hasNearbyEmail = true; break; }
-        }
-      }
-
-      if (!hasNearbyEmail) {
-        // Scan backward for name
-        let phoneName: string | null = null;
-        for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
-          const prev = lines[j];
-          if (
-            !isSkipLine(prev) &&
-            !prev.match(/[\w.+-]+@/) &&
-            !prev.match(/^\+?[\d\s\-().]{7,}$/) &&
-            !prev.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/) &&
-            !prev.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i) &&
-            !listingSourceSet.has(prev.toLowerCase()) &&
-            !isAddressLine(prev)
-          ) {
-            phoneName = prev;
-            break;
-          }
-        }
-
-        // Scan forward for listing source
-        let phoneSource: string | null = null;
-        for (let j = i + 1; j <= Math.min(lines.length - 1, i + 6); j++) {
-          if (listingSourceSet.has(lines[j].toLowerCase())) { phoneSource = lines[j]; break; }
-          const srcMatch = LISTING_SOURCES.find((s) => lines[j].toLowerCase() === s.toLowerCase());
-          if (srcMatch) { phoneSource = srcMatch; break; }
-        }
-
-        leads.push({
-          name: phoneName?.substring(0, 100) || null,
-          email: null,
-          phone: phoneVal,
-          property: currentProperty,
-          message: null,
-          listingSource: phoneSource,
-        });
-        console.log(`Esther digest lead (phone-only): name=${phoneName}, phone=${phoneVal}, property=${currentProperty || "NONE"}`);
-      }
-    }
+  const leads = raw.map((r: any) => validateLeadInfo(r)).filter(
+    (l: LeadInfo) => l.phone || l.email // Skip leads with no contact info
+  );
+  console.log(`Esther LLM digest: parsed ${leads.length} actionable leads from ${raw.length} total`);
+  for (const l of leads.slice(0, 5)) {
+    console.log(`  → name=${l.name}, email=${l.email}, phone=${l.phone}, property=${l.property}, source=${l.listingSource}`);
   }
-
   return leads;
 }
 
@@ -1383,6 +1002,17 @@ serve(async (req: Request) => {
       throw new Error("Default organization 'rent-finder-cleveland' not found");
     }
 
+    // ── Get OpenAI key for LLM parsing ──────────────────────────────
+    const { data: creds } = await supabase
+      .from("organization_credentials")
+      .select("openai_api_key")
+      .eq("organization_id", organizationId)
+      .single();
+    const openaiKey = creds?.openai_api_key;
+    if (!openaiKey) {
+      console.warn("Esther: no OpenAI API key found — LLM parsing unavailable");
+    }
+
     // ── Idempotency: skip if this exact email was already processed ──
     const { data: alreadyProcessed } = await supabase
       .from("leads")
@@ -1414,10 +1044,27 @@ serve(async (req: Request) => {
     const isDigest = /Property Listings Update|Daily Leads Update/i.test(subject);
 
     if (isDigest) {
-      // ── DIGEST: batch-process all leads ───────────────────────────
-      // Prefer HTML for digest — our parser strips tags and uses </td> boundaries
-      // for clean line separation. Plain text loses table structure.
-      const digestLeads = parseHemlaneDigest(htmlBody || textBody);
+      // ── DIGEST: batch-process all leads (LLM-powered) ────────────
+      let digestLeads: LeadInfo[] = [];
+      if (openaiKey) {
+        try {
+          digestLeads = await parseHemlaneDigestLLM(openaiKey, htmlBody || textBody, subject);
+          console.log(`Esther: LLM digest parse returned ${digestLeads.length} leads`);
+        } catch (llmErr) {
+          console.error(`Esther: LLM digest parse failed, no fallback: ${(llmErr as Error).message}`);
+          // Log the failure but continue with empty array — better to skip than corrupt
+          await supabase.from("system_logs").insert({
+            organization_id: organizationId,
+            level: "error",
+            category: "general",
+            event_type: "esther_llm_parse_failed",
+            message: `Esther: LLM digest parsing failed: ${(llmErr as Error).message}`,
+            details: { email_id: emailId, subject, error: (llmErr as Error).message },
+          });
+        }
+      } else {
+        console.error("Esther: no OpenAI key — cannot parse digest");
+      }
 
       // Log parsed digest summary for debugging
       console.log(`Esther digest: parsed ${digestLeads.length} leads from ${htmlBody ? "HTML" : "text"} body`);
@@ -1589,8 +1236,35 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── SINGLE EMAIL: parse one lead ────────────────────────────────
-    const leadInfo = parseHemlaneEmail(htmlBody, subject);
+    // ── SINGLE EMAIL: parse one lead (LLM-powered) ────────────────
+    let leadInfo: LeadInfo;
+    if (openaiKey) {
+      try {
+        leadInfo = await parseHemlaneEmailLLM(openaiKey, htmlBody, subject);
+        console.log(`Esther: LLM single parse → name=${leadInfo.name}, email=${leadInfo.email}, phone=${leadInfo.phone}`);
+      } catch (llmErr) {
+        console.error(`Esther: LLM single parse failed: ${(llmErr as Error).message}`);
+        await supabase.from("system_logs").insert({
+          organization_id: organizationId,
+          level: "error",
+          category: "general",
+          event_type: "esther_llm_parse_failed",
+          message: `Esther: LLM single email parsing failed: ${(llmErr as Error).message}`,
+          details: { email_id: emailId, subject, error: (llmErr as Error).message },
+        });
+        // Return gracefully — don't create garbage leads
+        return new Response(
+          JSON.stringify({ error: "LLM parsing failed", detail: (llmErr as Error).message }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      console.error("Esther: no OpenAI key — cannot parse email");
+      return new Response(
+        JSON.stringify({ error: "No OpenAI API key configured" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Use reply_to email as fallback if parser didn't find one
     if (!leadInfo.email && replyToEmail) {
