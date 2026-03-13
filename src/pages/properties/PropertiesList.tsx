@@ -424,40 +424,71 @@ const PropertiesList: React.FC = () => {
 
               return (
                 <div key={group.key}>
-                  {/* Building row */}
+                  {/* Building row — same grid as unit rows for alignment */}
                   <button
                     onClick={() => toggleGroup(group.key)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-indigo-50/60 hover:bg-indigo-50 border border-indigo-100/60 transition-colors text-left"
+                    className="w-full grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2.5 rounded-lg bg-indigo-50/60 hover:bg-indigo-50 border border-indigo-100/60 transition-colors text-left"
                   >
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4 text-indigo-400 shrink-0" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-indigo-400 shrink-0" />
-                    )}
-                    <Building2 className="h-4 w-4 text-indigo-500 shrink-0" />
-                    <span className="font-semibold text-sm truncate">{group.address}</span>
-                    <span className="text-xs text-muted-foreground hidden sm:inline shrink-0">
-                      {group.city}, {group.state} {group.zip_code}
-                    </span>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-indigo-200 text-indigo-600 bg-white/60">
-                      {group.units.length} units
-                    </Badge>
-                    <span className="ml-auto" />
-                    {allHavePhotos ? (
-                      <ImageIcon className="h-3.5 w-3.5 text-green-500 shrink-0 hidden sm:block" />
-                    ) : someHavePhotos ? (
-                      <ImageIcon className="h-3.5 w-3.5 text-amber-500 shrink-0 hidden sm:block" />
-                    ) : (
-                      <ImageOff className="h-3.5 w-3.5 text-red-400 shrink-0 hidden sm:block" />
-                    )}
-                    <div className="flex gap-1 shrink-0">
-                      {availableCount > 0 && (
-                        <span className="text-[10px] font-medium text-green-600">{availableCount} avail</span>
+                    {/* Chevron in dot column */}
+                    <div className="hidden sm:flex justify-center">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-indigo-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-indigo-400" />
                       )}
-                      {availableCount > 0 && rentedCount > 0 && <span className="text-[10px] text-muted-foreground">/</span>}
-                      {rentedCount > 0 && (
-                        <span className="text-[10px] font-medium text-gray-400">{rentedCount} rented</span>
+                    </div>
+                    {/* Address */}
+                    <div className="min-w-0 flex items-center gap-2">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-indigo-400 shrink-0 sm:hidden" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-indigo-400 shrink-0 sm:hidden" />
                       )}
+                      <Building2 className="h-4 w-4 text-indigo-500 shrink-0" />
+                      <span className="font-semibold text-sm truncate">{group.address}</span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline shrink-0">
+                        {group.city}, {group.state} {group.zip_code}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-indigo-200 text-indigo-600 bg-white/60">
+                        {group.units.length} {group.units.length === 1 ? "unit" : "units"}
+                      </Badge>
+                    </div>
+                    {/* Photos (aligned under header) */}
+                    <div className="hidden sm:flex justify-center">
+                      {allHavePhotos ? (
+                        <ImageIcon className="h-3.5 w-3.5 text-green-500" />
+                      ) : someHavePhotos ? (
+                        <ImageIcon className="h-3.5 w-3.5 text-amber-500" />
+                      ) : (
+                        <ImageOff className="h-3.5 w-3.5 text-red-400" />
+                      )}
+                    </div>
+                    {/* Empty: Beds, Baths, SqFt */}
+                    <div className="hidden sm:block" />
+                    <div className="hidden sm:block" />
+                    <div className="hidden sm:block" />
+                    {/* Empty: Rent */}
+                    <div className="hidden sm:block" />
+                    {/* Status: dots for each unit */}
+                    <div className="hidden sm:flex justify-center gap-0.5">
+                      {group.units.map((u) => {
+                        const sc = STATUS_CONFIG[u.status] || STATUS_CONFIG.available;
+                        return <span key={u.id} className={cn("h-2 w-2 rounded-full", sc.dot)} title={`${u.unit_number || "Unit"}: ${sc.label}`} />;
+                      })}
+                    </div>
+                    {/* Empty: Edit */}
+                    <div className="hidden sm:block" />
+                    {/* Mobile summary */}
+                    <div className="sm:hidden flex items-center gap-1.5 justify-end">
+                      {allHavePhotos ? (
+                        <ImageIcon className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <ImageOff className="h-3 w-3 text-red-400" />
+                      )}
+                      {group.units.map((u) => {
+                        const sc = STATUS_CONFIG[u.status] || STATUS_CONFIG.available;
+                        return <span key={u.id} className={cn("h-1.5 w-1.5 rounded-full", sc.dot)} />;
+                      })}
                     </div>
                   </button>
 
