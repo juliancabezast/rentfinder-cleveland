@@ -577,11 +577,10 @@ async function upsertLead(
   // Hemlane sends 2 emails per inquiry:
   //   "New inquiry for {property}" → has email + phone, NO name
   //   "Rental Message from {property}" → has name + message, NO email/phone
-  // These can arrive up to 15 minutes apart. We merge when:
-  //   - Same property
-  //   - Within 15 minutes
-  //   - Existing lead is INCOMPLETE (placeholder name or no phone)
-  //   - We provide the missing piece
+  // SAFETY: Only merge when there is EXACTLY ONE incomplete lead for this
+  // property in the window. Multiple people can inquire about the same unit,
+  // so if there are 2+ incomplete leads we cannot safely determine which one
+  // corresponds to this fragment — skip the merge and create a new lead.
   const trimmedName = lead.name?.trim() || null;
   if (propertyId) {
     const mergeWindowAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
@@ -593,23 +592,27 @@ async function upsertLead(
       .eq("interested_property_id", propertyId)
       .gte("created_at", mergeWindowAgo)
       .order("created_at", { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (dup3Err) console.error(`Esther: dup check 3 (fragment-merge) query failed: ${dup3Err.message}`);
 
     if (recentSameProperty) {
-      for (const candidate of recentSameProperty) {
-        const isPlaceholderName = !candidate.full_name
-          || candidate.full_name.startsWith("Hemlane Lead");
-        const candidateMissingPhone = !candidate.phone;
-        const weHaveName = trimmedName && trimmedName.length > 2;
-        const weHavePhone = !!phone;
+      // Filter to only incomplete candidates (placeholder name or missing phone)
+      const weHaveName = trimmedName && trimmedName.length > 2;
+      const weHavePhone = !!phone;
+      const incompleteCandidates = recentSameProperty.filter((c) => {
+        const isPlaceholderName = !c.full_name || c.full_name.startsWith("Hemlane Lead");
+        const candidateMissingPhone = !c.phone;
+        return (isPlaceholderName && weHaveName) || (candidateMissingPhone && weHavePhone);
+      });
 
-        // Only merge if existing lead is truly incomplete and we fill the gap
-        if ((isPlaceholderName && weHaveName) || (candidateMissingPhone && weHavePhone)) {
-          console.log(`Esther: fragment-merge (15min) → ${candidate.id} "${candidate.full_name}" + incoming "${trimmedName || phone}"`);
-          return updateExistingLead(candidate, "fragment-merge");
-        }
+      // Only merge if EXACTLY ONE incomplete lead — ambiguity means different people
+      if (incompleteCandidates.length === 1) {
+        const candidate = incompleteCandidates[0];
+        console.log(`Esther: fragment-merge (15min, 1 match) → ${candidate.id} "${candidate.full_name}" + incoming "${trimmedName || phone}"`);
+        return updateExistingLead(candidate, "fragment-merge");
+      } else if (incompleteCandidates.length > 1) {
+        console.log(`Esther: skipping fragment-merge — ${incompleteCandidates.length} incomplete leads for same property (ambiguous)`);
       }
     }
   }
@@ -1312,31 +1315,31 @@ serve(async (req: Request) => {
             .limit(5);
 
           if (recentNameless) {
-            for (const candidate of recentNameless) {
-              const isPlaceholder = !candidate.full_name
-                || candidate.full_name.startsWith("Hemlane Lead")
-                || /\d{7,}/.test(candidate.full_name.replace(/\D/g, ""));
-              if (isPlaceholder) {
-                const { error: fixErr } = await supabase
-                  .from("leads")
-                  .update({
-                    full_name: leadInfo.name,
-                    first_name: leadInfo.name!.split(" ")[0] || null,
-                    last_name: leadInfo.name!.split(" ").slice(1).join(" ") || null,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq("id", candidate.id);
-                if (!fixErr) {
-                  console.log(`Esther: fixed name on lead ${candidate.id} "${candidate.full_name}" → "${leadInfo.name}" (paired-email merge)`);
-                  // Save message as note if present
-                  if (leadInfo.message) {
-                    await saveLeadNote(supabase, organizationId, candidate.id, leadInfo.message);
-                  }
-                } else {
-                  console.error(`Esther: failed to fix name on ${candidate.id}: ${fixErr.message}`);
+            // Only fix if EXACTLY ONE placeholder lead — multiple = ambiguous (different people, same property)
+            const placeholders = recentNameless.filter((c) =>
+              !c.full_name || c.full_name.startsWith("Hemlane Lead") || /\d{7,}/.test(c.full_name.replace(/\D/g, ""))
+            );
+            if (placeholders.length === 1) {
+              const candidate = placeholders[0];
+              const { error: fixErr } = await supabase
+                .from("leads")
+                .update({
+                  full_name: leadInfo.name,
+                  first_name: leadInfo.name!.split(" ")[0] || null,
+                  last_name: leadInfo.name!.split(" ").slice(1).join(" ") || null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", candidate.id);
+              if (!fixErr) {
+                console.log(`Esther: fixed name on lead ${candidate.id} "${candidate.full_name}" → "${leadInfo.name}" (paired-email merge, 1 match)`);
+                if (leadInfo.message) {
+                  await saveLeadNote(supabase, organizationId, candidate.id, leadInfo.message);
                 }
-                break;
+              } else {
+                console.error(`Esther: failed to fix name on ${candidate.id}: ${fixErr.message}`);
               }
+            } else if (placeholders.length > 1) {
+              console.log(`Esther: skipping Direction A name fix — ${placeholders.length} placeholder leads for same property (ambiguous)`);
             }
           }
         }
