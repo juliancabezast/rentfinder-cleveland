@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ImageIcon,
   ImageOff,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,6 +140,7 @@ const PropertiesList: React.FC = () => {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [addingUnitTo, setAddingUnitTo] = useState<{ address: string; city: string; state: string; zip_code: string; property_group_id: string | null } | null>(null);
+  const [leadCounts, setLeadCounts] = useState<Map<string, number>>(new Map());
 
   const fetchData = useCallback(async () => {
     if (!userRecord?.organization_id) return;
@@ -152,6 +154,21 @@ const PropertiesList: React.FC = () => {
         .order("unit_number");
       if (error) throw error;
       setProperties(data || []);
+
+      // Fetch lead counts per property
+      const { data: leadData, error: leadError } = await supabase
+        .from("leads")
+        .select("interested_property_id")
+        .eq("organization_id", userRecord.organization_id)
+        .not("interested_property_id", "is", null);
+      if (!leadError && leadData) {
+        const counts = new Map<string, number>();
+        for (const lead of leadData) {
+          const pid = lead.interested_property_id as string;
+          counts.set(pid, (counts.get(pid) || 0) + 1);
+        }
+        setLeadCounts(counts);
+      }
     } catch (error) {
       console.error("Error fetching properties:", error);
       toast({ title: "Error", description: "Failed to load properties.", variant: "destructive" });
@@ -414,10 +431,11 @@ const PropertiesList: React.FC = () => {
       ) : (
         <div className="space-y-1">
           {/* Table header */}
-          <div className="hidden sm:grid grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+          <div className="hidden sm:grid grid-cols-[24px,1fr,28px,40px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
             <span />
             <span>Property</span>
             <span className="text-center" title="Photos"><ImageIcon className="h-3 w-3 mx-auto" /></span>
+            <span className="text-center" title="Leads"><Users className="h-3 w-3 mx-auto" /></span>
             <span className="text-center">Beds</span>
             <span className="text-center">Baths</span>
             <span className="text-center">SqFt</span>
@@ -437,7 +455,7 @@ const PropertiesList: React.FC = () => {
                 <button
                   onClick={() => toggleGroup(group.key)}
                   className={cn(
-                    "w-full grid grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2.5 rounded-lg border transition-colors text-left",
+                    "w-full grid grid-cols-[24px,1fr,28px,40px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2.5 rounded-lg border transition-colors text-left",
                     isExpanded
                       ? "bg-indigo-50/80 border-indigo-200/60 hover:bg-indigo-50"
                       : "bg-white/50 border-border/30 hover:bg-white/80"
@@ -473,6 +491,17 @@ const PropertiesList: React.FC = () => {
                     ) : (
                       <ImageOff className="h-3.5 w-3.5 text-red-400" />
                     )}
+                  </div>
+                  {/* Leads */}
+                  <div className="hidden sm:flex justify-center text-sm">
+                    {(() => {
+                      const total = group.units.reduce((sum, u) => sum + (leadCounts.get(u.id) || 0), 0);
+                      return total > 0 ? (
+                        <span className="text-indigo-600 font-medium">{total}</span>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
+                      );
+                    })()}
                   </div>
                   {/* Beds/Baths/SqFt/Rent — show if single unit without unit_number, otherwise empty */}
                   {group.units.length === 1 && !group.units[0].unit_number ? (
@@ -524,7 +553,7 @@ const PropertiesList: React.FC = () => {
                       return (
                         <div
                           key={unit.id}
-                          className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/40 hover:bg-white/70 border border-border/20 transition-colors"
+                          className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,40px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/40 hover:bg-white/70 border border-border/20 transition-colors"
                         >
                           {/* Status dot */}
                           <div className="hidden sm:flex justify-center">
@@ -544,6 +573,14 @@ const PropertiesList: React.FC = () => {
                           {/* Photos */}
                           <div className="hidden sm:flex justify-center">
                             {hasPhotos ? <ImageIcon className="h-3.5 w-3.5 text-green-500" /> : <ImageOff className="h-3.5 w-3.5 text-red-400" />}
+                          </div>
+                          {/* Leads */}
+                          <div className="hidden sm:flex justify-center text-sm">
+                            {(leadCounts.get(unit.id) || 0) > 0 ? (
+                              <span className="text-indigo-600 font-medium">{leadCounts.get(unit.id)}</span>
+                            ) : (
+                              <span className="text-muted-foreground">0</span>
+                            )}
                           </div>
                           {/* Beds */}
                           <div className="hidden sm:flex justify-center text-sm">
