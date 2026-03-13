@@ -119,8 +119,13 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
           });
         });
 
-        // Process communications
+        // Process communications (deduplicate by channel+direction+timestamp+body)
+        const seenComms = new Set<string>();
         (commsRes.data || []).forEach((comm: Communication) => {
+          const dedupeKey = `${comm.channel}|${comm.direction}|${comm.sent_at}|${comm.body?.substring(0, 60)}`;
+          if (seenComms.has(dedupeKey)) return;
+          seenComms.add(dedupeKey);
+
           const isEmail = comm.channel === "email";
           const preview = comm.body?.substring(0, 40) || "";
           items.push({

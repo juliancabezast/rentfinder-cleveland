@@ -30,6 +30,7 @@ serve(async (req: Request) => {
       related_entity_type,
       from_name,
       queue,  // If true, queue email instead of sending immediately
+      campaign_id,
     } = parsed;
 
     if (!to || !subject || !html) {
@@ -45,12 +46,7 @@ serve(async (req: Request) => {
     // ── QUEUE MODE: Insert into email_events as "queued" for agent processing ──
     if (queue && organization_id) {
       const senderName = from_name || "Rent Finder Cleveland";
-      const { error: queueErr } = await supabase.from("email_events").insert({
-        organization_id,
-        event_type: "delivery_delayed",
-        recipient_email: to,
-        subject,
-        details: {
+      const detailsObj: Record<string, unknown> = {
           html,
           from_name: senderName,
           status: "queued",
@@ -58,7 +54,14 @@ serve(async (req: Request) => {
           related_entity_id: related_entity_id || null,
           related_entity_type: related_entity_type || null,
           queued_at: new Date().toISOString(),
-        },
+        };
+      if (campaign_id) detailsObj.campaign_id = campaign_id;
+      const { error: queueErr } = await supabase.from("email_events").insert({
+        organization_id,
+        event_type: "delivery_delayed",
+        recipient_email: to,
+        subject,
+        details: detailsObj,
       });
       if (queueErr) console.error("Queue insert error:", queueErr.message);
 
@@ -131,18 +134,20 @@ serve(async (req: Request) => {
 
     // Log to email_events table
     if (organization_id) {
+      const sentDetails: Record<string, unknown> = {
+          status: "sent",
+          notification_type: notification_type || "notification",
+          related_entity_id: related_entity_id || null,
+          related_entity_type: related_entity_type || null,
+        };
+      if (campaign_id) sentDetails.campaign_id = campaign_id;
       await supabase.from("email_events").insert({
         organization_id,
         event_type: "sent",
         recipient_email: to,
         subject,
         resend_email_id: resendEmailId,
-        details: {
-          status: "sent",
-          notification_type: notification_type || "notification",
-          related_entity_id: related_entity_id || null,
-          related_entity_type: related_entity_type || null,
-        },
+        details: sentDetails,
       });
     }
 

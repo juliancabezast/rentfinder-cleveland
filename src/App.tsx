@@ -40,6 +40,7 @@ const ApplicantsPage = lazy(() => import("./pages/applicants/ApplicantsPage"));
 const EmailsPage = lazy(() => import("./pages/emails/EmailsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
+const CampaignsPage = lazy(() => import("./pages/campaigns/CampaignsPage"));
 const DemoRequests = lazy(() => import("./pages/DemoRequests"));
 const StarktankPage = lazy(() => import("./pages/starktank/StarktankPage"));
 
@@ -205,6 +206,17 @@ const App = () => (
                 <ProtectedRoute>
                   <MainLayout>
                     <ApplicantsPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/campaigns"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
+                  <MainLayout>
+                    <CampaignsPage />
                   </MainLayout>
                 </ProtectedRoute>
               }

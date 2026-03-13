@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Popover,
@@ -11,10 +9,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { toast as sonnerToast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { EnableSlotsDialog, EditSlotData } from "./EnableSlotsDialog";
 import {
   CalendarDays,
@@ -23,8 +19,6 @@ import {
   Link2,
   Pencil,
   Plus,
-  Save,
-  Settings2,
   Trash2,
   Loader2,
   User,
@@ -67,7 +61,6 @@ function formatTime(t: string) {
 export const ManageSlotsTab: React.FC = () => {
   const { userRecord } = useAuth();
   const { toast } = useToast();
-  const { getSetting, updateMultipleSettings, loading: settingsLoading } = useOrganizationSettings();
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [slotData, setSlotData] = useState<DayData[]>([]);
@@ -77,21 +70,7 @@ export const ManageSlotsTab: React.FC = () => {
   const [prefilledDate, setPrefilledDate] = useState<Date | undefined>();
   const [deletingDate, setDeletingDate] = useState<string | null>(null);
 
-  // Settings state
-  const [showSettings, setShowSettings] = useState(false);
-  const [defaultDuration, setDefaultDuration] = useState(30);
-  const [bufferMinutes, setBufferMinutes] = useState(15);
-  const [savingSettings, setSavingSettings] = useState(false);
-
   const orgId = userRecord?.organization_id;
-
-  // Load settings
-  useEffect(() => {
-    if (!settingsLoading) {
-      setDefaultDuration(getSetting("default_duration_minutes", 30));
-      setBufferMinutes(getSetting("buffer_minutes", 15));
-    }
-  }, [settingsLoading, getSetting]);
 
   // Week dates (7 days starting from today + weekOffset*7)
   const weekDates = useMemo(() => {
@@ -237,22 +216,6 @@ export const ManageSlotsTab: React.FC = () => {
     setDeletingDate(null);
   };
 
-  // ── Save settings ──────────────────────────────────────────────────
-  const handleSaveSettings = async () => {
-    setSavingSettings(true);
-    try {
-      await updateMultipleSettings([
-        { key: "default_duration_minutes", value: defaultDuration, category: "showings" },
-        { key: "buffer_minutes", value: bufferMinutes, category: "showings" },
-      ]);
-      sonnerToast.success("Showing settings updated");
-    } catch {
-      sonnerToast.error("Failed to save settings");
-    } finally {
-      setSavingSettings(false);
-    }
-  };
-
   // ── All unique times across the week (for row headers) ────────────
   const allTimes = useMemo(() => {
     const timeSet = new Set<string>();
@@ -302,15 +265,6 @@ export const ManageSlotsTab: React.FC = () => {
           <Link2 className="h-4 w-4 mr-1.5" />
           Copy Booking Link
         </Button>
-        <Button
-          variant={showSettings ? "secondary" : "outline"}
-          size="sm"
-          onClick={() => setShowSettings(!showSettings)}
-        >
-          <Settings2 className="h-4 w-4 mr-1.5" />
-          Settings
-        </Button>
-
         <div className="flex gap-2 ml-auto">
           <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
             {totals.available} Available
@@ -320,49 +274,6 @@ export const ManageSlotsTab: React.FC = () => {
           </Badge>
         </div>
       </div>
-
-      {/* ── Collapsible settings panel ───────────────────────────────── */}
-      {showSettings && (
-        <Card className="border-dashed">
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="dur" className="text-xs">Default Duration (min)</Label>
-                <Input
-                  id="dur"
-                  type="number"
-                  min={15}
-                  max={120}
-                  step={15}
-                  value={defaultDuration}
-                  onChange={(e) => setDefaultDuration(parseInt(e.target.value) || 30)}
-                  className="w-24 h-9"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="buf" className="text-xs">Buffer Between (min)</Label>
-                <Input
-                  id="buf"
-                  type="number"
-                  min={0}
-                  max={60}
-                  step={5}
-                  value={bufferMinutes}
-                  onChange={(e) => setBufferMinutes(parseInt(e.target.value) || 15)}
-                  className="w-24 h-9"
-                />
-              </div>
-              <Button size="sm" onClick={handleSaveSettings} disabled={savingSettings}>
-                <Save className="h-3.5 w-3.5 mr-1" />
-                {savingSettings ? "Saving..." : "Save"}
-              </Button>
-              <div className="text-xs text-muted-foreground">
-                Example: {defaultDuration}min showing + {bufferMinutes}min buffer = {defaultDuration + bufferMinutes}min between slots
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ── Week navigation ──────────────────────────────────────────── */}
       <div className="flex items-center justify-between">

@@ -136,10 +136,8 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
             const [s1h, s1m] = editData.slots[0].split(":").map(Number);
             const [s2h, s2m] = editData.slots[1].split(":").map(Number);
             const gapMin = (s2h * 60 + s2m) - (s1h * 60 + s1m);
-            const inferredBuffer = String(gapMin - 30);
-            if (BUFFER_OPTIONS.some((b) => b.value === inferredBuffer)) {
-              setBuffer(inferredBuffer);
-            }
+            const inferredBuffer = Math.max(0, gapMin - 30);
+            setBuffer(String(inferredBuffer));
           }
         }
 

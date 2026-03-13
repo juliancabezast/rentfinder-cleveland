@@ -29,6 +29,7 @@ interface SendEmailParams {
   relatedEntityId?: string;
   relatedEntityType?: string;
   queue?: boolean;
+  campaignId?: string;
 }
 
 // Fire-and-forget email sender - queues by default to respect Resend rate limits
@@ -44,6 +45,7 @@ export function sendNotificationEmail(params: SendEmailParams): void {
         related_entity_id: params.relatedEntityId,
         related_entity_type: params.relatedEntityType,
         queue: params.queue !== false,
+        campaign_id: params.campaignId || undefined,
       },
     })
     .catch((err) => {

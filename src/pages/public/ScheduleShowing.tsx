@@ -27,6 +27,7 @@ import {
   FileText,
   ChevronRight,
   Building2,
+  Phone,
 } from "lucide-react";
 import { format, addDays, parseISO, isSameDay } from "date-fns";
 
@@ -107,6 +108,13 @@ const PropertySelectCard: React.FC<{
   );
 };
 
+/* ---- Slot record for unique-time computation ---- */
+interface SlotRecord {
+  property_id: string;
+  slot_date: string;
+  slot_time: string;
+}
+
 /* ---- Building Group (for multi-unit addresses) ---- */
 interface BuildingGroup {
   address: string;
@@ -115,43 +123,104 @@ interface BuildingGroup {
   zip_code: string | null;
   photoUrl: string | null;
   units: PropertyWithSlots[];
-  totalSlots: number;
+  nextSlotDate: string; // yyyy-MM-dd
+  nextSlotTime: string; // HH:mm:ss
+  spotsNextDay: number; // unique slots on the nearest available day
+  rentMin: number | null;
+  rentMax: number | null;
+  displayVariant: 1 | 2; // which urgency style to show
+}
+
+/** Simple deterministic hash from string → number */
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/** Format a slot date as a friendly label: "Today", "Tomorrow", or "Wed, Mar 19" */
+function friendlyDate(dateStr: string): string {
+  const d = parseISO(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (isSameDay(d, today)) return "Today";
+  if (isSameDay(d, tomorrow)) return "Tomorrow";
+  return format(d, "EEE, MMM d");
 }
 
 const BuildingSelectCard: React.FC<{
   building: BuildingGroup;
   onClick: () => void;
-}> = ({ building, onClick }) => (
-  <button
-    onClick={onClick}
-    className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-all text-left"
-  >
-    <div className="h-16 w-24 rounded-lg overflow-hidden shrink-0 bg-muted">
-      {building.photoUrl ? (
-        <img src={building.photoUrl} alt={building.address} className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <Building2 className="h-6 w-6 text-muted-foreground/50" />
+}> = ({ building, onClick }) => {
+  const rentLabel =
+    building.rentMin != null && building.rentMax != null && building.rentMin !== building.rentMax
+      ? `$${building.rentMin.toLocaleString()}–$${building.rentMax.toLocaleString()}/mo`
+      : building.rentMin != null
+        ? `$${building.rentMin.toLocaleString()}/mo`
+        : null;
+
+  const dateLabel = friendlyDate(building.nextSlotDate);
+  const timeLabel = formatTime(building.nextSlotTime);
+  const spots = building.spotsNextDay;
+  const v = building.displayVariant;
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-all text-left"
+    >
+      <div className="h-16 w-24 rounded-lg overflow-hidden shrink-0 bg-muted">
+        {building.photoUrl ? (
+          <img src={building.photoUrl} alt={building.address} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Building2 className="h-6 w-6 text-muted-foreground/50" />
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm truncate">{building.address}</p>
+        <p className="text-xs text-muted-foreground">
+          {building.city}, {building.state} {building.zip_code}
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+          <Badge variant="outline" className="text-[10px] h-5">
+            {building.units.length} {building.units.length === 1 ? "unit" : "units"}
+          </Badge>
+          {rentLabel && (
+            <Badge className="bg-[#4F46E5] text-white text-[10px] h-5">
+              {rentLabel}
+            </Badge>
+          )}
         </div>
-      )}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="font-semibold text-sm truncate">{building.address}</p>
-      <p className="text-xs text-muted-foreground">
-        {building.city}, {building.state} {building.zip_code}
-      </p>
-      <p className="text-xs text-muted-foreground mt-0.5">
-        {building.units.length} {building.units.length === 1 ? "unit" : "units"} available
-      </p>
-    </div>
-    <div className="flex items-center gap-1.5 shrink-0">
-      <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50">
-        {building.totalSlots} {building.totalSlots === 1 ? "slot" : "slots"}
-      </Badge>
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-    </div>
-  </button>
-);
+      </div>
+      <div className="flex flex-col items-end gap-0.5 shrink-0 max-w-[110px]">
+        {v === 1 ? (
+          /* Variant 1: "Next: Tomorrow 9 AM" */
+          <>
+            <span className="text-[10px] font-semibold text-[#4F46E5]">
+              Next: {dateLabel}
+            </span>
+            <span className="text-[10px] text-muted-foreground">{timeLabel}</span>
+          </>
+        ) : (
+          /* Variant 2: "Only X left" */
+          <>
+            <Badge
+              variant="outline"
+              className="text-[10px] text-orange-700 border-orange-300 bg-orange-50"
+            >
+              Only {spots} left
+            </Badge>
+            <span className="text-[9px] text-muted-foreground">{dateLabel}</span>
+          </>
+        )}
+      </div>
+    </button>
+  );
+};
 
 const UnitSelectCard: React.FC<{
   property: PropertyWithSlots;
@@ -180,9 +249,7 @@ const UnitSelectCard: React.FC<{
         </Badge>
       </div>
     </div>
-    <Badge variant="outline" className="shrink-0 text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50">
-      {property.available_slot_count} {property.available_slot_count === 1 ? "slot" : "slots"}
-    </Badge>
+    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
   </button>
 );
 
@@ -196,6 +263,7 @@ const ScheduleShowing: React.FC = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null); // address key
   const [properties, setProperties] = useState<PropertyWithSlots[]>([]);
+  const [rawSlots, setRawSlots] = useState<SlotRecord[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(isMultiMode);
 
   // Effective property ID (from URL or user selection)
@@ -221,6 +289,10 @@ const ScheduleShowing: React.FC = () => {
   const [consent, setConsent] = useState(() => localStorage.getItem("rf_consent") === "1");
   const [consentError, setConsentError] = useState(false);
 
+  // Call Now button config
+  const [callNowConfig, setCallNowConfig] = useState<{ enabled: boolean; phone: string; label: string } | null>(null);
+  const [callNowOrgFetched, setCallNowOrgFetched] = useState(false);
+
   // Booking
   const [submitting, setSubmitting] = useState(false);
   const [booked, setBooked] = useState(false);
@@ -239,7 +311,7 @@ const ScheduleShowing: React.FC = () => {
 
       const { data: slotData } = await supabase
         .from("showing_available_slots")
-        .select("property_id")
+        .select("property_id, slot_date, slot_time")
         .eq("is_enabled", true)
         .eq("is_booked", false)
         .gte("slot_date", today)
@@ -247,9 +319,12 @@ const ScheduleShowing: React.FC = () => {
 
       if (!slotData || slotData.length === 0) {
         setProperties([]);
+        setRawSlots([]);
         setPropertiesLoading(false);
         return;
       }
+
+      setRawSlots(slotData as SlotRecord[]);
 
       const slotCounts = new Map<string, number>();
       slotData.forEach((s) => {
@@ -276,6 +351,29 @@ const ScheduleShowing: React.FC = () => {
     })();
   }, [isMultiMode]);
 
+  // ---- Fetch Call Now button config ----
+  useEffect(() => {
+    if (callNowOrgFetched) return;
+    // Get org_id from any available source
+    const orgId = property?.organization_id || properties[0]?.organization_id;
+    if (!orgId) return;
+    setCallNowOrgFetched(true);
+    (async () => {
+      const { data } = await supabase
+        .from("organization_settings")
+        .select("value")
+        .eq("organization_id", orgId)
+        .eq("key", "call_now_button")
+        .single();
+      if (data?.value) {
+        const val = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+        if (val.enabled) {
+          setCallNowConfig({ enabled: val.enabled, phone: val.phone || "", label: val.label || "Call Now" });
+        }
+      }
+    })();
+  }, [property, properties, callNowOrgFetched]);
+
   // Group properties by building address
   const buildingGroups = useMemo<BuildingGroup[]>(() => {
     const map = new Map<string, PropertyWithSlots[]>();
@@ -284,16 +382,49 @@ const ScheduleShowing: React.FC = () => {
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(p);
     });
-    return [...map.entries()].map(([address, units]) => ({
-      address,
-      city: units[0].city || "",
-      state: units[0].state,
-      zip_code: units[0].zip_code,
-      photoUrl: getPhotoUrl(units[0]),
-      units,
-      totalSlots: units.reduce((sum, u) => sum + u.available_slot_count, 0),
-    }));
-  }, [properties]);
+
+    return [...map.entries()].map(([address, units], idx) => {
+      const unitIds = new Set(units.map((u) => u.id));
+
+      // Collect unique (date|time) pairs for this building, sorted chronologically
+      const uniquePairs = new Set<string>();
+      rawSlots.forEach((s) => {
+        if (unitIds.has(s.property_id)) {
+          uniquePairs.add(`${s.slot_date}|${s.slot_time}`);
+        }
+      });
+      const sorted = [...uniquePairs].sort();
+
+      // Next available slot
+      const [nextDate, nextTime] = sorted.length > 0
+        ? sorted[0].split("|")
+        : [format(new Date(), "yyyy-MM-dd"), "09:00:00"];
+
+      // Spots on the nearest available day (unique times, capped at 3 for urgency)
+      const spotsNextDay = Math.min(sorted.filter((p) => p.startsWith(nextDate + "|")).length, 3);
+
+      // Rent range
+      const rents = units.map((u) => u.rent_price).filter((r): r is number => r != null).sort((a, b) => a - b);
+
+      // Deterministic variant (1 or 2) based on address hash
+      const displayVariant = ((hashStr(address) % 2) + 1) as 1 | 2;
+
+      return {
+        address,
+        city: units[0].city || "",
+        state: units[0].state,
+        zip_code: units[0].zip_code,
+        photoUrl: getPhotoUrl(units[0]),
+        units,
+        nextSlotDate: nextDate,
+        nextSlotTime: nextTime,
+        spotsNextDay,
+        rentMin: rents.length > 0 ? rents[0] : null,
+        rentMax: rents.length > 0 ? rents[rents.length - 1] : null,
+        displayVariant,
+      };
+    });
+  }, [properties, rawSlots]);
 
   // Units in the currently selected building
   const selectedBuildingUnits = useMemo(
@@ -543,29 +674,31 @@ const ScheduleShowing: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f4f1f1]">
-      {/* Header bar */}
-      <div className="bg-[#4F46E5] text-white py-3 px-4">
-        <div className="max-w-[640px] mx-auto flex items-center gap-2">
-          <CalendarDays className="h-5 w-5 text-[#ffb22c]" />
-          <span className="font-semibold text-sm tracking-wide" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            Schedule a Showing
-          </span>
+      {/* Hero header */}
+      <div className="bg-[#4F46E5] text-white px-4 pt-8 pb-10" style={{ fontFamily: "Montserrat, sans-serif" }}>
+        <div className="max-w-[640px] mx-auto space-y-2">
+          <p className="text-[#ffb22c] text-xs font-semibold tracking-widest uppercase">
+            Book a Free Tour
+          </p>
+          <h1 className="text-2xl font-bold leading-tight">
+            Find Your Next Home
+          </h1>
+          <p className="text-white/70 text-sm leading-relaxed">
+            Pick a property, choose a time that works for you, and we'll be there to show you around.
+          </p>
         </div>
       </div>
 
-      <div className="max-w-[640px] mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-[640px] mx-auto px-4 -mt-5 space-y-6 relative z-10">
 
         {/* Multi-mode: Building Selection → Unit Selection */}
         {isMultiMode && !property && !selectedBuilding && (
-          <Card>
+          <Card className="shadow-md">
             <CardContent className="p-4 space-y-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Building2 className="h-5 w-5 text-[#4F46E5]" />
-                <h3 className="font-semibold text-lg">Select a Property</h3>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-[#4F46E5]" />
+                <h3 className="font-semibold text-sm text-muted-foreground">Available Properties</h3>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Choose the building you'd like to tour:
-              </p>
               {propertiesLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, i) => (
@@ -1020,10 +1153,40 @@ const ScheduleShowing: React.FC = () => {
         ) : null}
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground pb-4">
+        <p className="text-center text-xs text-muted-foreground pb-16">
           Powered by Rent Finder Cleveland
         </p>
       </div>
+
+      {/* Floating Call Now Button — fixed bottom, full-width on mobile, pulse animation */}
+      {callNowConfig?.enabled && callNowConfig.phone && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-4 bg-gradient-to-t from-black/10 to-transparent pointer-events-none">
+          <a
+            href={`tel:${callNowConfig.phone}`}
+            className="pointer-events-auto mx-auto flex items-center justify-center gap-2.5 w-full max-w-[640px] py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg shadow-xl shadow-emerald-600/40 transition-all hover:scale-[1.02] active:scale-95 animate-call-pulse"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
+          >
+            <Phone className="h-5 w-5 animate-wiggle" />
+            Talk to Us Now — We're Available!
+          </a>
+          <style>{`
+            @keyframes call-pulse {
+              0%, 100% { box-shadow: 0 10px 30px -5px rgba(5,150,105,0.4); }
+              50% { box-shadow: 0 10px 40px 0px rgba(5,150,105,0.6); }
+            }
+            .animate-call-pulse { animation: call-pulse 2s ease-in-out infinite; }
+            @keyframes wiggle {
+              0%, 100% { transform: rotate(0deg); }
+              15% { transform: rotate(-12deg); }
+              30% { transform: rotate(10deg); }
+              45% { transform: rotate(-8deg); }
+              60% { transform: rotate(5deg); }
+              75% { transform: rotate(0deg); }
+            }
+            .animate-wiggle { animation: wiggle 2s ease-in-out infinite; }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 };

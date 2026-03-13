@@ -14,9 +14,14 @@ import {
   DollarSign,
   TrendingUp,
   CheckCircle2,
+  Phone,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -114,6 +119,50 @@ const ShowingsList: React.FC = () => {
   } | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedShowingId, setSelectedShowingId] = useState<string | null>(null);
+
+  // Call Now button config
+  const [callNowEnabled, setCallNowEnabled] = useState(false);
+  const [callNowPhone, setCallNowPhone] = useState("");
+  const [callNowLabel, setCallNowLabel] = useState("Call Now");
+  const [callNowLoading, setCallNowLoading] = useState(true);
+  const [callNowSaving, setCallNowSaving] = useState(false);
+
+  // Fetch Call Now config
+  useEffect(() => {
+    if (!userRecord?.organization_id) return;
+    (async () => {
+      setCallNowLoading(true);
+      const { data } = await supabase
+        .from("organization_settings")
+        .select("value")
+        .eq("organization_id", userRecord.organization_id!)
+        .eq("key", "call_now_button")
+        .single();
+      if (data?.value) {
+        const val = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+        setCallNowEnabled(val.enabled ?? false);
+        setCallNowPhone(val.phone ?? "");
+        setCallNowLabel(val.label ?? "Call Now");
+      }
+      setCallNowLoading(false);
+    })();
+  }, [userRecord?.organization_id]);
+
+  const saveCallNowConfig = async () => {
+    if (!userRecord?.organization_id) return;
+    setCallNowSaving(true);
+    const value = { enabled: callNowEnabled, phone: callNowPhone, label: callNowLabel };
+    await supabase
+      .from("organization_settings")
+      .upsert({
+        organization_id: userRecord.organization_id!,
+        key: "call_now_button",
+        value: value as unknown as string, // JSONB column accepts object
+        category: "showings",
+      }, { onConflict: "organization_id,key" });
+    setCallNowSaving(false);
+    toast({ title: "Saved", description: "Call Now button settings updated." });
+  };
 
   const fetchShowings = async () => {
     if (!userRecord?.organization_id) return;
@@ -553,8 +602,70 @@ const ShowingsList: React.FC = () => {
         )}
 
         {permissions.canEditProperty && (
-          <TabsContent value="slots">
+          <TabsContent value="slots" className="space-y-6">
             <ManageSlotsTab />
+
+            {/* Call Now Button Config */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                    <Phone className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm">Call Now Button</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Floating button on the public booking page
+                    </p>
+                  </div>
+                  {callNowLoading ? (
+                    <Skeleton className="h-6 w-10 rounded-full" />
+                  ) : (
+                    <Switch
+                      checked={callNowEnabled}
+                      onCheckedChange={(checked) => setCallNowEnabled(checked)}
+                    />
+                  )}
+                </div>
+
+                {!callNowLoading && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="call-now-phone" className="text-xs">Phone Number</Label>
+                      <Input
+                        id="call-now-phone"
+                        placeholder="+1 (221) 220-29323"
+                        value={callNowPhone}
+                        onChange={(e) => setCallNowPhone(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="call-now-label" className="text-xs">Button Label</Label>
+                      <Input
+                        id="call-now-label"
+                        placeholder="Call Now"
+                        value={callNowLabel}
+                        onChange={(e) => setCallNowLabel(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!callNowLoading && (
+                  <Button
+                    size="sm"
+                    onClick={saveCallNowConfig}
+                    disabled={callNowSaving}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {callNowSaving ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : null}
+                    Save
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
       </Tabs>

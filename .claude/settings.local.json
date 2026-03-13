@@ -80,7 +80,15 @@
       "Bash(GIT_EDITOR=true git rebase:*)",
       "Bash(GIT_EDITOR=\":\" git rebase:*)",
       "Bash(lsof:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(/tmp/property_audit.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(do:*)",
+      "Bash(for f in /Users/julian/Desktop/rent-finder-cleveland/supabase/migrations/*.sql)",
+      "Bash(then echo \"$f\")",
+      "Read(//Users/julian/Desktop/rent-finder-cleveland/**)",
+      "Bash(fi)",
+      "Bash(do if:*)"
     ]
   }
 }

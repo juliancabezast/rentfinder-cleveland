@@ -48,6 +48,9 @@ import {
   MousePointerClick,
   Ban,
   Palette,
+  Download,
+  Copy,
+  Filter,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -208,6 +211,7 @@ const EmailsPage = () => {
   const [inboundTotal, setInboundTotal] = useState(0);
   const [inboundPage, setInboundPage] = useState(0);
   const [selectedInbound, setSelectedInbound] = useState<InboundEmail | null>(null);
+  const [inboundTypeFilter, setInboundTypeFilter] = useState<"all" | "listings_update" | "inquiry">("all");
 
   const PAGE_SIZE = 50;
 
@@ -367,6 +371,12 @@ const EmailsPage = () => {
         query = query.or(`recipient.ilike.%${inboundSearch}%,subject.ilike.%${inboundSearch}%,body.ilike.%${inboundSearch}%`);
       }
 
+      if (inboundTypeFilter === "listings_update") {
+        query = query.ilike("subject", "%Property Listings Update%");
+      } else if (inboundTypeFilter === "inquiry") {
+        query = query.not("subject", "ilike", "%Property Listings Update%");
+      }
+
       const { data, error, count } = await query;
       if (error) throw error;
 
@@ -428,7 +438,7 @@ const EmailsPage = () => {
   useEffect(() => {
     if (activeTab === "sending") fetchEmails();
     else fetchInbound();
-  }, [userRecord?.organization_id, page, inboundPage, statusFilter, activeTab]);
+  }, [userRecord?.organization_id, page, inboundPage, statusFilter, activeTab, inboundTypeFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -704,8 +714,8 @@ const EmailsPage = () => {
 
         {/* ── RECEIVING TAB ── */}
         <TabsContent value="receiving" className="space-y-4 mt-4">
-          {/* Search */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          {/* Search + Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -714,6 +724,24 @@ const EmailsPage = () => {
                 onChange={(e) => setInboundSearch(e.target.value)}
                 className="pl-10"
               />
+            </div>
+            <div className="flex gap-1.5">
+              {([
+                { value: "all" as const, label: "All" },
+                { value: "listings_update" as const, label: "Listings Updates" },
+                { value: "inquiry" as const, label: "Inquiries" },
+              ]).map((opt) => (
+                <Button
+                  key={opt.value}
+                  variant={inboundTypeFilter === opt.value ? "default" : "outline"}
+                  size="sm"
+                  className={inboundTypeFilter === opt.value ? "bg-indigo-600 hover:bg-indigo-700 text-white" : ""}
+                  onClick={() => { setInboundTypeFilter(opt.value); setInboundPage(0); }}
+                >
+                  {opt.value === "listings_update" && <Filter className="h-3.5 w-3.5 mr-1" />}
+                  {opt.label}
+                </Button>
+              ))}
             </div>
           </div>
 
@@ -1025,6 +1053,58 @@ const EmailsPage = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Export buttons */}
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <span className="text-xs text-muted-foreground mr-auto">Export</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify({
+                      from: selectedInbound.recipient,
+                      subject: selectedInbound.subject,
+                      body: selectedInbound.body,
+                      date: selectedInbound.sent_at,
+                    }, null, 2));
+                    toast.success("JSON copied to clipboard");
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5 mr-1" /> JSON
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const csv = `"From","Subject","Date","Body"\n"${(selectedInbound.recipient || '').replace(/"/g, '""')}","${(selectedInbound.subject || '').replace(/"/g, '""')}","${selectedInbound.sent_at || ''}","${(selectedInbound.body || '').replace(/"/g, '""')}"`;
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `email-${selectedInbound.id.slice(0, 8)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1" /> CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const text = `From: ${selectedInbound.recipient || '—'}\nSubject: ${selectedInbound.subject || '—'}\nDate: ${selectedInbound.sent_at || '—'}\n\n${selectedInbound.body || ''}`;
+                    const blob = new Blob([text], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `email-${selectedInbound.id.slice(0, 8)}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1" /> Text
+                </Button>
               </div>
             </div>
           )}

@@ -21,6 +21,7 @@ import {
   Sparkles,
   UserCheck,
   Mail,
+  Megaphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -53,6 +54,7 @@ const propertiesNavItems: NavItem[] = [
 const commsNavItems: NavItem[] = [
   { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
+  { title: 'Campaigns', href: '/campaigns', icon: Megaphone, permission: 'canViewAllCallLogs' },
 ];
 
 // ANALYTICS — data & reports
