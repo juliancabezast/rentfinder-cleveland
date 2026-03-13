@@ -533,14 +533,27 @@ const PropertiesList: React.FC = () => {
                       })
                     )}
                   </div>
-                  {/* Edit — show for single standalone, empty for multi */}
-                  {group.units.length === 1 && !group.units[0].unit_number && permissions.canEditProperty ? (
-                    <div className="hidden sm:flex justify-center" onClick={(e) => { e.stopPropagation(); setEditingProperty(group.units[0]); setFormOpen(true); }}>
-                      <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                    </div>
-                  ) : (
-                    <div className="hidden sm:block" />
-                  )}
+                  {/* Actions — add unit for any building, edit pencil for standalone */}
+                  <div className="hidden sm:flex justify-center">
+                    {group.units.length === 1 && !group.units[0].unit_number && permissions.canEditProperty ? (
+                      <div onClick={(e) => { e.stopPropagation(); setEditingProperty(group.units[0]); setFormOpen(true); }}>
+                        <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                      </div>
+                    ) : permissions.canCreateProperty ? (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const groupId = group.units[0].property_group_id as string | null;
+                          setAddingUnitTo({ address: group.address, city: group.city, state: group.state, zip_code: group.zip_code, property_group_id: groupId });
+                          setEditingProperty(null);
+                          setFormOpen(true);
+                        }}
+                        title={`Add unit to ${group.address}`}
+                      >
+                        <Plus className="h-3.5 w-3.5 text-muted-foreground hover:text-indigo-600" />
+                      </div>
+                    ) : null}
+                  </div>
                 </button>
 
                 {/* Expanded units — same grid, no offset, indent via padding in name col */}
