@@ -17,6 +17,8 @@ import {
   X,
   ChevronRight,
   ChevronDown,
+  ImageIcon,
+  ImageOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -396,10 +398,12 @@ const PropertiesList: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           {/* Table header */}
-          <div className="hidden sm:grid grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 px-3 py-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+          <div className="hidden sm:grid grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            <span />
             <span>Address</span>
+            <span className="text-center" title="Photos"><ImageIcon className="h-3 w-3 mx-auto" /></span>
             <span className="text-center">Beds</span>
             <span className="text-center">Baths</span>
             <span className="text-center">SqFt</span>
@@ -413,87 +417,99 @@ const PropertiesList: React.FC = () => {
 
             // Building with units: collapsible building row
             if (group.isBuilding) {
-              const rentRange = (() => {
-                const rents = group.units.map((u) => u.rent_price).filter(Boolean);
-                if (rents.length === 0) return "—";
-                const min = Math.min(...rents);
-                const max = Math.max(...rents);
-                return min === max ? `$${min.toLocaleString()}` : `$${min.toLocaleString()} – $${max.toLocaleString()}`;
-              })();
               const availableCount = group.units.filter((u) => u.status === "available").length;
               const rentedCount = group.units.filter((u) => u.status === "rented").length;
+              const allHavePhotos = group.units.every((u) => Array.isArray(u.photos) && u.photos.length > 0);
+              const someHavePhotos = group.units.some((u) => Array.isArray(u.photos) && u.photos.length > 0);
 
               return (
-                <div key={group.key} className="space-y-0.5">
+                <div key={group.key}>
                   {/* Building row */}
                   <button
                     onClick={() => toggleGroup(group.key)}
-                    className="w-full grid grid-cols-[1fr,auto] sm:grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 items-center px-3 py-2.5 rounded-lg bg-white/70 hover:bg-white/90 backdrop-blur-sm border border-border/40 transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-indigo-50/60 hover:bg-indigo-50 border border-indigo-100/60 transition-colors text-left"
                   >
-                    <div className="min-w-0 flex items-center gap-2">
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                      )}
-                      <Building2 className="h-4 w-4 text-indigo-500 shrink-0" />
-                      <span className="font-semibold text-sm truncate">{group.address}</span>
-                      <span className="text-xs text-muted-foreground hidden sm:inline">
-                        {group.city}, {group.state} {group.zip_code}
-                      </span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-1 shrink-0">
-                        {group.units.length} units
-                      </Badge>
-                    </div>
-                    {/* Desktop summary columns */}
-                    <div className="hidden sm:flex justify-center text-xs text-muted-foreground">—</div>
-                    <div className="hidden sm:flex justify-center text-xs text-muted-foreground">—</div>
-                    <div className="hidden sm:flex justify-center text-xs text-muted-foreground">—</div>
-                    <div className="hidden sm:flex justify-end text-sm font-semibold text-muted-foreground">{rentRange}</div>
-                    <div className="hidden sm:flex justify-center gap-1">
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-indigo-400 shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-indigo-400 shrink-0" />
+                    )}
+                    <Building2 className="h-4 w-4 text-indigo-500 shrink-0" />
+                    <span className="font-semibold text-sm truncate">{group.address}</span>
+                    <span className="text-xs text-muted-foreground hidden sm:inline shrink-0">
+                      {group.city}, {group.state} {group.zip_code}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-indigo-200 text-indigo-600 bg-white/60">
+                      {group.units.length} units
+                    </Badge>
+                    <span className="ml-auto" />
+                    {allHavePhotos ? (
+                      <ImageIcon className="h-3.5 w-3.5 text-green-500 shrink-0 hidden sm:block" />
+                    ) : someHavePhotos ? (
+                      <ImageIcon className="h-3.5 w-3.5 text-amber-500 shrink-0 hidden sm:block" />
+                    ) : (
+                      <ImageOff className="h-3.5 w-3.5 text-red-400 shrink-0 hidden sm:block" />
+                    )}
+                    <div className="flex gap-1 shrink-0">
                       {availableCount > 0 && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200">
-                          {availableCount} avail
-                        </Badge>
+                        <span className="text-[10px] font-medium text-green-600">{availableCount} avail</span>
                       )}
+                      {availableCount > 0 && rentedCount > 0 && <span className="text-[10px] text-muted-foreground">/</span>}
                       {rentedCount > 0 && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-gray-50 text-gray-500 border-gray-200">
-                          {rentedCount} rented
-                        </Badge>
+                        <span className="text-[10px] font-medium text-gray-400">{rentedCount} rented</span>
                       )}
-                    </div>
-                    <div className="hidden sm:block" />
-                    {/* Mobile summary */}
-                    <div className="sm:hidden text-xs text-muted-foreground text-right">
-                      <span className="font-semibold text-foreground">{rentRange}</span>
-                      {availableCount > 0 && <span className="ml-2 text-green-600">{availableCount} avail</span>}
                     </div>
                   </button>
 
                   {/* Expanded units */}
-                  {isExpanded && group.units.map((unit) => {
-                    const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
-                    return (
-                      <div
-                        key={unit.id}
-                        className="grid grid-cols-[1fr,auto] sm:grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 items-center pl-10 pr-3 py-2 rounded-lg bg-white/40 hover:bg-white/70 backdrop-blur-sm border border-border/20 transition-colors ml-2"
-                      >
-                        <div className="min-w-0">
-                          <Link to={`/properties/${unit.id}`}>
-                            <div className="flex items-center gap-2">
-                              <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
-                              <span className="font-medium text-sm truncate">Unit {unit.unit_number || "—"}</span>
+                  {isExpanded && (
+                    <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-indigo-100 pl-2">
+                      {group.units.map((unit) => {
+                        const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
+                        const hasPhotos = Array.isArray(unit.photos) && unit.photos.length > 0;
+                        return (
+                          <div
+                            key={unit.id}
+                            className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-border/20 transition-colors"
+                          >
+                            {/* Status dot */}
+                            <div className="hidden sm:flex justify-center">
+                              <span className={cn("h-2 w-2 rounded-full", s.dot)} />
                             </div>
-                          </Link>
-                          <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                            <Link to={`/properties/${unit.id}`} className="flex items-center gap-3">
-                              <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
-                              <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
-                            </Link>
-                            {permissions.canEditProperty ? (
-                              <div onClick={(e) => e.stopPropagation()}>
+                            {/* Name */}
+                            <div className="min-w-0">
+                              <Link to={`/properties/${unit.id}`} className="font-medium text-sm truncate block hover:text-indigo-600">
+                                Unit {unit.unit_number || "—"}
+                              </Link>
+                              <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                                <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
+                                <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
+                                {hasPhotos ? <ImageIcon className="h-3 w-3 text-green-500" /> : <ImageOff className="h-3 w-3 text-red-400" />}
+                              </div>
+                            </div>
+                            {/* Photos */}
+                            <div className="hidden sm:flex justify-center">
+                              {hasPhotos ? <ImageIcon className="h-3.5 w-3.5 text-green-500" /> : <ImageOff className="h-3.5 w-3.5 text-red-400" />}
+                            </div>
+                            {/* Beds */}
+                            <div className="hidden sm:flex justify-center text-sm">
+                              <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
+                            </div>
+                            {/* Baths */}
+                            <div className="hidden sm:flex justify-center text-sm">
+                              <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
+                            </div>
+                            {/* SqFt */}
+                            <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{unit.square_feet || "—"}</div>
+                            {/* Rent */}
+                            <div className="hidden sm:flex justify-end text-sm font-semibold">
+                              <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
+                            </div>
+                            {/* Status */}
+                            <div className="hidden sm:flex justify-center">
+                              {permissions.canEditProperty ? (
                                 <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
-                                  <SelectTrigger className={cn("h-5 w-auto text-[10px] px-1.5 border rounded-full font-medium gap-0.5", s.badge)}>
+                                  <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -510,61 +526,28 @@ const PropertiesList: React.FC = () => {
                                     })}
                                   </SelectContent>
                                 </Select>
-                              </div>
+                              ) : (
+                                <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>{s.label}</Badge>
+                              )}
+                            </div>
+                            {/* Edit */}
+                            {permissions.canEditProperty ? (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 hidden sm:flex" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                              </Button>
                             ) : (
-                              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", s.badge)}>{s.label}</Badge>
+                              <div className="hidden sm:block" />
+                            )}
+                            {permissions.canEditProperty && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                              </Button>
                             )}
                           </div>
-                        </div>
-                        <div className="hidden sm:flex justify-center text-sm">
-                          <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
-                        </div>
-                        <div className="hidden sm:flex justify-center text-sm">
-                          <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
-                        </div>
-                        <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{unit.square_feet || "—"}</div>
-                        <div className="hidden sm:flex justify-end text-sm font-semibold">
-                          <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
-                        </div>
-                        <div className="hidden sm:flex justify-center">
-                          {permissions.canEditProperty ? (
-                            <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
-                              <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
-                                  const sc = STATUS_CONFIG[o.value];
-                                  return (
-                                    <SelectItem key={o.value} value={o.value}>
-                                      <span className="flex items-center gap-1.5">
-                                        <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
-                                        {o.label}
-                                      </span>
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>{s.label}</Badge>
-                          )}
-                        </div>
-                        {permissions.canEditProperty ? (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 hidden sm:flex" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
-                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
-                        ) : (
-                          <div className="hidden sm:block" />
-                        )}
-                        {permissions.canEditProperty && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             }
@@ -572,13 +555,19 @@ const PropertiesList: React.FC = () => {
             // Single-unit: regular row
             const unit = group.units[0];
             const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
+            const hasPhotos = Array.isArray(unit.photos) && unit.photos.length > 0;
             return (
-              <div key={group.key} className="space-y-0.5">
-                <div className="grid grid-cols-[1fr,auto] sm:grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 items-center px-3 py-2 rounded-lg bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-border/30 transition-colors">
+              <div key={group.key}>
+                <div className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-border/30 transition-colors">
+                  {/* Status dot */}
+                  <div className="hidden sm:flex justify-center">
+                    <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+                  </div>
+                  {/* Address */}
                   <div className="min-w-0">
                     <Link to={`/properties/${unit.id}`}>
                       <div className="flex items-center gap-2">
-                        <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
+                        <span className={cn("h-2 w-2 rounded-full shrink-0 sm:hidden", s.dot)} />
                         <span className="font-medium text-sm truncate">{unit.address}</span>
                         <span className="text-xs text-muted-foreground hidden sm:inline">
                           {unit.city}, {unit.state}
@@ -590,6 +579,7 @@ const PropertiesList: React.FC = () => {
                         <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
                         <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
                       </Link>
+                      {hasPhotos ? <ImageIcon className="h-3 w-3 text-green-500" /> : <ImageOff className="h-3 w-3 text-red-400" />}
                       {permissions.canEditProperty ? (
                         <div onClick={(e) => e.stopPropagation()}>
                           <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
@@ -616,16 +606,25 @@ const PropertiesList: React.FC = () => {
                       )}
                     </div>
                   </div>
+                  {/* Photos */}
+                  <div className="hidden sm:flex justify-center">
+                    {hasPhotos ? <ImageIcon className="h-3.5 w-3.5 text-green-500" /> : <ImageOff className="h-3.5 w-3.5 text-red-400" />}
+                  </div>
+                  {/* Beds */}
                   <div className="hidden sm:flex justify-center text-sm">
                     <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
                   </div>
+                  {/* Baths */}
                   <div className="hidden sm:flex justify-center text-sm">
                     <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
                   </div>
+                  {/* SqFt */}
                   <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{unit.square_feet || "—"}</div>
+                  {/* Rent */}
                   <div className="hidden sm:flex justify-end text-sm font-semibold">
                     <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
                   </div>
+                  {/* Status */}
                   <div className="hidden sm:flex justify-center">
                     {permissions.canEditProperty ? (
                       <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
@@ -650,6 +649,7 @@ const PropertiesList: React.FC = () => {
                       <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>{s.label}</Badge>
                     )}
                   </div>
+                  {/* Edit */}
                   {permissions.canEditProperty ? (
                     <Button variant="ghost" size="icon" className="h-7 w-7 hidden sm:flex" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
                       <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
