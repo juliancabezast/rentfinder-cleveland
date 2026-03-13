@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -133,7 +132,7 @@ export const CheckPropertiesDialog: React.FC<CheckPropertiesDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-[620px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
@@ -190,7 +189,7 @@ export const CheckPropertiesDialog: React.FC<CheckPropertiesDialogProps> = ({
             </div>
 
             {/* Results List */}
-            <ScrollArea className="flex-1 min-h-0 max-h-[400px] pr-4">
+            <div>
               {withIssues.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
@@ -277,7 +276,7 @@ export const CheckPropertiesDialog: React.FC<CheckPropertiesDialogProps> = ({
                   )}
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </>
         )}
       </DialogContent>
