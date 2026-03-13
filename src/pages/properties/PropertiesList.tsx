@@ -568,13 +568,12 @@ const PropertiesList: React.FC = () => {
                           key={unit.id}
                           className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,40px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/40 hover:bg-white/70 border border-border/20 transition-colors"
                         >
-                          {/* Status dot */}
-                          <div className="hidden sm:flex justify-center">
-                            <span className={cn("h-2 w-2 rounded-full", s.dot)} />
-                          </div>
-                          {/* Name — indented */}
-                          <div className="min-w-0 sm:pl-6">
-                            <Link to={`/properties/${unit.id}`} className="font-medium text-sm truncate block hover:text-indigo-600">
+                          {/* Empty first col (matches chevron col in building row) */}
+                          <div className="hidden sm:block" />
+                          {/* Name — indented, with status dot inline */}
+                          <div className="min-w-0 sm:pl-6 flex items-center gap-2">
+                            <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
+                            <Link to={`/properties/${unit.id}`} className="font-medium text-sm truncate hover:text-indigo-600">
                               {unitLabel}
                             </Link>
                             <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
