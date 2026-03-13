@@ -7,6 +7,7 @@ import {
   Filter,
   Globe,
   ClipboardCheck,
+  Settings2,
   Bed,
   Bath,
   DoorOpen,
@@ -36,6 +37,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PropertyForm } from "@/components/properties/PropertyForm";
 import { ZillowImportDialog } from "@/components/properties/ZillowImportDialog";
+import { PropertyRulesDialog } from "@/components/properties/PropertyRulesDialog";
 import { CheckPropertiesDialog } from "@/components/properties/CheckPropertiesDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -130,6 +132,7 @@ const PropertiesList: React.FC = () => {
   const [zillowOpen, setZillowOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [checkOpen, setCheckOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!userRecord?.organization_id) return;
@@ -242,6 +245,12 @@ const PropertiesList: React.FC = () => {
             <ClipboardCheck className="h-4 w-4 sm:mr-1.5" />
             <span className="hidden sm:inline">Check</span>
           </Button>
+          {permissions.canEditProperty && (
+            <Button variant="outline" onClick={() => setRulesOpen(true)} size="sm">
+              <Settings2 className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Rules</span>
+            </Button>
+          )}
           {permissions.canCreateProperty && (
             <>
               <Button variant="outline" onClick={() => setZillowOpen(true)} size="sm">
@@ -480,6 +489,7 @@ const PropertiesList: React.FC = () => {
       )}
 
       {/* Dialogs */}
+      <PropertyRulesDialog open={rulesOpen} onOpenChange={setRulesOpen} />
       <ZillowImportDialog open={zillowOpen} onOpenChange={setZillowOpen} onSuccess={fetchData} />
       <CheckPropertiesDialog open={checkOpen} onOpenChange={setCheckOpen} properties={properties} />
 
