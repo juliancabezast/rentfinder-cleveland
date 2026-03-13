@@ -185,7 +185,6 @@ const PropertiesList: React.FC = () => {
   }, [properties, statusFilter, searchQuery]);
 
   // Group by address for display
-  // A property is part of a "building" if it has a unit_number OR shares an address with others
   const grouped = useMemo(() => {
     const map = new Map<string, Property[]>();
     for (const p of filtered) {
@@ -193,19 +192,14 @@ const PropertiesList: React.FC = () => {
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(p);
     }
-    return Array.from(map.entries()).map(([key, units]) => {
-      // Treat as multi-unit building if >1 unit OR any unit has a unit_number
-      const hasUnits = units.length > 1 || units.some((u) => u.unit_number);
-      return {
-        key,
-        address: units[0].address,
-        city: units[0].city,
-        state: units[0].state,
-        zip_code: units[0].zip_code,
-        isBuilding: hasUnits,
-        units: units.sort((a, b) => (a.unit_number || "").localeCompare(b.unit_number || "")),
-      };
-    });
+    return Array.from(map.entries()).map(([key, units]) => ({
+      key,
+      address: units[0].address,
+      city: units[0].city,
+      state: units[0].state,
+      zip_code: units[0].zip_code,
+      units: units.sort((a, b) => (a.unit_number || "").localeCompare(b.unit_number || "")),
+    }));
   }, [filtered]);
 
   const toggleGroup = (key: string) => {
@@ -398,11 +392,11 @@ const PropertiesList: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {/* Table header */}
           <div className="hidden sm:grid grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
             <span />
-            <span>Address</span>
+            <span>Property</span>
             <span className="text-center" title="Photos"><ImageIcon className="h-3 w-3 mx-auto" /></span>
             <span className="text-center">Beds</span>
             <span className="text-center">Baths</span>
@@ -414,286 +408,180 @@ const PropertiesList: React.FC = () => {
 
           {grouped.map((group) => {
             const isExpanded = expandedGroups.has(group.key);
+            const allHavePhotos = group.units.every((u) => Array.isArray(u.photos) && u.photos.length > 0);
+            const someHavePhotos = group.units.some((u) => Array.isArray(u.photos) && u.photos.length > 0);
 
-            // Building with units: collapsible building row
-            if (group.isBuilding) {
-              const availableCount = group.units.filter((u) => u.status === "available").length;
-              const rentedCount = group.units.filter((u) => u.status === "rented").length;
-              const allHavePhotos = group.units.every((u) => Array.isArray(u.photos) && u.photos.length > 0);
-              const someHavePhotos = group.units.some((u) => Array.isArray(u.photos) && u.photos.length > 0);
-
-              return (
-                <div key={group.key}>
-                  {/* Building row — same grid as unit rows for alignment */}
-                  <button
-                    onClick={() => toggleGroup(group.key)}
-                    className="w-full grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2.5 rounded-lg bg-indigo-50/60 hover:bg-indigo-50 border border-indigo-100/60 transition-colors text-left"
-                  >
-                    {/* Chevron in dot column */}
-                    <div className="hidden sm:flex justify-center">
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-indigo-400" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-indigo-400" />
-                      )}
-                    </div>
-                    {/* Address */}
-                    <div className="min-w-0 flex items-center gap-2">
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-indigo-400 shrink-0 sm:hidden" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-indigo-400 shrink-0 sm:hidden" />
-                      )}
-                      <Building2 className="h-4 w-4 text-indigo-500 shrink-0" />
-                      <span className="font-semibold text-sm truncate">{group.address}</span>
-                      <span className="text-xs text-muted-foreground hidden sm:inline shrink-0">
-                        {group.city}, {group.state} {group.zip_code}
-                      </span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-indigo-200 text-indigo-600 bg-white/60">
-                        {group.units.length} {group.units.length === 1 ? "unit" : "units"}
-                      </Badge>
-                    </div>
-                    {/* Photos (aligned under header) */}
-                    <div className="hidden sm:flex justify-center">
-                      {allHavePhotos ? (
-                        <ImageIcon className="h-3.5 w-3.5 text-green-500" />
-                      ) : someHavePhotos ? (
-                        <ImageIcon className="h-3.5 w-3.5 text-amber-500" />
-                      ) : (
-                        <ImageOff className="h-3.5 w-3.5 text-red-400" />
-                      )}
-                    </div>
-                    {/* Empty: Beds, Baths, SqFt */}
-                    <div className="hidden sm:block" />
-                    <div className="hidden sm:block" />
-                    <div className="hidden sm:block" />
-                    {/* Empty: Rent */}
-                    <div className="hidden sm:block" />
-                    {/* Status: dots for each unit */}
-                    <div className="hidden sm:flex justify-center gap-0.5">
-                      {group.units.map((u) => {
-                        const sc = STATUS_CONFIG[u.status] || STATUS_CONFIG.available;
-                        return <span key={u.id} className={cn("h-2 w-2 rounded-full", sc.dot)} title={`${u.unit_number || "Unit"}: ${sc.label}`} />;
-                      })}
-                    </div>
-                    {/* Empty: Edit */}
-                    <div className="hidden sm:block" />
-                    {/* Mobile summary */}
-                    <div className="sm:hidden flex items-center gap-1.5 justify-end">
-                      {allHavePhotos ? (
-                        <ImageIcon className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <ImageOff className="h-3 w-3 text-red-400" />
-                      )}
-                      {group.units.map((u) => {
-                        const sc = STATUS_CONFIG[u.status] || STATUS_CONFIG.available;
-                        return <span key={u.id} className={cn("h-1.5 w-1.5 rounded-full", sc.dot)} />;
-                      })}
-                    </div>
-                  </button>
-
-                  {/* Expanded units */}
-                  {isExpanded && (
-                    <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-indigo-100 pl-2">
-                      {group.units.map((unit) => {
-                        const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
-                        const hasPhotos = Array.isArray(unit.photos) && unit.photos.length > 0;
-                        return (
-                          <div
-                            key={unit.id}
-                            className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-border/20 transition-colors"
-                          >
-                            {/* Status dot */}
-                            <div className="hidden sm:flex justify-center">
-                              <span className={cn("h-2 w-2 rounded-full", s.dot)} />
-                            </div>
-                            {/* Name */}
-                            <div className="min-w-0">
-                              <Link to={`/properties/${unit.id}`} className="font-medium text-sm truncate block hover:text-indigo-600">
-                                Unit {unit.unit_number || "—"}
-                              </Link>
-                              <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                                <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
-                                <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
-                                {hasPhotos ? <ImageIcon className="h-3 w-3 text-green-500" /> : <ImageOff className="h-3 w-3 text-red-400" />}
-                              </div>
-                            </div>
-                            {/* Photos */}
-                            <div className="hidden sm:flex justify-center">
-                              {hasPhotos ? <ImageIcon className="h-3.5 w-3.5 text-green-500" /> : <ImageOff className="h-3.5 w-3.5 text-red-400" />}
-                            </div>
-                            {/* Beds */}
-                            <div className="hidden sm:flex justify-center text-sm">
-                              <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
-                            </div>
-                            {/* Baths */}
-                            <div className="hidden sm:flex justify-center text-sm">
-                              <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
-                            </div>
-                            {/* SqFt */}
-                            <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{unit.square_feet || "—"}</div>
-                            {/* Rent */}
-                            <div className="hidden sm:flex justify-end text-sm font-semibold">
-                              <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
-                            </div>
-                            {/* Status */}
-                            <div className="hidden sm:flex justify-center">
-                              {permissions.canEditProperty ? (
-                                <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
-                                  <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
-                                      const sc = STATUS_CONFIG[o.value];
-                                      return (
-                                        <SelectItem key={o.value} value={o.value}>
-                                          <span className="flex items-center gap-1.5">
-                                            <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
-                                            {o.label}
-                                          </span>
-                                        </SelectItem>
-                                      );
-                                    })}
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>{s.label}</Badge>
-                              )}
-                            </div>
-                            {/* Edit */}
-                            {permissions.canEditProperty ? (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 hidden sm:flex" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
-                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                              </Button>
-                            ) : (
-                              <div className="hidden sm:block" />
-                            )}
-                            {permissions.canEditProperty && (
-                              <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
-                                <Pencil className="h-4 w-4 text-muted-foreground" />
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            // Single-unit: regular row
-            const unit = group.units[0];
-            const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
-            const hasPhotos = Array.isArray(unit.photos) && unit.photos.length > 0;
             return (
               <div key={group.key}>
-                <div className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-border/30 transition-colors">
-                  {/* Status dot */}
+                {/* Property row — always a clickable building row */}
+                <button
+                  onClick={() => toggleGroup(group.key)}
+                  className={cn(
+                    "w-full grid grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2.5 rounded-lg border transition-colors text-left",
+                    isExpanded
+                      ? "bg-indigo-50/80 border-indigo-200/60 hover:bg-indigo-50"
+                      : "bg-white/50 border-border/30 hover:bg-white/80"
+                  )}
+                >
+                  {/* Chevron */}
                   <div className="hidden sm:flex justify-center">
-                    <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+                    {isExpanded ? (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
                   </div>
                   {/* Address */}
-                  <div className="min-w-0">
-                    <Link to={`/properties/${unit.id}`}>
-                      <div className="flex items-center gap-2">
-                        <span className={cn("h-2 w-2 rounded-full shrink-0 sm:hidden", s.dot)} />
-                        <span className="font-medium text-sm truncate">{unit.address}</span>
-                        <span className="text-xs text-muted-foreground hidden sm:inline">
-                          {unit.city}, {unit.state}
-                        </span>
-                      </div>
-                    </Link>
-                    <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                      <Link to={`/properties/${unit.id}`} className="flex items-center gap-3">
-                        <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
-                        <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
-                      </Link>
-                      {hasPhotos ? <ImageIcon className="h-3 w-3 text-green-500" /> : <ImageOff className="h-3 w-3 text-red-400" />}
-                      {permissions.canEditProperty ? (
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
-                            <SelectTrigger className={cn("h-5 w-auto text-[10px] px-1.5 border rounded-full font-medium gap-0.5", s.badge)}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
-                                const sc = STATUS_CONFIG[o.value];
-                                return (
-                                  <SelectItem key={o.value} value={o.value}>
-                                    <span className="flex items-center gap-1.5">
-                                      <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
-                                      {o.label}
-                                    </span>
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ) : (
-                        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", s.badge)}>{s.label}</Badge>
-                      )}
-                    </div>
+                  <div className="min-w-0 flex items-center gap-2">
+                    <span className="font-medium text-sm truncate">{group.address}</span>
+                    <span className="text-xs text-muted-foreground hidden sm:inline shrink-0">
+                      {group.city}, {group.state} {group.zip_code}
+                    </span>
+                    {group.units.length > 1 && (
+                      <span className="text-[10px] text-muted-foreground shrink-0">{group.units.length} units</span>
+                    )}
+                    {group.units.length === 1 && group.units[0].unit_number && (
+                      <span className="text-[10px] text-muted-foreground shrink-0">1 unit</span>
+                    )}
                   </div>
                   {/* Photos */}
                   <div className="hidden sm:flex justify-center">
-                    {hasPhotos ? <ImageIcon className="h-3.5 w-3.5 text-green-500" /> : <ImageOff className="h-3.5 w-3.5 text-red-400" />}
-                  </div>
-                  {/* Beds */}
-                  <div className="hidden sm:flex justify-center text-sm">
-                    <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
-                  </div>
-                  {/* Baths */}
-                  <div className="hidden sm:flex justify-center text-sm">
-                    <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
-                  </div>
-                  {/* SqFt */}
-                  <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{unit.square_feet || "—"}</div>
-                  {/* Rent */}
-                  <div className="hidden sm:flex justify-end text-sm font-semibold">
-                    <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
-                  </div>
-                  {/* Status */}
-                  <div className="hidden sm:flex justify-center">
-                    {permissions.canEditProperty ? (
-                      <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
-                        <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
-                            const sc = STATUS_CONFIG[o.value];
-                            return (
-                              <SelectItem key={o.value} value={o.value}>
-                                <span className="flex items-center gap-1.5">
-                                  <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
-                                  {o.label}
-                                </span>
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
+                    {allHavePhotos ? (
+                      <ImageIcon className="h-3.5 w-3.5 text-green-500" />
+                    ) : someHavePhotos ? (
+                      <ImageIcon className="h-3.5 w-3.5 text-amber-500" />
                     ) : (
-                      <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>{s.label}</Badge>
+                      <ImageOff className="h-3.5 w-3.5 text-red-400" />
                     )}
                   </div>
-                  {/* Edit */}
-                  {permissions.canEditProperty ? (
-                    <Button variant="ghost" size="icon" className="h-7 w-7 hidden sm:flex" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
-                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
+                  {/* Beds/Baths/SqFt/Rent — show if single unit without unit_number, otherwise empty */}
+                  {group.units.length === 1 && !group.units[0].unit_number ? (
+                    <>
+                      <div className="hidden sm:flex justify-center text-sm">{group.units[0].bedrooms}</div>
+                      <div className="hidden sm:flex justify-center text-sm">{Number(group.units[0].bathrooms)}</div>
+                      <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{group.units[0].square_feet || "—"}</div>
+                      <div className="hidden sm:flex justify-end text-sm font-semibold">${group.units[0].rent_price.toLocaleString()}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="hidden sm:block" />
+                      <div className="hidden sm:block" />
+                      <div className="hidden sm:block" />
+                      <div className="hidden sm:block" />
+                    </>
+                  )}
+                  {/* Status — dots for multi, badge for single standalone */}
+                  <div className="hidden sm:flex justify-center gap-0.5">
+                    {group.units.length === 1 && !group.units[0].unit_number ? (
+                      (() => {
+                        const sc = STATUS_CONFIG[group.units[0].status] || STATUS_CONFIG.available;
+                        return <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", sc.badge)}>{sc.label}</Badge>;
+                      })()
+                    ) : (
+                      group.units.map((u) => {
+                        const sc = STATUS_CONFIG[u.status] || STATUS_CONFIG.available;
+                        return <span key={u.id} className={cn("h-2.5 w-2.5 rounded-full", sc.dot)} title={`${u.unit_number || "Unit"}: ${sc.label}`} />;
+                      })
+                    )}
+                  </div>
+                  {/* Edit — show for single standalone, empty for multi */}
+                  {group.units.length === 1 && !group.units[0].unit_number && permissions.canEditProperty ? (
+                    <div className="hidden sm:flex justify-center" onClick={(e) => { e.stopPropagation(); setEditingProperty(group.units[0]); setFormOpen(true); }}>
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                    </div>
                   ) : (
                     <div className="hidden sm:block" />
                   )}
-                  {permissions.canEditProperty && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
-                      <Pencil className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  )}
-                </div>
+                </button>
+
+                {/* Expanded units */}
+                {isExpanded && (
+                  <div className="mt-0.5 space-y-0.5 ml-6 border-l-2 border-indigo-100 pl-2">
+                    {group.units.map((unit) => {
+                      const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
+                      const hasPhotos = Array.isArray(unit.photos) && unit.photos.length > 0;
+                      const unitLabel = unit.unit_number ? `Unit ${unit.unit_number}` : group.address;
+                      return (
+                        <div
+                          key={unit.id}
+                          className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/60 hover:bg-white/90 border border-border/20 transition-colors"
+                        >
+                          {/* Status dot */}
+                          <div className="hidden sm:flex justify-center">
+                            <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+                          </div>
+                          {/* Name */}
+                          <div className="min-w-0">
+                            <Link to={`/properties/${unit.id}`} className="font-medium text-sm truncate block hover:text-indigo-600">
+                              {unitLabel}
+                            </Link>
+                            <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                              <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
+                              <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
+                              {hasPhotos ? <ImageIcon className="h-3 w-3 text-green-500" /> : <ImageOff className="h-3 w-3 text-red-400" />}
+                            </div>
+                          </div>
+                          {/* Photos */}
+                          <div className="hidden sm:flex justify-center">
+                            {hasPhotos ? <ImageIcon className="h-3.5 w-3.5 text-green-500" /> : <ImageOff className="h-3.5 w-3.5 text-red-400" />}
+                          </div>
+                          {/* Beds */}
+                          <div className="hidden sm:flex justify-center text-sm">
+                            <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
+                          </div>
+                          {/* Baths */}
+                          <div className="hidden sm:flex justify-center text-sm">
+                            <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
+                          </div>
+                          {/* SqFt */}
+                          <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{unit.square_feet || "—"}</div>
+                          {/* Rent */}
+                          <div className="hidden sm:flex justify-end text-sm font-semibold">
+                            <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
+                          </div>
+                          {/* Status */}
+                          <div className="hidden sm:flex justify-center">
+                            {permissions.canEditProperty ? (
+                              <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
+                                <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
+                                    const sc = STATUS_CONFIG[o.value];
+                                    return (
+                                      <SelectItem key={o.value} value={o.value}>
+                                        <span className="flex items-center gap-1.5">
+                                          <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
+                                          {o.label}
+                                        </span>
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>{s.label}</Badge>
+                            )}
+                          </div>
+                          {/* Edit */}
+                          {permissions.canEditProperty ? (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 hidden sm:flex" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          ) : (
+                            <div className="hidden sm:block" />
+                          )}
+                          {permissions.canEditProperty && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
+                              <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
