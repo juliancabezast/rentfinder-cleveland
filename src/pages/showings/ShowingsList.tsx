@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Phone,
   Loader2,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +39,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay, endOfDay, addDays, parseISO, isToday, isTomorrow } from "date-fns";
+import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
 import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
 import { MyRouteTab } from "@/components/showings/MyRouteTab";
@@ -111,6 +113,7 @@ const ShowingsList: React.FC = () => {
 
   // Dialog states
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [enableSlotsOpen, setEnableSlotsOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedShowingForReport, setSelectedShowingForReport] = useState<{
     id: string;
@@ -119,6 +122,7 @@ const ShowingsList: React.FC = () => {
   } | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedShowingId, setSelectedShowingId] = useState<string | null>(null);
+  const [slotTotals, setSlotTotals] = useState({ available: 0, booked: 0 });
 
   // Call Now button config
   const [callNowEnabled, setCallNowEnabled] = useState(false);
@@ -326,29 +330,55 @@ const ShowingsList: React.FC = () => {
     status === "scheduled" || status === "confirmed";
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <CalendarDays className="h-6 w-6" />
-            Showings
-          </h1>
-          <p className="text-muted-foreground">
-            Manage property showings and appointments
-          </p>
+    <div className="space-y-4">
+      {/* Header + Tabs — single compact block */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <CalendarDays className="h-6 w-6" />
+          Showings
+        </h1>
+        <div className="flex items-center gap-2">
+          {activeTab === "slots" && permissions.canEditProperty && (
+            <>
+              <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
+                {slotTotals.available} Available
+              </Badge>
+              <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                {slotTotals.booked} Booked
+              </Badge>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                title="Copy booking link"
+                onClick={() => {
+                  const url = `${window.location.origin}/p/book-showing`;
+                  navigator.clipboard.writeText(url);
+                  toast({ title: "Booking link copied!", description: url });
+                }}
+              >
+                <Link2 className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={() => setEnableSlotsOpen(true)}
+                className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                Enable Slots
+              </Button>
+            </>
+          )}
+          <Button
+            onClick={() => setScheduleDialogOpen(true)}
+            className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Schedule Showing
+          </Button>
         </div>
-        <Button
-          onClick={() => setScheduleDialogOpen(true)}
-          className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Showing
-        </Button>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
         <TabsList className="inline-flex w-full sm:w-auto h-auto">
           <TabsTrigger value="showings" className="flex-1 sm:flex-initial gap-2">
             <CalendarDays className="h-4 w-4" />
@@ -530,7 +560,7 @@ const ShowingsList: React.FC = () => {
                             <div className="flex items-center gap-2 sm:w-24 shrink-0">
                               <div className="text-right">
                                 <p className="font-semibold text-sm">
-                                  {format(parseISO(showing.scheduled_at), "h:mm a")}
+                                  {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.property_city))}
                                 </p>
                                 {showing.duration_minutes && (
                                   <p className="text-[11px] text-muted-foreground">
@@ -603,7 +633,11 @@ const ShowingsList: React.FC = () => {
 
         {permissions.canEditProperty && (
           <TabsContent value="slots" className="space-y-6">
-            <ManageSlotsTab />
+            <ManageSlotsTab
+              externalDialogOpen={enableSlotsOpen}
+              onExternalDialogHandled={() => setEnableSlotsOpen(false)}
+              onTotalsChange={setSlotTotals}
+            />
 
             {/* Call Now Button Config */}
             <Card className="border-0 shadow-sm">

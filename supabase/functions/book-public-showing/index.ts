@@ -8,6 +8,24 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// ── City → Timezone mapping ──────────────────────────────────────────
+const CITY_TZ: Record<string, string> = {
+  "Cleveland": "America/New_York", "Akron": "America/New_York",
+  "Elyria": "America/New_York", "Lorain": "America/New_York",
+  "Canton": "America/New_York", "Toledo": "America/New_York",
+  "Columbus": "America/New_York", "Parma": "America/New_York",
+  "Milwaukee": "America/Chicago", "Madison": "America/Chicago",
+  "Green Bay": "America/Chicago", "Kenosha": "America/Chicago",
+  "Saint Louis": "America/Chicago", "St. Louis": "America/Chicago",
+  "Kansas City": "America/Chicago", "Chicago": "America/Chicago",
+  "Springfield": "America/Chicago", "Racine": "America/Chicago",
+  "Detroit": "America/Detroit", "Pittsburgh": "America/New_York",
+};
+function getTimezoneForCity(city: string | null): string {
+  if (!city) return "America/New_York";
+  return CITY_TZ[city] || "America/New_York";
+}
+
 // ── Email template ────────────────────────────────────────────────────
 function showingConfirmationEmail(data: {
   leadName: string;
@@ -82,10 +100,10 @@ function formatTimeHuman(t: string): string {
   return `${display}:${mStr} ${ampm}`;
 }
 
-function formatDateHuman(d: string): string {
+function formatDateHuman(d: string, tz = "America/New_York"): string {
   const date = new Date(d + "T12:00:00");
   return date.toLocaleDateString("en-US", {
-    timeZone: "America/New_York",
+    timeZone: tz,
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -100,6 +118,7 @@ function buildGoogleCalUrl(data: {
   slotDate: string;
   slotTime: string;
   durationMin: number;
+  timezone?: string;
 }): string {
   // slotDate: "YYYY-MM-DD", slotTime: "HH:MM:SS"
   const start = data.slotDate.replace(/-/g, "") + "T" + data.slotTime.replace(/:/g, "").slice(0, 6);
@@ -114,7 +133,7 @@ function buildGoogleCalUrl(data: {
     dates: `${start}/${end}`,
     details: `Property showing at ${data.location}`,
     location: data.location,
-    ctz: "America/New_York",
+    ctz: data.timezone || "America/New_York",
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
@@ -125,7 +144,9 @@ function buildIcsDataUri(data: {
   slotDate: string;
   slotTime: string;
   durationMin: number;
+  timezone?: string;
 }): string {
+  const tz = data.timezone || "America/New_York";
   const start = data.slotDate.replace(/-/g, "") + "T" + data.slotTime.replace(/:/g, "").slice(0, 6);
   const [h, m] = data.slotTime.split(":").map(Number);
   const endTotal = h * 60 + m + data.durationMin;
@@ -141,8 +162,8 @@ function buildIcsDataUri(data: {
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTAMP:${now}`,
-    `DTSTART;TZID=America/New_York:${start}`,
-    `DTEND;TZID=America/New_York:${end}`,
+    `DTSTART;TZID=${tz}:${start}`,
+    `DTEND;TZID=${tz}:${end}`,
     `SUMMARY:${data.title}`,
     `LOCATION:${data.location}`,
     `DESCRIPTION:Property showing at ${data.location}`,
@@ -294,7 +315,7 @@ serve(async (req: Request) => {
     // ── Build scheduled_at datetime ───────────────────────────────────
     // slot_time is "HH:MM:SS", slot_date is "YYYY-MM-DD"
     // Compute UTC offset dynamically from org timezone to handle DST correctly
-    const orgTz = "America/New_York"; // TODO: read from organization_settings
+    const orgTz = getTimezoneForCity(property?.city || null);
     const localDt = new Date(`${slot_date}T12:00:00Z`);
     const localStr = localDt.toLocaleString("en-US", { timeZone: orgTz });
     const localParsed = new Date(localStr);
@@ -479,12 +500,14 @@ serve(async (req: Request) => {
     if (leadEmail) {
       try {
         const calTitle = `Property Showing — ${property?.address || "Tour"}`;
+        const propTz = getTimezoneForCity(property?.city || null);
         const calData = {
           title: calTitle,
           location: propertyAddress,
           slotDate: slot_date,
           slotTime: slot_time,
           durationMin: durationMinutes,
+          timezone: propTz,
         };
 
         await supabase.functions.invoke("send-notification-email", {
@@ -494,7 +517,7 @@ serve(async (req: Request) => {
             html: showingConfirmationEmail({
               leadName: full_name.trim(),
               propertyAddress,
-              dateFormatted: formatDateHuman(slot_date),
+              dateFormatted: formatDateHuman(slot_date, propTz),
               timeFormatted: formatTimeHuman(slot_time),
               duration: durationMinutes,
               googleCalUrl: buildGoogleCalUrl(calData),
@@ -615,7 +638,7 @@ serve(async (req: Request) => {
       level: "info",
       category: "general",
       event_type: "public_showing_booked",
-      message: `Showing booked via public page: ${full_name.trim()} at ${propertyAddress} on ${formatDateHuman(slot_date)} ${formatTimeHuman(slot_time)}`,
+      message: `Showing booked via public page: ${full_name.trim()} at ${propertyAddress} on ${formatDateHuman(slot_date, getTimezoneForCity(property?.city || null))} ${formatTimeHuman(slot_time)}`,
       details: {
         showing_id: showing.id,
         lead_id: leadId,

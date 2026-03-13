@@ -36,6 +36,7 @@ import {
 } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
@@ -336,7 +337,7 @@ export const MyRouteTab: React.FC<MyRouteTabProps> = ({ onRefresh }) => {
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2 flex-wrap mb-1">
                                     <span className="font-bold text-lg">
-                                      {format(new Date(showing.scheduled_at), "h:mm a")}
+                                      {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.property?.city))}
                                     </span>
                                     <Badge variant="outline" className={cn("text-xs", statusConfig.color)}>
                                       <statusConfig.icon className="h-3 w-3 mr-1" />

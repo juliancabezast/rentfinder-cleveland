@@ -19,6 +19,7 @@ import {
 import { format, isWithinInterval, addMinutes } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
 
 interface ShowingWithDetails {
@@ -241,7 +242,7 @@ export const DailyRouteCard: React.FC<DailyRouteCardProps> = ({
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-semibold text-sm">
-                                  {format(new Date(showing.scheduled_at), "h:mm a")}
+                                  {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.property?.city))}
                                 </span>
                                 <span className="text-muted-foreground">—</span>
                                 <span className="text-sm font-medium truncate">

@@ -60,6 +60,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, differenceInDays, isPast } from 'date-fns';
+import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
 
 interface Property {
   id: string;
@@ -857,7 +858,7 @@ const PropertyDetail: React.FC = () => {
                     <div key={showing.id} className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium">
-                          {format(new Date(showing.scheduled_at), 'MMM d, h:mm a')}
+                          {format(new Date(showing.scheduled_at), 'MMM d,')} {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(property.city))}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {showing.lead?.full_name ||

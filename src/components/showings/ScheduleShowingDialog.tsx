@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { format, isBefore, startOfDay } from "date-fns";
 import { CalendarIcon, Search, Loader2, UserPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { getTimezoneForCity, buildScheduledAt } from "@/lib/cityTimezone";
 
 import {
   Dialog,
@@ -67,6 +68,7 @@ interface PropertyOption {
   address: string;
   unit_number: string | null;
   rent_price: number;
+  city: string | null;
 }
 
 interface AgentOption {
@@ -176,7 +178,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           .order("full_name"),
         supabase
           .from("properties")
-          .select("id, address, unit_number, rent_price")
+          .select("id, address, unit_number, rent_price, city")
           .eq("organization_id", userRecord.organization_id)
           .in("status", ["available", "coming_soon"])
           .order("address"),
@@ -348,17 +350,9 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       const slotTime = slot.slot_time;
       const durationMinutes = parseInt(selectedDuration) || slot.duration_minutes || 30;
 
-      // Build timezone-aware scheduled_at (same as book-public-showing)
-      const orgTz = "America/New_York";
-      const localDt = new Date(`${dateStr}T12:00:00Z`);
-      const localStr = localDt.toLocaleString("en-US", { timeZone: orgTz });
-      const localParsed = new Date(localStr);
-      const offsetMs = localDt.getTime() - localParsed.getTime();
-      const offsetHours = Math.round(offsetMs / 3600000);
-      const offsetSign = offsetHours >= 0 ? "+" : "-";
-      const offsetAbs = String(Math.abs(offsetHours)).padStart(2, "0");
-      const tzOffset = `${offsetSign}${offsetAbs}:00`;
-      const scheduledAt = `${dateStr}T${slotTime}${tzOffset}`;
+      // Build timezone-aware scheduled_at using property's city timezone
+      const propertyTz = getTimezoneForCity(selectedProperty?.city);
+      const scheduledAt = buildScheduledAt(dateStr, slotTime, propertyTz);
 
       // Atomically mark slot as booked FIRST (prevents race conditions)
       const { data: bookedSlot, error: bookErr } = await supabase

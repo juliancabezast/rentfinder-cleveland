@@ -28,6 +28,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
 
 interface ShowingDetailDialogProps {
   open: boolean;
@@ -145,7 +146,8 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       if (showing.leads?.phone) {
         const leadName = showing.leads.full_name || "there";
         const propertyAddr = showing.properties?.address || "the property";
-        const showingDate = format(parseISO(showing.scheduled_at), "EEEE, MMM d 'at' h:mm a");
+        const propTz = getTimezoneForCity(showing.properties?.city);
+        const showingDate = format(parseISO(showing.scheduled_at), "EEEE, MMM d") + " at " + formatTimeInTimezone(showing.scheduled_at, propTz);
 
         const smsBody = `Hi ${leadName}, your property showing at ${propertyAddr} on ${showingDate} has been cancelled. To reschedule, visit: ${window.location.origin}/p/book-showing`;
 
@@ -219,7 +221,8 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       // 3. Send reschedule email to lead
       const leadName = showing.leads?.full_name || "there";
       const propertyAddr = showing.properties?.address || "the property";
-      const showingDate = format(parseISO(showing.scheduled_at), "EEEE, MMM d 'at' h:mm a");
+      const propTz2 = getTimezoneForCity(showing.properties?.city);
+      const showingDate = format(parseISO(showing.scheduled_at), "EEEE, MMM d") + " at " + formatTimeInTimezone(showing.scheduled_at, propTz2);
 
       if (showing.leads?.email) {
         try {
@@ -317,7 +320,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                   </p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    {format(parseISO(showing.scheduled_at), "h:mm a")}
+                    {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.properties?.city))}
                     {showing.duration_minutes && ` (${showing.duration_minutes} min)`}
                   </div>
                 </div>
