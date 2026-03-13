@@ -390,7 +390,17 @@ export const ManageSlotsTab: React.FC = () => {
                                           </div>
                                         </>
                                       ) : (
-                                        <div className="font-bold py-0.5">Open</div>
+                                        <>
+                                          <div className="font-bold">Open</div>
+                                          {(() => {
+                                            const cities = [...new Set(ts.properties.filter(p => p.property_city).map(p => p.property_city))];
+                                            return cities.length > 0 ? (
+                                              <div className="text-[10px] opacity-70 truncate">
+                                                {cities.join(", ")}
+                                              </div>
+                                            ) : null;
+                                          })()}
+                                        </>
                                       )}
                                     </button>
                                   </PopoverTrigger>
