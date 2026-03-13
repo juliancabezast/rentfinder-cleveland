@@ -134,17 +134,22 @@ export const CheckPropertiesDialog: React.FC<CheckPropertiesDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[620px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            Property Health Check
+          </DialogTitle>
           <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Property Health Check
-            </DialogTitle>
+            {lastChecked ? (
+              <p className="text-xs text-muted-foreground">
+                Last checked: {lastChecked.toLocaleTimeString()} — {properties.length} properties scanned
+              </p>
+            ) : <span />}
             <Button
               variant="outline"
               size="sm"
               onClick={fetchAndCheck}
               disabled={loading}
-              className="gap-1.5"
+              className="gap-1.5 shrink-0"
             >
               {loading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -154,11 +159,6 @@ export const CheckPropertiesDialog: React.FC<CheckPropertiesDialogProps> = ({
               Refresh
             </Button>
           </div>
-          {lastChecked && (
-            <p className="text-xs text-muted-foreground">
-              Last checked: {lastChecked.toLocaleTimeString()} — {properties.length} properties scanned
-            </p>
-          )}
         </DialogHeader>
 
         {loading && properties.length === 0 ? (

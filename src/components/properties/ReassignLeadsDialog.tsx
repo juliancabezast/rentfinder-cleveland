@@ -186,7 +186,7 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="min-w-[400px] p-0" align="start">
+              <PopoverContent className="min-w-[400px] p-0 z-[60]" align="start" side="bottom" sideOffset={4}>
                 <Command>
                   <CommandInput placeholder="Search properties..." />
                   <CommandList>

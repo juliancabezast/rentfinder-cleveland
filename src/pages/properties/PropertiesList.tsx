@@ -138,6 +138,7 @@ const PropertiesList: React.FC = () => {
   const [checkOpen, setCheckOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [addingUnitTo, setAddingUnitTo] = useState<{ address: string; city: string; state: string; zip_code: string; property_group_id: string | null } | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!userRecord?.organization_id) return;
@@ -233,6 +234,7 @@ const PropertiesList: React.FC = () => {
   const handleFormSuccess = () => {
     setFormOpen(false);
     setEditingProperty(null);
+    setAddingUnitTo(null);
     fetchData();
   };
 
@@ -243,7 +245,25 @@ const PropertiesList: React.FC = () => {
         amenities: Array.isArray(editingProperty.amenities) ? (editingProperty.amenities as string[]) : null,
         alternative_property_ids: Array.isArray(editingProperty.alternative_property_ids) ? (editingProperty.alternative_property_ids as string[]) : null,
       }
+    : addingUnitTo
+    ? {
+        id: "",
+        address: addingUnitTo.address,
+        unit_number: "",
+        city: addingUnitTo.city,
+        state: addingUnitTo.state,
+        zip_code: addingUnitTo.zip_code,
+        bedrooms: 0,
+        bathrooms: 1,
+        rent_price: 0,
+        status: "available",
+        photos: null,
+        amenities: null,
+        alternative_property_ids: null,
+      }
     : null;
+
+  const formGroupId = addingUnitTo?.property_group_id || undefined;
 
   return (
     <div className="space-y-4">
@@ -494,9 +514,9 @@ const PropertiesList: React.FC = () => {
                   )}
                 </button>
 
-                {/* Expanded units */}
+                {/* Expanded units — same grid, no offset, indent via padding in name col */}
                 {isExpanded && (
-                  <div className="mt-0.5 space-y-0.5 ml-6 border-l-2 border-indigo-100 pl-2">
+                  <div className="mt-0.5 space-y-0.5">
                     {group.units.map((unit) => {
                       const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
                       const hasPhotos = Array.isArray(unit.photos) && unit.photos.length > 0;
@@ -504,14 +524,14 @@ const PropertiesList: React.FC = () => {
                       return (
                         <div
                           key={unit.id}
-                          className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/60 hover:bg-white/90 border border-border/20 transition-colors"
+                          className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/40 hover:bg-white/70 border border-border/20 transition-colors"
                         >
                           {/* Status dot */}
                           <div className="hidden sm:flex justify-center">
                             <span className={cn("h-2 w-2 rounded-full", s.dot)} />
                           </div>
-                          {/* Name */}
-                          <div className="min-w-0">
+                          {/* Name — indented */}
+                          <div className="min-w-0 sm:pl-6">
                             <Link to={`/properties/${unit.id}`} className="font-medium text-sm truncate block hover:text-indigo-600">
                               {unitLabel}
                             </Link>
@@ -580,6 +600,25 @@ const PropertiesList: React.FC = () => {
                         </div>
                       );
                     })}
+
+                    {/* Add Unit row */}
+                    {permissions.canCreateProperty && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const groupId = group.units[0].property_group_id as string | null;
+                          setAddingUnitTo({ address: group.address, city: group.city, state: group.state, zip_code: group.zip_code, property_group_id: groupId });
+                          setEditingProperty(null);
+                          setFormOpen(true);
+                        }}
+                        className="w-full grid grid-cols-[24px,1fr] gap-x-2 items-center px-3 py-2 rounded-lg border border-dashed border-border/40 hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors text-left"
+                      >
+                        <div className="flex justify-center">
+                          <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <span className="text-sm text-muted-foreground sm:pl-6">Add unit to {group.address}</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -597,17 +636,20 @@ const PropertiesList: React.FC = () => {
         open={formOpen}
         onOpenChange={(open) => {
           setFormOpen(open);
-          if (!open) setEditingProperty(null);
+          if (!open) { setEditingProperty(null); setAddingUnitTo(null); }
         }}
       >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingProperty ? "Edit Property" : "Add New Property"}</DialogTitle>
+            <DialogTitle>
+              {editingProperty ? "Edit Property" : addingUnitTo ? `Add Unit to ${addingUnitTo.address}` : "Add New Property"}
+            </DialogTitle>
           </DialogHeader>
           <PropertyForm
             property={propertyForForm}
+            propertyGroupId={formGroupId}
             onSuccess={handleFormSuccess}
-            onCancel={() => { setFormOpen(false); setEditingProperty(null); }}
+            onCancel={() => { setFormOpen(false); setEditingProperty(null); setAddingUnitTo(null); }}
           />
         </DialogContent>
       </Dialog>
