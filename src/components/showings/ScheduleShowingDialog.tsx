@@ -385,6 +385,9 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           scheduled_at: scheduledAt,
           duration_minutes: durationMinutes,
           status: "scheduled",
+          booked_by: userRecord.id,
+          booked_by_name: userRecord.full_name || null,
+          booking_source: "admin",
         })
         .select("id")
         .single();

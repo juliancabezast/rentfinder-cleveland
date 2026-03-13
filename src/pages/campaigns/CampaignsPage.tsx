@@ -74,7 +74,7 @@ const CampaignsPage = () => {
     queryKey: ["campaign-stats-all", orgId],
     queryFn: async () => {
       if (!orgId || !campaigns?.length) return {};
-      const stats: Record<string, { delivered: number; sent: number; showings: number }> = {};
+      const stats: Record<string, { delivered: number; showings: number }> = {};
 
       for (const c of campaigns) {
         // Email stats
@@ -85,12 +85,10 @@ const CampaignsPage = () => {
           .contains("details", { campaign_id: c.id });
 
         let delivered = 0;
-        let sent = 0;
         for (const e of emails || []) {
           const d = e.details as Record<string, unknown> | null;
           const status = (d?.status as string) || (d?.last_event as string) || "queued";
-          if (status === "delivered" || status === "opened" || status === "clicked") delivered++;
-          else if (status === "sent") sent++;
+          if (status === "sent" || status === "delivered" || status === "opened" || status === "clicked") delivered++;
         }
 
         // Showings count
@@ -109,7 +107,7 @@ const CampaignsPage = () => {
           showings = count || 0;
         }
 
-        stats[c.id] = { delivered, sent, showings };
+        stats[c.id] = { delivered, showings };
       }
 
       return stats;
@@ -142,8 +140,9 @@ const CampaignsPage = () => {
     switch (status) {
       case "draft":
         return <Badge variant="outline" className="bg-slate-50 text-slate-600">Draft</Badge>;
+      case "in_progress":
       case "sending":
-        return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Sending</Badge>;
+        return <Badge className="bg-amber-100 text-amber-700 border-amber-200 animate-pulse">Sending</Badge>;
       case "completed":
         return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Completed</Badge>;
       default:

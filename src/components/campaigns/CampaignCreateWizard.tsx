@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,9 @@ import {
   Rocket,
   Mail,
   Users,
+  Eye,
+  UserPlus,
+  UserCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,8 +38,9 @@ import { sendNotificationEmail } from "@/lib/notificationService";
 import {
   renderEmailHtml,
   DEFAULT_CONFIGS,
+  TEMPLATE_META,
 } from "@/lib/emailTemplateDefaults";
-import type { EmailTemplateConfig } from "@/lib/emailTemplateDefaults";
+import type { EmailTemplateConfig, EmailTemplateType } from "@/lib/emailTemplateDefaults";
 import { CampaignProgressPanel } from "./CampaignProgressPanel";
 
 // ── Column auto-mapping ──────────────────────────────────────────────
@@ -83,15 +87,29 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
   // Step 1 state
   const [campaignName, setCampaignName] = useState("");
   const [propertyId, setPropertyId] = useState("");
+  const [templateType, setTemplateType] = useState<EmailTemplateType>("schedule_showing");
   const [fileName, setFileName] = useState("");
   const [parsedLeads, setParsedLeads] = useState<ParsedLead[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
 
+  // Excel sheet selector
+  const [excelSheetNames, setExcelSheetNames] = useState<string[]>([]);
+  const [excelWorkbook, setExcelWorkbook] = useState<XLSX.WorkBook | null>(null);
+  const [selectedSheet, setSelectedSheet] = useState<string>("");
+
   // Step 3 state
   const [isLaunching, setIsLaunching] = useState(false);
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [launchStats, setLaunchStats] = useState({ totalLeads: 0, leadsWithEmail: 0 });
+
+  // Dedup state (computed when entering Step 2)
+  const [dedupResult, setDedupResult] = useState<{
+    existingCount: number;
+    newCount: number;
+    existingMap: Record<string, string>; // normalized key → lead_id
+  } | null>(null);
+  const [isCheckingDupes, setIsCheckingDupes] = useState(false);
 
   // Fetch properties for selector
   const { data: properties } = useQuery({
@@ -121,13 +139,15 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       const reader = new FileReader();
       reader.onload = (evt) => {
         const wb = XLSX.read(evt.target?.result, { type: "binary" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" });
-        if (json.length > 0) {
-          const headers = Object.keys(json[0]);
-          setCsvHeaders(headers);
-          autoMapColumns(headers);
-          setParsedLeads(json.map((row) => mapRow(row, headers)));
+        if (wb.SheetNames.length > 1) {
+          // Multiple sheets — let user choose
+          setExcelWorkbook(wb);
+          setExcelSheetNames(wb.SheetNames);
+          setSelectedSheet("");
+          // Don't parse yet — wait for sheet selection
+        } else {
+          // Single sheet — parse directly
+          parseExcelSheet(wb, wb.SheetNames[0]);
         }
       };
       reader.readAsBinaryString(file);
@@ -146,6 +166,27 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       });
     }
   }, []);
+
+  const parseExcelSheet = (wb: XLSX.WorkBook, sheetName: string) => {
+    const ws = wb.Sheets[sheetName];
+    const json = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" });
+    if (json.length > 0) {
+      const headers = Object.keys(json[0]);
+      setCsvHeaders(headers);
+      autoMapColumns(headers);
+      setParsedLeads(json.map((row) => mapRow(row, headers)));
+    } else {
+      setCsvHeaders([]);
+      setParsedLeads([]);
+    }
+  };
+
+  const handleSheetSelect = (sheetName: string) => {
+    setSelectedSheet(sheetName);
+    if (excelWorkbook) {
+      parseExcelSheet(excelWorkbook, sheetName);
+    }
+  };
 
   const autoMapColumns = (headers: string[]) => {
     const mapping: Record<string, string> = {};
@@ -183,6 +224,103 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
   const leadsWithEmail = mappedLeads.filter((l) => l.email);
   const selectedProperty = properties?.find((p) => p.id === propertyId);
 
+  // ── Email preview ─────────────────────────────────────────────────
+  const [showPreview, setShowPreview] = useState(false);
+
+  const previewHtml = useMemo(() => {
+    if (step < 2 || !selectedProperty) return "";
+    const config = DEFAULT_CONFIGS[templateType];
+    const firstLead = leadsWithEmail[0];
+    const fullName = firstLead?.full_name || [firstLead?.first_name, firstLead?.last_name].filter(Boolean).join(" ") || "Sarah";
+    const firstName = firstLead?.first_name || fullName.split(" ")[0] || "Sarah";
+    const orgName = organization?.name || "Rent Finder Cleveland";
+    const senderDomain = "rentfindercleveland.com";
+    const propertyAddress = `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ""}, ${selectedProperty.city || "Cleveland"}`;
+    const variables: Record<string, string> = {
+      "{firstName}": firstName,
+      "{fullName}": fullName,
+      "{propertyAddress}": propertyAddress,
+      "{propertyRent}": selectedProperty.rent_price ? `$${selectedProperty.rent_price.toLocaleString()}` : "",
+      "{propertyBeds}": selectedProperty.bedrooms?.toString() || "",
+      "{propertyBaths}": selectedProperty.bathrooms?.toString() || "",
+      "{orgName}": orgName,
+      "{senderDomain}": senderDomain,
+    };
+    return renderEmailHtml(config, variables);
+  }, [step, templateType, selectedProperty, leadsWithEmail, organization]);
+
+  // ── Dedup check ──────────────────────────────────────────────────
+
+  const checkDuplicates = async () => {
+    if (!orgId) return;
+    setIsCheckingDupes(true);
+    try {
+      const leads = getMappedLeads();
+      // Collect all phones and emails to check
+      const phones: string[] = [];
+      const emails: string[] = [];
+      for (const l of leads) {
+        const rawPhone = (l.phone || "").replace(/\D/g, "");
+        const phone = rawPhone.length === 10 ? `+1${rawPhone}` : rawPhone.length > 0 ? `+${rawPhone}` : "";
+        if (phone) phones.push(phone);
+        if (l.email) emails.push(l.email.toLowerCase().trim());
+      }
+
+      const existingMap: Record<string, string> = {};
+
+      // Check by phone (batch)
+      if (phones.length > 0) {
+        const { data: byPhone } = await supabase
+          .from("leads")
+          .select("id, phone")
+          .eq("organization_id", orgId)
+          .in("phone", phones);
+        for (const r of byPhone || []) {
+          if (r.phone) existingMap[`phone:${r.phone}`] = r.id;
+        }
+      }
+
+      // Check by email (batch)
+      if (emails.length > 0) {
+        const { data: byEmail } = await supabase
+          .from("leads")
+          .select("id, email")
+          .eq("organization_id", orgId)
+          .in("email", emails);
+        for (const r of byEmail || []) {
+          if (r.email) existingMap[`email:${r.email.toLowerCase()}`] = r.id;
+        }
+      }
+
+      // Count how many CSV rows match existing leads
+      let existingCount = 0;
+      for (const l of leads) {
+        const rawPhone = (l.phone || "").replace(/\D/g, "");
+        const phone = rawPhone.length === 10 ? `+1${rawPhone}` : rawPhone.length > 0 ? `+${rawPhone}` : "";
+        const email = (l.email || "").toLowerCase().trim();
+        if ((phone && existingMap[`phone:${phone}`]) || (email && existingMap[`email:${email}`])) {
+          existingCount++;
+        }
+      }
+
+      setDedupResult({
+        existingCount,
+        newCount: leads.length - existingCount,
+        existingMap,
+      });
+    } catch (err) {
+      console.error("Dedup check error:", err);
+      setDedupResult(null);
+    } finally {
+      setIsCheckingDupes(false);
+    }
+  };
+
+  const goToStep2 = async () => {
+    setStep(2);
+    await checkDuplicates();
+  };
+
   // ── Step validation ────────────────────────────────────────────────
 
   const canProceedStep1 = campaignName.trim() && propertyId && parsedLeads.length > 0;
@@ -202,7 +340,9 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
           organization_id: orgId,
           name: campaignName.trim(),
           property_id: propertyId,
-          status: "sending",
+          campaign_type: "email_blast",
+          target_criteria: { source: "csv_upload", template: templateType },
+          status: "in_progress",
           total_leads: mappedLeads.length,
           leads_with_email: leadsWithEmail.length,
           emails_queued: 0,
@@ -227,11 +367,11 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         .eq("key", "email_templates")
         .single();
 
-      let welcomeConfig: EmailTemplateConfig = DEFAULT_CONFIGS.welcome;
+      let emailConfig: EmailTemplateConfig = DEFAULT_CONFIGS[templateType];
       if (templateSetting?.value) {
         try {
           const parsed = JSON.parse(templateSetting.value);
-          if (parsed.welcome) welcomeConfig = parsed.welcome;
+          if (parsed[templateType]) emailConfig = parsed[templateType];
         } catch (_) { /* use default */ }
       }
 
@@ -245,43 +385,57 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       const senderDomain = domainSetting?.value || "rentfindercleveland.com";
       const orgName = organization?.name || "Rent Finder Cleveland";
 
+      const existingMap = dedupResult?.existingMap || {};
+
       for (const lead of mappedLeads) {
         // Build lead name
         const fullName = lead.full_name || [lead.first_name, lead.last_name].filter(Boolean).join(" ") || "there";
         const firstName = lead.first_name || fullName.split(" ")[0] || "there";
-        const phone = lead.phone || "";
-        const email = lead.email || "";
+        const rawPhone = (lead.phone || "").replace(/\D/g, "");
+        const phone = rawPhone.length === 10 ? `+1${rawPhone}` : rawPhone.length > 0 ? `+${rawPhone}` : "";
+        const email = (lead.email || "").trim();
 
-        // Insert lead
-        const { data: insertedLead, error: leadErr } = await supabase
-          .from("leads")
-          .insert({
-            organization_id: orgId,
-            full_name: fullName !== "there" ? fullName : null,
-            first_name: lead.first_name || null,
-            last_name: lead.last_name || null,
-            phone: phone || `no-phone-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            email: email || null,
-            source: "campaign",
-            status: "new",
-            interested_property_id: propertyId,
-          })
-          .select("id")
-          .single();
+        // Check if lead already exists (by phone or email)
+        let leadId: string | null = null;
+        if (phone && existingMap[`phone:${phone}`]) {
+          leadId = existingMap[`phone:${phone}`];
+        } else if (email && existingMap[`email:${email.toLowerCase()}`]) {
+          leadId = existingMap[`email:${email.toLowerCase()}`];
+        }
 
-        if (leadErr || !insertedLead) {
-          console.error("Lead insert error:", leadErr?.message);
-          continue;
+        // Only create if truly new
+        if (!leadId) {
+          const { data: insertedLead, error: leadErr } = await supabase
+            .from("leads")
+            .insert({
+              organization_id: orgId,
+              full_name: fullName !== "there" ? fullName : null,
+              first_name: lead.first_name || null,
+              last_name: lead.last_name || null,
+              phone: phone || `no-phone-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              email: email || null,
+              source: "campaign",
+              status: "new",
+              interested_property_id: propertyId,
+            })
+            .select("id")
+            .single();
+
+          if (leadErr || !insertedLead) {
+            console.error("Lead insert error:", leadErr?.message);
+            continue;
+          }
+          leadId = insertedLead.id;
         }
 
         // Insert campaign_leads junction
         await supabase.from("campaign_leads").insert({
           campaign_id: newCampaignId,
-          lead_id: insertedLead.id,
+          lead_id: leadId,
           organization_id: orgId,
         });
 
-        // Queue welcome email if lead has email
+        // Queue email if lead has email
         if (email) {
           const propertyAddress = `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ""}, ${selectedProperty.city || "Cleveland"}`;
           const variables: Record<string, string> = {
@@ -295,8 +449,8 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             "{senderDomain}": senderDomain,
           };
 
-          const html = renderEmailHtml(welcomeConfig, variables);
-          const subject = welcomeConfig.subject
+          const html = renderEmailHtml(emailConfig, variables);
+          const subject = emailConfig.subject
             .replace("{orgName}", orgName)
             .replace("{propertyAddress}", propertyAddress);
 
@@ -304,9 +458,9 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             to: email,
             subject,
             html,
-            notificationType: "campaign_welcome",
+            notificationType: `campaign_${templateType}`,
             organizationId: orgId,
-            relatedEntityId: insertedLead.id,
+            relatedEntityId: leadId,
             relatedEntityType: "lead",
             queue: true,
             campaignId: newCampaignId,
@@ -315,21 +469,17 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         }
       }
 
-      // 3. Update campaign with queued count
+      // 3. Update campaign with queued count (keep status in_progress — process-email-queue handles completion)
       await supabase
         .from("campaigns")
-        .update({
-          emails_queued: emailsQueued,
-          status: "completed",
-          completed_at: new Date().toISOString(),
-        })
+        .update({ emails_queued: emailsQueued })
         .eq("id", newCampaignId);
 
       setStep(3);
       toast.success(`Campaign launched! ${emailsQueued} emails queued.`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Campaign launch error:", err);
-      toast.error("Failed to launch campaign");
+      toast.error(`Failed to launch campaign: ${err?.message || err}`);
     } finally {
       setIsLaunching(false);
     }
@@ -397,6 +547,26 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             </div>
           </div>
 
+          {/* Email template selector */}
+          <div className="space-y-2">
+            <Label>Email Template</Label>
+            <Select value={templateType} onValueChange={(v) => setTemplateType(v as EmailTemplateType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(["welcome", "schedule_showing"] as EmailTemplateType[]).map((t) => (
+                  <SelectItem key={t} value={t}>
+                    <div className="flex flex-col">
+                      <span>{TEMPLATE_META[t].label}</span>
+                      <span className="text-[11px] text-muted-foreground">{TEMPLATE_META[t].description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* File upload */}
           <div className="space-y-2">
             <Label>Upload Lead Database</Label>
@@ -422,12 +592,20 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
                   <div className="text-left">
                     <p className="font-medium text-slate-900">{fileName}</p>
                     <p className="text-sm text-slate-500">
-                      {parsedLeads.length} rows parsed
+                      {excelSheetNames.length > 1 && !selectedSheet
+                        ? `${excelSheetNames.length} sheets — select one below`
+                        : `${parsedLeads.length} rows parsed${selectedSheet ? ` from "${selectedSheet}"` : ""}`}
                     </p>
                   </div>
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200">
-                    <Check className="h-3 w-3 mr-1" /> Ready
-                  </Badge>
+                  {parsedLeads.length > 0 ? (
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200">
+                      <Check className="h-3 w-3 mr-1" /> Ready
+                    </Badge>
+                  ) : excelSheetNames.length > 1 ? (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
+                      Select Sheet
+                    </Badge>
+                  ) : null}
                 </div>
               ) : (
                 <>
@@ -442,6 +620,28 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
               )}
             </div>
           </div>
+
+          {/* Excel sheet selector */}
+          {excelSheetNames.length > 1 && (
+            <div className="space-y-2">
+              <Label>Select Sheet</Label>
+              <Select value={selectedSheet} onValueChange={handleSheetSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a sheet from this workbook..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {excelSheetNames.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      <div className="flex items-center gap-2">
+                        <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
+                        {name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Column mapping preview */}
           {csvHeaders.length > 0 && (
@@ -470,7 +670,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
               Cancel
             </Button>
             <Button
-              onClick={() => setStep(2)}
+              onClick={goToStep2}
               disabled={!canProceedStep1}
             >
               Review
@@ -484,12 +684,30 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       {step === 2 && (
         <div className="space-y-6">
           {/* Summary cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card variant="glass">
               <CardContent className="p-4 text-center">
                 <Users className="h-6 w-6 mx-auto text-slate-500 mb-2" />
                 <p className="text-2xl font-bold">{mappedLeads.length}</p>
-                <p className="text-xs text-slate-500">Total Leads</p>
+                <p className="text-xs text-slate-500">In File</p>
+              </CardContent>
+            </Card>
+            <Card variant="glass">
+              <CardContent className="p-4 text-center">
+                <UserCheck className="h-6 w-6 mx-auto text-blue-500 mb-2" />
+                <p className="text-2xl font-bold">
+                  {isCheckingDupes ? <Loader2 className="h-5 w-5 mx-auto animate-spin" /> : dedupResult?.existingCount ?? "—"}
+                </p>
+                <p className="text-xs text-slate-500">Already in DB</p>
+              </CardContent>
+            </Card>
+            <Card variant="glass">
+              <CardContent className="p-4 text-center">
+                <UserPlus className="h-6 w-6 mx-auto text-emerald-500 mb-2" />
+                <p className="text-2xl font-bold">
+                  {isCheckingDupes ? <Loader2 className="h-5 w-5 mx-auto animate-spin" /> : dedupResult?.newCount ?? "—"}
+                </p>
+                <p className="text-xs text-slate-500">New Leads</p>
               </CardContent>
             </Card>
             <Card variant="glass">
@@ -501,19 +719,27 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             </Card>
             <Card variant="glass">
               <CardContent className="p-4 text-center">
-                <AlertCircle className="h-6 w-6 mx-auto text-amber-500 mb-2" />
-                <p className="text-2xl font-bold">{mappedLeads.length - leadsWithEmail.length}</p>
-                <p className="text-xs text-slate-500">No Email</p>
-              </CardContent>
-            </Card>
-            <Card variant="glass">
-              <CardContent className="p-4 text-center">
-                <Rocket className="h-6 w-6 mx-auto text-emerald-500 mb-2" />
+                <Rocket className="h-6 w-6 mx-auto text-purple-500 mb-2" />
                 <p className="text-2xl font-bold">{leadsWithEmail.length}</p>
                 <p className="text-xs text-slate-500">Emails to Send</p>
               </CardContent>
             </Card>
           </div>
+
+          {/* Dedup notice */}
+          {dedupResult && dedupResult.existingCount > 0 && (
+            <div className="flex items-start gap-3 rounded-xl bg-blue-50 border border-blue-200 p-4">
+              <UserCheck className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium">
+                  {dedupResult.existingCount} lead{dedupResult.existingCount !== 1 ? "s" : ""} already exist{dedupResult.existingCount === 1 ? "s" : ""} in your database
+                </p>
+                <p className="text-blue-600 mt-1">
+                  They won't be duplicated — the campaign email will be sent to all {leadsWithEmail.length} contacts with email.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Campaign details */}
           <div className="rounded-xl border p-4 space-y-3">
@@ -530,8 +756,40 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">Email Template</span>
-              <Badge variant="outline">Welcome Email</Badge>
+              <Badge variant="outline">{TEMPLATE_META[templateType].label}</Badge>
             </div>
+          </div>
+
+          {/* Email preview */}
+          <div className="space-y-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              <Eye className="h-4 w-4" />
+              {showPreview ? "Hide Email Preview" : "Preview Email"}
+            </Button>
+            {showPreview && previewHtml && (
+              <div className="rounded-xl border overflow-hidden bg-white shadow-sm">
+                <div className="bg-slate-50 px-3 py-2 border-b flex items-center gap-2">
+                  <Mail className="h-3.5 w-3.5 text-slate-400" />
+                  <span className="text-xs text-slate-500 font-medium">
+                    {DEFAULT_CONFIGS[templateType].subject
+                      .replace("{orgName}", organization?.name || "Rent Finder Cleveland")
+                      .replace("{propertyAddress}", selectedProperty ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ""}` : "")}
+                  </span>
+                </div>
+                <iframe
+                  srcDoc={previewHtml}
+                  title="Email Preview"
+                  className="w-full border-0"
+                  style={{ height: 520 }}
+                  sandbox="allow-same-origin"
+                />
+              </div>
+            )}
           </div>
 
           {/* Lead preview */}

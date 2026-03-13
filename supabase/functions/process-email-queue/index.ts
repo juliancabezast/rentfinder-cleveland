@@ -206,6 +206,34 @@ serve(async (req: Request) => {
       }
 
       allResults.push({ org_id: org.id, sent, failed, total: queued.length });
+
+      // Check if any in_progress campaigns for this org are now fully sent
+      const { data: activeCampaigns } = await supabase
+        .from("campaigns")
+        .select("id, emails_queued")
+        .eq("organization_id", org.id)
+        .eq("status", "in_progress");
+
+      for (const camp of activeCampaigns || []) {
+        const { count: queuedLeft } = await supabase
+          .from("email_events")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", org.id)
+          .contains("details", { campaign_id: camp.id, status: "queued" });
+        const { count: processingLeft } = await supabase
+          .from("email_events")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", org.id)
+          .contains("details", { campaign_id: camp.id, status: "processing" });
+
+        if ((queuedLeft || 0) === 0 && (processingLeft || 0) === 0) {
+          await supabase
+            .from("campaigns")
+            .update({ status: "completed", completed_at: new Date().toISOString() })
+            .eq("id", camp.id);
+          console.log(`Campaign ${camp.id} marked as completed`);
+        }
+      }
     }
 
     return new Response(

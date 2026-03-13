@@ -50,6 +50,7 @@ const ReferralPage = lazy(() => import("./pages/public/ReferralPage"));
 const TermsOfService = lazy(() => import("./pages/public/TermsOfService"));
 const SmsSignup = lazy(() => import("./pages/public/SmsSignup"));
 const ScheduleShowing = lazy(() => import("./pages/public/ScheduleShowing"));
+const ApplyRedirect = lazy(() => import("./pages/public/ApplyRedirect"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -96,6 +97,8 @@ const App = () => (
                 <Route path="/sms-signup" element={<SmsSignup />} />
                 <Route path="/p/book-showing" element={<ScheduleShowing />} />
                 <Route path="/p/schedule-showing/:propertyId" element={<ScheduleShowing />} />
+                <Route path="/p/apply" element={<ApplyRedirect />} />
+                <Route path="/apply" element={<ApplyRedirect />} />
 
                 {/* Public auth routes */}
                 <Route path="/auth/login" element={<Login />} />

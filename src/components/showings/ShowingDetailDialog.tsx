@@ -26,6 +26,8 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
+  Link2,
+  UserCheck,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
@@ -51,6 +53,8 @@ interface ShowingData {
   completed_at: string | null;
   confirmation_attempts: number | null;
   prospect_interest_level: string | null;
+  booking_source: string | null;
+  booked_by_name: string | null;
   lead_id: string;
   property_id: string;
   properties: { id: string; address: string; unit_number: string | null; city: string | null } | null;
@@ -99,7 +103,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
           id, scheduled_at, status, duration_minutes, cancellation_reason,
           agent_report, agent_report_photo_url, confirmed_at, cancelled_at,
           completed_at, confirmation_attempts, prospect_interest_level,
-          lead_id, property_id,
+          lead_id, property_id, booking_source, booked_by_name,
           properties(id, address, unit_number, city),
           leads(id, full_name, phone, email, sms_consent)
         `)
@@ -352,6 +356,26 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Booked by */}
+              <div className="flex items-center gap-3">
+                {showing.booking_source === "public_link" ? (
+                  <>
+                    <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <p className="text-sm text-muted-foreground">Booked via public link</p>
+                  </>
+                ) : showing.booked_by_name ? (
+                  <>
+                    <UserCheck className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <p className="text-sm text-muted-foreground">Scheduled by {showing.booked_by_name}</p>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <p className="text-sm text-muted-foreground">Scheduled by team</p>
+                  </>
+                )}
+              </div>
 
               {/* Confirmation info */}
               {showing.confirmed_at && (

@@ -3519,6 +3519,9 @@ export type Database = {
         Row: {
           agent_report: string | null
           agent_report_photo_url: string | null
+          booked_by: string | null
+          booked_by_name: string | null
+          booking_source: string
           cancellation_reason: string | null
           cancelled_at: string | null
           completed_at: string | null
@@ -3542,6 +3545,9 @@ export type Database = {
         Insert: {
           agent_report?: string | null
           agent_report_photo_url?: string | null
+          booked_by?: string | null
+          booked_by_name?: string | null
+          booking_source?: string
           cancellation_reason?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
@@ -3565,6 +3571,9 @@ export type Database = {
         Update: {
           agent_report?: string | null
           agent_report_photo_url?: string | null
+          booked_by?: string | null
+          booked_by_name?: string | null
+          booking_source?: string
           cancellation_reason?: string | null
           cancelled_at?: string | null
           completed_at?: string | null

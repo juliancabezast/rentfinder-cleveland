@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -27,6 +32,7 @@ import {
   UserX,
   ThumbsUp,
   HandMetal,
+  Braces,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -52,9 +58,79 @@ interface EmailTemplatesTabProps {
 
 const TEMPLATE_ICONS: Record<EmailTemplateType, React.ElementType> = {
   welcome: HandMetal,
+  schedule_showing: Send,
   showing_confirmation: CalendarCheck,
   no_show: UserX,
   post_showing: ThumbsUp,
+};
+
+// Human-friendly labels for template variables
+const VARIABLE_LABELS: Record<string, string> = {
+  "{firstName}": "First Name",
+  "{fullName}": "Full Name",
+  "{propertyAddress}": "Property Address",
+  "{propertyRent}": "Rent Price",
+  "{propertyBeds}": "Bedrooms",
+  "{propertyBaths}": "Bathrooms",
+  "{orgName}": "Organization Name",
+  "{senderDomain}": "Website Domain",
+  "{showingDate}": "Showing Date/Time",
+};
+
+/** Small "{ }" button that opens a variable picker popover. Inserts at cursor position. */
+const VariableDropdown: React.FC<{
+  variables: string[];
+  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
+  onInsert: (newValue: string) => void;
+  currentValue: string;
+}> = ({ variables, inputRef, onInsert, currentValue }) => {
+  const [open, setOpen] = useState(false);
+
+  const handleInsert = (variable: string) => {
+    const el = inputRef.current;
+    const cursor = el?.selectionStart ?? currentValue.length;
+    const before = currentValue.slice(0, cursor);
+    const after = currentValue.slice(cursor);
+    onInsert(before + variable + after);
+    setOpen(false);
+    // Restore focus and cursor after insert
+    setTimeout(() => {
+      if (el) {
+        el.focus();
+        const newPos = cursor + variable.length;
+        el.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="shrink-0 h-8 w-8 text-muted-foreground hover:text-primary"
+          title="Insert smart field"
+        >
+          <Braces className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-1" align="end">
+        <div className="text-xs font-medium text-muted-foreground px-2 py-1.5">Insert Field</div>
+        {variables.map((v) => (
+          <button
+            key={v}
+            onClick={() => handleInsert(v)}
+            className="w-full text-left px-2 py-1.5 text-sm rounded-md hover:bg-primary/10 transition-colors flex items-center justify-between gap-2"
+          >
+            <span className="font-medium">{VARIABLE_LABELS[v] || v}</span>
+            <span className="text-[10px] text-muted-foreground font-mono">{v}</span>
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey }) => {
@@ -209,6 +285,14 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
 
   const variables = TEMPLATE_VARIABLES[selectedType];
 
+  // Refs for variable insertion at cursor
+  const subjectRef = useRef<HTMLInputElement>(null);
+  const headerTitleRef = useRef<HTMLInputElement>(null);
+  const subtitleRef = useRef<HTMLInputElement>(null);
+  const footerRef = useRef<HTMLInputElement>(null);
+  const paragraphRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+  const stepRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   return (
     <div className="space-y-4">
       {/* Template type selector */}
@@ -247,29 +331,59 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
             {/* Subject */}
             <div className="space-y-1.5">
               <Label>Subject Line</Label>
-              <Input
-                value={config.subject}
-                onChange={(e) => update("subject", e.target.value)}
-                placeholder="Email subject..."
-              />
+              <div className="flex gap-1">
+                <Input
+                  ref={subjectRef}
+                  value={config.subject}
+                  onChange={(e) => update("subject", e.target.value)}
+                  placeholder="Email subject..."
+                  className="flex-1"
+                />
+                <VariableDropdown
+                  variables={variables}
+                  inputRef={subjectRef}
+                  currentValue={config.subject}
+                  onInsert={(v) => update("subject", v)}
+                />
+              </div>
             </div>
 
             {/* Header */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Header Title</Label>
-                <Input
-                  value={config.headerTitle}
-                  onChange={(e) => update("headerTitle", e.target.value)}
-                />
+                <div className="flex gap-1">
+                  <Input
+                    ref={headerTitleRef}
+                    value={config.headerTitle}
+                    onChange={(e) => update("headerTitle", e.target.value)}
+                    className="flex-1"
+                  />
+                  <VariableDropdown
+                    variables={variables}
+                    inputRef={headerTitleRef}
+                    currentValue={config.headerTitle}
+                    onInsert={(v) => update("headerTitle", v)}
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label>Subtitle (optional)</Label>
-                <Input
-                  value={config.headerSubtitle || ""}
-                  onChange={(e) => update("headerSubtitle", e.target.value || undefined)}
-                  placeholder="Optional subtitle..."
-                />
+                <div className="flex gap-1">
+                  <Input
+                    ref={subtitleRef}
+                    value={config.headerSubtitle || ""}
+                    onChange={(e) => update("headerSubtitle", e.target.value || undefined)}
+                    placeholder="Optional subtitle..."
+                    className="flex-1"
+                  />
+                  <VariableDropdown
+                    variables={variables}
+                    inputRef={subtitleRef}
+                    currentValue={config.headerSubtitle || ""}
+                    onInsert={(v) => update("headerSubtitle", v || undefined)}
+                  />
+                </div>
               </div>
             </div>
 
@@ -277,22 +391,31 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
             <div className="space-y-2">
               <Label>Body Paragraphs</Label>
               {config.bodyParagraphs.map((p, i) => (
-                <div key={i} className="flex gap-2">
+                <div key={i} className="flex gap-1">
                   <Textarea
+                    ref={(el) => { paragraphRefs.current[i] = el; }}
                     value={p}
                     onChange={(e) => updateParagraph(i, e.target.value)}
                     rows={2}
                     className="flex-1"
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0 h-9 w-9 text-muted-foreground hover:text-red-500"
-                    onClick={() => removeParagraph(i)}
-                    disabled={config.bodyParagraphs.length <= 1}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex flex-col gap-1">
+                    <VariableDropdown
+                      variables={variables}
+                      inputRef={{ current: paragraphRefs.current[i] }}
+                      currentValue={p}
+                      onInsert={(v) => updateParagraph(i, v)}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 h-8 w-8 text-muted-foreground hover:text-red-500"
+                      onClick={() => removeParagraph(i)}
+                      disabled={config.bodyParagraphs.length <= 1}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
               <Button variant="outline" size="sm" onClick={addParagraph} className="gap-1.5">
@@ -364,12 +487,19 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
               {config.showSteps && (
                 <div className="space-y-2 pl-4 border-l-2 border-muted">
                   {(config.stepTexts || []).map((step, i) => (
-                    <div key={i} className="flex gap-2 items-center">
+                    <div key={i} className="flex gap-1 items-center">
                       <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}.</span>
                       <Input
+                        ref={(el) => { stepRefs.current[i] = el; }}
                         value={step}
                         onChange={(e) => updateStep(i, e.target.value)}
                         className="flex-1"
+                      />
+                      <VariableDropdown
+                        variables={variables}
+                        inputRef={{ current: stepRefs.current[i] }}
+                        currentValue={step}
+                        onInsert={(v) => updateStep(i, v)}
                       />
                       <Button
                         variant="ghost"
@@ -401,15 +531,25 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
             {/* Footer */}
             <div className="space-y-1.5">
               <Label>Footer Text</Label>
-              <Input
-                value={config.footerText}
-                onChange={(e) => update("footerText", e.target.value)}
-              />
+              <div className="flex gap-1">
+                <Input
+                  ref={footerRef}
+                  value={config.footerText}
+                  onChange={(e) => update("footerText", e.target.value)}
+                  className="flex-1"
+                />
+                <VariableDropdown
+                  variables={variables}
+                  inputRef={footerRef}
+                  currentValue={config.footerText}
+                  onInsert={(v) => update("footerText", v)}
+                />
+              </div>
             </div>
 
-            {/* Variable chips */}
+            {/* Variable reference */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Available Variables (click to copy)</Label>
+              <Label className="text-xs text-muted-foreground">Available Fields — use <Braces className="inline h-3 w-3" /> to insert</Label>
               <div className="flex flex-wrap gap-1.5">
                 {variables.map((v) => (
                   <Badge
@@ -421,7 +561,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
                       toast({ title: "Copied", description: `${v} copied to clipboard` });
                     }}
                   >
-                    {v}
+                    {VARIABLE_LABELS[v] || v} <span className="text-[10px] text-muted-foreground ml-1 font-mono">{v}</span>
                   </Badge>
                 ))}
               </div>

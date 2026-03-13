@@ -4,6 +4,7 @@
 
 export type EmailTemplateType =
   | "welcome"
+  | "schedule_showing"
   | "showing_confirmation"
   | "no_show"
   | "post_showing";
@@ -33,6 +34,7 @@ export type EmailTemplatesMap = Partial<Record<EmailTemplateType, EmailTemplateC
 
 export const TEMPLATE_TYPES: EmailTemplateType[] = [
   "welcome",
+  "schedule_showing",
   "showing_confirmation",
   "no_show",
   "post_showing",
@@ -45,6 +47,10 @@ export const TEMPLATE_META: Record<
   welcome: {
     label: "Welcome",
     description: "Sent to new leads when they first enter the system",
+  },
+  schedule_showing: {
+    label: "Schedule Showing",
+    description: "Marketing push to get leads to book a tour today",
   },
   showing_confirmation: {
     label: "Showing Reminder",
@@ -62,6 +68,16 @@ export const TEMPLATE_META: Record<
 
 export const TEMPLATE_VARIABLES: Record<EmailTemplateType, string[]> = {
   welcome: [
+    "{firstName}",
+    "{fullName}",
+    "{propertyAddress}",
+    "{propertyRent}",
+    "{propertyBeds}",
+    "{propertyBaths}",
+    "{orgName}",
+    "{senderDomain}",
+  ],
+  schedule_showing: [
     "{firstName}",
     "{fullName}",
     "{propertyAddress}",
@@ -106,7 +122,7 @@ export const DEFAULT_CONFIGS: Record<EmailTemplateType, EmailTemplateConfig> = {
     ],
     buttons: [
       { text: "Book a Showing", url: "https://{senderDomain}/p/book-showing", style: "primary" },
-      { text: "Apply Now", url: "https://{senderDomain}/apply", style: "secondary" },
+      { text: "Apply Now", url: "https://{senderDomain}/p/apply", style: "secondary" },
     ],
     showPropertyCard: true,
     showSteps: true,
@@ -117,6 +133,23 @@ export const DEFAULT_CONFIGS: Record<EmailTemplateType, EmailTemplateConfig> = {
     ],
     showSection8Badge: true,
     footerText: "Questions? Simply reply to this email — we're here to help.",
+  },
+  schedule_showing: {
+    subject: "Your Tour Awaits — Schedule Today!",
+    headerTitle: "{orgName}",
+    headerSubtitle: "Book Your Free Tour",
+    bodyParagraphs: [
+      "Hey {firstName}!",
+      "Great homes don't last long — and we've got the perfect spot waiting for you.",
+      "Book a free, no-pressure tour and see it for yourself. Times are filling up fast!",
+    ],
+    buttons: [
+      { text: "Schedule My Tour", url: "https://{senderDomain}/p/book-showing", style: "primary" },
+    ],
+    showPropertyCard: true,
+    showSteps: false,
+    showSection8Badge: true,
+    footerText: "Questions? Simply reply to this email or call us — we're here to help!",
   },
   showing_confirmation: {
     subject: "Showing Reminder — {propertyAddress}",
@@ -155,7 +188,7 @@ export const DEFAULT_CONFIGS: Record<EmailTemplateType, EmailTemplateConfig> = {
       "Ready to make it your new home? Start your application online:",
     ],
     buttons: [
-      { text: "Start Application", url: "https://{senderDomain}/apply", style: "primary" },
+      { text: "Start Application", url: "https://{senderDomain}/p/apply", style: "primary" },
     ],
     showPropertyCard: false,
     showSteps: false,

@@ -58,6 +58,8 @@ interface ShowingWithDetails {
   rent_price?: number | null;
   lead_name?: string;
   lead_phone?: string;
+  booking_source?: string;
+  booked_by_name?: string | null;
 }
 
 const STATUS_OPTIONS = [
@@ -178,6 +180,7 @@ const ShowingsList: React.FC = () => {
         .select(
           `
           id, scheduled_at, status, duration_minutes, lead_id, property_id,
+          booking_source, booked_by_name,
           properties(address, city, rent_price),
           leads(full_name, phone)
         `
@@ -226,6 +229,8 @@ const ShowingsList: React.FC = () => {
           rent_price: s.properties?.rent_price,
           lead_name: s.leads?.full_name,
           lead_phone: s.leads?.phone,
+          booking_source: s.booking_source || "admin",
+          booked_by_name: s.booked_by_name || null,
         }))
       );
     } catch (error) {
@@ -591,6 +596,24 @@ const ShowingsList: React.FC = () => {
                                   {showing.lead_phone && ` · ${showing.lead_phone}`}
                                 </p>
                               )}
+                              <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1 mt-0.5">
+                                {showing.booking_source === "public_link" ? (
+                                  <>
+                                    <Link2 className="h-2.5 w-2.5" />
+                                    Booked via public link
+                                  </>
+                                ) : showing.booked_by_name ? (
+                                  <>
+                                    <User className="h-2.5 w-2.5" />
+                                    Scheduled by {showing.booked_by_name}
+                                  </>
+                                ) : (
+                                  <>
+                                    <User className="h-2.5 w-2.5" />
+                                    Scheduled by team
+                                  </>
+                                )}
+                              </p>
                             </div>
 
                             {/* Actions + Status */}

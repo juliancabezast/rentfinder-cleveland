@@ -336,6 +336,7 @@ serve(async (req: Request) => {
         scheduled_at: scheduledAt,
         duration_minutes: durationMinutes,
         status: "scheduled",
+        booking_source: "public_link",
       })
       .select("id")
       .single();
@@ -631,20 +632,36 @@ serve(async (req: Request) => {
       console.error("DoorLoop sync error:", dlErr);
     }
 
+    // ── Campaign attribution ──────────────────────────────────────────
+    let campaignId: string | null = null;
+    try {
+      const { data: campaignLink } = await supabase
+        .from("campaign_leads")
+        .select("campaign_id")
+        .eq("lead_id", leadId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (campaignLink) {
+        campaignId = campaignLink.campaign_id;
+      }
+    } catch (_) { /* non-critical */ }
+
     // ── System log ────────────────────────────────────────────────────
     await supabase.from("system_logs").insert({
       organization_id,
       level: "info",
       category: "general",
       event_type: "public_showing_booked",
-      message: `Showing booked via public page: ${full_name.trim()} at ${propertyAddress} on ${formatDateHuman(slot_date, getTimezoneForCity(property?.city || null))} ${formatTimeHuman(slot_time)}`,
+      message: `Showing booked via public page: ${full_name.trim()} at ${propertyAddress} on ${formatDateHuman(slot_date, getTimezoneForCity(property?.city || null))} ${formatTimeHuman(slot_time)}${campaignId ? " (from campaign)" : ""}`,
       details: {
         showing_id: showing.id,
         lead_id: leadId,
         property_id,
         slot_date,
         slot_time,
-        source: "website",
+        source: campaignId ? "campaign" : "website",
+        campaign_id: campaignId,
         lead_is_new: !existingLead,
       },
       related_lead_id: leadId,
