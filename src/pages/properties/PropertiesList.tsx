@@ -491,7 +491,7 @@ const PropertiesList: React.FC = () => {
       {/* Dialogs */}
       <PropertyRulesDialog open={rulesOpen} onOpenChange={setRulesOpen} />
       <ZillowImportDialog open={zillowOpen} onOpenChange={setZillowOpen} onSuccess={fetchData} />
-      <CheckPropertiesDialog open={checkOpen} onOpenChange={setCheckOpen} properties={properties} />
+      <CheckPropertiesDialog open={checkOpen} onOpenChange={setCheckOpen} />
 
       <Dialog
         open={formOpen}
