@@ -574,28 +574,26 @@ async function upsertLead(
   }
 
   // ── Dup check 3: Hemlane fragmented notification merge ──────────────
-  // Hemlane sends 2 emails per inquiry within SECONDS of each other:
+  // Hemlane sends 2 emails per inquiry:
   //   "New inquiry for {property}" → has email + phone, NO name
   //   "Rental Message from {property}" → has name + message, NO email/phone
-  // We ONLY merge when:
+  // These can arrive up to 15 minutes apart. We merge when:
   //   - Same property
-  //   - Within 2 minutes (these pairs arrive within seconds)
+  //   - Within 15 minutes
   //   - Existing lead is INCOMPLETE (placeholder name or no phone)
   //   - We provide the missing piece
-  // This is the ONLY non-identity-based merge. All other merges require
-  // matching phone or email. Different people = different leads, ALWAYS.
   const trimmedName = lead.name?.trim() || null;
   if (propertyId) {
-    const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const mergeWindowAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const { data: recentSameProperty, error: dup3Err } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, phone, email, interested_property_id")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
       .eq("interested_property_id", propertyId)
-      .gte("created_at", twoMinAgo)
+      .gte("created_at", mergeWindowAgo)
       .order("created_at", { ascending: false })
-      .limit(3);
+      .limit(5);
 
     if (dup3Err) console.error(`Esther: dup check 3 (fragment-merge) query failed: ${dup3Err.message}`);
 
@@ -609,7 +607,7 @@ async function upsertLead(
 
         // Only merge if existing lead is truly incomplete and we fill the gap
         if ((isPlaceholderName && weHaveName) || (candidateMissingPhone && weHavePhone)) {
-          console.log(`Esther: fragment-merge (2min) → ${candidate.id} "${candidate.full_name}" + incoming "${trimmedName || phone}"`);
+          console.log(`Esther: fragment-merge (15min) → ${candidate.id} "${candidate.full_name}" + incoming "${trimmedName || phone}"`);
           return updateExistingLead(candidate, "fragment-merge");
         }
       }
@@ -642,17 +640,18 @@ async function upsertLead(
   // ── Direction B: recover name from paired "Rental Message" email ──
   // If we have no name but have a property, check system_logs for a recent
   // esther_no_contact_info event with the same property that captured the name.
+  // Window: 30 minutes — Hemlane pairs can arrive with significant delay.
   let recoveredName: string | null = null;
   if (!lead.name && lead.property) {
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data: recentSkipped } = await supabase
       .from("system_logs")
       .select("details")
       .eq("organization_id", organizationId)
       .eq("event_type", "esther_no_contact_info")
-      .gte("created_at", fiveMinAgo)
+      .gte("created_at", thirtyMinAgo)
       .order("created_at", { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (recentSkipped) {
       const normProperty = normalizeAddress(lead.property).toLowerCase();
@@ -1294,23 +1293,23 @@ serve(async (req: Request) => {
       });
 
       // ── Direction A: "Rental Message" has name but no contact info ──
-      // Hemlane sends paired emails within seconds:
+      // Hemlane sends paired emails:
       //   "Rental Message from {property}" → has name, no phone/email
       //   "New inquiry for {property}" → has phone/email, no name
-      // If the "New inquiry" already created a nameless lead, fix its name now.
+      // These can arrive up to 15+ min apart. Fix the nameless lead now.
       if (leadInfo.name && leadInfo.name.length > 2 && leadInfo.property) {
         const propertyId = await matchProperty(supabase, organizationId, leadInfo.property);
         if (propertyId) {
-          const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+          const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
           const { data: recentNameless } = await supabase
             .from("leads")
             .select("id, full_name")
             .eq("organization_id", organizationId)
             .eq("source", "hemlane_email")
             .eq("interested_property_id", propertyId)
-            .gte("created_at", fiveMinAgo)
+            .gte("created_at", thirtyMinAgo)
             .order("created_at", { ascending: false })
-            .limit(3);
+            .limit(5);
 
           if (recentNameless) {
             for (const candidate of recentNameless) {
