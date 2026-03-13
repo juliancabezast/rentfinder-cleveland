@@ -157,7 +157,7 @@ const PropertiesList: React.FC = () => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Inline update
-  const updateProperty = async (id: string, field: string, value: number) => {
+  const updateProperty = async (id: string, field: string, value: number | string) => {
     const { error } = await supabase
       .from("properties")
       .update({ [field]: value, updated_at: new Date().toISOString() })
@@ -408,25 +408,55 @@ const PropertiesList: React.FC = () => {
                     className="grid grid-cols-[1fr,auto] sm:grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 items-center px-3 py-2 rounded-lg bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-border/30 transition-colors"
                   >
                     {/* Address */}
-                    <Link to={`/properties/${unit.id}`} className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
-                        <span className="font-medium text-sm truncate">
-                          {group.units.length > 1 ? `Unit ${unit.unit_number || "—"}` : unit.address}
-                        </span>
-                        {group.units.length === 1 && (
-                          <span className="text-xs text-muted-foreground hidden sm:inline">
-                            {unit.city}, {unit.state}
+                    <div className="min-w-0">
+                      <Link to={`/properties/${unit.id}`}>
+                        <div className="flex items-center gap-2">
+                          <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
+                          <span className="font-medium text-sm truncate">
+                            {group.units.length > 1 ? `Unit ${unit.unit_number || "—"}` : unit.address}
                           </span>
-                        )}
-                      </div>
+                          {group.units.length === 1 && (
+                            <span className="text-xs text-muted-foreground hidden sm:inline">
+                              {unit.city}, {unit.state}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
                       {/* Mobile: show specs inline */}
                       <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                        <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
-                        <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
-                        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", s.badge)}>{s.label}</Badge>
+                        <Link to={`/properties/${unit.id}`} className="flex items-center gap-3">
+                          <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
+                          <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
+                        </Link>
+                        {permissions.canEditProperty ? (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={unit.status}
+                              onValueChange={(v) => updateProperty(unit.id, "status", v)}
+                            >
+                              <SelectTrigger className={cn("h-5 w-auto text-[10px] px-1.5 border rounded-full font-medium gap-0.5", s.badge)}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
+                                  const sc = STATUS_CONFIG[o.value];
+                                  return (
+                                    <SelectItem key={o.value} value={o.value}>
+                                      <span className="flex items-center gap-1.5">
+                                        <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
+                                        {o.label}
+                                      </span>
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", s.badge)}>{s.label}</Badge>
+                        )}
                       </div>
-                    </Link>
+                    </div>
 
                     {/* Beds */}
                     <div className="hidden sm:flex justify-center text-sm">
@@ -450,9 +480,33 @@ const PropertiesList: React.FC = () => {
 
                     {/* Status */}
                     <div className="hidden sm:flex justify-center">
-                      <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>
-                        {s.label}
-                      </Badge>
+                      {permissions.canEditProperty ? (
+                        <Select
+                          value={unit.status}
+                          onValueChange={(v) => updateProperty(unit.id, "status", v)}
+                        >
+                          <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
+                              const sc = STATUS_CONFIG[o.value];
+                              return (
+                                <SelectItem key={o.value} value={o.value}>
+                                  <span className="flex items-center gap-1.5">
+                                    <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
+                                    {o.label}
+                                  </span>
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>
+                          {s.label}
+                        </Badge>
+                      )}
                     </div>
 
                     {/* Edit */}

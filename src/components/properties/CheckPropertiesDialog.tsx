@@ -70,10 +70,6 @@ function getIssues(property: Property): PropertyIssue[] {
   if (!property.property_type || property.property_type.trim().length === 0) {
     issues.push({ field: "property_type", label: "No type", severity: "warning", icon: <Tag className="h-3 w-3" /> });
   }
-  if (!property.amenities || !Array.isArray(property.amenities) || property.amenities.length === 0) {
-    issues.push({ field: "amenities", label: "No amenities", severity: "warning", icon: <Sparkles className="h-3 w-3" /> });
-  }
-
   return issues;
 }
 

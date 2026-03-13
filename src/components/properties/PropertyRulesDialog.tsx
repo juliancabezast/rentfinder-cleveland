@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +23,7 @@ interface PropertyRules {
   hud_inspection_ready: boolean;
   pet_policy: string;
   lease_terms: string;
+  amenities: string[];
 }
 
 const DEFAULT_RULES: PropertyRules = {
@@ -31,6 +33,7 @@ const DEFAULT_RULES: PropertyRules = {
   hud_inspection_ready: true,
   pet_policy: "",
   lease_terms: "",
+  amenities: [],
 };
 
 interface PropertyRulesDialogProps {
@@ -47,6 +50,7 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
   const [rules, setRules] = useState<PropertyRules>(DEFAULT_RULES);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [newAmenity, setNewAmenity] = useState("");
 
   // Load existing rules
   useEffect(() => {
@@ -62,7 +66,7 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
           .eq("category", "property_rules");
         if (error) throw error;
 
-        const loaded = { ...DEFAULT_RULES };
+        const loaded = { ...DEFAULT_RULES, amenities: [] as string[] };
         for (const row of data || []) {
           const val = row.value;
           if (row.key === "deposit_amount") loaded.deposit_amount = String(val ?? "");
@@ -71,6 +75,7 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
           if (row.key === "hud_inspection_ready") loaded.hud_inspection_ready = val === true;
           if (row.key === "pet_policy") loaded.pet_policy = String(val ?? "");
           if (row.key === "lease_terms") loaded.lease_terms = String(val ?? "");
+          if (row.key === "amenities" && Array.isArray(val)) loaded.amenities = val as string[];
         }
         setRules(loaded);
       } catch (err) {
@@ -83,18 +88,30 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
     load();
   }, [open, userRecord?.organization_id]);
 
+  const addAmenity = () => {
+    const trimmed = newAmenity.trim();
+    if (!trimmed || rules.amenities.includes(trimmed)) return;
+    setRules({ ...rules, amenities: [...rules.amenities, trimmed] });
+    setNewAmenity("");
+  };
+
+  const removeAmenity = (index: number) => {
+    setRules({ ...rules, amenities: rules.amenities.filter((_, i) => i !== index) });
+  };
+
   const handleSave = async () => {
     if (!userRecord?.organization_id) return;
     setSaving(true);
 
     try {
-      const entries = [
+      const entries: { key: string; value: unknown }[] = [
         { key: "deposit_amount", value: rules.deposit_amount ? Number(rules.deposit_amount) : null },
         { key: "application_fee", value: rules.application_fee ? Number(rules.application_fee) : null },
         { key: "section_8_accepted", value: rules.section_8_accepted },
         { key: "hud_inspection_ready", value: rules.hud_inspection_ready },
         { key: "pet_policy", value: rules.pet_policy || null },
         { key: "lease_terms", value: rules.lease_terms || null },
+        { key: "amenities", value: rules.amenities.length > 0 ? rules.amenities : null },
       ];
 
       for (const entry of entries) {
@@ -139,7 +156,7 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Global Property Rules</DialogTitle>
           <p className="text-sm text-muted-foreground">
@@ -153,7 +170,7 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Deposit */}
+            {/* Deposit & Fee */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="rule-deposit">Security Deposit</Label>
@@ -219,6 +236,46 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
                 onChange={(e) => setRules({ ...rules, pet_policy: e.target.value })}
                 placeholder="e.g. Cats and dogs allowed, $300 pet deposit"
               />
+            </div>
+
+            {/* Amenities */}
+            <div className="space-y-1.5">
+              <Label>Amenities</Label>
+              {rules.amenities.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {rules.amenities.map((a, i) => (
+                    <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                      {a}
+                      <button
+                        onClick={() => removeAmenity(i)}
+                        className="ml-0.5 rounded-full hover:bg-muted p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  value={newAmenity}
+                  onChange={(e) => setNewAmenity(e.target.value)}
+                  placeholder="e.g. Washer/Dryer, Parking, AC..."
+                  className="h-8 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); addAmenity(); }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0"
+                  onClick={addAmenity}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
 
             {/* Lease Terms */}
