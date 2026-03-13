@@ -34,12 +34,8 @@ interface ZillowProperty {
   square_feet: number | null;
   property_type: string;
   rent_price: number;
-  deposit_amount: number | null;
-  application_fee: number | null;
   description: string | null;
   photos: string[];
-  section_8_accepted: boolean;
-  hud_inspection_ready: boolean;
   status: string;
   pet_policy: string | null;
   year_built: number | null;
@@ -75,12 +71,8 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   const [editSqft, setEditSqft] = useState("");
   const [editPropertyType, setEditPropertyType] = useState("house");
   const [editRent, setEditRent] = useState("");
-  const [editDeposit, setEditDeposit] = useState("");
-  const [editAppFee, setEditAppFee] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState("available");
-  const [editSection8, setEditSection8] = useState(true);
-  const [editHud, setEditHud] = useState(true);
   const [editPetPolicy, setEditPetPolicy] = useState("");
 
   // AI description generation
@@ -100,8 +92,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
     property_type: "Property Type",
     pet_policy: "Pet Policy",
     description: "Description",
-    deposit: "Security Deposit",
-    application_fee: "Application Fee",
   };
 
   const handleScreenshotUpload = async (files: FileList | null) => {
@@ -169,9 +159,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
     if (aiApprovals.property_type && aiResults.property_type) setEditPropertyType(String(aiResults.property_type));
     if (aiApprovals.pet_policy && aiResults.pet_policy) setEditPetPolicy(String(aiResults.pet_policy));
     if (aiApprovals.description && aiResults.description) setEditDescription(String(aiResults.description));
-    if (aiApprovals.deposit && aiResults.deposit != null) setEditDeposit(String(aiResults.deposit));
-    if (aiApprovals.application_fee && aiResults.application_fee != null) setEditAppFee(String(aiResults.application_fee));
-
     setAiResults(null);
     setAiApprovals({});
     toast({ title: "Fields updated", description: "AI-extracted data has been applied." });
@@ -193,8 +180,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
         property_type: editPropertyType,
         rent_price: editRent || "unknown",
         pet_policy: editPetPolicy || "not specified",
-        section_8: editSection8 ? "accepted" : "not accepted",
-        hud_ready: editHud ? "yes" : "no",
       };
 
       const { data: creds } = await supabase
@@ -290,12 +275,8 @@ Return ONLY the description text, no quotes or labels.`,
       setEditSqft(String(p.square_feet || ""));
       setEditPropertyType(p.property_type || "house");
       setEditRent(String(p.rent_price || ""));
-      setEditDeposit(String(p.deposit_amount || ""));
-      setEditAppFee(String(p.application_fee || ""));
       setEditDescription(p.description || "");
       setEditStatus(p.status || "available");
-      setEditSection8(p.section_8_accepted ?? true);
-      setEditHud(p.hud_inspection_ready ?? true);
       setEditPetPolicy(p.pet_policy || "");
       setStep("review");
     } catch (err) {
@@ -327,12 +308,8 @@ Return ONLY the description text, no quotes or labels.`,
         square_feet: parseInt(editSqft) || null,
         property_type: editPropertyType,
         rent_price: rentPrice,
-        deposit_amount: parseFloat(editDeposit) || null,
-        application_fee: parseFloat(editAppFee) || null,
         description: editDescription || null,
         photos: property.photos.length > 0 ? property.photos : [],
-        section_8_accepted: editSection8,
-        hud_inspection_ready: editHud,
         status: editStatus,
         pet_policy: editPetPolicy || null,
         special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
@@ -528,7 +505,7 @@ Return ONLY the description text, no quotes or labels.`,
                     {Object.entries(aiResults).map(([key, value]) => {
                       if (value == null || value === "") return null;
                       const label = fieldLabels[key] || key;
-                      const displayValue = key === "rent_price" || key === "deposit" || key === "application_fee"
+                      const displayValue = key === "rent_price"
                         ? `$${value}`
                         : String(value);
                       const truncated = displayValue.length > 60
@@ -649,28 +626,6 @@ Return ONLY the description text, no quotes or labels.`,
                   className="min-h-[44px]"
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-deposit">Security Deposit</Label>
-                <Input
-                  id="edit-deposit"
-                  type="number"
-                  value={editDeposit}
-                  onChange={(e) => setEditDeposit(e.target.value)}
-                  placeholder="0"
-                  className="min-h-[44px]"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-appfee">Application Fee</Label>
-                <Input
-                  id="edit-appfee"
-                  type="number"
-                  value={editAppFee}
-                  onChange={(e) => setEditAppFee(e.target.value)}
-                  placeholder="0"
-                  className="min-h-[44px]"
-                />
-              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -699,29 +654,6 @@ Return ONLY the description text, no quotes or labels.`,
                   placeholder="e.g. Cats, dogs OK"
                   className="min-h-[44px]"
                 />
-              </div>
-            </div>
-
-            <div className="flex gap-6">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="edit-s8"
-                  checked={editSection8}
-                  onCheckedChange={(v) => setEditSection8(v === true)}
-                />
-                <Label htmlFor="edit-s8" className="text-sm">
-                  Section 8 Accepted
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="edit-hud"
-                  checked={editHud}
-                  onCheckedChange={(v) => setEditHud(v === true)}
-                />
-                <Label htmlFor="edit-hud" className="text-sm">
-                  HUD Inspection Ready
-                </Label>
               </div>
             </div>
 

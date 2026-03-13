@@ -45,7 +45,6 @@ import {
   DollarSign,
   Calendar,
   AlertTriangle,
-  Check,
   Home,
   Users,
   CalendarDays,
@@ -72,12 +71,8 @@ interface Property {
   square_feet?: number | null;
   property_type?: string | null;
   rent_price: number;
-  deposit_amount?: number | null;
-  application_fee?: number | null;
   status: string;
   coming_soon_date?: string | null;
-  section_8_accepted?: boolean | null;
-  hud_inspection_ready?: boolean | null;
   photos?: string[] | null;
   video_tour_url?: string | null;
   virtual_tour_url?: string | null;
@@ -175,12 +170,8 @@ const PropertyDetail: React.FC = () => {
           square_feet: propertyData.square_feet,
           property_type: propertyData.property_type,
           rent_price: propertyData.rent_price,
-          deposit_amount: propertyData.deposit_amount,
-          application_fee: propertyData.application_fee,
           status: propertyData.status,
           coming_soon_date: propertyData.coming_soon_date,
-          section_8_accepted: propertyData.section_8_accepted,
-          hud_inspection_ready: propertyData.hud_inspection_ready,
           video_tour_url: propertyData.video_tour_url,
           virtual_tour_url: propertyData.virtual_tour_url,
           description: propertyData.description,
@@ -525,15 +516,6 @@ const PropertyDetail: React.FC = () => {
                 <Badge className={cn('text-sm', statusInfo.className)}>
                   {statusInfo.label}
                 </Badge>
-                {property.section_8_accepted && (
-                  <Badge variant="secondary">
-                    <Check className="h-3 w-3 mr-1" />
-                    Section 8
-                  </Badge>
-                )}
-                {property.hud_inspection_ready && (
-                  <Badge variant="outline">HUD Ready</Badge>
-                )}
               </div>
 
               <div className="flex items-baseline gap-2 mb-4">
@@ -568,18 +550,6 @@ const PropertyDetail: React.FC = () => {
 
               {/* Pricing details */}
               <div className="mt-4 pt-4 border-t grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-                {property.deposit_amount && (
-                  <div>
-                    <span className="text-muted-foreground">Deposit</span>
-                    <p className="font-medium">${property.deposit_amount.toLocaleString()}</p>
-                  </div>
-                )}
-                {property.application_fee && (
-                  <div>
-                    <span className="text-muted-foreground">Application Fee</span>
-                    <p className="font-medium">${property.application_fee}</p>
-                  </div>
-                )}
                 {property.coming_soon_date && property.status === 'coming_soon' && (
                   <div>
                     <span className="text-muted-foreground">Available Date</span>

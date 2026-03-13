@@ -314,26 +314,6 @@ const PropertyGroupDetail: React.FC = () => {
                 </p>
               </CardContent>
             </Card>
-            <Card variant="glass">
-              <CardContent className="pt-4 pb-3 text-center">
-                <div className="flex justify-center gap-2">
-                  {group.section_8_accepted && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Sec 8
-                    </Badge>
-                  )}
-                  {group.hud_inspection_ready && (
-                    <Badge variant="outline" className="text-[10px]">
-                      HUD
-                    </Badge>
-                  )}
-                  {!group.section_8_accepted && !group.hud_inspection_ready && (
-                    <span className="text-muted-foreground text-sm">—</span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Programs</p>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Units Grid */}
@@ -544,18 +524,6 @@ const PropertyGroupDetail: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Type</span>
                 <span className="font-medium">{typeLabel}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Section 8</span>
-                <span className="font-medium">
-                  {group.section_8_accepted ? "Accepted" : "No"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">HUD Ready</span>
-                <span className="font-medium">
-                  {group.hud_inspection_ready ? "Yes" : "No"}
-                </span>
               </div>
             </CardContent>
           </Card>

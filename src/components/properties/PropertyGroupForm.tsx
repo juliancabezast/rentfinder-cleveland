@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -41,8 +40,6 @@ export interface PropertyGroup {
   cover_photo: string | null;
   description: string | null;
   neighborhood_info: NeighborhoodInfo | null;
-  section_8_accepted: boolean | null;
-  hud_inspection_ready: boolean | null;
   pet_policy: string | null;
   investor_id: string | null;
 }
@@ -70,8 +67,6 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
   const [propertyType, setPropertyType] = useState(group?.property_type || "single_family");
   const [coverPhoto, setCoverPhoto] = useState(group?.cover_photo || "");
   const [description, setDescription] = useState(group?.description || "");
-  const [section8, setSection8] = useState(group?.section_8_accepted ?? true);
-  const [hudReady, setHudReady] = useState(group?.hud_inspection_ready ?? true);
   const [petPolicy, setPetPolicy] = useState(group?.pet_policy || "");
 
   // Neighborhood info
@@ -134,8 +129,6 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
         property_type: propertyType,
         cover_photo: coverPhoto || null,
         description: description || null,
-        section_8_accepted: section8,
-        hud_inspection_ready: hudReady,
         pet_policy: petPolicy || null,
         neighborhood_info: {
           area_benefits: areaBenefits,
@@ -425,22 +418,6 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
           <CardTitle className="text-sm">Features</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="section8"
-              checked={section8}
-              onCheckedChange={(v) => setSection8(!!v)}
-            />
-            <Label htmlFor="section8">Section 8 Accepted</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="hud"
-              checked={hudReady}
-              onCheckedChange={(v) => setHudReady(!!v)}
-            />
-            <Label htmlFor="hud">HUD Inspection Ready</Label>
-          </div>
           <div>
             <Label>Pet Policy</Label>
             <Textarea

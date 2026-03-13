@@ -19,7 +19,6 @@ interface Property {
   square_feet?: number | null;
   rent_price: number;
   status: string;
-  section_8_accepted?: boolean | null;
   photos?: string[] | null;
 }
 
@@ -65,12 +64,6 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit }) 
           <Badge className={cn('absolute top-2 left-2', statusInfo.className)}>
             {statusInfo.label}
           </Badge>
-          {/* Section 8 Badge */}
-          {property.section_8_accepted && (
-            <Badge variant="secondary" className="absolute top-2 right-2">
-              Section 8
-            </Badge>
-          )}
         </div>
       </Link>
 

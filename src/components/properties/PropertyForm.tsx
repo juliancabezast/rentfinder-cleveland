@@ -42,12 +42,8 @@ const propertySchema = z.object({
   square_feet: z.coerce.number().optional(),
   property_type: z.string().optional(),
   rent_price: z.coerce.number().min(1, 'Rent price is required'),
-  deposit_amount: z.coerce.number().optional(),
-  application_fee: z.coerce.number().optional(),
   status: z.string(),
   coming_soon_date: z.string().optional(),
-  section_8_accepted: z.boolean(),
-  hud_inspection_ready: z.boolean(),
   video_tour_url: z.string().url().optional().or(z.literal('')),
   virtual_tour_url: z.string().url().optional().or(z.literal('')),
   description: z.string().optional(),
@@ -85,12 +81,8 @@ interface Property {
   square_feet?: number | null;
   property_type?: string | null;
   rent_price: number;
-  deposit_amount?: number | null;
-  application_fee?: number | null;
   status: string;
   coming_soon_date?: string | null;
-  section_8_accepted?: boolean | null;
-  hud_inspection_ready?: boolean | null;
   photos?: string[] | null;
   video_tour_url?: string | null;
   virtual_tour_url?: string | null;
@@ -155,12 +147,8 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
       square_feet: property?.square_feet || undefined,
       property_type: property?.property_type || '',
       rent_price: property?.rent_price || 0,
-      deposit_amount: property?.deposit_amount || undefined,
-      application_fee: property?.application_fee || undefined,
       status: property?.status || 'available',
       coming_soon_date: property?.coming_soon_date || '',
-      section_8_accepted: property?.section_8_accepted ?? true,
-      hud_inspection_ready: property?.hud_inspection_ready ?? true,
       video_tour_url: property?.video_tour_url || '',
       virtual_tour_url: property?.virtual_tour_url || '',
       description: property?.description || '',
@@ -222,8 +210,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
     property_type: form.getValues('property_type') || 'unknown',
     rent_price: form.getValues('rent_price') || 'unknown',
     pet_policy: form.getValues('pet_policy') || 'not specified',
-    section_8: form.getValues('section_8_accepted') ? 'accepted' : 'not accepted',
-    hud_ready: form.getValues('hud_inspection_ready') ? 'yes' : 'no',
     amenities: amenities.map(a => amenitiesList.find(al => al.id === a)?.label || a).join(', ') || 'none listed',
   });
 
@@ -336,8 +322,6 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
     property_type: 'Property Type',
     pet_policy: 'Pet Policy',
     description: 'Description',
-    deposit_amount: 'Security Deposit',
-    application_fee: 'Application Fee',
   };
 
   const handleZillowSync = async () => {
@@ -370,8 +354,6 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
         { key: 'square_feet', formKey: 'square_feet' },
         { key: 'rent_price', formKey: 'rent_price' },
         { key: 'property_type', formKey: 'property_type' },
-        { key: 'deposit_amount', formKey: 'deposit_amount' },
-        { key: 'application_fee', formKey: 'application_fee' },
         { key: 'description', formKey: 'description' },
         { key: 'pet_policy', formKey: 'pet_policy' },
       ];
@@ -409,7 +391,7 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
 
     for (const [key, { incoming }] of Object.entries(zillowChanges)) {
       if (zillowApprovals[key]) {
-        const numericFields = ['bedrooms', 'bathrooms', 'square_feet', 'rent_price', 'deposit_amount', 'application_fee'];
+        const numericFields = ['bedrooms', 'bathrooms', 'square_feet', 'rent_price'];
         if (numericFields.includes(key)) {
           form.setValue(key as keyof PropertyFormData, parseFloat(incoming) as any);
         } else {
@@ -444,12 +426,8 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
         square_feet: data.square_feet || null,
         property_type: data.property_type || null,
         rent_price: data.rent_price,
-        deposit_amount: data.deposit_amount || null,
-        application_fee: data.application_fee || null,
         status: data.status,
         coming_soon_date: data.status === 'coming_soon' ? data.coming_soon_date : null,
-        section_8_accepted: data.section_8_accepted,
-        hud_inspection_ready: data.hud_inspection_ready,
         video_tour_url: data.video_tour_url || null,
         virtual_tour_url: data.virtual_tour_url || null,
         description: data.description || null,
@@ -549,7 +527,7 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
                   <div className="space-y-2">
                     {Object.entries(zillowChanges).map(([key, { current, incoming }]) => {
                       const label = fieldLabels[key] || key;
-                      const isMonetary = ['rent_price', 'deposit_amount', 'application_fee'].includes(key);
+                      const isMonetary = ['rent_price'].includes(key);
                       const displayCurrent = isMonetary && current !== '(empty)' ? `$${current}` : current;
                       const displayIncoming = isMonetary ? `$${incoming}` : incoming;
                       const truncCurrent = displayCurrent.length > 40 ? displayCurrent.substring(0, 40) + '...' : displayCurrent;
@@ -774,33 +752,6 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="deposit_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Security Deposit</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="0" step="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="application_fee"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Application Fee</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="0" step="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </CardContent>
         </Card>
 
@@ -850,40 +801,6 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
                 )}
               />
             )}
-          </CardContent>
-        </Card>
-
-        {/* Section 8 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Section 8</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="section_8_accepted"
-              render={({ field }) => (
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <FormLabel className="font-normal">Section 8 Accepted</FormLabel>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="hud_inspection_ready"
-              render={({ field }) => (
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <FormLabel className="font-normal">HUD Inspection Ready</FormLabel>
-                </FormItem>
-              )}
-            />
           </CardContent>
         </Card>
 

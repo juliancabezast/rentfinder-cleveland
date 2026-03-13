@@ -96,9 +96,6 @@ const PropertySelectCard: React.FC<{
           <Badge className="bg-[#4F46E5] text-white text-[10px] h-5">
             ${property.rent_price?.toLocaleString()}/mo
           </Badge>
-          {property.section_8_accepted && (
-            <Badge variant="secondary" className="text-[10px] h-5">Section 8</Badge>
-          )}
         </div>
       </div>
       <Badge variant="outline" className="shrink-0 text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50">
@@ -529,9 +526,6 @@ const ScheduleShowing: React.FC = () => {
                     <Badge variant="outline" className="gap-1">
                       <SquareIcon className="h-3 w-3" /> {property.square_feet} sqft
                     </Badge>
-                  )}
-                  {property.section_8_accepted && (
-                    <Badge variant="secondary">Section 8 OK</Badge>
                   )}
                 </div>
               </CardContent>

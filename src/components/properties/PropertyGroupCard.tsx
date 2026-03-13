@@ -47,7 +47,6 @@ export interface PropertyGroupData {
   zip_code: string;
   property_type: string | null;
   cover_photo: string | null;
-  section_8_accepted: boolean | null;
   properties: PropertyGroupUnit[];
 }
 
@@ -113,12 +112,6 @@ export const PropertyGroupCard: React.FC<PropertyGroupCardProps> = ({
           <Badge className="absolute top-2 left-2 bg-[#370d4b] text-white">
             {typeLabel}
           </Badge>
-          {/* Section 8 */}
-          {group.section_8_accepted && (
-            <Badge variant="secondary" className="absolute top-2 right-2">
-              Section 8
-            </Badge>
-          )}
         </div>
       </Link>
 

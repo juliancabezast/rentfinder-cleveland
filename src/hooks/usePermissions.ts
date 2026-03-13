@@ -103,9 +103,9 @@ const createPermissions = (role: AppRole | null): Permissions => {
     canViewCostDashboard: isAdminOrAbove,
     canViewSystemLogs: isAdminOrAbove,
 
-    // Properties
-    canCreateProperty: isEditorOrAbove,
-    canEditProperty: isEditorOrAbove,
+    // Properties (admin-only for modifications)
+    canCreateProperty: isAdminOrAbove,
+    canEditProperty: isAdminOrAbove,
     canDeleteProperty: isAdminOrAbove,
     canViewAllProperties: isEditorOrAbove || isLeasingAgent,
     canViewAssignedProperties: true, // All roles
