@@ -15,6 +15,8 @@ import {
   Pencil,
   Check,
   X,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,6 +135,7 @@ const PropertiesList: React.FC = () => {
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [checkOpen, setCheckOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     if (!userRecord?.organization_id) return;
@@ -180,6 +183,7 @@ const PropertiesList: React.FC = () => {
   }, [properties, statusFilter, searchQuery]);
 
   // Group by address for display
+  // A property is part of a "building" if it has a unit_number OR shares an address with others
   const grouped = useMemo(() => {
     const map = new Map<string, Property[]>();
     for (const p of filtered) {
@@ -187,14 +191,29 @@ const PropertiesList: React.FC = () => {
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(p);
     }
-    return Array.from(map.entries()).map(([, units]) => ({
-      address: units[0].address,
-      city: units[0].city,
-      state: units[0].state,
-      zip_code: units[0].zip_code,
-      units: units.sort((a, b) => (a.unit_number || "").localeCompare(b.unit_number || "")),
-    }));
+    return Array.from(map.entries()).map(([key, units]) => {
+      // Treat as multi-unit building if >1 unit OR any unit has a unit_number
+      const hasUnits = units.length > 1 || units.some((u) => u.unit_number);
+      return {
+        key,
+        address: units[0].address,
+        city: units[0].city,
+        state: units[0].state,
+        zip_code: units[0].zip_code,
+        isBuilding: hasUnits,
+        units: units.sort((a, b) => (a.unit_number || "").localeCompare(b.unit_number || "")),
+      };
+    });
   }, [filtered]);
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // Stats
   const stats = useMemo(() => {
@@ -389,52 +408,128 @@ const PropertiesList: React.FC = () => {
             <span />
           </div>
 
-          {grouped.map((group) => (
-            <div key={group.address + group.city} className="space-y-0.5">
-              {/* Building header — always show for multi-unit, skip for single-unit (address shown inline) */}
-              {group.units.length > 1 && (
-                <div className="px-3 pt-1 pb-0.5">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    {group.address} — {group.city}, {group.state} {group.zip_code}
-                  </span>
-                </div>
-              )}
+          {grouped.map((group) => {
+            const isExpanded = expandedGroups.has(group.key);
 
-              {group.units.map((unit) => {
-                const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
-                return (
-                  <div
-                    key={unit.id}
-                    className="grid grid-cols-[1fr,auto] sm:grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 items-center px-3 py-2 rounded-lg bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-border/30 transition-colors"
+            // Building with units: collapsible building row
+            if (group.isBuilding) {
+              const rentRange = (() => {
+                const rents = group.units.map((u) => u.rent_price).filter(Boolean);
+                if (rents.length === 0) return "—";
+                const min = Math.min(...rents);
+                const max = Math.max(...rents);
+                return min === max ? `$${min.toLocaleString()}` : `$${min.toLocaleString()} – $${max.toLocaleString()}`;
+              })();
+              const availableCount = group.units.filter((u) => u.status === "available").length;
+              const rentedCount = group.units.filter((u) => u.status === "rented").length;
+
+              return (
+                <div key={group.key} className="space-y-0.5">
+                  {/* Building row */}
+                  <button
+                    onClick={() => toggleGroup(group.key)}
+                    className="w-full grid grid-cols-[1fr,auto] sm:grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 items-center px-3 py-2.5 rounded-lg bg-white/70 hover:bg-white/90 backdrop-blur-sm border border-border/40 transition-colors text-left"
                   >
-                    {/* Address */}
-                    <div className="min-w-0">
-                      <Link to={`/properties/${unit.id}`}>
-                        <div className="flex items-center gap-2">
-                          <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
-                          <span className="font-medium text-sm truncate">
-                            {group.units.length > 1 ? `Unit ${unit.unit_number || "—"}` : unit.address}
-                          </span>
-                          {group.units.length === 1 && (
-                            <span className="text-xs text-muted-foreground hidden sm:inline">
-                              {unit.city}, {unit.state}
-                            </span>
-                          )}
+                    <div className="min-w-0 flex items-center gap-2">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
+                      <Building2 className="h-4 w-4 text-indigo-500 shrink-0" />
+                      <span className="font-semibold text-sm truncate">{group.address}</span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
+                        {group.city}, {group.state} {group.zip_code}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-1 shrink-0">
+                        {group.units.length} units
+                      </Badge>
+                    </div>
+                    {/* Desktop summary columns */}
+                    <div className="hidden sm:flex justify-center text-xs text-muted-foreground">—</div>
+                    <div className="hidden sm:flex justify-center text-xs text-muted-foreground">—</div>
+                    <div className="hidden sm:flex justify-center text-xs text-muted-foreground">—</div>
+                    <div className="hidden sm:flex justify-end text-sm font-semibold text-muted-foreground">{rentRange}</div>
+                    <div className="hidden sm:flex justify-center gap-1">
+                      {availableCount > 0 && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200">
+                          {availableCount} avail
+                        </Badge>
+                      )}
+                      {rentedCount > 0 && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-gray-50 text-gray-500 border-gray-200">
+                          {rentedCount} rented
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="hidden sm:block" />
+                    {/* Mobile summary */}
+                    <div className="sm:hidden text-xs text-muted-foreground text-right">
+                      <span className="font-semibold text-foreground">{rentRange}</span>
+                      {availableCount > 0 && <span className="ml-2 text-green-600">{availableCount} avail</span>}
+                    </div>
+                  </button>
+
+                  {/* Expanded units */}
+                  {isExpanded && group.units.map((unit) => {
+                    const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
+                    return (
+                      <div
+                        key={unit.id}
+                        className="grid grid-cols-[1fr,auto] sm:grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 items-center pl-10 pr-3 py-2 rounded-lg bg-white/40 hover:bg-white/70 backdrop-blur-sm border border-border/20 transition-colors ml-2"
+                      >
+                        <div className="min-w-0">
+                          <Link to={`/properties/${unit.id}`}>
+                            <div className="flex items-center gap-2">
+                              <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
+                              <span className="font-medium text-sm truncate">Unit {unit.unit_number || "—"}</span>
+                            </div>
+                          </Link>
+                          <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                            <Link to={`/properties/${unit.id}`} className="flex items-center gap-3">
+                              <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
+                              <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
+                            </Link>
+                            {permissions.canEditProperty ? (
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
+                                  <SelectTrigger className={cn("h-5 w-auto text-[10px] px-1.5 border rounded-full font-medium gap-0.5", s.badge)}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
+                                      const sc = STATUS_CONFIG[o.value];
+                                      return (
+                                        <SelectItem key={o.value} value={o.value}>
+                                          <span className="flex items-center gap-1.5">
+                                            <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
+                                            {o.label}
+                                          </span>
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : (
+                              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", s.badge)}>{s.label}</Badge>
+                            )}
+                          </div>
                         </div>
-                      </Link>
-                      {/* Mobile: show specs inline */}
-                      <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                        <Link to={`/properties/${unit.id}`} className="flex items-center gap-3">
-                          <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
-                          <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
-                        </Link>
-                        {permissions.canEditProperty ? (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <Select
-                              value={unit.status}
-                              onValueChange={(v) => updateProperty(unit.id, "status", v)}
-                            >
-                              <SelectTrigger className={cn("h-5 w-auto text-[10px] px-1.5 border rounded-full font-medium gap-0.5", s.badge)}>
+                        <div className="hidden sm:flex justify-center text-sm">
+                          <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
+                        </div>
+                        <div className="hidden sm:flex justify-center text-sm">
+                          <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
+                        </div>
+                        <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{unit.square_feet || "—"}</div>
+                        <div className="hidden sm:flex justify-end text-sm font-semibold">
+                          <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
+                        </div>
+                        <div className="hidden sm:flex justify-center">
+                          {permissions.canEditProperty ? (
+                            <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
+                              <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -451,94 +546,126 @@ const PropertiesList: React.FC = () => {
                                 })}
                               </SelectContent>
                             </Select>
-                          </div>
+                          ) : (
+                            <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>{s.label}</Badge>
+                          )}
+                        </div>
+                        {permissions.canEditProperty ? (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 hidden sm:flex" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
+                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
                         ) : (
-                          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", s.badge)}>{s.label}</Badge>
+                          <div className="hidden sm:block" />
+                        )}
+                        {permissions.canEditProperty && (
+                          <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
+                            <Pencil className="h-4 w-4 text-muted-foreground" />
+                          </Button>
                         )}
                       </div>
-                    </div>
+                    );
+                  })}
+                </div>
+              );
+            }
 
-                    {/* Beds */}
-                    <div className="hidden sm:flex justify-center text-sm">
-                      <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
-                    </div>
-
-                    {/* Baths */}
-                    <div className="hidden sm:flex justify-center text-sm">
-                      <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
-                    </div>
-
-                    {/* SqFt */}
-                    <div className="hidden sm:flex justify-center text-xs text-muted-foreground">
-                      {unit.square_feet || "—"}
-                    </div>
-
-                    {/* Rent */}
-                    <div className="hidden sm:flex justify-end text-sm font-semibold">
-                      <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
-                    </div>
-
-                    {/* Status */}
-                    <div className="hidden sm:flex justify-center">
+            // Single-unit: regular row
+            const unit = group.units[0];
+            const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
+            return (
+              <div key={group.key} className="space-y-0.5">
+                <div className="grid grid-cols-[1fr,auto] sm:grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 items-center px-3 py-2 rounded-lg bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-border/30 transition-colors">
+                  <div className="min-w-0">
+                    <Link to={`/properties/${unit.id}`}>
+                      <div className="flex items-center gap-2">
+                        <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
+                        <span className="font-medium text-sm truncate">{unit.address}</span>
+                        <span className="text-xs text-muted-foreground hidden sm:inline">
+                          {unit.city}, {unit.state}
+                        </span>
+                      </div>
+                    </Link>
+                    <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                      <Link to={`/properties/${unit.id}`} className="flex items-center gap-3">
+                        <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
+                        <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
+                      </Link>
                       {permissions.canEditProperty ? (
-                        <Select
-                          value={unit.status}
-                          onValueChange={(v) => updateProperty(unit.id, "status", v)}
-                        >
-                          <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
-                              const sc = STATUS_CONFIG[o.value];
-                              return (
-                                <SelectItem key={o.value} value={o.value}>
-                                  <span className="flex items-center gap-1.5">
-                                    <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
-                                    {o.label}
-                                  </span>
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
+                            <SelectTrigger className={cn("h-5 w-auto text-[10px] px-1.5 border rounded-full font-medium gap-0.5", s.badge)}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
+                                const sc = STATUS_CONFIG[o.value];
+                                return (
+                                  <SelectItem key={o.value} value={o.value}>
+                                    <span className="flex items-center gap-1.5">
+                                      <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
+                                      {o.label}
+                                    </span>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       ) : (
-                        <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>
-                          {s.label}
-                        </Badge>
+                        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", s.badge)}>{s.label}</Badge>
                       )}
                     </div>
-
-                    {/* Edit */}
+                  </div>
+                  <div className="hidden sm:flex justify-center text-sm">
+                    <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
+                  </div>
+                  <div className="hidden sm:flex justify-center text-sm">
+                    <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
+                  </div>
+                  <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{unit.square_feet || "—"}</div>
+                  <div className="hidden sm:flex justify-end text-sm font-semibold">
+                    <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
+                  </div>
+                  <div className="hidden sm:flex justify-center">
                     {permissions.canEditProperty ? (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 hidden sm:flex"
-                        onClick={() => { setEditingProperty(unit); setFormOpen(true); }}
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                      </Button>
+                      <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
+                        <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
+                            const sc = STATUS_CONFIG[o.value];
+                            return (
+                              <SelectItem key={o.value} value={o.value}>
+                                <span className="flex items-center gap-1.5">
+                                  <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
+                                  {o.label}
+                                </span>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
                     ) : (
-                      <div className="hidden sm:block" />
-                    )}
-
-                    {/* Mobile edit */}
-                    {permissions.canEditProperty && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 sm:hidden"
-                        onClick={() => { setEditingProperty(unit); setFormOpen(true); }}
-                      >
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                      </Button>
+                      <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>{s.label}</Badge>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          ))}
+                  {permissions.canEditProperty ? (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hidden sm:flex" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                  ) : (
+                    <div className="hidden sm:block" />
+                  )}
+                  {permissions.canEditProperty && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
+                      <Pencil className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

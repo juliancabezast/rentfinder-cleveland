@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PropertyForm } from '@/components/properties/PropertyForm';
+import { PhotoUpload } from '@/components/properties/PhotoUpload';
 import { ReassignLeadsDialog } from '@/components/properties/ReassignLeadsDialog';
 import {
   ArrowLeft,
@@ -54,6 +55,7 @@ import {
   Video,
   View,
   ArrowRightLeft,
+  Camera,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -140,6 +142,7 @@ const PropertyDetail: React.FC = () => {
   const [reassignOpen, setReassignOpen] = useState(false);
   const [allProperties, setAllProperties] = useState<any[]>([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [editingPhotos, setEditingPhotos] = useState(false);
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -298,6 +301,20 @@ const PropertyDetail: React.FC = () => {
     }
   };
 
+  const handlePhotosChange = async (newPhotos: string[]) => {
+    if (!property) return;
+    const { error } = await supabase
+      .from('properties')
+      .update({ photos: newPhotos, updated_at: new Date().toISOString() })
+      .eq('id', property.id);
+    if (error) {
+      toast.error('Failed to save photos');
+      return;
+    }
+    setProperty({ ...property, photos: newPhotos });
+    setCurrentPhotoIndex(0);
+  };
+
   const handleFormSuccess = () => {
     setFormOpen(false);
     // Refetch property data
@@ -432,74 +449,114 @@ const PropertyDetail: React.FC = () => {
       {/* Photo Gallery */}
       <Card>
         <CardContent className="p-0">
-          {photos.length > 0 ? (
-            <div className="relative">
-              <div className="aspect-video bg-muted overflow-hidden rounded-t-lg">
-                <img
-                  src={photos[currentPhotoIndex]}
-                  alt={`Property photo ${currentPhotoIndex + 1}`}
-                  className="w-full h-full object-cover"
-                />
+          {editingPhotos ? (
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Manage Photos</span>
+                <Button variant="outline" size="sm" onClick={() => setEditingPhotos(false)}>
+                  Done
+                </Button>
               </div>
-              {photos.length > 1 && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2"
-                    onClick={() =>
-                      setCurrentPhotoIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1))
-                    }
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                    onClick={() =>
-                      setCurrentPhotoIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1))
-                    }
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                    {photos.map((_, i) => (
-                      <button
-                        key={i}
-                        className={cn(
-                          'w-2 h-2 rounded-full transition-colors',
-                          i === currentPhotoIndex ? 'bg-white' : 'bg-white/50'
-                        )}
-                        onClick={() => setCurrentPhotoIndex(i)}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
+              <PhotoUpload
+                photos={photos}
+                onChange={handlePhotosChange}
+                propertyId={property.id}
+              />
             </div>
           ) : (
-            <div className="aspect-video bg-muted flex items-center justify-center rounded-t-lg">
-              <Home className="h-16 w-16 text-muted-foreground/50" />
-            </div>
-          )}
-          
-          {/* Thumbnails */}
-          {photos.length > 1 && (
-            <div className="flex gap-2 p-2 overflow-x-auto">
-              {photos.map((photo, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPhotoIndex(i)}
-                  className={cn(
-                    'w-16 h-16 rounded overflow-hidden shrink-0 border-2 transition-colors',
-                    i === currentPhotoIndex ? 'border-primary' : 'border-transparent'
+            <>
+              {photos.length > 0 ? (
+                <div className="relative">
+                  <div className="aspect-video bg-muted overflow-hidden rounded-t-lg">
+                    <img
+                      src={photos[currentPhotoIndex]}
+                      alt={`Property photo ${currentPhotoIndex + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {permissions.canUploadPhotos && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="absolute top-2 right-2 gap-1.5 opacity-80 hover:opacity-100"
+                      onClick={() => setEditingPhotos(true)}
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                      Edit Photos
+                    </Button>
                   )}
-                >
-                  <img src={photo} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
+                  {photos.length > 1 && (
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="absolute left-2 top-1/2 -translate-y-1/2"
+                        onClick={() =>
+                          setCurrentPhotoIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1))
+                        }
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        onClick={() =>
+                          setCurrentPhotoIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1))
+                        }
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                        {photos.map((_, i) => (
+                          <button
+                            key={i}
+                            className={cn(
+                              'w-2 h-2 rounded-full transition-colors',
+                              i === currentPhotoIndex ? 'bg-white' : 'bg-white/50'
+                            )}
+                            onClick={() => setCurrentPhotoIndex(i)}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="aspect-video bg-muted flex flex-col items-center justify-center rounded-t-lg gap-3">
+                  <Home className="h-16 w-16 text-muted-foreground/50" />
+                  {permissions.canUploadPhotos && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => setEditingPhotos(true)}
+                    >
+                      <Camera className="h-4 w-4" />
+                      Add Photos
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Thumbnails */}
+              {photos.length > 1 && (
+                <div className="flex gap-2 p-2 overflow-x-auto">
+                  {photos.map((photo, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPhotoIndex(i)}
+                      className={cn(
+                        'w-16 h-16 rounded overflow-hidden shrink-0 border-2 transition-colors',
+                        i === currentPhotoIndex ? 'border-primary' : 'border-transparent'
+                      )}
+                    >
+                      <img src={photo} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
