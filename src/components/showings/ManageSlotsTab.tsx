@@ -239,9 +239,9 @@ export const ManageSlotsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* ── Top controls ─────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           onClick={() => {
             setEditData(null);

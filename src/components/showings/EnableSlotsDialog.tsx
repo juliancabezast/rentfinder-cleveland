@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { format, isBefore, startOfDay } from "date-fns";
-import { CalendarIcon, Loader2, MapPin } from "lucide-react";
+import { CalendarIcon, Loader2, MapPin, Lock, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -85,6 +85,19 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   const [loadingProps, setLoadingProps] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Edit mode: track which cities originally had slots and which have bookings
+  const [originalCities, setOriginalCities] = useState<Set<string>>(new Set());
+  const [citiesWithBookings, setCitiesWithBookings] = useState<Set<string>>(new Set());
+  // Cities that were deselected (will be removed)
+  const removedCities = useMemo(() => {
+    if (!editData) return new Set<string>();
+    const removed = new Set<string>();
+    originalCities.forEach((c) => {
+      if (!selectedCities.has(c)) removed.add(c);
+    });
+    return removed;
+  }, [editData, originalCities, selectedCities]);
+
   const { getSetting, updateSetting } = useOrganizationSettings();
 
   const isEditMode = !!editData;
@@ -105,6 +118,11 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   );
 
   const toggleCity = (city: string) => {
+    // In edit mode, prevent deselecting cities with bookings
+    if (isEditMode && citiesWithBookings.has(city) && selectedCities.has(city)) {
+      toast.error(`Can't remove ${city} — it has booked showings on this date`);
+      return;
+    }
     setSelectedCities((prev) => {
       const next = new Set(prev);
       if (next.has(city)) next.delete(city);
@@ -118,6 +136,8 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
     if (!open || !orgId) return;
     (async () => {
       setLoadingProps(true);
+      setOriginalCities(new Set());
+      setCitiesWithBookings(new Set());
 
       const { data: propData } = await supabase
         .from("properties")
@@ -150,21 +170,27 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           }
         }
 
-        // In edit mode: detect ALL cities that have slots for this date
+        // In edit mode: detect ALL cities and which have bookings
         const { data: slotData } = await supabase
           .from("showing_available_slots")
-          .select("property_id, properties(city)")
+          .select("property_id, is_booked, properties(city)")
           .eq("organization_id", orgId)
           .eq("slot_date", editData.date)
           .eq("is_enabled", true);
 
         if (slotData && slotData.length > 0) {
           const slotCities = new Set<string>();
+          const bookedCities = new Set<string>();
           slotData.forEach((s: any) => {
             const c = s.properties?.city;
-            if (c) slotCities.add(c);
+            if (c) {
+              slotCities.add(c);
+              if (s.is_booked) bookedCities.add(c);
+            }
           });
           setSelectedCities(slotCities);
+          setOriginalCities(new Set(slotCities));
+          setCitiesWithBookings(bookedCities);
         }
       } else {
         setSelectedDate(prefilledDate || undefined);
@@ -217,7 +243,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
       return;
     }
     if (cityProperties.length === 0) {
-      toast.error("No available properties in this city");
+      toast.error("No available properties in the selected cities");
       return;
     }
     if (previewSlots.length === 0) {
@@ -229,24 +255,51 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
 
-      // In edit mode, disable all unbooked slots for this date first
       if (isEditMode) {
-        const { error: disableErr } = await supabase
-          .from("showing_available_slots")
-          .update({ is_enabled: false, updated_at: new Date().toISOString() })
-          .eq("organization_id", orgId)
-          .eq("slot_date", dateStr)
-          .eq("is_booked", false);
+        // Get property IDs for removed cities (to disable their slots)
+        const removedPropertyIds = properties
+          .filter((p) => removedCities.has(p.city))
+          .map((p) => p.id);
 
-        if (disableErr) {
-          console.error("Disable slots error:", disableErr);
-          toast.error(`Failed to update slots: ${disableErr.message}`);
-          setSubmitting(false);
-          return;
+        // Disable unbooked slots for removed cities
+        if (removedPropertyIds.length > 0) {
+          const { error: removeErr } = await supabase
+            .from("showing_available_slots")
+            .update({ is_enabled: false, updated_at: new Date().toISOString() })
+            .eq("organization_id", orgId)
+            .eq("slot_date", dateStr)
+            .eq("is_booked", false)
+            .in("property_id", removedPropertyIds);
+
+          if (removeErr) {
+            console.error("Remove city slots error:", removeErr);
+            toast.error(`Failed to remove slots: ${removeErr.message}`);
+            setSubmitting(false);
+            return;
+          }
+        }
+
+        // Disable unbooked slots for remaining selected cities (to re-create with new times)
+        const selectedPropertyIds = cityProperties.map((p) => p.id);
+        if (selectedPropertyIds.length > 0) {
+          const { error: disableErr } = await supabase
+            .from("showing_available_slots")
+            .update({ is_enabled: false, updated_at: new Date().toISOString() })
+            .eq("organization_id", orgId)
+            .eq("slot_date", dateStr)
+            .eq("is_booked", false)
+            .in("property_id", selectedPropertyIds);
+
+          if (disableErr) {
+            console.error("Disable slots error:", disableErr);
+            toast.error(`Failed to update slots: ${disableErr.message}`);
+            setSubmitting(false);
+            return;
+          }
         }
       }
 
-      // Create slots for all properties in the selected city
+      // Create slots for all properties in the selected cities
       const rows = cityProperties.flatMap((prop) =>
         previewSlots.map((time) => ({
           organization_id: orgId,
@@ -275,11 +328,16 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
       await updateSetting("buffer_minutes", parseInt(buffer) || 0, "showings", "Buffer minutes between showings");
 
       const cityLabel = [...selectedCities].join(", ");
-      toast.success(
-        isEditMode
-          ? `Updated slots for ${format(selectedDate, "MMM d")} in ${cityLabel}`
-          : `${previewSlots.length} slots enabled for ${cityProperties.length} properties in ${cityLabel}`
-      );
+      const removedLabel = [...removedCities].join(", ");
+      if (isEditMode && removedCities.size > 0) {
+        toast.success(`Updated slots in ${cityLabel}. Removed ${removedLabel}.`);
+      } else {
+        toast.success(
+          isEditMode
+            ? `Updated slots for ${format(selectedDate, "MMM d")} in ${cityLabel}`
+            : `${previewSlots.length} slots enabled for ${cityProperties.length} properties in ${cityLabel}`
+        );
+      }
       onOpenChange(false);
       onSuccess();
     } catch (err: any) {
@@ -307,15 +365,15 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           <DialogTitle>{isEditMode ? "Edit Slots" : "Enable Showings"}</DialogTitle>
           <DialogDescription>
             {isEditMode
-              ? "Modify the time range for this date."
-              : "Pick a city, date, and hours. All properties in that city get slots."}
+              ? "Modify cities and time range for this date. Cities with bookings can't be removed."
+              : "Pick cities, date, and hours. All properties in those cities get slots."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-4">
           {/* City */}
           <div className="space-y-2">
-            <Label>City *</Label>
+            <Label>Cities *</Label>
             {loadingProps ? (
               <div className="flex justify-center py-3">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -325,6 +383,10 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
                 {cities.map((city) => {
                   const count = properties.filter((p) => p.city === city).length;
                   const isSelected = selectedCities.has(city);
+                  const hasBookings = isEditMode && citiesWithBookings.has(city);
+                  const wasOriginal = originalCities.has(city);
+                  const isRemoved = removedCities.has(city);
+
                   return (
                     <button
                       key={city}
@@ -334,23 +396,44 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
                         "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border",
                         isSelected
                           ? "bg-[#4F46E5] text-white border-[#4F46E5] shadow-sm"
-                          : "bg-muted/50 text-foreground border-border hover:border-[#4F46E5]/40 hover:bg-[#4F46E5]/5"
+                          : isRemoved
+                            ? "bg-red-50 text-red-600 border-red-200 line-through"
+                            : "bg-muted/50 text-foreground border-border hover:border-[#4F46E5]/40 hover:bg-[#4F46E5]/5"
                       )}
                     >
-                      <MapPin className="h-3.5 w-3.5" />
+                      {hasBookings && isSelected ? (
+                        <Lock className="h-3 w-3" />
+                      ) : (
+                        <MapPin className="h-3.5 w-3.5" />
+                      )}
                       {city}
                       <span className={cn(
                         "text-xs",
-                        isSelected ? "text-white/70" : "text-muted-foreground"
+                        isSelected ? "text-white/70" : isRemoved ? "text-red-400" : "text-muted-foreground"
                       )}>
                         ({count})
                       </span>
+                      {isSelected && wasOriginal && !hasBookings && (
+                        <X className="h-3 w-3 ml-0.5 opacity-60" />
+                      )}
                     </button>
                   );
                 })}
               </div>
             )}
+            {isEditMode && citiesWithBookings.size > 0 && (
+              <p className="text-xs text-slate-500 flex items-center gap-1">
+                <Lock className="h-3 w-3" /> Cities with booked showings can't be removed
+              </p>
+            )}
           </div>
+
+          {/* Removed cities warning */}
+          {isEditMode && removedCities.size > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <span className="font-medium">Will remove:</span> All unbooked slots in {[...removedCities].join(", ")} for this date
+            </div>
+          )}
 
           {/* Date */}
           <div className="space-y-2">
