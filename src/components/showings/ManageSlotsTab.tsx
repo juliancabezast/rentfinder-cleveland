@@ -16,7 +16,6 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Link2,
   Pencil,
   Plus,
   Trash2,
@@ -57,8 +56,18 @@ function formatTime(t: string) {
   return `${display}:${m} ${ampm}`;
 }
 
+interface ManageSlotsTabProps {
+  externalDialogOpen?: boolean;
+  onExternalDialogHandled?: () => void;
+  onTotalsChange?: (totals: { available: number; booked: number }) => void;
+}
+
 // ── Component ────────────────────────────────────────────────────────
-export const ManageSlotsTab: React.FC = () => {
+export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
+  externalDialogOpen,
+  onExternalDialogHandled,
+  onTotalsChange,
+}) => {
   const { userRecord } = useAuth();
   const { toast } = useToast();
 
@@ -71,6 +80,16 @@ export const ManageSlotsTab: React.FC = () => {
   const [deletingDate, setDeletingDate] = useState<string | null>(null);
 
   const orgId = userRecord?.organization_id;
+
+  // Open dialog when triggered from parent
+  useEffect(() => {
+    if (externalDialogOpen) {
+      setEditData(null);
+      setPrefilledDate(undefined);
+      setDialogOpen(true);
+      onExternalDialogHandled?.();
+    }
+  }, [externalDialogOpen]);
 
   // Week dates (7 days starting from today + weekOffset*7)
   const weekDates = useMemo(() => {
@@ -195,6 +214,11 @@ export const ManageSlotsTab: React.FC = () => {
     return { available, booked };
   }, [slotData]);
 
+  // Push totals to parent
+  useEffect(() => {
+    onTotalsChange?.(totals);
+  }, [totals.available, totals.booked]);
+
   // ── Delete all unbooked slots for a date ───────────────────────────
   const handleDeleteDate = async (date: string) => {
     if (!orgId) return;
@@ -240,41 +264,6 @@ export const ManageSlotsTab: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      {/* ── Top controls ─────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          onClick={() => {
-            setEditData(null);
-            setPrefilledDate(undefined);
-            setDialogOpen(true);
-          }}
-          className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Enable Slots
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const url = `${window.location.origin}/p/book-showing`;
-            navigator.clipboard.writeText(url);
-            toast({ title: "Booking link copied!", description: url });
-          }}
-        >
-          <Link2 className="h-4 w-4 mr-1.5" />
-          Copy Booking Link
-        </Button>
-        <div className="flex gap-2 ml-auto">
-          <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
-            {totals.available} Available
-          </Badge>
-          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-            {totals.booked} Booked
-          </Badge>
-        </div>
-      </div>
-
       {/* ── Week navigation ──────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={() => setWeekOffset((w) => w - 1)} disabled={weekOffset <= 0}>

@@ -51,11 +51,17 @@ function formatTime(t: string) {
   return `${display}:${m} ${ampm}`;
 }
 
-function getPhotoUrl(property: Property): string | null {
+function getPhotoUrl(property: Property, index = 0): string | null {
   if (!property?.photos) return null;
   const photos = property.photos as any;
-  if (Array.isArray(photos) && photos.length > 0) {
-    return typeof photos[0] === "string" ? photos[0] : photos[0]?.url || null;
+  if (Array.isArray(photos) && photos.length > index) {
+    const photo = photos[index];
+    return typeof photo === "string" ? photo : photo?.url || null;
+  }
+  // Fallback to first photo if requested index doesn't exist
+  if (Array.isArray(photos) && photos.length > 0 && index > 0) {
+    const photo = photos[0];
+    return typeof photo === "string" ? photo : photo?.url || null;
   }
   return null;
 }
@@ -225,13 +231,23 @@ const BuildingSelectCard: React.FC<{
 const UnitSelectCard: React.FC<{
   property: PropertyWithSlots;
   onClick: () => void;
-}> = ({ property, onClick }) => (
+}> = ({ property, onClick }) => {
+  // Show 2nd photo (interior) if available, fallback to 1st
+  const unitPhoto = getPhotoUrl(property, 1);
+
+  return (
   <button
     onClick={onClick}
     className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-all text-left"
   >
-    <div className="h-12 w-12 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
-      <Home className="h-5 w-5 text-[#4F46E5]" />
+    <div className="h-14 w-20 rounded-lg overflow-hidden shrink-0 bg-muted">
+      {unitPhoto ? (
+        <img src={unitPhoto} alt={property.unit_number || "Unit"} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <Home className="h-5 w-5 text-muted-foreground/50" />
+        </div>
+      )}
     </div>
     <div className="flex-1 min-w-0">
       <p className="font-semibold text-sm">
@@ -251,7 +267,8 @@ const UnitSelectCard: React.FC<{
     </div>
     <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
   </button>
-);
+  );
+};
 
 /* ================================================================ */
 
@@ -260,6 +277,7 @@ const ScheduleShowing: React.FC = () => {
   const isMultiMode = !propertyId;
 
   // Multi-mode: property selection
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null); // address key
   const [properties, setProperties] = useState<PropertyWithSlots[]>([]);
@@ -400,8 +418,9 @@ const ScheduleShowing: React.FC = () => {
         ? sorted[0].split("|")
         : [format(new Date(), "yyyy-MM-dd"), "09:00:00"];
 
-      // Spots on the nearest available day (unique times, capped at 3 for urgency)
-      const spotsNextDay = Math.min(sorted.filter((p) => p.startsWith(nextDate + "|")).length, 3);
+      // Spots on the nearest available day — display a small urgency number (1–3)
+      const realSpots = sorted.filter((p) => p.startsWith(nextDate + "|")).length;
+      const spotsNextDay = realSpots === 0 ? 1 : Math.max(1, ((hashStr(address) % 3) + 1));
 
       // Rent range
       const rents = units.map((u) => u.rent_price).filter((r): r is number => r != null).sort((a, b) => a - b);
@@ -425,6 +444,49 @@ const ScheduleShowing: React.FC = () => {
       };
     });
   }, [properties, rawSlots]);
+
+  // Unique cities with property counts and representative photo
+  const cityGroups = useMemo(() => {
+    const map = new Map<string, { count: number; photoUrl: string | null; rentMin: number | null; rentMax: number | null }>();
+    buildingGroups.forEach((b) => {
+      const city = b.city || "Other";
+      const existing = map.get(city);
+      const rents = b.units.map((u) => u.rent_price).filter((r): r is number => r != null);
+      if (!existing) {
+        map.set(city, {
+          count: 1,
+          photoUrl: b.photoUrl,
+          rentMin: rents.length > 0 ? Math.min(...rents) : null,
+          rentMax: rents.length > 0 ? Math.max(...rents) : null,
+        });
+      } else {
+        existing.count += 1;
+        if (!existing.photoUrl && b.photoUrl) existing.photoUrl = b.photoUrl;
+        if (rents.length > 0) {
+          const minR = Math.min(...rents);
+          const maxR = Math.max(...rents);
+          existing.rentMin = existing.rentMin != null ? Math.min(existing.rentMin, minR) : minR;
+          existing.rentMax = existing.rentMax != null ? Math.max(existing.rentMax, maxR) : maxR;
+        }
+      }
+    });
+    return [...map.entries()]
+      .map(([city, info]) => ({ city, ...info }))
+      .sort((a, b) => b.count - a.count);
+  }, [buildingGroups]);
+
+  // Auto-select city if only one
+  useEffect(() => {
+    if (isMultiMode && !propertiesLoading && cityGroups.length === 1 && !selectedCity) {
+      setSelectedCity(cityGroups[0].city);
+    }
+  }, [cityGroups, propertiesLoading, isMultiMode, selectedCity]);
+
+  // Filter buildings by selected city
+  const filteredBuildings = useMemo(
+    () => selectedCity ? buildingGroups.filter((b) => (b.city || "Other") === selectedCity) : buildingGroups,
+    [buildingGroups, selectedCity]
+  );
 
   // Units in the currently selected building
   const selectedBuildingUnits = useMemo(
@@ -587,6 +649,7 @@ const ScheduleShowing: React.FC = () => {
     setProperty(null);
     setSelectedPropertyId(null);
     setSelectedBuilding(null);
+    setSelectedCity(cityGroups.length > 1 ? null : selectedCity);
     setPropertyError(null);
     setSelectedDate(undefined);
     setSelectedTime(null);
@@ -635,6 +698,7 @@ const ScheduleShowing: React.FC = () => {
       setProperty(null);
       setSelectedPropertyId(null);
       setSelectedBuilding(null);
+      setSelectedCity(cityGroups.length > 1 ? null : selectedCity);
       setAvailableDates([]);
       setTimeSlots([]);
     }
@@ -691,21 +755,22 @@ const ScheduleShowing: React.FC = () => {
 
       <div className="max-w-[640px] mx-auto px-4 -mt-5 space-y-6 relative z-10">
 
-        {/* Multi-mode: Building Selection → Unit Selection */}
-        {isMultiMode && !property && !selectedBuilding && (
+        {/* Multi-mode Step 1: City Selector */}
+        {isMultiMode && !property && !selectedBuilding && !selectedCity && (
           <Card className="shadow-md">
-            <CardContent className="p-4 space-y-4">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-[#4F46E5]" />
-                <h3 className="font-semibold text-sm text-muted-foreground">Available Properties</h3>
+            <CardContent className="p-5 space-y-4">
+              <div className="text-center space-y-1">
+                <MapPin className="h-6 w-6 text-[#4F46E5] mx-auto" />
+                <h3 className="font-semibold text-base">Where are you looking?</h3>
+                <p className="text-xs text-muted-foreground">Select a city to see available homes</p>
               </div>
               {propertiesLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-24 rounded-xl" />
+                <div className="grid grid-cols-2 gap-3">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <Skeleton key={i} className="h-36 rounded-2xl" />
                   ))}
                 </div>
-              ) : buildingGroups.length === 0 ? (
+              ) : cityGroups.length === 0 ? (
                 <div className="text-center py-6">
                   <Home className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">
@@ -716,13 +781,82 @@ const ScheduleShowing: React.FC = () => {
                   </p>
                 </div>
               ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {cityGroups.map((cg) => (
+                    <button
+                      key={cg.city}
+                      onClick={() => setSelectedCity(cg.city)}
+                      className="relative group rounded-2xl overflow-hidden border border-white/60 shadow-sm hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-left"
+                    >
+                      {/* Photo background */}
+                      <div className="h-36 w-full bg-gradient-to-br from-indigo-100 to-indigo-50">
+                        {cg.photoUrl && (
+                          <img
+                            src={cg.photoUrl}
+                            alt={cg.city}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        )}
+                      </div>
+                      {/* Dark gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      {/* Content */}
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <h4 className="text-white font-bold text-base leading-tight drop-shadow-sm">
+                          {cg.city}
+                        </h4>
+                        <p className="text-white/80 text-[11px] mt-0.5">
+                          {cg.count} {cg.count === 1 ? "property" : "properties"}
+                        </p>
+                        {cg.rentMin != null && (
+                          <p className="text-[#ffb22c] text-[11px] font-semibold mt-0.5">
+                            From ${cg.rentMin.toLocaleString()}/mo
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Multi-mode Step 2: Building Selection (filtered by city) */}
+        {isMultiMode && !property && !selectedBuilding && selectedCity && (
+          <Card className="shadow-md">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-[#4F46E5]" />
+                <h3 className="font-semibold text-sm text-muted-foreground">
+                  Properties in {selectedCity}
+                </h3>
+                {cityGroups.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto text-xs"
+                    onClick={() => setSelectedCity(null)}
+                  >
+                    <ArrowLeft className="h-3 w-3 mr-1" />
+                    Cities
+                  </Button>
+                )}
+              </div>
+              {filteredBuildings.length === 0 ? (
+                <div className="text-center py-6">
+                  <Home className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    No properties available in {selectedCity} right now.
+                  </p>
+                </div>
+              ) : (
                 <div className="space-y-2">
-                  {buildingGroups.map((bldg) => (
+                  {filteredBuildings.map((bldg) => (
                     <BuildingSelectCard
                       key={bldg.address}
                       building={bldg}
                       onClick={() => {
-                        // If only 1 unit, skip unit picker and go straight to property
                         if (bldg.units.length === 1) {
                           setSelectedPropertyId(bldg.units[0].id);
                         } else {
@@ -1158,16 +1292,16 @@ const ScheduleShowing: React.FC = () => {
         </p>
       </div>
 
-      {/* Floating Call Now Button — fixed bottom, full-width on mobile, pulse animation */}
+      {/* Floating Call Now Button — always visible, safe area aware */}
       {callNowConfig?.enabled && callNowConfig.phone && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-4 bg-gradient-to-t from-black/10 to-transparent pointer-events-none">
+        <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.08) 60%, transparent)" }}>
           <a
             href={`tel:${callNowConfig.phone}`}
-            className="pointer-events-auto mx-auto flex items-center justify-center gap-2.5 w-full max-w-[640px] py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg shadow-xl shadow-emerald-600/40 transition-all hover:scale-[1.02] active:scale-95 animate-call-pulse"
+            className="mx-auto flex items-center justify-center gap-2.5 w-full max-w-[640px] py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg shadow-xl shadow-emerald-600/40 transition-all hover:scale-[1.02] active:scale-95 animate-call-pulse"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             <Phone className="h-5 w-5 animate-wiggle" />
-            Talk to Us Now — We're Available!
+            Talk to Us — We're Available!
           </a>
           <style>{`
             @keyframes call-pulse {
