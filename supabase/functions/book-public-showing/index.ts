@@ -314,13 +314,12 @@ serve(async (req: Request) => {
 
     // ── Build scheduled_at datetime ───────────────────────────────────
     // slot_time is "HH:MM:SS", slot_date is "YYYY-MM-DD"
-    // Compute UTC offset dynamically from org timezone to handle DST correctly
+    // Compute UTC offset using difference method (works in any runtime tz)
     const orgTz = getTimezoneForCity(property?.city || null);
-    const localDt = new Date(`${slot_date}T12:00:00Z`);
-    const localStr = localDt.toLocaleString("en-US", { timeZone: orgTz });
-    const localParsed = new Date(localStr);
-    const offsetMs = localDt.getTime() - localParsed.getTime();
-    const offsetHours = Math.round(offsetMs / 3600000);
+    const refDate = new Date(`${slot_date}T12:00:00Z`);
+    const utcRepr = new Date(refDate.toLocaleString("en-US", { timeZone: "UTC" }));
+    const tzRepr = new Date(refDate.toLocaleString("en-US", { timeZone: orgTz }));
+    const offsetHours = Math.round((tzRepr.getTime() - utcRepr.getTime()) / 3600000);
     const offsetSign = offsetHours >= 0 ? "+" : "-";
     const offsetAbs = String(Math.abs(offsetHours)).padStart(2, "0");
     const tzOffset = `${offsetSign}${offsetAbs}:00`;

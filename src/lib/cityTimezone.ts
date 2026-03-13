@@ -45,17 +45,19 @@ export function getTimezoneForCity(city: string | null | undefined): string {
   return CITY_TZ[city] || CITY_TZ[city.trim()] || DEFAULT_TZ;
 }
 
-/** Build a timezone-aware ISO string from a date + time in a given IANA timezone */
+/** Build a timezone-aware ISO string from a date + time in a given IANA timezone.
+ *  Works correctly regardless of the browser/runtime's local timezone. */
 export function buildScheduledAt(dateStr: string, slotTime: string, timezone: string): string {
-  const localDt = new Date(`${dateStr}T12:00:00Z`);
-  const localStr = localDt.toLocaleString("en-US", { timeZone: timezone });
-  const localParsed = new Date(localStr);
-  const offsetMs = localDt.getTime() - localParsed.getTime();
-  const offsetHours = Math.round(offsetMs / 3600000);
+  // Use a reference date to compute the UTC offset for the target timezone.
+  // Both toLocaleString results are parsed in the browser's local tz,
+  // so the browser tz cancels out and the DIFFERENCE is the true offset.
+  const refDate = new Date(`${dateStr}T12:00:00Z`);
+  const utcRepr = new Date(refDate.toLocaleString("en-US", { timeZone: "UTC" }));
+  const tzRepr = new Date(refDate.toLocaleString("en-US", { timeZone: timezone }));
+  const offsetHours = Math.round((tzRepr.getTime() - utcRepr.getTime()) / 3600000);
   const offsetSign = offsetHours >= 0 ? "+" : "-";
   const offsetAbs = String(Math.abs(offsetHours)).padStart(2, "0");
-  const tzOffset = `${offsetSign}${offsetAbs}:00`;
-  return `${dateStr}T${slotTime}${tzOffset}`;
+  return `${dateStr}T${slotTime}${offsetSign}${offsetAbs}:00`;
 }
 
 /** Format a UTC/ISO timestamp in the given timezone as "h:mm AM/PM" */
