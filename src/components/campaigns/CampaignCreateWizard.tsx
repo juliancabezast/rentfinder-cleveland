@@ -52,6 +52,10 @@ const COLUMN_ALIASES: Record<string, string> = {
   lname: "last_name", apellido: "last_name",
   "full name": "full_name", fullname: "full_name", full_name: "full_name",
   name: "full_name", contact: "full_name", "nombre completo": "full_name",
+  "contact name": "full_name", contact_name: "full_name", "contact_name": "full_name",
+  "tenant name": "full_name", tenant_name: "full_name", tenant: "full_name",
+  "lead name": "full_name", lead_name: "full_name", prospect: "full_name",
+  "prospect name": "full_name", prospect_name: "full_name",
 };
 
 interface ParsedLead {
