@@ -30,13 +30,13 @@ import { format } from "date-fns";
 
 // Agent name mapping (same as LeadsList)
 const AGENT_NAMES: Record<string, string> = {
-  aaron: "Aaron", esther: "Esther", nehemiah: "Nehemiah", ruth: "Ruth",
+  aaron: "Aaron", esther: "Esther", nehemiah: "Nehemiah",
   elijah: "Elijah", samuel: "Samuel", zacchaeus: "Zacchaeus",
-  main_inbound: "Aaron", bland_call_webhook: "Aaron", sms_inbound: "Ruth",
+  main_inbound: "Aaron", bland_call_webhook: "Aaron",
   hemlane_parser: "Esther", scoring: "Nehemiah", transcript_analyst: "Nehemiah",
   task_dispatcher: "Nehemiah", recapture: "Elijah", showing_confirmation: "Samuel",
-  "twilio-inbound": "Aaron", "sms-inbound": "Ruth", "hemlane-parser": "Esther",
-  "notification-dispatcher": "Nehemiah", campaign: "Elijah", campaign_sms: "Ruth",
+  "twilio-inbound": "Aaron", "hemlane-parser": "Esther",
+  "notification-dispatcher": "Nehemiah", campaign: "Elijah",
   "welcome-sequence": "Elijah", "campaign-voice": "Elijah",
 };
 

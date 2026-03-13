@@ -67,8 +67,8 @@ Every table has `organization_id`. All RLS policies scope by user's org. **Never
 - **lucide-react `Map` icon**: Always import as `Map as MapIcon` — bare `import { Map }` shadows the native `Map` constructor and causes `TypeError: Map is not a constructor` at runtime.
 
 ### AI Agents (Biblical Names)
-12 operational agents organized by department:
-- **Recepción**: Aaron (inbound calls), Deborah (call processor + smart matching), Ruth (SMS)
+11 operational agents organized by department (Ruth/SMS removed — will be replaced by n8n):
+- **Recepción**: Aaron (inbound calls), Deborah (call processor + smart matching)
 - **Evaluación**: Daniel (AI scoring, Fair Housing compliant), Isaiah (transcript analysis)
 - **Operaciones**: Nehemiah (sole dispatcher, cron every 5 min)
 - **Ventas**: Elijah (outbound sales), Samuel (showing lifecycle)

@@ -74,9 +74,6 @@ verify_jwt = false
 [functions.agent-post-showing]
 verify_jwt = false
 
-[functions.agent-sms-inbound]
-verify_jwt = false
-
 # Sprint 4 Edge Functions
 [functions.agent-transcript-analyst]
 verify_jwt = false

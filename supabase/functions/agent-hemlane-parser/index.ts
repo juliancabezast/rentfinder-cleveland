@@ -1112,24 +1112,7 @@ serve(async (req: Request) => {
             scheduleAt.setMinutes(scheduleAt.getMinutes() + 2);
             const leadPhone = lead.phone ? formatPhoneE164(lead.phone) : null;
 
-            if (leadPhone) {
-              // Has phone → Ruth SMS
-              await supabase.from("agent_tasks").insert({
-                organization_id: organizationId,
-                lead_id: result.leadId,
-                agent_type: "sms_inbound",
-                action_type: "sms",
-                scheduled_for: scheduleAt.toISOString(),
-                status: "pending",
-                context: {
-                  task: "intro_missing_info",
-                  source: "esther_digest_auto",
-                  instruction: "Lead arrived from Hemlane digest without a name. Send a friendly intro SMS to gather their name and what property they are interested in.",
-                  parsed_property: lead.property || null,
-                },
-              });
-              digestFollowUps.push(`Ruth SMS → ${leadPhone}`);
-            } else if (lead.email) {
+            if (lead.email) {
               // No phone, has email → send email
               const propertyMention = lead.property
                 ? ` about <strong>${lead.property}</strong>`
@@ -1222,6 +1205,20 @@ serve(async (req: Request) => {
             p_execution_ms: execMs,
           }),
         ]);
+      } catch (_) { /* non-blocking */ }
+
+      // ── Store inbound digest email as communication record ────────
+      try {
+        await supabase.from("communications").insert({
+          organization_id: organizationId,
+          recipient: fromEmail,
+          subject: subject || "(no subject)",
+          body: textBody || htmlBody || "",
+          channel: "email",
+          direction: "inbound",
+          status: "delivered",
+          sent_at: new Date().toISOString(),
+        });
       } catch (_) { /* non-blocking */ }
 
       return new Response(
@@ -1369,25 +1366,7 @@ serve(async (req: Request) => {
       const scheduleAt = new Date();
       scheduleAt.setMinutes(scheduleAt.getMinutes() + 2);
 
-      if (formattedPhone) {
-        // Has phone → Ruth sends intro SMS to get name
-        await supabase.from("agent_tasks").insert({
-          organization_id: organizationId,
-          lead_id: result.leadId,
-          agent_type: "sms_inbound",
-          action_type: "sms",
-          scheduled_for: scheduleAt.toISOString(),
-          status: "pending",
-          context: {
-            task: "intro_missing_info",
-            source: "esther_auto",
-            instruction: "Lead arrived from Hemlane without a name. Send a friendly intro SMS to gather their name and what property they are interested in.",
-            parsed_property: leadInfo.property || null,
-            parsed_message: leadInfo.message || null,
-          },
-        });
-        followUpActions.push("Ruth SMS scheduled");
-      } else if (leadInfo.email) {
+      if (leadInfo.email) {
         // No phone, has email → send email asking for name + phone
         const propertyMention = leadInfo.property
           ? ` about <strong>${leadInfo.property}</strong>`
@@ -1503,6 +1482,21 @@ serve(async (req: Request) => {
         }),
       ]);
     } catch (_) { /* non-blocking */ }
+
+    // ── Store inbound email as communication record ─────────────────
+    try {
+      await supabase.from("communications").insert({
+        organization_id: organizationId,
+        lead_id: result.leadId || null,
+        recipient: fromEmail,
+        subject: subject || "(no subject)",
+        body: textBody || htmlBody || "",
+        channel: "email",
+        direction: "inbound",
+        status: "received",
+        sent_at: new Date().toISOString(),
+      });
+    } catch (_) { /* non-blocking — don't fail the webhook */ }
 
     return new Response(
       JSON.stringify({

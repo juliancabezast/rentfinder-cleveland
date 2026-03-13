@@ -36,7 +36,7 @@ interface NavItem {
 // PIPELINE — core lead flow
 const pipelineNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { title: 'Leads', href: '/leads', icon: Users },
+  { title: 'Leads', href: '/leads', icon: Users, end: true },
   { title: 'Nurturing Leads', href: '/leads/nurturing', icon: Sparkles, permission: 'canEditLeadInfo' },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'Applicants', href: '/applicants', icon: UserCheck },

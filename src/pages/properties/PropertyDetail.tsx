@@ -884,10 +884,11 @@ const PropertyDetail: React.FC = () => {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Property</DialogTitle>
+            <DialogTitle>{property?.property_group_id ? 'Edit Unit' : 'Edit Property'}</DialogTitle>
           </DialogHeader>
           <PropertyForm
             property={property}
+            propertyGroupId={property?.property_group_id || undefined}
             onSuccess={handleFormSuccess}
             onCancel={() => setFormOpen(false)}
           />

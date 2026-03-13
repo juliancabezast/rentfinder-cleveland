@@ -50,13 +50,11 @@ const AGENT_NAMES: Record<string, string> = {
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
-  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
   bland_call_webhook: "Aaron",
-  sms_inbound: "Ruth",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -74,12 +72,11 @@ const AGENT_NAMES: Record<string, string> = {
   campaign: "Elijah",
   welcome_sequence: "Elijah",
   campaign_voice: "Elijah",
-  campaign_sms: "Ruth",
 };
 
 // Agent colors by department
 // Qualification (teal): Aaron, Esther, Nehemiah
-// Leasing (amber): Elijah, Ruth
+// Leasing (amber): Elijah
 // Closing (green): Samuel
 // System (slate): Zacchaeus
 const AGENT_COLORS: Record<string, string> = {
@@ -98,12 +95,9 @@ const AGENT_COLORS: Record<string, string> = {
   report_generator: "bg-teal-100 text-teal-700 border-teal-200",
   // Leasing (amber)
   elijah: "bg-amber-100 text-amber-700 border-amber-200",
-  ruth: "bg-amber-100 text-amber-700 border-amber-200",
   recapture: "bg-amber-100 text-amber-700 border-amber-200",
-  sms_inbound: "bg-amber-100 text-amber-700 border-amber-200",
   campaign: "bg-amber-100 text-amber-700 border-amber-200",
   campaign_voice: "bg-amber-100 text-amber-700 border-amber-200",
-  campaign_sms: "bg-amber-100 text-amber-700 border-amber-200",
   welcome_sequence: "bg-amber-100 text-amber-700 border-amber-200",
   // Closing (green)
   samuel: "bg-green-100 text-green-700 border-green-200",

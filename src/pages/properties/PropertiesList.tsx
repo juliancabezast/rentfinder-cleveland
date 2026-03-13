@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -128,6 +128,7 @@ const PropertiesList: React.FC = () => {
   const { userRecord } = useAuth();
   const permissions = usePermissions();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -412,10 +413,10 @@ const PropertiesList: React.FC = () => {
         </Select>
       </div>
 
-      {/* Properties Table */}
+      {/* Properties List */}
       {loading ? (
         <div className="space-y-2">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
         </div>
       ) : grouped.length === 0 ? (
         <Card className="bg-white/60 backdrop-blur-sm">
@@ -429,245 +430,188 @@ const PropertiesList: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-1">
-          {/* Table header */}
-          <div className="hidden sm:grid grid-cols-[24px,1fr,28px,40px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-            <span />
-            <span>Property</span>
-            <span className="text-center" title="Photos"><ImageIcon className="h-3 w-3 mx-auto" /></span>
-            <span className="text-center" title="Leads"><Users className="h-3 w-3 mx-auto" /></span>
-            <span className="text-center">Beds</span>
-            <span className="text-center">Baths</span>
-            <span className="text-center">SqFt</span>
-            <span className="text-right">Rent</span>
-            <span className="text-center">Status</span>
-            <span />
-          </div>
-
+        <div className="space-y-1.5">
           {grouped.map((group) => {
             const isExpanded = expandedGroups.has(group.key);
+            const totalLeads = group.units.reduce((sum, u) => sum + (leadCounts.get(u.id) || 0), 0);
             const allHavePhotos = group.units.every((u) => Array.isArray(u.photos) && u.photos.length > 0);
             const someHavePhotos = group.units.some((u) => Array.isArray(u.photos) && u.photos.length > 0);
+            const isSingleStandalone = group.units.length === 1 && !group.units[0].unit_number;
+            const rentRange = (() => {
+              const rents = group.units.map((u) => u.rent_price).filter((r) => r > 0);
+              if (rents.length === 0) return null;
+              const min = Math.min(...rents);
+              const max = Math.max(...rents);
+              return min === max ? `$${min.toLocaleString()}` : `$${min.toLocaleString()}–$${max.toLocaleString()}`;
+            })();
 
             return (
               <div key={group.key}>
-                {/* Property row — always a clickable building row */}
+                {/* Building row */}
                 <button
                   onClick={() => toggleGroup(group.key)}
                   className={cn(
-                    "w-full grid grid-cols-[24px,1fr,28px,40px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2.5 rounded-lg border transition-colors text-left",
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors text-left",
                     isExpanded
-                      ? "bg-indigo-50/80 border-indigo-200/60 hover:bg-indigo-50"
-                      : "bg-white/50 border-border/30 hover:bg-white/80"
+                      ? "bg-indigo-50/80 border-indigo-200/60"
+                      : "bg-white/60 border-border/30 hover:bg-white/90"
                   )}
                 >
                   {/* Chevron */}
-                  <div className="hidden sm:flex justify-center">
-                    {isExpanded ? (
-                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                  </div>
-                  {/* Address */}
-                  <div className="min-w-0 flex items-center gap-2">
-                    <span className="font-medium text-sm truncate">{group.address}</span>
-                    <span className="text-xs text-muted-foreground hidden sm:inline shrink-0">
-                      {group.city}, {group.state} {group.zip_code}
-                    </span>
-                    {group.units.length > 1 && (
-                      <span className="text-[10px] text-muted-foreground shrink-0">{group.units.length} units</span>
-                    )}
-                    {group.units.length === 1 && group.units[0].unit_number && (
-                      <span className="text-[10px] text-muted-foreground shrink-0">1 unit</span>
-                    )}
-                  </div>
-                  {/* Photos */}
-                  <div className="hidden sm:flex justify-center">
-                    {allHavePhotos ? (
-                      <ImageIcon className="h-3.5 w-3.5 text-green-500" />
-                    ) : someHavePhotos ? (
-                      <ImageIcon className="h-3.5 w-3.5 text-amber-500" />
-                    ) : (
-                      <ImageOff className="h-3.5 w-3.5 text-red-400" />
-                    )}
-                  </div>
-                  {/* Leads */}
-                  <div className="hidden sm:flex justify-center text-sm">
-                    {(() => {
-                      const total = group.units.reduce((sum, u) => sum + (leadCounts.get(u.id) || 0), 0);
-                      return total > 0 ? (
-                        <span className="text-indigo-600 font-medium">{total}</span>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      );
-                    })()}
-                  </div>
-                  {/* Beds/Baths/SqFt/Rent — show if single unit without unit_number, otherwise empty */}
-                  {group.units.length === 1 && !group.units[0].unit_number ? (
-                    <>
-                      <div className="hidden sm:flex justify-center text-sm">{group.units[0].bedrooms}</div>
-                      <div className="hidden sm:flex justify-center text-sm">{Number(group.units[0].bathrooms)}</div>
-                      <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{group.units[0].square_feet || "—"}</div>
-                      <div className="hidden sm:flex justify-end text-sm font-semibold">${group.units[0].rent_price.toLocaleString()}</div>
-                    </>
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                   ) : (
-                    <>
-                      <div className="hidden sm:block" />
-                      <div className="hidden sm:block" />
-                      <div className="hidden sm:block" />
-                      <div className="hidden sm:block" />
-                    </>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   )}
-                  {/* Status — dots for multi, badge for single standalone */}
-                  <div className="hidden sm:flex justify-center gap-0.5">
-                    {group.units.length === 1 && !group.units[0].unit_number ? (
+
+                  {/* Photo indicator */}
+                  {allHavePhotos ? (
+                    <ImageIcon className="h-4 w-4 text-green-500 shrink-0" />
+                  ) : someHavePhotos ? (
+                    <ImageIcon className="h-4 w-4 text-amber-500 shrink-0" />
+                  ) : (
+                    <ImageOff className="h-4 w-4 text-red-400 shrink-0" />
+                  )}
+
+                  {/* Address & info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm truncate">{group.address}</span>
+                      <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">
+                        {group.city}, {group.state} {group.zip_code}
+                      </span>
+                    </div>
+                    {/* Subtitle line */}
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                      {isSingleStandalone ? (
+                        <>
+                          <span>{group.units[0].bedrooms}bd / {Number(group.units[0].bathrooms)}ba</span>
+                          <span>·</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{group.units.length} unit{group.units.length > 1 ? "s" : ""}</span>
+                          <span>·</span>
+                        </>
+                      )}
+                      {rentRange && <span className="font-medium text-foreground">{rentRange}/mo</span>}
+                      {!rentRange && <span>No rent set</span>}
+                    </div>
+                  </div>
+
+                  {/* Right side badges */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Leads */}
+                    {totalLeads > 0 && (
+                      <span className="flex items-center gap-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full px-2 py-0.5">
+                        <Users className="h-3 w-3" />
+                        {totalLeads}
+                      </span>
+                    )}
+
+                    {/* Status */}
+                    {isSingleStandalone ? (
                       (() => {
                         const sc = STATUS_CONFIG[group.units[0].status] || STATUS_CONFIG.available;
-                        return <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", sc.badge)}>{sc.label}</Badge>;
+                        return <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 shrink-0", sc.badge)}>{sc.label}</Badge>;
                       })()
                     ) : (
-                      group.units.map((u) => {
-                        const sc = STATUS_CONFIG[u.status] || STATUS_CONFIG.available;
-                        return <span key={u.id} className={cn("h-2.5 w-2.5 rounded-full", sc.dot)} title={`${u.unit_number || "Unit"}: ${sc.label}`} />;
-                      })
+                      <div className="flex gap-1">
+                        {group.units.map((u) => {
+                          const sc = STATUS_CONFIG[u.status] || STATUS_CONFIG.available;
+                          return <span key={u.id} className={cn("h-2.5 w-2.5 rounded-full", sc.dot)} title={`${u.unit_number || "Unit"}: ${sc.label}`} />;
+                        })}
+                      </div>
                     )}
-                  </div>
-                  {/* Actions — add unit for any building, edit pencil for standalone */}
-                  <div className="hidden sm:flex justify-center">
-                    {group.units.length === 1 && !group.units[0].unit_number && permissions.canEditProperty ? (
-                      <div onClick={(e) => { e.stopPropagation(); setEditingProperty(group.units[0]); setFormOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                      </div>
-                    ) : permissions.canCreateProperty ? (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const groupId = group.units[0].property_group_id as string | null;
-                          setAddingUnitTo({ address: group.address, city: group.city, state: group.state, zip_code: group.zip_code, property_group_id: groupId });
-                          setEditingProperty(null);
-                          setFormOpen(true);
-                        }}
-                        title={`Add unit to ${group.address}`}
-                      >
-                        <Plus className="h-3.5 w-3.5 text-muted-foreground hover:text-indigo-600" />
-                      </div>
-                    ) : null}
+
+                    {/* Edit */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const groupId = group.units[0].property_group_id as string | null;
+                        navigate(groupId ? `/properties/group/${groupId}` : `/properties/${group.units[0].id}`);
+                      }}
+                      className="p-1 rounded-md hover:bg-black/5 transition-colors"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
                   </div>
                 </button>
 
-                {/* Expanded units — same grid, no offset, indent via padding in name col */}
+                {/* Expanded units */}
                 {isExpanded && (
-                  <div className="mt-0.5 space-y-0.5">
+                  <div className="ml-9 mt-1 space-y-1">
                     {group.units.map((unit) => {
                       const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
                       const hasPhotos = Array.isArray(unit.photos) && unit.photos.length > 0;
                       const unitLabel = unit.unit_number ? `Unit ${unit.unit_number}` : group.address;
+                      const unitLeads = leadCounts.get(unit.id) || 0;
+
                       return (
                         <div
                           key={unit.id}
-                          className="grid grid-cols-[1fr,auto] sm:grid-cols-[24px,1fr,28px,40px,50px,50px,44px,80px,100px,36px] gap-x-2 items-center px-3 py-2 rounded-lg bg-white/40 hover:bg-white/70 border border-border/20 transition-colors"
+                          className={cn(
+                            "rounded-lg bg-white/50 hover:bg-white/80 border border-border/20 transition-colors border-l-[3px] px-3 py-2",
+                            unit.status === "available" && "border-l-green-500",
+                            unit.status === "coming_soon" && "border-l-amber-500",
+                            unit.status === "in_leasing_process" && "border-l-blue-500",
+                            unit.status === "rented" && "border-l-gray-400",
+                          )}
                         >
-                          {/* Empty first col (matches chevron col in building row) */}
-                          <div className="hidden sm:block" />
-                          {/* Name — indented, with status dot inline */}
-                          <div className="min-w-0 sm:pl-6 flex items-center gap-2">
-                            <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
-                            <Link to={`/properties/${unit.id}`} className="font-medium text-sm truncate hover:text-indigo-600">
+                          {/* Row 1: name + rent */}
+                          <div className="flex items-baseline justify-between">
+                            <Link to={`/properties/${unit.id}`} className="font-semibold text-sm hover:text-indigo-600">
                               {unitLabel}
                             </Link>
-                            <div className="sm:hidden flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                              <span>{unit.bedrooms}bd / {unit.bathrooms}ba</span>
-                              <span className="font-semibold text-foreground">${unit.rent_price.toLocaleString()}</span>
-                              {hasPhotos ? <ImageIcon className="h-3 w-3 text-green-500" /> : <ImageOff className="h-3 w-3 text-red-400" />}
+                            <span className="text-sm font-semibold">${unit.rent_price.toLocaleString()}/mo</span>
+                          </div>
+                          {/* Row 2: details + badges */}
+                          <div className="flex items-center justify-between mt-0.5">
+                            <span className="text-xs text-muted-foreground">
+                              {unit.bedrooms}bd / {Number(unit.bathrooms)}ba
+                              {unit.square_feet ? ` · ${unit.square_feet} sqft` : ""}
+                              {!hasPhotos ? " · No photos" : ""}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {unitLeads > 0 && (
+                                <span className="flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 rounded-full px-1.5 py-0">
+                                  <Users className="h-2.5 w-2.5" />
+                                  {unitLeads}
+                                </span>
+                              )}
+                              {permissions.canEditProperty ? (
+                                <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
+                                  <SelectTrigger className={cn("h-5 w-[85px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
+                                      const sc = STATUS_CONFIG[o.value];
+                                      return (
+                                        <SelectItem key={o.value} value={o.value}>
+                                          <span className="flex items-center gap-1.5">
+                                            <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
+                                            {o.label}
+                                          </span>
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Badge variant="outline" className={cn("text-[10px] px-2 py-0", s.badge)}>{s.label}</Badge>
+                              )}
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                                const gid = unit.property_group_id as string | null;
+                                navigate(gid ? `/properties/group/${gid}` : `/properties/${unit.id}`);
+                              }}>
+                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                              </Button>
                             </div>
                           </div>
-                          {/* Photos */}
-                          <div className="hidden sm:flex justify-center">
-                            {hasPhotos ? <ImageIcon className="h-3.5 w-3.5 text-green-500" /> : <ImageOff className="h-3.5 w-3.5 text-red-400" />}
-                          </div>
-                          {/* Leads */}
-                          <div className="hidden sm:flex justify-center text-sm">
-                            {(leadCounts.get(unit.id) || 0) > 0 ? (
-                              <span className="text-indigo-600 font-medium">{leadCounts.get(unit.id)}</span>
-                            ) : (
-                              <span className="text-muted-foreground">0</span>
-                            )}
-                          </div>
-                          {/* Beds */}
-                          <div className="hidden sm:flex justify-center text-sm">
-                            <EditableCell value={unit.bedrooms} onSave={(v) => updateProperty(unit.id, "bedrooms", v)} canEdit={permissions.canEditProperty} />
-                          </div>
-                          {/* Baths */}
-                          <div className="hidden sm:flex justify-center text-sm">
-                            <EditableCell value={Number(unit.bathrooms)} onSave={(v) => updateProperty(unit.id, "bathrooms", v)} canEdit={permissions.canEditProperty} />
-                          </div>
-                          {/* SqFt */}
-                          <div className="hidden sm:flex justify-center text-xs text-muted-foreground">{unit.square_feet || "—"}</div>
-                          {/* Rent */}
-                          <div className="hidden sm:flex justify-end text-sm font-semibold">
-                            <EditableCell value={unit.rent_price} onSave={(v) => updateProperty(unit.id, "rent_price", v)} prefix="$" canEdit={permissions.canEditProperty} />
-                          </div>
-                          {/* Status */}
-                          <div className="hidden sm:flex justify-center">
-                            {permissions.canEditProperty ? (
-                              <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
-                                <SelectTrigger className={cn("h-6 w-[100px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
-                                    const sc = STATUS_CONFIG[o.value];
-                                    return (
-                                      <SelectItem key={o.value} value={o.value}>
-                                        <span className="flex items-center gap-1.5">
-                                          <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
-                                          {o.label}
-                                        </span>
-                                      </SelectItem>
-                                    );
-                                  })}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5", s.badge)}>{s.label}</Badge>
-                            )}
-                          </div>
-                          {/* Edit */}
-                          {permissions.canEditProperty ? (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 hidden sm:flex" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
-                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                            </Button>
-                          ) : (
-                            <div className="hidden sm:block" />
-                          )}
-                          {permissions.canEditProperty && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => { setEditingProperty(unit); setFormOpen(true); }}>
-                              <Pencil className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          )}
                         </div>
                       );
                     })}
-
-                    {/* Add Unit row */}
-                    {permissions.canCreateProperty && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const groupId = group.units[0].property_group_id as string | null;
-                          setAddingUnitTo({ address: group.address, city: group.city, state: group.state, zip_code: group.zip_code, property_group_id: groupId });
-                          setEditingProperty(null);
-                          setFormOpen(true);
-                        }}
-                        className="w-full grid grid-cols-[24px,1fr] gap-x-2 items-center px-3 py-2 rounded-lg border border-dashed border-border/40 hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors text-left"
-                      >
-                        <div className="flex justify-center">
-                          <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-                        </div>
-                        <span className="text-sm text-muted-foreground sm:pl-6">Add unit to {group.address}</span>
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -697,6 +641,10 @@ const PropertiesList: React.FC = () => {
           <PropertyForm
             property={propertyForForm}
             propertyGroupId={formGroupId}
+            propertyGroupAddress={addingUnitTo?.address}
+            propertyGroupCity={addingUnitTo?.city}
+            propertyGroupState={addingUnitTo?.state}
+            propertyGroupZip={addingUnitTo?.zip_code}
             onSuccess={handleFormSuccess}
             onCancel={() => { setFormOpen(false); setEditingProperty(null); setAddingUnitTo(null); }}
           />

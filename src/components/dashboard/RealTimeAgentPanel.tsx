@@ -54,13 +54,11 @@ const AGENT_NAMES: Record<string, string> = {
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
-  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
   bland_call_webhook: "Aaron",
-  sms_inbound: "Ruth",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -78,7 +76,6 @@ const AGENT_NAMES: Record<string, string> = {
   campaign: "Elijah",
   welcome_sequence: "Elijah",
   campaign_voice: "Elijah",
-  campaign_sms: "Ruth",
 };
 
 // ── Source → agent that brought the lead in ──────────────────────────
@@ -87,7 +84,7 @@ const SOURCE_INFO: Record<string, { agent: string; action: string; updateAction:
   hemlane_email: { agent: "Esther", action: "registered via Hemlane", updateAction: "updated via Hemlane" },
   inbound_call: { agent: "Aaron", action: "registered via inbound call", updateAction: "updated via inbound call" },
   website: { agent: "Aaron", action: "captured from website", updateAction: "updated from website" },
-  sms: { agent: "Ruth", action: "registered via inbound SMS", updateAction: "updated via SMS" },
+  sms: { agent: "System", action: "registered via inbound SMS", updateAction: "updated via SMS" },
   referral: { agent: "Aaron", action: "registered as referral", updateAction: "updated referral" },
   manual: { agent: "—", action: "entered manually", updateAction: "updated manually" },
   campaign: { agent: "Elijah", action: "captured in outbound campaign", updateAction: "updated in campaign" },

@@ -205,57 +205,73 @@ const PropertyGroupDetail: React.FC = () => {
   const maxRent = rents.length > 0 ? Math.max(...rents) : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/properties")}
-            className="mb-2"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Properties
-          </Button>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            {group.address}
-            <Badge className="bg-[#370d4b] text-white">{typeLabel}</Badge>
-          </h1>
-          <p className="text-sm text-muted-foreground flex items-center gap-1">
-            <MapPin className="h-4 w-4" />
-            {group.city}, {group.state} {group.zip_code}
-          </p>
+    <div className="space-y-5">
+      {/* Back */}
+      <Button variant="ghost" size="sm" onClick={() => navigate("/properties")}>
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Back to Properties
+      </Button>
+
+      {/* Header — compact: photo thumbnail + info + actions */}
+      <div className="flex gap-4 items-start">
+        {/* Cover thumbnail */}
+        <div className="w-28 h-28 rounded-xl overflow-hidden border bg-muted shrink-0">
+          {group.cover_photo ? (
+            <img src={group.cover_photo} alt={group.address} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-bold truncate">{group.address}</h1>
+            <Badge className="bg-indigo-600 text-white text-xs shrink-0">{typeLabel}</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+            <MapPin className="h-3.5 w-3.5" />
+            {group.city}, {group.state} {group.zip_code}
+          </p>
+          {/* Inline stats */}
+          <div className="flex items-center gap-4 mt-2 text-sm">
+            <span><strong>{units.length}</strong> unit{units.length !== 1 ? "s" : ""}</span>
+            <span className="text-green-600"><strong>{availableCount}</strong> available</span>
+            {rents.length > 0 && (
+              <span className="font-semibold">
+                ${minRent.toLocaleString()}{minRent !== maxRent ? `–$${maxRent.toLocaleString()}` : ""}/mo
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0">
           {permissions.canEditProperty && (
-            <Button variant="outline" onClick={() => setEditOpen(true)}>
-              <Edit className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Edit className="h-3.5 w-3.5 mr-1.5" />
               Edit
             </Button>
           )}
           {permissions.canDeleteProperty && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={deleting}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                <Button variant="outline" size="sm" disabled={deleting} className="text-red-600 border-red-200 hover:bg-red-50">
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Property</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure? This will delete the building record. Units
-                    will be unlinked but not deleted.
+                    Are you sure? This will delete the building record. Units will be unlinked but not deleted.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>
-                    Delete
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -263,254 +279,126 @@ const PropertyGroupDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Cover Photo */}
-      {group.cover_photo ? (
-        <div className="relative aspect-[21/9] rounded-xl overflow-hidden border">
-          <img
-            src={group.cover_photo}
-            alt={group.address}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      ) : (
-        <div className="aspect-[21/9] rounded-xl overflow-hidden border bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-          <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
-        </div>
-      )}
+      {/* Units */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-base">Units ({units.length})</CardTitle>
+          {permissions.canCreateProperty && (
+            <Button size="sm" onClick={() => setAddUnitOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white h-8">
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Add Unit
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {units.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Building2 className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No units yet. Add your first unit.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {units
+                .sort((a, b) => (a.unit_number || "").localeCompare(b.unit_number || ""))
+                .map((unit) => {
+                  const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
+                  const photos = Array.isArray(unit.photos) ? unit.photos : [];
+                  const firstPhoto = photos[0] as string | undefined;
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Summary Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Card variant="glass">
-              <CardContent className="pt-4 pb-3 text-center">
-                <p className="text-2xl font-bold">{units.length}</p>
-                <p className="text-xs text-muted-foreground">
-                  Unit{units.length !== 1 ? "s" : ""}
-                </p>
-              </CardContent>
-            </Card>
-            <Card variant="glass">
-              <CardContent className="pt-4 pb-3 text-center">
-                <p className="text-2xl font-bold text-green-600">
-                  {availableCount}
-                </p>
-                <p className="text-xs text-muted-foreground">Available</p>
-              </CardContent>
-            </Card>
-            <Card variant="glass">
-              <CardContent className="pt-4 pb-3 text-center">
-                <p className="text-2xl font-bold">
-                  {rents.length > 0
-                    ? `$${minRent.toLocaleString()}`
-                    : "—"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {minRent !== maxRent && rents.length > 0
-                    ? `to $${maxRent.toLocaleString()}`
-                    : "Rent"}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+                  return (
+                    <Link
+                      key={unit.id}
+                      to={`/properties/${unit.id}`}
+                      className={cn(
+                        "block rounded-lg border-l-[3px] border hover:bg-muted/50 transition-colors px-3 py-2.5",
+                        unit.status === "available" && "border-l-green-500",
+                        unit.status === "coming_soon" && "border-l-amber-500",
+                        unit.status === "in_leasing_process" && "border-l-blue-500",
+                        unit.status === "rented" && "border-l-gray-400",
+                      )}
+                    >
+                      <div className="flex items-baseline justify-between">
+                        <span className="font-semibold text-sm">Unit {unit.unit_number || "—"}</span>
+                        <span className="text-sm font-semibold">${unit.rent_price.toLocaleString()}/mo</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {unit.bedrooms}bd / {unit.bathrooms}ba{unit.square_feet ? ` · ${unit.square_feet.toLocaleString()} sqft` : ""}
+                          {firstPhoto ? "" : " · No photos"}
+                        </span>
+                        <Badge variant="outline" className={cn("text-[10px] px-2 py-0", {
+                          "bg-green-50 text-green-700 border-green-200": unit.status === "available",
+                          "bg-amber-50 text-amber-700 border-amber-200": unit.status === "coming_soon",
+                          "bg-blue-50 text-blue-700 border-blue-200": unit.status === "in_leasing_process",
+                          "bg-gray-50 text-gray-500 border-gray-200": unit.status === "rented",
+                        })}>{s.label}</Badge>
+                      </div>
+                    </Link>
+                  );
+                })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-          {/* Units Grid */}
+      {/* Description & Neighborhood side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Description */}
+        {group.description && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle>
-                Units ({units.length})
-              </CardTitle>
-              {permissions.canCreateProperty && (
-                <Button
-                  size="sm"
-                  onClick={() => setAddUnitOpen(true)}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Unit
-                </Button>
-              )}
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Description</CardTitle>
             </CardHeader>
             <CardContent>
-              {units.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Building2 className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No units yet. Add your first unit.</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{group.description}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Neighborhood */}
+        {(neighborhoodInfo.area_benefits?.length || neighborhoodInfo.nearby_places?.length || neighborhoodInfo.school_district) && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Neighborhood</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {neighborhoodInfo.area_benefits && neighborhoodInfo.area_benefits.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                    <Star className="h-3 w-3" /> Area Benefits
+                  </p>
+                  <ul className="space-y-0.5">
+                    {neighborhoodInfo.area_benefits.map((b, i) => (
+                      <li key={i} className="text-sm flex items-start gap-1.5">
+                        <Check className="h-3.5 w-3.5 mt-0.5 text-green-600 shrink-0" />{b}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {units
-                    .sort((a, b) =>
-                      (a.unit_number || "").localeCompare(b.unit_number || "")
-                    )
-                    .map((unit) => {
-                      const s =
-                        STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
-                      const photos = Array.isArray(unit.photos)
-                        ? unit.photos
-                        : [];
-                      const firstPhoto = photos[0] as string | undefined;
-
-                      return (
-                        <Link
-                          key={unit.id}
-                          to={`/properties/${unit.id}`}
-                          className="flex gap-3 p-3 rounded-lg border hover:bg-muted/50 hover:shadow-sm transition-all"
-                        >
-                          {/* Unit photo thumbnail */}
-                          <div className="w-20 h-20 rounded-md overflow-hidden bg-muted shrink-0">
-                            {firstPhoto ? (
-                              <img
-                                src={firstPhoto}
-                                alt={`Unit ${unit.unit_number || ""}`}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Building2 className="h-6 w-6 text-muted-foreground/40" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="font-semibold text-sm">
-                                Unit {unit.unit_number || "—"}
-                              </span>
-                              <Badge
-                                className={cn(
-                                  "text-xs h-5 px-2 shrink-0",
-                                  s.className
-                                )}
-                              >
-                                {s.label}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Bed className="h-3.5 w-3.5" />
-                                {unit.bedrooms}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Bath className="h-3.5 w-3.5" />
-                                {unit.bathrooms}
-                              </span>
-                              {unit.square_feet && (
-                                <span className="flex items-center gap-1">
-                                  <Square className="h-3.5 w-3.5" />
-                                  {unit.square_feet.toLocaleString()}
-                                </span>
-                              )}
-                            </div>
-                            <p className="font-bold text-sm mt-1">
-                              ${unit.rent_price.toLocaleString()}/mo
-                            </p>
-                          </div>
-                        </Link>
-                      );
-                    })}
+              )}
+              {neighborhoodInfo.nearby_places && neighborhoodInfo.nearby_places.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                    <Navigation className="h-3 w-3" /> Nearby
+                  </p>
+                  <ul className="space-y-0.5">
+                    {neighborhoodInfo.nearby_places.map((p, i) => (
+                      <li key={i} className="text-sm">{p}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {neighborhoodInfo.school_district && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                    <GraduationCap className="h-3 w-3" /> School District
+                  </p>
+                  <p className="text-sm">{neighborhoodInfo.school_district}</p>
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Description */}
-          {group.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Description</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {group.description}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Neighborhood Info */}
-          {(neighborhoodInfo.area_benefits?.length ||
-            neighborhoodInfo.nearby_places?.length ||
-            neighborhoodInfo.school_district) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Neighborhood</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Area Benefits */}
-                {neighborhoodInfo.area_benefits &&
-                  neighborhoodInfo.area_benefits.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                        <Star className="h-3.5 w-3.5" />
-                        Area Benefits
-                      </p>
-                      <ul className="space-y-1">
-                        {neighborhoodInfo.area_benefits.map((b, i) => (
-                          <li
-                            key={i}
-                            className="text-sm flex items-start gap-2"
-                          >
-                            <Check className="h-3.5 w-3.5 mt-0.5 text-green-600 shrink-0" />
-                            {b}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                {/* Nearby Places */}
-                {neighborhoodInfo.nearby_places &&
-                  neighborhoodInfo.nearby_places.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                        <Navigation className="h-3.5 w-3.5" />
-                        Nearby Places
-                      </p>
-                      <ul className="space-y-1">
-                        {neighborhoodInfo.nearby_places.map((p, i) => (
-                          <li key={i} className="text-sm">
-                            {p}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                {/* School District */}
-                {neighborhoodInfo.school_district && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
-                      <GraduationCap className="h-3.5 w-3.5" />
-                      School District
-                    </p>
-                    <p className="text-sm">
-                      {neighborhoodInfo.school_district}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Building Features */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Building Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Type</span>
-                <span className="font-medium">{typeLabel}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        )}
       </div>
 
       {/* Edit Building Dialog */}
@@ -539,6 +427,9 @@ const PropertyGroupDetail: React.FC = () => {
           <PropertyForm
             propertyGroupId={group.id}
             propertyGroupAddress={group.address}
+            propertyGroupCity={group.city}
+            propertyGroupState={group.state}
+            propertyGroupZip={group.zip_code}
             onSuccess={() => {
               setAddUnitOpen(false);
               fetchData();

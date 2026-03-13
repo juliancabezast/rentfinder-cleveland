@@ -47,7 +47,6 @@ const BIBLICAL_NAMES: Record<string, string> = {
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
-  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",
@@ -81,12 +80,10 @@ const AGENT_TYPE_LABELS: Record<string, string> = {
   recapture: "recapture lead",
   campaign: "run outreach campaign",
   campaign_voice: "make outbound call",
-  campaign_sms: "send campaign SMS",
   showing_confirmation: "confirm showing",
   no_show_followup: "follow up no-show",
   no_show_follow_up: "follow up no-show",
   post_showing: "do post-showing follow-up",
-  sms_inbound: "process inbound SMS",
   doorloop_pull: "sync with DoorLoop",
 };
 
@@ -103,9 +100,7 @@ const ACTION_ICONS: Record<string, React.ElementType> = {
 const AGENT_TYPE_ICONS: Record<string, React.ElementType> = {
   welcome_sequence: Send,
   campaign_voice: Phone,
-  campaign_sms: MessageSquare,
   campaign: Zap,
-  sms_inbound: MessageSquare,
   showing_confirmation: Calendar,
   no_show_followup: RotateCcw,
   no_show_follow_up: RotateCcw,

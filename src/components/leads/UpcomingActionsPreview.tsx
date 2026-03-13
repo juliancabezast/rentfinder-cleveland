@@ -27,13 +27,11 @@ const AGENT_NAMES: Record<string, string> = {
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
-  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
   bland_call_webhook: "Aaron",
-  sms_inbound: "Ruth",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -51,7 +49,6 @@ const AGENT_NAMES: Record<string, string> = {
   campaign: "Elijah",
   welcome_sequence: "Elijah",
   campaign_voice: "Elijah",
-  campaign_sms: "Ruth",
 };
 
 // Action type icons

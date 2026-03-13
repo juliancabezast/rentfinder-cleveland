@@ -351,53 +351,71 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Mark buffer slots (before AND after on same date) ─────────────
-    const [hStr, mStr] = slot_time.split(":");
-    const h = parseInt(hStr, 10);
-    const m = parseInt(mStr, 10);
+    // ── Block ALL properties at this time slot (single-agent model) ────
+    // Only one leasing agent — when a time is booked, block it across
+    // every property so no one else can book the same hour.
+    const bookingUpdate = {
+      is_booked: true,
+      booked_showing_id: showing.id,
+      booked_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-    // Block slots for full duration + 30min buffer after
-    // E.g., 45min showing = block next slot (at +30) AND the one after (+60)
-    const bufferSlots = Math.ceil((durationMinutes + 30) / 30);
-    for (let i = 1; i < bufferSlots; i++) {
-      const totalMin = h * 60 + m + (i * 30);
-      const bH = Math.floor(totalMin / 60);
-      const bM = totalMin % 60;
-      if (bH >= 24) break;
-      const bufferTime = `${String(bH).padStart(2, "0")}:${String(bM).padStart(2, "0")}:00`;
-      await supabase
-        .from("showing_available_slots")
-        .update({
-          is_booked: true,
-          booked_showing_id: showing.id,
-          booked_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("property_id", property_id)
-        .eq("slot_date", slot_date)
-        .eq("slot_time", bufferTime)
-        .eq("is_booked", false);
-    }
+    // Block the booked time on ALL properties (not just the one booked)
+    await supabase
+      .from("showing_available_slots")
+      .update(bookingUpdate)
+      .eq("organization_id", organization_id)
+      .eq("slot_date", slot_date)
+      .eq("slot_time", slot_time)
+      .eq("is_booked", false);
 
-    // Buffer BEFORE (-30 min)
-    const beforeTotal = h * 60 + m - 30;
-    if (beforeTotal >= 0) {
-      const beforeH = Math.floor(beforeTotal / 60);
-      const beforeM = beforeTotal % 60;
-      const bufferBefore = `${String(beforeH).padStart(2, "0")}:${String(beforeM).padStart(2, "0")}:00`;
+    // Read buffer setting from org settings (default 0 = no buffer)
+    const { data: bufferSetting } = await supabase
+      .from("organization_settings")
+      .select("value")
+      .eq("organization_id", organization_id)
+      .eq("key", "buffer_minutes")
+      .maybeSingle();
 
-      await supabase
-        .from("showing_available_slots")
-        .update({
-          is_booked: true,
-          booked_showing_id: showing.id,
-          booked_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("property_id", property_id)
-        .eq("slot_date", slot_date)
-        .eq("slot_time", bufferBefore)
-        .eq("is_booked", false);
+    const bufferMinutes = bufferSetting?.value != null ? Number(bufferSetting.value) : 0;
+
+    if (bufferMinutes > 0) {
+      const [hStr, mStr] = slot_time.split(":");
+      const h = parseInt(hStr, 10);
+      const m = parseInt(mStr, 10);
+
+      // Buffer AFTER: block slots within buffer range
+      const bufferSlots = Math.ceil(bufferMinutes / 30);
+      for (let i = 1; i <= bufferSlots; i++) {
+        const totalMin = h * 60 + m + (i * 30);
+        const bH = Math.floor(totalMin / 60);
+        const bM = totalMin % 60;
+        if (bH >= 24) break;
+        const bufferTime = `${String(bH).padStart(2, "0")}:${String(bM).padStart(2, "0")}:00`;
+        await supabase
+          .from("showing_available_slots")
+          .update(bookingUpdate)
+          .eq("organization_id", organization_id)
+          .eq("slot_date", slot_date)
+          .eq("slot_time", bufferTime)
+          .eq("is_booked", false);
+      }
+
+      // Buffer BEFORE
+      const beforeTotal = h * 60 + m - 30;
+      if (beforeTotal >= 0) {
+        const beforeH = Math.floor(beforeTotal / 60);
+        const beforeM = beforeTotal % 60;
+        const bufferBefore = `${String(beforeH).padStart(2, "0")}:${String(beforeM).padStart(2, "0")}:00`;
+        await supabase
+          .from("showing_available_slots")
+          .update(bookingUpdate)
+          .eq("organization_id", organization_id)
+          .eq("slot_date", slot_date)
+          .eq("slot_time", bufferBefore)
+          .eq("is_booked", false);
+      }
     }
 
     // ── Update lead status + boost score +30 (Hot Lead) ────────────────

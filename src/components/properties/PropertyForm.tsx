@@ -74,12 +74,16 @@ interface Property {
   special_notes?: string | null;
   alternative_property_ids?: string[] | null;
   investor_id?: string | null;
+  property_group_id?: string | null;
 }
 
 interface PropertyFormProps {
   property?: Property | null;
   propertyGroupId?: string;
   propertyGroupAddress?: string;
+  propertyGroupCity?: string;
+  propertyGroupState?: string;
+  propertyGroupZip?: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -88,9 +92,14 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   property,
   propertyGroupId,
   propertyGroupAddress,
+  propertyGroupCity,
+  propertyGroupState,
+  propertyGroupZip,
   onSuccess,
   onCancel,
 }) => {
+  const isUnit = !!propertyGroupId || !!property?.property_group_id;
+  const isAddingUnit = !!propertyGroupId && !property?.id;
   const { organization } = useAuth();
   const [saving, setSaving] = useState(false);
   const [photos, setPhotos] = useState<string[]>(
@@ -115,11 +124,11 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
     defaultValues: {
-      address: property?.address || '',
+      address: property?.address || propertyGroupAddress || '',
       unit_number: property?.unit_number || '',
-      city: property?.city || 'Cleveland',
-      state: property?.state || 'OH',
-      zip_code: property?.zip_code || '',
+      city: property?.city || propertyGroupCity || 'Cleveland',
+      state: property?.state || propertyGroupState || 'OH',
+      zip_code: property?.zip_code || propertyGroupZip || '',
       bedrooms: property?.bedrooms || 0,
       bathrooms: property?.bathrooms || 1,
       square_feet: property?.square_feet || undefined,
@@ -391,7 +400,7 @@ Return ONLY the notes text, no quotes or labels.`,
           .eq('id', property.id);
 
         if (error) throw error;
-        toast.success('Property updated successfully');
+        toast.success(isUnit ? 'Unit updated' : 'Property updated successfully');
       } else {
         // Create
         const { error } = await supabase
@@ -399,13 +408,13 @@ Return ONLY the notes text, no quotes or labels.`,
           .insert(propertyData);
 
         if (error) throw error;
-        toast.success('Property created successfully');
+        toast.success(propertyGroupId ? 'Unit added successfully' : 'Property created successfully');
       }
 
       onSuccess();
     } catch (error) {
       console.error('Error saving property:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to save property');
+      toast.error(error instanceof Error ? error.message : isAddingUnit ? 'Failed to save unit' : 'Failed to save property');
     } finally {
       setSaving(false);
     }
@@ -522,9 +531,29 @@ Return ONLY the notes text, no quotes or labels.`,
         {/* Basic Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
+            <CardTitle>{isAddingUnit ? 'Unit Information' : 'Basic Information'}</CardTitle>
+            {isAddingUnit && (
+              <p className="text-sm text-muted-foreground">Adding unit to {propertyGroupAddress}</p>
+            )}
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {isAddingUnit && (
+              <FormField
+                control={form.control}
+                name="unit_number"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Unit Name / Number *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="A, B, 1, 2..." {...field} autoFocus />
+                    </FormControl>
+                    <FormDescription>e.g. "A", "B", "1st Floor", "Upper"</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="address"
@@ -532,26 +561,29 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem className="md:col-span-2">
                   <FormLabel>Street Address *</FormLabel>
                   <FormControl>
-                    <Input placeholder="123 Main St" {...field} />
+                    <Input placeholder="123 Main St" {...field} readOnly={isAddingUnit} className={isAddingUnit ? 'bg-muted' : ''} />
                   </FormControl>
+                  {isAddingUnit && <FormDescription>Inherited from building</FormDescription>}
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="unit_number"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Unit Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Apt 2B" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!isAddingUnit && (
+              <FormField
+                control={form.control}
+                name="unit_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Apt 2B" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -560,7 +592,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>City *</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} readOnly={isAddingUnit} className={isAddingUnit ? 'bg-muted' : ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -574,7 +606,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>State *</FormLabel>
                   <FormControl>
-                    <Input maxLength={2} {...field} />
+                    <Input maxLength={2} {...field} readOnly={isAddingUnit} className={isAddingUnit ? 'bg-muted' : ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -588,7 +620,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>ZIP Code *</FormLabel>
                   <FormControl>
-                    <Input placeholder="44101" {...field} />
+                    <Input placeholder="44101" {...field} readOnly={isAddingUnit} className={isAddingUnit ? 'bg-muted' : ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -600,7 +632,7 @@ Return ONLY the notes text, no quotes or labels.`,
         {/* Property Details */}
         <Card>
           <CardHeader>
-            <CardTitle>Property Details</CardTitle>
+            <CardTitle>{isAddingUnit ? 'Unit Details' : 'Property Details'}</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <FormField
@@ -708,7 +740,7 @@ Return ONLY the notes text, no quotes or labels.`,
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Property Status *</FormLabel>
+                  <FormLabel>{isAddingUnit ? 'Unit Status *' : 'Property Status *'}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -936,7 +968,7 @@ Return ONLY the notes text, no quotes or labels.`,
           </Button>
           <Button type="submit" disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {property?.id ? 'Update Property' : 'Create Property'}
+            {property?.id ? (isUnit ? 'Update Unit' : 'Update Property') : propertyGroupId ? 'Add Unit' : 'Create Property'}
           </Button>
         </div>
       </form>

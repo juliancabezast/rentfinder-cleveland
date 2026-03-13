@@ -29,8 +29,6 @@ const LEGACY_TO_CANONICAL: Record<string, string> = {
   report_generator: "nehemiah",
   notification_dispatcher: "nehemiah",
   system_logger: "nehemiah",
-  sms_inbound: "ruth",
-  campaign_sms: "ruth",
   recapture: "elijah",
   campaign: "elijah",
   campaign_voice: "elijah",
@@ -340,45 +338,6 @@ async function handleShowingConfirmation(
   }
 
   throw new Error("Lead has no phone or email for confirmation");
-}
-
-async function handleSmsInbound(
-  supabase: SupabaseClient,
-  task: AgentTask,
-  lead: AgentTask
-): Promise<string> {
-  if (!lead.phone) {
-    throw new Error("Lead has no phone number for SMS");
-  }
-
-  const ctx = task.context || {};
-  const instruction = ctx.instruction || "";
-
-  // Build a friendly SMS from the instruction
-  let smsBody: string;
-  if (ctx.task === "intro_missing_info") {
-    const firstName = lead.full_name?.split(" ")[0];
-    const property = ctx.parsed_property || "a property";
-    smsBody = firstName
-      ? `Hi ${firstName}! Thanks for your interest in ${property}. Could you share your full name so we can assist you better?`
-      : `Hi! Thanks for your interest in ${property}. Could you share your name so we can help you with your search?`;
-  } else {
-    smsBody =
-      instruction ||
-      "Hi! We received your inquiry. Could you provide some additional details so we can assist you?";
-  }
-
-  const { error } = await supabase.functions.invoke("send-message", {
-    body: {
-      lead_id: task.lead_id,
-      channel: "sms",
-      body: smsBody,
-      organization_id: task.organization_id,
-    },
-  });
-
-  if (error) throw new Error(`send-message failed: ${error.message}`);
-  return "SMS sent for missing info";
 }
 
 async function handleWelcomeSequence(
@@ -1018,8 +977,6 @@ async function dispatchTask(
   switch (task.agent_type) {
     case "showing_confirmation":
       return handleShowingConfirmation(supabase, task, lead, creds, settings);
-    case "sms_inbound":
-      return handleSmsInbound(supabase, task, lead);
     case "welcome_sequence":
       return handleWelcomeSequence(supabase, task, lead, settings);
     case "recapture":

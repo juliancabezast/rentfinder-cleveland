@@ -38,6 +38,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 interface ScheduleShowingDialogProps {
   open: boolean;
@@ -56,6 +57,7 @@ interface LeadOption {
 interface PropertyOption {
   id: string;
   address: string;
+  unit_number: string | null;
   rent_price: number;
 }
 
@@ -85,6 +87,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
   preselectedLeadName,
 }) => {
   const { userRecord } = useAuth();
+  const { getSetting } = useOrganizationSettings();
 
   // Options
   const [leads, setLeads] = useState<LeadOption[]>([]);
@@ -144,7 +147,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           .order("full_name"),
         supabase
           .from("properties")
-          .select("id, address, rent_price")
+          .select("id, address, unit_number, rent_price")
           .eq("organization_id", userRecord.organization_id)
           .in("status", ["available", "coming_soon"])
           .order("address"),
@@ -307,41 +310,56 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         .update({ booked_showing_id: showingData.id })
         .eq("id", slot.id);
 
-      // Mark buffer slots (before & after)
-      const [bH, bM] = slotTime.split(":").map(Number);
+      // Block ALL properties at this time (single-agent model)
+      const bufferUpdate = {
+        is_booked: true,
+        booked_showing_id: showingData.id,
+        booked_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      // Buffer AFTER (+30 min)
-      const afterTotal = bH * 60 + bM + 30;
-      const afterTime = `${String(Math.floor(afterTotal / 60)).padStart(2, "0")}:${String(afterTotal % 60).padStart(2, "0")}:00`;
+      // Block same time slot on all other properties
       await supabase
         .from("showing_available_slots")
-        .update({
-          is_booked: true,
-          booked_showing_id: showingData.id,
-          booked_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("property_id", selectedPropertyId)
+        .update(bufferUpdate)
+        .eq("organization_id", userRecord.organization_id)
         .eq("slot_date", dateStr)
-        .eq("slot_time", afterTime)
+        .eq("slot_time", slotTime)
         .eq("is_booked", false);
 
-      // Buffer BEFORE (-30 min)
-      const beforeTotal = bH * 60 + bM - 30;
-      if (beforeTotal >= 0) {
-        const beforeTime = `${String(Math.floor(beforeTotal / 60)).padStart(2, "0")}:${String(beforeTotal % 60).padStart(2, "0")}:00`;
-        await supabase
-          .from("showing_available_slots")
-          .update({
-            is_booked: true,
-            booked_showing_id: showingData.id,
-            booked_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("property_id", selectedPropertyId)
-          .eq("slot_date", dateStr)
-          .eq("slot_time", beforeTime)
-          .eq("is_booked", false);
+      // Read buffer setting (default 0 = no buffer)
+      const bufferMinutes = Number(getSetting("buffer_minutes", 0));
+
+      if (bufferMinutes > 0) {
+        const [bH, bM] = slotTime.split(":").map(Number);
+
+        // Buffer AFTER on ALL properties
+        const bufferSlots = Math.ceil(bufferMinutes / 30);
+        for (let i = 1; i <= bufferSlots; i++) {
+          const afterTotal = bH * 60 + bM + (i * 30);
+          const afterTime = `${String(Math.floor(afterTotal / 60)).padStart(2, "0")}:${String(afterTotal % 60).padStart(2, "0")}:00`;
+          if (Math.floor(afterTotal / 60) >= 24) break;
+          await supabase
+            .from("showing_available_slots")
+            .update(bufferUpdate)
+            .eq("organization_id", userRecord.organization_id)
+            .eq("slot_date", dateStr)
+            .eq("slot_time", afterTime)
+            .eq("is_booked", false);
+        }
+
+        // Buffer BEFORE on ALL properties
+        const beforeTotal = bH * 60 + bM - 30;
+        if (beforeTotal >= 0) {
+          const beforeTime = `${String(Math.floor(beforeTotal / 60)).padStart(2, "0")}:${String(beforeTotal % 60).padStart(2, "0")}:00`;
+          await supabase
+            .from("showing_available_slots")
+            .update(bufferUpdate)
+            .eq("organization_id", userRecord.organization_id)
+            .eq("slot_date", dateStr)
+            .eq("slot_time", beforeTime)
+            .eq("is_booked", false);
+        }
       }
 
       // Update lead status + boost score +30
@@ -381,7 +399,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       // Schedule Samuel confirmation task (24h before)
       const showingDate = new Date(scheduledAt);
       const confirmationTime = new Date(showingDate.getTime() - 24 * 60 * 60 * 1000);
-      const propertyAddr = selectedProperty?.address || "Property";
+      const propertyAddr = selectedProperty ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ''}` : "Property";
 
       await supabase.from("agent_tasks").insert({
         organization_id: userRecord.organization_id,
@@ -519,7 +537,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                   disabled={loadingOptions}
                 >
                   {selectedProperty
-                    ? `${selectedProperty.address} - $${selectedProperty.rent_price}`
+                    ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ''} - $${selectedProperty.rent_price}`
                     : "Select property..."}
                   <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -533,13 +551,13 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                       {properties.map((property) => (
                         <CommandItem
                           key={property.id}
-                          value={property.address}
+                          value={`${property.address} ${property.unit_number || ''}`}
                           onSelect={() => {
                             setSelectedPropertyId(property.id);
                             setPropertyOpen(false);
                           }}
                         >
-                          <span className="font-medium">{property.address}</span>
+                          <span className="font-medium">{property.address}{property.unit_number ? ` #${property.unit_number}` : ''}</span>
                           <span className="ml-2 text-muted-foreground">
                             ${property.rent_price.toLocaleString()}/mo
                           </span>

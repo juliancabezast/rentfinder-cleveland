@@ -34,7 +34,6 @@ const BIBLICAL_NAMES: Record<string, string> = {
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
-  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",

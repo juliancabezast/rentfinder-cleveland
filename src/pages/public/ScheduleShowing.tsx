@@ -25,6 +25,8 @@ import {
   Home,
   SquareIcon,
   FileText,
+  ChevronRight,
+  Building2,
 } from "lucide-react";
 import { format, addDays, parseISO, isSameDay } from "date-fns";
 
@@ -105,6 +107,85 @@ const PropertySelectCard: React.FC<{
   );
 };
 
+/* ---- Building Group (for multi-unit addresses) ---- */
+interface BuildingGroup {
+  address: string;
+  city: string;
+  state: string | null;
+  zip_code: string | null;
+  photoUrl: string | null;
+  units: PropertyWithSlots[];
+  totalSlots: number;
+}
+
+const BuildingSelectCard: React.FC<{
+  building: BuildingGroup;
+  onClick: () => void;
+}> = ({ building, onClick }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-all text-left"
+  >
+    <div className="h-16 w-24 rounded-lg overflow-hidden shrink-0 bg-muted">
+      {building.photoUrl ? (
+        <img src={building.photoUrl} alt={building.address} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <Building2 className="h-6 w-6 text-muted-foreground/50" />
+        </div>
+      )}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="font-semibold text-sm truncate">{building.address}</p>
+      <p className="text-xs text-muted-foreground">
+        {building.city}, {building.state} {building.zip_code}
+      </p>
+      <p className="text-xs text-muted-foreground mt-0.5">
+        {building.units.length} {building.units.length === 1 ? "unit" : "units"} available
+      </p>
+    </div>
+    <div className="flex items-center gap-1.5 shrink-0">
+      <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50">
+        {building.totalSlots} {building.totalSlots === 1 ? "slot" : "slots"}
+      </Badge>
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+    </div>
+  </button>
+);
+
+const UnitSelectCard: React.FC<{
+  property: PropertyWithSlots;
+  onClick: () => void;
+}> = ({ property, onClick }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-all text-left"
+  >
+    <div className="h-12 w-12 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
+      <Home className="h-5 w-5 text-[#4F46E5]" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="font-semibold text-sm">
+        {property.unit_number ? `Unit ${property.unit_number}` : "Main Unit"}
+      </p>
+      <div className="flex flex-wrap gap-1.5 mt-1">
+        <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
+          <BedDouble className="h-2.5 w-2.5" /> {property.bedrooms}
+        </Badge>
+        <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
+          <Bath className="h-2.5 w-2.5" /> {property.bathrooms}
+        </Badge>
+        <Badge className="bg-[#4F46E5] text-white text-[10px] h-5">
+          ${property.rent_price?.toLocaleString()}/mo
+        </Badge>
+      </div>
+    </div>
+    <Badge variant="outline" className="shrink-0 text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50">
+      {property.available_slot_count} {property.available_slot_count === 1 ? "slot" : "slots"}
+    </Badge>
+  </button>
+);
+
 /* ================================================================ */
 
 const ScheduleShowing: React.FC = () => {
@@ -113,6 +194,7 @@ const ScheduleShowing: React.FC = () => {
 
   // Multi-mode: property selection
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null); // address key
   const [properties, setProperties] = useState<PropertyWithSlots[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(isMultiMode);
 
@@ -132,11 +214,11 @@ const ScheduleShowing: React.FC = () => {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
-  // Form
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [consent, setConsent] = useState(false);
+  // Form — pre-fill from localStorage if returning visitor
+  const [fullName, setFullName] = useState(() => localStorage.getItem("rf_name") || "");
+  const [phone, setPhone] = useState(() => localStorage.getItem("rf_phone") || "");
+  const [email, setEmail] = useState(() => localStorage.getItem("rf_email") || "");
+  const [consent, setConsent] = useState(() => localStorage.getItem("rf_consent") === "1");
   const [consentError, setConsentError] = useState(false);
 
   // Booking
@@ -193,6 +275,31 @@ const ScheduleShowing: React.FC = () => {
       setPropertiesLoading(false);
     })();
   }, [isMultiMode]);
+
+  // Group properties by building address
+  const buildingGroups = useMemo<BuildingGroup[]>(() => {
+    const map = new Map<string, PropertyWithSlots[]>();
+    properties.forEach((p) => {
+      const key = p.address;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
+    });
+    return [...map.entries()].map(([address, units]) => ({
+      address,
+      city: units[0].city || "",
+      state: units[0].state,
+      zip_code: units[0].zip_code,
+      photoUrl: getPhotoUrl(units[0]),
+      units,
+      totalSlots: units.reduce((sum, u) => sum + u.available_slot_count, 0),
+    }));
+  }, [properties]);
+
+  // Units in the currently selected building
+  const selectedBuildingUnits = useMemo(
+    () => (selectedBuilding ? properties.filter((p) => p.address === selectedBuilding) : []),
+    [selectedBuilding, properties]
+  );
 
   // ---- Fetch property ----
   useEffect(() => {
@@ -311,6 +418,13 @@ const ScheduleShowing: React.FC = () => {
       } else {
         setBooked(true);
         if (data?.lead_id) setBookedLeadId(data.lead_id);
+        // Remember visitor info for next time
+        try {
+          localStorage.setItem("rf_name", fullName.trim());
+          localStorage.setItem("rf_phone", phone.trim());
+          if (email.trim()) localStorage.setItem("rf_email", email.trim());
+          if (consent) localStorage.setItem("rf_consent", "1");
+        } catch {}
       }
     } catch (err: any) {
       console.error("Booking error:", err);
@@ -341,6 +455,7 @@ const ScheduleShowing: React.FC = () => {
   const handleChangeProperty = () => {
     setProperty(null);
     setSelectedPropertyId(null);
+    setSelectedBuilding(null);
     setPropertyError(null);
     setSelectedDate(undefined);
     setSelectedTime(null);
@@ -388,6 +503,7 @@ const ScheduleShowing: React.FC = () => {
     if (isMultiMode) {
       setProperty(null);
       setSelectedPropertyId(null);
+      setSelectedBuilding(null);
       setAvailableDates([]);
       setTimeSlots([]);
     }
@@ -439,16 +555,16 @@ const ScheduleShowing: React.FC = () => {
 
       <div className="max-w-[640px] mx-auto px-4 py-6 space-y-6">
 
-        {/* Multi-mode: Property Selection Grid */}
-        {isMultiMode && !property && (
+        {/* Multi-mode: Building Selection → Unit Selection */}
+        {isMultiMode && !property && !selectedBuilding && (
           <Card>
             <CardContent className="p-4 space-y-4">
               <div className="flex items-center gap-2 mb-1">
-                <Home className="h-5 w-5 text-[#4F46E5]" />
+                <Building2 className="h-5 w-5 text-[#4F46E5]" />
                 <h3 className="font-semibold text-lg">Select a Property</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Choose the property you'd like to tour:
+                Choose the building you'd like to tour:
               </p>
               {propertiesLoading ? (
                 <div className="space-y-3">
@@ -456,7 +572,7 @@ const ScheduleShowing: React.FC = () => {
                     <Skeleton key={i} className="h-24 rounded-xl" />
                   ))}
                 </div>
-              ) : properties.length === 0 ? (
+              ) : buildingGroups.length === 0 ? (
                 <div className="text-center py-6">
                   <Home className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">
@@ -468,15 +584,55 @@ const ScheduleShowing: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {properties.map((prop) => (
-                    <PropertySelectCard
-                      key={prop.id}
-                      property={prop}
-                      onClick={() => setSelectedPropertyId(prop.id)}
+                  {buildingGroups.map((bldg) => (
+                    <BuildingSelectCard
+                      key={bldg.address}
+                      building={bldg}
+                      onClick={() => {
+                        // If only 1 unit, skip unit picker and go straight to property
+                        if (bldg.units.length === 1) {
+                          setSelectedPropertyId(bldg.units[0].id);
+                        } else {
+                          setSelectedBuilding(bldg.address);
+                        }
+                      }}
                     />
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Multi-mode: Unit Selection within a building */}
+        {isMultiMode && !property && selectedBuilding && (
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Home className="h-5 w-5 text-[#4F46E5]" />
+                <h3 className="font-semibold text-lg">Select a Unit</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto text-xs"
+                  onClick={() => setSelectedBuilding(null)}
+                >
+                  <ArrowLeft className="h-3 w-3 mr-1" />
+                  Back
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {selectedBuilding} — choose a unit:
+              </p>
+              <div className="space-y-2">
+                {selectedBuildingUnits.map((unit) => (
+                  <UnitSelectCard
+                    key={unit.id}
+                    property={unit}
+                    onClick={() => setSelectedPropertyId(unit.id)}
+                  />
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -490,58 +646,89 @@ const ScheduleShowing: React.FC = () => {
           </div>
         )}
 
-        {/* Property Card (visible once property is loaded) */}
+        {/* Property Card — compact inline for multi-mode, hero for direct URL */}
         {property && (
           <>
-            <Card className="overflow-hidden">
-              {photoUrl && (
-                <div className="aspect-video overflow-hidden">
-                  <img
-                    src={photoUrl}
-                    alt={property.address}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              <CardContent className="p-4 space-y-2">
-                <h2 className="text-lg font-bold flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-[#4F46E5] shrink-0" />
-                  {property.address}
-                  {property.unit_number && `, Unit ${property.unit_number}`}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {property.city}, {property.state} {property.zip_code}
-                </p>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <Badge variant="outline" className="gap-1">
-                    <BedDouble className="h-3 w-3" /> {property.bedrooms} bed
-                  </Badge>
-                  <Badge variant="outline" className="gap-1">
-                    <Bath className="h-3 w-3" /> {property.bathrooms} bath
-                  </Badge>
-                  <Badge className="bg-[#4F46E5] text-white gap-1">
-                    <DollarSign className="h-3 w-3" /> ${property.rent_price?.toLocaleString()}/mo
-                  </Badge>
-                  {property.square_feet && (
-                    <Badge variant="outline" className="gap-1">
-                      <SquareIcon className="h-3 w-3" /> {property.square_feet} sqft
-                    </Badge>
+            {isMultiMode ? (
+              <div className="flex items-center gap-3 p-3 rounded-xl border bg-white">
+                <div className="h-14 w-20 rounded-lg overflow-hidden shrink-0 bg-muted">
+                  {photoUrl ? (
+                    <img src={photoUrl} alt={property.address} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Home className="h-5 w-5 text-muted-foreground/50" />
+                    </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Change Property button (multi-mode only) */}
-            {isMultiMode && !booked && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs -mt-4"
-                onClick={handleChangeProperty}
-              >
-                <ArrowLeft className="h-3 w-3 mr-1" />
-                Change Property
-              </Button>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">
+                    {property.address}
+                    {property.unit_number && `, Unit ${property.unit_number}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {property.city}, {property.state} {property.zip_code}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
+                      <BedDouble className="h-2.5 w-2.5" /> {property.bedrooms}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
+                      <Bath className="h-2.5 w-2.5" /> {property.bathrooms}
+                    </Badge>
+                    <Badge className="bg-[#4F46E5] text-white text-[10px] h-5">
+                      ${property.rent_price?.toLocaleString()}/mo
+                    </Badge>
+                  </div>
+                </div>
+                {!booked && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-xs text-muted-foreground"
+                    onClick={handleChangeProperty}
+                  >
+                    Change
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Card className="overflow-hidden">
+                {photoUrl && (
+                  <div className="aspect-video overflow-hidden">
+                    <img
+                      src={photoUrl}
+                      alt={property.address}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <CardContent className="p-4 space-y-2">
+                  <h2 className="text-lg font-bold flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 text-[#4F46E5] shrink-0" />
+                    {property.address}
+                    {property.unit_number && `, Unit ${property.unit_number}`}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {property.city}, {property.state} {property.zip_code}
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Badge variant="outline" className="gap-1">
+                      <BedDouble className="h-3 w-3" /> {property.bedrooms} bed
+                    </Badge>
+                    <Badge variant="outline" className="gap-1">
+                      <Bath className="h-3 w-3" /> {property.bathrooms} bath
+                    </Badge>
+                    <Badge className="bg-[#4F46E5] text-white gap-1">
+                      <DollarSign className="h-3 w-3" /> ${property.rent_price?.toLocaleString()}/mo
+                    </Badge>
+                    {property.square_feet && (
+                      <Badge variant="outline" className="gap-1">
+                        <SquareIcon className="h-3 w-3" /> {property.square_feet} sqft
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </>
         )}

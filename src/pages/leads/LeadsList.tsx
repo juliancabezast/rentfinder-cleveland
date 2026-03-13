@@ -41,6 +41,7 @@ import {
   ArrowUp,
   ArrowDown,
   Upload,
+  Download,
   Sparkles,
   Building2,
   RefreshCw,
@@ -63,21 +64,19 @@ import type { Tables } from "@/integrations/supabase/types";
 
 // Agent name mapping — 7 agents across 4 departments
 // Qualification: Aaron (calls), Esther (email), Nehemiah (analyst)
-// Leasing: Elijah (consultant), Ruth (SMS)
+// Leasing: Elijah (consultant)
 // Closing: Samuel | System: Zacchaeus
 const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   // Canonical agent keys
   aaron: "Aaron",
   esther: "Esther",
   nehemiah: "Nehemiah",
-  ruth: "Ruth",
   elijah: "Elijah",
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",
   // Legacy DB agent_keys → mapped to 7 real agents
   main_inbound: "Aaron",
   bland_call_webhook: "Aaron",
-  sms_inbound: "Ruth",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -92,7 +91,6 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   // Legacy hyphen-format keys
   "twilio-inbound": "Aaron",
   "bland-call-webhook": "Aaron",
-  "sms-inbound": "Ruth",
   "hemlane-parser": "Esther",
   "transcript-analyst": "Nehemiah",
   "task-dispatcher": "Nehemiah",
@@ -111,7 +109,6 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   campaign: "Elijah",
   campaign_voice: "Elijah",
   welcome_sequence: "Elijah",
-  campaign_sms: "Ruth",
   "campaign-orchestrator": "Nehemiah",
   "campaign-voice": "Elijah",
   "welcome-sequence": "Elijah",
@@ -208,6 +205,7 @@ const LeadsList: React.FC = () => {
   // Dialogs
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [recalcResult, setRecalcResult] = useState<{
     checked: number;
@@ -308,7 +306,7 @@ const LeadsList: React.FC = () => {
       if (!userRecord?.organization_id) return;
       const { data } = await supabase
         .from("properties")
-        .select("id, address, city, bedrooms, bathrooms, rent_price")
+        .select("id, address, unit_number, city, bedrooms, bathrooms, rent_price")
         .eq("organization_id", userRecord.organization_id)
         .order("address");
       if (data) setProperties(data);
@@ -538,6 +536,114 @@ const LeadsList: React.FC = () => {
     }
   };
 
+  const handleExportCsv = async () => {
+    if (!userRecord?.organization_id) return;
+    setExporting(true);
+
+    try {
+      const today = startOfDay(new Date());
+      const in20Days = addDays(today, 20);
+
+      let query = supabase
+        .from("leads")
+        .select(
+          "id, full_name, first_name, last_name, email, phone, status, source, lead_score, is_priority, is_human_controlled, has_voucher, voucher_status, move_in_date, created_at, last_contact_at, preferred_language"
+        )
+        .eq("organization_id", userRecord.organization_id)
+        .not("full_name", "is", null)
+        .not("phone", "is", null)
+        .not("email", "is", null)
+        .not("full_name", "ilike", "%.com%")
+        .not("full_name", "ilike", "%http%")
+        .not("full_name", "ilike", "%@%")
+        .not("full_name", "ilike", "%comments%")
+        .not("full_name", "ilike", "%unsubscribe%")
+        .not("full_name", "ilike", "%click here%")
+        .not("full_name", "ilike", "%mailto:%")
+        .not("full_name", "ilike", "%subject:%")
+        .not("full_name", "ilike", "%reply%");
+
+      if (statusFilter !== "all") query = query.eq("status", statusFilter);
+      if (sourceFilter !== "all") query = query.eq("source", sourceFilter);
+      if (propertyFilter !== "all") query = query.eq("interested_property_id", propertyFilter);
+      if (activeFilters.priority) query = query.eq("is_priority", true);
+      if (activeFilters.humanControlled) query = query.eq("is_human_controlled", true);
+      if (activeFilters.moveInSoon) {
+        query = query
+          .gte("move_in_date", today.toISOString().split("T")[0])
+          .lte("move_in_date", in20Days.toISOString().split("T")[0]);
+      }
+      if (activeFilters.section8) query = query.or("has_voucher.eq.true,voucher_status.eq.active");
+      if (searchQuery) {
+        query = query.or(
+          `full_name.ilike.%${searchQuery}%,first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`
+        );
+      }
+
+      query = query.order(sortField, { ascending: sortDirection === "asc" });
+
+      const { data, error } = await query;
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.info("No leads to export with current filters");
+        return;
+      }
+
+      let rows = data;
+      if (activeFilters.hasShowing) {
+        rows = rows.filter((l) => leadsWithShowings.has(l.id));
+      }
+
+      const headers = [
+        "Name", "First Name", "Last Name", "Email", "Phone", "Status", "Source",
+        "Score", "Priority", "Human Controlled", "Voucher", "Move-in Date",
+        "Language", "Created", "Last Contact",
+      ];
+
+      const escape = (v: string | null | undefined) => {
+        if (v == null) return "";
+        const s = String(v);
+        return s.includes(",") || s.includes('"') || s.includes("\n")
+          ? `"${s.replace(/"/g, '""')}"`
+          : s;
+      };
+
+      const csvRows = rows.map((l) => [
+        escape(l.full_name),
+        escape(l.first_name),
+        escape(l.last_name),
+        escape(l.email),
+        escape(l.phone),
+        escape(l.status),
+        escape(l.source),
+        l.lead_score ?? "",
+        l.is_priority ? "Yes" : "No",
+        l.is_human_controlled ? "Yes" : "No",
+        l.has_voucher ? "Yes" : "No",
+        escape(l.move_in_date),
+        escape(l.preferred_language),
+        l.created_at ? format(new Date(l.created_at), "yyyy-MM-dd") : "",
+        l.last_contact_at ? format(new Date(l.last_contact_at), "yyyy-MM-dd") : "",
+      ].join(","));
+
+      const csv = [headers.join(","), ...csvRows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `leads-export-${format(new Date(), "yyyy-MM-dd")}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${rows.length} leads`);
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.error("Failed to export leads");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const SortableHeader: React.FC<{ field: SortField; children: React.ReactNode }> = ({
     field,
     children,
@@ -574,6 +680,14 @@ const LeadsList: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
+          <Button variant="outline" onClick={handleExportCsv} disabled={exporting}>
+            {exporting ? (
+              <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+            ) : (
+              <Download className="h-4 w-4 sm:mr-2" />
+            )}
+            <span className="hidden sm:inline">{exporting ? "Exporting..." : "Export"}</span>
+          </Button>
           {permissions.canCreateLead && (
             <>
               <Button variant="outline" onClick={() => setImportOpen(true)}>
@@ -663,7 +777,7 @@ const LeadsList: React.FC = () => {
               <SelectItem value="all">All Properties</SelectItem>
               {properties.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {p.address}
+                  {p.address}{p.unit_number ? ` #${p.unit_number}` : ''}
                 </SelectItem>
               ))}
             </SelectContent>

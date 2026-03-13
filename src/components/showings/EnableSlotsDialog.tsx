@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { format, isBefore, startOfDay } from "date-fns";
-import { CalendarIcon, Loader2, X, MapPin } from "lucide-react";
+import { CalendarIcon, Loader2, MapPin } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,9 +10,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
-import { Badge } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -67,11 +67,6 @@ for (let h = 8; h <= 19; h++) {
   }
 }
 
-const BUFFER_OPTIONS = [
-  { value: "20", label: "20 minutes" },
-  { value: "30", label: "30 minutes" },
-  { value: "60", label: "1 hour" },
-];
 
 export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   open,
@@ -84,23 +79,37 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [startTime, setStartTime] = useState("09:00:00");
   const [endTime, setEndTime] = useState("17:00:00");
-  const [buffer, setBuffer] = useState("30");
-  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
+  const [buffer, setBuffer] = useState("0");
+  const [selectedCity, setSelectedCity] = useState<string>("");
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loadingProps, setLoadingProps] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const { getSetting } = useOrganizationSettings();
+  const { getSetting, updateSetting } = useOrganizationSettings();
 
   const isEditMode = !!editData;
 
-  // Fetch active properties + pre-fill edit state
+  // Available cities from properties
+  const cities = useMemo(() => {
+    const set = new Set<string>();
+    properties.forEach((p) => {
+      if (p.city) set.add(p.city);
+    });
+    return Array.from(set).sort();
+  }, [properties]);
+
+  // Properties in the selected city
+  const cityProperties = useMemo(
+    () => (selectedCity ? properties.filter((p) => p.city === selectedCity) : []),
+    [properties, selectedCity]
+  );
+
+  // Fetch properties + pre-fill edit state
   useEffect(() => {
     if (!open || !orgId) return;
     (async () => {
       setLoadingProps(true);
 
-      // Fetch all available properties
       const { data: propData } = await supabase
         .from("properties")
         .select("id, address, city")
@@ -110,7 +119,6 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
       const allProps = propData || [];
       setProperties(allProps);
 
-      // Set time defaults
       if (editData) {
         setSelectedDate(new Date(editData.date + "T12:00:00"));
         if (editData.slots.length > 0) {
@@ -124,7 +132,6 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           const match = TIME_OPTIONS.find((t) => t.value >= computedEnd);
           setEndTime(match ? match.value : TIME_OPTIONS[TIME_OPTIONS.length - 1].value);
 
-          // Infer buffer from gap between first two slots: gap = slotDuration(30) + buffer
           if (editData.slots.length >= 2) {
             const [s1h, s1m] = editData.slots[0].split(":").map(Number);
             const [s2h, s2m] = editData.slots[1].split(":").map(Number);
@@ -136,72 +143,39 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           }
         }
 
-        // In edit mode: fetch which properties actually have ENABLED slots for this date
-        // and pre-exclude properties that DON'T have slots
+        // In edit mode: detect which city had slots
         const { data: slotData } = await supabase
           .from("showing_available_slots")
-          .select("property_id")
+          .select("property_id, properties(city)")
           .eq("organization_id", orgId)
           .eq("slot_date", editData.date)
-          .eq("is_enabled", true)
-          .eq("is_booked", false);
+          .eq("is_enabled", true);
 
-        const propsWithSlots = new Set((slotData || []).map((s) => s.property_id));
-        const excluded = new Set<string>();
-        allProps.forEach((p) => {
-          if (!propsWithSlots.has(p.id)) excluded.add(p.id);
-        });
-        setExcludedIds(excluded);
+        if (slotData && slotData.length > 0) {
+          const slotCity = (slotData[0] as any).properties?.city;
+          if (slotCity) setSelectedCity(slotCity);
+        }
       } else {
         setSelectedDate(prefilledDate || undefined);
-        // Use defaults from settings if available
-        const savedBuffer = getSetting('buffer_minutes', 15);
-        const bufVal = String(savedBuffer);
+        const savedBuffer = getSetting("buffer_minutes", 0);
         setStartTime("09:00:00");
         setEndTime("17:00:00");
-        setBuffer(BUFFER_OPTIONS.some((b) => b.value === bufVal) ? bufVal : "30");
-        setExcludedIds(new Set());
+        setBuffer(String(savedBuffer));
+        // Auto-select first city if only one exists
+        const uniqueCities = new Set<string>();
+        allProps.forEach((p) => { if (p.city) uniqueCities.add(p.city); });
+        const cityList = Array.from(uniqueCities).sort();
+        if (cityList.length === 1) {
+          setSelectedCity(cityList[0]);
+        } else {
+          setSelectedCity("");
+        }
       }
       setLoadingProps(false);
     })();
   }, [open, orgId, editData]);
 
-  const toggleExclude = (id: string) => {
-    setExcludedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  // Group properties by city
-  const cityGroups = useMemo(() => {
-    const map = new Map<string, PropertyOption[]>();
-    properties.forEach((p) => {
-      const city = p.city || "Other";
-      if (!map.has(city)) map.set(city, []);
-      map.get(city)!.push(p);
-    });
-    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [properties]);
-
-  const toggleCity = (city: string) => {
-    const cityProps = cityGroups.find(([c]) => c === city)?.[1] || [];
-    const cityIds = cityProps.map((p) => p.id);
-    const allExcluded = cityIds.every((id) => excludedIds.has(id));
-    setExcludedIds((prev) => {
-      const next = new Set(prev);
-      if (allExcluded) {
-        cityIds.forEach((id) => next.delete(id));
-      } else {
-        cityIds.forEach((id) => next.add(id));
-      }
-      return next;
-    });
-  };
-
-  // Calculate slot times based on start, end, buffer
+  // Calculate slot times
   const calculateSlotTimes = (): string[] => {
     const bufferMin = parseInt(buffer);
     const slotDuration = 30;
@@ -222,16 +196,18 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   };
 
   const previewSlots = selectedDate ? calculateSlotTimes() : [];
-  const activeProperties = properties.filter((p) => !excludedIds.has(p.id));
-  const totalSlots = previewSlots.length * activeProperties.length;
 
   const handleSubmit = async () => {
     if (!selectedDate) {
       toast.error("Please select a date");
       return;
     }
-    if (activeProperties.length === 0) {
-      toast.error("No properties available. Uncheck some exclusions.");
+    if (!selectedCity) {
+      toast.error("Please select a city");
+      return;
+    }
+    if (cityProperties.length === 0) {
+      toast.error("No available properties in this city");
       return;
     }
     if (previewSlots.length === 0) {
@@ -243,8 +219,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
 
-      // In edit mode, first DISABLE all unbooked slots for this date
-      // (using UPDATE instead of DELETE to avoid RLS policy issues)
+      // In edit mode, disable all unbooked slots for this date first
       if (isEditMode) {
         const { error: disableErr } = await supabase
           .from("showing_available_slots")
@@ -261,8 +236,8 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
         }
       }
 
-      // Create/update slots for active properties only (sets is_enabled = true)
-      const rows = activeProperties.flatMap((prop) =>
+      // Create slots for all properties in the selected city
+      const rows = cityProperties.flatMap((prop) =>
         previewSlots.map((time) => ({
           organization_id: orgId,
           property_id: prop.id,
@@ -286,10 +261,13 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
         }
       }
 
+      // Save buffer preference for next time + for booking logic
+      await updateSetting("buffer_minutes", parseInt(buffer) || 0, "showings", "Buffer minutes between showings");
+
       toast.success(
         isEditMode
-          ? `Updated slots for ${format(selectedDate, "MMM d")}`
-          : `${previewSlots.length} time slots enabled across ${activeProperties.length} properties`
+          ? `Updated slots for ${format(selectedDate, "MMM d")} in ${selectedCity}`
+          : `${previewSlots.length} slots enabled for ${cityProperties.length} properties in ${selectedCity}`
       );
       onOpenChange(false);
       onSuccess();
@@ -313,17 +291,56 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? "Edit Slots" : "Enable Available Slots"}</DialogTitle>
+          <DialogTitle>{isEditMode ? "Edit Slots" : "Enable Showings"}</DialogTitle>
           <DialogDescription>
             {isEditMode
-              ? "Modify the time range and buffer for this date."
-              : "Choose a date and time range. Slots will be created for all your properties."}
+              ? "Modify the time range for this date."
+              : "Pick a city, date, and hours. All properties in that city get slots."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-4">
+          {/* City */}
+          <div className="space-y-2">
+            <Label>City *</Label>
+            {loadingProps ? (
+              <div className="flex justify-center py-3">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {cities.map((city) => {
+                  const count = properties.filter((p) => p.city === city).length;
+                  const isSelected = selectedCity === city;
+                  return (
+                    <button
+                      key={city}
+                      type="button"
+                      onClick={() => setSelectedCity(isSelected ? "" : city)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border",
+                        isSelected
+                          ? "bg-[#4F46E5] text-white border-[#4F46E5] shadow-sm"
+                          : "bg-muted/50 text-foreground border-border hover:border-[#4F46E5]/40 hover:bg-[#4F46E5]/5"
+                      )}
+                    >
+                      <MapPin className="h-3.5 w-3.5" />
+                      {city}
+                      <span className={cn(
+                        "text-xs",
+                        isSelected ? "text-white/70" : "text-muted-foreground"
+                      )}>
+                        ({count})
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Date */}
           <div className="space-y-2">
             <Label>Date *</Label>
@@ -348,11 +365,8 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
                   onSelect={(date) => {
                     setSelectedDate(date);
                     if (date) {
-                      const savedBuffer = getSetting('buffer_minutes', 15);
-                      const bufVal = String(savedBuffer);
-                      if (BUFFER_OPTIONS.some((b) => b.value === bufVal)) {
-                        setBuffer(bufVal);
-                      }
+                      const savedBuffer = getSetting("buffer_minutes", 0);
+                      setBuffer(String(savedBuffer));
                     }
                   }}
                   disabled={(date) => isBefore(date, startOfDay(new Date()))}
@@ -402,107 +416,29 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
 
           {/* Buffer */}
           <div className="space-y-2">
-            <Label>Buffer Between Showings</Label>
-            <Select value={buffer} onValueChange={setBuffer}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BUFFER_OPTIONS.map((b) => (
-                  <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Buffer Between Showings (minutes)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={120}
+              value={buffer}
+              onChange={(e) => setBuffer(e.target.value)}
+              placeholder="0"
+            />
+            <p className="text-xs text-muted-foreground">
+              0 = back-to-back (9:00, 9:30, 10:00…). 5 = small gap between showings.
+            </p>
           </div>
 
-          {/* Exclude Properties — Grouped by City */}
-          {properties.length > 0 && (
-            <div className="space-y-2">
-              <Label>
-                Properties
-                <span className="text-muted-foreground font-normal ml-1.5">
-                  (tap to exclude)
-                </span>
-              </Label>
-              {loadingProps ? (
-                <div className="flex justify-center py-3">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {cityGroups.map(([city, cityProps]) => {
-                    const cityIds = cityProps.map((p) => p.id);
-                    const allExcluded = cityIds.every((id) => excludedIds.has(id));
-                    const someExcluded = cityIds.some((id) => excludedIds.has(id));
-                    const activeCount = cityIds.filter((id) => !excludedIds.has(id)).length;
-
-                    return (
-                      <div key={city} className="space-y-1.5">
-                        <button
-                          type="button"
-                          onClick={() => toggleCity(city)}
-                          className={cn(
-                            "flex items-center gap-1.5 text-xs font-semibold transition-colors",
-                            allExcluded
-                              ? "text-muted-foreground"
-                              : "text-[#4F46E5]"
-                          )}
-                        >
-                          <MapPin className="h-3 w-3" />
-                          {city}
-                          <span className="font-normal text-muted-foreground">
-                            ({activeCount}/{cityProps.length})
-                          </span>
-                          {allExcluded && (
-                            <span className="text-[10px] text-muted-foreground font-normal ml-0.5">— tap to enable</span>
-                          )}
-                          {!allExcluded && someExcluded && (
-                            <span className="text-[10px] text-muted-foreground font-normal ml-0.5">— tap to disable all</span>
-                          )}
-                          {!someExcluded && cityProps.length > 1 && (
-                            <span className="text-[10px] text-muted-foreground font-normal ml-0.5">— tap to disable all</span>
-                          )}
-                        </button>
-                        <div className="flex flex-wrap gap-1.5 pl-4">
-                          {cityProps.map((p) => {
-                            const isExcluded = excludedIds.has(p.id);
-                            return (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => toggleExclude(p.id)}
-                                className={cn(
-                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-all border",
-                                  isExcluded
-                                    ? "bg-muted text-muted-foreground border-border line-through opacity-50"
-                                    : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
-                                )}
-                              >
-                                {isExcluded && <X className="h-2.5 w-2.5" />}
-                                {p.address}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {excludedIds.size > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {excludedIds.size} excluded — slots will not be created for these
-                </p>
-              )}
-            </div>
-          )}
-
           {/* Preview */}
-          {selectedDate && previewSlots.length > 0 && (
+          {selectedDate && selectedCity && previewSlots.length > 0 && (
             <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
               <p className="font-medium">Preview</p>
               <p className="text-muted-foreground">
-                {previewSlots.length} time slots &times; {activeProperties.length} properties = <span className="font-semibold text-foreground">{totalSlots} total slots</span>
+                <span className="font-semibold text-foreground">{previewSlots.length} available time slots</span> across {cityProperties.length} properties in {selectedCity}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                One agent — each time slot can only be booked once
               </p>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {previewSlots.map((t) => (
@@ -524,7 +460,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !selectedDate || previewSlots.length === 0}
+            disabled={submitting || !selectedDate || !selectedCity || previewSlots.length === 0}
             className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
           >
             {submitting ? (
