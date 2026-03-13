@@ -80,7 +80,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   const [startTime, setStartTime] = useState("09:00:00");
   const [endTime, setEndTime] = useState("17:00:00");
   const [buffer, setBuffer] = useState("0");
-  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedCities, setSelectedCities] = useState<Set<string>>(new Set());
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loadingProps, setLoadingProps] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -98,11 +98,20 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
     return Array.from(set).sort();
   }, [properties]);
 
-  // Properties in the selected city
+  // Properties in ALL selected cities
   const cityProperties = useMemo(
-    () => (selectedCity ? properties.filter((p) => p.city === selectedCity) : []),
-    [properties, selectedCity]
+    () => (selectedCities.size > 0 ? properties.filter((p) => selectedCities.has(p.city)) : []),
+    [properties, selectedCities]
   );
+
+  const toggleCity = (city: string) => {
+    setSelectedCities((prev) => {
+      const next = new Set(prev);
+      if (next.has(city)) next.delete(city);
+      else next.add(city);
+      return next;
+    });
+  };
 
   // Fetch properties + pre-fill edit state
   useEffect(() => {
@@ -141,7 +150,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           }
         }
 
-        // In edit mode: detect which city had slots
+        // In edit mode: detect ALL cities that have slots for this date
         const { data: slotData } = await supabase
           .from("showing_available_slots")
           .select("property_id, properties(city)")
@@ -150,8 +159,12 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           .eq("is_enabled", true);
 
         if (slotData && slotData.length > 0) {
-          const slotCity = (slotData[0] as any).properties?.city;
-          if (slotCity) setSelectedCity(slotCity);
+          const slotCities = new Set<string>();
+          slotData.forEach((s: any) => {
+            const c = s.properties?.city;
+            if (c) slotCities.add(c);
+          });
+          setSelectedCities(slotCities);
         }
       } else {
         setSelectedDate(prefilledDate || undefined);
@@ -162,11 +175,10 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
         // Auto-select first city if only one exists
         const uniqueCities = new Set<string>();
         allProps.forEach((p) => { if (p.city) uniqueCities.add(p.city); });
-        const cityList = Array.from(uniqueCities).sort();
-        if (cityList.length === 1) {
-          setSelectedCity(cityList[0]);
+        if (uniqueCities.size === 1) {
+          setSelectedCities(uniqueCities);
         } else {
-          setSelectedCity("");
+          setSelectedCities(new Set());
         }
       }
       setLoadingProps(false);
@@ -200,8 +212,8 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
       toast.error("Please select a date");
       return;
     }
-    if (!selectedCity) {
-      toast.error("Please select a city");
+    if (selectedCities.size === 0) {
+      toast.error("Please select at least one city");
       return;
     }
     if (cityProperties.length === 0) {
@@ -262,10 +274,11 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
       // Save buffer preference for next time + for booking logic
       await updateSetting("buffer_minutes", parseInt(buffer) || 0, "showings", "Buffer minutes between showings");
 
+      const cityLabel = [...selectedCities].join(", ");
       toast.success(
         isEditMode
-          ? `Updated slots for ${format(selectedDate, "MMM d")} in ${selectedCity}`
-          : `${previewSlots.length} slots enabled for ${cityProperties.length} properties in ${selectedCity}`
+          ? `Updated slots for ${format(selectedDate, "MMM d")} in ${cityLabel}`
+          : `${previewSlots.length} slots enabled for ${cityProperties.length} properties in ${cityLabel}`
       );
       onOpenChange(false);
       onSuccess();
@@ -311,12 +324,12 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
               <div className="flex flex-wrap gap-2">
                 {cities.map((city) => {
                   const count = properties.filter((p) => p.city === city).length;
-                  const isSelected = selectedCity === city;
+                  const isSelected = selectedCities.has(city);
                   return (
                     <button
                       key={city}
                       type="button"
-                      onClick={() => setSelectedCity(isSelected ? "" : city)}
+                      onClick={() => toggleCity(city)}
                       className={cn(
                         "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border",
                         isSelected
@@ -429,11 +442,11 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           </div>
 
           {/* Preview */}
-          {selectedDate && selectedCity && previewSlots.length > 0 && (
+          {selectedDate && selectedCities.size > 0 && previewSlots.length > 0 && (
             <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
               <p className="font-medium">Preview</p>
               <p className="text-muted-foreground">
-                <span className="font-semibold text-foreground">{previewSlots.length} available time slots</span> across {cityProperties.length} properties in {selectedCity}
+                <span className="font-semibold text-foreground">{previewSlots.length} available time slots</span> across {cityProperties.length} properties in {[...selectedCities].join(", ")}
               </p>
               <p className="text-xs text-muted-foreground">
                 One agent — each time slot can only be booked once
@@ -458,7 +471,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !selectedDate || !selectedCity || previewSlots.length === 0}
+            disabled={submitting || !selectedDate || selectedCities.size === 0 || previewSlots.length === 0}
             className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
           >
             {submitting ? (
