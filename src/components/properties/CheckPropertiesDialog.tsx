@@ -8,7 +8,6 @@ import {
   DollarSign,
   Ruler,
   Home,
-  Sparkles,
   Tag,
   RefreshCw,
   Loader2,

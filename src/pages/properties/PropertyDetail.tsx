@@ -79,7 +79,6 @@ interface Property {
   description?: string | null;
   special_notes?: string | null;
   amenities?: string[] | null;
-  pet_policy?: string | null;
   alternative_property_ids?: string[] | null;
   investor_id?: string | null;
   property_group_id?: string | null;
@@ -176,7 +175,6 @@ const PropertyDetail: React.FC = () => {
           virtual_tour_url: propertyData.virtual_tour_url,
           description: propertyData.description,
           special_notes: propertyData.special_notes,
-          pet_policy: propertyData.pet_policy,
           investor_id: propertyData.investor_id,
           property_group_id: propertyData.property_group_id,
           created_at: propertyData.created_at,
@@ -607,18 +605,6 @@ const PropertyDetail: React.FC = () => {
                     </Badge>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Pet Policy */}
-          {property.pet_policy && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Pet Policy</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{property.pet_policy}</p>
               </CardContent>
             </Card>
           )}

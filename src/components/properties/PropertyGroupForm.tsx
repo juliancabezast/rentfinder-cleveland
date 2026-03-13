@@ -40,7 +40,6 @@ export interface PropertyGroup {
   cover_photo: string | null;
   description: string | null;
   neighborhood_info: NeighborhoodInfo | null;
-  pet_policy: string | null;
   investor_id: string | null;
 }
 
@@ -67,7 +66,6 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
   const [propertyType, setPropertyType] = useState(group?.property_type || "single_family");
   const [coverPhoto, setCoverPhoto] = useState(group?.cover_photo || "");
   const [description, setDescription] = useState(group?.description || "");
-  const [petPolicy, setPetPolicy] = useState(group?.pet_policy || "");
 
   // Neighborhood info
   const neighborhoodData = (group?.neighborhood_info || {
@@ -129,7 +127,6 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
         property_type: propertyType,
         cover_photo: coverPhoto || null,
         description: description || null,
-        pet_policy: petPolicy || null,
         neighborhood_info: {
           area_benefits: areaBenefits,
           nearby_places: nearbyPlaces,
@@ -407,24 +404,6 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
               onChange={(e) => setSchoolDistrict(e.target.value)}
               placeholder="Cleveland Metropolitan"
               className="h-8 text-sm mt-1"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Features */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Features</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label>Pet Policy</Label>
-            <Textarea
-              value={petPolicy}
-              onChange={(e) => setPetPolicy(e.target.value)}
-              placeholder="Pet policy for all units..."
-              rows={2}
             />
           </div>
         </CardContent>

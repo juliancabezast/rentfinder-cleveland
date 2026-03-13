@@ -37,7 +37,6 @@ interface ZillowProperty {
   description: string | null;
   photos: string[];
   status: string;
-  pet_policy: string | null;
   year_built: number | null;
   _zillow_url: string;
   _zpid: string;
@@ -73,7 +72,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   const [editRent, setEditRent] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState("available");
-  const [editPetPolicy, setEditPetPolicy] = useState("");
 
   // AI description generation
   const [generatingDesc, setGeneratingDesc] = useState(false);
@@ -90,7 +88,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
     sqft: "Sq Ft",
     rent_price: "Monthly Rent",
     property_type: "Property Type",
-    pet_policy: "Pet Policy",
     description: "Description",
   };
 
@@ -157,7 +154,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
     if (aiApprovals.sqft && aiResults.sqft != null) setEditSqft(String(aiResults.sqft));
     if (aiApprovals.rent_price && aiResults.rent_price != null) setEditRent(String(aiResults.rent_price));
     if (aiApprovals.property_type && aiResults.property_type) setEditPropertyType(String(aiResults.property_type));
-    if (aiApprovals.pet_policy && aiResults.pet_policy) setEditPetPolicy(String(aiResults.pet_policy));
     if (aiApprovals.description && aiResults.description) setEditDescription(String(aiResults.description));
     setAiResults(null);
     setAiApprovals({});
@@ -179,7 +175,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
         sqft: editSqft || "unknown",
         property_type: editPropertyType,
         rent_price: editRent || "unknown",
-        pet_policy: editPetPolicy || "not specified",
       };
 
       const { data: creds } = await supabase
@@ -277,7 +272,6 @@ Return ONLY the description text, no quotes or labels.`,
       setEditRent(String(p.rent_price || ""));
       setEditDescription(p.description || "");
       setEditStatus(p.status || "available");
-      setEditPetPolicy(p.pet_policy || "");
       setStep("review");
     } catch (err) {
       setError((err as Error).message || "Failed to fetch property data");
@@ -311,7 +305,6 @@ Return ONLY the description text, no quotes or labels.`,
         description: editDescription || null,
         photos: property.photos.length > 0 ? property.photos : [],
         status: editStatus,
-        pet_policy: editPetPolicy || null,
         special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
       });
 
@@ -644,16 +637,6 @@ Return ONLY the description text, no quotes or labels.`,
                     <SelectItem value="rented">Rented</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-pet">Pet Policy</Label>
-                <Input
-                  id="edit-pet"
-                  value={editPetPolicy}
-                  onChange={(e) => setEditPetPolicy(e.target.value)}
-                  placeholder="e.g. Cats, dogs OK"
-                  className="min-h-[44px]"
-                />
               </div>
             </div>
 

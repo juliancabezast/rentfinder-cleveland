@@ -43,7 +43,6 @@ import {
   Star,
   Navigation,
   GraduationCap,
-  PawPrint,
   Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -430,22 +429,6 @@ const PropertyGroupDetail: React.FC = () => {
             </Card>
           )}
 
-          {/* Pet Policy */}
-          {group.pet_policy && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PawPrint className="h-4 w-4" />
-                  Pet Policy
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {group.pet_policy}
-                </p>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Sidebar */}

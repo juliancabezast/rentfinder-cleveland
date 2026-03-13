@@ -48,26 +48,10 @@ const propertySchema = z.object({
   virtual_tour_url: z.string().url().optional().or(z.literal('')),
   description: z.string().optional(),
   special_notes: z.string().optional(),
-  pet_policy: z.string().optional(),
   investor_id: z.string().optional(),
 });
 
 type PropertyFormData = z.infer<typeof propertySchema>;
-
-const amenitiesList = [
-  { id: 'washer_dryer', label: 'Washer/Dryer' },
-  { id: 'dishwasher', label: 'Dishwasher' },
-  { id: 'ac', label: 'A/C' },
-  { id: 'heating', label: 'Heating' },
-  { id: 'parking', label: 'Parking' },
-  { id: 'garage', label: 'Garage' },
-  { id: 'fenced_yard', label: 'Fenced Yard' },
-  { id: 'pets_allowed', label: 'Pets Allowed' },
-  { id: 'pool', label: 'Pool' },
-  { id: 'gym', label: 'Gym' },
-  { id: 'storage', label: 'Storage' },
-  { id: 'hardwood_floors', label: 'Hardwood Floors' },
-];
 
 interface Property {
   id: string;
@@ -88,8 +72,6 @@ interface Property {
   virtual_tour_url?: string | null;
   description?: string | null;
   special_notes?: string | null;
-  amenities?: string[] | null;
-  pet_policy?: string | null;
   alternative_property_ids?: string[] | null;
   investor_id?: string | null;
 }
@@ -114,9 +96,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   const [photos, setPhotos] = useState<string[]>(
     Array.isArray(property?.photos) ? property.photos : []
   );
-  const [amenities, setAmenities] = useState<string[]>(
-    Array.isArray(property?.amenities) ? property.amenities : []
-  );
   const [alternativePropertyIds, setAlternativePropertyIds] = useState<string[]>(
     Array.isArray(property?.alternative_property_ids) ? property.alternative_property_ids : []
   );
@@ -126,7 +105,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   // AI generation states
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [generatingNotes, setGeneratingNotes] = useState(false);
-  const [generatingPetPolicy, setGeneratingPetPolicy] = useState(false);
 
   // Zillow re-sync states (edit mode only)
   const [zillowUrl, setZillowUrl] = useState('');
@@ -153,7 +131,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
       virtual_tour_url: property?.virtual_tour_url || '',
       description: property?.description || '',
       special_notes: property?.special_notes || '',
-      pet_policy: property?.pet_policy || '',
       investor_id: property?.investor_id || '',
     },
   });
@@ -191,14 +168,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
     fetchData();
   }, [organization?.id]);
 
-  const toggleAmenity = (amenityId: string) => {
-    setAmenities((prev) =>
-      prev.includes(amenityId)
-        ? prev.filter((a) => a !== amenityId)
-        : [...prev, amenityId]
-    );
-  };
-
   const getPropertyContext = () => ({
     address: form.getValues('address'),
     city: form.getValues('city'),
@@ -209,8 +178,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
     sqft: form.getValues('square_feet') || 'unknown',
     property_type: form.getValues('property_type') || 'unknown',
     rent_price: form.getValues('rent_price') || 'unknown',
-    pet_policy: form.getValues('pet_policy') || 'not specified',
-    amenities: amenities.map(a => amenitiesList.find(al => al.id === a)?.label || a).join(', ') || 'none listed',
   });
 
   const callOpenAi = async (systemPrompt: string, userPrompt: string): Promise<string | null> => {
@@ -293,34 +260,12 @@ Return ONLY the notes text, no quotes or labels.`,
     }
   };
 
-  const generateAiPetPolicy = async () => {
-    setGeneratingPetPolicy(true);
-    try {
-      const result = await callOpenAi(
-        `You generate a clear, professional pet policy for a rental property listing. The policy should:
-1. Clearly state which pets are allowed (cats, dogs, small pets)
-2. Include any weight/breed restrictions if applicable for the property type
-3. Mention pet deposit or pet rent if typical for the area
-4. Be concise (2-3 sentences max)
-5. Write in English only
-Return ONLY the pet policy text, no quotes or labels. If no specific pet information is available, generate a reasonable default policy for the property type.`,
-        `Generate a pet policy for this property:\n${JSON.stringify(getPropertyContext())}`
-      );
-      if (result) form.setValue('pet_policy', result);
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setGeneratingPetPolicy(false);
-    }
-  };
-
   const fieldLabels: Record<string, string> = {
     bedrooms: 'Bedrooms',
     bathrooms: 'Bathrooms',
     square_feet: 'Sq Ft',
     rent_price: 'Monthly Rent',
     property_type: 'Property Type',
-    pet_policy: 'Pet Policy',
     description: 'Description',
   };
 
@@ -355,7 +300,6 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
         { key: 'rent_price', formKey: 'rent_price' },
         { key: 'property_type', formKey: 'property_type' },
         { key: 'description', formKey: 'description' },
-        { key: 'pet_policy', formKey: 'pet_policy' },
       ];
 
       for (const { key, formKey } of fieldsToCompare) {
@@ -432,11 +376,9 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
         virtual_tour_url: data.virtual_tour_url || null,
         description: data.description || null,
         special_notes: data.special_notes || null,
-        pet_policy: data.pet_policy || null,
         investor_id: data.investor_id || null,
         organization_id: organization.id,
         photos: photos,
-        amenities: amenities,
         alternative_property_ids: alternativePropertyIds,
         ...(propertyGroupId ? { property_group_id: propertyGroupId } : {}),
       };
@@ -924,73 +866,6 @@ Return ONLY the pet policy text, no quotes or labels. If no specific pet informa
                     />
                   </FormControl>
                   <FormDescription>Only visible to your team</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Amenities */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Amenities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {amenitiesList.map((amenity) => (
-                <div key={amenity.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={amenity.id}
-                    checked={amenities.includes(amenity.id)}
-                    onCheckedChange={() => toggleAmenity(amenity.id)}
-                  />
-                  <label
-                    htmlFor={amenity.id}
-                    className="text-sm font-medium leading-none cursor-pointer"
-                  >
-                    {amenity.label}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pet Policy */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Pet Policy</CardTitle>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={generateAiPetPolicy}
-                disabled={generatingPetPolicy}
-                className="h-7 px-2 text-xs text-[#4F46E5] hover:bg-[#4F46E5]/10"
-              >
-                {generatingPetPolicy ? (
-                  <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Generating...</>
-                ) : (
-                  <><Sparkles className="h-3.5 w-3.5 mr-1" /> AI Magic</>
-                )}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="pet_policy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Textarea
-                      rows={2}
-                      placeholder="e.g., Cats allowed, dogs under 25lbs with deposit..."
-                      {...field}
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
