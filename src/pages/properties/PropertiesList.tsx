@@ -368,7 +368,7 @@ const PropertiesList: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-3">
           {/* Table header */}
           <div className="hidden sm:grid grid-cols-[1fr,60px,60px,50px,90px,100px,36px] gap-2 px-3 py-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
             <span>Address</span>
@@ -382,9 +382,9 @@ const PropertiesList: React.FC = () => {
 
           {grouped.map((group) => (
             <div key={group.address + group.city} className="space-y-0.5">
-              {/* Building header if multi-unit */}
+              {/* Building header — always show for multi-unit, skip for single-unit (address shown inline) */}
               {group.units.length > 1 && (
-                <div className="px-3 pt-2 pb-0.5">
+                <div className="px-3 pt-1 pb-0.5">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     {group.address} — {group.city}, {group.state} {group.zip_code}
                   </span>
