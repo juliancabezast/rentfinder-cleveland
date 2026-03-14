@@ -335,19 +335,21 @@ const CampaignsPage = () => {
                         <p className="text-xs text-slate-400">Leads</p>
                       </div>
                       <div className="text-center">
-                        <div className="flex items-center gap-1 text-indigo-600">
-                          <Send className="h-3.5 w-3.5" />
-                          <span>{c.emails_queued}</span>
-                        </div>
-                        <p className="text-xs text-slate-400">Queued</p>
-                      </div>
-                      <div className="text-center">
                         <div className="flex items-center gap-1 text-emerald-600">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           <span>{stats?.delivered ?? "—"}</span>
                         </div>
                         <p className="text-xs text-slate-400">Delivered</p>
                       </div>
+                      {stats && c.emails_queued - stats.delivered - stats.failed > 0 && (
+                        <div className="text-center">
+                          <div className="flex items-center gap-1 text-amber-600">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>{c.emails_queued - stats.delivered - stats.failed}</span>
+                          </div>
+                          <p className="text-xs text-slate-400">Pending</p>
+                        </div>
+                      )}
                       {(stats?.failed ?? 0) > 0 && (
                         <div className="text-center">
                           <div className="flex items-center gap-1 text-red-600">
