@@ -82,24 +82,32 @@ const CampaignsPage = () => {
       const stats: Record<string, { delivered: number; failed: number; showings: number }> = {};
 
       for (const c of campaigns) {
-        // Email stats — use count queries instead of fetching all rows
+        // Email stats — use .contains() which reliably works with JSONB
+        // Get total emails for campaign, then subtract failed to get delivered
         const [
-          { count: cDelivered },
-          { count: cFailed },
+          { count: totalEmails },
+          { count: failedStatus },
+          { count: bouncedStatus },
         ] = await Promise.all([
           supabase
             .from("email_events")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", orgId)
-            .contains("details", { campaign_id: c.id })
-            .or("details->>status.eq.sent,details->>status.eq.delivered,details->>last_event.eq.delivered,details->>last_event.eq.opened,details->>last_event.eq.clicked"),
+            .contains("details", { campaign_id: c.id }),
           supabase
             .from("email_events")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", orgId)
-            .contains("details", { campaign_id: c.id })
-            .or("details->>status.eq.failed,details->>status.eq.bounced,details->>last_event.eq.bounced"),
+            .contains("details", { campaign_id: c.id, status: "failed" }),
+          supabase
+            .from("email_events")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", orgId)
+            .contains("details", { campaign_id: c.id, last_event: "bounced" }),
         ]);
+
+        const failed = (failedStatus || 0) + (bouncedStatus || 0);
+        const delivered = Math.max(0, (totalEmails || 0) - failed);
 
         // Showings count
         const { data: cl } = await supabase
@@ -117,7 +125,7 @@ const CampaignsPage = () => {
           showings = count || 0;
         }
 
-        stats[c.id] = { delivered: cDelivered || 0, failed: cFailed || 0, showings };
+        stats[c.id] = { delivered, failed, showings };
       }
 
       return stats;

@@ -297,10 +297,23 @@ const EmailsPage = () => {
       ] = await Promise.all([
         // Sent = has a resend_email_id (was actually sent via Resend)
         countQuery().not("resend_email_id", "is", null),
-        // Delivered
-        countQuery().or("details->>last_event.eq.delivered,details->>last_event.eq.opened,details->>last_event.eq.clicked"),
-        // Opened
-        countQuery().or("details->>last_event.eq.opened,details->>last_event.eq.clicked"),
+        // Delivered (delivered + opened + clicked)
+        (async () => {
+          const [{ count: d }, { count: o }, { count: k }] = await Promise.all([
+            countQuery().contains("details", { last_event: "delivered" }),
+            countQuery().contains("details", { last_event: "opened" }),
+            countQuery().contains("details", { last_event: "clicked" }),
+          ]);
+          return { count: (d || 0) + (o || 0) + (k || 0) };
+        })(),
+        // Opened (opened + clicked)
+        (async () => {
+          const [{ count: o }, { count: k }] = await Promise.all([
+            countQuery().contains("details", { last_event: "opened" }),
+            countQuery().contains("details", { last_event: "clicked" }),
+          ]);
+          return { count: (o || 0) + (k || 0) };
+        })(),
         // Queued = no resend_email_id + status queued
         countQuery().is("resend_email_id", null).eq("event_type", "delivery_delayed"),
         // Bounced
