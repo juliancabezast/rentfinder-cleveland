@@ -34,6 +34,17 @@ interface EmailStats {
   failed: number;
 }
 
+function statusPriority(status: string): number {
+  switch (status) {
+    case "clicked": return 5;
+    case "opened": return 4;
+    case "delivered": return 3;
+    case "sent": return 2;
+    case "queued": case "processing": return 1;
+    default: return 0; // failed, bounced, etc.
+  }
+}
+
 export const CampaignProgressPanel = ({
   campaignId,
   totalLeads,
@@ -54,15 +65,26 @@ export const CampaignProgressPanel = ({
       if (!orgId) return { queued: 0, sent: 0, delivered: 0, failed: 0 };
       const { data, error } = await supabase
         .from("email_events")
-        .select("details")
+        .select("recipient_email, details")
         .eq("organization_id", orgId)
         .contains("details", { campaign_id: campaignId });
       if (error) throw error;
 
-      const stats: EmailStats = { queued: 0, sent: 0, delivered: 0, failed: 0 };
+      // Deduplicate by recipient — keep latest status per email
+      const byRecipient = new Map<string, string>();
       for (const row of data || []) {
         const d = row.details as Record<string, unknown> | null;
         const status = (d?.status as string) || (d?.last_event as string) || "queued";
+        const key = (row.recipient_email || row.details?.toString() || "").toLowerCase();
+        // Keep the "best" status: delivered > sent > queued > failed
+        const existing = byRecipient.get(key);
+        if (!existing || statusPriority(status) > statusPriority(existing)) {
+          byRecipient.set(key, status);
+        }
+      }
+
+      const stats: EmailStats = { queued: 0, sent: 0, delivered: 0, failed: 0 };
+      for (const status of byRecipient.values()) {
         if (status === "sent" || status === "delivered" || status === "opened" || status === "clicked") stats.delivered++;
         else if (status === "failed" || status === "bounced" || status === "complained") stats.failed++;
         else stats.queued++;
@@ -155,7 +177,17 @@ export const CampaignProgressPanel = ({
         }
       }
 
-      return emails.map((e) => {
+      // Deduplicate by recipient — keep the latest event per email address
+      const byRecipient = new Map<string, typeof emails[0]>();
+      for (const e of emails) {
+        const key = (e.recipient_email || e.id).toLowerCase();
+        const existing = byRecipient.get(key);
+        if (!existing || new Date(e.created_at) > new Date(existing.created_at)) {
+          byRecipient.set(key, e);
+        }
+      }
+
+      return Array.from(byRecipient.values()).map((e) => {
         const d = e.details as Record<string, unknown> | null;
         const status = (d?.status as string) || (d?.last_event as string) || "queued";
         const leadId = (d?.related_entity_id as string) || "";
@@ -280,9 +312,12 @@ export const CampaignProgressPanel = ({
       {/* Email delivery log */}
       {emailLog && emailLog.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-slate-700">Delivery Log</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-700">Delivery Log</h3>
+            <span className="text-xs text-slate-400">{emailLog.length} emails</span>
+          </div>
           <Card variant="glass" className="p-0 overflow-hidden">
-            <ScrollArea className="max-h-[420px]">
+            <ScrollArea className="max-h-[70vh]">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50/80 sticky top-0 z-10">
                   <tr>
