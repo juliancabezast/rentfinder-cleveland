@@ -279,43 +279,42 @@ const EmailsPage = () => {
       setEmails(data || []);
       setTotal(count || 0);
 
-      // ── Compute stats from ALL emails (not just current page) ──
-      // Fetch all details for counting — use a lightweight query
-      const { data: allEmails } = await supabase
-        .from("email_events")
-        .select("resend_email_id, event_type, details")
-        .eq("organization_id", userRecord.organization_id);
+      // ── Compute stats via server-side count queries (no 1000-row cap) ──
+      const orgFilter = { organization_id: userRecord.organization_id };
+      const countQuery = (filter?: string) =>
+        supabase
+          .from("email_events")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", userRecord.organization_id);
 
-      // Cumulative stats (like Resend dashboard): delivered includes opened, sent includes delivered
-      let sent = 0, delivered = 0, opened = 0, queued = 0, failed = 0, bounced = 0;
-      for (const e of allEmails || []) {
-        const le = e.details?.last_event;
-        const st = e.details?.status;
+      const [
+        { count: cSent },
+        { count: cDelivered },
+        { count: cOpened },
+        { count: cQueued },
+        { count: cBounced },
+        { count: cFailed },
+      ] = await Promise.all([
+        // Sent = has a resend_email_id (was actually sent via Resend)
+        countQuery().not("resend_email_id", "is", null),
+        // Delivered
+        countQuery().or("details->last_event.eq.delivered,details->last_event.eq.opened,details->last_event.eq.clicked"),
+        // Opened
+        countQuery().or("details->last_event.eq.opened,details->last_event.eq.clicked"),
+        // Queued = no resend_email_id + status queued
+        countQuery().is("resend_email_id", null).eq("event_type", "delivery_delayed"),
+        // Bounced
+        countQuery().contains("details", { last_event: "bounced" }),
+        // Failed
+        countQuery().eq("event_type", "failed"),
+      ]);
 
-        // Classify each email into its HIGHEST status
-        const isClicked = le === "clicked" || st === "clicked";
-        const isOpened = isClicked || le === "opened" || st === "opened";
-        const isDelivered = isOpened || le === "delivered" || st === "delivered";
-        const isBounced = le === "bounced" || st === "bounced";
-        const isQueued = st === "queued" && !e.resend_email_id;
-        const isFailed = st === "failed" || e.event_type === "failed";
-        const isSent = isDelivered || isBounced || e.resend_email_id || st === "sent" || le === "sent";
-
-        // Cumulative counting: opened emails are ALSO counted as delivered and sent
-        if (isQueued) { queued++; continue; }
-        if (isFailed) { failed++; continue; }
-        if (isBounced) { bounced++; sent++; continue; }
-
-        if (isSent) sent++;
-        if (isDelivered) delivered++;
-        if (isOpened) opened++;
-      }
-      setSentCount(sent);
-      setDeliveredCount(delivered);
-      setOpenedCount(opened);
-      setQueuedCount(queued);
-      setFailedCount(failed);
-      setBouncedCount(bounced);
+      setSentCount(cSent || 0);
+      setDeliveredCount(cDelivered || 0);
+      setOpenedCount(cOpened || 0);
+      setQueuedCount(cQueued || 0);
+      setBouncedCount(cBounced || 0);
+      setFailedCount(cFailed || 0);
     } catch (err) {
       console.error("Error fetching emails:", err);
       toast.error("Failed to load email activity");

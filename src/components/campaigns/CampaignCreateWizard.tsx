@@ -34,7 +34,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { sendNotificationEmail } from "@/lib/notificationService";
 import {
   renderEmailHtml,
   DEFAULT_CONFIGS,
@@ -429,13 +428,14 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         }
 
         // Insert campaign_leads junction
-        await supabase.from("campaign_leads").insert({
+        const { error: clErr } = await supabase.from("campaign_leads").insert({
           campaign_id: newCampaignId,
           lead_id: leadId,
           organization_id: orgId,
         });
+        if (clErr) console.warn("campaign_leads insert:", clErr.message);
 
-        // Queue email if lead has email
+        // Queue email if lead has email (await to ensure it's actually queued)
         if (email) {
           const propertyAddress = `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ""}, ${selectedProperty.city || "Cleveland"}`;
           const variables: Record<string, string> = {
@@ -454,18 +454,28 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             .replace("{orgName}", orgName)
             .replace("{propertyAddress}", propertyAddress);
 
-          sendNotificationEmail({
-            to: email,
-            subject,
-            html,
-            notificationType: `campaign_${templateType}`,
-            organizationId: orgId,
-            relatedEntityId: leadId,
-            relatedEntityType: "lead",
-            queue: true,
-            campaignId: newCampaignId,
-          });
-          emailsQueued++;
+          try {
+            const { error: emailErr } = await supabase.functions.invoke("send-notification-email", {
+              body: {
+                to: email,
+                subject,
+                html,
+                notification_type: `campaign_${templateType}`,
+                organization_id: orgId,
+                related_entity_id: leadId,
+                related_entity_type: "lead",
+                queue: true,
+                campaign_id: newCampaignId,
+              },
+            });
+            if (emailErr) {
+              console.error("Email queue error:", emailErr);
+            } else {
+              emailsQueued++;
+            }
+          } catch (emailErr) {
+            console.error("Email queue exception:", emailErr);
+          }
         }
       }
 

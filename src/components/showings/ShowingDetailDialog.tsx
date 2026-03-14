@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -28,9 +30,11 @@ import {
   AlertTriangle,
   Link2,
   UserCheck,
+  Pencil,
+  Save,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
+import { getTimezoneForCity, formatTimeInTimezone, buildScheduledAt } from "@/lib/cityTimezone";
 
 interface ShowingDetailDialogProps {
   open: boolean;
@@ -86,12 +90,18 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editDuration, setEditDuration] = useState(30);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open || !showingId) {
       setShowing(null);
       setCancelMode(false);
       setCancelReason("");
+      setEditMode(false);
       return;
     }
 
@@ -286,6 +296,64 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
     }
   };
 
+  const enterEditMode = () => {
+    if (!showing) return;
+    const tz = getTimezoneForCity(showing.properties?.city);
+    // Convert scheduled_at to local date/time in the property timezone
+    const d = new Date(showing.scheduled_at);
+    const dateStr = d.toLocaleDateString("en-CA", { timeZone: tz }); // YYYY-MM-DD
+    const timeStr = d.toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }); // HH:mm
+    setEditDate(dateStr);
+    setEditTime(timeStr);
+    setEditDuration(showing.duration_minutes || 30);
+    setEditMode(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!showing || !userRecord?.organization_id || !editDate || !editTime) return;
+    setSaving(true);
+    try {
+      const tz = getTimezoneForCity(showing.properties?.city);
+      const newScheduledAt = buildScheduledAt(editDate, `${editTime}:00`, tz);
+
+      const { error } = await supabase
+        .from("showings")
+        .update({
+          scheduled_at: newScheduledAt,
+          duration_minutes: editDuration,
+        })
+        .eq("id", showing.id);
+
+      if (error) throw error;
+
+      // Log the edit
+      await supabase.from("system_logs").insert({
+        organization_id: userRecord.organization_id,
+        level: "info",
+        category: "general",
+        event_type: "showing_edited",
+        message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was edited`,
+        related_lead_id: showing.lead_id,
+        related_showing_id: showing.id,
+        details: {
+          old_scheduled_at: showing.scheduled_at,
+          new_scheduled_at: newScheduledAt,
+          edited_by: userRecord.id,
+        },
+      });
+
+      toast({ title: "Showing updated", description: "Date/time updated successfully." });
+      setEditMode(false);
+      // Refresh showing data
+      setShowing({ ...showing, scheduled_at: newScheduledAt, duration_minutes: editDuration });
+      onSuccess?.();
+    } catch (err: any) {
+      toast({ title: "Error", description: `Failed to save: ${err.message}`, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const isActive = showing?.status === "scheduled" || showing?.status === "confirmed";
   const sc = statusConfig[showing?.status || ""] || statusConfig.scheduled;
 
@@ -316,19 +384,79 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
             {/* Info Section */}
             <div className="space-y-3 rounded-lg border border-[#e5e7eb] p-4">
               {/* Date/Time */}
-              <div className="flex items-center gap-3">
-                <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">
-                    {format(parseISO(showing.scheduled_at), "EEEE, MMMM d, yyyy")}
+              {editMode ? (
+                <div className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-3">
+                  <p className="text-xs font-semibold text-indigo-700 flex items-center gap-1">
+                    <Pencil className="h-3 w-3" /> Edit Date & Time
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.properties?.city))}
-                    {showing.duration_minutes && ` (${showing.duration_minutes} min)`}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Date</Label>
+                      <Input
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Time</Label>
+                      <Input
+                        type="time"
+                        value={editTime}
+                        onChange={(e) => setEditTime(e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Duration (min)</Label>
+                    <Input
+                      type="number"
+                      value={editDuration}
+                      onChange={(e) => setEditDuration(Number(e.target.value) || 30)}
+                      min={10}
+                      max={180}
+                      step={5}
+                      className="h-9 text-sm w-24"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" onClick={handleSaveEdit} disabled={saving} className="gap-1.5">
+                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                      {saving ? "Saving..." : "Save"}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditMode(false)} disabled={saving}>
+                      Cancel
+                    </Button>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {format(parseISO(showing.scheduled_at), "EEEE, MMMM d, yyyy")}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.properties?.city))}
+                      {showing.duration_minutes && ` (${showing.duration_minutes} min)`}
+                    </div>
+                  </div>
+                  {isActive && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-indigo-600"
+                      onClick={enterEditMode}
+                      title="Edit date/time"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {/* Property */}
               {showing.properties && (
