@@ -161,21 +161,31 @@ serve(async (req: Request) => {
     for (let i = 0; i < rows.length; i += BATCH) {
       const batch = rows.slice(i, i + BATCH);
 
-      // Update existing rows first (by resend_email_id)
       for (const row of batch) {
-        const { count } = await supabase
+        // Check if this email already exists — fetch current details to MERGE
+        const { data: existing } = await supabase
           .from("email_events")
-          .update({ details: row.details })
+          .select("id, details")
           .eq("resend_email_id", row.resend_email_id)
-          .eq("organization_id", organization_id);
+          .eq("organization_id", organization_id)
+          .maybeSingle();
 
-        if (count && count > 0) {
+        if (existing) {
+          // Merge: preserve existing fields (campaign_id, related_entity_id, etc.)
+          // then overlay with fresh Resend data
+          const mergedDetails = {
+            ...(existing.details as Record<string, unknown> || {}),
+            ...row.details,
+          };
+          await supabase
+            .from("email_events")
+            .update({ details: mergedDetails })
+            .eq("id", existing.id);
           updated++;
         } else {
           // New email — insert
           const { error: insertErr } = await supabase.from("email_events").insert(row);
           if (insertErr) {
-            // Unique constraint violation = already exists, skip
             skipped++;
           } else {
             created++;

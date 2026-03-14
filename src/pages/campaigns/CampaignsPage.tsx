@@ -82,32 +82,35 @@ const CampaignsPage = () => {
       const stats: Record<string, { delivered: number; failed: number; showings: number }> = {};
 
       for (const c of campaigns) {
-        // Email stats — use .contains() which reliably works with JSONB
-        // Get total emails for campaign, then subtract failed to get delivered
-        const [
-          { count: totalEmails },
-          { count: failedStatus },
-          { count: bouncedStatus },
-        ] = await Promise.all([
-          supabase
-            .from("email_events")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", orgId)
-            .contains("details", { campaign_id: c.id }),
-          supabase
-            .from("email_events")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", orgId)
-            .contains("details", { campaign_id: c.id, status: "failed" }),
-          supabase
-            .from("email_events")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", orgId)
-            .contains("details", { campaign_id: c.id, last_event: "bounced" }),
-        ]);
+        // Fetch all email_events for this campaign and count statuses client-side
+        // (PostgREST .or() doesn't work with JSONB paths, and total-minus-failed
+        //  incorrectly counts "queued" emails as delivered)
+        const { data: emailRows } = await supabase
+          .from("email_events")
+          .select("details")
+          .eq("organization_id", orgId)
+          .contains("details", { campaign_id: c.id });
 
-        const failed = (failedStatus || 0) + (bouncedStatus || 0);
-        const delivered = Math.max(0, (totalEmails || 0) - failed);
+        let delivered = 0;
+        let failed = 0;
+        for (const row of emailRows || []) {
+          const d = row.details as Record<string, unknown> | null;
+          const status = (d?.status as string) || "queued";
+          const lastEvent = (d?.last_event as string) || "";
+          if (
+            status === "delivered" || status === "opened" || status === "clicked" ||
+            lastEvent === "delivered" || lastEvent === "opened" || lastEvent === "clicked" ||
+            (status === "sent" && lastEvent && lastEvent !== "bounced")
+          ) {
+            delivered++;
+          } else if (
+            status === "failed" || status === "bounced" ||
+            lastEvent === "bounced" || status === "complained"
+          ) {
+            failed++;
+          }
+          // else: still queued/processing — don't count as delivered
+        }
 
         // Showings count
         const { data: cl } = await supabase
@@ -312,14 +315,14 @@ const CampaignsPage = () => {
                         {propertyLabel} &middot; {format(new Date(c.created_at), "MMM d, yyyy")}
                       </p>
                       {/* Mini progress bar */}
-                      {c.emails_queued > 0 && stats && (
+                      {c.emails_queued > 0 && stats && (stats.delivered > 0 || stats.failed > 0) && (
                         <div className="mt-2 flex items-center gap-2">
                           <Progress
-                            value={Math.round(((stats.delivered + stats.failed) / c.emails_queued) * 100)}
+                            value={Math.min(100, Math.round(((stats.delivered + stats.failed) / c.emails_queued) * 100))}
                             className="h-1.5 flex-1"
                           />
                           <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                            {stats.delivered + stats.failed}/{c.emails_queued}
+                            {Math.min(stats.delivered + stats.failed, c.emails_queued)}/{c.emails_queued}
                           </span>
                         </div>
                       )}
