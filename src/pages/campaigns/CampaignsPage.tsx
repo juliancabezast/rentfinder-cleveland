@@ -92,13 +92,13 @@ const CampaignsPage = () => {
             .select("id", { count: "exact", head: true })
             .eq("organization_id", orgId)
             .contains("details", { campaign_id: c.id })
-            .or("details->status.eq.sent,details->status.eq.delivered,details->last_event.eq.delivered,details->last_event.eq.opened,details->last_event.eq.clicked"),
+            .or("details->>status.eq.sent,details->>status.eq.delivered,details->>last_event.eq.delivered,details->>last_event.eq.opened,details->>last_event.eq.clicked"),
           supabase
             .from("email_events")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", orgId)
             .contains("details", { campaign_id: c.id })
-            .or("details->status.eq.failed,details->status.eq.bounced,details->last_event.eq.bounced"),
+            .or("details->>status.eq.failed,details->>status.eq.bounced,details->>last_event.eq.bounced"),
         ]);
 
         // Showings count

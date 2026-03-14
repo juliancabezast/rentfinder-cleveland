@@ -298,9 +298,9 @@ const EmailsPage = () => {
         // Sent = has a resend_email_id (was actually sent via Resend)
         countQuery().not("resend_email_id", "is", null),
         // Delivered
-        countQuery().or("details->last_event.eq.delivered,details->last_event.eq.opened,details->last_event.eq.clicked"),
+        countQuery().or("details->>last_event.eq.delivered,details->>last_event.eq.opened,details->>last_event.eq.clicked"),
         // Opened
-        countQuery().or("details->last_event.eq.opened,details->last_event.eq.clicked"),
+        countQuery().or("details->>last_event.eq.opened,details->>last_event.eq.clicked"),
         // Queued = no resend_email_id + status queued
         countQuery().is("resend_email_id", null).eq("event_type", "delivery_delayed"),
         // Bounced
