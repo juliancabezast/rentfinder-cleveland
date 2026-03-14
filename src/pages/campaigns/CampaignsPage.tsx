@@ -315,17 +315,21 @@ const CampaignsPage = () => {
                         {propertyLabel} &middot; {format(new Date(c.created_at), "MMM d, yyyy")}
                       </p>
                       {/* Mini progress bar */}
-                      {c.emails_queued > 0 && stats && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <Progress
-                            value={Math.min(100, Math.round(((stats.delivered + stats.failed) / c.emails_queued) * 100))}
-                            className="h-1.5 flex-1"
-                          />
-                          <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                            {Math.min(stats.delivered + stats.failed, c.emails_queued)}/{c.emails_queued}
-                          </span>
-                        </div>
-                      )}
+                      {c.emails_queued > 0 && stats && (() => {
+                        const processed = stats.delivered + stats.failed;
+                        // Completed campaigns with no tracked emails: show full bar
+                        const isCompletedNoTracking = c.status === "completed" && processed === 0;
+                        const pct = isCompletedNoTracking ? 100 : Math.min(100, Math.round((processed / c.emails_queued) * 100));
+                        const label = isCompletedNoTracking
+                          ? `${c.emails_queued}/${c.emails_queued}`
+                          : `${Math.min(processed, c.emails_queued)}/${c.emails_queued}`;
+                        return (
+                          <div className="mt-2 flex items-center gap-2">
+                            <Progress value={pct} className="h-1.5 flex-1" />
+                            <span className="text-[10px] text-slate-400 whitespace-nowrap">{label}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Stats */}
@@ -340,11 +344,11 @@ const CampaignsPage = () => {
                       <div className="text-center">
                         <div className="flex items-center gap-1 text-emerald-600">
                           <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>{stats?.delivered ?? "—"}</span>
+                          <span>{stats ? (c.status === "completed" && stats.delivered === 0 ? c.emails_queued : stats.delivered) : "—"}</span>
                         </div>
                         <p className="text-xs text-slate-400">Delivered</p>
                       </div>
-                      {stats && c.emails_queued - stats.delivered - stats.failed > 0 && (
+                      {stats && c.status !== "completed" && c.emails_queued - stats.delivered - stats.failed > 0 && (
                         <div className="text-center">
                           <div className="flex items-center gap-1 text-amber-600">
                             <Clock className="h-3.5 w-3.5" />
