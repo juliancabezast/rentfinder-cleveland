@@ -291,6 +291,19 @@ const CampaignsPage = () => {
               ? `${c.properties.address}${c.properties.unit_number ? ` #${c.properties.unit_number}` : ""}`
               : "No property";
 
+            const processed = stats ? stats.delivered + stats.failed : 0;
+            const isCompletedNoTracking = c.status === "completed" && processed === 0;
+            const deliveredDisplay = stats
+              ? (isCompletedNoTracking ? c.emails_queued : stats.delivered)
+              : 0;
+            const failedDisplay = stats?.failed ?? 0;
+            const pending = c.status !== "completed" && stats
+              ? Math.max(0, c.emails_queued - stats.delivered - stats.failed)
+              : 0;
+            const pct = c.emails_queued > 0
+              ? (isCompletedNoTracking ? 100 : Math.min(100, Math.round((processed / c.emails_queued) * 100)))
+              : 0;
+
             return (
               <Card
                 key={c.id}
@@ -299,83 +312,57 @@ const CampaignsPage = () => {
                 onClick={() => { setSelectedCampaign(c); setView("detail"); }}
               >
                 <CardContent className="p-5">
-                  <div className="flex items-center gap-4">
-                    {/* Icon */}
-                    <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                      <Megaphone className="h-6 w-6 text-indigo-600" />
-                    </div>
-
-                    {/* Info + Progress */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-slate-900 truncate">{c.name}</h3>
-                        {statusBadge(c.status)}
+                  {/* Row 1: Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                        <Megaphone className="h-5 w-5 text-indigo-600" />
                       </div>
-                      <p className="text-sm text-slate-500">
-                        {propertyLabel} &middot; {format(new Date(c.created_at), "MMM d, yyyy")}
-                      </p>
-                      {/* Mini progress bar */}
-                      {c.emails_queued > 0 && stats && (() => {
-                        const processed = stats.delivered + stats.failed;
-                        // Completed campaigns with no tracked emails: show full bar
-                        const isCompletedNoTracking = c.status === "completed" && processed === 0;
-                        const pct = isCompletedNoTracking ? 100 : Math.min(100, Math.round((processed / c.emails_queued) * 100));
-                        const label = isCompletedNoTracking
-                          ? `${c.emails_queued}/${c.emails_queued}`
-                          : `${Math.min(processed, c.emails_queued)}/${c.emails_queued}`;
-                        return (
-                          <div className="mt-2 flex items-center gap-2">
-                            <Progress value={pct} className="h-1.5 flex-1" />
-                            <span className="text-[10px] text-slate-400 whitespace-nowrap">{label}</span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="hidden sm:flex items-center gap-6 text-sm">
-                      <div className="text-center">
-                        <div className="flex items-center gap-1 text-slate-500">
-                          <Users className="h-3.5 w-3.5" />
-                          <span>{c.total_leads}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-slate-900 truncate">{c.name}</h3>
+                          {statusBadge(c.status)}
                         </div>
-                        <p className="text-xs text-slate-400">Leads</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="flex items-center gap-1 text-emerald-600">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>{stats ? (c.status === "completed" && stats.delivered === 0 ? c.emails_queued : stats.delivered) : "—"}</span>
-                        </div>
-                        <p className="text-xs text-slate-400">Delivered</p>
-                      </div>
-                      {stats && c.status !== "completed" && c.emails_queued - stats.delivered - stats.failed > 0 && (
-                        <div className="text-center">
-                          <div className="flex items-center gap-1 text-amber-600">
-                            <Clock className="h-3.5 w-3.5" />
-                            <span>{c.emails_queued - stats.delivered - stats.failed}</span>
-                          </div>
-                          <p className="text-xs text-slate-400">Pending</p>
-                        </div>
-                      )}
-                      {(stats?.failed ?? 0) > 0 && (
-                        <div className="text-center">
-                          <div className="flex items-center gap-1 text-red-600">
-                            <XCircle className="h-3.5 w-3.5" />
-                            <span>{stats.failed}</span>
-                          </div>
-                          <p className="text-xs text-slate-400">Failed</p>
-                        </div>
-                      )}
-                      <div className="text-center">
-                        <div className="flex items-center gap-1 text-purple-600">
-                          <CalendarDays className="h-3.5 w-3.5" />
-                          <span>{stats?.showings ?? "—"}</span>
-                        </div>
-                        <p className="text-xs text-slate-400">Showings</p>
+                        <p className="text-xs text-slate-500 mt-0.5 truncate">
+                          {propertyLabel} &middot; {format(new Date(c.created_at), "MMM d, yyyy")}
+                        </p>
                       </div>
                     </div>
+                    <ChevronRight className="h-5 w-5 text-slate-300 shrink-0 mt-1" />
+                  </div>
 
-                    <ChevronRight className="h-5 w-5 text-slate-300 shrink-0" />
+                  {/* Row 2: Progress bar */}
+                  {c.emails_queued > 0 && (
+                    <div className="flex items-center gap-3 mb-3">
+                      <Progress value={pct} className="h-1.5 flex-1" />
+                      <span className="text-[10px] font-medium text-slate-400 tabular-nums whitespace-nowrap w-12 text-right">
+                        {pct}%
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Row 3: Stats — fixed 4-column grid */}
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-semibold text-slate-700 tabular-nums">{c.total_leads}</span>
+                      <span className="text-[10px] text-slate-400">Leads</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-semibold text-emerald-600 tabular-nums">{deliveredDisplay}</span>
+                      <span className="text-[10px] text-slate-400">Delivered</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className={cn("text-sm font-semibold tabular-nums", failedDisplay > 0 ? "text-red-600" : pending > 0 ? "text-amber-600" : "text-slate-400")}>
+                        {failedDisplay > 0 ? failedDisplay : pending > 0 ? pending : "—"}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {failedDisplay > 0 ? "Failed" : pending > 0 ? "Pending" : "Failed"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-semibold text-purple-600 tabular-nums">{stats?.showings ?? 0}</span>
+                      <span className="text-[10px] text-slate-400">Showings</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
