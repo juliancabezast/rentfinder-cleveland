@@ -128,16 +128,17 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       .filter((s: any) => s.booked_showing_id)
       .map((s: any) => s.booked_showing_id);
 
-    let leadNameMap = new Map<string, string>();
+    let showingInfoMap = new Map<string, { leadName: string; propertyId: string }>();
     if (bookedShowingIds.length > 0) {
       const { data: showingsData } = await supabase
         .from("showings")
-        .select("id, leads(full_name)")
+        .select("id, property_id, leads(full_name)")
         .in("id", bookedShowingIds);
       (showingsData || []).forEach((s: any) => {
-        if (s.leads?.full_name) {
-          leadNameMap.set(s.id, s.leads.full_name);
-        }
+        showingInfoMap.set(s.id, {
+          leadName: s.leads?.full_name || "Booked",
+          propertyId: s.property_id || "",
+        });
       });
     }
 
@@ -157,13 +158,15 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       const timeMap = dayMap.get(dateKey)!;
       if (!timeMap.has(s.slot_time)) timeMap.set(s.slot_time, []);
 
-      const leadName = s.booked_showing_id ? (leadNameMap.get(s.booked_showing_id) || null) : null;
+      const showingInfo = s.booked_showing_id ? showingInfoMap.get(s.booked_showing_id) : null;
+      // Only show lead name on the actual property that was booked, not blocked slots
+      const isRealBooking = showingInfo && showingInfo.propertyId === s.property_id;
       timeMap.get(s.slot_time)!.push({
         property_id: s.property_id,
         property_address: (s.properties as any)?.address || "Unknown",
         property_city: (s.properties as any)?.city || "",
         is_booked: s.is_booked,
-        lead_name: leadName,
+        lead_name: isRealBooking ? showingInfo.leadName : null,
       });
     });
 
@@ -181,7 +184,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
           time,
           properties: props.sort((a, b) => a.property_address.localeCompare(b.property_address)),
           totalCount: props.length,
-          bookedCount: props.filter((p) => p.is_booked).length,
+          bookedCount: props.filter((p) => p.is_booked && p.lead_name).length,
         });
       });
 
@@ -359,9 +362,10 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                             className={`p-1 text-center ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
                           >
                             {(() => {
-                              const bookedProps = ts.properties.filter((p) => p.is_booked);
-                              const isBooked = bookedProps.length > 0;
-                              const firstBooked = bookedProps[0];
+                              const realBookings = ts.properties.filter((p) => p.is_booked && p.lead_name);
+                              const blockedSlots = ts.properties.filter((p) => p.is_booked && !p.lead_name);
+                              const isBooked = realBookings.length > 0 || blockedSlots.length > 0;
+                              const firstBooked = realBookings[0];
 
                               return (
                                 <Popover>
@@ -369,15 +373,17 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                     <button
                                       className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${getCellStyle(ts)}`}
                                     >
-                                      {isBooked ? (
+                                      {firstBooked ? (
                                         <>
                                           <div className="font-bold truncate">
-                                            {firstBooked?.lead_name || "Booked"}
+                                            {firstBooked.lead_name}
                                           </div>
                                           <div className="text-[10px] opacity-70 truncate">
-                                            {firstBooked?.property_address || ""}
+                                            {firstBooked.property_address}
                                           </div>
                                         </>
+                                      ) : blockedSlots.length > 0 ? (
+                                        <div className="font-bold text-slate-500">Blocked</div>
                                       ) : (
                                         <>
                                           <div className="font-bold">Open</div>
@@ -403,13 +409,13 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                           variant="outline"
                                           className={`text-[10px] ${isBooked ? "border-blue-200 text-blue-700" : "border-emerald-200 text-emerald-700"}`}
                                         >
-                                          {isBooked ? `${bookedProps.length} booked` : "Open"}
+                                          {realBookings.length > 0 ? `${realBookings.length} booked` : blockedSlots.length > 0 ? "Blocked" : "Open"}
                                         </Badge>
                                       </div>
-                                      {/* Show bookings first */}
-                                      {bookedProps.length > 0 && (
+                                      {/* Show real bookings */}
+                                      {realBookings.length > 0 && (
                                         <div className="space-y-1.5">
-                                          {bookedProps.map((p) => (
+                                          {realBookings.map((p) => (
                                             <div
                                               key={p.property_id}
                                               className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs bg-blue-50 border border-blue-100"
@@ -421,11 +427,19 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                               <div className="flex items-center gap-1 text-blue-700 shrink-0">
                                                 <User className="h-3 w-3" />
                                                 <span className="text-[10px] font-medium truncate max-w-[80px]">
-                                                  {p.lead_name || "Booked"}
+                                                  {p.lead_name}
                                                 </span>
                                               </div>
                                             </div>
                                           ))}
+                                        </div>
+                                      )}
+                                      {/* Blocked slots (other properties at same time) */}
+                                      {blockedSlots.length > 0 && (
+                                        <div>
+                                          <p className="text-[10px] text-muted-foreground">
+                                            {blockedSlots.length} other {blockedSlots.length === 1 ? "property" : "properties"} blocked at this time
+                                          </p>
                                         </div>
                                       )}
                                       {/* Available properties */}
