@@ -311,9 +311,9 @@ const CampaignsPage = () => {
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => { setSelectedCampaign(c); setView("detail"); }}
               >
-                <CardContent className="p-5">
+                <CardContent className="px-5 py-3.5">
                   {/* Row 1: Header */}
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
                         <Megaphone className="h-5 w-5 text-indigo-600" />
@@ -331,37 +331,39 @@ const CampaignsPage = () => {
                     <ChevronRight className="h-5 w-5 text-slate-300 shrink-0 mt-1" />
                   </div>
 
-                  {/* Row 2: Progress bar */}
-                  {c.emails_queued > 0 && (
-                    <div className="flex items-center gap-3 mb-3">
-                      <Progress value={pct} className="h-1.5 flex-1" />
-                      <span className="text-[10px] font-medium text-slate-400 tabular-nums whitespace-nowrap w-12 text-right">
-                        {pct}%
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Row 3: Stats — fixed 4-column grid */}
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-sm font-semibold text-slate-700 tabular-nums">{c.total_leads}</span>
-                      <span className="text-[10px] text-slate-400">Leads</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-sm font-semibold text-emerald-600 tabular-nums">{deliveredDisplay}</span>
-                      <span className="text-[10px] text-slate-400">Delivered</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className={cn("text-sm font-semibold tabular-nums", failedDisplay > 0 ? "text-red-600" : pending > 0 ? "text-amber-600" : "text-slate-400")}>
-                        {failedDisplay > 0 ? failedDisplay : pending > 0 ? pending : "—"}
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {failedDisplay > 0 ? "Failed" : pending > 0 ? "Pending" : "Failed"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-sm font-semibold text-purple-600 tabular-nums">{stats?.showings ?? 0}</span>
-                      <span className="text-[10px] text-slate-400">Showings</span>
+                  {/* Row 2: Progress + Stats inline */}
+                  <div className="flex items-center gap-4">
+                    {/* Progress bar */}
+                    {c.emails_queued > 0 && (
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Progress value={pct} className="h-2 flex-1" />
+                        <span className="text-xs font-medium text-slate-500 tabular-nums whitespace-nowrap">
+                          {pct}%
+                        </span>
+                      </div>
+                    )}
+                    {/* Stats */}
+                    <div className="flex items-center gap-5 shrink-0">
+                      <div className="text-center w-14">
+                        <p className="text-lg font-bold text-slate-700 tabular-nums leading-tight">{c.total_leads}</p>
+                        <p className="text-[10px] text-slate-400">Leads</p>
+                      </div>
+                      <div className="text-center w-14">
+                        <p className="text-lg font-bold text-emerald-600 tabular-nums leading-tight">{deliveredDisplay}</p>
+                        <p className="text-[10px] text-slate-400">Delivered</p>
+                      </div>
+                      <div className="text-center w-14">
+                        <p className={cn("text-lg font-bold tabular-nums leading-tight", failedDisplay > 0 ? "text-red-600" : pending > 0 ? "text-amber-600" : "text-slate-300")}>
+                          {failedDisplay > 0 ? failedDisplay : pending > 0 ? pending : "—"}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {failedDisplay > 0 ? "Failed" : pending > 0 ? "Pending" : "Failed"}
+                        </p>
+                      </div>
+                      <div className="text-center w-14">
+                        <p className="text-lg font-bold text-purple-600 tabular-nums leading-tight">{stats?.showings ?? 0}</p>
+                        <p className="text-[10px] text-slate-400">Showings</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
