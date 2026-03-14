@@ -15,7 +15,9 @@ import {
   Clock,
   CheckCircle2,
   Send,
+  XCircle,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -69,27 +71,35 @@ const CampaignsPage = () => {
     enabled: !!orgId,
   });
 
-  // Fetch email stats per campaign (delivered + showings)
+  // Detect if any campaign is actively sending
+  const hasSending = campaigns?.some((c) => c.status === "sending" || c.status === "in_progress");
+
+  // Fetch email stats per campaign (delivered + failed + showings)
   const { data: campaignStats } = useQuery({
     queryKey: ["campaign-stats-all", orgId],
     queryFn: async () => {
       if (!orgId || !campaigns?.length) return {};
-      const stats: Record<string, { delivered: number; showings: number }> = {};
+      const stats: Record<string, { delivered: number; failed: number; showings: number }> = {};
 
       for (const c of campaigns) {
-        // Email stats
-        const { data: emails } = await supabase
-          .from("email_events")
-          .select("details")
-          .eq("organization_id", orgId)
-          .contains("details", { campaign_id: c.id });
-
-        let delivered = 0;
-        for (const e of emails || []) {
-          const d = e.details as Record<string, unknown> | null;
-          const status = (d?.status as string) || (d?.last_event as string) || "queued";
-          if (status === "sent" || status === "delivered" || status === "opened" || status === "clicked") delivered++;
-        }
+        // Email stats — use count queries instead of fetching all rows
+        const [
+          { count: cDelivered },
+          { count: cFailed },
+        ] = await Promise.all([
+          supabase
+            .from("email_events")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", orgId)
+            .contains("details", { campaign_id: c.id })
+            .or("details->status.eq.sent,details->status.eq.delivered,details->last_event.eq.delivered,details->last_event.eq.opened,details->last_event.eq.clicked"),
+          supabase
+            .from("email_events")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", orgId)
+            .contains("details", { campaign_id: c.id })
+            .or("details->status.eq.failed,details->status.eq.bounced,details->last_event.eq.bounced"),
+        ]);
 
         // Showings count
         const { data: cl } = await supabase
@@ -107,15 +117,16 @@ const CampaignsPage = () => {
           showings = count || 0;
         }
 
-        stats[c.id] = { delivered, showings };
+        stats[c.id] = { delivered: cDelivered || 0, failed: cFailed || 0, showings };
       }
 
       return stats;
     },
     enabled: !!orgId && !!campaigns?.length,
+    refetchInterval: hasSending ? 3_000 : 30_000,
   });
 
-  // Realtime for campaigns table
+  // Realtime for campaigns + email_events tables
   useEffect(() => {
     if (!orgId) return;
     const channel: RealtimeChannel = supabase
@@ -129,6 +140,16 @@ const CampaignsPage = () => {
           filter: `organization_id=eq.${orgId}`,
         },
         () => queryClient.invalidateQueries({ queryKey: ["campaigns", orgId] })
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "email_events",
+          filter: `organization_id=eq.${orgId}`,
+        },
+        () => queryClient.invalidateQueries({ queryKey: ["campaign-stats-all", orgId] })
       )
       .subscribe();
     return () => {
@@ -273,7 +294,7 @@ const CampaignsPage = () => {
                       <Megaphone className="h-6 w-6 text-indigo-600" />
                     </div>
 
-                    {/* Info */}
+                    {/* Info + Progress */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-slate-900 truncate">{c.name}</h3>
@@ -282,6 +303,18 @@ const CampaignsPage = () => {
                       <p className="text-sm text-slate-500">
                         {propertyLabel} &middot; {format(new Date(c.created_at), "MMM d, yyyy")}
                       </p>
+                      {/* Mini progress bar */}
+                      {c.emails_queued > 0 && stats && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <Progress
+                            value={Math.round(((stats.delivered + stats.failed) / c.emails_queued) * 100)}
+                            className="h-1.5 flex-1"
+                          />
+                          <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                            {stats.delivered + stats.failed}/{c.emails_queued}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Stats */}
@@ -307,6 +340,15 @@ const CampaignsPage = () => {
                         </div>
                         <p className="text-xs text-slate-400">Delivered</p>
                       </div>
+                      {(stats?.failed ?? 0) > 0 && (
+                        <div className="text-center">
+                          <div className="flex items-center gap-1 text-red-600">
+                            <XCircle className="h-3.5 w-3.5" />
+                            <span>{stats.failed}</span>
+                          </div>
+                          <p className="text-xs text-slate-400">Failed</p>
+                        </div>
+                      )}
                       <div className="text-center">
                         <div className="flex items-center gap-1 text-purple-600">
                           <CalendarDays className="h-3.5 w-3.5" />

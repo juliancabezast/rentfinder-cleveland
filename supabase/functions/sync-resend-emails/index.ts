@@ -121,84 +121,65 @@ serve(async (req: Request) => {
       pageCount++;
     }
 
-    // ── Get existing resend_email_ids from our DB ─────────────────
-    const { data: existing } = await supabase
-      .from("email_events")
-      .select("resend_email_id")
-      .eq("organization_id", organization_id)
-      .not("resend_email_id", "is", null);
+    // ── Map Resend emails to upsert rows ──────────────────────────
+    const statusMap: Record<string, string> = {
+      sent: "sent",
+      delivered: "delivered",
+      delivery_delayed: "queued",
+      complained: "complained",
+      bounced: "bounced",
+      opened: "opened",
+      clicked: "clicked",
+    };
 
-    const existingIds = new Set((existing || []).map((e) => e.resend_email_id));
+    const now = new Date().toISOString();
+    const rows = allResendEmails.map((email) => {
+      const lastEvent = email.last_event || "sent";
+      return {
+        organization_id,
+        event_type: lastEvent === "delivery_delayed" ? "delivery_delayed" : "sent",
+        recipient_email: email.to?.[0] || "",
+        subject: email.subject || "(no subject)",
+        resend_email_id: email.id,
+        created_at: email.created_at,
+        details: {
+          status: statusMap[lastEvent] || lastEvent,
+          last_event: lastEvent,
+          from: email.from,
+          synced_from_resend: true,
+          synced_at: now,
+        },
+      };
+    });
 
-    // ── Upsert each Resend email into email_events ────────────────
+    // ── Batch upsert (50 at a time) — unique index prevents duplicates ──
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    const BATCH = 50;
 
-    for (const email of allResendEmails) {
-      const recipient = email.to?.[0] || "";
-      const lastEvent = email.last_event || "sent";
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH);
 
-      // Map Resend last_event to our status
-      const statusMap: Record<string, string> = {
-        sent: "sent",
-        delivered: "delivered",
-        delivery_delayed: "queued",
-        complained: "complained",
-        bounced: "bounced",
-        opened: "opened",
-        clicked: "clicked",
-      };
-      const mappedStatus = statusMap[lastEvent] || lastEvent;
-
-      if (existingIds.has(email.id)) {
-        // Update existing record with latest delivery status
-        // First fetch current details to merge
-        const { data: current } = await supabase
+      // Update existing rows first (by resend_email_id)
+      for (const row of batch) {
+        const { count } = await supabase
           .from("email_events")
-          .select("details")
-          .eq("resend_email_id", email.id)
-          .eq("organization_id", organization_id)
-          .single();
-
-        const mergedDetails = {
-          ...(current?.details || {}),
-          status: mappedStatus,
-          last_event: lastEvent,
-          from: email.from,
-          synced_at: new Date().toISOString(),
-        };
-
-        await supabase
-          .from("email_events")
-          .update({ details: mergedDetails })
-          .eq("resend_email_id", email.id)
+          .update({ details: row.details })
+          .eq("resend_email_id", row.resend_email_id)
           .eq("organization_id", organization_id);
 
-        updated++;
-      } else {
-        // Create new record for email not in our DB
-        const { error: insertErr } = await supabase.from("email_events").insert({
-          organization_id,
-          event_type: lastEvent === "delivery_delayed" ? "delivery_delayed" : "sent",
-          recipient_email: recipient,
-          subject: email.subject || "(no subject)",
-          resend_email_id: email.id,
-          created_at: email.created_at,
-          details: {
-            status: mappedStatus,
-            last_event: lastEvent,
-            from: email.from,
-            synced_from_resend: true,
-            synced_at: new Date().toISOString(),
-          },
-        });
-
-        if (insertErr) {
-          console.warn(`Insert failed for ${email.id}:`, insertErr.message);
-          skipped++;
+        if (count && count > 0) {
+          updated++;
         } else {
-          created++;
+          // New email — insert
+          const { error: insertErr } = await supabase.from("email_events").insert(row);
+          if (insertErr) {
+            // Unique constraint violation = already exists, skip
+            skipped++;
+          } else {
+            created++;
+          }
         }
       }
     }

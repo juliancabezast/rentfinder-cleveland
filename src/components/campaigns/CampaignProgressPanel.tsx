@@ -71,7 +71,7 @@ export const CampaignProgressPanel = ({
       return stats;
     },
     enabled: !!orgId && !!campaignId,
-    refetchInterval: 5_000,
+    refetchInterval: 2_000,
   });
 
   // Fetch showings count for campaign leads
@@ -173,7 +173,7 @@ export const CampaignProgressPanel = ({
       });
     },
     enabled: !!orgId && !!campaignId,
-    refetchInterval: 5_000,
+    refetchInterval: 2_000,
   });
 
   const stats = emailStats || { queued: 0, sent: 0, delivered: 0, failed: 0 };
