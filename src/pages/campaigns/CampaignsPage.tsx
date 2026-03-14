@@ -315,7 +315,7 @@ const CampaignsPage = () => {
                         {propertyLabel} &middot; {format(new Date(c.created_at), "MMM d, yyyy")}
                       </p>
                       {/* Mini progress bar */}
-                      {c.emails_queued > 0 && stats && (stats.delivered > 0 || stats.failed > 0) && (
+                      {c.emails_queued > 0 && stats && (
                         <div className="mt-2 flex items-center gap-2">
                           <Progress
                             value={Math.min(100, Math.round(((stats.delivered + stats.failed) / c.emails_queued) * 100))}
