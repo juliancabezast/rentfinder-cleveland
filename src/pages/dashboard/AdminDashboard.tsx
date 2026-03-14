@@ -382,13 +382,12 @@ export const AdminDashboard = () => {
           .eq("category", "twilio");
         if (periodStart) smsQuery = smsQuery.gte("created_at", periodStart);
 
-        // Emails: count unique emails sent (distinct resend_email_id)
+        // Emails: count emails sent (server-side count)
         let emailQuery = supabase
           .from("email_events")
-          .select("resend_email_id")
+          .select("id", { count: "exact", head: true })
           .eq("organization_id", userRecord.organization_id)
-          .in("event_type", ["sent", "delivered", "delivery_delayed"])
-          .limit(5000);
+          .in("event_type", ["sent", "delivered", "delivery_delayed"]);
         if (periodStart) emailQuery = emailQuery.gte("created_at", periodStart);
 
         let parsedQuery = supabase
@@ -404,12 +403,13 @@ export const AdminDashboard = () => {
           .eq("organization_id", userRecord.organization_id);
         if (periodStart) callsQuery = callsQuery.gte("started_at", periodStart);
 
-        // Applicants: count leads currently in application stage
-        const applicantsQuery = supabase
+        // Applicants: count leads in application stage (filtered by period)
+        let applicantsQuery = supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", userRecord.organization_id)
           .eq("status", "in_application");
+        if (periodStart) applicantsQuery = applicantsQuery.gte("created_at", periodStart);
 
         // Showings count for period
         let showingsCountQuery = supabase
@@ -431,7 +431,7 @@ export const AdminDashboard = () => {
           hotLeads: hotRes.count || 0,
           showingsCount: showingsCountRes.count || 0,
           smsSent: smsRes.count || 0,
-          emailsSent: new Set((emailRes.data || []).map((e: { resend_email_id: string }) => e.resend_email_id)).size,
+          emailsSent: emailRes.count || 0,
           emailsParsed: parsedRes.count || 0,
           callsMade: callRows.length,
           callMinutes: Math.round(totalSeconds / 60),
@@ -540,7 +540,12 @@ export const AdminDashboard = () => {
                   <StatCard
                     title="Leads"
                     value={periodStats?.totalLeads || 0}
-                    subtitle={`${stats?.completeLeadsToday || 0} complete today`}
+                    subtitle={
+                      statsPeriod === 'day' ? `${stats?.completeLeadsToday || 0} complete today`
+                        : statsPeriod === 'week' ? 'this week'
+                        : statsPeriod === 'month' ? 'this month'
+                        : 'all time'
+                    }
                     icon={Users}
                     loading={loading || periodLoading}
                   />

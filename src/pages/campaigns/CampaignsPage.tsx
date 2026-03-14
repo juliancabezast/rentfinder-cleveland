@@ -297,12 +297,14 @@ const CampaignsPage = () => {
               ? (isCompletedNoTracking ? c.emails_queued : stats.delivered)
               : 0;
             const failedDisplay = stats?.failed ?? 0;
+            // Use emails_queued from DB, or fall back to processed count from stats
+            const emailTotal = c.emails_queued > 0 ? c.emails_queued : processed;
             const pending = c.status !== "completed" && stats
-              ? Math.max(0, c.emails_queued - stats.delivered - stats.failed)
+              ? Math.max(0, emailTotal - stats.delivered - stats.failed)
               : 0;
-            const pct = c.emails_queued > 0
-              ? (isCompletedNoTracking ? 100 : Math.min(100, Math.round((processed / c.emails_queued) * 100)))
-              : 0;
+            const pct = emailTotal > 0
+              ? (isCompletedNoTracking ? 100 : Math.min(100, Math.round((processed / emailTotal) * 100)))
+              : (c.status === "completed" ? 100 : 0);
 
             return (
               <Card
@@ -333,15 +335,17 @@ const CampaignsPage = () => {
 
                   {/* Row 2: Progress + Stats inline */}
                   <div className="flex items-center gap-4">
-                    {/* Progress bar */}
-                    {c.emails_queued > 0 && (
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <Progress value={pct} className="h-2 flex-1" />
-                        <span className="text-xs font-medium text-slate-500 tabular-nums whitespace-nowrap">
-                          {pct}%
-                        </span>
-                      </div>
-                    )}
+                    {/* Progress bar — always render the flex-1 spacer so stats stay right-aligned */}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {(emailTotal > 0 || c.status === "completed") && (
+                        <>
+                          <Progress value={pct} className="h-2 flex-1" />
+                          <span className="text-xs font-medium text-slate-500 tabular-nums whitespace-nowrap">
+                            {pct}%
+                          </span>
+                        </>
+                      )}
+                    </div>
                     {/* Stats */}
                     <div className="flex items-center gap-5 shrink-0">
                       <div className="text-center w-14">

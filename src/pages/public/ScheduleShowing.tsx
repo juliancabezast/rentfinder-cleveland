@@ -30,6 +30,7 @@ import {
   Phone,
 } from "lucide-react";
 import { format, addDays, parseISO, isSameDay } from "date-fns";
+import { getTimezoneForCity } from "@/lib/cityTimezone";
 
 type Property =
   import("@/integrations/supabase/types").Database["public"]["Tables"]["properties"]["Row"];
@@ -299,6 +300,7 @@ const ScheduleShowing: React.FC = () => {
   const [timeSlots, setTimeSlots] = useState<AvailableSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [leadTimeMinutes, setLeadTimeMinutes] = useState(60); // default 1 hour
 
   // Form — pre-fill from localStorage if returning visitor
   const [fullName, setFullName] = useState(() => localStorage.getItem("rf_name") || "");
@@ -515,6 +517,22 @@ const ScheduleShowing: React.FC = () => {
     })();
   }, [effectivePropertyId]);
 
+  // ---- Fetch lead time setting from org ----
+  useEffect(() => {
+    if (!property?.organization_id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("organization_settings")
+        .select("value")
+        .eq("organization_id", property.organization_id)
+        .eq("key", "showing_lead_time_minutes")
+        .maybeSingle();
+      if (data?.value != null) {
+        setLeadTimeMinutes(typeof data.value === "number" ? data.value : parseInt(String(data.value)) || 60);
+      }
+    })();
+  }, [property?.organization_id]);
+
   // ---- Fetch available dates (next 30 days) ----
   useEffect(() => {
     if (!effectivePropertyId) return;
@@ -558,11 +576,24 @@ const ScheduleShowing: React.FC = () => {
         .order("slot_time");
 
       if (!error && data) {
-        setTimeSlots(data);
+        // Filter out slots that are too close to the current time
+        const tz = getTimezoneForCity(property?.city);
+        const nowInTz = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+        const todayStr = format(nowInTz, "yyyy-MM-dd");
+
+        if (dateStr === todayStr) {
+          const cutoffMinutes = nowInTz.getHours() * 60 + nowInTz.getMinutes() + leadTimeMinutes;
+          setTimeSlots(data.filter((slot) => {
+            const [h, m] = slot.slot_time.split(":").map(Number);
+            return h * 60 + m >= cutoffMinutes;
+          }));
+        } else {
+          setTimeSlots(data);
+        }
       }
       setSlotsLoading(false);
     })();
-  }, [effectivePropertyId, selectedDate]);
+  }, [effectivePropertyId, selectedDate, property?.city, leadTimeMinutes]);
 
   // ---- Handle booking ----
   const handleBook = async () => {

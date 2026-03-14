@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Upload, X } from "lucide-react";
+import { Upload, X, FileText, ArrowRight, Home } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { sendNoShowNotification, DEFAULT_NOTIFICATION_PREFS } from "@/lib/notificationService";
@@ -64,21 +65,31 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [leadData, setLeadData] = useState<{ full_name: string | null; phone: string } | null>(null);
   const [showingData, setShowingData] = useState<{ scheduled_at: string } | null>(null);
+  const [moveToApplicant, setMoveToApplicant] = useState(false);
+  const [reassignPropertyId, setReassignPropertyId] = useState<string>("");
+  const [properties, setProperties] = useState<{ id: string; label: string }[]>([]);
 
-  // Fetch lead and showing data for notifications
+  // Fetch lead, showing, and properties data
   useEffect(() => {
-    if (open && leadId && showingId) {
+    if (open && leadId && showingId && userRecord?.organization_id) {
       Promise.all([
         supabase.from("leads").select("full_name, phone").eq("id", leadId).single(),
         supabase.from("showings").select("scheduled_at").eq("id", showingId).single(),
-      ]).then(([leadRes, showingRes]) => {
+        supabase.from("properties").select("id, address, unit_number, city").eq("organization_id", userRecord.organization_id).order("address"),
+      ]).then(([leadRes, showingRes, propsRes]) => {
         if (leadRes.data) setLeadData(leadRes.data);
         if (showingRes.data) setShowingData(showingRes.data);
+        if (propsRes.data) {
+          setProperties(propsRes.data.map((p: any) => ({
+            id: p.id,
+            label: `${p.address}${p.unit_number ? ` #${p.unit_number}` : ""}${p.city ? `, ${p.city}` : ""}`,
+          })));
+        }
       }).catch((err) => {
         console.error("Failed to fetch showing/lead data:", err);
       });
     }
-  }, [open, leadId, showingId]);
+  }, [open, leadId, showingId, userRecord?.organization_id]);
 
   const resetForm = () => {
     setStatus("");
@@ -86,6 +97,8 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
     setAgentReport("");
     setCancellationReason("");
     setPhotoFile(null);
+    setMoveToApplicant(false);
+    setReassignPropertyId("");
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,12 +238,17 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
 
       // Update lead status if completed
       if (status === "completed") {
+        const leadUpdate: Record<string, any> = {
+          status: moveToApplicant ? "in_application" : "showed",
+          updated_at: new Date().toISOString(),
+        };
+        if (reassignPropertyId && reassignPropertyId !== "keep") {
+          leadUpdate.interested_property_id = reassignPropertyId;
+        }
+
         const { error: leadError } = await supabase
           .from("leads")
-          .update({
-            status: "showed",
-            updated_at: new Date().toISOString(),
-          })
+          .update(leadUpdate)
           .eq("id", leadId);
 
         if (leadError) {
@@ -239,7 +257,9 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
       }
 
       const statusMessages: Record<string, string> = {
-        completed: "Showing marked as completed",
+        completed: moveToApplicant
+          ? "Showing completed — lead moved to Applicants"
+          : "Showing marked as completed",
         no_show: "Showing marked as no-show",
         cancelled: "Showing marked as cancelled",
         rescheduled: "Showing marked for rescheduling",
@@ -375,6 +395,52 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
               <p className="text-xs text-muted-foreground">
                 Max file size: 5MB. Supported formats: JPG, PNG
               </p>
+            </div>
+          )}
+
+          {/* Reassign property + Move to applicants (only for completed) */}
+          {status === "completed" && (
+            <div className="space-y-4 pt-2 border-t">
+              {/* Reassign property */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Home className="h-3.5 w-3.5" />
+                  Reassign Property (optional)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  If the lead wants to apply for a different property
+                </p>
+                <Select value={reassignPropertyId} onValueChange={setReassignPropertyId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Keep current property" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="keep">Keep current property</SelectItem>
+                    {properties.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Move to applicants */}
+              <div className="flex items-center justify-between rounded-lg border p-3 bg-indigo-50/50">
+                <div className="flex items-center gap-2">
+                  <ArrowRight className="h-4 w-4 text-indigo-600" />
+                  <div>
+                    <p className="text-sm font-medium">Move to Applicants</p>
+                    <p className="text-xs text-muted-foreground">
+                      Change lead status to "In Application"
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={moveToApplicant}
+                  onCheckedChange={setMoveToApplicant}
+                />
+              </div>
             </div>
           )}
         </div>

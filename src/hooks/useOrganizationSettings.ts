@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS = {
   // Showings settings
   default_duration_minutes: 30,
   buffer_minutes: 15,
+  showing_lead_time_minutes: 60,
   showing_weekly_schedule: {
     "0": null,
     "1": { start: "09:00", end: "17:00" },

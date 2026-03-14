@@ -17,6 +17,8 @@ import {
   Phone,
   Loader2,
   Link2,
+  Clock,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,7 +40,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/hooks/use-toast";
-import { format, startOfDay, endOfDay, addDays, parseISO, isToday, isTomorrow } from "date-fns";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, addDays, parseISO, isToday, isTomorrow } from "date-fns";
 import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
 import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
@@ -54,10 +57,14 @@ interface ShowingWithDetails {
   lead_id: string;
   property_id?: string;
   property_address?: string;
+  property_unit?: string | null;
   property_city?: string;
+  property_state?: string | null;
+  property_zip?: string | null;
   rent_price?: number | null;
   lead_name?: string;
   lead_phone?: string;
+  lead_email?: string | null;
   booking_source?: string;
   booked_by_name?: string | null;
 }
@@ -75,7 +82,10 @@ const STATUS_OPTIONS = [
 const DATE_OPTIONS = [
   { value: "today", label: "Today" },
   { value: "tomorrow", label: "Tomorrow" },
+  { value: "3days", label: "Next 3 Days" },
   { value: "week", label: "This Week" },
+  { value: "15days", label: "Next 15 Days" },
+  { value: "month", label: "This Month" },
   { value: "all", label: "All Time" },
 ];
 
@@ -125,6 +135,28 @@ const ShowingsList: React.FC = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedShowingId, setSelectedShowingId] = useState<string | null>(null);
   const [slotTotals, setSlotTotals] = useState({ available: 0, booked: 0 });
+
+  // Organization settings
+  const { getSetting, updateSetting } = useOrganizationSettings();
+
+  // Lead time config
+  const [leadTimeMinutes, setLeadTimeMinutes] = useState<number>(60);
+  const [leadTimeSaving, setLeadTimeSaving] = useState(false);
+  const [leadTimeLoaded, setLeadTimeLoaded] = useState(false);
+
+  useEffect(() => {
+    if (leadTimeLoaded) return;
+    const saved = getSetting("showing_lead_time_minutes", 60);
+    setLeadTimeMinutes(typeof saved === "number" ? saved : 60);
+    setLeadTimeLoaded(true);
+  }, [getSetting, leadTimeLoaded]);
+
+  const saveLeadTime = async () => {
+    setLeadTimeSaving(true);
+    await updateSetting("showing_lead_time_minutes", leadTimeMinutes, "showings", "Minimum minutes before current time for same-day bookings");
+    toast({ title: "Saved", description: "Lead time updated." });
+    setLeadTimeSaving(false);
+  };
 
   // Call Now button config
   const [callNowEnabled, setCallNowEnabled] = useState(false);
@@ -181,8 +213,8 @@ const ShowingsList: React.FC = () => {
           `
           id, scheduled_at, status, duration_minutes, lead_id, property_id,
           booking_source, booked_by_name,
-          properties(address, city, rent_price),
-          leads(full_name, phone)
+          properties(address, unit_number, city, state, zip_code, rent_price),
+          leads(full_name, phone, email)
         `
         )
         .eq("organization_id", userRecord.organization_id)
@@ -199,10 +231,22 @@ const ShowingsList: React.FC = () => {
         query = query
           .gte("scheduled_at", startOfDay(tomorrow).toISOString())
           .lte("scheduled_at", endOfDay(tomorrow).toISOString());
+      } else if (dateFilter === "3days") {
+        query = query
+          .gte("scheduled_at", startOfDay(now).toISOString())
+          .lte("scheduled_at", endOfDay(addDays(now, 3)).toISOString());
       } else if (dateFilter === "week") {
         query = query
           .gte("scheduled_at", startOfDay(now).toISOString())
           .lte("scheduled_at", endOfDay(addDays(now, 7)).toISOString());
+      } else if (dateFilter === "15days") {
+        query = query
+          .gte("scheduled_at", startOfDay(now).toISOString())
+          .lte("scheduled_at", endOfDay(addDays(now, 15)).toISOString());
+      } else if (dateFilter === "month") {
+        query = query
+          .gte("scheduled_at", startOfMonth(now).toISOString())
+          .lte("scheduled_at", endOfMonth(now).toISOString());
       }
 
       // Status filter
@@ -225,10 +269,14 @@ const ShowingsList: React.FC = () => {
           lead_id: s.lead_id,
           property_id: s.property_id,
           property_address: s.properties?.address,
+          property_unit: s.properties?.unit_number || null,
           property_city: s.properties?.city,
+          property_state: s.properties?.state || null,
+          property_zip: s.properties?.zip_code || null,
           rent_price: s.properties?.rent_price,
           lead_name: s.leads?.full_name,
           lead_phone: s.leads?.phone,
+          lead_email: s.leads?.email || null,
           booking_source: s.booking_source || "admin",
           booked_by_name: s.booked_by_name || null,
         }))
@@ -332,7 +380,63 @@ const ShowingsList: React.FC = () => {
   );
 
   const canSubmitReport = (status: string) =>
-    status === "scheduled" || status === "confirmed";
+    status === "scheduled" || status === "confirmed" || status === "rescheduled";
+
+  // ── Download agenda ──────────────────────────────────────────────────
+  const downloadAgenda = () => {
+    if (groupedByDay.length === 0) return;
+
+    const lines: string[] = [];
+    lines.push("═══════════════════════════════════════════════════");
+    lines.push("  SHOWING AGENDA");
+    lines.push(`  Generated: ${format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm a")}`);
+    lines.push("═══════════════════════════════════════════════════");
+    lines.push("");
+
+    for (const group of groupedByDay) {
+      lines.push(`━━━ ${group.label} ━━━`);
+      lines.push("");
+
+      group.showings.forEach((s, i) => {
+        const tz = getTimezoneForCity(s.property_city);
+        const time = formatTimeInTimezone(s.scheduled_at, tz);
+        const duration = s.duration_minutes ? `${s.duration_minutes} min` : "30 min";
+        const unit = s.property_unit ? ` #${s.property_unit}` : "";
+        const fullAddress = [
+          `${s.property_address || ""}${unit}`,
+          s.property_city,
+          s.property_state,
+          s.property_zip,
+        ].filter(Boolean).join(", ");
+        const mapsQuery = encodeURIComponent(fullAddress);
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+
+        lines.push(`  ${i + 1}. ${time} (${duration}) — ${s.status.replace("_", " ").toUpperCase()}`);
+        lines.push(`     Property: ${fullAddress}`);
+        if (s.rent_price) lines.push(`     Rent: $${s.rent_price.toLocaleString()}/mo`);
+        lines.push(`     Lead: ${s.lead_name || "—"}`);
+        if (s.lead_phone) lines.push(`     Phone: ${s.lead_phone}`);
+        if (s.lead_email) lines.push(`     Email: ${s.lead_email}`);
+        lines.push(`     Maps: ${mapsUrl}`);
+        lines.push("");
+      });
+    }
+
+    lines.push("═══════════════════════════════════════════════════");
+
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateLabel = groupedByDay.length === 1
+      ? format(parseISO(groupedByDay[0].dateKey), "yyyy-MM-dd")
+      : `${format(parseISO(groupedByDay[0].dateKey), "MMM-d")}_to_${format(parseISO(groupedByDay[groupedByDay.length - 1].dateKey), "MMM-d")}`;
+    a.download = `showings-agenda-${dateLabel}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-4">
@@ -372,6 +476,17 @@ const ShowingsList: React.FC = () => {
                 Enable Slots
               </Button>
             </>
+          )}
+          {activeTab === "showings" && showings.length > 0 && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              title="Download agenda"
+              onClick={downloadAgenda}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
           )}
           <Button
             onClick={() => setScheduleDialogOpen(true)}
@@ -525,125 +640,167 @@ const ShowingsList: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-6">
-              {groupedByDay.map((group) => (
-                <div key={group.dateKey}>
-                  {/* Day header */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-8 w-8 rounded-lg bg-[#370d4b]/10 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-bold text-[#370d4b]">
-                        {format(parseISO(group.dateKey), "d")}
-                      </span>
-                    </div>
-                    <h3 className="text-sm font-semibold text-foreground">
-                      {group.label}
-                    </h3>
-                    <Badge variant="outline" className="text-[10px] ml-auto">
-                      {group.showings.length} showing{group.showings.length !== 1 ? "s" : ""}
-                    </Badge>
-                  </div>
-
-                  {/* Showing cards for this day */}
-                  <div className="space-y-2 pl-2 border-l-2 border-[#370d4b]/10 ml-4">
-                    {group.showings.map((showing, index) => (
-                      <Card
-                        key={showing.id}
-                        variant="glass"
-                        className="hover:shadow-modern-lg transition-all duration-300 cursor-pointer animate-fade-up"
-                        style={{
-                          animationDelay: `${Math.min(index * 0.04, 0.2)}s`,
-                          animationFillMode: "both",
-                        }}
+            <div className="space-y-2">
+              {/* ── Day jump strip ────────────────────────────────── */}
+              {groupedByDay.length > 1 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                  {groupedByDay.map((group) => {
+                    const dateObj = parseISO(group.dateKey);
+                    const todayDate = isToday(dateObj);
+                    return (
+                      <button
+                        key={group.dateKey}
                         onClick={() => {
-                          setSelectedShowingId(showing.id);
-                          setDetailDialogOpen(true);
+                          document.getElementById(`day-${group.dateKey}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
                         }}
+                        className={`flex flex-col items-center px-3 py-1.5 rounded-lg border transition-colors shrink-0 ${
+                          todayDate
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white hover:bg-indigo-50 border-slate-200 hover:border-indigo-300"
+                        }`}
                       >
-                        <CardContent className="p-3 sm:p-4">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            {/* Time */}
-                            <div className="flex items-center gap-2 sm:w-24 shrink-0">
-                              <div className="text-right">
-                                <p className="font-semibold text-sm">
-                                  {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.property_city))}
-                                </p>
-                                {showing.duration_minutes && (
-                                  <p className="text-[11px] text-muted-foreground">
-                                    {showing.duration_minutes} min
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Details */}
-                            <div className="flex-1 min-w-0">
-                              {showing.property_address && (
-                                <p className="font-medium text-sm flex items-center gap-1 truncate">
-                                  <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                  {showing.property_address}
-                                  {showing.property_city && `, ${showing.property_city}`}
-                                  {showing.rent_price && (
-                                    <span className="text-emerald-600 text-xs font-normal ml-1">
-                                      ${showing.rent_price.toLocaleString()}/mo
-                                    </span>
-                                  )}
-                                </p>
-                              )}
-                              {showing.lead_name && (
-                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                  <User className="h-3 w-3" />
-                                  {showing.lead_name}
-                                  {showing.lead_phone && ` · ${showing.lead_phone}`}
-                                </p>
-                              )}
-                              <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1 mt-0.5">
-                                {showing.booking_source === "public_link" ? (
-                                  <>
-                                    <Link2 className="h-2.5 w-2.5" />
-                                    Booked via public link
-                                  </>
-                                ) : showing.booked_by_name ? (
-                                  <>
-                                    <User className="h-2.5 w-2.5" />
-                                    Scheduled by {showing.booked_by_name}
-                                  </>
-                                ) : (
-                                  <>
-                                    <User className="h-2.5 w-2.5" />
-                                    Scheduled by team
-                                  </>
-                                )}
-                              </p>
-                            </div>
-
-                            {/* Actions + Status */}
-                            <div className="flex items-center gap-2">
-                              {canSubmitReport(showing.status) && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 text-xs"
-                                  onClick={(e) => handleOpenReport(e, showing)}
-                                >
-                                  <FileText className="h-3.5 w-3.5 mr-1" />
-                                  Report
-                                </Button>
-                              )}
-                              <Badge
-                                className={
-                                  statusColors[showing.status] || "bg-muted text-muted-foreground"
-                                }
-                              >
-                                {showing.status.replace("_", " ")}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                        <span className={`text-[10px] uppercase font-medium ${todayDate ? "text-indigo-100" : "text-muted-foreground"}`}>
+                          {format(dateObj, "EEE")}
+                        </span>
+                        <span className={`text-lg font-bold leading-tight ${todayDate ? "" : "text-slate-800"}`}>
+                          {format(dateObj, "d")}
+                        </span>
+                        <span className={`text-[10px] ${todayDate ? "text-indigo-200" : "text-muted-foreground"}`}>
+                          {group.showings.length}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+              )}
+
+              {/* ── Day groups ────────────────────────────────────── */}
+              <div className="space-y-8">
+                {groupedByDay.map((group) => {
+                  const dateObj = parseISO(group.dateKey);
+                  const todayDate = isToday(dateObj);
+                  return (
+                    <div key={group.dateKey} id={`day-${group.dateKey}`} className="scroll-mt-4">
+                      {/* Day header */}
+                      <div className={`flex items-center gap-3 mb-4 pb-2 border-b ${todayDate ? "border-indigo-200" : "border-slate-200"}`}>
+                        <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ${
+                          todayDate ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-700"
+                        }`}>
+                          <span className="text-lg font-bold">
+                            {format(dateObj, "d")}
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-foreground">
+                          {group.label}
+                        </h3>
+                        <Badge variant="outline" className="text-xs ml-auto px-2.5 py-0.5">
+                          {group.showings.length} showing{group.showings.length !== 1 ? "s" : ""}
+                        </Badge>
+                      </div>
+
+                      {/* Showing cards for this day */}
+                      <div className="space-y-2.5 pl-3 border-l-2 border-indigo-100 ml-5">
+                        {group.showings.map((showing, index) => (
+                          <Card
+                            key={showing.id}
+                            variant="glass"
+                            className="hover:shadow-modern-lg transition-all duration-300 cursor-pointer animate-fade-up"
+                            style={{
+                              animationDelay: `${Math.min(index * 0.04, 0.2)}s`,
+                              animationFillMode: "both",
+                            }}
+                            onClick={() => {
+                              setSelectedShowingId(showing.id);
+                              setDetailDialogOpen(true);
+                            }}
+                          >
+                            <CardContent className="p-4 sm:p-5">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                {/* Time */}
+                                <div className="flex items-center gap-2 sm:w-28 shrink-0">
+                                  <div className="text-right">
+                                    <p className="font-bold text-base">
+                                      {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.property_city))}
+                                    </p>
+                                    {showing.duration_minutes && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {showing.duration_minutes} min
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Details */}
+                                <div className="flex-1 min-w-0">
+                                  {showing.property_address && (
+                                    <p className="font-semibold text-base flex items-center gap-1.5 truncate">
+                                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                                      {showing.property_address}
+                                      {showing.property_city && `, ${showing.property_city}`}
+                                      {showing.rent_price && (
+                                        <span className="text-emerald-600 text-sm font-medium ml-1">
+                                          ${showing.rent_price.toLocaleString()}/mo
+                                        </span>
+                                      )}
+                                    </p>
+                                  )}
+                                  {showing.lead_name && (
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                                      <User className="h-3.5 w-3.5" />
+                                      {showing.lead_name}
+                                      {showing.lead_phone && ` · ${showing.lead_phone}`}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mt-1">
+                                    {showing.booking_source === "public_link" ? (
+                                      <>
+                                        <Link2 className="h-3 w-3" />
+                                        Booked via public link
+                                      </>
+                                    ) : showing.booked_by_name ? (
+                                      <>
+                                        <User className="h-3 w-3" />
+                                        Scheduled by {showing.booked_by_name}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <User className="h-3 w-3" />
+                                        Scheduled by team
+                                      </>
+                                    )}
+                                  </p>
+                                </div>
+
+                                {/* Actions + Status */}
+                                <div className="flex items-center gap-2.5">
+                                  {canSubmitReport(showing.status) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-9 text-sm px-3"
+                                      onClick={(e) => handleOpenReport(e, showing)}
+                                    >
+                                      <FileText className="h-4 w-4 mr-1.5" />
+                                      Report
+                                    </Button>
+                                  )}
+                                  <Badge
+                                    className={`text-xs px-2.5 py-1 ${
+                                      statusColors[showing.status] || "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    {showing.status.replace("_", " ")}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </TabsContent>
@@ -661,6 +818,56 @@ const ShowingsList: React.FC = () => {
               onExternalDialogHandled={() => setEnableSlotsOpen(false)}
               onTotalsChange={setSlotTotals}
             />
+
+            {/* Minimum Lead Time Config */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                    <Clock className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm">Minimum Booking Lead Time</h3>
+                    <p className="text-xs text-muted-foreground">
+                      How many minutes before a time slot must the lead book? Slots closer than this to the current time won't be shown.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Select
+                    value={String(leadTimeMinutes)}
+                    onValueChange={(v) => setLeadTimeMinutes(parseInt(v))}
+                  >
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No minimum</SelectItem>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                      <SelectItem value="30">30 minutes</SelectItem>
+                      <SelectItem value="45">45 minutes</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="90">1.5 hours</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                      <SelectItem value="180">3 hours</SelectItem>
+                      <SelectItem value="240">4 hours</SelectItem>
+                      <SelectItem value="480">8 hours</SelectItem>
+                      <SelectItem value="1440">24 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    onClick={saveLeadTime}
+                    disabled={leadTimeSaving}
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {leadTimeSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                    Save
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Call Now Button Config */}
             <Card className="border-0 shadow-sm">

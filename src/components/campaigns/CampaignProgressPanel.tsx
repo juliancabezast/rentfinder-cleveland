@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Mail,
   CheckCircle2,
@@ -317,9 +316,9 @@ export const CampaignProgressPanel = ({
             <span className="text-xs text-slate-400">{emailLog.length} emails</span>
           </div>
           <Card variant="glass" className="p-0 overflow-hidden">
-            <ScrollArea className="max-h-[70vh]">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50/80 sticky top-0 z-10">
+                <thead className="bg-slate-50/80">
                   <tr>
                     <th className="text-left p-3 font-medium text-slate-600">Lead</th>
                     <th className="text-left p-3 font-medium text-slate-600 hidden sm:table-cell">Email</th>
@@ -361,7 +360,7 @@ export const CampaignProgressPanel = ({
                   ))}
                 </tbody>
               </table>
-            </ScrollArea>
+            </div>
           </Card>
         </div>
       )}

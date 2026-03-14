@@ -22,6 +22,7 @@ import {
   Loader2,
   User,
   Home,
+  Ban,
 } from "lucide-react";
 import { format, addDays, parseISO, startOfDay } from "date-fns";
 
@@ -78,6 +79,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const [editData, setEditData] = useState<EditSlotData | null>(null);
   const [prefilledDate, setPrefilledDate] = useState<Date | undefined>();
   const [deletingDate, setDeletingDate] = useState<string | null>(null);
+  const [blockingSlot, setBlockingSlot] = useState<string | null>(null);
 
   const orgId = userRecord?.organization_id;
 
@@ -241,6 +243,29 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       fetchSlots();
     }
     setDeletingDate(null);
+  };
+
+  // ── Block / unblock a time slot ────────────────────────────────────
+  const handleToggleBlock = async (date: string, time: string, block: boolean) => {
+    if (!orgId) return;
+    const key = `${date}-${time}`;
+    setBlockingSlot(key);
+
+    const { error } = await supabase
+      .from("showing_available_slots")
+      .update({ is_enabled: !block, updated_at: new Date().toISOString() })
+      .eq("organization_id", orgId)
+      .eq("slot_date", date)
+      .eq("slot_time", time)
+      .eq("is_booked", false);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: block ? "Blocked" : "Unblocked", description: `${formatTime(time)} on ${format(parseISO(date), "MMM d")} ${block ? "blocked" : "re-enabled"}.` });
+      fetchSlots();
+    }
+    setBlockingSlot(null);
   };
 
   // ── All unique times across the week (for row headers) ────────────
@@ -449,6 +474,26 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                             {ts.properties.filter((p) => !p.is_booked).length} properties available at this time
                                           </p>
                                         </div>
+                                      )}
+                                      {/* Block / unblock button for unbooked slots */}
+                                      {!past && realBookings.length === 0 && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="w-full mt-1 h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                          disabled={blockingSlot === `${day.date}-${time}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleBlock(day.date, time, true);
+                                          }}
+                                        >
+                                          {blockingSlot === `${day.date}-${time}` ? (
+                                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                          ) : (
+                                            <Ban className="h-3 w-3 mr-1" />
+                                          )}
+                                          Block this time
+                                        </Button>
                                       )}
                                     </div>
                                   </PopoverContent>
