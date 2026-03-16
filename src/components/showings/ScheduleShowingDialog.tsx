@@ -493,7 +493,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         changed_by_user_id: userRecord.id,
       });
 
-      // Schedule Samuel confirmation task (24h before)
+      // Schedule Samuel confirmation task (24h before) — uses email since voice/SMS not configured
       const showingDate = new Date(scheduledAt);
       const confirmationTime = new Date(showingDate.getTime() - 24 * 60 * 60 * 1000);
       const propertyAddr = selectedProperty ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ''}` : "Property";
@@ -502,7 +502,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         organization_id: userRecord.organization_id,
         lead_id: selectedLeadId,
         agent_type: "showing_confirmation",
-        action_type: "call",
+        action_type: "email",
         scheduled_for: confirmationTime.toISOString(),
         max_attempts: 2,
         status: "pending",
@@ -515,13 +515,13 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         },
       });
 
-      // Schedule no-show follow-up (1 hour after showing)
+      // Schedule no-show follow-up (1 hour after showing) — email
       const noShowTime = new Date(showingDate.getTime() + 60 * 60 * 1000);
       await supabase.from("agent_tasks").insert({
         organization_id: userRecord.organization_id,
         lead_id: selectedLeadId,
         agent_type: "no_show_followup",
-        action_type: "sms",
+        action_type: "email",
         scheduled_for: noShowTime.toISOString(),
         max_attempts: 1,
         status: "pending",

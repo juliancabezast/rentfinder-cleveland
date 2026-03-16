@@ -483,7 +483,7 @@ serve(async (req: Request) => {
       organization_id,
       lead_id: leadId,
       agent_type: "showing_confirmation",
-      action_type: "call",
+      action_type: "email",
       scheduled_for: confirmationTime.toISOString(),
       max_attempts: 2,
       status: "pending",
