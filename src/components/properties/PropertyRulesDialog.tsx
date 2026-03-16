@@ -114,7 +114,7 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Global Property Rules</DialogTitle>
           <p className="text-sm text-muted-foreground">

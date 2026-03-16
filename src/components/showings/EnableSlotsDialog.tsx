@@ -360,7 +360,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Edit Slots" : "Enable Showings"}</DialogTitle>
           <DialogDescription>
@@ -471,7 +471,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
           </div>
 
           {/* Time Range */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Start Time</Label>
               <Select value={startTime} onValueChange={(v) => {

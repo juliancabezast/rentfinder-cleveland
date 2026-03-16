@@ -94,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-bold text-foreground">{getPageTitle()}</h1>
+        <h1 className="text-lg font-bold text-foreground truncate max-w-[50vw] sm:max-w-none">{getPageTitle()}</h1>
       </div>
 
       {/* Right side - Integration Status + Notifications + User menu */}
@@ -118,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuContent align="end" className="w-64 max-w-[90vw]">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-2">
                 <p className="text-sm font-medium">{userRecord?.full_name}</p>

@@ -352,13 +352,13 @@ const LeadDetail: React.FC = () => {
 
       {/* 5 Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="inline-flex flex-wrap h-auto gap-1 w-full sm:w-auto">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="matching">Matching</TabsTrigger>
-          <TabsTrigger value="consent">Consent Log</TabsTrigger>
+        <TabsList className="inline-flex h-auto gap-1 w-full sm:w-auto overflow-x-auto">
+          <TabsTrigger value="overview" className="shrink-0">Overview</TabsTrigger>
+          <TabsTrigger value="messages" className="shrink-0">Messages</TabsTrigger>
+          <TabsTrigger value="activity" className="shrink-0">Activity</TabsTrigger>
+          <TabsTrigger value="notes" className="shrink-0">Notes</TabsTrigger>
+          <TabsTrigger value="matching" className="shrink-0">Matching</TabsTrigger>
+          <TabsTrigger value="consent" className="shrink-0">Consent Log</TabsTrigger>
         </TabsList>
 
         {/* TAB 1: Overview - 2x2 Grid */}
@@ -644,7 +644,7 @@ const LeadDetail: React.FC = () => {
 
       {/* Modals */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Lead</DialogTitle>
           </DialogHeader>

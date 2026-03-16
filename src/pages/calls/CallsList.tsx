@@ -234,10 +234,10 @@ const CallsList: React.FC = () => {
                   <TableRow>
                     <TableHead className="w-12"></TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Agent Type</TableHead>
+                    <TableHead className="hidden sm:table-cell">Agent Type</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Sentiment</TableHead>
+                    <TableHead className="hidden sm:table-cell">Duration</TableHead>
+                    <TableHead className="hidden sm:table-cell">Sentiment</TableHead>
                     <TableHead>Date</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -262,7 +262,7 @@ const CallsList: React.FC = () => {
                       <TableCell className="font-mono text-sm">
                         {call.phone_number}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground capitalize">
+                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground capitalize">
                         {call.agent_type.replace(/_/g, " ")}
                       </TableCell>
                       <TableCell>
@@ -270,13 +270,13 @@ const CallsList: React.FC = () => {
                           {call.status.replace("_", " ")}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="hidden sm:table-cell text-sm">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3 text-muted-foreground" />
                           {formatDuration(call.duration_seconds)}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {call.sentiment && (
                           <Badge
                             variant="outline"

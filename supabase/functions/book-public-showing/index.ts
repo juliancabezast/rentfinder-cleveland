@@ -668,6 +668,53 @@ serve(async (req: Request) => {
       related_showing_id: showing.id,
     });
 
+    // ── Telegram notification ─────────────────────────────────────────
+    try {
+      const { data: creds } = await supabase
+        .from("organization_credentials")
+        .select("telegram_bot_token, telegram_chat_id")
+        .eq("organization_id", organization_id)
+        .single();
+
+      if (creds?.telegram_bot_token && creds?.telegram_chat_id) {
+        const tz = getTimezoneForCity(property?.city || null);
+        const dateHuman = formatDateHuman(slot_date, tz);
+        const timeHuman = formatTimeHuman(slot_time);
+        const addr = `${propertyAddress}`;
+        const rentStr = property?.rent_price ? `$${Number(property.rent_price).toLocaleString()}/mo` : "";
+        const leadPhone = phone?.trim() || "—";
+        const leadEmail = email?.trim() || "—";
+        const mapsQuery = encodeURIComponent(`${property?.address || ""}, ${property?.city || ""}, ${property?.state || ""} ${property?.zip_code || ""}`);
+
+        const msg = [
+          `🏠 <b>New Showing Booked!</b>`,
+          ``,
+          `📍 <b>${addr}</b>${rentStr ? ` — ${rentStr}` : ""}`,
+          `📅 ${dateHuman} at ${timeHuman}`,
+          ``,
+          `👤 <b>${full_name.trim()}</b>`,
+          `📞 ${leadPhone}`,
+          `✉️ ${leadEmail}`,
+          `🔗 Source: Public booking page`,
+          ``,
+          `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
+        ].join("\n");
+
+        await fetch(`https://api.telegram.org/bot${creds.telegram_bot_token}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: creds.telegram_chat_id,
+            text: msg,
+            parse_mode: "HTML",
+            disable_web_page_preview: true,
+          }),
+        });
+      }
+    } catch (tgErr) {
+      console.warn("Telegram notification failed:", tgErr);
+    }
+
     // ── Cost record (Zacchaeus) ───────────────────────────────────────
     // Record minimal platform cost for the booking interaction
     const now = new Date();

@@ -528,7 +528,7 @@ const ShowingsList: React.FC = () => {
                     <CalendarDays className="h-5 w-5 text-indigo-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-indigo-700">{metrics.total}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-indigo-700">{metrics.total}</p>
                     <p className="text-[11px] text-muted-foreground leading-tight">Total Showings</p>
                   </div>
                 </CardContent>
@@ -540,7 +540,7 @@ const ShowingsList: React.FC = () => {
                     <Users className="h-5 w-5 text-violet-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-violet-700">{metrics.uniqueLeads}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-violet-700">{metrics.uniqueLeads}</p>
                     <p className="text-[11px] text-muted-foreground leading-tight">Unique Leads</p>
                   </div>
                 </CardContent>
@@ -552,7 +552,7 @@ const ShowingsList: React.FC = () => {
                     <Home className="h-5 w-5 text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-emerald-700">{metrics.uniqueProps}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-emerald-700">{metrics.uniqueProps}</p>
                     <p className="text-[11px] text-muted-foreground leading-tight">Properties</p>
                   </div>
                 </CardContent>
@@ -564,7 +564,7 @@ const ShowingsList: React.FC = () => {
                     <DollarSign className="h-5 w-5 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-amber-700">
+                    <p className="text-xl sm:text-2xl font-bold text-amber-700">
                       ${metrics.potentialRevenue.toLocaleString()}
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-tight">Rent Potential/mo</p>
@@ -578,7 +578,7 @@ const ShowingsList: React.FC = () => {
                     <CheckCircle2 className="h-5 w-5 text-teal-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-teal-700">{metrics.confirmRate}%</p>
+                    <p className="text-xl sm:text-2xl font-bold text-teal-700">{metrics.confirmRate}%</p>
                     <p className="text-[11px] text-muted-foreground leading-tight">Confirmed Rate</p>
                   </div>
                 </CardContent>
@@ -653,7 +653,7 @@ const ShowingsList: React.FC = () => {
                         onClick={() => {
                           document.getElementById(`day-${group.dateKey}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
                         }}
-                        className={`flex flex-col items-center px-3 py-1.5 rounded-lg border transition-colors shrink-0 ${
+                        className={`flex flex-col items-center px-3 py-1.5 rounded-lg border transition-colors shrink-0 min-h-[44px] ${
                           todayDate
                             ? "bg-indigo-600 text-white border-indigo-600"
                             : "bg-white hover:bg-indigo-50 border-slate-200 hover:border-indigo-300"

@@ -115,7 +115,7 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -186,10 +186,10 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="min-w-[400px] p-0 z-[60]" align="start" side="bottom" sideOffset={4}>
+              <PopoverContent className="w-full max-w-[calc(100vw-2rem)] sm:min-w-[400px] p-0 z-[60]" align="start" side="bottom" sideOffset={4}>
                 <Command>
                   <CommandInput placeholder="Search properties..." />
-                  <CommandList>
+                  <CommandList className="max-h-[40vh] sm:max-h-[300px]">
                     <CommandEmpty>No properties found.</CommandEmpty>
                     <CommandGroup>
                       {targetProperties.map((property) => (

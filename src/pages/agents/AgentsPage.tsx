@@ -194,32 +194,32 @@ const AgentsPage: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="inline-flex w-full sm:w-auto h-auto">
-          <TabsTrigger value="dashboard" className="flex-1 sm:flex-initial gap-2">
+        <TabsList className="inline-flex w-full sm:w-auto h-auto overflow-x-auto">
+          <TabsTrigger value="dashboard" className="flex-1 sm:flex-initial gap-2 shrink-0">
             <LayoutDashboard className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
           </TabsTrigger>
-          <TabsTrigger value="fleet" className="flex-1 sm:flex-initial gap-2">
+          <TabsTrigger value="fleet" className="flex-1 sm:flex-initial gap-2 shrink-0">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Fleet</span>
           </TabsTrigger>
-          <TabsTrigger value="department" className="flex-1 sm:flex-initial gap-2">
+          <TabsTrigger value="department" className="flex-1 sm:flex-initial gap-2 shrink-0">
             <Layers className="h-4 w-4" />
             <span className="hidden sm:inline">By Dept</span>
           </TabsTrigger>
-          <TabsTrigger value="schedule" className="flex-1 sm:flex-initial gap-2">
+          <TabsTrigger value="schedule" className="flex-1 sm:flex-initial gap-2 shrink-0">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Schedule</span>
           </TabsTrigger>
-          <TabsTrigger value="esther" className="flex-1 sm:flex-initial gap-2">
+          <TabsTrigger value="esther" className="flex-1 sm:flex-initial gap-2 shrink-0">
             <Mail className="h-4 w-4" />
             <span className="hidden sm:inline">Esther</span>
           </TabsTrigger>
-          <TabsTrigger value="logs" className="flex-1 sm:flex-initial gap-2">
+          <TabsTrigger value="logs" className="flex-1 sm:flex-initial gap-2 shrink-0">
             <ScrollText className="h-4 w-4" />
             <span className="hidden sm:inline">Logs</span>
           </TabsTrigger>
-          <TabsTrigger value="costs" className="flex-1 sm:flex-initial gap-2">
+          <TabsTrigger value="costs" className="flex-1 sm:flex-initial gap-2 shrink-0">
             <DollarSign className="h-4 w-4" />
             <span className="hidden sm:inline">Costs</span>
           </TabsTrigger>

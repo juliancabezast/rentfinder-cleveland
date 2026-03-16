@@ -207,8 +207,9 @@ function formatPhoneE164(raw: string): string | null {
 function normalizeAddress(addr: string): string {
   return addr.trim()
     .replace(/\s*\[Esther\b.*$/i, "")       // Strip leaked timestamps
-    .replace(/\.\s*$/, "")                    // Strip trailing period
+    .replace(/\./g, "")                       // Strip ALL periods (N. → N, St. → St, Mt. → Mt)
     .replace(/,?\s*(?:Unit|Apt|#)\s*\w+$/i, "") // Strip unit suffix
+    .replace(/\bMt\b/gi, "Mount")            // Mt → Mount (DB uses "Mount Auburn")
     .replace(/\bNorth\b/gi, "N").replace(/\bSouth\b/gi, "S")
     .replace(/\bEast\b/gi, "E").replace(/\bWest\b/gi, "W")
     .replace(/\bStreet\b/gi, "St").replace(/\bAvenue\b/gi, "Ave")
@@ -219,6 +220,21 @@ function normalizeAddress(addr: string): string {
     .replace(/\bParkway\b/gi, "Pkwy")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// ── Unit matching helper (flexible: "A" matches "A (Down)", "B" matches "B (Up)") ──
+function unitsMatch(inputUnit: string | null, propUnit: string | null): boolean {
+  if (!inputUnit || !propUnit) return true; // if either is missing, treat as match
+  const a = inputUnit.toLowerCase().trim();
+  const b = propUnit.toLowerCase().trim();
+  if (a === b) return true;
+  // "a" matches "a (down)", "b" matches "b (up)", "down" matches "a (down)", etc.
+  if (b.startsWith(a + " ") || b.startsWith(a + "(")) return true;
+  if (a.startsWith(b + " ") || a.startsWith(b + "(")) return true;
+  // "down" matches "a (down)", "up" matches "b (up)"
+  if (b.includes(`(${a})`) || b.includes(`(${a} `) || b.includes(` ${a})`)) return true;
+  if (a.includes(`(${b})`) || a.includes(`(${b} `) || a.includes(` ${b})`)) return true;
+  return false;
 }
 
 // ── Match property by address (match only — NEVER creates properties) ──
@@ -266,12 +282,9 @@ async function matchProperty(
   // Pass 1: exact normalized match
   for (const prop of candidates) {
     const normProp = normalizeAddress(prop.address).toLowerCase();
-    if (normProp === normInput) {
-      const propUnit = prop.unit_number?.toLowerCase() || null;
-      if (!inputUnit || !propUnit || inputUnit === propUnit) {
-        console.log(`Esther: matched property (normalized) "${cleanInput}" → ${prop.id} "${prop.address}"`);
-        return prop.id;
-      }
+    if (normProp === normInput && unitsMatch(inputUnit, prop.unit_number)) {
+      console.log(`Esther: matched property (normalized) "${cleanInput}" → ${prop.id} "${prop.address} #${prop.unit_number}"`);
+      return prop.id;
     }
   }
 
@@ -285,13 +298,60 @@ async function matchProperty(
       const propWords = normalizeAddress(prop.address).toLowerCase().split(" ").filter(w => w.length > 0);
       const propStreetWord = propWords.find((w, i) => i > 0 && !dirs.has(w));
       if (propStreetWord && propStreetWord === inputStreetWord && normWords[0] === propWords[0]) {
-        const propUnit = prop.unit_number?.toLowerCase() || null;
-        if (!inputUnit || !propUnit || inputUnit === propUnit) {
-          console.log(`Esther: matched property (fuzzy) "${cleanInput}" → ${prop.id} "${prop.address}"`);
+        if (unitsMatch(inputUnit, prop.unit_number)) {
+          console.log(`Esther: matched property (fuzzy) "${cleanInput}" → ${prop.id} "${prop.address} #${prop.unit_number}"`);
           return prop.id;
         }
       }
     }
+  }
+
+  // Pass 3: AI-powered match using OpenAI — ask GPT to pick the best match
+  try {
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    if (openaiKey && candidates.length > 0) {
+      const candidateList = candidates.map((p) =>
+        `ID: ${p.id} | Address: ${p.address}${p.unit_number ? ` #${p.unit_number}` : ""}`
+      ).join("\n");
+
+      const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openaiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          temperature: 0,
+          max_tokens: 100,
+          messages: [
+            {
+              role: "system",
+              content: `You are an address matching assistant. Given a lead's property address and a list of existing properties, determine if any existing property matches. Addresses may use different formats (Ave vs Avenue, St vs Street, N vs North, etc). Unit numbers like "A" should match "A (Down)", "B" should match "B (Up)". Respond with ONLY the ID of the best match, or "NONE" if no match exists. Do not explain.`,
+            },
+            {
+              role: "user",
+              content: `Lead address: "${cleanInput}"\n\nExisting properties:\n${candidateList}`,
+            },
+          ],
+        }),
+      });
+
+      if (aiResp.ok) {
+        const aiData = await aiResp.json();
+        const answer = (aiData.choices?.[0]?.message?.content || "").trim();
+        if (answer !== "NONE" && answer.length > 10) {
+          // Verify the returned ID is actually in our candidates
+          const matched = candidates.find((c) => c.id === answer);
+          if (matched) {
+            console.log(`Esther: matched property (AI) "${cleanInput}" → ${matched.id} "${matched.address} #${matched.unit_number}"`);
+            return matched.id;
+          }
+        }
+      }
+    }
+  } catch (aiErr) {
+    console.warn("Esther: AI property match failed:", aiErr);
   }
 
   // No match found

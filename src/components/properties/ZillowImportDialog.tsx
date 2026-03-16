@@ -332,7 +332,7 @@ Return ONLY the description text, no quotes or labels.`,
         if (!o) resetState();
       }}
     >
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5 text-[#4F46E5]" />
@@ -545,7 +545,7 @@ Return ONLY the description text, no quotes or labels.`,
             )}
 
             {/* Property details — all editable */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="edit-beds" className="flex items-center gap-1">
                   <Bed className="h-3 w-3" /> Bedrooms *

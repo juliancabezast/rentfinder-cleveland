@@ -122,7 +122,7 @@ export const NotificationsDropdown: React.FC = () => {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent align="end" className="w-80 max-w-[90vw]">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h3 className="font-semibold">Notifications</h3>
           {unreadCount > 0 && (
@@ -138,7 +138,7 @@ export const NotificationsDropdown: React.FC = () => {
           )}
         </div>
 
-        <ScrollArea className="h-80">
+        <ScrollArea className="h-80 max-h-[60vh]">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />

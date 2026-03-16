@@ -359,7 +359,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Showing Details
@@ -389,7 +389,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                   <p className="text-xs font-semibold text-indigo-700 flex items-center gap-1">
                     <Pencil className="h-3 w-3" /> Edit Date & Time
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Date</Label>
                       <Input

@@ -840,7 +840,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -903,7 +903,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           {step === 2 && !importResult && preImportAnalysis && (
             <div className="space-y-3">
               {/* Summary stats bar */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="rounded-lg bg-[#f4f1f1] p-2.5 text-center">
                   <p className="text-lg font-bold text-[#374151]">{preImportAnalysis.totalRows}</p>
                   <p className="text-[10px] text-muted-foreground uppercase">Total Rows</p>

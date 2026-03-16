@@ -235,14 +235,15 @@ const ApplicantsPage = () => {
               />
             </div>
           ) : (
+            <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Property</TableHead>
+                  <TableHead className="hidden sm:table-cell">Property</TableHead>
                   <TableHead>Score</TableHead>
-                  <TableHead>Applied</TableHead>
+                  <TableHead className="hidden sm:table-cell">Applied</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -271,7 +272,7 @@ const ApplicantsPage = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {applicant.property_address ? (
                         <span className="text-sm">{applicant.property_address}</span>
                       ) : (
@@ -285,7 +286,7 @@ const ApplicantsPage = () => {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                       {format(new Date(applicant.updated_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell className="text-right">
@@ -327,6 +328,7 @@ const ApplicantsPage = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -132,7 +132,7 @@ export const CheckPropertiesDialog: React.FC<CheckPropertiesDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[620px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -169,22 +169,22 @@ export const CheckPropertiesDialog: React.FC<CheckPropertiesDialogProps> = ({
         ) : (
           <>
             {/* Summary Stats */}
-            <div className="grid grid-cols-4 gap-2 py-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2">
               <div className="rounded-lg border p-2.5 text-center">
                 <p className="text-xl font-bold">{properties.length}</p>
-                <p className="text-[10px] text-muted-foreground">Total</p>
+                <p className="text-xs sm:text-[10px] text-muted-foreground">Total</p>
               </div>
               <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-center">
                 <p className="text-xl font-bold text-red-700">{totalCritical}</p>
-                <p className="text-[10px] text-red-600">Critical</p>
+                <p className="text-xs sm:text-[10px] text-red-600">Critical</p>
               </div>
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-center">
                 <p className="text-xl font-bold text-amber-700">{totalWarnings}</p>
-                <p className="text-[10px] text-amber-600">Warnings</p>
+                <p className="text-xs sm:text-[10px] text-amber-600">Warnings</p>
               </div>
               <div className="rounded-lg border border-green-200 bg-green-50 p-2.5 text-center">
                 <p className="text-xl font-bold text-green-700">{complete.length}</p>
-                <p className="text-[10px] text-green-600">Complete</p>
+                <p className="text-xs sm:text-[10px] text-green-600">Complete</p>
               </div>
             </div>
 

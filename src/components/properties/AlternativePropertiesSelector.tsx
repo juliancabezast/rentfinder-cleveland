@@ -112,10 +112,10 @@ export const AlternativePropertiesSelector: React.FC<AlternativePropertiesSelect
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="min-w-[350px] p-0" align="start">
+        <PopoverContent className="w-full max-w-[calc(100vw-2rem)] p-0" align="start">
           <Command>
             <CommandInput placeholder="Search properties..." />
-            <CommandList>
+            <CommandList className="max-h-[40vh] sm:max-h-[300px]">
               <CommandEmpty>No properties found.</CommandEmpty>
               <CommandGroup>
                 {filteredProperties.map((property) => (

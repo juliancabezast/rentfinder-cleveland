@@ -85,7 +85,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const filteredNavItems = filterItems(allNavItems);
 
   return (
-    <div className="min-h-screen flex w-full main-gradient-bg">
+    <div className="min-h-dvh flex w-full main-gradient-bg">
       {/* Skip to main content - Accessibility */}
       <a href="#main-content" className="skip-to-content">
         Skip to main content
@@ -118,8 +118,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
-                    'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                    'flex items-center gap-3 px-3 py-3 rounded-xl text-[13px] font-medium transition-all duration-200 min-h-[48px]',
+                    'text-slate-500 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-50'
                   )}
                   activeClassName="!bg-indigo-50 !text-indigo-600 font-semibold"
                 >
@@ -134,7 +134,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
       {/* Main Content Area - offset by sidebar width */}
       <div className={cn(
-        "flex-1 flex flex-col min-h-screen transition-all duration-300",
+        "flex-1 flex flex-col min-h-dvh transition-all duration-300",
         sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
       )}>
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
@@ -148,9 +148,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         />
 
         {/* Page Content */}
-        <main id="main-content" className="flex-1 p-4 lg:p-8 pb-20 lg:pb-8 overflow-auto">
-          {/* Animated background — floating gold orbs */}
-          <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" style={{ marginLeft: sidebarCollapsed ? '4rem' : '16rem' }}>
+        <main id="main-content" className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-auto">
+          {/* Animated background — floating gold orbs (hidden on mobile for performance) */}
+          <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 hidden md:block" style={{ marginLeft: sidebarCollapsed ? '4rem' : '16rem' }}>
             <div className="absolute rounded-full w-[900px] h-[900px] top-[15%] -right-[100px] animate-float-fast" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.28) 0%, rgba(255,178,44,0.10) 35%, transparent 65%)' }} />
             <div className="absolute rounded-full w-[800px] h-[800px] top-[40%] -left-[100px] animate-float-fast-reverse" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.24) 0%, rgba(255,178,44,0.08) 35%, transparent 65%)' }} />
             <div className="absolute rounded-full w-[700px] h-[700px] bottom-[-5%] right-[5%] animate-float-fast" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.22) 0%, rgba(255,178,44,0.07) 35%, transparent 65%)', animationDelay: '-4s' }} />

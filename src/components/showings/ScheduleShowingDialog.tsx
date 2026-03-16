@@ -623,6 +623,52 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         related_showing_id: showingData.id,
       });
 
+      // ── Telegram notification ──────────────────────────────────────
+      try {
+        const { data: creds } = await supabase
+          .from("organization_credentials")
+          .select("telegram_bot_token, telegram_chat_id")
+          .eq("organization_id", userRecord.organization_id)
+          .single();
+
+        if (creds?.telegram_bot_token && creds?.telegram_chat_id) {
+          const displayDateFull = format(selectedDate, "EEEE, MMMM d, yyyy");
+          const leadName = lead?.full_name || "—";
+          const leadPhone = lead?.phone || "—";
+          const leadEmailAddr = lead?.email || "—";
+          const rentStr = selectedProperty?.rent_price ? `$${Number(selectedProperty.rent_price).toLocaleString()}/mo` : "";
+          const fullAddr = `${propertyAddr}${selectedProperty?.city ? `, ${selectedProperty.city}` : ""}`;
+          const mapsQuery = encodeURIComponent(`${selectedProperty?.address || ""}, ${selectedProperty?.city || ""}, ${selectedProperty?.state || ""} ${selectedProperty?.zip_code || ""}`);
+
+          const msg = [
+            `🏠 <b>New Showing Scheduled</b>`,
+            ``,
+            `📍 <b>${fullAddr}</b>${rentStr ? ` — ${rentStr}` : ""}`,
+            `📅 ${displayDateFull} at ${formatTimeDisplay(slotTime)}`,
+            ``,
+            `👤 <b>${leadName}</b>`,
+            `📞 ${leadPhone}`,
+            `✉️ ${leadEmailAddr}`,
+            `🔗 Source: Admin (${userRecord.full_name || "team"})`,
+            ``,
+            `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
+          ].join("\n");
+
+          await fetch(`https://api.telegram.org/bot${creds.telegram_bot_token}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: creds.telegram_chat_id,
+              text: msg,
+              parse_mode: "HTML",
+              disable_web_page_preview: true,
+            }),
+          });
+        }
+      } catch (tgErr) {
+        console.warn("Telegram notification failed:", tgErr);
+      }
+
       const displayDate = format(selectedDate, "MMM d, yyyy");
       toast.success(`Showing scheduled for ${displayDate} at ${formatTimeDisplay(slotTime)}`);
 
@@ -655,7 +701,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-slate-900">Schedule Showing</DialogTitle>
           <DialogDescription className="text-slate-500">
@@ -686,7 +732,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
               </div>
             ) : showCreateLead ? (
               <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-slate-500">Full Name</Label>
                     <Input
@@ -744,10 +790,10 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                     <Search className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <PopoverContent className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)] p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Type name or phone..." className="text-sm" />
-                    <CommandList className="max-h-[200px] overflow-y-auto">
+                    <CommandList className="max-h-[40vh] sm:max-h-[200px] overflow-y-auto">
                       <CommandEmpty>No leads found.</CommandEmpty>
                       <CommandGroup>
                         {leads.map((lead) => (
@@ -798,10 +844,10 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)] p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Type address..." className="text-sm" />
-                  <CommandList className="max-h-[200px] overflow-y-auto">
+                  <CommandList className="max-h-[40vh] sm:max-h-[200px] overflow-y-auto">
                     <CommandEmpty>No properties found.</CommandEmpty>
                     <CommandGroup>
                       {properties.map((property) => (
@@ -832,7 +878,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           </div>
 
           {/* Date & Time */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-slate-700">Date *</Label>
               <Popover>
@@ -849,7 +895,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                     {selectedDate ? format(selectedDate, "MMM d, yyyy") : "Pick date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] p-0" align="start">
                   {loadingDates ? (
                     <div className="flex items-center justify-center p-8">
                       <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
@@ -907,7 +953,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           </div>
 
           {/* Duration & Agent */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-slate-700">Duration</Label>
               <Select value={selectedDuration} onValueChange={setSelectedDuration}>

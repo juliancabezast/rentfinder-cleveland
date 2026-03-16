@@ -285,7 +285,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Submit Showing Report</DialogTitle>
           <DialogDescription>

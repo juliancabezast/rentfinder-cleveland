@@ -151,7 +151,7 @@ export const StatCard: React.FC<StatCardProps> = ({
 
         {/* Value and impact badge */}
         <div className="flex items-baseline gap-2 mb-2">
-          <span className="text-3xl font-bold tracking-tight text-foreground">
+          <span className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">
             {animatedValue}
           </span>
           {impact && (

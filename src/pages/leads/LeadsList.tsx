@@ -644,9 +644,10 @@ const LeadsList: React.FC = () => {
     }
   };
 
-  const SortableHeader: React.FC<{ field: SortField; children: React.ReactNode }> = ({
+  const SortableHeader: React.FC<{ field: SortField; children: React.ReactNode; className?: string }> = ({
     field,
     children,
+    className: extraClassName,
   }) => {
     const isActive = sortField === field;
     const SortIcon = isActive
@@ -655,7 +656,7 @@ const LeadsList: React.FC = () => {
 
     return (
       <TableHead
-        className="cursor-pointer select-none hover:bg-muted/50"
+        className={`cursor-pointer select-none hover:bg-muted/50 ${extraClassName || ""}`}
         onClick={() => handleSort(field)}
       >
         <div className="flex items-center gap-1">
@@ -729,7 +730,7 @@ const LeadsList: React.FC = () => {
               setCurrentPage(1);
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger className="min-h-[44px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -749,7 +750,7 @@ const LeadsList: React.FC = () => {
               setCurrentPage(1);
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger className="min-h-[44px]">
               <SelectValue placeholder="Source" />
             </SelectTrigger>
             <SelectContent>
@@ -769,7 +770,7 @@ const LeadsList: React.FC = () => {
               setCurrentPage(1);
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger className="min-h-[44px]">
               <Building2 className="h-4 w-4 mr-1.5 text-muted-foreground shrink-0" />
               <SelectValue placeholder="Property" />
             </SelectTrigger>
@@ -910,10 +911,10 @@ const LeadsList: React.FC = () => {
                     <SortableHeader field="full_name">Name</SortableHeader>
                     <SortableHeader field="lead_score">Score</SortableHeader>
                     <SortableHeader field="status">Status</SortableHeader>
-                    <TableHead>Property</TableHead>
-                    <SortableHeader field="created_at">Created</SortableHeader>
-                    <SortableHeader field="last_contact_at">Last Contact</SortableHeader>
-                    <TableHead>Next Action</TableHead>
+                    <TableHead className="hidden sm:table-cell">Property</TableHead>
+                    <SortableHeader field="created_at" className="hidden sm:table-cell">Created</SortableHeader>
+                    <SortableHeader field="last_contact_at" className="hidden sm:table-cell">Last Contact</SortableHeader>
+                    <TableHead className="hidden sm:table-cell">Next Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -959,7 +960,7 @@ const LeadsList: React.FC = () => {
                       <TableCell>
                         <LeadStatusBadge status={lead.status} />
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-muted-foreground text-[13px]">
+                      <TableCell className="hidden sm:table-cell max-w-[200px] truncate text-muted-foreground text-[13px]">
                         {lead.properties?.address
                           ? `${lead.properties.address}${
                               lead.properties.unit_number
@@ -968,17 +969,17 @@ const LeadsList: React.FC = () => {
                             }`
                           : "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-[13px]">
+                      <TableCell className="hidden sm:table-cell text-muted-foreground text-[13px]">
                         {lead.created_at
                           ? format(new Date(lead.created_at), "MMM d, yyyy")
                           : "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-[13px]">
+                      <TableCell className="hidden sm:table-cell text-muted-foreground text-[13px]">
                         {lead.last_contact_at
                           ? format(new Date(lead.last_contact_at), "MMM d, yyyy")
                           : "—"}
                       </TableCell>
-                      <TableCell className="text-[13px]">
+                      <TableCell className="hidden sm:table-cell text-[13px]">
                         {lead.nextAction ? (
                           <span className="text-foreground whitespace-nowrap">
                             {format(new Date(lead.nextAction.scheduled_for), "MMM d")}
@@ -1035,7 +1036,7 @@ const LeadsList: React.FC = () => {
 
       {/* Create Lead Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Lead</DialogTitle>
           </DialogHeader>

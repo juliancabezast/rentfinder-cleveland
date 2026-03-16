@@ -97,7 +97,7 @@ const CostDashboard: React.FC = () => {
       </div>
 
       {/* ── Section 1: Hero KPIs ────────────────────────────── */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-5">
         <div className="animate-fade-up stagger-1">
           <StatCard
             title="Portfolio Value"

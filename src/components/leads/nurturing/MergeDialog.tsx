@@ -378,7 +378,7 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
           ) : (
             <div className="space-y-4 py-2">
               {/* Column headers */}
-              <div className="grid grid-cols-[140px_1fr_1fr] gap-2 text-sm font-medium text-muted-foreground">
+              <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr_1fr] gap-2 text-sm font-medium text-muted-foreground">
                 <div>Field</div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-green-500" />
@@ -404,7 +404,7 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
                 return (
                   <div
                     key={field.key}
-                    className="grid grid-cols-[140px_1fr_1fr] gap-2 items-center text-sm"
+                    className="grid grid-cols-1 sm:grid-cols-[140px_1fr_1fr] gap-2 items-center text-sm"
                   >
                     <div className="font-medium text-muted-foreground">{field.label}</div>
 
