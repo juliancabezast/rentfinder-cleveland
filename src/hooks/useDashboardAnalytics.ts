@@ -40,12 +40,6 @@ interface CostRecordRow {
   total_cost: number;
 }
 
-interface CallCostRow {
-  cost_twilio: number | null;
-  cost_bland: number | null;
-  cost_openai: number | null;
-}
-
 interface PropertyPerformanceRow {
   property_id: string;
   address: string;
@@ -216,18 +210,14 @@ const AGENT_LABELS: Record<string, string> = {
 
 const COST_COLORS: Record<string, string> = {
   openai: "hsl(142, 71%, 45%)",
-  twilio_voice: "hsl(280, 73%, 17%)",
   twilio_sms: "hsl(280, 73%, 40%)",
-  bland_ai: "hsl(40, 100%, 59%)",
   persona: "hsl(38, 92%, 50%)",
   resend: "hsl(0, 84%, 60%)",
 };
 
 const COST_LABELS: Record<string, string> = {
   openai: "OpenAI",
-  twilio_voice: "Twilio Voice",
   twilio_sms: "Twilio SMS",
-  bland_ai: "Bland AI",
   persona: "Persona",
   resend: "Resend",
 };
@@ -249,7 +239,6 @@ export function useDashboardAnalytics() {
         { data: showings },
         { data: agentTasks },
         { data: costRecords },
-        { data: calls },
         { data: propPerf },
       ] = await Promise.all([
         supabase
@@ -278,11 +267,6 @@ export function useDashboardAnalytics() {
           .eq("organization_id", orgId)
           .limit(5000),
         supabase
-          .from("calls")
-          .select("cost_twilio, cost_bland, cost_openai")
-          .eq("organization_id", orgId)
-          .limit(5000),
-        supabase
           .from("property_performance")
           .select("property_id, address, rent_price, status, days_on_market, total_leads, active_leads, avg_lead_score, showings_scheduled, showings_completed, lead_to_showing_rate")
           .eq("organization_id", orgId)
@@ -294,7 +278,6 @@ export function useDashboardAnalytics() {
       const shs = (showings || []) as ShowingRow[];
       const tasks = (agentTasks || []) as AgentTaskRow[];
       const costs = (costRecords || []) as CostRecordRow[];
-      const cls = (calls || []) as CallCostRow[];
       const pp = (propPerf || []) as PropertyPerformanceRow[];
 
       // ── Hero KPIs ──────────────────────────────────────────────
@@ -330,13 +313,8 @@ export function useDashboardAnalytics() {
             ? 100
             : 0;
 
-      // AI Spend from cost_records + calls
-      const costRecordTotal = costs.reduce((s, c) => s + Number(c.total_cost || 0), 0);
-      const callCostTotal = cls.reduce(
-        (s, c) => s + (c.cost_twilio || 0) + (c.cost_bland || 0) + (c.cost_openai || 0),
-        0
-      );
-      const aiSpend = costRecordTotal + callCostTotal;
+      // AI Spend from cost_records
+      const aiSpend = costs.reduce((s, c) => s + Number(c.total_cost || 0), 0);
 
       // ── Funnel ─────────────────────────────────────────────────
       const statusCounts: Record<string, number> = {};
@@ -463,17 +441,6 @@ export function useDashboardAnalytics() {
         const svc = c.service || "other";
         costMap.set(svc, (costMap.get(svc) || 0) + Number(c.total_cost || 0));
       });
-      // Add call costs
-      let twilioVoice = 0, blandAi = 0, openai = 0;
-      cls.forEach((c) => {
-        twilioVoice += c.cost_twilio || 0;
-        blandAi += c.cost_bland || 0;
-        openai += c.cost_openai || 0;
-      });
-      if (twilioVoice > 0) costMap.set("twilio_voice", (costMap.get("twilio_voice") || 0) + twilioVoice);
-      if (blandAi > 0) costMap.set("bland_ai", (costMap.get("bland_ai") || 0) + blandAi);
-      if (openai > 0) costMap.set("openai", (costMap.get("openai") || 0) + openai);
-
       const defaultColors = ["hsl(200, 60%, 50%)", "hsl(160, 60%, 45%)", "hsl(30, 80%, 55%)"];
       let colorIdx = 0;
       const costBreakdown: CostSlice[] = Array.from(costMap.entries())

@@ -44,12 +44,6 @@ const INTEGRATION_KEYS: IntegrationKey[] = [
     testable: false,
   },
   {
-    key: 'bland_api_key',
-    label: 'Bland.ai API Key',
-    description: 'API key for Bland.ai voice agents',
-    testable: true,
-  },
-  {
     key: 'openai_api_key',
     label: 'OpenAI API Key',
     description: 'API key for lead scoring and insights',
@@ -106,7 +100,6 @@ const mapKeyToService = (key: string): string => {
     twilio_auth_token: "twilio",
     twilio_phone_number: "twilio",
     twilio_whatsapp_number: "twilio",
-    bland_api_key: "bland_ai",
     openai_api_key: "openai",
     persona_api_key: "persona",
     maxmind_account_id: "maxmind",
@@ -172,7 +165,6 @@ export const IntegrationKeysTab: React.FC = () => {
         const statuses: Record<string, TestStatus> = {};
         const serviceToKeys: Record<string, string[]> = {
           twilio: ['twilio_account_sid', 'twilio_auth_token'],
-          bland_ai: ['bland_api_key'],
           openai: ['openai_api_key'],
           persona: ['persona_api_key'],
           maxmind: ['maxmind_account_id', 'maxmind_license_key'],

@@ -387,8 +387,7 @@
                  The Service integrates with third-party services to provide functionality:
                </p>
                <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
-                 <li><strong>Twilio:</strong> Voice and SMS communications</li>
-                 <li><strong>Bland.ai:</strong> AI voice agent technology</li>
+                 <li><strong>Twilio:</strong> SMS communications</li>
                  <li><strong>OpenAI:</strong> Natural language processing and analysis</li>
                  <li><strong>Doorloop:</strong> Property management software integration</li>
                  <li><strong>Resend:</strong> Email delivery</li>

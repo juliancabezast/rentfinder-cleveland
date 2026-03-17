@@ -7,7 +7,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
-  Phone,
   MessageSquare,
   Mail,
   RefreshCw,
@@ -58,7 +57,6 @@ const AGENT_NAMES: Record<string, string> = {
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
-  bland_call_webhook: "Aaron",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -75,14 +73,12 @@ const AGENT_NAMES: Record<string, string> = {
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
-  campaign_voice: "Elijah",
 };
 
 // ── Source → agent that brought the lead in ──────────────────────────
 
 const SOURCE_INFO: Record<string, { agent: string; action: string; updateAction: string }> = {
   hemlane_email: { agent: "Esther", action: "registered via Hemlane", updateAction: "updated via Hemlane" },
-  inbound_call: { agent: "Aaron", action: "registered via inbound call", updateAction: "updated via inbound call" },
   website: { agent: "Aaron", action: "captured from website", updateAction: "updated from website" },
   sms: { agent: "System", action: "registered via inbound SMS", updateAction: "updated via SMS" },
   referral: { agent: "Aaron", action: "registered as referral", updateAction: "updated referral" },
@@ -93,10 +89,8 @@ const SOURCE_INFO: Record<string, { agent: string; action: string; updateAction:
 // ── Next-task action labels ──────────────────────────────────────────
 
 const NEXT_ACTION_LABELS: Record<string, string> = {
-  call: "call",
   sms: "send SMS",
   email: "send email",
-  voice: "call",
   score: "score lead",
   confirm_showing: "confirm showing",
   outbound_callback: "make callback",
@@ -108,10 +102,8 @@ const NEXT_ACTION_LABELS: Record<string, string> = {
 // ── Action icons ─────────────────────────────────────────────────────
 
 const ACTION_ICONS: Record<string, React.ElementType> = {
-  call: Phone,
   sms: MessageSquare,
   email: Mail,
-  voice: Phone,
 };
 
 // ── Component ────────────────────────────────────────────────────────

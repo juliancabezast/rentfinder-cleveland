@@ -16,11 +16,10 @@ interface ServiceCost {
 
 interface SpendOverTimeData {
   date: string;
-  twilio_voice: number;
   twilio_sms: number;
-  bland_ai: number;
   openai: number;
   persona: number;
+  resend: number;
 }
 
 interface LeadCostData {
@@ -64,11 +63,10 @@ interface CostData {
 }
 
 const SERVICE_LABELS: Record<string, string> = {
-  twilio_voice: "Twilio Voice",
   twilio_sms: "Twilio SMS",
-  bland_ai: "Bland AI",
   openai: "OpenAI",
   persona: "Persona",
+  resend: "Resend",
 };
 
 export function useCostData(dateRange: DateRange | undefined) {
@@ -91,16 +89,6 @@ export function useCostData(dateRange: DateRange | undefined) {
         const orgId = userRecord.organization_id;
         const startDate = dateRange.from.toISOString();
         const endDate = dateRange.to.toISOString();
-
-        // Fetch calls with costs
-        const { data: calls, error: callsError } = await supabase
-          .from("calls")
-          .select("id, lead_id, cost_twilio, cost_bland, cost_openai, cost_total, started_at")
-          .eq("organization_id", orgId)
-          .gte("started_at", startDate)
-          .lte("started_at", endDate);
-
-        if (callsError) throw callsError;
 
         // Fetch communications with costs
         const { data: communications, error: commsError } = await supabase
@@ -143,44 +131,36 @@ export function useCostData(dateRange: DateRange | undefined) {
 
         if (showingsError) throw showingsError;
 
-        // Calculate totals from calls
-        const callCostTotal = calls?.reduce((sum, c) => sum + (c.cost_total || 0), 0) || 0;
+        // Calculate totals from communications and cost_records
         const commCostTotal = communications?.reduce((sum, c) => sum + (c.cost_twilio || 0), 0) || 0;
-        const totalSpend = callCostTotal + commCostTotal;
-
-        // Calculate service breakdown from calls
-        const twilioVoiceTotal = calls?.reduce((sum, c) => sum + (c.cost_twilio || 0), 0) || 0;
-        const blandTotal = calls?.reduce((sum, c) => sum + (c.cost_bland || 0), 0) || 0;
-        const openaiTotal = calls?.reduce((sum, c) => sum + (c.cost_openai || 0), 0) || 0;
         const twilioSmsTotal = communications?.filter(c => c.channel === "sms").reduce((sum, c) => sum + (c.cost_twilio || 0), 0) || 0;
 
-        // If cost_records exist, use those for more granular breakdown
+        // Build service breakdown from cost_records + communications
         let serviceBreakdown: ServiceCost[] = [];
+        const serviceTotals = new Map<string, number>();
         if (records.length > 0) {
-          const serviceTotals = new Map<string, number>();
           records.forEach(r => {
             const current = serviceTotals.get(r.service) || 0;
             serviceTotals.set(r.service, current + Number(r.total_cost));
           });
-          serviceBreakdown = Array.from(serviceTotals.entries()).map(([service, total]) => ({
-            service,
-            label: SERVICE_LABELS[service] || service,
-            total,
-          }));
-        } else {
-          // Fallback to calls data
-          serviceBreakdown = [
-            { service: "twilio_voice", label: "Twilio Voice", total: twilioVoiceTotal },
-            { service: "twilio_sms", label: "Twilio SMS", total: twilioSmsTotal },
-            { service: "bland_ai", label: "Bland AI", total: blandTotal },
-            { service: "openai", label: "OpenAI", total: openaiTotal },
-          ].filter(s => s.total > 0);
         }
+        if (twilioSmsTotal > 0) {
+          serviceTotals.set("twilio_sms", (serviceTotals.get("twilio_sms") || 0) + twilioSmsTotal);
+        }
+        serviceBreakdown = Array.from(serviceTotals.entries()).map(([service, total]) => ({
+          service,
+          label: SERVICE_LABELS[service] || service,
+          total,
+        })).filter(s => s.total > 0);
 
         // Find most expensive service
         const mostExpensiveService = serviceBreakdown.length > 0
           ? serviceBreakdown.reduce((max, s) => s.total > max.total ? s : max).label
           : null;
+
+        // Calculate total spend from all sources
+        const recordsTotal = records.reduce((sum, r) => sum + Number(r.total_cost || 0), 0);
+        const totalSpend = recordsTotal + commCostTotal;
 
         // Calculate cost per lead
         const leadsCount = leads?.length || 0;
@@ -195,48 +175,25 @@ export function useCostData(dateRange: DateRange | undefined) {
         const groupByWeek = daysDiff > 31;
         
         const timeGroups = new Map<string, SpendOverTimeData>();
-        
-        calls?.forEach(call => {
-          const date = new Date(call.started_at);
-          const key = groupByWeek 
-            ? format(startOfWeek(date), "MMM dd")
-            : format(date, "MMM dd");
-          
-          const current = timeGroups.get(key) || {
-            date: key,
-            twilio_voice: 0,
-            twilio_sms: 0,
-            bland_ai: 0,
-            openai: 0,
-            persona: 0,
-          };
-          
-          current.twilio_voice += call.cost_twilio || 0;
-          current.bland_ai += call.cost_bland || 0;
-          current.openai += call.cost_openai || 0;
-          
-          timeGroups.set(key, current);
-        });
 
         communications?.filter(c => c.sent_at).forEach(comm => {
           const date = new Date(comm.sent_at!);
-          const key = groupByWeek 
+          const key = groupByWeek
             ? format(startOfWeek(date), "MMM dd")
             : format(date, "MMM dd");
-          
+
           const current = timeGroups.get(key) || {
             date: key,
-            twilio_voice: 0,
             twilio_sms: 0,
-            bland_ai: 0,
             openai: 0,
             persona: 0,
+            resend: 0,
           };
-          
+
           if (comm.channel === "sms") {
             current.twilio_sms += comm.cost_twilio || 0;
           }
-          
+
           timeGroups.set(key, current);
         });
 
@@ -244,20 +201,11 @@ export function useCostData(dateRange: DateRange | undefined) {
           .sort((a, b) => a.date.localeCompare(b.date));
 
         // Calculate per-lead costs
-        const leadCostsMap = new Map<string, { calls: number; messages: number; cost: number }>();
-        
-        calls?.forEach(call => {
-          if (call.lead_id) {
-            const current = leadCostsMap.get(call.lead_id) || { calls: 0, messages: 0, cost: 0 };
-            current.calls++;
-            current.cost += call.cost_total || 0;
-            leadCostsMap.set(call.lead_id, current);
-          }
-        });
+        const leadCostsMap = new Map<string, { messages: number; cost: number }>();
 
         communications?.forEach(comm => {
           if (comm.lead_id) {
-            const current = leadCostsMap.get(comm.lead_id) || { calls: 0, messages: 0, cost: 0 };
+            const current = leadCostsMap.get(comm.lead_id) || { messages: 0, cost: 0 };
             current.messages++;
             current.cost += comm.cost_twilio || 0;
             leadCostsMap.set(comm.lead_id, current);
@@ -265,18 +213,17 @@ export function useCostData(dateRange: DateRange | undefined) {
         });
 
         const perLead: LeadCostData[] = (leads || []).map(lead => {
-          const costs = leadCostsMap.get(lead.id) || { calls: 0, messages: 0, cost: 0 };
-          const interactions = costs.calls + costs.messages;
+          const costs = leadCostsMap.get(lead.id) || { messages: 0, cost: 0 };
           return {
             id: lead.id,
             full_name: lead.full_name,
             phone: lead.phone,
             source: lead.source,
             status: lead.status,
-            callCount: costs.calls,
+            callCount: 0,
             messageCount: costs.messages,
             totalCost: costs.cost,
-            avgCostPerInteraction: interactions > 0 ? costs.cost / interactions : 0,
+            avgCostPerInteraction: costs.messages > 0 ? costs.cost / costs.messages : 0,
           };
         }).sort((a, b) => b.totalCost - a.totalCost);
 

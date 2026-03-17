@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Save, AlertTriangle, Shield, ImageIcon } from 'lucide-react';
@@ -13,14 +12,12 @@ export const ComplianceTab: React.FC = () => {
   const { getSetting, updateMultipleSettings, loading } = useOrganizationSettings();
   const [saving, setSaving] = useState(false);
 
-  const [recordingDisclosure, setRecordingDisclosure] = useState('');
   const [autoPurgeDays, setAutoPurgeDays] = useState(180);
   const [tcpaConsentLanguage, setTcpaConsentLanguage] = useState('');
   const [photoUploadRestricted, setPhotoUploadRestricted] = useState(false);
 
   useEffect(() => {
     if (!loading) {
-      setRecordingDisclosure(getSetting('recording_disclosure_text', DEFAULT_SETTINGS.recording_disclosure_text));
       setAutoPurgeDays(getSetting('auto_purge_leads_days', DEFAULT_SETTINGS.auto_purge_leads_days));
       setTcpaConsentLanguage(getSetting('tcpa_consent_language', DEFAULT_SETTINGS.tcpa_consent_language));
       setPhotoUploadRestricted(getSetting('photo_upload_restricted', false));
@@ -31,7 +28,6 @@ export const ComplianceTab: React.FC = () => {
     setSaving(true);
     try {
       await updateMultipleSettings([
-        { key: 'recording_disclosure_text', value: recordingDisclosure, category: 'compliance' },
         { key: 'auto_purge_leads_days', value: autoPurgeDays, category: 'compliance' },
         { key: 'tcpa_consent_language', value: tcpaConsentLanguage, category: 'compliance' },
         { key: 'photo_upload_restricted', value: photoUploadRestricted, category: 'security' },
@@ -100,30 +96,6 @@ export const ComplianceTab: React.FC = () => {
               <li>Viewer: Not allowed</li>
               <li>Leasing Agent: Not allowed</li>
             </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Call Recording Disclosure</CardTitle>
-          <CardDescription>
-            This message is played at the start of every call for compliance with state wiretapping laws
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="recordingDisclosure">Recording Disclosure Text</Label>
-            <Textarea
-              id="recordingDisclosure"
-              value={recordingDisclosure}
-              onChange={(e) => setRecordingDisclosure(e.target.value)}
-              rows={4}
-              placeholder="This call may be recorded for quality assurance..."
-            />
-            <p className="text-xs text-muted-foreground">
-              Required for two-party consent states (CA, CT, FL, IL, MD, MA, MI, MT, NV, NH, OR, PA, VT, WA)
-            </p>
           </div>
         </CardContent>
       </Card>

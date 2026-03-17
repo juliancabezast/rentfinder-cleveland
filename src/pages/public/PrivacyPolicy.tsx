@@ -210,10 +210,9 @@ const PrivacyPolicy: React.FC = () => {
                 We engage trusted third-party service providers to perform functions on our behalf:
               </p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
-                <li><strong>Twilio:</strong> Telecommunications services for calls and SMS</li>
-                <li><strong>OpenAI:</strong> AI processing for call analysis and lead scoring</li>
+                <li><strong>Twilio:</strong> SMS communications</li>
+                <li><strong>OpenAI:</strong> AI processing and lead scoring</li>
                 <li><strong>Supabase:</strong> Cloud database and authentication services</li>
-                <li><strong>Bland.ai:</strong> AI voice agent technology</li>
                 <li><strong>Resend:</strong> Email delivery services</li>
               </ul>
               <p className="text-muted-foreground leading-relaxed mb-4">

@@ -9,7 +9,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import {
   ListChecks,
   RefreshCw,
-  Phone,
   MessageSquare,
   Mail,
   Zap,
@@ -60,10 +59,8 @@ const getAgentName = (key: string) => {
 // ── Action labels & icons ────────────────────────────────────────────
 
 const ACTION_LABELS: Record<string, string> = {
-  call: "call",
   sms: "send SMS",
   email: "send email",
-  voice: "call",
   score: "score lead",
   confirm_showing: "confirm showing",
   outbound_callback: "make callback",
@@ -79,7 +76,6 @@ const AGENT_TYPE_LABELS: Record<string, string> = {
   welcome_sequence: "send welcome email",
   recapture: "recapture lead",
   campaign: "run outreach campaign",
-  campaign_voice: "make outbound call",
   showing_confirmation: "confirm showing",
   no_show_followup: "follow up no-show",
   no_show_follow_up: "follow up no-show",
@@ -88,10 +84,8 @@ const AGENT_TYPE_LABELS: Record<string, string> = {
 };
 
 const ACTION_ICONS: Record<string, React.ElementType> = {
-  call: Phone,
   sms: MessageSquare,
   email: Mail,
-  voice: Phone,
   notify: Mail,
   sequence: Zap,
 };
@@ -99,13 +93,12 @@ const ACTION_ICONS: Record<string, React.ElementType> = {
 // Smarter icon based on agent_type
 const AGENT_TYPE_ICONS: Record<string, React.ElementType> = {
   welcome_sequence: Send,
-  campaign_voice: Phone,
   campaign: Zap,
   showing_confirmation: Calendar,
   no_show_followup: RotateCcw,
   no_show_follow_up: RotateCcw,
   post_showing: UserCheck,
-  recapture: Phone,
+  recapture: Zap,
   doorloop_pull: Zap,
 };
 
@@ -303,11 +296,6 @@ export const TaskQueuePanel = () => {
                           {" "}will {actionLabel}
                         </span>
                       </p>
-                      {(task.action_type === "call" || task.action_type === "voice") && (
-                        <Badge variant="outline" className="text-xs h-5 px-2 gap-1 bg-blue-50 text-blue-600 border-blue-200">
-                          <Phone className="h-3 w-3" /> Call
-                        </Badge>
-                      )}
                       {(task.action_type === "sms") && (
                         <Badge variant="outline" className="text-xs h-5 px-2 gap-1 bg-green-50 text-green-600 border-green-200">
                           <MessageSquare className="h-3 w-3" /> SMS

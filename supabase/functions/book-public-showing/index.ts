@@ -193,6 +193,7 @@ serve(async (req: Request) => {
       full_name,
       phone,
       email,
+      has_voucher,
       consent,
     } = body;
 
@@ -268,6 +269,7 @@ serve(async (req: Request) => {
         updated_at: new Date().toISOString(),
       };
       if (email && !existingLead.email) leadUpdate.email = email;
+      if (has_voucher !== undefined) leadUpdate.has_voucher = !!has_voucher;
       await supabase.from("leads").update(leadUpdate).eq("id", leadId);
     } else {
       const { data: newLead, error: leadErr } = await supabase
@@ -280,6 +282,7 @@ serve(async (req: Request) => {
           source: "website",
           status: "new",
           interested_property_id: property_id,
+          has_voucher: has_voucher !== undefined ? !!has_voucher : null,
           sms_consent: consent?.sms_consent ?? false,
           call_consent: consent?.call_consent ?? false,
         })

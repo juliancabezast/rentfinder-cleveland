@@ -46,13 +46,8 @@ export const DEFAULT_SETTINGS = {
   } as Record<string, { start: string; end: string } | null>,
 
   // Compliance settings
-  recording_disclosure_text: "This call may be recorded for quality assurance and training purposes.",
   auto_purge_leads_days: 180,
   tcpa_consent_language: "By providing my phone number, I consent to receive automated calls and text messages from this service. I understand that my consent is not required to apply for housing.",
-
-  // Voice settings
-  bland_voice_id: "default",
-  voice_language_primary: "en",
 
   // Security settings
   photo_upload_restricted: false,

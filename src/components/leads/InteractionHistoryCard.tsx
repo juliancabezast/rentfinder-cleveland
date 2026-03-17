@@ -1,29 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Phone, MessageSquare, Calendar, Mail, ArrowRight, X } from "lucide-react";
+import { MessageSquare, Calendar, Mail, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Call {
-  id: string;
-  direction: string;
-  status: string;
-  duration_seconds: number | null;
-  sentiment: string | null;
-  summary: string | null;
-  transcript: string | null;
-  started_at: string;
-  agent_type: string;
-  key_questions: any;
-}
 
 interface Communication {
   id: string;
@@ -45,13 +25,13 @@ interface Showing {
 }
 
 interface InteractionItem {
-  type: "call" | "sms" | "email" | "showing";
+  type: "sms" | "email" | "showing";
   id: string;
   timestamp: string;
   icon: React.ElementType;
   description: string;
   status: string;
-  data?: Call | Communication | Showing;
+  data?: Communication | Showing;
 }
 
 interface InteractionHistoryCardProps {
@@ -59,30 +39,17 @@ interface InteractionHistoryCardProps {
   onSeeAll: () => void;
 }
 
-const SENTIMENT_COLORS: Record<string, string> = {
-  positive: "text-green-600 bg-green-50",
-  negative: "text-red-600 bg-red-50",
-  neutral: "text-gray-600 bg-gray-50",
-};
-
 export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
   leadId,
   onSeeAll,
 }) => {
   const [interactions, setInteractions] = useState<InteractionItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCall, setSelectedCall] = useState<Call | null>(null);
 
   useEffect(() => {
     const fetchInteractions = async () => {
       try {
-        const [callsRes, commsRes, showingsRes] = await Promise.all([
-          supabase
-            .from("calls")
-            .select("id, direction, status, duration_seconds, sentiment, summary, transcript, started_at, agent_type, key_questions")
-            .eq("lead_id", leadId)
-            .order("started_at", { ascending: false })
-            .limit(15),
+        const [commsRes, showingsRes] = await Promise.all([
           supabase
             .from("communications")
             .select("id, channel, direction, status, body, subject, sent_at")
@@ -97,27 +64,10 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
             .limit(10),
         ]);
 
-        if (callsRes.error) console.error("Error fetching calls:", callsRes.error);
         if (commsRes.error) console.error("Error fetching communications:", commsRes.error);
         if (showingsRes.error) console.error("Error fetching showings:", showingsRes.error);
 
         const items: InteractionItem[] = [];
-
-        // Process calls
-        (callsRes.data || []).forEach((call: Call) => {
-          const duration = call.duration_seconds
-            ? `${Math.floor(call.duration_seconds / 60)}:${(call.duration_seconds % 60).toString().padStart(2, "0")}`
-            : "0:00";
-          items.push({
-            type: "call",
-            id: call.id,
-            timestamp: call.started_at,
-            icon: Phone,
-            description: `${call.direction === "inbound" ? "Inbound" : "Outbound"} Call - ${duration} min`,
-            status: call.sentiment || call.status,
-            data: call,
-          });
-        });
 
         // Process communications (deduplicate by channel+direction+timestamp+body)
         const seenComms = new Set<string>();
@@ -196,7 +146,7 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
   if (interactions.length === 0) {
     return (
       <div className="text-center py-6">
-        <Phone className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+        <Mail className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
         <p className="text-sm text-muted-foreground">No interactions yet</p>
       </div>
     );
@@ -207,19 +157,11 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
       <div className="space-y-1">
         {interactions.map((item) => {
           const Icon = item.icon;
-          const isClickable = item.type === "call" && item.data;
 
           return (
             <div
               key={`${item.type}-${item.id}`}
-              className={`flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors ${
-                isClickable ? "cursor-pointer" : ""
-              }`}
-              onClick={() => {
-                if (item.type === "call" && item.data) {
-                  setSelectedCall(item.data as Call);
-                }
-              }}
+              className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors"
             >
               <div className="shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center">
                 <Icon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -233,7 +175,6 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
               <span className={`text-[10px] capitalize ${getStatusColor(item.status)}`}>
                 {item.status}
               </span>
-              {isClickable && <ArrowRight className="h-3 w-3 text-muted-foreground" />}
             </div>
           );
         })}
@@ -249,104 +190,6 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
           View all in Activity tab →
         </Button>
       )}
-
-      {/* Call Detail Modal */}
-      <Dialog open={!!selectedCall} onOpenChange={(open) => !open && setSelectedCall(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5" />
-              Call Details
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedCall && (
-            <ScrollArea className="max-h-[60vh]">
-              <div className="space-y-4 pr-4">
-                {/* Call Info */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Direction</span>
-                    <p className="font-medium capitalize">{selectedCall.direction}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Duration</span>
-                    <p className="font-medium">
-                      {selectedCall.duration_seconds
-                        ? `${Math.floor(selectedCall.duration_seconds / 60)}:${(selectedCall.duration_seconds % 60).toString().padStart(2, "0")}`
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Agent Type</span>
-                    <p className="font-medium capitalize">{selectedCall.agent_type}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Sentiment</span>
-                    {selectedCall.sentiment ? (
-                      <Badge
-                        variant="outline"
-                        className={SENTIMENT_COLORS[selectedCall.sentiment] || ""}
-                      >
-                        {selectedCall.sentiment}
-                      </Badge>
-                    ) : (
-                      <p className="text-muted-foreground italic">Not analyzed</p>
-                    )}
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Date</span>
-                    <p className="font-medium">
-                      {format(new Date(selectedCall.started_at), "MMMM d, yyyy 'at' h:mm a")}
-                    </p>
-                  </div>
-                </div>
-
-                {/* AI Summary */}
-                {selectedCall.summary && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">AI Summary</h4>
-                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
-                      {selectedCall.summary}
-                    </p>
-                  </div>
-                )}
-
-                {/* Key Questions */}
-                {selectedCall.key_questions && Array.isArray(selectedCall.key_questions) && selectedCall.key_questions.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">Key Questions Asked</h4>
-                    <ul className="text-sm space-y-1">
-                      {selectedCall.key_questions.map((q: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-muted-foreground">•</span>
-                          <span>{q}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Transcript */}
-                {selectedCall.transcript && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">Full Transcript</h4>
-                    <div className="text-sm bg-muted/30 p-3 rounded-md whitespace-pre-wrap max-h-[200px] overflow-y-auto">
-                      {selectedCall.transcript}
-                    </div>
-                  </div>
-                )}
-
-                {!selectedCall.transcript && !selectedCall.summary && (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    No transcript or summary available for this call.
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

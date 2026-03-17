@@ -1,4 +1,4 @@
-import { Phone, ClipboardCheck, Handshake, Shield, LucideIcon } from "lucide-react";
+import { ClipboardCheck, Handshake, Shield, Inbox, LucideIcon } from "lucide-react";
 
 // Department definitions with colors and icons
 // 4 departments: Qualification → Leasing → Closing + System
@@ -16,7 +16,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
   {
     key: "calificacion",
     label: "Qualification",
-    icon: Phone,
+    icon: Inbox,
     color: "border-teal-500",
     bgColor: "bg-teal-50 dark:bg-teal-950/30",
     dotColor: "bg-teal-500",
@@ -54,15 +54,14 @@ export const DEPARTMENTS: DepartmentConfig[] = [
 // 7 agents — canonical display names
 export const AGENT_DISPLAY_NAMES: Record<string, string> = {
   // Primary agent_keys
-  aaron: "Inbound & Outbound Calls",
+  aaron: "Inbound Lead Processing",
   esther: "Email Reception",
   nehemiah: "Qualification Analyst",
   elijah: "Leasing Consultant",
   samuel: "Closing Agent",
   zacchaeus: "Health & Cost Monitor",
   // Legacy agent_keys → mapped to 7 real agents
-  main_inbound: "Inbound & Outbound Calls",
-  bland_call_webhook: "Inbound & Outbound Calls",
+  main_inbound: "Inbound Lead Processing",
   hemlane_parser: "Email Reception",
   scoring: "Qualification Analyst",
   transcript_analyst: "Qualification Analyst",
@@ -78,7 +77,6 @@ export const AGENT_DISPLAY_NAMES: Record<string, string> = {
   no_show_follow_up: "Closing Agent",
   post_showing: "Closing Agent",
   campaign: "Leasing Consultant",
-  campaign_voice: "Leasing Consultant",
   welcome_sequence: "Leasing Consultant",
   notification_dispatcher: "Qualification Analyst",
   health_monitor: "Health & Cost Monitor",
@@ -94,9 +92,9 @@ export interface AgentKPI {
 
 export const AGENT_KPIS: Record<string, AgentKPI[]> = {
   aaron: [
-    { label: "Calls Handled", target: "Handle all inbound calls", metric: "calls/day" },
-    { label: "Info Capture Rate", target: "Capture name+email+phone on 80%+ calls", metric: "% captured" },
-    { label: "Avg Call Duration", target: "Under 5 min per call", metric: "min/call" },
+    { label: "Leads Processed", target: "Process all inbound leads promptly", metric: "leads/day" },
+    { label: "Info Capture Rate", target: "Capture name+email+phone on 80%+ leads", metric: "% captured" },
+    { label: "Avg Processing Time", target: "Under 5 min per lead", metric: "min/lead" },
   ],
   esther: [
     { label: "Emails Processed", target: "Process all inbound emails <5 min", metric: "emails/day" },
@@ -111,7 +109,7 @@ export const AGENT_KPIS: Record<string, AgentKPI[]> = {
   elijah: [
     { label: "Leads Contacted", target: "Contact all new leads within 24h", metric: "contacts/day" },
     { label: "Showing Booking Rate", target: "Book showings for 40%+ leads", metric: "% booked" },
-    { label: "Campaign Reach", target: "Complete all assigned campaigns", metric: "calls/day" },
+    { label: "Campaign Reach", target: "Complete all assigned campaigns", metric: "contacts/day" },
   ],
   samuel: [
     { label: "Showings Confirmed", target: "Confirm 90%+ showings 24h before", metric: "confirmed/day" },
@@ -137,7 +135,6 @@ export const STATUS_CONFIG: Record<string, { color: string; bgColor: string; pul
 // Legacy agent_key → canonical agent_key mapping
 const LEGACY_TO_CANONICAL: Record<string, string> = {
   main_inbound: "aaron",
-  bland_call_webhook: "aaron",
   hemlane_parser: "esther",
   scoring: "nehemiah",
   transcript_analyst: "nehemiah",
@@ -147,7 +144,6 @@ const LEGACY_TO_CANONICAL: Record<string, string> = {
   report_generator: "nehemiah",
   recapture: "elijah",
   campaign: "elijah",
-  campaign_voice: "elijah",
   welcome_sequence: "elijah",
   showing_confirmation: "samuel",
   doorloop_pull: "samuel",

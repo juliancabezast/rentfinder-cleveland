@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, MessageSquare, Mail, Calendar, Zap, ChevronRight } from "lucide-react";
+import { MessageSquare, Mail, Calendar, Zap, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,6 @@ const AGENT_NAMES: Record<string, string> = {
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
-  bland_call_webhook: "Aaron",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -48,15 +47,12 @@ const AGENT_NAMES: Record<string, string> = {
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
-  campaign_voice: "Elijah",
 };
 
 // Action type icons
 const ACTION_ICONS: Record<string, React.ElementType> = {
-  call: Phone,
   sms: MessageSquare,
   email: Mail,
-  voice: Phone,
 };
 
 export const UpcomingActionsPreview: React.FC<UpcomingActionsPreviewProps> = ({

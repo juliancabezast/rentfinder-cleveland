@@ -3,7 +3,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
-  Phone,
   Calendar,
   UserPlus,
   MessageSquare,
@@ -17,7 +16,6 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 
 type ActivityType =
-  | "call"
   | "showing_scheduled"
   | "showing_completed"
   | "showing_cancelled"
@@ -46,7 +44,6 @@ const activityConfig: Record<
   ActivityType,
   { icon: React.ElementType; color: string }
 > = {
-  call: { icon: Phone, color: "text-blue-500 bg-blue-100" },
   showing_scheduled: { icon: Calendar, color: "text-green-500 bg-green-100" },
   showing_completed: { icon: CheckCircle, color: "text-green-600 bg-green-100" },
   showing_cancelled: { icon: XCircle, color: "text-red-500 bg-red-100" },
@@ -96,7 +93,7 @@ export const ActivityFeed = ({
           <EmptyState
             icon={Activity}
             title="No recent activity"
-            description="Activity from leads, calls, and showings will appear here"
+            description="Activity from leads and showings will appear here"
           />
         </CardContent>
       </Card>
@@ -112,7 +109,7 @@ export const ActivityFeed = ({
         <ScrollArea style={{ maxHeight }} className="px-6 pb-6">
           <div className="space-y-4">
             {activities.map((activity) => {
-              const config = activityConfig[activity.type] || activityConfig.call;
+              const config = activityConfig[activity.type] || activityConfig.lead_created;
               const Icon = config.icon;
 
               return (

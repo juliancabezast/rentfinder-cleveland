@@ -32,12 +32,12 @@ import { format } from "date-fns";
 const AGENT_NAMES: Record<string, string> = {
   aaron: "Aaron", esther: "Esther", nehemiah: "Nehemiah",
   elijah: "Elijah", samuel: "Samuel", zacchaeus: "Zacchaeus",
-  main_inbound: "Aaron", bland_call_webhook: "Aaron",
+  main_inbound: "Aaron",
   hemlane_parser: "Esther", scoring: "Nehemiah", transcript_analyst: "Nehemiah",
   task_dispatcher: "Nehemiah", recapture: "Elijah", showing_confirmation: "Samuel",
   "twilio-inbound": "Aaron", "hemlane-parser": "Esther",
   "notification-dispatcher": "Nehemiah", campaign: "Elijah",
-  "welcome-sequence": "Elijah", "campaign-voice": "Elijah",
+  "welcome-sequence": "Elijah",
 };
 
 interface IncompleteLead {

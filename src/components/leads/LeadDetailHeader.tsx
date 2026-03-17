@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Phone,
   CalendarPlus,
   Edit,
   AlertTriangle,
@@ -153,8 +152,6 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   onNotesClick,
 }) => {
   const { userRecord } = useAuth();
-  const [callViaAgentOpen, setCallViaAgentOpen] = useState(false);
-  const [callViaAgentLoading, setCallViaAgentLoading] = useState(false);
   const [generatingBrief, setGeneratingBrief] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -304,36 +301,6 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
     [lead.first_name, lead.last_name].filter(Boolean).join(" ") ||
     "Unknown Lead";
 
-  const handleCallViaAgent = async () => {
-    if (!lead || !userRecord) return;
-
-    setCallViaAgentLoading(true);
-    try {
-      const { error } = await supabase.from("agent_tasks").insert({
-        lead_id: lead.id,
-        organization_id: userRecord.organization_id,
-        agent_type: "recapture",
-        action_type: "call",
-        scheduled_for: new Date().toISOString(),
-        status: "pending",
-        context: {
-          manually_triggered: true,
-          triggered_by: userRecord.id,
-        },
-      });
-
-      if (error) throw error;
-
-      toast.success(`Call queued. The AI agent will call ${leadName} shortly.`);
-      setCallViaAgentOpen(false);
-    } catch (error) {
-      console.error("Error creating call task:", error);
-      toast.error("Failed to queue call. Please try again.");
-    } finally {
-      setCallViaAgentLoading(false);
-    }
-  };
-
   const handleGenerateBrief = async () => {
     if (!userRecord?.id) return;
 
@@ -407,15 +374,6 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
 
           {/* Right: Action buttons - all same style */}
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCallViaAgentOpen(true)}
-              className={headerButtonClass}
-            >
-              <Phone className="mr-2 h-4 w-4" />
-              Call via Agent
-            </Button>
             {permissions.canScheduleShowing && (
               <Button
                 variant="outline"
@@ -621,7 +579,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Lead</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete <strong>{leadName}</strong>? This will remove the lead and all associated data (calls, showings, tasks, score history). This action cannot be undone.
+              Are you sure you want to permanently delete <strong>{leadName}</strong>? This will remove the lead and all associated data (showings, tasks, score history). This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -636,28 +594,6 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Call via Agent Confirmation Dialog */}
-      <AlertDialog open={callViaAgentOpen} onOpenChange={setCallViaAgentOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Call via AI Agent</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will trigger an AI agent to call <strong>{leadName}</strong> at{" "}
-              <strong>{lead.phone}</strong>. Continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={callViaAgentLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCallViaAgent}
-              disabled={callViaAgentLoading}
-            >
-              {callViaAgentLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Queue Call
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };

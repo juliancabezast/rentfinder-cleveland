@@ -17,7 +17,6 @@ interface IntegrationStatus {
 
 const INTEGRATIONS = [
   { key: "twilio", label: "Twilio", credentialKeys: ["twilio_account_sid", "twilio_auth_token"] },
-  { key: "bland_ai", label: "Bland.ai", credentialKeys: ["bland_api_key"] },
   { key: "openai", label: "OpenAI", credentialKeys: ["openai_api_key"] },
   { key: "persona", label: "Persona", credentialKeys: ["persona_api_key"] },
   { key: "maxmind", label: "MaxMind", credentialKeys: ["maxmind_account_id", "maxmind_license_key"] },

@@ -308,6 +308,9 @@ const ScheduleShowing: React.FC = () => {
   const [email, setEmail] = useState(() => localStorage.getItem("rf_email") || "");
   const [consent, setConsent] = useState(() => localStorage.getItem("rf_consent") === "1");
   const [consentError, setConsentError] = useState(false);
+  const [paymentType, setPaymentType] = useState<"self" | "voucher" | "">(
+    () => (localStorage.getItem("rf_payment") as "self" | "voucher") || ""
+  );
 
   // Call Now button config
   const [callNowConfig, setCallNowConfig] = useState<{ enabled: boolean; phone: string; label: string } | null>(null);
@@ -618,6 +621,7 @@ const ScheduleShowing: React.FC = () => {
           full_name: fullName.trim(),
           phone: phone.trim(),
           email: email.trim() || null,
+          has_voucher: paymentType === "voucher",
           consent: buildConsentPayload(consent),
         },
       });
@@ -648,6 +652,7 @@ const ScheduleShowing: React.FC = () => {
           localStorage.setItem("rf_phone", phone.trim());
           if (email.trim()) localStorage.setItem("rf_email", email.trim());
           if (consent) localStorage.setItem("rf_consent", "1");
+          if (paymentType) localStorage.setItem("rf_payment", paymentType);
         } catch {}
       }
     } catch (err: any) {
@@ -1278,6 +1283,37 @@ const ScheduleShowing: React.FC = () => {
                       />
                     </div>
 
+                    {/* Payment type */}
+                    <div>
+                      <Label>Payment Method <span className="text-destructive">*</span></Label>
+                      <div className="grid grid-cols-2 gap-2 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentType("self")}
+                          className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                            paymentType === "self"
+                              ? "border-[#4F46E5] bg-[#4F46E5]/5 text-[#4F46E5]"
+                              : "border-slate-200 text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          <DollarSign className="h-4 w-4" />
+                          Self-Pay
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentType("voucher")}
+                          className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                            paymentType === "voucher"
+                              ? "border-[#4F46E5] bg-[#4F46E5]/5 text-[#4F46E5]"
+                              : "border-slate-200 text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          <FileText className="h-4 w-4" />
+                          Housing Voucher
+                        </button>
+                      </div>
+                    </div>
+
                     <SmsConsentCheckbox
                       checked={consent}
                       onCheckedChange={(val) => {
@@ -1296,7 +1332,7 @@ const ScheduleShowing: React.FC = () => {
                     <Button
                       className="w-full h-12 bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white font-semibold text-base"
                       onClick={handleBook}
-                      disabled={submitting || !fullName.trim() || !phone.trim()}
+                      disabled={submitting || !fullName.trim() || !phone.trim() || !paymentType}
                     >
                       {submitting ? (
                         <>

@@ -18,7 +18,6 @@ export type LogLevel = "info" | "warning" | "error" | "critical";
 
 export type LogCategory =
   | "twilio"
-  | "bland_ai"
   | "openai"
   | "persona"
   | "doorloop"
@@ -114,7 +113,6 @@ export async function logSystemEvent(params: LogEventParams): Promise<{ success:
  */
 export const SERVICE_CONFIG: Record<string, { label: string; color: string }> = {
   twilio: { label: "Twilio", color: "bg-red-500" },
-  bland_ai: { label: "Bland.ai", color: "bg-purple-500" },
   openai: { label: "OpenAI", color: "bg-green-500" },
   persona: { label: "Persona", color: "bg-blue-500" },
   doorloop: { label: "Doorloop", color: "bg-orange-500" },

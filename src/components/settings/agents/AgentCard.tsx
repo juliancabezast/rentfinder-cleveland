@@ -51,7 +51,6 @@ const STATUS_CONFIG: Record<string, { color: string; text: string; textColor: st
 
 const SERVICE_COLORS: Record<string, string> = {
   twilio: 'bg-red-100 text-red-700',
-  bland_ai: 'bg-blue-100 text-blue-700',
   openai: 'bg-green-100 text-green-700',
   persona: 'bg-purple-100 text-purple-700',
   doorloop: 'bg-orange-100 text-orange-700',

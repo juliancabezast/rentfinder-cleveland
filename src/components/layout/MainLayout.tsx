@@ -15,7 +15,6 @@ import {
   Building2,
   Users,
   CalendarDays,
-  Phone,
   BarChart3,
   Sparkles,
   UserCog,
@@ -43,7 +42,6 @@ const mainNavItems: NavItem[] = [
   { title: 'Applicants', href: '/applicants', icon: UserCheck },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'My Route', href: '/showings/route', icon: Map, permission: 'canViewOwnRoute' },
-  { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
 ];
 
 const analyticsNavItems: NavItem[] = [

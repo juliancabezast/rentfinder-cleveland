@@ -31,7 +31,6 @@ interface IntegrationHealth {
 // Services to display and their friendly names
 const SERVICE_DISPLAY_MAP: Record<string, string> = {
   twilio: "Twilio",
-  bland_ai: "Bland",
   openai: "OpenAI",
   persona: "Persona",
   maxmind: "MaxMind",
@@ -39,7 +38,7 @@ const SERVICE_DISPLAY_MAP: Record<string, string> = {
   resend: "Email",
 };
 
-const SERVICE_ORDER = ["twilio", "bland_ai", "openai", "persona", "maxmind", "doorloop", "resend"];
+const SERVICE_ORDER = ["twilio", "openai", "persona", "maxmind", "doorloop", "resend"];
 
 type HealthStatus = "healthy" | "degraded" | "down" | "not_configured" | "unknown";
 

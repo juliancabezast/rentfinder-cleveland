@@ -25,8 +25,6 @@ const LeadsList = lazy(() => import("./pages/leads/LeadsList"));
 const LeadHygiene = lazy(() => import("./pages/leads/LeadHygiene"));
 const LeadDetail = lazy(() => import("./pages/leads/LeadDetail"));
 const ShowingsList = lazy(() => import("./pages/showings/ShowingsList"));
-const CallsList = lazy(() => import("./pages/calls/CallsList"));
-const CallDetail = lazy(() => import("./pages/calls/CallDetail"));
 const Reports = lazy(() => import("./pages/reports/Reports"));
 const KnowledgeHub = lazy(() => import("./pages/insights/KnowledgeHub"));
 const UsersList = lazy(() => import("./pages/users/UsersList"));
@@ -236,27 +234,6 @@ const App = () => (
               }
             />
 
-            <Route
-              path="/calls"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
-                  <MainLayout>
-                    <CallsList />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/calls/:id"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
-                  <MainLayout>
-                    <CallDetail />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
 
             <Route
               path="/reports/*"

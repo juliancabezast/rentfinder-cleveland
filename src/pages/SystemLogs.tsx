@@ -54,7 +54,6 @@ type SystemLog = Tables<"system_logs">;
 const SERVICES = [
   { value: "all", label: "All Services" },
   { value: "twilio", label: "Twilio" },
-  { value: "bland_ai", label: "Bland.ai" },
   { value: "openai", label: "OpenAI" },
   { value: "persona", label: "Persona" },
   { value: "doorloop", label: "Doorloop" },
@@ -87,7 +86,6 @@ const levelColors: Record<string, string> = {
 
 const serviceIcons: Record<string, string> = {
   twilio: "📞",
-  bland_ai: "🤖",
   openai: "🧠",
   persona: "🪪",
   doorloop: "🚪",

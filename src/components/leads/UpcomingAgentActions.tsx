@@ -16,7 +16,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
-  Phone,
   MessageSquare,
   Mail,
   Calendar,
@@ -54,7 +53,6 @@ const AGENT_NAMES: Record<string, string> = {
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
-  bland_call_webhook: "Aaron",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -71,7 +69,6 @@ const AGENT_NAMES: Record<string, string> = {
   post_showing: "Samuel",
   campaign: "Elijah",
   welcome_sequence: "Elijah",
-  campaign_voice: "Elijah",
 };
 
 // Agent colors by department
@@ -85,7 +82,6 @@ const AGENT_COLORS: Record<string, string> = {
   esther: "bg-teal-100 text-teal-700 border-teal-200",
   nehemiah: "bg-teal-100 text-teal-700 border-teal-200",
   main_inbound: "bg-teal-100 text-teal-700 border-teal-200",
-  bland_call_webhook: "bg-teal-100 text-teal-700 border-teal-200",
   hemlane_parser: "bg-teal-100 text-teal-700 border-teal-200",
   scoring: "bg-teal-100 text-teal-700 border-teal-200",
   transcript_analyst: "bg-teal-100 text-teal-700 border-teal-200",
@@ -97,7 +93,6 @@ const AGENT_COLORS: Record<string, string> = {
   elijah: "bg-amber-100 text-amber-700 border-amber-200",
   recapture: "bg-amber-100 text-amber-700 border-amber-200",
   campaign: "bg-amber-100 text-amber-700 border-amber-200",
-  campaign_voice: "bg-amber-100 text-amber-700 border-amber-200",
   welcome_sequence: "bg-amber-100 text-amber-700 border-amber-200",
   // Closing (green)
   samuel: "bg-green-100 text-green-700 border-green-200",
@@ -120,10 +115,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 // Action type icons
 const ACTION_ICONS: Record<string, React.ElementType> = {
-  call: Phone,
   sms: MessageSquare,
   email: Mail,
-  voice: Phone,
 };
 
 export const UpcomingAgentActions: React.FC<UpcomingAgentActionsProps> = ({

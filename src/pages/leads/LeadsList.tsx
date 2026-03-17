@@ -63,7 +63,7 @@ import LeadFilterPills, { ActiveFilters, FilterCounts } from "@/components/leads
 import type { Tables } from "@/integrations/supabase/types";
 
 // Agent name mapping — 7 agents across 4 departments
-// Qualification: Aaron (calls), Esther (email), Nehemiah (analyst)
+// Qualification: Aaron (inbound), Esther (email), Nehemiah (analyst)
 // Leasing: Elijah (consultant)
 // Closing: Samuel | System: Zacchaeus
 const AGENT_BIBLICAL_NAMES: Record<string, string> = {
@@ -76,7 +76,6 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   zacchaeus: "Zacchaeus",
   // Legacy DB agent_keys → mapped to 7 real agents
   main_inbound: "Aaron",
-  bland_call_webhook: "Aaron",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
   transcript_analyst: "Nehemiah",
@@ -90,7 +89,6 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   cost_tracker: "Zacchaeus",
   // Legacy hyphen-format keys
   "twilio-inbound": "Aaron",
-  "bland-call-webhook": "Aaron",
   "hemlane-parser": "Esther",
   "transcript-analyst": "Nehemiah",
   "task-dispatcher": "Nehemiah",
@@ -107,10 +105,8 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   "noshow-followup": "Samuel",
   "post-showing": "Samuel",
   campaign: "Elijah",
-  campaign_voice: "Elijah",
   welcome_sequence: "Elijah",
   "campaign-orchestrator": "Nehemiah",
-  "campaign-voice": "Elijah",
   "welcome-sequence": "Elijah",
   "notification-dispatcher": "Nehemiah",
   "compliance-check": "Nehemiah",

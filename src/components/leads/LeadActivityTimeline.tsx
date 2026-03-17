@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  PhoneIncoming,
-  PhoneOutgoing,
   MessageSquare,
   Mail,
   Calendar,
   TrendingUp,
   TrendingDown,
   Filter,
-  ChevronRight,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,7 +20,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 interface TimelineEvent {
   id: string;
-  type: "call" | "sms" | "email" | "showing" | "score_change";
+  type: "sms" | "email" | "showing" | "score_change";
   timestamp: string;
   title: string;
   description?: string;
@@ -39,7 +35,6 @@ const ITEMS_PER_PAGE = 50;
 
 const FILTER_OPTIONS = [
   { value: "all", label: "All" },
-  { value: "call", label: "Calls" },
   { value: "messages", label: "Messages" },
   { value: "showing", label: "Showings" },
   { value: "score_change", label: "Score Changes" },
@@ -48,7 +43,6 @@ const FILTER_OPTIONS = [
 export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
   leadId,
 }) => {
-  const navigate = useNavigate();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -59,13 +53,7 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
   const fetchActivity = async () => {
     setLoading(true);
     try {
-      const [callsRes, commsRes, showingsRes, scoreRes] = await Promise.all([
-        supabase
-          .from("calls")
-          .select("*")
-          .eq("lead_id", leadId)
-          .order("started_at", { ascending: false })
-          .limit(100),
+      const [commsRes, showingsRes, scoreRes] = await Promise.all([
         supabase
           .from("communications")
           .select("*")
@@ -87,24 +75,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
       ]);
 
       const allEvents: TimelineEvent[] = [];
-
-      // Map calls
-      (callsRes.data || []).forEach((call: Tables<"calls">) => {
-        allEvents.push({
-          id: call.id,
-          type: "call",
-          timestamp: call.started_at,
-          title: `${call.direction === "inbound" ? "Inbound" : "Outbound"} Call`,
-          description: call.summary || undefined,
-          metadata: {
-            direction: call.direction,
-            status: call.status,
-            duration_seconds: call.duration_seconds,
-            agent_type: call.agent_type,
-            sentiment: call.sentiment,
-          },
-        });
-      });
 
       // Map communications
       (commsRes.data || []).forEach((comm: Tables<"communications">) => {
@@ -196,13 +166,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
     }, 300);
   };
 
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return "0s";
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-  };
-
   const formatAgentType = (type: string) => {
     return type
       .split("_")
@@ -212,8 +175,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
 
   const getEventIcon = (event: TimelineEvent) => {
     switch (event.type) {
-      case "call":
-        return event.metadata.direction === "inbound" ? PhoneIncoming : PhoneOutgoing;
       case "sms":
         return MessageSquare;
       case "email":
@@ -229,10 +190,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
 
   const getEventIconBg = (event: TimelineEvent) => {
     switch (event.type) {
-      case "call":
-        return event.metadata.direction === "inbound"
-          ? "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300"
-          : "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300";
       case "sms":
         return event.metadata.direction === "outbound"
           ? "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
@@ -252,8 +209,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
 
   const getEventBorderColor = (event: TimelineEvent) => {
     switch (event.type) {
-      case "call":
-        return event.metadata.direction === "inbound" ? "border-l-purple-500" : "border-l-blue-500";
       case "sms":
         return event.metadata.direction === "outbound" ? "border-l-green-500" : "border-l-blue-500";
       case "email":
@@ -269,40 +224,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
 
   const renderEventContent = (event: TimelineEvent) => {
     switch (event.type) {
-      case "call":
-        return (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{event.title}</span>
-                <Badge variant="secondary" className="text-xs">
-                  {event.metadata.status}
-                </Badge>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                {formatDuration(event.metadata.duration_seconds)}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Agent: {formatAgentType(event.metadata.agent_type)}
-            </p>
-            {event.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                Summary: {event.description.substring(0, 100)}
-                {event.description.length > 100 ? "..." : ""}
-              </p>
-            )}
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-primary"
-              onClick={() => navigate(`/calls/${event.id}`)}
-            >
-              View full call <ChevronRight className="h-3 w-3 ml-1" />
-            </Button>
-          </div>
-        );
-
       case "sms":
         return (
           <div className="space-y-1">

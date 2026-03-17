@@ -8,7 +8,6 @@ import {
   Building2,
   Users,
   CalendarDays,
-  Phone,
   BarChart3,
   Settings,
   DollarSign,
@@ -52,7 +51,6 @@ const propertiesNavItems: NavItem[] = [
 
 // COMMUNICATIONS — contact channels
 const commsNavItems: NavItem[] = [
-  { title: 'Calls', href: '/calls', icon: Phone, permission: 'canViewAllCallLogs' },
   { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
   { title: 'Campaigns', href: '/campaigns', icon: Megaphone, permission: 'canViewAllCallLogs' },
 ];
