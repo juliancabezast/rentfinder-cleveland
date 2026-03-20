@@ -366,24 +366,13 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     if (!deleteTarget) return;
     setDeleting(true);
 
-    // Re-point related records before delete (same as merge logic)
-    const leadIdTables = [
-      "lead_notes", "calls", "showings", "agent_tasks",
-      "lead_score_history", "consent_log", "communications",
-      "cost_records", "lead_predictions", "competitor_mentions",
-    ];
-    for (const table of leadIdTables) {
-      await supabase.from(table).delete().eq("lead_id", deleteTarget.id);
-    }
-    await supabase.from("system_logs").update({ related_lead_id: null }).eq("related_lead_id", deleteTarget.id);
-    await supabase.from("referrals").delete().eq("referrer_lead_id", deleteTarget.id);
-    await supabase.from("referrals").update({ referred_lead_id: null }).eq("referred_lead_id", deleteTarget.id);
-
-    const { error } = await supabase.from("leads").delete().eq("id", deleteTarget.id);
+    const { data, error } = await supabase.functions.invoke("delete-lead", {
+      body: { lead_id: deleteTarget.id },
+    });
     setDeleting(false);
 
-    if (error) {
-      toast.error("Delete failed", { description: error.message });
+    if (error || (data && data.error)) {
+      toast.error("Delete failed", { description: data?.error || error?.message });
       setDeleteTarget(null);
       return;
     }
