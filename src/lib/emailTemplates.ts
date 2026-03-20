@@ -318,3 +318,131 @@ export function dailySummaryTemplate(data: DailySummaryData): string {
     </div>
   `;
 }
+
+// ── Shared helpers for lead-facing showing emails ───────────────────
+
+interface AvailableProperty {
+  address: string;
+  rent_price: number | null;
+  bedrooms: number | null;
+  section_8_accepted: boolean | null;
+}
+
+function propertyCardsHtml(properties: AvailableProperty[]): string {
+  if (properties.length === 0) return "";
+  return `
+    <div style="margin: 20px 0;">
+      <h3 style="margin: 0 0 12px 0; color: ${BRAND.textDark}; font-size: 16px; font-weight: 600;">Other Available Properties</h3>
+      ${properties.map((p) => `
+        <div style="background-color: #f8f8f8; border-left: 4px solid ${BRAND.primary}; padding: 12px 16px; border-radius: 4px; margin-bottom: 8px;">
+          <p style="margin: 0; color: ${BRAND.textDark}; font-size: 14px; font-weight: 600;">${p.address}</p>
+          <p style="margin: 4px 0 0 0; color: ${BRAND.textLight}; font-size: 13px;">
+            ${p.bedrooms ? `${p.bedrooms} bed` : ""}${p.rent_price ? ` · $${p.rent_price.toLocaleString()}/mo` : ""}${p.section_8_accepted ? ' · Section 8 OK' : ''}
+          </p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function section8BadgeHtml(): string {
+  return `
+    <div style="text-align: center; margin: 16px 0;">
+      <span style="background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;">
+        Section 8 Vouchers Accepted
+      </span>
+    </div>
+  `;
+}
+
+function voucherContactHtml(orgPhone?: string): string {
+  return `
+    <div style="background-color: #e8f5e9; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
+      <p style="margin: 0; color: #2e7d32; font-size: 14px; font-weight: 600;">Have a Section 8 Voucher?</p>
+      <p style="margin: 8px 0 0 0; color: #666; font-size: 13px;">
+        Contact us to learn about our voucher-friendly properties.${orgPhone ? ` Call us at ${orgPhone}.` : ""}
+      </p>
+    </div>
+  `;
+}
+
+// ── Lead No-Show Email ──────────────────────────────────────────────
+
+export interface LeadShowingEmailData {
+  leadName: string;
+  propertyAddress: string;
+  bookingUrl: string;
+  otherProperties: AvailableProperty[];
+  orgPhone?: string;
+  scheduledTime?: string;
+}
+
+export function leadNoShowTemplate(data: LeadShowingEmailData): string {
+  return `
+    <div style="margin-bottom: 24px;">
+      <h2 style="margin: 0; color: ${BRAND.textDark}; font-size: 22px; font-weight: 700;">
+        Hi ${data.leadName},
+      </h2>
+      <p style="margin: 12px 0 0 0; color: ${BRAND.textLight}; font-size: 16px; line-height: 1.5;">
+        We missed you at your scheduled showing for <strong>${data.propertyAddress}</strong>${data.scheduledTime ? ` on ${data.scheduledTime}` : ""}. No worries — we'd still love to help you find your next home!
+      </p>
+    </div>
+
+    ${propertyCardsHtml(data.otherProperties)}
+
+    <div style="text-align: center; margin: 24px 0;">
+      ${ctaButton("Schedule Another Showing", data.bookingUrl)}
+    </div>
+
+    ${section8BadgeHtml()}
+    ${voucherContactHtml(data.orgPhone)}
+  `;
+}
+
+// ── Lead Cancelled Showing Email ────────────────────────────────────
+
+export function leadCancelledShowingTemplate(data: LeadShowingEmailData): string {
+  return `
+    <div style="margin-bottom: 24px;">
+      <h2 style="margin: 0; color: ${BRAND.textDark}; font-size: 22px; font-weight: 700;">
+        Hi ${data.leadName},
+      </h2>
+      <p style="margin: 12px 0 0 0; color: ${BRAND.textLight}; font-size: 16px; line-height: 1.5;">
+        Your showing at <strong>${data.propertyAddress}</strong> has been cancelled. We're sorry for the inconvenience — but we have more properties available for you!
+      </p>
+    </div>
+
+    ${propertyCardsHtml(data.otherProperties)}
+
+    <div style="text-align: center; margin: 24px 0;">
+      ${ctaButton("Schedule Another Showing", data.bookingUrl)}
+    </div>
+
+    ${section8BadgeHtml()}
+    ${voucherContactHtml(data.orgPhone)}
+  `;
+}
+
+// ── Lead Rescheduled Showing Email ──────────────────────────────────
+
+export function leadRescheduledShowingTemplate(data: LeadShowingEmailData): string {
+  return `
+    <div style="margin-bottom: 24px;">
+      <h2 style="margin: 0; color: ${BRAND.textDark}; font-size: 22px; font-weight: 700;">
+        Hi ${data.leadName},
+      </h2>
+      <p style="margin: 12px 0 0 0; color: ${BRAND.textLight}; font-size: 16px; line-height: 1.5;">
+        Your showing at <strong>${data.propertyAddress}</strong>${data.scheduledTime ? ` on ${data.scheduledTime}` : ""} has been rescheduled. Please pick a new date and time that works for you:
+      </p>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      ${ctaButton("Reschedule Showing", data.bookingUrl)}
+    </div>
+
+    ${propertyCardsHtml(data.otherProperties)}
+
+    ${section8BadgeHtml()}
+    ${voucherContactHtml(data.orgPhone)}
+  `;
+}

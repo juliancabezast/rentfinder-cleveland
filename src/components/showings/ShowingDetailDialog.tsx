@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { getTimezoneForCity, formatTimeInTimezone, buildScheduledAt } from "@/lib/cityTimezone";
+import { fetchAvailableProperties, sendLeadShowingEmail } from "@/lib/notificationService";
 
 interface ShowingDetailDialogProps {
   open: boolean;
@@ -179,6 +180,26 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         }
       }
 
+      // 3b. Send cancellation email to lead with other properties
+      if (showing.leads?.email) {
+        const otherProps = await fetchAvailableProperties(
+          userRecord.organization_id,
+          showing.property_id || undefined,
+        );
+        sendLeadShowingEmail({
+          leadEmail: showing.leads.email,
+          organizationId: userRecord.organization_id,
+          showingId: showing.id,
+          type: "cancelled",
+          emailData: {
+            leadName: showing.leads.full_name || "there",
+            propertyAddress: showing.properties?.address || "the property",
+            bookingUrl: `${window.location.origin}/p/book-showing`,
+            otherProperties: otherProps,
+          },
+        });
+      }
+
       // 4. Log to system_logs
       await supabase.from("system_logs").insert({
         organization_id: userRecord.organization_id,
@@ -232,25 +253,31 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         .update({ is_booked: false, booked_showing_id: null })
         .eq("booked_showing_id", showing.id);
 
-      // 3. Send reschedule email to lead
+      // 3. Send reschedule notifications
       const leadName = showing.leads?.full_name || "there";
       const propertyAddr = showing.properties?.address || "the property";
       const propTz2 = getTimezoneForCity(showing.properties?.city);
       const showingDate = format(parseISO(showing.scheduled_at), "EEEE, MMM d") + " at " + formatTimeInTimezone(showing.scheduled_at, propTz2);
 
+      // Send rich reschedule email with available properties
       if (showing.leads?.email) {
-        try {
-          await supabase.functions.invoke("send-message", {
-            body: {
-              lead_id: showing.lead_id,
-              channel: "email",
-              body: `Your property showing at ${propertyAddr} on ${showingDate} needs to be rescheduled.\n\nPlease pick a new time that works for you:\n\n<a href="${window.location.origin}/p/book-showing" style="display:inline-block;background-color:#4F46E5;color:#ffffff;font-weight:bold;font-size:16px;padding:14px 32px;border-radius:8px;text-decoration:none;margin:8px 0;">Reschedule Showing</a>\n\nWe look forward to seeing you!`,
-              organization_id: userRecord.organization_id,
-            },
-          });
-        } catch (emailErr) {
-          console.warn("Email send failed (non-fatal):", emailErr);
-        }
+        const otherProps = await fetchAvailableProperties(
+          userRecord.organization_id,
+          showing.property_id || undefined,
+        );
+        sendLeadShowingEmail({
+          leadEmail: showing.leads.email,
+          organizationId: userRecord.organization_id,
+          showingId: showing.id,
+          type: "rescheduled",
+          emailData: {
+            leadName,
+            propertyAddress: propertyAddr,
+            bookingUrl: `${window.location.origin}/p/book-showing`,
+            otherProperties: otherProps,
+            scheduledTime: showingDate,
+          },
+        });
       }
 
       // Also send SMS if phone available

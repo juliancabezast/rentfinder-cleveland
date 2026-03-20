@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Upload, X, FileText, ArrowRight, Home } from "lucide-react";
+import { Upload, X, FileText, ArrowRight, Home, Sparkles, Undo2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -23,7 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { sendNoShowNotification, DEFAULT_NOTIFICATION_PREFS } from "@/lib/notificationService";
+import { fetchAvailableProperties, sendLeadShowingEmail } from "@/lib/notificationService";
 
 interface ShowingReportDialogProps {
   open: boolean;
@@ -42,9 +42,7 @@ const STATUS_OPTIONS = [
 ];
 
 const INTEREST_LEVELS = [
-  { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
-  { value: "low", label: "Low" },
+  { value: "high", label: "High Interest" },
   { value: "not_interested", label: "Not Interested" },
 ];
 
@@ -63,22 +61,24 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
   const [cancellationReason, setCancellationReason] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [leadData, setLeadData] = useState<{ full_name: string | null; phone: string } | null>(null);
-  const [showingData, setShowingData] = useState<{ scheduled_at: string } | null>(null);
+  const [leadData, setLeadData] = useState<{ full_name: string | null; phone: string; email: string | null } | null>(null);
+  const [showingData, setShowingData] = useState<{ scheduled_at: string; property_id: string | null; properties: { address: string; unit_number: string | null; city: string | null; rent_price: number | null } | null } | null>(null);
   const [moveToApplicant, setMoveToApplicant] = useState(false);
   const [reassignPropertyId, setReassignPropertyId] = useState<string>("");
   const [properties, setProperties] = useState<{ id: string; label: string }[]>([]);
+  const [enhancing, setEnhancing] = useState(false);
+  const [originalReport, setOriginalReport] = useState<string | null>(null);
 
   // Fetch lead, showing, and properties data
   useEffect(() => {
     if (open && leadId && showingId && userRecord?.organization_id) {
       Promise.all([
-        supabase.from("leads").select("full_name, phone").eq("id", leadId).single(),
-        supabase.from("showings").select("scheduled_at").eq("id", showingId).single(),
+        supabase.from("leads").select("full_name, phone, email").eq("id", leadId).single(),
+        supabase.from("showings").select("scheduled_at, property_id, properties(address, unit_number, city, rent_price)").eq("id", showingId).single(),
         supabase.from("properties").select("id, address, unit_number, city").eq("organization_id", userRecord.organization_id).order("address"),
       ]).then(([leadRes, showingRes, propsRes]) => {
         if (leadRes.data) setLeadData(leadRes.data);
-        if (showingRes.data) setShowingData(showingRes.data);
+        if (showingRes.data) setShowingData(showingRes.data as any);
         if (propsRes.data) {
           setProperties(propsRes.data.map((p: any) => ({
             id: p.id,
@@ -99,6 +99,33 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
     setPhotoFile(null);
     setMoveToApplicant(false);
     setReassignPropertyId("");
+    setOriginalReport(null);
+  };
+
+  const handleEnhanceReport = async () => {
+    if (!agentReport.trim() || !userRecord?.organization_id) return;
+    setEnhancing(true);
+    setOriginalReport(agentReport);
+    try {
+      const { data, error } = await supabase.functions.invoke("enhance-report", {
+        body: {
+          report_text: agentReport,
+          organization_id: userRecord.organization_id,
+          property_address: propertyAddress || "",
+        },
+      });
+      if (error) throw error;
+      if (data?.enhanced_text) {
+        setAgentReport(data.enhanced_text);
+        toast.success("Report enhanced with AI");
+      }
+    } catch (err) {
+      console.error("Enhance report error:", err);
+      toast.error("Failed to enhance report");
+      setOriginalReport(null);
+    } finally {
+      setEnhancing(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,7 +146,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
       return;
     }
 
-    if ((status === "completed" || status === "no_show") && !agentReport.trim()) {
+    if (status === "completed" && !agentReport.trim()) {
       toast.error("Please provide an agent report");
       return;
     }
@@ -174,58 +201,85 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
       }
 
       if (status === "no_show") {
-        updateData.agent_report = agentReport;
+        if (agentReport.trim()) {
+          updateData.agent_report = agentReport;
+        }
 
-        // Send no-show notification email (fire-and-forget)
-        if (userRecord?.organization_id && leadData && showingData) {
-          // Check notification preferences
-          const { data: settingsData } = await supabase
-            .from("organization_settings")
-            .select("value")
-            .eq("organization_id", userRecord.organization_id)
-            .eq("key", "email_notification_preferences")
-            .single();
-
-          const prefs = settingsData?.value as typeof DEFAULT_NOTIFICATION_PREFS | null;
-          const shouldNotify = prefs?.no_show !== false; // Default to true
-
-          if (shouldNotify) {
-            const { data: orgData } = await supabase
-              .from("organizations")
-              .select("owner_email")
-              .eq("id", userRecord.organization_id)
-              .single();
-
-            const notificationEmail = (prefs?.notification_email as string) || orgData?.owner_email;
-            
-            if (notificationEmail) {
-              sendNoShowNotification({
-                adminEmail: notificationEmail,
-                organizationId: userRecord.organization_id,
-                showing: {
-                  id: showingId,
-                  scheduled_at: showingData.scheduled_at,
-                },
-                lead: {
-                  id: leadId,
-                  full_name: leadData.full_name,
-                  phone: leadData.phone,
-                },
-                propertyAddress: propertyAddress || "Unknown property",
-              });
-            }
-          }
+        // Send re-engagement email to lead (fire-and-forget)
+        if (userRecord?.organization_id && leadData?.email && showingData) {
+          const otherProps = await fetchAvailableProperties(
+            userRecord.organization_id,
+            showingData.property_id || undefined,
+          );
+          const bookingUrl = `${window.location.origin}/p/book-showing`;
+          sendLeadShowingEmail({
+            leadEmail: leadData.email,
+            organizationId: userRecord.organization_id,
+            showingId,
+            type: "no_show",
+            emailData: {
+              leadName: leadData.full_name || "there",
+              propertyAddress: propertyAddress || "your scheduled property",
+              bookingUrl,
+              otherProperties: otherProps,
+              scheduledTime: new Date(showingData.scheduled_at).toLocaleString("en-US", {
+                weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+              }),
+            },
+          });
         }
       }
 
       if (status === "cancelled") {
         updateData.cancelled_at = new Date().toISOString();
         updateData.cancellation_reason = cancellationReason;
+
+        // Send cancellation email to lead
+        if (userRecord?.organization_id && leadData?.email && showingData) {
+          const otherProps = await fetchAvailableProperties(
+            userRecord.organization_id,
+            showingData.property_id || undefined,
+          );
+          sendLeadShowingEmail({
+            leadEmail: leadData.email,
+            organizationId: userRecord.organization_id,
+            showingId,
+            type: "cancelled",
+            emailData: {
+              leadName: leadData.full_name || "there",
+              propertyAddress: propertyAddress || "your scheduled property",
+              bookingUrl: `${window.location.origin}/p/book-showing`,
+              otherProperties: otherProps,
+            },
+          });
+        }
       }
 
       if (status === "rescheduled") {
         updateData.cancellation_reason = cancellationReason;
-        // rescheduled_to_id would be set when the new showing is created
+
+        // Send rescheduled email to lead
+        if (userRecord?.organization_id && leadData?.email && showingData) {
+          const otherProps = await fetchAvailableProperties(
+            userRecord.organization_id,
+            showingData.property_id || undefined,
+          );
+          sendLeadShowingEmail({
+            leadEmail: leadData.email,
+            organizationId: userRecord.organization_id,
+            showingId,
+            type: "rescheduled",
+            emailData: {
+              leadName: leadData.full_name || "there",
+              propertyAddress: propertyAddress || "your scheduled property",
+              bookingUrl: `${window.location.origin}/p/book-showing`,
+              otherProperties: otherProps,
+              scheduledTime: new Date(showingData.scheduled_at).toLocaleString("en-US", {
+                weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+              }),
+            },
+          });
+        }
       }
 
       // Update showing
@@ -333,11 +387,43 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
           {/* Agent Report (for completed and no_show) */}
           {showAgentReport && (
             <div className="space-y-2">
-              <Label>Agent Report *</Label>
+              <div className="flex items-center justify-between">
+                <Label>Agent Report {status === "completed" ? "*" : "(optional)"}</Label>
+                {status === "completed" && (
+                  <div className="flex items-center gap-1">
+                    {originalReport !== null && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => { setAgentReport(originalReport); setOriginalReport(null); }}
+                      >
+                        <Undo2 className="h-3 w-3 mr-1" />
+                        Undo
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={handleEnhanceReport}
+                      disabled={enhancing || !agentReport.trim()}
+                    >
+                      {enhancing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                      AI Enhance
+                    </Button>
+                  </div>
+                )}
+              </div>
               <Textarea
                 value={agentReport}
-                onChange={(e) => setAgentReport(e.target.value)}
-                placeholder="Describe the showing experience, prospect reactions, and any notable observations..."
+                onChange={(e) => { setAgentReport(e.target.value); setOriginalReport(null); }}
+                placeholder={status === "completed"
+                  ? "Describe the showing experience, prospect reactions, and any notable observations..."
+                  : "Optional notes about the no-show..."
+                }
                 rows={4}
               />
             </div>
@@ -401,6 +487,21 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
           {/* Reassign property + Move to applicants (only for completed) */}
           {status === "completed" && (
             <div className="space-y-4 pt-2 border-t">
+              {/* Current property preview */}
+              {showingData?.properties && (
+                <div className="flex items-center gap-2 p-2.5 rounded-md bg-muted/40 border border-border/50">
+                  <Home className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="text-sm">
+                    <span className="font-medium">{showingData.properties.address}</span>
+                    {showingData.properties.unit_number && <span> #{showingData.properties.unit_number}</span>}
+                    {showingData.properties.city && <span className="text-muted-foreground">, {showingData.properties.city}</span>}
+                    {showingData.properties.rent_price && (
+                      <span className="text-muted-foreground"> — ${showingData.properties.rent_price.toLocaleString()}/mo</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Reassign property */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-1.5">

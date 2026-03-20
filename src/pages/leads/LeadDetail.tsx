@@ -45,6 +45,7 @@ import { UpcomingActionsPreview } from "@/components/leads/UpcomingActionsPrevie
 import { ScoreHistoryPreview } from "@/components/leads/ScoreHistoryPreview";
 import { NotesTab } from "@/components/leads/NotesTab";
 import { PinnedNotesPreview } from "@/components/leads/PinnedNotesPreview";
+import { LeasingReportTab } from "@/components/leads/LeasingReportTab";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -359,6 +360,7 @@ const LeadDetail: React.FC = () => {
           <TabsTrigger value="notes" className="shrink-0">Notes</TabsTrigger>
           <TabsTrigger value="matching" className="shrink-0">Matching</TabsTrigger>
           <TabsTrigger value="consent" className="shrink-0">Consent Log</TabsTrigger>
+          <TabsTrigger value="leasing-report" className="shrink-0">Leasing Report</TabsTrigger>
         </TabsList>
 
         {/* TAB 1: Overview - 2x2 Grid */}
@@ -639,6 +641,11 @@ const LeadDetail: React.FC = () => {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        {/* TAB 7: Leasing Report */}
+        <TabsContent value="leasing-report">
+          <LeasingReportTab leadId={lead.id} leadName={lead.full_name || "Lead"} />
         </TabsContent>
       </Tabs>
 

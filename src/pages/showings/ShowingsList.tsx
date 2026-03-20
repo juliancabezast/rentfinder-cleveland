@@ -9,11 +9,8 @@ import {
   FileText,
   Map as MapIcon,
   Settings2,
-  Users,
-  Home,
   DollarSign,
   TrendingUp,
-  CheckCircle2,
   Phone,
   Loader2,
   Link2,
@@ -77,6 +74,7 @@ const STATUS_OPTIONS = [
   { value: "completed", label: "Completed" },
   { value: "no_show", label: "No Show" },
   { value: "cancelled", label: "Cancelled" },
+  { value: "missing_report", label: "Missing Report" },
 ];
 
 const DATE_OPTIONS = [
@@ -135,6 +133,9 @@ const ShowingsList: React.FC = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedShowingId, setSelectedShowingId] = useState<string | null>(null);
   const [slotTotals, setSlotTotals] = useState({ available: 0, booked: 0 });
+
+  // All-time metrics (independent of filters)
+  const [allTimeMetrics, setAllTimeMetrics] = useState({ totalScheduled: 0, potentialRent: 0, completionRate: 0 });
 
   // Organization settings
   const { getSetting, updateSetting } = useOrganizationSettings();
@@ -202,6 +203,32 @@ const ShowingsList: React.FC = () => {
     toast({ title: "Saved", description: "Call Now button settings updated." });
   };
 
+  // Fetch all-time metrics (independent of filters)
+  useEffect(() => {
+    if (!userRecord?.organization_id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("showings")
+        .select("id, status, property_id, properties(rent_price)")
+        .eq("organization_id", userRecord.organization_id!);
+      if (data) {
+        const total = data.length;
+        const completed = data.filter((s: any) => s.status === "completed").length;
+        const propRentMap = new Map<string, number>();
+        data.forEach((s: any) => {
+          if (s.property_id && s.properties?.rent_price && !propRentMap.has(s.property_id)) {
+            propRentMap.set(s.property_id, s.properties.rent_price);
+          }
+        });
+        setAllTimeMetrics({
+          totalScheduled: total,
+          potentialRent: Array.from(propRentMap.values()).reduce((sum, r) => sum + r, 0),
+          completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+        });
+      }
+    })();
+  }, [userRecord?.organization_id]);
+
   const fetchShowings = async () => {
     if (!userRecord?.organization_id) return;
 
@@ -252,6 +279,8 @@ const ShowingsList: React.FC = () => {
       // Status filter
       if (statusFilter === "active") {
         query = query.in("status", ["scheduled", "confirmed"]);
+      } else if (statusFilter === "missing_report") {
+        query = query.in("status", ["completed", "no_show"]).is("agent_report", null);
       } else if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
       }
@@ -297,38 +326,7 @@ const ShowingsList: React.FC = () => {
     fetchShowings();
   }, [userRecord?.organization_id, statusFilter, dateFilter]);
 
-  // ── KPI metrics ────────────────────────────────────────────────────
-  const metrics = useMemo(() => {
-    const uniqueLeads = new Set(showings.map((s) => s.lead_id));
-    const uniqueProps = new Set(showings.filter((s) => s.property_id).map((s) => s.property_id));
-
-    // Potential monthly revenue = sum of rent_price for unique properties
-    const propRentMap = new Map<string, number>();
-    showings.forEach((s) => {
-      if (s.property_id && s.rent_price && !propRentMap.has(s.property_id)) {
-        propRentMap.set(s.property_id, s.rent_price);
-      }
-    });
-    const potentialRevenue = Array.from(propRentMap.values()).reduce((sum, r) => sum + r, 0);
-
-    // Today's showings
-    const todayCount = showings.filter((s) => {
-      try { return isToday(parseISO(s.scheduled_at)); } catch { return false; }
-    }).length;
-
-    // Confirmed rate
-    const confirmed = showings.filter((s) => s.status === "confirmed").length;
-    const confirmRate = showings.length > 0 ? Math.round((confirmed / showings.length) * 100) : 0;
-
-    return {
-      total: showings.length,
-      uniqueLeads: uniqueLeads.size,
-      uniqueProps: uniqueProps.size,
-      potentialRevenue,
-      todayCount,
-      confirmRate,
-    };
-  }, [showings]);
+  // (metrics are now computed in allTimeMetrics via separate useEffect)
 
   // ── Group showings by day ──────────────────────────────────────────
   const groupedByDay = useMemo(() => {
@@ -519,41 +517,17 @@ const ShowingsList: React.FC = () => {
         </TabsList>
 
         <TabsContent value="showings" className="space-y-4">
-          {/* ── KPI Bubbles ──────────────────────────────────────────── */}
-          {!loading && showings.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* ── KPI Bubbles (all-time) ────────────────────────────────── */}
+          {!loading && (
+            <div className="grid grid-cols-3 gap-3">
               <Card className="border-0 shadow-sm bg-gradient-to-br from-indigo-50 to-white">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
                     <CalendarDays className="h-5 w-5 text-indigo-600" />
                   </div>
                   <div>
-                    <p className="text-xl sm:text-2xl font-bold text-indigo-700">{metrics.total}</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Total Showings</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-50 to-white">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-                    <Users className="h-5 w-5 text-violet-600" />
-                  </div>
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold text-violet-700">{metrics.uniqueLeads}</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Unique Leads</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-white">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                    <Home className="h-5 w-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold text-emerald-700">{metrics.uniqueProps}</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Properties</p>
+                    <p className="text-xl sm:text-2xl font-bold text-indigo-700">{allTimeMetrics.totalScheduled}</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">Total Scheduled</p>
                   </div>
                 </CardContent>
               </Card>
@@ -565,7 +539,7 @@ const ShowingsList: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-xl sm:text-2xl font-bold text-amber-700">
-                      ${metrics.potentialRevenue.toLocaleString()}
+                      ${allTimeMetrics.potentialRent.toLocaleString()}
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-tight">Rent Potential/mo</p>
                   </div>
@@ -575,11 +549,11 @@ const ShowingsList: React.FC = () => {
               <Card className="border-0 shadow-sm bg-gradient-to-br from-teal-50 to-white">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="h-5 w-5 text-teal-600" />
+                    <TrendingUp className="h-5 w-5 text-teal-600" />
                   </div>
                   <div>
-                    <p className="text-xl sm:text-2xl font-bold text-teal-700">{metrics.confirmRate}%</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Confirmed Rate</p>
+                    <p className="text-xl sm:text-2xl font-bold text-teal-700">{allTimeMetrics.completionRate}%</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">Completion Rate</p>
                   </div>
                 </CardContent>
               </Card>
@@ -587,35 +561,39 @@ const ShowingsList: React.FC = () => {
           )}
 
           {/* ── Filters ──────────────────────────────────────────────── */}
-          <div className="glass-card rounded-xl p-4">
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DATE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="flex items-center gap-2">
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-40 h-9">
+                <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                <SelectValue placeholder="Date range" />
+              </SelectTrigger>
+              <SelectContent>
+                {DATE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-56 min-h-[44px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-52 h-9">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {!loading && (
+              <Badge variant="secondary" className="text-xs shrink-0">
+                {showings.length} result{showings.length !== 1 ? "s" : ""}
+              </Badge>
+            )}
           </div>
 
           {/* ── Showings grouped by day ──────────────────────────────── */}

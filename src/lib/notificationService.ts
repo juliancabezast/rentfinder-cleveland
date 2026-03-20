@@ -6,7 +6,11 @@ import {
   priorityLeadTemplate,
   noShowTemplate,
   criticalErrorTemplate,
+  leadNoShowTemplate,
+  leadCancelledShowingTemplate,
+  leadRescheduledShowingTemplate,
 } from "./emailTemplates";
+import type { LeadShowingEmailData } from "./emailTemplates";
 
 // Default notification preferences
 export const DEFAULT_NOTIFICATION_PREFS = {
@@ -173,5 +177,57 @@ export function sendCriticalErrorNotification(params: {
     }),
     notificationType: "critical_error",
     organizationId,
+  });
+}
+
+// Fetch available properties for re-engagement emails (no-show, cancelled, rescheduled)
+export async function fetchAvailableProperties(
+  organizationId: string,
+  excludePropertyId?: string,
+  limit = 5
+): Promise<Array<{ address: string; rent_price: number | null; bedrooms: number | null; section_8_accepted: boolean | null }>> {
+  let query = supabase
+    .from("properties")
+    .select("address, rent_price, bedrooms, section_8_accepted")
+    .eq("organization_id", organizationId)
+    .eq("status", "available")
+    .limit(limit);
+
+  if (excludePropertyId) {
+    query = query.neq("id", excludePropertyId);
+  }
+
+  const { data } = await query;
+  return data || [];
+}
+
+// Send showing re-engagement email to lead (no-show, cancelled, rescheduled)
+export function sendLeadShowingEmail(params: {
+  leadEmail: string;
+  organizationId: string;
+  showingId: string;
+  type: "no_show" | "cancelled" | "rescheduled";
+  emailData: LeadShowingEmailData;
+}): void {
+  const { leadEmail, organizationId, showingId, type, emailData } = params;
+  const subjectMap = {
+    no_show: `We missed you — schedule another showing`,
+    cancelled: `Your showing has been cancelled — find another property`,
+    rescheduled: `Your showing has been rescheduled`,
+  };
+  const templateMap = {
+    no_show: leadNoShowTemplate,
+    cancelled: leadCancelledShowingTemplate,
+    rescheduled: leadRescheduledShowingTemplate,
+  };
+
+  sendNotificationEmail({
+    to: leadEmail,
+    subject: subjectMap[type],
+    html: templateMap[type](emailData),
+    notificationType: `showing_${type}_lead`,
+    organizationId,
+    relatedEntityId: showingId,
+    relatedEntityType: "showing",
   });
 }
