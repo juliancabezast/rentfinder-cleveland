@@ -24,6 +24,7 @@ import {
   Home,
   Ban,
   Eye,
+  Check,
 } from "lucide-react";
 import { format, addDays, parseISO, startOfDay } from "date-fns";
 
@@ -33,6 +34,7 @@ interface SlotProperty {
   property_address: string;
   property_city: string;
   is_booked: boolean;
+  is_enabled: boolean;
   lead_name: string | null;
   booked_showing_id: string | null;
 }
@@ -42,6 +44,7 @@ interface TimeSlotGroup {
   properties: SlotProperty[];
   totalCount: number;
   bookedCount: number;
+  isBlocked: boolean;
 }
 
 interface DayData {
@@ -123,7 +126,6 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         booked_showing_id
       `)
       .eq("organization_id", orgId)
-      .eq("is_enabled", true)
       .gte("slot_date", startStr)
       .lte("slot_date", endStr)
       .order("slot_date")
@@ -172,6 +174,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         property_address: (s.properties as any)?.address || "Unknown",
         property_city: (s.properties as any)?.city || "",
         is_booked: s.is_booked,
+        is_enabled: s.is_enabled,
         lead_name: isRealBooking ? showingInfo.leadName : null,
         booked_showing_id: isRealBooking ? s.booked_showing_id : null,
       });
@@ -187,11 +190,14 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
       const timeSlots: TimeSlotGroup[] = [];
       timeMap.forEach((props, time) => {
+        const enabledProps = props.filter((p) => p.is_enabled);
+        const allDisabled = enabledProps.length === 0;
         timeSlots.push({
           time,
           properties: props.sort((a, b) => a.property_address.localeCompare(b.property_address)),
           totalCount: props.length,
-          bookedCount: props.filter((p) => p.is_booked && p.lead_name).length,
+          bookedCount: enabledProps.filter((p) => p.is_booked && p.lead_name).length,
+          isBlocked: allDisabled,
         });
       });
 
@@ -214,6 +220,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     let booked = 0;
     slotData.forEach((day) => {
       day.timeSlots.forEach((ts) => {
+        if (ts.isBlocked) return; // don't count blocked slots
         if (ts.bookedCount > 0) {
           booked += 1;
         } else {
@@ -282,9 +289,10 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     return Array.from(timeSet).sort();
   }, [slotData]);
 
-  // ── Cell color logic (binary: booked or open) ──────────────────────
+  // ── Cell color logic (booked / open / blocked) ─────────────────────
   const getCellStyle = (ts: TimeSlotGroup | undefined) => {
     if (!ts) return "bg-slate-50 text-slate-300";
+    if (ts.isBlocked) return "bg-red-50 border-red-200 text-red-400";
     if (ts.bookedCount === 0) return "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100";
     return "bg-blue-50 border-blue-200 text-blue-800";
   };
@@ -403,7 +411,14 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                     <button
                                       className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${getCellStyle(ts)}`}
                                     >
-                                      {firstBooked ? (
+                                      {ts.isBlocked ? (
+                                        <>
+                                          <div className="font-bold">Blocked</div>
+                                          <div className="text-[10px] opacity-70">
+                                            <Ban className="h-2.5 w-2.5 inline" />
+                                          </div>
+                                        </>
+                                      ) : firstBooked ? (
                                         <>
                                           <div className="font-bold truncate">
                                             {firstBooked.lead_name}
@@ -418,7 +433,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                         <>
                                           <div className="font-bold">Open</div>
                                           {(() => {
-                                            const cities = [...new Set(ts.properties.filter(p => p.property_city).map(p => p.property_city))];
+                                            const cities = [...new Set(ts.properties.filter(p => p.is_enabled && p.property_city).map(p => p.property_city))];
                                             return cities.length > 0 ? (
                                               <div className="text-[10px] opacity-70 truncate">
                                                 {cities.join(", ")}
@@ -437,9 +452,9 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                         </span>
                                         <Badge
                                           variant="outline"
-                                          className={`text-[10px] ${isBooked ? "border-blue-200 text-blue-700" : "border-emerald-200 text-emerald-700"}`}
+                                          className={`text-[10px] ${ts.isBlocked ? "border-red-200 text-red-600" : isBooked ? "border-blue-200 text-blue-700" : "border-emerald-200 text-emerald-700"}`}
                                         >
-                                          {realBookings.length > 0 ? `${realBookings.length} booked` : blockedSlots.length > 0 ? "Blocked" : "Open"}
+                                          {ts.isBlocked ? "Blocked" : realBookings.length > 0 ? `${realBookings.length} booked` : blockedSlots.length > 0 ? "Blocked" : "Open"}
                                         </Badge>
                                       </div>
                                       {/* Show real bookings */}
@@ -489,32 +504,52 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                         </div>
                                       )}
                                       {/* Available properties */}
-                                      {ts.properties.filter((p) => !p.is_booked).length > 0 && (
+                                      {!ts.isBlocked && ts.properties.filter((p) => p.is_enabled && !p.is_booked).length > 0 && (
                                         <div>
                                           <p className="text-[10px] text-muted-foreground mb-1">
-                                            {ts.properties.filter((p) => !p.is_booked).length} properties available at this time
+                                            {ts.properties.filter((p) => p.is_enabled && !p.is_booked).length} properties available at this time
                                           </p>
                                         </div>
                                       )}
-                                      {/* Block / unblock button for unbooked slots */}
+                                      {/* Block / unblock button */}
                                       {!past && realBookings.length === 0 && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="w-full mt-1 h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                                          disabled={blockingSlot === `${day.date}-${time}`}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleToggleBlock(day.date, time, true);
-                                          }}
-                                        >
-                                          {blockingSlot === `${day.date}-${time}` ? (
-                                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                          ) : (
-                                            <Ban className="h-3 w-3 mr-1" />
-                                          )}
-                                          Block this time
-                                        </Button>
+                                        ts.isBlocked ? (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full mt-1 h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                                            disabled={blockingSlot === `${day.date}-${time}`}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleToggleBlock(day.date, time, false);
+                                            }}
+                                          >
+                                            {blockingSlot === `${day.date}-${time}` ? (
+                                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                            ) : (
+                                              <Check className="h-3 w-3 mr-1" />
+                                            )}
+                                            Unblock this time
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full mt-1 h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                            disabled={blockingSlot === `${day.date}-${time}`}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleToggleBlock(day.date, time, true);
+                                            }}
+                                          >
+                                            {blockingSlot === `${day.date}-${time}` ? (
+                                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                            ) : (
+                                              <Ban className="h-3 w-3 mr-1" />
+                                            )}
+                                            Block this time
+                                          </Button>
+                                        )
                                       )}
                                     </div>
                                   </PopoverContent>
