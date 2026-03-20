@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, Trash2, Pencil, Check, X, Loader2, Wand2 } from "lucide-react";
+import { AlertTriangle, Trash2, Pencil, Check, X, Loader2, Wand2, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -253,6 +253,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SuspectLead | null>(null);
+  const [deleteShowings, setDeleteShowings] = useState<{ date: string; property: string }[]>([]);
   const [deleting, setDeleting] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<{
     lead: SuspectLead;
@@ -648,7 +649,21 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => setDeleteTarget(lead)}
+                      onClick={async () => {
+                        const { data: upcomingShowings } = await supabase
+                          .from("showings")
+                          .select("showing_date, properties:property_id(name)")
+                          .eq("lead_id", lead.id)
+                          .gte("showing_date", new Date().toISOString())
+                          .in("status", ["scheduled", "confirmed"]);
+                        setDeleteShowings(
+                          (upcomingShowings || []).map((s: any) => ({
+                            date: s.showing_date,
+                            property: (s.properties as any)?.name || "Unknown property",
+                          }))
+                        );
+                        setDeleteTarget(lead);
+                      }}
                       title="Delete this lead"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -662,18 +677,39 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
       </div>
 
       {/* Delete confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteShowings([]); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               Delete Lead
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Permanently delete <strong>{deleteTarget?.full_name || "this lead"}</strong> and all
-              their associated records (notes, calls, tasks, etc.)?
-              <br /><br />
-              <strong>This cannot be undone.</strong>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Permanently delete <strong>{deleteTarget?.full_name || "this lead"}</strong> and all
+                  their associated records (notes, calls, tasks, etc.)?
+                </p>
+                {deleteShowings.length > 0 && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2">
+                    <div className="flex items-center gap-2 font-medium text-amber-800">
+                      <CalendarClock className="h-4 w-4" />
+                      This lead has {deleteShowings.length} upcoming showing{deleteShowings.length > 1 ? "s" : ""}!
+                    </div>
+                    <ul className="text-sm text-amber-700 space-y-1 ml-6 list-disc">
+                      {deleteShowings.map((s, i) => (
+                        <li key={i}>
+                          {format(new Date(s.date), "MMM d, yyyy 'at' h:mm a")} — {s.property}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-sm font-medium text-amber-800">
+                      Deleting will cancel these showings. Consider restoring this lead instead.
+                    </p>
+                  </div>
+                )}
+                <p><strong>This cannot be undone.</strong></p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -689,7 +725,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
                   Deleting...
                 </>
               ) : (
-                "Delete Lead"
+                deleteShowings.length > 0 ? "Delete Anyway" : "Delete Lead"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
