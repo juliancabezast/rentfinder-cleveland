@@ -817,6 +817,10 @@ const ShowingsList: React.FC = () => {
               externalDialogOpen={enableSlotsOpen}
               onExternalDialogHandled={() => setEnableSlotsOpen(false)}
               onTotalsChange={setSlotTotals}
+              onShowingClick={(showingId) => {
+                setSelectedShowingId(showingId);
+                setDetailDialogOpen(true);
+              }}
             />
 
             {/* Minimum Lead Time Config */}

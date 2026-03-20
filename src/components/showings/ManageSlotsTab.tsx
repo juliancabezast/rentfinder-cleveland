@@ -23,6 +23,7 @@ import {
   User,
   Home,
   Ban,
+  Eye,
 } from "lucide-react";
 import { format, addDays, parseISO, startOfDay } from "date-fns";
 
@@ -33,6 +34,7 @@ interface SlotProperty {
   property_city: string;
   is_booked: boolean;
   lead_name: string | null;
+  booked_showing_id: string | null;
 }
 
 interface TimeSlotGroup {
@@ -61,6 +63,7 @@ interface ManageSlotsTabProps {
   externalDialogOpen?: boolean;
   onExternalDialogHandled?: () => void;
   onTotalsChange?: (totals: { available: number; booked: number }) => void;
+  onShowingClick?: (showingId: string) => void;
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -68,6 +71,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   externalDialogOpen,
   onExternalDialogHandled,
   onTotalsChange,
+  onShowingClick,
 }) => {
   const { userRecord } = useAuth();
   const { toast } = useToast();
@@ -169,6 +173,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         property_city: (s.properties as any)?.city || "",
         is_booked: s.is_booked,
         lead_name: isRealBooking ? showingInfo.leadName : null,
+        booked_showing_id: isRealBooking ? s.booked_showing_id : null,
       });
     });
 
@@ -458,6 +463,22 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                             </div>
                                           ))}
                                         </div>
+                                      )}
+                                      {/* View / Cancel button for booked showings */}
+                                      {!past && realBookings.length > 0 && onShowingClick && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="w-full mt-1 h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const booking = realBookings.find((p) => p.booked_showing_id);
+                                            if (booking?.booked_showing_id) onShowingClick(booking.booked_showing_id);
+                                          }}
+                                        >
+                                          <Eye className="h-3 w-3 mr-1" />
+                                          View / Cancel Showing
+                                        </Button>
                                       )}
                                       {/* Blocked slots (other properties at same time) */}
                                       {blockedSlots.length > 0 && (
