@@ -745,8 +745,18 @@ const ShowingsList: React.FC = () => {
                                   {showing.property_address && (
                                     <p className="font-semibold text-base flex items-center gap-1.5 truncate">
                                       <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                                      {showing.property_address}
-                                      {showing.property_city && `, ${showing.property_city}`}
+                                      <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                                          `${showing.property_address}${showing.property_city ? `, ${showing.property_city}` : ""}`
+                                        )}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:underline text-[#4F46E5]"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {showing.property_address}
+                                        {showing.property_city && `, ${showing.property_city}`}
+                                      </a>
                                       {showing.rent_price && (
                                         <span className="text-emerald-600 text-sm font-medium ml-1">
                                           ${showing.rent_price.toLocaleString()}/mo
@@ -758,7 +768,14 @@ const ShowingsList: React.FC = () => {
                                     <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                                       <User className="h-3.5 w-3.5" />
                                       {showing.lead_name}
-                                      {showing.lead_phone && ` · ${showing.lead_phone}`}
+                                      {showing.lead_phone && (
+                                        <>
+                                          {" · "}
+                                          <a href={`tel:${showing.lead_phone}`} className="text-[#4F46E5] hover:underline" onClick={(e) => e.stopPropagation()}>
+                                            {showing.lead_phone}
+                                          </a>
+                                        </>
+                                      )}
                                     </p>
                                   )}
                                   <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mt-1">

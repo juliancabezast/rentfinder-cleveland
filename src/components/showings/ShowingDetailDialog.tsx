@@ -489,11 +489,18 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
               {showing.properties && (
                 <div className="flex items-center gap-3">
                   <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <p className="text-sm">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      `${showing.properties.address}${showing.properties.unit_number ? ` #${showing.properties.unit_number}` : ""}${showing.properties.city ? `, ${showing.properties.city}` : ""}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[#4F46E5] hover:underline"
+                  >
                     {showing.properties.address}
                     {showing.properties.unit_number && ` #${showing.properties.unit_number}`}
                     {showing.properties.city && `, ${showing.properties.city}`}
-                  </p>
+                  </a>
                 </div>
               )}
 
@@ -504,8 +511,10 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                   <div className="text-sm">
                     <span className="font-medium">{showing.leads.full_name || "Unknown"}</span>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Phone className="h-3 w-3" />
-                      {showing.leads.phone}
+                      <a href={`tel:${showing.leads.phone}`} className="flex items-center gap-1 text-[#4F46E5] hover:underline">
+                        <Phone className="h-3 w-3" />
+                        {showing.leads.phone}
+                      </a>
                       {showing.leads.email && ` · ${showing.leads.email}`}
                     </div>
                   </div>
