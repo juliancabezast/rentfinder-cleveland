@@ -91,6 +91,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
@@ -320,6 +321,59 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       toast({ title: "Error", description: `Failed to reschedule: ${err.message}`, variant: "destructive" });
     } finally {
       setRescheduling(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!showing || !userRecord?.organization_id) return;
+    setReactivating(true);
+    try {
+      // 1. Set showing back to scheduled
+      const { error: updateErr } = await supabase
+        .from("showings")
+        .update({
+          status: "scheduled",
+          cancelled_at: null,
+          cancellation_reason: null,
+        })
+        .eq("id", showing.id);
+
+      if (updateErr) throw updateErr;
+
+      // 2. Re-book the slot for this property at this time
+      const d = new Date(showing.scheduled_at);
+      const slotDate = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+      const slotTime = d.toLocaleTimeString("en-GB", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false }) + ":00";
+
+      if (showing.property_id) {
+        await supabase
+          .from("showing_available_slots")
+          .update({ is_booked: true, booked_showing_id: showing.id, booked_at: new Date().toISOString() })
+          .eq("organization_id", userRecord.organization_id)
+          .eq("property_id", showing.property_id)
+          .eq("slot_date", slotDate)
+          .eq("slot_time", slotTime);
+      }
+
+      // 3. Log
+      await supabase.from("system_logs").insert({
+        organization_id: userRecord.organization_id,
+        level: "info",
+        category: "general",
+        event_type: "showing_reactivated",
+        message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was reactivated`,
+        related_lead_id: showing.lead_id,
+        related_showing_id: showing.id,
+      });
+
+      toast({ title: "Showing reactivated", description: `${showing.leads?.full_name || "Lead"} is back on the schedule.` });
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (err: any) {
+      console.error("Reactivate error:", err);
+      toast({ title: "Error", description: `Failed to reactivate: ${err.message}`, variant: "destructive" });
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -642,6 +696,22 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                     Back
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* Reactivate button for cancelled/no-show/rescheduled */}
+            {(showing.status === "cancelled" || showing.status === "no_show" || showing.status === "rescheduled") && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-[#e5e7eb]">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
+                  onClick={handleReactivate}
+                  disabled={reactivating}
+                >
+                  {reactivating ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
+                  Reschedule (Same Time)
+                </Button>
               </div>
             )}
 
