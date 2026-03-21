@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { getTimezoneForCity, formatTimeInTimezone, buildScheduledAt } from "@/lib/cityTimezone";
-import { fetchAvailableProperties, sendLeadShowingEmail } from "@/lib/notificationService";
+import { fetchAvailableProperties, sendLeadShowingEmail, sendNotificationEmail } from "@/lib/notificationService";
 
 interface ShowingDetailDialogProps {
   open: boolean;
@@ -92,6 +92,9 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
   const [cancelling, setCancelling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
   const [reactivating, setReactivating] = useState(false);
+  const [rescheduleMode, setRescheduleMode] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
@@ -324,15 +327,32 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
     }
   };
 
+  const enterRescheduleMode = () => {
+    if (!showing) return;
+    // Default to tomorrow, same time
+    const tz = getTimezoneForCity(showing.properties?.city);
+    const d = new Date(showing.scheduled_at);
+    const timeStr = d.toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false });
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setRescheduleDate(format(tomorrow, "yyyy-MM-dd"));
+    setRescheduleTime(timeStr);
+    setRescheduleMode(true);
+  };
+
   const handleReactivate = async () => {
-    if (!showing || !userRecord?.organization_id) return;
+    if (!showing || !userRecord?.organization_id || !rescheduleDate || !rescheduleTime) return;
     setReactivating(true);
     try {
-      // 1. Set showing back to scheduled
+      const tz = getTimezoneForCity(showing.properties?.city);
+      const newScheduledAt = buildScheduledAt(rescheduleDate, rescheduleTime, tz);
+
+      // 1. Set showing back to scheduled with new time
       const { error: updateErr } = await supabase
         .from("showings")
         .update({
           status: "scheduled",
+          scheduled_at: newScheduledAt,
           cancelled_at: null,
           cancellation_reason: null,
         })
@@ -340,38 +360,58 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
 
       if (updateErr) throw updateErr;
 
-      // 2. Re-book the slot for this property at this time
-      const d = new Date(showing.scheduled_at);
-      const slotDate = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-      const slotTime = d.toLocaleTimeString("en-GB", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false }) + ":00";
-
+      // 2. Book the slot for this property at the new time
+      const slotTime = rescheduleTime + ":00";
       if (showing.property_id) {
         await supabase
           .from("showing_available_slots")
           .update({ is_booked: true, booked_showing_id: showing.id, booked_at: new Date().toISOString() })
           .eq("organization_id", userRecord.organization_id)
           .eq("property_id", showing.property_id)
-          .eq("slot_date", slotDate)
+          .eq("slot_date", rescheduleDate)
           .eq("slot_time", slotTime);
       }
 
-      // 3. Log
+      // 3. Send confirmation email to lead
+      if (showing.leads?.email) {
+        const propertyAddr = showing.properties?.address || "the property";
+        const showingDateStr = format(new Date(newScheduledAt), "EEEE, MMMM d") + " at " + formatTimeInTimezone(newScheduledAt, tz);
+        const leadName = showing.leads.full_name?.split(" ")[0] || "there";
+
+        sendNotificationEmail({
+          to: showing.leads.email,
+          subject: `Showing Confirmed — ${propertyAddr}`,
+          html: `<div style="margin-bottom:24px"><h2 style="margin:0;color:#1a1a1a;font-size:22px;font-weight:700">Hi ${leadName},</h2><p style="margin:12px 0 0 0;color:#666;font-size:16px;line-height:1.5">Your showing has been rescheduled! Here are your new details:</p></div><div style="background:#f8f8f8;border-left:4px solid #4F46E5;padding:16px 20px;border-radius:4px;margin:16px 0"><p style="margin:0;color:#1a1a1a;font-size:15px;font-weight:600">${showingDateStr}</p><p style="margin:8px 0 0 0;color:#666;font-size:14px">${propertyAddr}${showing.properties?.unit_number ? " #" + showing.properties.unit_number : ""}${showing.properties?.city ? ", " + showing.properties.city : ""}</p></div><p style="margin:16px 0;color:#666;font-size:14px">Please bring a valid photo ID and proof of income. We look forward to seeing you!</p>`,
+          notificationType: "showing_rescheduled_confirmation",
+          organizationId: userRecord.organization_id,
+          relatedEntityId: showing.id,
+          relatedEntityType: "showing",
+        });
+      }
+
+      // 4. Log
       await supabase.from("system_logs").insert({
         organization_id: userRecord.organization_id,
         level: "info",
         category: "general",
         event_type: "showing_reactivated",
-        message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was reactivated`,
+        message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was rescheduled to ${rescheduleDate} ${rescheduleTime}`,
         related_lead_id: showing.lead_id,
         related_showing_id: showing.id,
+        details: {
+          old_scheduled_at: showing.scheduled_at,
+          new_scheduled_at: newScheduledAt,
+          reactivated_by: userRecord.id,
+        },
       });
 
-      toast({ title: "Showing reactivated", description: `${showing.leads?.full_name || "Lead"} is back on the schedule.` });
+      toast({ title: "Showing rescheduled", description: `${showing.leads?.full_name || "Lead"} has been rescheduled and notified by email.` });
+      setRescheduleMode(false);
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
       console.error("Reactivate error:", err);
-      toast({ title: "Error", description: `Failed to reactivate: ${err.message}`, variant: "destructive" });
+      toast({ title: "Error", description: `Failed to reschedule: ${err.message}`, variant: "destructive" });
     } finally {
       setReactivating(false);
     }
@@ -699,18 +739,67 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
               </div>
             )}
 
+            {/* Reschedule mode for cancelled/no-show/rescheduled */}
+            {rescheduleMode && (showing.status === "cancelled" || showing.status === "no_show" || showing.status === "rescheduled") && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-3">
+                <p className="text-sm font-medium text-indigo-800">Reschedule this showing</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-indigo-700">Date</Label>
+                    <Input
+                      type="date"
+                      value={rescheduleDate}
+                      onChange={(e) => setRescheduleDate(e.target.value)}
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-indigo-700">Time</Label>
+                    <Input
+                      type="time"
+                      value={rescheduleTime}
+                      onChange={(e) => setRescheduleTime(e.target.value)}
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-indigo-600">
+                  A confirmation email will be sent to {showing.leads?.full_name || "the lead"}.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
+                    onClick={handleReactivate}
+                    disabled={reactivating || !rescheduleDate || !rescheduleTime}
+                  >
+                    {reactivating && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+                    Confirm Reschedule
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setRescheduleMode(false)}
+                    disabled={reactivating}
+                  >
+                    Back
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Reactivate button for cancelled/no-show/rescheduled */}
-            {(showing.status === "cancelled" || showing.status === "no_show" || showing.status === "rescheduled") && (
+            {!rescheduleMode && (showing.status === "cancelled" || showing.status === "no_show" || showing.status === "rescheduled") && (
               <div className="flex flex-wrap gap-2 pt-2 border-t border-[#e5e7eb]">
                 <Button
                   variant="default"
                   size="sm"
                   className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
-                  onClick={handleReactivate}
+                  onClick={enterRescheduleMode}
                   disabled={reactivating}
                 >
-                  {reactivating ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
-                  Reschedule (Same Time)
+                  <RefreshCw className="h-4 w-4 mr-1.5" />
+                  Reschedule
                 </Button>
               </div>
             )}
