@@ -63,7 +63,7 @@ interface ShowingData {
   lead_id: string;
   property_id: string;
   properties: { id: string; address: string; unit_number: string | null; city: string | null } | null;
-  leads: { id: string; full_name: string | null; phone: string; email: string | null; sms_consent: boolean | null } | null;
+  leads: { id: string; full_name: string | null; phone: string; email: string | null; sms_consent: boolean | null; has_voucher: boolean | null } | null;
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -116,7 +116,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
           completed_at, confirmation_attempts, prospect_interest_level,
           lead_id, property_id, booking_source, booked_by_name,
           properties(id, address, unit_number, city),
-          leads(id, full_name, phone, email, sms_consent)
+          leads(id, full_name, phone, email, sms_consent, has_voucher)
         `)
         .eq("id", showingId)
         .single();
@@ -509,7 +509,14 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                 <div className="flex items-center gap-3">
                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="text-sm">
-                    <span className="font-medium">{showing.leads.full_name || "Unknown"}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{showing.leads.full_name || "Unknown"}</span>
+                      {showing.leads.has_voucher !== null && (
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${showing.leads.has_voucher ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+                          {showing.leads.has_voucher ? "Voucher" : "Self-pay"}
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <a href={`tel:${showing.leads.phone}`} className="flex items-center gap-1 text-[#4F46E5] hover:underline">
                         <Phone className="h-3 w-3" />

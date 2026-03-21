@@ -62,6 +62,7 @@ interface ShowingWithDetails {
   lead_name?: string;
   lead_phone?: string;
   lead_email?: string | null;
+  lead_has_voucher?: boolean | null;
   booking_source?: string;
   booked_by_name?: string | null;
 }
@@ -273,7 +274,7 @@ const ShowingsList: React.FC = () => {
           id, scheduled_at, status, duration_minutes, lead_id, property_id,
           booking_source, booked_by_name,
           properties(address, unit_number, city, state, zip_code, rent_price),
-          leads(full_name, phone, email)
+          leads(full_name, phone, email, has_voucher)
         `
         )
         .eq("organization_id", userRecord.organization_id)
@@ -338,6 +339,7 @@ const ShowingsList: React.FC = () => {
           lead_name: s.leads?.full_name,
           lead_phone: s.leads?.phone,
           lead_email: s.leads?.email || null,
+          lead_has_voucher: s.leads?.has_voucher ?? null,
           booking_source: s.booking_source || "admin",
           booked_by_name: s.booked_by_name || null,
         }))
@@ -768,6 +770,11 @@ const ShowingsList: React.FC = () => {
                                       <span className="flex items-center gap-1">
                                         <User className="h-3.5 w-3.5" />
                                         {showing.lead_name}
+                                        {showing.lead_has_voucher !== null && (
+                                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ml-1 ${showing.lead_has_voucher ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+                                            {showing.lead_has_voucher ? "Voucher" : "Self-pay"}
+                                          </Badge>
+                                        )}
                                       </span>
                                       {showing.lead_phone && (
                                         <a href={`tel:${showing.lead_phone}`} className="flex items-center gap-1 text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
