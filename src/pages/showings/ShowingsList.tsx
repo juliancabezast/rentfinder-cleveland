@@ -134,6 +134,38 @@ const ShowingsList: React.FC = () => {
   const [selectedShowingId, setSelectedShowingId] = useState<string | null>(null);
   const [slotTotals, setSlotTotals] = useState({ available: 0, booked: 0 });
 
+  // Fetch slot totals for current week (available across all tabs)
+  const fetchSlotTotals = useMemo(() => async () => {
+    if (!userRecord?.organization_id) return;
+    const today = format(startOfDay(new Date()), "yyyy-MM-dd");
+    const weekEnd = format(addDays(startOfDay(new Date()), 6), "yyyy-MM-dd");
+    const { data } = await supabase
+      .from("showing_available_slots")
+      .select("slot_date, slot_time, is_booked, is_enabled, booked_showing_id")
+      .eq("organization_id", userRecord.organization_id!)
+      .gte("slot_date", today)
+      .lte("slot_date", weekEnd);
+    if (data) {
+      // Group by date+time to count time slots (not individual property slots)
+      const groups = new Map<string, { hasBooking: boolean; allDisabled: boolean }>();
+      for (const s of data as any[]) {
+        const key = `${s.slot_date}-${s.slot_time}`;
+        const g = groups.get(key) || { hasBooking: false, allDisabled: true };
+        if (s.is_enabled) g.allDisabled = false;
+        if (s.is_booked && s.booked_showing_id && s.is_enabled) g.hasBooking = true;
+        groups.set(key, g);
+      }
+      let available = 0, booked = 0;
+      groups.forEach((g) => {
+        if (g.allDisabled) return;
+        if (g.hasBooking) booked++; else available++;
+      });
+      setSlotTotals({ available, booked });
+    }
+  }, [userRecord?.organization_id]);
+
+  useEffect(() => { fetchSlotTotals(); }, [fetchSlotTotals]);
+
   // All-time metrics (independent of filters)
   const [allTimeMetrics, setAllTimeMetrics] = useState({ totalScheduled: 0, potentialRent: 0, completionRate: 0 });
 
@@ -445,7 +477,7 @@ const ShowingsList: React.FC = () => {
           Showings
         </h1>
         <div className="flex items-center gap-2">
-          {activeTab === "slots" && permissions.canEditProperty && (
+          {permissions.canEditProperty && (
             <>
               <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
                 {slotTotals.available} Available
