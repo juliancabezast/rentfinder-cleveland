@@ -37,12 +37,21 @@ interface SlotProperty {
   booked_showing_id: string | null;
 }
 
+interface CancelledShowing {
+  id: string;
+  lead_name: string;
+  property_address: string;
+  status: string;
+  lead_id: string;
+}
+
 interface TimeSlotGroup {
   time: string;
   properties: SlotProperty[];
   totalCount: number;
   bookedCount: number;
   isBlocked: boolean;
+  cancelledShowings: CancelledShowing[];
 }
 
 interface DayData {
@@ -233,6 +242,34 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       });
     }
 
+    // Also fetch cancelled/no_show/rescheduled showings for this week to display in calendar
+    const { data: cancelledData } = await supabase
+      .from("showings")
+      .select("id, scheduled_at, status, lead_id, property_id, leads(full_name), properties(address)")
+      .eq("organization_id", orgId)
+      .in("status", ["cancelled", "no_show", "rescheduled"])
+      .gte("scheduled_at", `${startStr}T00:00:00`)
+      .lte("scheduled_at", `${endStr}T23:59:59`);
+
+    // Build a map: date -> time -> CancelledShowing[]
+    const cancelledMap = new Map<string, Map<string, CancelledShowing[]>>();
+    (cancelledData || []).forEach((s: any) => {
+      const d = new Date(s.scheduled_at);
+      const dateKey = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+      const h = d.toLocaleString("en-GB", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false });
+      const timeKey = h + ":00"; // "HH:mm:00"
+      if (!cancelledMap.has(dateKey)) cancelledMap.set(dateKey, new Map());
+      const tm = cancelledMap.get(dateKey)!;
+      if (!tm.has(timeKey)) tm.set(timeKey, []);
+      tm.get(timeKey)!.push({
+        id: s.id,
+        lead_name: s.leads?.full_name || "Unknown",
+        property_address: s.properties?.address || "Unknown",
+        status: s.status,
+        lead_id: s.lead_id,
+      });
+    });
+
     if (error) {
       console.error("Error fetching slots:", error);
       toast({ title: "Error", description: "Failed to load slots.", variant: "destructive" });
@@ -272,6 +309,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       }
 
       const timeSlots: TimeSlotGroup[] = [];
+      const dayCancelled = cancelledMap.get(dateStr);
       timeMap.forEach((props, time) => {
         const enabledProps = props.filter((p) => p.is_enabled);
         const allDisabled = enabledProps.length === 0;
@@ -281,6 +319,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
           totalCount: props.length,
           bookedCount: enabledProps.filter((p) => p.is_booked && p.lead_name).length,
           isBlocked: allDisabled,
+          cancelledShowings: dayCancelled?.get(time) || [],
         });
       });
 
@@ -489,12 +528,19 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                               const blockedSlots = ts.properties.filter((p) => p.is_booked && !p.lead_name);
                               const isBooked = realBookings.length > 0 || blockedSlots.length > 0;
                               const firstBooked = realBookings[0];
+                              const hasCancelled = ts.cancelledShowings.length > 0;
+                              const firstCancelled = ts.cancelledShowings[0];
+
+                              // Determine cell style — cancelled gets a special style if slot is otherwise open
+                              const cellStyle = hasCancelled && !firstBooked && !ts.isBlocked
+                                ? "bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100"
+                                : getCellStyle(ts);
 
                               return (
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <button
-                                      className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${getCellStyle(ts)}`}
+                                      className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${cellStyle}`}
                                     >
                                       {ts.isBlocked ? (
                                         <>
@@ -510,6 +556,15 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                           </div>
                                           <div className="text-[10px] opacity-70 truncate">
                                             {firstBooked.property_address}
+                                          </div>
+                                        </>
+                                      ) : hasCancelled ? (
+                                        <>
+                                          <div className="font-bold truncate line-through">
+                                            {firstCancelled.lead_name}
+                                          </div>
+                                          <div className="text-[10px] opacity-70 truncate">
+                                            {firstCancelled.status === "cancelled" ? "Cancelled" : firstCancelled.status === "no_show" ? "No Show" : "Rescheduled"}
                                           </div>
                                         </>
                                       ) : blockedSlots.length > 0 ? (
@@ -579,6 +634,44 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                           <Eye className="h-3 w-3 mr-1" />
                                           View / Cancel Showing
                                         </Button>
+                                      )}
+                                      {/* Cancelled / No-Show / Rescheduled showings */}
+                                      {ts.cancelledShowings.length > 0 && (
+                                        <div className="space-y-1.5">
+                                          <p className="text-[10px] text-muted-foreground font-medium">
+                                            {ts.cancelledShowings.length === 1 ? "Cancelled/Missed Showing" : `${ts.cancelledShowings.length} Cancelled/Missed Showings`}
+                                          </p>
+                                          {ts.cancelledShowings.map((cs) => (
+                                            <div
+                                              key={cs.id}
+                                              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs bg-orange-50 border border-orange-100"
+                                            >
+                                              <User className="h-3 w-3 shrink-0 text-orange-500" />
+                                              <div className="flex-1 min-w-0">
+                                                <div className="font-medium truncate line-through">{cs.lead_name}</div>
+                                                <div className="text-[10px] text-orange-600">{cs.property_address}</div>
+                                              </div>
+                                              <Badge variant="outline" className="text-[9px] border-orange-200 text-orange-600 shrink-0">
+                                                {cs.status === "cancelled" ? "Cancelled" : cs.status === "no_show" ? "No Show" : "Rescheduled"}
+                                              </Badge>
+                                            </div>
+                                          ))}
+                                          {!past && onShowingClick && ts.cancelledShowings.map((cs) => (
+                                            <Button
+                                              key={`view-${cs.id}`}
+                                              variant="outline"
+                                              size="sm"
+                                              className="w-full h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                onShowingClick(cs.id);
+                                              }}
+                                            >
+                                              <Eye className="h-3 w-3 mr-1" />
+                                              View {cs.lead_name}
+                                            </Button>
+                                          ))}
+                                        </div>
                                       )}
                                       {/* Blocked slots (other properties at same time) */}
                                       {blockedSlots.length > 0 && (
