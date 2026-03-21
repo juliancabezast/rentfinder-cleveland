@@ -472,19 +472,19 @@ const ShowingsList: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header + Tabs — single compact block */}
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <CalendarDays className="h-6 w-6" />
           Showings
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {permissions.canEditProperty && (
             <>
-              <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
+              <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs">
                 {slotTotals.available} Available
               </Badge>
-              <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+              <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300 text-xs">
                 {slotTotals.booked} Booked
               </Badge>
               <Button
@@ -501,11 +501,12 @@ const ShowingsList: React.FC = () => {
                 <Link2 className="h-4 w-4" />
               </Button>
               <Button
+                size="sm"
                 onClick={() => setEnableSlotsOpen(true)}
-                className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
+                className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white h-8"
               >
-                <Plus className="h-4 w-4 mr-1.5" />
-                Enable Slots
+                <Plus className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Enable Slots</span>
               </Button>
             </>
           )}
@@ -513,7 +514,7 @@ const ShowingsList: React.FC = () => {
             <Button
               variant="outline"
               size="icon"
-              className="h-9 w-9"
+              className="h-8 w-8"
               title="Download agenda"
               onClick={downloadAgenda}
             >
@@ -521,11 +522,12 @@ const ShowingsList: React.FC = () => {
             </Button>
           )}
           <Button
+            size="sm"
             onClick={() => setScheduleDialogOpen(true)}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+            className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold h-8"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Schedule Showing
+            <Plus className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">Schedule Showing</span>
           </Button>
         </div>
       </div>
@@ -726,69 +728,80 @@ const ShowingsList: React.FC = () => {
                               setDetailDialogOpen(true);
                             }}
                           >
-                            <CardContent className="px-4 py-2.5">
-                              <div className="flex items-center gap-4">
-                                {/* Time */}
-                                <div className="w-20 shrink-0 text-right">
+                            <CardContent className="px-3 py-2 sm:px-4 sm:py-2.5">
+                              <div className="flex items-start sm:items-center gap-3">
+                                {/* Time + Status (mobile: stacked) */}
+                                <div className="w-16 sm:w-20 shrink-0 text-center sm:text-right">
                                   <p className="font-bold text-sm">
                                     {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.property_city))}
                                   </p>
+                                  <Badge
+                                    className={`text-[9px] px-1.5 py-0 sm:hidden mt-0.5 ${
+                                      statusColors[showing.status] || "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    {showing.status.replace("_", " ")}
+                                  </Badge>
                                 </div>
 
-                                {/* Details — single row */}
-                                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-                                  {showing.property_address && (
-                                    <a
-                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                                        `${showing.property_address}${showing.property_city ? `, ${showing.property_city}` : ""}`
-                                      )}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="font-semibold text-sm hover:underline truncate"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {showing.property_address}{showing.property_city && `, ${showing.property_city}`}
-                                    </a>
-                                  )}
-                                  {showing.rent_price && (
-                                    <span className="text-emerald-600 text-xs font-medium shrink-0">
-                                      ${showing.rent_price.toLocaleString()}/mo
-                                    </span>
-                                  )}
-                                  <span className="text-muted-foreground/30 hidden sm:inline">·</span>
-                                  {showing.lead_name && (
-                                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                                      {showing.lead_name}
-                                      {showing.lead_has_voucher !== null && (
-                                        <Badge variant="outline" className={`text-[9px] px-1 py-0 ${showing.lead_has_voucher ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
-                                          {showing.lead_has_voucher ? "V" : "SP"}
-                                        </Badge>
-                                      )}
-                                    </span>
-                                  )}
-                                  {showing.lead_phone && (
-                                    <a href={`tel:${showing.lead_phone}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                      <Phone className="h-3 w-3" />
-                                      {showing.lead_phone}
-                                    </a>
-                                  )}
+                                {/* Details */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {showing.property_address && (
+                                      <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                                          `${showing.property_address}${showing.property_city ? `, ${showing.property_city}` : ""}`
+                                        )}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-semibold text-sm hover:underline truncate"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {showing.property_address}{showing.property_city && `, ${showing.property_city}`}
+                                      </a>
+                                    )}
+                                    {showing.rent_price && (
+                                      <span className="text-emerald-600 text-xs font-medium shrink-0">
+                                        ${showing.rent_price.toLocaleString()}/mo
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                    {showing.lead_name && (
+                                      <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                                        {showing.lead_name}
+                                        {showing.lead_has_voucher !== null && (
+                                          <Badge variant="outline" className={`text-[9px] px-1 py-0 ${showing.lead_has_voucher ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+                                            {showing.lead_has_voucher ? "V" : "SP"}
+                                          </Badge>
+                                        )}
+                                      </span>
+                                    )}
+                                    {showing.lead_phone && (
+                                      <a href={`tel:${showing.lead_phone}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                        <Phone className="h-3 w-3" />
+                                        <span className="hidden sm:inline">{showing.lead_phone}</span>
+                                        <span className="sm:hidden">Call</span>
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
 
-                                {/* Actions + Status */}
-                                <div className="flex items-center gap-2.5">
+                                {/* Actions + Status (desktop) */}
+                                <div className="hidden sm:flex items-center gap-2 shrink-0">
                                   {canSubmitReport(showing.status) && (
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="h-9 text-sm px-3"
+                                      className="h-7 text-xs px-2"
                                       onClick={(e) => handleOpenReport(e, showing)}
                                     >
-                                      <FileText className="h-4 w-4 mr-1.5" />
+                                      <FileText className="h-3.5 w-3.5 mr-1" />
                                       Report
                                     </Button>
                                   )}
                                   <Badge
-                                    className={`text-xs px-2.5 py-1 ${
+                                    className={`text-[10px] px-2 py-0.5 ${
                                       statusColors[showing.status] || "bg-muted text-muted-foreground"
                                     }`}
                                   >
