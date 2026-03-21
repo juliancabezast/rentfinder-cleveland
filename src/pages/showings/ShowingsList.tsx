@@ -741,58 +741,57 @@ const ShowingsList: React.FC = () => {
                                 </div>
 
                                 {/* Details */}
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 space-y-1">
                                   {showing.property_address && (
-                                    <p className="font-semibold text-base flex items-center gap-1.5 truncate">
-                                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <div className="flex items-center gap-1.5">
                                       <a
                                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                                           `${showing.property_address}${showing.property_city ? `, ${showing.property_city}` : ""}`
                                         )}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="hover:underline text-[#4F46E5]"
+                                        className="font-semibold text-base hover:underline truncate"
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        {showing.property_address}
-                                        {showing.property_city && `, ${showing.property_city}`}
+                                        <MapPin className="h-3.5 w-3.5 inline mr-1 text-muted-foreground" />
+                                        {showing.property_address}{showing.property_city && `, ${showing.property_city}`}
                                       </a>
                                       {showing.rent_price && (
-                                        <span className="text-emerald-600 text-sm font-medium ml-1">
+                                        <span className="text-emerald-600 text-xs font-medium shrink-0">
                                           ${showing.rent_price.toLocaleString()}/mo
                                         </span>
                                       )}
-                                    </p>
+                                    </div>
                                   )}
                                   {showing.lead_name && (
-                                    <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
-                                      <User className="h-3.5 w-3.5" />
-                                      {showing.lead_name}
+                                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                      <span className="flex items-center gap-1">
+                                        <User className="h-3.5 w-3.5" />
+                                        {showing.lead_name}
+                                      </span>
                                       {showing.lead_phone && (
-                                        <>
-                                          {" · "}
-                                          <a href={`tel:${showing.lead_phone}`} className="text-[#4F46E5] hover:underline" onClick={(e) => e.stopPropagation()}>
-                                            {showing.lead_phone}
-                                          </a>
-                                        </>
+                                        <a href={`tel:${showing.lead_phone}`} className="flex items-center gap-1 text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
+                                          <Phone className="h-3 w-3" />
+                                          {showing.lead_phone}
+                                        </a>
                                       )}
-                                    </p>
+                                    </div>
                                   )}
-                                  <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mt-1">
+                                  <p className="text-xs text-muted-foreground/60 flex items-center gap-1">
                                     {showing.booking_source === "public_link" ? (
                                       <>
                                         <Link2 className="h-3 w-3" />
-                                        Booked via public link
+                                        Public link
                                       </>
                                     ) : showing.booked_by_name ? (
                                       <>
                                         <User className="h-3 w-3" />
-                                        Scheduled by {showing.booked_by_name}
+                                        {showing.booked_by_name}
                                       </>
                                     ) : (
                                       <>
                                         <User className="h-3 w-3" />
-                                        Scheduled by team
+                                        Team
                                       </>
                                     )}
                                   </p>
