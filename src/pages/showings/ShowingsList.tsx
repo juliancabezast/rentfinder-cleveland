@@ -711,7 +711,7 @@ const ShowingsList: React.FC = () => {
                       </div>
 
                       {/* Showing cards for this day */}
-                      <div className="space-y-2.5 pl-3 border-l-2 border-indigo-100 ml-5">
+                      <div className="space-y-1.5 pl-3 border-l-2 border-indigo-100 ml-5">
                         {group.showings.map((showing, index) => (
                           <Card
                             key={showing.id}
@@ -726,82 +726,52 @@ const ShowingsList: React.FC = () => {
                               setDetailDialogOpen(true);
                             }}
                           >
-                            <CardContent className="p-4 sm:p-5">
-                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <CardContent className="px-4 py-2.5">
+                              <div className="flex items-center gap-4">
                                 {/* Time */}
-                                <div className="flex items-center gap-2 sm:w-28 shrink-0">
-                                  <div className="text-right">
-                                    <p className="font-bold text-base">
-                                      {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.property_city))}
-                                    </p>
-                                    {showing.duration_minutes && (
-                                      <p className="text-xs text-muted-foreground">
-                                        {showing.duration_minutes} min
-                                      </p>
-                                    )}
-                                  </div>
+                                <div className="w-20 shrink-0 text-right">
+                                  <p className="font-bold text-sm">
+                                    {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.property_city))}
+                                  </p>
                                 </div>
 
-                                {/* Details */}
-                                <div className="flex-1 min-w-0 space-y-1">
+                                {/* Details — single row */}
+                                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
                                   {showing.property_address && (
-                                    <div className="flex items-center gap-1.5">
-                                      <a
-                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                                          `${showing.property_address}${showing.property_city ? `, ${showing.property_city}` : ""}`
-                                        )}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="font-semibold text-base hover:underline truncate"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <MapPin className="h-3.5 w-3.5 inline mr-1 text-muted-foreground" />
-                                        {showing.property_address}{showing.property_city && `, ${showing.property_city}`}
-                                      </a>
-                                      {showing.rent_price && (
-                                        <span className="text-emerald-600 text-xs font-medium shrink-0">
-                                          ${showing.rent_price.toLocaleString()}/mo
-                                        </span>
-                                      )}
-                                    </div>
+                                    <a
+                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                                        `${showing.property_address}${showing.property_city ? `, ${showing.property_city}` : ""}`
+                                      )}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-semibold text-sm hover:underline truncate"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {showing.property_address}{showing.property_city && `, ${showing.property_city}`}
+                                    </a>
                                   )}
+                                  {showing.rent_price && (
+                                    <span className="text-emerald-600 text-xs font-medium shrink-0">
+                                      ${showing.rent_price.toLocaleString()}/mo
+                                    </span>
+                                  )}
+                                  <span className="text-muted-foreground/30 hidden sm:inline">·</span>
                                   {showing.lead_name && (
-                                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                      <span className="flex items-center gap-1">
-                                        <User className="h-3.5 w-3.5" />
-                                        {showing.lead_name}
-                                        {showing.lead_has_voucher !== null && (
-                                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ml-1 ${showing.lead_has_voucher ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
-                                            {showing.lead_has_voucher ? "Voucher" : "Self-pay"}
-                                          </Badge>
-                                        )}
-                                      </span>
-                                      {showing.lead_phone && (
-                                        <a href={`tel:${showing.lead_phone}`} className="flex items-center gap-1 text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
-                                          <Phone className="h-3 w-3" />
-                                          {showing.lead_phone}
-                                        </a>
+                                    <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                      {showing.lead_name}
+                                      {showing.lead_has_voucher !== null && (
+                                        <Badge variant="outline" className={`text-[9px] px-1 py-0 ${showing.lead_has_voucher ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+                                          {showing.lead_has_voucher ? "V" : "SP"}
+                                        </Badge>
                                       )}
-                                    </div>
+                                    </span>
                                   )}
-                                  <p className="text-xs text-muted-foreground/60 flex items-center gap-1">
-                                    {showing.booking_source === "public_link" ? (
-                                      <>
-                                        <Link2 className="h-3 w-3" />
-                                        Public link
-                                      </>
-                                    ) : showing.booked_by_name ? (
-                                      <>
-                                        <User className="h-3 w-3" />
-                                        {showing.booked_by_name}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <User className="h-3 w-3" />
-                                        Team
-                                      </>
-                                    )}
-                                  </p>
+                                  {showing.lead_phone && (
+                                    <a href={`tel:${showing.lead_phone}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                      <Phone className="h-3 w-3" />
+                                      {showing.lead_phone}
+                                    </a>
+                                  )}
                                 </div>
 
                                 {/* Actions + Status */}
