@@ -389,7 +389,21 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                               key={day.date}
                               className={`p-1 text-center ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
                             >
-                              <span className="text-slate-300">—</span>
+                              {past ? (
+                                <span className="text-slate-300">—</span>
+                              ) : (
+                                <button
+                                  className="w-full rounded-md border border-dashed border-slate-200 px-2 py-1.5 text-xs text-slate-300 hover:border-[#4F46E5]/40 hover:text-[#4F46E5] hover:bg-[#4F46E5]/5 transition-colors"
+                                  onClick={() => {
+                                    setPrefilledDate(parseISO(day.date));
+                                    setEditData(null);
+                                    setDialogOpen(true);
+                                  }}
+                                  title="Enable slots for this day"
+                                >
+                                  <Plus className="h-3 w-3 mx-auto" />
+                                </button>
+                              )}
                             </td>
                           );
                         }
