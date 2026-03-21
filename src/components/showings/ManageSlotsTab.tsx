@@ -16,9 +16,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Pencil,
   Plus,
-  Trash2,
   Loader2,
   User,
   Home,
@@ -85,7 +83,6 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editData, setEditData] = useState<EditSlotData | null>(null);
   const [prefilledDate, setPrefilledDate] = useState<Date | undefined>();
-  const [deletingDate, setDeletingDate] = useState<string | null>(null);
   const [blockingSlot, setBlockingSlot] = useState<string | null>(null);
 
   const orgId = userRecord?.organization_id;
@@ -236,26 +233,6 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     onTotalsChange?.(totals);
   }, [totals.available, totals.booked]);
 
-  // ── Delete all unbooked slots for a date ───────────────────────────
-  const handleDeleteDate = async (date: string) => {
-    if (!orgId) return;
-    setDeletingDate(date);
-
-    const { error } = await supabase
-      .from("showing_available_slots")
-      .update({ is_enabled: false, updated_at: new Date().toISOString() })
-      .eq("organization_id", orgId)
-      .eq("slot_date", date)
-      .eq("is_booked", false);
-
-    if (error) {
-      toast({ title: "Error", description: `Failed to remove slots: ${error.message}`, variant: "destructive" });
-    } else {
-      toast({ title: "Removed", description: `Available slots for ${format(parseISO(date), "MMM d")} disabled.` });
-      fetchSlots();
-    }
-    setDeletingDate(null);
-  };
 
   // ── Block / unblock a time slot ────────────────────────────────────
   const handleToggleBlock = async (date: string, time: string, block: boolean) => {
@@ -576,70 +553,6 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                     </tr>
                   ))}
 
-                  {/* ── Action row (Add / Edit / Delete per day) ────── */}
-                  <tr>
-                    <td className="p-2 sticky left-0 bg-white z-10" />
-                    {slotData.map((day) => {
-                      const past = isPast(day.date);
-                      if (past) return <td key={day.date} className="p-1" />;
-
-                      const hasAvailable = day.timeSlots.some((ts) => ts.bookedCount < ts.totalCount);
-
-                      return (
-                        <td key={day.date} className="p-1 text-center">
-                          <div className="flex items-center justify-center gap-0.5">
-                            {day.hasSlots ? (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 px-2 text-[10px] text-muted-foreground hover:text-[#4F46E5]"
-                                  onClick={() => {
-                                    setEditData({
-                                      date: day.date,
-                                      slots: day.timeSlots.map((ts) => ts.time),
-                                    });
-                                    setDialogOpen(true);
-                                  }}
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                                {hasAvailable && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 px-2 text-[10px] text-muted-foreground hover:text-destructive"
-                                    disabled={deletingDate === day.date}
-                                    onClick={() => handleDeleteDate(day.date)}
-                                  >
-                                    {deletingDate === day.date ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="h-3 w-3" />
-                                    )}
-                                  </Button>
-                                )}
-                              </>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-[10px] text-[#4F46E5]"
-                                onClick={() => {
-                                  setEditData(null);
-                                  setPrefilledDate(parseISO(day.date));
-                                  setDialogOpen(true);
-                                }}
-                              >
-                                <Plus className="h-3 w-3 mr-0.5" />
-                                Add
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
                 </tbody>
               </table>
             </div>
