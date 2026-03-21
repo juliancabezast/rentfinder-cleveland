@@ -625,7 +625,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
       // ── Telegram notification ──────────────────────────────────────
       try {
-        const [{ data: creds }, { data: showingsChatSetting }] = await Promise.all([
+        const [{ data: creds }, { data: showingsSettings }] = await Promise.all([
           supabase
             .from("organization_credentials")
             .select("telegram_bot_token, telegram_chat_id")
@@ -633,16 +633,17 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
             .single(),
           supabase
             .from("organization_settings")
-            .select("value")
+            .select("key, value")
             .eq("organization_id", userRecord.organization_id!)
-            .eq("key", "telegram_showings_chat_id")
-            .single(),
+            .in("key", ["telegram_showings_bot_token", "telegram_showings_chat_id"]),
         ]);
 
-        // Use showings-specific chat ID if set, otherwise fall back to general
-        const chatId = (showingsChatSetting?.value as string) || creds?.telegram_chat_id;
+        const showingsMap = new Map((showingsSettings || []).map((s: any) => [s.key, s.value]));
+        // Use showings-specific bot+chat if set, otherwise fall back to general
+        const botToken = (showingsMap.get("telegram_showings_bot_token") as string) || creds?.telegram_bot_token;
+        const chatId = (showingsMap.get("telegram_showings_chat_id") as string) || creds?.telegram_chat_id;
 
-        if (creds?.telegram_bot_token && chatId) {
+        if (botToken && chatId) {
           const displayDateFull = format(selectedDate, "EEEE, MMMM d, yyyy");
           const leadName = lead?.full_name || "—";
           const leadPhone = lead?.phone || "—";
@@ -665,7 +666,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
             `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
           ].join("\n");
 
-          await fetch(`https://api.telegram.org/bot${creds.telegram_bot_token}/sendMessage`, {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

@@ -673,7 +673,7 @@ serve(async (req: Request) => {
 
     // ── Telegram notification ─────────────────────────────────────────
     try {
-      const [{ data: creds }, { data: showingsChatSetting }] = await Promise.all([
+      const [{ data: creds }, { data: showingsSettings }] = await Promise.all([
         supabase
           .from("organization_credentials")
           .select("telegram_bot_token, telegram_chat_id")
@@ -681,16 +681,16 @@ serve(async (req: Request) => {
           .single(),
         supabase
           .from("organization_settings")
-          .select("value")
+          .select("key, value")
           .eq("organization_id", organization_id)
-          .eq("key", "telegram_showings_chat_id")
-          .single(),
+          .in("key", ["telegram_showings_bot_token", "telegram_showings_chat_id"]),
       ]);
 
-      // Use showings-specific chat ID if set, otherwise fall back to general
-      const chatId = (showingsChatSetting?.value as string) || creds?.telegram_chat_id;
+      const showingsMap = new Map((showingsSettings || []).map((s: any) => [s.key, s.value]));
+      const botToken = (showingsMap.get("telegram_showings_bot_token") as string) || creds?.telegram_bot_token;
+      const chatId = (showingsMap.get("telegram_showings_chat_id") as string) || creds?.telegram_chat_id;
 
-      if (creds?.telegram_bot_token && chatId) {
+      if (botToken && chatId) {
         const tz = getTimezoneForCity(property?.city || null);
         const dateHuman = formatDateHuman(slot_date, tz);
         const timeHuman = formatTimeHuman(slot_time);
@@ -714,7 +714,7 @@ serve(async (req: Request) => {
           `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
         ].join("\n");
 
-        await fetch(`https://api.telegram.org/bot${creds.telegram_bot_token}/sendMessage`, {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

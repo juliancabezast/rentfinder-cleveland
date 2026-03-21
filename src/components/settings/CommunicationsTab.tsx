@@ -75,8 +75,9 @@ export const CommunicationsTab: React.FC = () => {
   const [telegramEnabled, setTelegramEnabled] = useState(false);
   const [telegramConfigured, setTelegramConfigured] = useState(false);
   const [sendingTelegramTest, setSendingTelegramTest] = useState(false);
+  const [showingsBotToken, setShowingsBotToken] = useState('');
   const [showingsChatId, setShowingsChatId] = useState('');
-  const [showingsChatIdSaving, setShowingsChatIdSaving] = useState(false);
+  const [showingsBotSaving, setShowingsBotSaving] = useState(false);
 
   // Email notification preferences
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFS);
@@ -104,6 +105,7 @@ export const CommunicationsTab: React.FC = () => {
 
       // Load Telegram settings
       setTelegramEnabled(getSetting('telegram_enabled' as any, false));
+      setShowingsBotToken(getSetting('telegram_showings_bot_token' as any, '') as string);
       setShowingsChatId(getSetting('telegram_showings_chat_id' as any, '') as string);
       
       // Load notification preferences
@@ -574,41 +576,46 @@ export const CommunicationsTab: React.FC = () => {
             </div>
           )}
 
-          {/* Separate Showings Chat */}
-          {telegramConfigured && (
-            <div className="border-t pt-4 space-y-3">
-              <div>
-                <Label className="font-medium">Showings Notification Chat ID</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Separate Telegram chat/group for showing notifications only. Uses the same bot.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={showingsChatId}
-                  onChange={(e) => setShowingsChatId(e.target.value)}
-                  placeholder="e.g. -1001234567890"
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={showingsChatIdSaving}
-                  onClick={async () => {
-                    setShowingsChatIdSaving(true);
-                    await updateSetting('telegram_showings_chat_id' as any, showingsChatId, 'communications', 'Telegram chat ID for showing notifications');
-                    toast.success(showingsChatId ? 'Showings chat ID saved' : 'Showings chat ID removed');
-                    setShowingsChatIdSaving(false);
-                  }}
-                >
-                  {showingsChatIdSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Add the bot to the group, then send a message and check the chat ID via the Telegram API.
+          {/* Separate Showings Bot */}
+          <div className="border-t pt-4 space-y-3">
+            <div>
+              <Label className="font-medium">Showings Bot (separate)</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Dedicated Telegram bot for showing notifications only.
               </p>
             </div>
-          )}
+            <div className="space-y-2">
+              <Input
+                value={showingsBotToken}
+                onChange={(e) => setShowingsBotToken(e.target.value)}
+                placeholder="Bot token from @BotFather"
+                type="password"
+              />
+              <Input
+                value={showingsChatId}
+                onChange={(e) => setShowingsChatId(e.target.value)}
+                placeholder="Your chat ID"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={showingsBotSaving}
+                onClick={async () => {
+                  setShowingsBotSaving(true);
+                  await Promise.all([
+                    updateSetting('telegram_showings_bot_token' as any, showingsBotToken, 'communications', 'Telegram bot token for showing notifications'),
+                    updateSetting('telegram_showings_chat_id' as any, showingsChatId, 'communications', 'Telegram chat ID for showing notifications'),
+                  ]);
+                  toast.success('Showings bot saved');
+                  setShowingsBotSaving(false);
+                }}
+              >
+                {showingsBotSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                Save Showings Bot
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
