@@ -673,13 +673,24 @@ serve(async (req: Request) => {
 
     // ── Telegram notification ─────────────────────────────────────────
     try {
-      const { data: creds } = await supabase
-        .from("organization_credentials")
-        .select("telegram_bot_token, telegram_chat_id")
-        .eq("organization_id", organization_id)
-        .single();
+      const [{ data: creds }, { data: showingsChatSetting }] = await Promise.all([
+        supabase
+          .from("organization_credentials")
+          .select("telegram_bot_token, telegram_chat_id")
+          .eq("organization_id", organization_id)
+          .single(),
+        supabase
+          .from("organization_settings")
+          .select("value")
+          .eq("organization_id", organization_id)
+          .eq("key", "telegram_showings_chat_id")
+          .single(),
+      ]);
 
-      if (creds?.telegram_bot_token && creds?.telegram_chat_id) {
+      // Use showings-specific chat ID if set, otherwise fall back to general
+      const chatId = (showingsChatSetting?.value as string) || creds?.telegram_chat_id;
+
+      if (creds?.telegram_bot_token && chatId) {
         const tz = getTimezoneForCity(property?.city || null);
         const dateHuman = formatDateHuman(slot_date, tz);
         const timeHuman = formatTimeHuman(slot_time);
@@ -707,7 +718,7 @@ serve(async (req: Request) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            chat_id: creds.telegram_chat_id,
+            chat_id: chatId,
             text: msg,
             parse_mode: "HTML",
             disable_web_page_preview: true,
