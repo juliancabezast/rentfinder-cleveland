@@ -85,7 +85,55 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const [prefilledDate, setPrefilledDate] = useState<Date | undefined>();
   const [blockingSlot, setBlockingSlot] = useState<string | null>(null);
 
+  const [quickEnabling, setQuickEnabling] = useState(false);
+
   const orgId = userRecord?.organization_id;
+
+  // Fetch org properties grouped by city (for quick-enable)
+  const [citiesWithProps, setCitiesWithProps] = useState<Map<string, { id: string; address: string }[]>>(new Map());
+  useEffect(() => {
+    if (!orgId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("properties")
+        .select("id, address, city")
+        .eq("organization_id", orgId)
+        .not("status", "in", '("rented","inactive")');
+      if (data) {
+        const map = new Map<string, { id: string; address: string }[]>();
+        for (const p of data as any[]) {
+          const city = p.city || "Other";
+          if (!map.has(city)) map.set(city, []);
+          map.get(city)!.push({ id: p.id, address: p.address });
+        }
+        setCitiesWithProps(map);
+      }
+    })();
+  }, [orgId]);
+
+  // Quick-enable a single slot (date+time) for selected cities
+  const handleQuickEnable = async (date: string, time: string, cities: string[]) => {
+    if (!orgId || cities.length === 0) return;
+    setQuickEnabling(true);
+    const props = cities.flatMap((c) => citiesWithProps.get(c) || []);
+    const rows = props.map((p) => ({
+      organization_id: orgId,
+      property_id: p.id,
+      slot_date: date,
+      slot_time: time,
+      is_enabled: true,
+    }));
+    const { error } = await supabase
+      .from("showing_available_slots")
+      .upsert(rows, { onConflict: "organization_id,property_id,slot_date,slot_time" });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Enabled", description: `${formatTime(time)} on ${format(parseISO(date), "MMM d")} — ${props.length} properties.` });
+      fetchSlots();
+    }
+    setQuickEnabling(false);
+  };
 
   // Open dialog when triggered from parent
   useEffect(() => {
@@ -369,17 +417,53 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                               {past ? (
                                 <span className="text-slate-300">—</span>
                               ) : (
-                                <button
-                                  className="w-full rounded-md border border-dashed border-slate-200 px-2 py-1.5 text-xs text-slate-300 hover:border-[#4F46E5]/40 hover:text-[#4F46E5] hover:bg-[#4F46E5]/5 transition-colors"
-                                  onClick={() => {
-                                    setPrefilledDate(parseISO(day.date));
-                                    setEditData(null);
-                                    setDialogOpen(true);
-                                  }}
-                                  title="Enable slots for this day"
-                                >
-                                  <Plus className="h-3 w-3 mx-auto" />
-                                </button>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      className="w-full rounded-md border border-dashed border-slate-200 px-2 py-1.5 text-xs text-slate-300 hover:border-[#4F46E5]/40 hover:text-[#4F46E5] hover:bg-[#4F46E5]/5 transition-colors"
+                                      title="Enable this slot"
+                                    >
+                                      <Plus className="h-3 w-3 mx-auto" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-52 p-3" side="bottom" align="center">
+                                    {(() => {
+                                      const cities = [...citiesWithProps.keys()].sort();
+                                      const [selected, setSelected] = React.useState<Set<string>>(new Set(cities));
+                                      return (
+                                        <div className="space-y-2">
+                                          <p className="text-xs font-semibold">{formatTime(time)} — {format(parseISO(day.date), "MMM d")}</p>
+                                          <div className="space-y-1">
+                                            {cities.map((city) => (
+                                              <label key={city} className="flex items-center gap-2 text-xs cursor-pointer">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={selected.has(city)}
+                                                  onChange={(e) => {
+                                                    const next = new Set(selected);
+                                                    e.target.checked ? next.add(city) : next.delete(city);
+                                                    setSelected(next);
+                                                  }}
+                                                  className="rounded border-slate-300"
+                                                />
+                                                {city} ({citiesWithProps.get(city)?.length})
+                                              </label>
+                                            ))}
+                                          </div>
+                                          <Button
+                                            size="sm"
+                                            className="w-full h-7 text-xs bg-[#4F46E5] hover:bg-[#4F46E5]/90"
+                                            disabled={selected.size === 0 || quickEnabling}
+                                            onClick={() => handleQuickEnable(day.date, time, [...selected])}
+                                          >
+                                            {quickEnabling ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                                            Enable
+                                          </Button>
+                                        </div>
+                                      );
+                                    })()}
+                                  </PopoverContent>
+                                </Popover>
                               )}
                             </td>
                           );
