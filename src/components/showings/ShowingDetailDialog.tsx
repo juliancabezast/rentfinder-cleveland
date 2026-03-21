@@ -491,7 +491,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                   <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      `${showing.properties.address}${showing.properties.unit_number ? ` #${showing.properties.unit_number}` : ""}${showing.properties.city ? `, ${showing.properties.city}` : ""}`
+                      `${showing.properties.address}${showing.properties.city ? `, ${showing.properties.city}` : ""}`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
