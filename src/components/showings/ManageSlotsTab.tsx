@@ -60,6 +60,44 @@ function formatTime(t: string) {
   return `${display}:${m} ${ampm}`;
 }
 
+// Quick-enable popover content (extracted to avoid hooks-in-callback)
+const QuickEnableCities: React.FC<{
+  cities: string[];
+  counts: Map<string, number>;
+  enabling: boolean;
+  onEnable: (cities: string[]) => void;
+}> = ({ cities, counts, enabling, onEnable }) => {
+  const [selected, setSelected] = React.useState<Set<string>>(() => new Set(cities));
+  return (
+    <div className="space-y-1.5">
+      {cities.map((city) => (
+        <label key={city} className="flex items-center gap-2 text-xs cursor-pointer">
+          <input
+            type="checkbox"
+            checked={selected.has(city)}
+            onChange={(e) => {
+              const next = new Set(selected);
+              e.target.checked ? next.add(city) : next.delete(city);
+              setSelected(next);
+            }}
+            className="rounded border-slate-300"
+          />
+          {city} ({counts.get(city) || 0})
+        </label>
+      ))}
+      <Button
+        size="sm"
+        className="w-full h-7 text-xs bg-[#4F46E5] hover:bg-[#4F46E5]/90 mt-1"
+        disabled={selected.size === 0 || enabling}
+        onClick={() => onEnable([...selected])}
+      >
+        {enabling ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+        Enable
+      </Button>
+    </div>
+  );
+};
+
 interface ManageSlotsTabProps {
   externalDialogOpen?: boolean;
   onExternalDialogHandled?: () => void;
@@ -427,41 +465,13 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                     </button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-52 p-3" side="bottom" align="center">
-                                    {(() => {
-                                      const cities = [...citiesWithProps.keys()].sort();
-                                      const [selected, setSelected] = React.useState<Set<string>>(new Set(cities));
-                                      return (
-                                        <div className="space-y-2">
-                                          <p className="text-xs font-semibold">{formatTime(time)} — {format(parseISO(day.date), "MMM d")}</p>
-                                          <div className="space-y-1">
-                                            {cities.map((city) => (
-                                              <label key={city} className="flex items-center gap-2 text-xs cursor-pointer">
-                                                <input
-                                                  type="checkbox"
-                                                  checked={selected.has(city)}
-                                                  onChange={(e) => {
-                                                    const next = new Set(selected);
-                                                    e.target.checked ? next.add(city) : next.delete(city);
-                                                    setSelected(next);
-                                                  }}
-                                                  className="rounded border-slate-300"
-                                                />
-                                                {city} ({citiesWithProps.get(city)?.length})
-                                              </label>
-                                            ))}
-                                          </div>
-                                          <Button
-                                            size="sm"
-                                            className="w-full h-7 text-xs bg-[#4F46E5] hover:bg-[#4F46E5]/90"
-                                            disabled={selected.size === 0 || quickEnabling}
-                                            onClick={() => handleQuickEnable(day.date, time, [...selected])}
-                                          >
-                                            {quickEnabling ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                                            Enable
-                                          </Button>
-                                        </div>
-                                      );
-                                    })()}
+                                    <p className="text-xs font-semibold mb-2">{formatTime(time)} — {format(parseISO(day.date), "MMM d")}</p>
+                                    <QuickEnableCities
+                                      cities={[...citiesWithProps.keys()].sort()}
+                                      counts={new Map([...citiesWithProps.entries()].map(([c, p]) => [c, p.length]))}
+                                      enabling={quickEnabling}
+                                      onEnable={(cities) => handleQuickEnable(day.date, time, cities)}
+                                    />
                                   </PopoverContent>
                                 </Popover>
                               )}
