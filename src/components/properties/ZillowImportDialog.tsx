@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle, Upload, ImageIcon, X, CheckCircle, Sparkles } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle, Upload, ImageIcon, X, CheckCircle, Sparkles, Building2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,11 +44,28 @@ interface ZillowProperty {
   _rent_zestimate: number | null;
 }
 
+interface UnitData {
+  label: string;
+  bedrooms: string;
+  bathrooms: string;
+  sqft: string;
+  rent: string;
+  status: string;
+}
+
 interface ZillowImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }
+
+const MULTI_UNIT_TYPES: Record<string, number> = {
+  duplex: 2,
+  triplex: 3,
+  fourplex: 4,
+};
+
+const UNIT_LABELS = ["A (Down)", "B (Up)", "C", "D"];
 
 export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   open,
@@ -73,6 +90,9 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState("available");
 
+  // Multi-unit state
+  const [units, setUnits] = useState<UnitData[]>([]);
+
   // AI description generation
   const [generatingDesc, setGeneratingDesc] = useState(false);
 
@@ -81,6 +101,37 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   const [aiResults, setAiResults] = useState<Record<string, unknown> | null>(null);
   const [aiApprovals, setAiApprovals] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isMultiUnit = editPropertyType in MULTI_UNIT_TYPES;
+  const unitCount = MULTI_UNIT_TYPES[editPropertyType] || 0;
+
+  // Generate/update units when type changes to multi-unit
+  useEffect(() => {
+    if (!isMultiUnit) {
+      setUnits([]);
+      return;
+    }
+    setUnits((prev) => {
+      const newUnits: UnitData[] = [];
+      for (let i = 0; i < unitCount; i++) {
+        newUnits.push(
+          prev[i] || {
+            label: UNIT_LABELS[i] || String.fromCharCode(65 + i),
+            bedrooms: editBedrooms,
+            bathrooms: editBathrooms,
+            sqft: editSqft,
+            rent: editRent,
+            status: editStatus,
+          }
+        );
+      }
+      return newUnits;
+    });
+  }, [editPropertyType, unitCount]);
+
+  const updateUnit = (index: number, field: keyof UnitData, value: string) => {
+    setUnits((prev) => prev.map((u, i) => (i === index ? { ...u, [field]: value } : u)));
+  };
 
   const fieldLabels: Record<string, string> = {
     bedrooms: "Bedrooms",
@@ -235,6 +286,7 @@ Return ONLY the description text, no quotes or labels.`,
     setLoading(false);
     setError(null);
     setProperty(null);
+    setUnits([]);
   };
 
   const handleFetch = async () => {
@@ -286,34 +338,91 @@ Return ONLY the description text, no quotes or labels.`,
     setStep("saving");
 
     try {
-      const rentPrice = parseFloat(editRent) || 0;
-      if (rentPrice <= 0) {
-        throw new Error("Rent price is required and must be greater than $0.");
+      if (isMultiUnit) {
+        // Validate all units have rent
+        for (const unit of units) {
+          const rent = parseFloat(unit.rent) || 0;
+          if (rent <= 0) {
+            throw new Error(`Unit ${unit.label}: rent is required and must be greater than $0.`);
+          }
+        }
+
+        // 1. Create property_group for the building
+        const { data: group, error: groupErr } = await supabase
+          .from("property_groups")
+          .insert({
+            organization_id: userRecord.organization_id,
+            address: property.address,
+            city: property.city,
+            state: property.state,
+            zip_code: property.zip_code,
+            property_type: editPropertyType,
+            description: editDescription || null,
+            cover_photo: property.photos[0] || null,
+          })
+          .select("id")
+          .single();
+
+        if (groupErr) throw groupErr;
+
+        // 2. Create individual unit rows
+        const unitRows = units.map((unit) => ({
+          organization_id: userRecord.organization_id,
+          address: property.address,
+          unit_number: unit.label,
+          city: property.city,
+          state: property.state,
+          zip_code: property.zip_code,
+          bedrooms: parseInt(unit.bedrooms) || 0,
+          bathrooms: parseFloat(unit.bathrooms) || 0,
+          square_feet: parseInt(unit.sqft) || null,
+          property_type: editPropertyType,
+          rent_price: parseFloat(unit.rent) || 0,
+          description: editDescription || null,
+          photos: property.photos.length > 0 ? property.photos : [],
+          status: unit.status,
+          property_group_id: group.id,
+          special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
+        }));
+
+        const { error: insertErr } = await supabase.from("properties").insert(unitRows);
+        if (insertErr) throw insertErr;
+
+        toast({
+          title: "Property Imported",
+          description: `${property.address} — ${units.length} units created.`,
+        });
+      } else {
+        // Single unit — original flow
+        const rentPrice = parseFloat(editRent) || 0;
+        if (rentPrice <= 0) {
+          throw new Error("Rent price is required and must be greater than $0.");
+        }
+
+        const { error: insertErr } = await supabase.from("properties").insert({
+          organization_id: userRecord.organization_id,
+          address: property.address,
+          city: property.city,
+          state: property.state,
+          zip_code: property.zip_code,
+          bedrooms: parseInt(editBedrooms) || 0,
+          bathrooms: parseFloat(editBathrooms) || 0,
+          square_feet: parseInt(editSqft) || null,
+          property_type: editPropertyType,
+          rent_price: rentPrice,
+          description: editDescription || null,
+          photos: property.photos.length > 0 ? property.photos : [],
+          status: editStatus,
+          special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
+        });
+
+        if (insertErr) throw insertErr;
+
+        toast({
+          title: "Property Imported",
+          description: `${property.address} has been added successfully.`,
+        });
       }
-
-      const { error: insertErr } = await supabase.from("properties").insert({
-        organization_id: userRecord.organization_id,
-        address: property.address,
-        city: property.city,
-        state: property.state,
-        zip_code: property.zip_code,
-        bedrooms: parseInt(editBedrooms) || 0,
-        bathrooms: parseFloat(editBathrooms) || 0,
-        square_feet: parseInt(editSqft) || null,
-        property_type: editPropertyType,
-        rent_price: rentPrice,
-        description: editDescription || null,
-        photos: property.photos.length > 0 ? property.photos : [],
-        status: editStatus,
-        special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
-      });
-
-      if (insertErr) throw insertErr;
-
-      toast({
-        title: "Property Imported",
-        description: `${property.address} has been added successfully.`,
-      });
 
       onSuccess();
       onOpenChange(false);
@@ -544,48 +653,8 @@ Return ONLY the description text, no quotes or labels.`,
               </Card>
             )}
 
-            {/* Property details — all editable */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="edit-beds" className="flex items-center gap-1">
-                  <Bed className="h-3 w-3" /> Bedrooms *
-                </Label>
-                <Input
-                  id="edit-beds"
-                  type="number"
-                  value={editBedrooms}
-                  onChange={(e) => setEditBedrooms(e.target.value)}
-                  placeholder="3"
-                  className="min-h-[44px]"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-baths" className="flex items-center gap-1">
-                  <Bath className="h-3 w-3" /> Bathrooms *
-                </Label>
-                <Input
-                  id="edit-baths"
-                  type="number"
-                  step="0.5"
-                  value={editBathrooms}
-                  onChange={(e) => setEditBathrooms(e.target.value)}
-                  placeholder="1"
-                  className="min-h-[44px]"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-sqft" className="flex items-center gap-1">
-                  <Ruler className="h-3 w-3" /> Sq Ft
-                </Label>
-                <Input
-                  id="edit-sqft"
-                  type="number"
-                  value={editSqft}
-                  onChange={(e) => setEditSqft(e.target.value)}
-                  placeholder="1200"
-                  className="min-h-[44px]"
-                />
-              </div>
+            {/* Property type selector — always visible */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Type</Label>
                 <Select value={editPropertyType} onValueChange={setEditPropertyType}>
@@ -603,42 +672,174 @@ Return ONLY the description text, no quotes or labels.`,
                   </SelectContent>
                 </Select>
               </div>
+              {!isMultiUnit && (
+                <div className="space-y-1">
+                  <Label>Status</Label>
+                  <Select value={editStatus} onValueChange={setEditStatus}>
+                    <SelectTrigger className="min-h-[44px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="coming_soon">Coming Soon</SelectItem>
+                      <SelectItem value="in_leasing_process">In Leasing</SelectItem>
+                      <SelectItem value="rented">Rented</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="edit-rent" className="flex items-center gap-1">
-                  <DollarSign className="h-3 w-3" /> Monthly Rent *
-                </Label>
-                <Input
-                  id="edit-rent"
-                  type="number"
-                  value={editRent}
-                  onChange={(e) => setEditRent(e.target.value)}
-                  placeholder="1300"
-                  className="min-h-[44px]"
-                />
-              </div>
-            </div>
+            {/* ── Single-unit fields ─────────────────────────────────── */}
+            {!isMultiUnit && (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-beds" className="flex items-center gap-1">
+                      <Bed className="h-3 w-3" /> Bedrooms *
+                    </Label>
+                    <Input
+                      id="edit-beds"
+                      type="number"
+                      value={editBedrooms}
+                      onChange={(e) => setEditBedrooms(e.target.value)}
+                      placeholder="3"
+                      className="min-h-[44px]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-baths" className="flex items-center gap-1">
+                      <Bath className="h-3 w-3" /> Bathrooms *
+                    </Label>
+                    <Input
+                      id="edit-baths"
+                      type="number"
+                      step="0.5"
+                      value={editBathrooms}
+                      onChange={(e) => setEditBathrooms(e.target.value)}
+                      placeholder="1"
+                      className="min-h-[44px]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-sqft" className="flex items-center gap-1">
+                      <Ruler className="h-3 w-3" /> Sq Ft
+                    </Label>
+                    <Input
+                      id="edit-sqft"
+                      type="number"
+                      value={editSqft}
+                      onChange={(e) => setEditSqft(e.target.value)}
+                      placeholder="1200"
+                      className="min-h-[44px]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-rent" className="flex items-center gap-1">
+                      <DollarSign className="h-3 w-3" /> Rent *
+                    </Label>
+                    <Input
+                      id="edit-rent"
+                      type="number"
+                      value={editRent}
+                      onChange={(e) => setEditRent(e.target.value)}
+                      placeholder="1300"
+                      className="min-h-[44px]"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label>Status</Label>
-                <Select value={editStatus} onValueChange={setEditStatus}>
-                  <SelectTrigger className="min-h-[44px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="coming_soon">Coming Soon</SelectItem>
-                    <SelectItem value="in_leasing_process">
-                      In Leasing
-                    </SelectItem>
-                    <SelectItem value="rented">Rented</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* ── Multi-unit fields ──────────────────────────────────── */}
+            {isMultiUnit && units.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-[#4F46E5]" />
+                  <span className="text-sm font-semibold">{unitCount} Units</span>
+                </div>
+
+                {units.map((unit, i) => (
+                  <Card key={i} className="border-[#e5e7eb]">
+                    <CardContent className="pt-3 pb-3 space-y-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Label className="text-xs text-muted-foreground w-12">Unit</Label>
+                        <Input
+                          value={unit.label}
+                          onChange={(e) => updateUnit(i, "label", e.target.value)}
+                          className="h-8 text-sm font-medium w-32"
+                          placeholder="A"
+                        />
+                        <div className="ml-auto">
+                          <Select value={unit.status} onValueChange={(v) => updateUnit(i, "status", v)}>
+                            <SelectTrigger className="h-8 text-xs w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="available">Available</SelectItem>
+                              <SelectItem value="coming_soon">Coming Soon</SelectItem>
+                              <SelectItem value="in_leasing_process">In Leasing</SelectItem>
+                              <SelectItem value="rented">Rented</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <Bed className="h-2.5 w-2.5" /> Beds
+                          </Label>
+                          <Input
+                            type="number"
+                            value={unit.bedrooms}
+                            onChange={(e) => updateUnit(i, "bedrooms", e.target.value)}
+                            className="h-8 text-sm"
+                            placeholder="2"
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <Bath className="h-2.5 w-2.5" /> Baths
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            value={unit.bathrooms}
+                            onChange={(e) => updateUnit(i, "bathrooms", e.target.value)}
+                            className="h-8 text-sm"
+                            placeholder="1"
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <Ruler className="h-2.5 w-2.5" /> Sq Ft
+                          </Label>
+                          <Input
+                            type="number"
+                            value={unit.sqft}
+                            onChange={(e) => updateUnit(i, "sqft", e.target.value)}
+                            className="h-8 text-sm"
+                            placeholder="800"
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <DollarSign className="h-2.5 w-2.5" /> Rent *
+                          </Label>
+                          <Input
+                            type="number"
+                            value={unit.rent}
+                            onChange={(e) => updateUnit(i, "rent", e.target.value)}
+                            className="h-8 text-sm"
+                            placeholder="1000"
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            </div>
+            )}
 
             <div className="space-y-1">
               <div className="flex items-center justify-between">
@@ -695,7 +896,7 @@ Return ONLY the description text, no quotes or labels.`,
                 className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
               >
                 <Check className="h-4 w-4 mr-2" />
-                Import Property
+                {isMultiUnit ? `Import ${unitCount} Units` : "Import Property"}
               </Button>
             </div>
           </div>
@@ -705,7 +906,9 @@ Return ONLY the description text, no quotes or labels.`,
         {step === "saving" && (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-[#4F46E5]" />
-            <p className="text-muted-foreground">Saving property...</p>
+            <p className="text-muted-foreground">
+              {isMultiUnit ? `Creating ${unitCount} units...` : "Saving property..."}
+            </p>
           </div>
         )}
       </DialogContent>
