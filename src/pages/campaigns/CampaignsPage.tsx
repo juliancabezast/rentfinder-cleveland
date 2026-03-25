@@ -248,7 +248,7 @@ const CampaignsPage = () => {
         </div>
         <Button
           onClick={() => setView("create")}
-          className="bg-indigo-600 hover:bg-indigo-700"
+          className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
         >
           <Plus className="h-4 w-4 mr-2" />
           New Campaign

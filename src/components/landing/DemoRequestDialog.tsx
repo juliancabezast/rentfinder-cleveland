@@ -131,7 +131,7 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
   if (submitted) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
           <div className="flex flex-col items-center py-8 text-center">
             <div className="rounded-full bg-success/20 p-4 mb-4">
               <CheckCircle2 className="h-10 w-10 text-success" />
@@ -148,7 +148,7 @@ export const DemoRequestDialog: React.FC<DemoRequestDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
         <DialogHeader className="text-center">
           <div className="flex justify-center mb-3">
             <div className="rounded-full bg-primary/20 p-3">

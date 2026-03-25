@@ -504,7 +504,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                             {ap.unit_number ? ` #${ap.unit_number}` : ""}
                           </span>
                           {ap.listing_source && (
-                            <Badge variant="outline" className="h-4 px-1 text-[9px]">
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">
                               {ap.listing_source}
                             </Badge>
                           )}

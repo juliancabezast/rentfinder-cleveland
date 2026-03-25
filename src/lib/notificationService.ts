@@ -184,7 +184,8 @@ export function sendCriticalErrorNotification(params: {
 export async function fetchAvailableProperties(
   organizationId: string,
   excludePropertyId?: string,
-  limit = 5
+  limit = 5,
+  city?: string
 ): Promise<Array<{ address: string; rent_price: number | null; bedrooms: number | null; section_8_accepted: boolean | null }>> {
   let query = supabase
     .from("properties")
@@ -195,6 +196,10 @@ export async function fetchAvailableProperties(
 
   if (excludePropertyId) {
     query = query.neq("id", excludePropertyId);
+  }
+
+  if (city) {
+    query = query.eq("city", city);
   }
 
   const { data } = await query;

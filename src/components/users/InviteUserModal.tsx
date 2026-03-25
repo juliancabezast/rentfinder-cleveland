@@ -153,7 +153,7 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Invite Team Member</DialogTitle>
           <DialogDescription>

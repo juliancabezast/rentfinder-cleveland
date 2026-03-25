@@ -105,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
         collapsed && 'justify-center px-2'
       )}
-      activeClassName="!bg-indigo-50 !text-indigo-600 !font-bold"
+      activeClassName="!bg-[#4F46E5]/10 !text-[#4F46E5] !font-bold"
     >
       <item.icon className="h-[18px] w-[18px] shrink-0" />
       {!collapsed && <span>{item.title}</span>}
@@ -147,7 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
           />
         ) : (
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-sm" aria-hidden="true">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4F46E5] to-[#4F46E5]/80 flex items-center justify-center shrink-0 shadow-sm" aria-hidden="true">
               <Building2 className="h-4 w-4 text-white" />
             </div>
             {!collapsed && (
@@ -192,15 +192,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
               to={knowledgeHubItem.href}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-semibold transition-all duration-200',
-                'bg-indigo-50 text-indigo-600 hover:bg-indigo-100',
+                'bg-[#4F46E5]/10 text-[#4F46E5] hover:bg-[#4F46E5]/15',
                 collapsed && 'justify-center px-2'
               )}
-              activeClassName="!bg-indigo-100 !text-indigo-700 !font-bold"
+              activeClassName="!bg-[#4F46E5]/15 !text-[#4F46E5] !font-bold"
             >
               <span className="relative flex shrink-0">
                 <knowledgeHubItem.icon className="h-[18px] w-[18px]" />
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-indigo-500 animate-ping opacity-75" />
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-indigo-500" />
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#4F46E5] animate-ping opacity-75" />
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#4F46E5]" />
               </span>
               {!collapsed && <span>{knowledgeHubItem.title}</span>}
             </NavLink>

@@ -210,6 +210,8 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
           const otherProps = await fetchAvailableProperties(
             userRecord.organization_id,
             showingData.property_id || undefined,
+            5,
+            showingData.properties?.city || undefined,
           );
           const bookingUrl = `${window.location.origin}/p/book-showing`;
           sendLeadShowingEmail({
@@ -239,6 +241,8 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
           const otherProps = await fetchAvailableProperties(
             userRecord.organization_id,
             showingData.property_id || undefined,
+            5,
+            showingData.properties?.city || undefined,
           );
           sendLeadShowingEmail({
             leadEmail: leadData.email,
@@ -263,6 +267,8 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
           const otherProps = await fetchAvailableProperties(
             userRecord.organization_id,
             showingData.property_id || undefined,
+            5,
+            showingData.properties?.city || undefined,
           );
           sendLeadShowingEmail({
             leadEmail: leadData.email,
@@ -333,7 +339,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
   };
 
   const showInterestLevel = status === "completed";
-  const showAgentReport = status === "completed" || status === "no_show";
+  const showAgentReport = status === "completed";
   const showCancellationReason = status === "cancelled" || status === "rescheduled";
   const showPhotoUpload = status === "completed";
 

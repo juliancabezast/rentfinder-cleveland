@@ -22,6 +22,7 @@ import {
   Home,
   Ban,
   Eye,
+  EyeOff,
   Check,
 } from "lucide-react";
 import { format, addDays, parseISO, startOfDay } from "date-fns";
@@ -35,6 +36,7 @@ interface SlotProperty {
   is_enabled: boolean;
   lead_name: string | null;
   booked_showing_id: string | null;
+  showing_status: string | null;
 }
 
 interface CancelledShowing {
@@ -76,7 +78,7 @@ const QuickEnableCities: React.FC<{
   enabling: boolean;
   onEnable: (cities: string[]) => void;
 }> = ({ cities, counts, enabling, onEnable }) => {
-  const [selected, setSelected] = React.useState<Set<string>>(() => new Set(cities));
+  const [selected, setSelected] = React.useState<Set<string>>(() => new Set());
   return (
     <div className="space-y-1.5">
       {cities.map((city) => (
@@ -133,8 +135,49 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const [blockingSlot, setBlockingSlot] = useState<string | null>(null);
 
   const [quickEnabling, setQuickEnabling] = useState(false);
+  const [hideEmptyDays, setHideEmptyDays] = useState(false);
+
+  // Missing report dates
+  const [missingReportDates, setMissingReportDates] = useState<string[]>([]);
 
   const orgId = userRecord?.organization_id;
+
+  // Fetch showings with missing reports (past showings that were completed or happened but have no agent_report)
+  useEffect(() => {
+    if (!orgId) return;
+    (async () => {
+      // Past showings (scheduled before now) that are still scheduled/confirmed (happened but no report)
+      // OR completed/no_show with no agent_report
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from("showings")
+        .select("scheduled_at, status, agent_report")
+        .eq("organization_id", orgId)
+        .lt("scheduled_at", now)
+        .in("status", ["scheduled", "confirmed", "completed", "no_show"])
+        .is("agent_report", null)
+        .order("scheduled_at", { ascending: true });
+
+      if (data && data.length > 0) {
+        const dates = new Set<string>();
+        for (const s of data) {
+          const d = new Date(s.scheduled_at);
+          dates.add(d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }));
+        }
+        setMissingReportDates([...dates].sort());
+      } else {
+        setMissingReportDates([]);
+      }
+    })();
+  }, [orgId, weekOffset]); // refetch when week changes (in case reports are submitted)
+
+  // Navigate to the week containing a specific date
+  const jumpToDate = (dateStr: string) => {
+    const target = parseISO(dateStr);
+    const today = startOfDay(new Date());
+    const diffDays = Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    setWeekOffset(Math.floor(diffDays / 7));
+  };
 
   // Fetch org properties grouped by city (for quick-enable)
   const [citiesWithProps, setCitiesWithProps] = useState<Map<string, { id: string; address: string }[]>>(new Map());
@@ -228,16 +271,17 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       .filter((s: any) => s.booked_showing_id)
       .map((s: any) => s.booked_showing_id);
 
-    let showingInfoMap = new Map<string, { leadName: string; propertyId: string }>();
+    let showingInfoMap = new Map<string, { leadName: string; propertyId: string; status: string }>();
     if (bookedShowingIds.length > 0) {
       const { data: showingsData } = await supabase
         .from("showings")
-        .select("id, property_id, leads(full_name)")
+        .select("id, status, property_id, leads(full_name)")
         .in("id", bookedShowingIds);
       (showingsData || []).forEach((s: any) => {
         showingInfoMap.set(s.id, {
           leadName: s.leads?.full_name || "Booked",
           propertyId: s.property_id || "",
+          status: s.status || "scheduled",
         });
       });
     }
@@ -297,6 +341,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         is_enabled: s.is_enabled,
         lead_name: isRealBooking ? showingInfo.leadName : null,
         booked_showing_id: isRealBooking ? s.booked_showing_id : null,
+        showing_status: isRealBooking ? showingInfo.status : null,
       });
     });
 
@@ -391,11 +436,21 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     return Array.from(timeSet).sort();
   }, [slotData]);
 
+  // Days to render (optionally hiding empty ones)
+  const visibleDays = useMemo(() => {
+    if (!hideEmptyDays) return slotData;
+    return slotData.filter((d) => d.hasSlots);
+  }, [slotData, hideEmptyDays]);
+
   // ── Cell color logic (booked / open / blocked) ─────────────────────
   const getCellStyle = (ts: TimeSlotGroup | undefined) => {
     if (!ts) return "bg-slate-50 text-slate-300";
     if (ts.isBlocked) return "bg-red-50 border-red-200 text-red-400";
     if (ts.bookedCount === 0) return "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100";
+    // Check if all real bookings are completed
+    const realBookings = ts.properties.filter((p) => p.is_booked && p.lead_name);
+    const allCompleted = realBookings.length > 0 && realBookings.every((p) => p.showing_status === "completed");
+    if (allCompleted) return "bg-green-100 border-green-300 text-green-800";
     return "bg-blue-50 border-blue-200 text-blue-800";
   };
 
@@ -407,13 +462,38 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
   return (
     <div className="space-y-3">
+      {/* ── Missing report alerts ──────────────────────────────────── */}
+      {missingReportDates.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-medium text-red-600 shrink-0">Missing reports:</span>
+          {missingReportDates.map((dateStr) => (
+            <button
+              key={dateStr}
+              onClick={() => jumpToDate(dateStr)}
+              className="text-xs px-2 py-1 rounded-md bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors"
+            >
+              {format(parseISO(dateStr), "MMM d")}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Week navigation ──────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => setWeekOffset((w) => w - 1)} disabled={weekOffset <= 0}>
+        <Button variant="ghost" size="sm" onClick={() => setWeekOffset((w) => w - 1)}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div className="text-sm font-semibold text-center">
-          {format(weekStart, "MMM d")} – {format(weekEnd, "MMM d, yyyy")}
+        <div className="flex items-center justify-center gap-2 flex-1">
+          <span className="text-sm font-semibold">
+            {format(weekStart, "MMM d")} – {format(weekEnd, "MMM d, yyyy")}
+          </span>
+          <button
+            onClick={() => setHideEmptyDays((v) => !v)}
+            title={hideEmptyDays ? "Show all days" : "Hide empty days"}
+            className={`h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${hideEmptyDays ? "text-[#4F46E5] bg-[#4F46E5]/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+          >
+            {hideEmptyDays ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setWeekOffset((w) => w + 1)}>
           <ChevronRight className="h-4 w-4" />
@@ -427,7 +507,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
             <Skeleton key={i} className="h-20 rounded-xl" />
           ))}
         </div>
-      ) : allTimes.length === 0 && slotData.every((d) => !d.hasSlots) ? (
+      ) : allTimes.length === 0 && visibleDays.every((d) => !d.hasSlots) ? (
         <Card>
           <CardContent className="py-12 text-center">
             <CalendarDays className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
@@ -448,7 +528,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                     <th className="w-20 p-2 text-left text-muted-foreground font-medium sticky left-0 bg-white z-10">
                       Time
                     </th>
-                    {slotData.map((day) => {
+                    {visibleDays.map((day) => {
                       const dateObj = parseISO(day.date);
                       const isToday = format(new Date(), "yyyy-MM-dd") === day.date;
                       return (
@@ -480,7 +560,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                       <td className="p-2 font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-white z-10">
                         {formatTime(time)}
                       </td>
-                      {slotData.map((day) => {
+                      {visibleDays.map((day) => {
                         const ts = day.timeSlots.find((s) => s.time === time);
                         const past = isPast(day.date);
                         const isToday = format(new Date(), "yyyy-MM-dd") === day.date;
@@ -651,7 +731,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                                 <div className="font-medium truncate line-through">{cs.lead_name}</div>
                                                 <div className="text-[10px] text-orange-600">{cs.property_address}</div>
                                               </div>
-                                              <Badge variant="outline" className="text-[9px] border-orange-200 text-orange-600 shrink-0">
+                                              <Badge variant="outline" className="text-[10px] border-orange-200 text-orange-600 shrink-0">
                                                 {cs.status === "cancelled" ? "Cancelled" : cs.status === "no_show" ? "No Show" : "Rescheduled"}
                                               </Badge>
                                             </div>
@@ -756,6 +836,10 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" />
           Booked
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-green-100 border border-green-300" />
+          Completed
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-slate-300">—</span>

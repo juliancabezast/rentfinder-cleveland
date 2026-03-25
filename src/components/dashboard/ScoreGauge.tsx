@@ -39,8 +39,8 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({
     sm: { 
       container: "w-32 h-20", 
       score: "text-2xl", 
-      change: "text-[9px] px-1.5 py-0.5",
-      labels: "text-[9px]",
+      change: "text-[10px] px-1.5 py-0.5",
+      labels: "text-[10px]",
       labelText: "text-xs",
       strokeWidth: 6,
     },

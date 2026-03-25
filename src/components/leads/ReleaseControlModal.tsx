@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Bot, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface ReleaseControlModalProps {
   open: boolean;
@@ -29,7 +29,6 @@ export const ReleaseControlModal: React.FC<ReleaseControlModalProps> = ({
   leadName,
   onSuccess,
 }) => {
-  const { toast } = useToast();
   const [taskAction, setTaskAction] = useState<"resume" | "new">("resume");
   const [loading, setLoading] = useState(false);
 
@@ -74,8 +73,7 @@ export const ReleaseControlModal: React.FC<ReleaseControlModalProps> = ({
         }
       }
 
-      toast({
-        title: "Control Released",
+      toast.success("Control Released", {
         description: `${leadName} has been released back to automation.`,
       });
 
@@ -83,11 +81,7 @@ export const ReleaseControlModal: React.FC<ReleaseControlModalProps> = ({
       onOpenChange(false);
     } catch (error) {
       console.error("Error releasing control:", error);
-      toast({
-        title: "Error",
-        description: "Failed to release control. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to release control. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -95,7 +89,7 @@ export const ReleaseControlModal: React.FC<ReleaseControlModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />

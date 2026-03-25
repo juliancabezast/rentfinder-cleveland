@@ -778,7 +778,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                   size="sm"
                   onClick={handleCreateLead}
                   disabled={creatingLead || (!newLeadName.trim() && !newLeadPhone.trim())}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-sm"
+                  className="w-full bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white h-8 text-sm"
                 >
                   {creatingLead ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <UserPlus className="h-3.5 w-3.5 mr-1.5" />}
                   Create & Select Lead
@@ -1029,7 +1029,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           <Button
             onClick={handleSubmit}
             disabled={submitting || !selectedSlotId}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
           >
             {submitting ? (
               <>

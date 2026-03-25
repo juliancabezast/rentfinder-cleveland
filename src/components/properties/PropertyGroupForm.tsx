@@ -171,22 +171,24 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="1234 Cedar Ave"
+              className="min-h-[44px]"
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label>City</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} />
+              <Input value={city} onChange={(e) => setCity(e.target.value)} className="min-h-[44px]" />
             </div>
             <div>
               <Label>State</Label>
-              <Input value={state} onChange={(e) => setState(e.target.value)} />
+              <Input value={state} onChange={(e) => setState(e.target.value)} className="min-h-[44px]" />
             </div>
             <div>
               <Label>ZIP</Label>
               <Input
                 value={zipCode}
                 onChange={(e) => setZipCode(e.target.value)}
+                className="min-h-[44px]"
               />
             </div>
           </div>

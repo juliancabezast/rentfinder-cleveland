@@ -81,6 +81,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
   const [endTime, setEndTime] = useState("17:00:00");
   const [buffer, setBuffer] = useState("0");
   const [selectedCities, setSelectedCities] = useState<Set<string>>(new Set());
+  const [excludedProperties, setExcludedProperties] = useState<Set<string>>(new Set());
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loadingProps, setLoadingProps] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -111,10 +112,16 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
     return Array.from(set).sort();
   }, [properties]);
 
-  // Properties in ALL selected cities
-  const cityProperties = useMemo(
+  // All properties in selected cities (for display)
+  const cityPropertiesAll = useMemo(
     () => (selectedCities.size > 0 ? properties.filter((p) => selectedCities.has(p.city)) : []),
     [properties, selectedCities]
+  );
+
+  // Properties that will actually get slots (excluding deselected ones)
+  const cityProperties = useMemo(
+    () => cityPropertiesAll.filter((p) => !excludedProperties.has(p.id)),
+    [cityPropertiesAll, excludedProperties]
   );
 
   const toggleCity = (city: string) => {
@@ -125,8 +132,26 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
     }
     setSelectedCities((prev) => {
       const next = new Set(prev);
-      if (next.has(city)) next.delete(city);
-      else next.add(city);
+      if (next.has(city)) {
+        next.delete(city);
+        // Clear exclusions for removed city
+        setExcludedProperties((ex) => {
+          const nextEx = new Set(ex);
+          properties.filter((p) => p.city === city).forEach((p) => nextEx.delete(p.id));
+          return nextEx;
+        });
+      } else {
+        next.add(city);
+      }
+      return next;
+    });
+  };
+
+  const toggleProperty = (propId: string) => {
+    setExcludedProperties((prev) => {
+      const next = new Set(prev);
+      if (next.has(propId)) next.delete(propId);
+      else next.add(propId);
       return next;
     });
   };
@@ -138,6 +163,7 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
       setLoadingProps(true);
       setOriginalCities(new Set());
       setCitiesWithBookings(new Set());
+      setExcludedProperties(new Set());
 
       const { data: propData } = await supabase
         .from("properties")
@@ -427,6 +453,71 @@ export const EnableSlotsDialog: React.FC<EnableSlotsDialogProps> = ({
               </p>
             )}
           </div>
+
+          {/* Property selection within cities (grouped by address) */}
+          {cityPropertiesAll.length > 0 && (() => {
+            // Group by address to collapse units
+            const grouped = new Map<string, PropertyOption[]>();
+            for (const p of cityPropertiesAll) {
+              const key = `${p.address}|${p.city}`;
+              if (!grouped.has(key)) grouped.set(key, []);
+              grouped.get(key)!.push(p);
+            }
+            const groups = [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+            const includedCount = cityProperties.length;
+            const hasExclusions = excludedProperties.size > 0;
+
+            return (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">
+                    Properties ({groups.filter(([, units]) => units.some((u) => !excludedProperties.has(u.id))).length}/{groups.length})
+                  </Label>
+                  {hasExclusions && (
+                    <button
+                      type="button"
+                      onClick={() => setExcludedProperties(new Set())}
+                      className="text-[10px] text-[#4F46E5] hover:underline"
+                    >
+                      Select all
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-32 overflow-y-auto rounded-md border bg-muted/20 px-2 py-1.5 space-y-0.5">
+                  {groups.map(([key, units]) => {
+                    const allExcluded = units.every((u) => excludedProperties.has(u.id));
+                    const toggleGroup = () => {
+                      setExcludedProperties((prev) => {
+                        const next = new Set(prev);
+                        if (allExcluded) {
+                          units.forEach((u) => next.delete(u.id));
+                        } else {
+                          units.forEach((u) => next.add(u.id));
+                        }
+                        return next;
+                      });
+                    };
+                    const unitCount = units.length;
+                    return (
+                      <label key={key} className="flex items-center gap-2 text-xs cursor-pointer py-0.5 hover:bg-muted/40 rounded px-1">
+                        <input
+                          type="checkbox"
+                          checked={!allExcluded}
+                          onChange={toggleGroup}
+                          className="rounded border-slate-300"
+                        />
+                        <span className="truncate">{units[0].address}</span>
+                        {unitCount > 1 && (
+                          <span className="text-[10px] text-muted-foreground shrink-0">({unitCount} units)</span>
+                        )}
+                        <span className="text-[10px] text-muted-foreground ml-auto shrink-0">{units[0].city}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Removed cities warning */}
           {isEditMode && removedCities.size > 0 && (

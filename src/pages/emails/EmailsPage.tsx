@@ -747,7 +747,7 @@ const EmailsPage = () => {
                   key={opt.value}
                   variant={inboundTypeFilter === opt.value ? "default" : "outline"}
                   size="sm"
-                  className={inboundTypeFilter === opt.value ? "bg-indigo-600 hover:bg-indigo-700 text-white" : ""}
+                  className={inboundTypeFilter === opt.value ? "bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white" : ""}
                   onClick={() => { setInboundTypeFilter(opt.value); setInboundPage(0); }}
                 >
                   {opt.value === "listings_update" && <Filter className="h-3.5 w-3.5 mr-1" />}

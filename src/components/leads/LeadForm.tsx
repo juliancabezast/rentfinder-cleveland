@@ -288,6 +288,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
             <Label htmlFor="first_name">First Name</Label>
             <Input
               id="first_name"
+              className="min-h-[44px]"
               value={formData.first_name}
               onChange={(e) =>
                 setFormData((f) => ({ ...f, first_name: e.target.value }))
@@ -298,6 +299,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
             <Label htmlFor="last_name">Last Name</Label>
             <Input
               id="last_name"
+              className="min-h-[44px]"
               value={formData.last_name}
               onChange={(e) =>
                 setFormData((f) => ({ ...f, last_name: e.target.value }))
@@ -312,6 +314,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
               id="phone"
               type="tel"
               required
+              className="min-h-[44px]"
               value={formData.phone}
               onChange={(e) =>
                 setFormData((f) => ({ ...f, phone: e.target.value }))
@@ -323,6 +326,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
             <Input
               id="email"
               type="email"
+              className="min-h-[44px]"
               value={formData.email}
               onChange={(e) =>
                 setFormData((f) => ({ ...f, email: e.target.value }))
@@ -486,6 +490,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
             <Input
               id="budget_min"
               type="number"
+              className="min-h-[44px]"
               value={formData.budget_min}
               onChange={(e) =>
                 setFormData((f) => ({ ...f, budget_min: e.target.value }))
@@ -497,6 +502,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
             <Input
               id="budget_max"
               type="number"
+              className="min-h-[44px]"
               value={formData.budget_max}
               onChange={(e) =>
                 setFormData((f) => ({ ...f, budget_max: e.target.value }))
@@ -508,6 +514,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
             <Input
               id="move_in_date"
               type="date"
+              className="min-h-[44px]"
               value={formData.move_in_date}
               onChange={(e) =>
                 setFormData((f) => ({ ...f, move_in_date: e.target.value }))
@@ -537,6 +544,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
               <Input
                 id="voucher_amount"
                 type="number"
+                className="min-h-[44px]"
                 value={formData.voucher_amount}
                 onChange={(e) =>
                   setFormData((f) => ({ ...f, voucher_amount: e.target.value }))
@@ -567,6 +575,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
               <Label htmlFor="housing_authority">Housing Authority</Label>
               <Input
                 id="housing_authority"
+                className="min-h-[44px]"
                 value={formData.housing_authority}
                 onChange={(e) =>
                   setFormData((f) => ({

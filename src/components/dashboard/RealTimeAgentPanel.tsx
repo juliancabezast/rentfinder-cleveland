@@ -382,7 +382,7 @@ export const RealTimeAgentPanel = () => {
                             Next: {agent} will {action}
                           </span>
                           {nextTask.status === "in_progress" && (
-                            <Badge className="h-3.5 px-1 text-[9px] bg-blue-500 hover:bg-blue-500">
+                            <Badge className="h-3.5 px-1 text-[10px] bg-blue-500 hover:bg-blue-500">
                               IN PROGRESS
                             </Badge>
                           )}

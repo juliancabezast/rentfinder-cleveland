@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -11,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const DEFAULT_RULES_TEXT = `Appliances are not provided.
 
@@ -33,7 +34,6 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
   onOpenChange,
 }) => {
   const { userRecord } = useAuth();
-  const { toast } = useToast();
   const [rulesText, setRulesText] = useState(DEFAULT_RULES_TEXT);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -102,11 +102,11 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
         });
       }
 
-      toast({ title: "Rules saved", description: "Global property rules updated." });
+      toast.success("Rules saved");
       onOpenChange(false);
     } catch (err) {
       console.error("Error saving property rules:", err);
-      toast({ title: "Error", description: "Failed to save rules.", variant: "destructive" });
+      toast.error("Failed to save rules");
     } finally {
       setSaving(false);
     }
@@ -117,9 +117,9 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
       <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Global Property Rules</DialogTitle>
-          <p className="text-sm text-muted-foreground">
+          <DialogDescription>
             These rules apply to all properties. AI agents, listings, and communications use this text as source of truth.
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         {loading ? (
@@ -152,7 +152,7 @@ export const PropertyRulesDialog: React.FC<PropertyRulesDialogProps> = ({
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleSave} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                <Button onClick={handleSave} disabled={saving} className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white">
                   {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Save Rules
                 </Button>

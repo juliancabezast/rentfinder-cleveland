@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface HumanTakeoverModalProps {
   open: boolean;
@@ -32,7 +32,6 @@ export const HumanTakeoverModal: React.FC<HumanTakeoverModalProps> = ({
   onSuccess,
 }) => {
   const { userRecord } = useAuth();
-  const { toast } = useToast();
   const [reason, setReason] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -68,8 +67,7 @@ export const HumanTakeoverModal: React.FC<HumanTakeoverModalProps> = ({
 
       if (updateError) throw updateError;
 
-      toast({
-        title: "Control Taken",
+      toast.success("Control Taken", {
         description: `You are now in control of ${leadName}. All automated follow-ups have been paused.`,
       });
 
@@ -79,11 +77,7 @@ export const HumanTakeoverModal: React.FC<HumanTakeoverModalProps> = ({
       setConfirmed(false);
     } catch (error) {
       console.error("Error taking control:", error);
-      toast({
-        title: "Error",
-        description: "Failed to take control of this lead. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to take control of this lead. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -91,7 +85,7 @@ export const HumanTakeoverModal: React.FC<HumanTakeoverModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-destructive" />

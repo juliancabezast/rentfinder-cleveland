@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -83,8 +83,6 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
   onOpenReport,
 }) => {
   const { userRecord } = useAuth();
-  const { toast } = useToast();
-
   const [showing, setShowing] = useState<ShowingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelMode, setCancelMode] = useState(false);
@@ -127,7 +125,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
 
       if (error) {
         console.error("Error fetching showing:", error);
-        toast({ title: "Error", description: "Failed to load showing details.", variant: "destructive" });
+        toast.error("Failed to load showing details");
         onOpenChange(false);
       } else {
         setShowing(data as any);
@@ -184,11 +182,13 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         }
       }
 
-      // 3b. Send cancellation email to lead with other properties
+      // 3b. Send cancellation email to lead with other properties (same city)
       if (showing.leads?.email) {
         const otherProps = await fetchAvailableProperties(
           userRecord.organization_id,
           showing.property_id || undefined,
+          5,
+          showing.properties?.city || undefined,
         );
         sendLeadShowingEmail({
           leadEmail: showing.leads.email,
@@ -219,8 +219,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         },
       });
 
-      toast({
-        title: "Showing cancelled",
+      toast.success("Showing cancelled", {
         description: `SMS notification sent to ${showing.leads?.full_name || "lead"} with rescheduling link.`,
       });
 
@@ -228,7 +227,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       onSuccess?.();
     } catch (err: any) {
       console.error("Cancel error:", err);
-      toast({ title: "Error", description: `Failed to cancel: ${err.message}`, variant: "destructive" });
+      toast.error(`Failed to cancel: ${err.message}`);
     } finally {
       setCancelling(false);
     }
@@ -263,11 +262,13 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       const propTz2 = getTimezoneForCity(showing.properties?.city);
       const showingDate = format(parseISO(showing.scheduled_at), "EEEE, MMM d") + " at " + formatTimeInTimezone(showing.scheduled_at, propTz2);
 
-      // Send rich reschedule email with available properties
+      // Send rich reschedule email with available properties (same city)
       if (showing.leads?.email) {
         const otherProps = await fetchAvailableProperties(
           userRecord.organization_id,
           showing.property_id || undefined,
+          5,
+          showing.properties?.city || undefined,
         );
         sendLeadShowingEmail({
           leadEmail: showing.leads.email,
@@ -312,8 +313,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         details: { rescheduled_by: userRecord.id },
       });
 
-      toast({
-        title: "Showing rescheduled",
+      toast.success("Showing rescheduled", {
         description: `${showing.leads?.full_name || "Lead"} has been notified to pick a new time.`,
       });
 
@@ -321,7 +321,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       onSuccess?.();
     } catch (err: any) {
       console.error("Reschedule error:", err);
-      toast({ title: "Error", description: `Failed to reschedule: ${err.message}`, variant: "destructive" });
+      toast.error(`Failed to reschedule: ${err.message}`);
     } finally {
       setRescheduling(false);
     }
@@ -405,13 +405,13 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         },
       });
 
-      toast({ title: "Showing rescheduled", description: `${showing.leads?.full_name || "Lead"} has been rescheduled and notified by email.` });
+      toast.success("Showing rescheduled", { description: `${showing.leads?.full_name || "Lead"} has been rescheduled and notified by email.` });
       setRescheduleMode(false);
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
       console.error("Reactivate error:", err);
-      toast({ title: "Error", description: `Failed to reschedule: ${err.message}`, variant: "destructive" });
+      toast.error(`Failed to reschedule: ${err.message}`);
     } finally {
       setReactivating(false);
     }
@@ -463,13 +463,13 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         },
       });
 
-      toast({ title: "Showing updated", description: "Date/time updated successfully." });
+      toast.success("Showing updated");
       setEditMode(false);
       // Refresh showing data
       setShowing({ ...showing, scheduled_at: newScheduledAt, duration_minutes: editDuration });
       onSuccess?.();
     } catch (err: any) {
-      toast({ title: "Error", description: `Failed to save: ${err.message}`, variant: "destructive" });
+      toast.error(`Failed to save: ${err.message}`);
     } finally {
       setSaving(false);
     }

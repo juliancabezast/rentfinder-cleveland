@@ -84,11 +84,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-dvh flex w-full main-gradient-bg">
-      {/* Skip to main content - Accessibility */}
-      <a href="#main-content" className="skip-to-content">
-        Skip to main content
-      </a>
-
       {/* Desktop Sidebar */}
       <Sidebar collapsed={sidebarCollapsed} onCollapse={setSidebarCollapsed} />
 

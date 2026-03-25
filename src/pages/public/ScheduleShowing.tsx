@@ -221,7 +221,7 @@ const BuildingSelectCard: React.FC<{
             >
               Only {spots} left
             </Badge>
-            <span className="text-[9px] text-muted-foreground">{dateLabel}</span>
+            <span className="text-[10px] text-muted-foreground">{dateLabel}</span>
           </>
         )}
       </div>

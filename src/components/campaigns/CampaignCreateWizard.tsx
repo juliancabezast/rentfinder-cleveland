@@ -511,7 +511,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             <div className={cn(
               "h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors",
               step >= s.n
-                ? "bg-indigo-600 text-white"
+                ? "bg-[#4F46E5] text-white"
                 : "bg-slate-100 text-slate-400"
             )}>
               {step > s.n ? <Check className="h-4 w-4" /> : s.n}
@@ -838,7 +838,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             <Button
               onClick={launchCampaign}
               disabled={!canProceedStep2 || isLaunching}
-              className="bg-indigo-600 hover:bg-indigo-700"
+              className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
             >
               {isLaunching ? (
                 <>

@@ -117,7 +117,7 @@ const ShowingsList: React.FC = () => {
   const [dateFilter, setDateFilter] = useState("week");
 
   // Tab state from URL
-  const activeTab = searchParams.get("tab") || "showings";
+  const activeTab = searchParams.get("tab") || "slots";
   const setActiveTab = (tab: string) => {
     setSearchParams({ tab });
   };
@@ -478,19 +478,18 @@ const ShowingsList: React.FC = () => {
           <CalendarDays className="h-6 w-6" />
           Showings
         </h1>
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {permissions.canEditProperty && (
             <>
-              <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs">
-                {slotTotals.available} Available
-              </Badge>
-              <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300 text-xs">
-                {slotTotals.booked} Booked
-              </Badge>
+              <span className="text-xs text-muted-foreground">
+                <span className="font-medium text-emerald-700">{slotTotals.available}</span> available
+                {" · "}
+                <span className="font-medium text-blue-700">{slotTotals.booked}</span> booked
+              </span>
               <Button
                 variant="outline"
-                size="icon"
-                className="h-8 w-8"
+                size="sm"
+                className="h-8"
                 title="Copy booking link"
                 onClick={() => {
                   const url = `${window.location.origin}/p/book-showing`;
@@ -498,35 +497,26 @@ const ShowingsList: React.FC = () => {
                   toast({ title: "Booking link copied!", description: url });
                 }}
               >
-                <Link2 className="h-4 w-4" />
+                <Link2 className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Copy Link</span>
               </Button>
               <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setEnableSlotsOpen(true)}
-                className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white h-8"
+                className="h-8"
               >
                 <Plus className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Enable Slots</span>
               </Button>
             </>
           )}
-          {activeTab === "showings" && showings.length > 0 && (
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              title="Download agenda"
-              onClick={downloadAgenda}
-            >
-              <Download className="h-4 w-4" />
-            </Button>
-          )}
           <Button
             size="sm"
             onClick={() => setScheduleDialogOpen(true)}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold h-8"
+            className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white h-8"
           >
-            <Plus className="h-4 w-4 sm:mr-1.5" />
+            <Plus className="h-4 w-4 sm:mr-1" />
             <span className="hidden sm:inline">Schedule Showing</span>
           </Button>
         </div>
@@ -534,9 +524,9 @@ const ShowingsList: React.FC = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
         <TabsList className="inline-flex w-full sm:w-auto h-auto">
-          <TabsTrigger value="showings" className="flex-1 sm:flex-initial gap-2">
+          <TabsTrigger value="slots" className="flex-1 sm:flex-initial gap-2">
             <CalendarDays className="h-4 w-4" />
-            <span>Showings</span>
+            <span>Showing Schedule</span>
           </TabsTrigger>
           {permissions.canViewOwnRoute && (
             <TabsTrigger value="route" className="flex-1 sm:flex-initial gap-2">
@@ -544,412 +534,136 @@ const ShowingsList: React.FC = () => {
               <span>My Route</span>
             </TabsTrigger>
           )}
-          {permissions.canEditProperty && (
-            <TabsTrigger value="slots" className="flex-1 sm:flex-initial gap-2">
-              <Settings2 className="h-4 w-4" />
-              <span>Manage Slots</span>
-            </TabsTrigger>
-          )}
         </TabsList>
 
-        <TabsContent value="showings" className="space-y-4">
-          {/* ── KPI Bubbles (all-time) ────────────────────────────────── */}
-          {!loading && (
-            <div className="grid grid-cols-3 gap-3">
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-indigo-50 to-white">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                    <CalendarDays className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold text-indigo-700">{allTimeMetrics.totalScheduled}</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Total Scheduled</p>
-                  </div>
-                </CardContent>
-              </Card>
+        <TabsContent value="slots" className="space-y-6">
+          <ManageSlotsTab
+            externalDialogOpen={enableSlotsOpen}
+            onExternalDialogHandled={() => setEnableSlotsOpen(false)}
+            onTotalsChange={setSlotTotals}
+            onShowingClick={(showingId) => {
+              setSelectedShowingId(showingId);
+              setDetailDialogOpen(true);
+            }}
+          />
 
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-amber-50 to-white">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                    <DollarSign className="h-5 w-5 text-amber-600" />
+          {/* Minimum Lead Time Config */}
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                  <Clock className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm">Minimum Booking Lead Time</h3>
+                  <p className="text-xs text-muted-foreground">
+                    How many minutes before a time slot must the lead book? Slots closer than this to the current time won't be shown.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Select
+                  value={String(leadTimeMinutes)}
+                  onValueChange={(v) => setLeadTimeMinutes(parseInt(v))}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">No minimum</SelectItem>
+                    <SelectItem value="15">15 minutes</SelectItem>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="45">45 minutes</SelectItem>
+                    <SelectItem value="60">1 hour</SelectItem>
+                    <SelectItem value="90">1.5 hours</SelectItem>
+                    <SelectItem value="120">2 hours</SelectItem>
+                    <SelectItem value="180">3 hours</SelectItem>
+                    <SelectItem value="240">4 hours</SelectItem>
+                    <SelectItem value="480">8 hours</SelectItem>
+                    <SelectItem value="1440">24 hours</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={saveLeadTime}
+                  disabled={leadTimeSaving}
+                  className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
+                >
+                  {leadTimeSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                  Save
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Call Now Button Config */}
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                  <Phone className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm">Call Now Button</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Floating button on the public booking page
+                  </p>
+                </div>
+                {callNowLoading ? (
+                  <Skeleton className="h-6 w-10 rounded-full" />
+                ) : (
+                  <Switch
+                    checked={callNowEnabled}
+                    onCheckedChange={(checked) => setCallNowEnabled(checked)}
+                  />
+                )}
+              </div>
+
+              {!callNowLoading && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="call-now-phone" className="text-xs">Phone Number</Label>
+                    <Input
+                      id="call-now-phone"
+                      placeholder="+1 (221) 220-29323"
+                      value={callNowPhone}
+                      onChange={(e) => setCallNowPhone(e.target.value)}
+                    />
                   </div>
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold text-amber-700">
-                      ${allTimeMetrics.potentialRent.toLocaleString()}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Rent Potential/mo</p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="call-now-label" className="text-xs">Button Label</Label>
+                    <Input
+                      id="call-now-label"
+                      placeholder="Call Now"
+                      value={callNowLabel}
+                      onChange={(e) => setCallNowLabel(e.target.value)}
+                    />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-teal-50 to-white">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
-                    <TrendingUp className="h-5 w-5 text-teal-600" />
-                  </div>
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold text-teal-700">{allTimeMetrics.completionRate}%</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Completion Rate</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* ── Filters ──────────────────────────────────────────────── */}
-          <div className="flex items-center gap-2">
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-40 h-9">
-                <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                <SelectValue placeholder="Date range" />
-              </SelectTrigger>
-              <SelectContent>
-                {DATE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-52 h-9">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {!loading && (
-              <Badge variant="secondary" className="text-xs shrink-0">
-                {showings.length} result{showings.length !== 1 ? "s" : ""}
-              </Badge>
-            )}
-          </div>
-
-          {/* ── Showings grouped by day ──────────────────────────────── */}
-          {loading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <ShowingCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : showings.length === 0 ? (
-            <Card variant="glass">
-              <CardContent className="p-0">
-                <EmptyState
-                  icon={CalendarDays}
-                  title="No showings found"
-                  description={
-                    statusFilter !== "active" || dateFilter !== "all"
-                      ? "No showings match your filters. Try adjusting date range or status."
-                      : "Showings will appear here when leads schedule property tours."
-                  }
-                />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {/* ── Day jump strip ────────────────────────────────── */}
-              {groupedByDay.length > 1 && (
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-                  {groupedByDay.map((group) => {
-                    const dateObj = parseISO(group.dateKey);
-                    const todayDate = isToday(dateObj);
-                    return (
-                      <button
-                        key={group.dateKey}
-                        onClick={() => {
-                          document.getElementById(`day-${group.dateKey}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }}
-                        className={`flex flex-col items-center px-3 py-1.5 rounded-lg border transition-colors shrink-0 min-h-[44px] ${
-                          todayDate
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-white hover:bg-indigo-50 border-slate-200 hover:border-indigo-300"
-                        }`}
-                      >
-                        <span className={`text-[10px] uppercase font-medium ${todayDate ? "text-indigo-100" : "text-muted-foreground"}`}>
-                          {format(dateObj, "EEE")}
-                        </span>
-                        <span className={`text-lg font-bold leading-tight ${todayDate ? "" : "text-slate-800"}`}>
-                          {format(dateObj, "d")}
-                        </span>
-                        <span className={`text-[10px] ${todayDate ? "text-indigo-200" : "text-muted-foreground"}`}>
-                          {group.showings.length}
-                        </span>
-                      </button>
-                    );
-                  })}
                 </div>
               )}
 
-              {/* ── Day groups ────────────────────────────────────── */}
-              <div className="space-y-8">
-                {groupedByDay.map((group) => {
-                  const dateObj = parseISO(group.dateKey);
-                  const todayDate = isToday(dateObj);
-                  return (
-                    <div key={group.dateKey} id={`day-${group.dateKey}`} className="scroll-mt-4">
-                      {/* Day header */}
-                      <div className={`flex items-center gap-3 mb-4 pb-2 border-b ${todayDate ? "border-indigo-200" : "border-slate-200"}`}>
-                        <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ${
-                          todayDate ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-700"
-                        }`}>
-                          <span className="text-lg font-bold">
-                            {format(dateObj, "d")}
-                          </span>
-                        </div>
-                        <h3 className="text-base font-bold text-foreground">
-                          {group.label}
-                        </h3>
-                        <Badge variant="outline" className="text-xs ml-auto px-2.5 py-0.5">
-                          {group.showings.length} showing{group.showings.length !== 1 ? "s" : ""}
-                        </Badge>
-                      </div>
-
-                      {/* Showing cards for this day */}
-                      <div className="space-y-1.5 pl-3 border-l-2 border-indigo-100 ml-5">
-                        {group.showings.map((showing, index) => (
-                          <Card
-                            key={showing.id}
-                            variant="glass"
-                            className="hover:shadow-modern-lg transition-all duration-300 cursor-pointer animate-fade-up"
-                            style={{
-                              animationDelay: `${Math.min(index * 0.04, 0.2)}s`,
-                              animationFillMode: "both",
-                            }}
-                            onClick={() => {
-                              setSelectedShowingId(showing.id);
-                              setDetailDialogOpen(true);
-                            }}
-                          >
-                            <CardContent className="px-3 py-2 sm:px-4 sm:py-2.5">
-                              <div className="flex items-start sm:items-center gap-3">
-                                {/* Time + Status (mobile: stacked) */}
-                                <div className="w-16 sm:w-20 shrink-0 text-center sm:text-right">
-                                  <p className="font-bold text-sm">
-                                    {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(showing.property_city))}
-                                  </p>
-                                  <Badge
-                                    className={`text-[9px] px-1.5 py-0 sm:hidden mt-0.5 ${
-                                      statusColors[showing.status] || "bg-muted text-muted-foreground"
-                                    }`}
-                                  >
-                                    {showing.status.replace("_", " ")}
-                                  </Badge>
-                                </div>
-
-                                {/* Details */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    {showing.property_address && (
-                                      <a
-                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                                          `${showing.property_address}${showing.property_city ? `, ${showing.property_city}` : ""}`
-                                        )}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="font-semibold text-sm hover:underline truncate"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        {showing.property_address}{showing.property_city && `, ${showing.property_city}`}
-                                      </a>
-                                    )}
-                                    {showing.rent_price && (
-                                      <span className="text-emerald-600 text-xs font-medium shrink-0">
-                                        ${showing.rent_price.toLocaleString()}/mo
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                    {showing.lead_name && (
-                                      <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                                        {showing.lead_name}
-                                        {showing.lead_has_voucher !== null && (
-                                          <Badge variant="outline" className={`text-[9px] px-1 py-0 ${showing.lead_has_voucher ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
-                                            {showing.lead_has_voucher ? "V" : "SP"}
-                                          </Badge>
-                                        )}
-                                      </span>
-                                    )}
-                                    {showing.lead_phone && (
-                                      <a href={`tel:${showing.lead_phone}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                        <Phone className="h-3 w-3" />
-                                        <span className="hidden sm:inline">{showing.lead_phone}</span>
-                                        <span className="sm:hidden">Call</span>
-                                      </a>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Actions + Status (desktop) */}
-                                <div className="hidden sm:flex items-center gap-2 shrink-0">
-                                  {canSubmitReport(showing.status) && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 text-xs px-2"
-                                      onClick={(e) => handleOpenReport(e, showing)}
-                                    >
-                                      <FileText className="h-3.5 w-3.5 mr-1" />
-                                      Report
-                                    </Button>
-                                  )}
-                                  <Badge
-                                    className={`text-[10px] px-2 py-0.5 ${
-                                      statusColors[showing.status] || "bg-muted text-muted-foreground"
-                                    }`}
-                                  >
-                                    {showing.status.replace("_", " ")}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+              {!callNowLoading && (
+                <Button
+                  size="sm"
+                  onClick={saveCallNowConfig}
+                  disabled={callNowSaving}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {callNowSaving ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : null}
+                  Save
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
+
 
         {permissions.canViewOwnRoute && (
           <TabsContent value="route">
             <MyRouteTab onRefresh={fetchShowings} />
-          </TabsContent>
-        )}
-
-        {permissions.canEditProperty && (
-          <TabsContent value="slots" className="space-y-6">
-            <ManageSlotsTab
-              externalDialogOpen={enableSlotsOpen}
-              onExternalDialogHandled={() => setEnableSlotsOpen(false)}
-              onTotalsChange={setSlotTotals}
-              onShowingClick={(showingId) => {
-                setSelectedShowingId(showingId);
-                setDetailDialogOpen(true);
-              }}
-            />
-
-            {/* Minimum Lead Time Config */}
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                    <Clock className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm">Minimum Booking Lead Time</h3>
-                    <p className="text-xs text-muted-foreground">
-                      How many minutes before a time slot must the lead book? Slots closer than this to the current time won't be shown.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Select
-                    value={String(leadTimeMinutes)}
-                    onValueChange={(v) => setLeadTimeMinutes(parseInt(v))}
-                  >
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">No minimum</SelectItem>
-                      <SelectItem value="15">15 minutes</SelectItem>
-                      <SelectItem value="30">30 minutes</SelectItem>
-                      <SelectItem value="45">45 minutes</SelectItem>
-                      <SelectItem value="60">1 hour</SelectItem>
-                      <SelectItem value="90">1.5 hours</SelectItem>
-                      <SelectItem value="120">2 hours</SelectItem>
-                      <SelectItem value="180">3 hours</SelectItem>
-                      <SelectItem value="240">4 hours</SelectItem>
-                      <SelectItem value="480">8 hours</SelectItem>
-                      <SelectItem value="1440">24 hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    size="sm"
-                    onClick={saveLeadTime}
-                    disabled={leadTimeSaving}
-                    className="bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    {leadTimeSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                    Save
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Call Now Button Config */}
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                    <Phone className="h-5 w-5 text-emerald-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm">Call Now Button</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Floating button on the public booking page
-                    </p>
-                  </div>
-                  {callNowLoading ? (
-                    <Skeleton className="h-6 w-10 rounded-full" />
-                  ) : (
-                    <Switch
-                      checked={callNowEnabled}
-                      onCheckedChange={(checked) => setCallNowEnabled(checked)}
-                    />
-                  )}
-                </div>
-
-                {!callNowLoading && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="call-now-phone" className="text-xs">Phone Number</Label>
-                      <Input
-                        id="call-now-phone"
-                        placeholder="+1 (221) 220-29323"
-                        value={callNowPhone}
-                        onChange={(e) => setCallNowPhone(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="call-now-label" className="text-xs">Button Label</Label>
-                      <Input
-                        id="call-now-label"
-                        placeholder="Call Now"
-                        value={callNowLabel}
-                        onChange={(e) => setCallNowLabel(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {!callNowLoading && (
-                  <Button
-                    size="sm"
-                    onClick={saveCallNowConfig}
-                    disabled={callNowSaving}
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    {callNowSaving ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : null}
-                    Save
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
           </TabsContent>
         )}
       </Tabs>

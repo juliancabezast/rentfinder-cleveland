@@ -310,7 +310,7 @@ const PropertiesList: React.FC = () => {
                 <Globe className="h-4 w-4 sm:mr-1.5" />
                 <span className="hidden sm:inline">Import</span>
               </Button>
-              <Button onClick={() => { setEditingProperty(null); setFormOpen(true); }} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Button onClick={() => { setEditingProperty(null); setFormOpen(true); }} size="sm" className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white">
                 <Plus className="h-4 w-4 sm:mr-1.5" />
                 <span className="hidden sm:inline">Add Property</span>
               </Button>

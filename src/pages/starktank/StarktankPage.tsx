@@ -720,7 +720,7 @@ const StarktankPage = () => {
                       { year: '2032', val: 88.37 },
                     ].map((d, i) => (
                       <div key={d.year} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-                        <span className="text-[9px] font-medium" style={{ color: '#94a3b8' }}>
+                        <span className="text-[10px] font-medium" style={{ color: '#94a3b8' }}>
                           ${d.val.toFixed(0)}B
                         </span>
                         <div
@@ -733,7 +733,7 @@ const StarktankPage = () => {
                             opacity: 0.65 + (i * 0.05),
                           }}
                         />
-                        <span className="text-[9px]" style={{ color: '#64748b' }}>{`'${d.year.slice(2)}`}</span>
+                        <span className="text-[10px]" style={{ color: '#64748b' }}>{`'${d.year.slice(2)}`}</span>
                       </div>
                     ))}
                   </div>

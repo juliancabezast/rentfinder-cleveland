@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="h-16 glass-card sticky top-0 z-40 flex items-center justify-between px-4 lg:px-6">
+    <header className="h-16 glass-card sticky top-0 z-30 flex items-center justify-between px-4 lg:px-6">
       {/* Left side - Menu button (mobile) + Page title */}
       <div className="flex items-center gap-3">
         <Button

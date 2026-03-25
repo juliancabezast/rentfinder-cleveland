@@ -229,7 +229,7 @@ const PropertyGroupDetail: React.FC = () => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold truncate">{group.address}</h1>
-            <Badge className="bg-indigo-600 text-white text-xs shrink-0">{typeLabel}</Badge>
+            <Badge className="bg-[#4F46E5] text-white text-xs shrink-0">{typeLabel}</Badge>
           </div>
           <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
             <MapPin className="h-3.5 w-3.5" />
@@ -284,7 +284,7 @@ const PropertyGroupDetail: React.FC = () => {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-base">Units ({units.length})</CardTitle>
           {permissions.canCreateProperty && (
-            <Button size="sm" onClick={() => setAddUnitOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white h-8">
+            <Button size="sm" onClick={() => setAddUnitOpen(true)} className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white h-8">
               <Plus className="h-3.5 w-3.5 mr-1" />
               Add Unit
             </Button>

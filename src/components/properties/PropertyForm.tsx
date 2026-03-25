@@ -439,7 +439,7 @@ Return ONLY the notes text, no quotes or labels.`,
                   value={zillowUrl}
                   onChange={(e) => setZillowUrl(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleZillowSync(); } }}
-                  className="flex-1"
+                  className="flex-1 min-h-[44px]"
                 />
                 <Button
                   type="button"
@@ -545,7 +545,7 @@ Return ONLY the notes text, no quotes or labels.`,
                   <FormItem className="md:col-span-2">
                     <FormLabel>Unit Name / Number *</FormLabel>
                     <FormControl>
-                      <Input placeholder="A, B, 1, 2..." {...field} autoFocus />
+                      <Input placeholder="A, B, 1, 2..." className="min-h-[44px]" {...field} autoFocus />
                     </FormControl>
                     <FormDescription>e.g. "A", "B", "1st Floor", "Upper"</FormDescription>
                     <FormMessage />
@@ -561,7 +561,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem className="md:col-span-2">
                   <FormLabel>Street Address *</FormLabel>
                   <FormControl>
-                    <Input placeholder="123 Main St" {...field} readOnly={isAddingUnit} className={isAddingUnit ? 'bg-muted' : ''} />
+                    <Input placeholder="123 Main St" {...field} readOnly={isAddingUnit} className={`min-h-[44px] ${isAddingUnit ? 'bg-muted' : ''}`} />
                   </FormControl>
                   {isAddingUnit && <FormDescription>Inherited from building</FormDescription>}
                   <FormMessage />
@@ -577,7 +577,7 @@ Return ONLY the notes text, no quotes or labels.`,
                   <FormItem>
                     <FormLabel>Unit Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Apt 2B" {...field} />
+                      <Input placeholder="Apt 2B" className="min-h-[44px]" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -592,7 +592,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>City *</FormLabel>
                   <FormControl>
-                    <Input {...field} readOnly={isAddingUnit} className={isAddingUnit ? 'bg-muted' : ''} />
+                    <Input {...field} readOnly={isAddingUnit} className={`min-h-[44px] ${isAddingUnit ? 'bg-muted' : ''}`} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -606,7 +606,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>State *</FormLabel>
                   <FormControl>
-                    <Input maxLength={2} {...field} readOnly={isAddingUnit} className={isAddingUnit ? 'bg-muted' : ''} />
+                    <Input maxLength={2} {...field} readOnly={isAddingUnit} className={`min-h-[44px] ${isAddingUnit ? 'bg-muted' : ''}`} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -620,7 +620,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>ZIP Code *</FormLabel>
                   <FormControl>
-                    <Input placeholder="44101" {...field} readOnly={isAddingUnit} className={isAddingUnit ? 'bg-muted' : ''} />
+                    <Input placeholder="44101" {...field} readOnly={isAddingUnit} className={`min-h-[44px] ${isAddingUnit ? 'bg-muted' : ''}`} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -642,7 +642,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>Bedrooms *</FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" {...field} />
+                    <Input type="number" min="0" className="min-h-[44px]" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -656,7 +656,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>Bathrooms *</FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" step="0.5" {...field} />
+                    <Input type="number" min="0" step="0.5" className="min-h-[44px]" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -670,7 +670,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>Square Feet</FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" {...field} />
+                    <Input type="number" min="0" className="min-h-[44px]" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -719,7 +719,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>Monthly Rent *</FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" step="1" placeholder="1200" {...field} />
+                    <Input type="number" min="0" step="1" placeholder="1200" className="min-h-[44px]" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -767,7 +767,7 @@ Return ONLY the notes text, no quotes or labels.`,
                   <FormItem>
                     <FormLabel>Available Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" className="min-h-[44px]" {...field} />
                     </FormControl>
                     <FormDescription>When will this property be available?</FormDescription>
                     <FormMessage />
@@ -805,7 +805,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>Video Tour URL</FormLabel>
                   <FormControl>
-                    <Input type="url" placeholder="https://youtube.com/..." {...field} />
+                    <Input type="url" placeholder="https://youtube.com/..." className="min-h-[44px]" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -819,7 +819,7 @@ Return ONLY the notes text, no quotes or labels.`,
                 <FormItem>
                   <FormLabel>Virtual Tour URL</FormLabel>
                   <FormControl>
-                    <Input type="url" placeholder="https://matterport.com/..." {...field} />
+                    <Input type="url" placeholder="https://matterport.com/..." className="min-h-[44px]" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

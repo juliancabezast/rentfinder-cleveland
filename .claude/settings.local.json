@@ -90,7 +90,13 @@
       "Bash(fi)",
       "Bash(do if:*)",
       "Bash(npm test:*)",
-      "Bash(for cid:*)"
+      "Bash(for cid:*)",
+      "Bash(chmod +x /tmp/send_booking_emails.sh)",
+      "Bash(bash:*)",
+      "Bash(curl -s -X POST \"https://api.telegram.org/bot8070740617:AAFMRR0xFUhQl73uyCkDECnmoXC_SjZlTLU/sendMessage\" \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -d '{\n    \"chat_id\": \"997837774\",\n    \"text\": \"🏠 <b>New Showing Booked!</b>\\\\n\\\\n📍 <b>2809 N 40th St #B \\(Up\\), Milwaukee, WI 53208</b> — $1,000/mo\\\\n📅 Monday, March 16, 2026 at 10:00 AM\\\\n\\\\n👤 <b>María García</b>\\\\n📞 \\(414\\) 555-0199\\\\n✉️ maria.garcia@example.com\\\\n🔗 Source: Public booking page\\\\n\\\\n🗺 <a href=\\\\\"https://www.google.com/maps/search/?api=1&query=2809+N+40th+St%2C+Milwaukee%2C+WI+53208\\\\\">Open in Google Maps</a>\",\n    \"parse_mode\": \"HTML\",\n    \"disable_web_page_preview\": true\n  }')",
+      "Bash(Anyway\" and suggests restoring instead.:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f''''Chat ID: {m[message][chat][id]} — From: {m[message][from][first_name]}''''\\) for m in d[''''result''''] if ''''message'''' in m]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f''''Chat ID: {m[message][chat][id]}''''\\) for m in d[''''result''''] if ''''message'''' in m]\")"
     ]
   }
 }
