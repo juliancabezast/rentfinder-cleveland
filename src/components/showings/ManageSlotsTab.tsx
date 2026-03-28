@@ -443,6 +443,43 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     setBlockingSlot(null);
   };
 
+  // Block/unblock slots for a specific city only
+  const handleToggleBlockByCity = async (date: string, time: string, city: string, block: boolean) => {
+    if (!orgId) return;
+    const key = `${date}-${time}`;
+    setBlockingSlot(key);
+
+    // Get property IDs for this city
+    const { data: cityProps } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("city", city);
+
+    const propIds = (cityProps || []).map((p: any) => p.id);
+    if (propIds.length === 0) {
+      setBlockingSlot(null);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("showing_available_slots")
+      .update({ is_enabled: !block, updated_at: new Date().toISOString() })
+      .eq("organization_id", orgId)
+      .eq("slot_date", date)
+      .eq("slot_time", time)
+      .eq("is_booked", false)
+      .in("property_id", propIds);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: block ? "Blocked" : "Unblocked", description: `${city} slots at ${formatTime(time)} on ${format(parseISO(date), "MMM d")} ${block ? "blocked" : "re-enabled"}.` });
+      fetchSlots();
+    }
+    setBlockingSlot(null);
+  };
+
   // ── All unique times across the week (for row headers) ────────────
   const allTimes = useMemo(() => {
     const timeSet = new Set<string>();
@@ -785,6 +822,52 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                                           </p>
                                         </div>
                                       )}
+                                      {/* Per-city block/unblock buttons */}
+                                      {!past && (() => {
+                                        const openByCity = new Map<string, number>();
+                                        const blockedByCity = new Map<string, number>();
+                                        ts.properties.forEach((p) => {
+                                          if (!p.property_city || p.is_booked) return;
+                                          if (p.is_enabled) {
+                                            openByCity.set(p.property_city, (openByCity.get(p.property_city) || 0) + 1);
+                                          } else {
+                                            blockedByCity.set(p.property_city, (blockedByCity.get(p.property_city) || 0) + 1);
+                                          }
+                                        });
+                                        const allCities = [...new Set([...openByCity.keys(), ...blockedByCity.keys()])].sort();
+                                        if (allCities.length <= 1) return null;
+                                        return (
+                                          <div className="space-y-1 pt-1 border-t">
+                                            <p className="text-[10px] text-muted-foreground font-medium">Block by city</p>
+                                            {allCities.map((city) => {
+                                              const openCount = openByCity.get(city) || 0;
+                                              const blockedCount = blockedByCity.get(city) || 0;
+                                              const isCityBlocked = openCount === 0 && blockedCount > 0;
+                                              return (
+                                                <Button
+                                                  key={city}
+                                                  variant="outline"
+                                                  size="sm"
+                                                  className={`w-full h-7 text-xs justify-between ${isCityBlocked ? "text-emerald-600 border-emerald-200 hover:bg-emerald-50" : "text-red-600 border-red-200 hover:bg-red-50"}`}
+                                                  disabled={blockingSlot === `${day.date}-${time}`}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleToggleBlockByCity(day.date, time, city, !isCityBlocked);
+                                                  }}
+                                                >
+                                                  <span className="flex items-center gap-1">
+                                                    {isCityBlocked ? <Check className="h-3 w-3" /> : <Ban className="h-3 w-3" />}
+                                                    {city}
+                                                  </span>
+                                                  <span className="text-[10px] opacity-70">
+                                                    {isCityBlocked ? `${blockedCount} blocked` : `${openCount} open`}
+                                                  </span>
+                                                </Button>
+                                              );
+                                            })}
+                                          </div>
+                                        );
+                                      })()}
                                       {/* Block / unblock button */}
                                       {!past && realBookings.length === 0 && (
                                         ts.isBlocked ? (
