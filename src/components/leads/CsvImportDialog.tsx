@@ -573,7 +573,8 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         const email = (lead.email as string) || "";
         const dedupKey = phone ? normalizePhone(phone) : email.toLowerCase().trim();
         if (lead.notes) leadNoteTexts.set(dedupKey, lead.notes as string);
-        const { notes, _rowNum, ...cleanLead } = lead;
+        // Strip fields that are not DB columns or are trigger-managed
+        const { notes, _rowNum, lead_score, ...cleanLead } = lead;
         return {
           ...cleanLead,
           organization_id: userRecord.organization_id,
@@ -586,9 +587,14 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         };
       });
 
+      // Insert in batches of 100 to avoid payload limits
       if (leadsWithOrg.length > 0) {
-        const { error } = await supabase.from("leads").insert(leadsWithOrg as any);
-        if (error) throw error;
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < leadsWithOrg.length; i += BATCH_SIZE) {
+          const batch = leadsWithOrg.slice(i, i + BATCH_SIZE);
+          const { error } = await supabase.from("leads").insert(batch as any);
+          if (error) throw error;
+        }
       }
 
       // Fetch inserted lead IDs for notes
