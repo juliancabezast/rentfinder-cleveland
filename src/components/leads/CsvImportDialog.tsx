@@ -587,13 +587,17 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         };
       });
 
-      // Insert in batches of 100 to avoid payload limits
+      // Insert in batches of 50 to avoid payload limits
       if (leadsWithOrg.length > 0) {
-        const BATCH_SIZE = 100;
+        const BATCH_SIZE = 50;
         for (let i = 0; i < leadsWithOrg.length; i += BATCH_SIZE) {
           const batch = leadsWithOrg.slice(i, i + BATCH_SIZE);
           const { error } = await supabase.from("leads").insert(batch as any);
-          if (error) throw error;
+          if (error) {
+            console.error(`Batch ${i / BATCH_SIZE + 1} failed:`, error.message, error.details, error.hint);
+            console.error("First row in failed batch:", JSON.stringify(batch[0], null, 2));
+            throw error;
+          }
         }
       }
 
@@ -714,9 +718,10 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       if (newLeads.length > 0) parts.push(`${newLeads.length} imported`);
       if (updatedCount > 0) parts.push(`${updatedCount} updated`);
       toast.success(`Successfully ${parts.join(", ")}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Import error:", error);
-      toast.error("Failed to import leads. Please try again.");
+      const msg = error?.message || error?.details || "Unknown error";
+      toast.error(`Import failed: ${msg}`);
     } finally {
       setImporting(false);
     }
