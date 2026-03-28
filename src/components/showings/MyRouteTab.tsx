@@ -215,16 +215,29 @@ export const MyRouteTab: React.FC<MyRouteTabProps> = ({ onRefresh }) => {
 
   const handleExportToGoogleMaps = () => {
     if (showings.length === 0) return;
-    
+
     const addresses = showings
       .filter((s) => s.property)
       .map((s) => {
         const p = s.property!;
         return `${p.address}${p.unit_number ? ` ${p.unit_number}` : ""}, ${p.city}, ${p.state}`;
       });
-    
-    const googleMapsUrl = `https://www.google.com/maps/dir/${addresses.map(encodeURIComponent).join("/")}`;
-    window.open(googleMapsUrl, "_blank");
+
+    if (addresses.length === 0) return;
+
+    if (addresses.length === 1) {
+      // Single stop: navigate from current location to destination
+      const encoded = encodeURIComponent(addresses[0]);
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, "_blank");
+    } else {
+      // Multiple stops: first = origin, last = destination, middle = waypoints
+      const origin = encodeURIComponent(addresses[0]);
+      const destination = encodeURIComponent(addresses[addresses.length - 1]);
+      const waypoints = addresses.slice(1, -1).map(encodeURIComponent).join("|");
+      let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+      if (waypoints) url += `&waypoints=${waypoints}`;
+      window.open(url, "_blank");
+    }
   };
 
   const totalDriveTime = Math.max(0, (showings.length - 1)) * ESTIMATED_DRIVE_TIME;
