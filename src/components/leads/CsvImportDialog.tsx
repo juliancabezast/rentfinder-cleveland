@@ -482,32 +482,27 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         const lastName = (lead.last_name as string) || "";
         const fullName = (lead.full_name as string) || [firstName, lastName].filter(Boolean).join(" ");
 
-        if (phone && (existingPhoneMap.has(phone) || seenPhones.has(phone))) {
-          const existingId = existingPhoneMap.get(phone);
+        // Check phone match first
+        const phoneMatch = phone ? (existingPhoneMap.get(phone) || (seenPhones.has(phone) ? "seen" : null)) : null;
+        // Check email match (ALWAYS, not just when phone is missing)
+        const emailMatch = email ? (existingEmailMap.get(email) || (seenEmails.has(email) ? "seen" : null)) : null;
+
+        const existingId = (phoneMatch && phoneMatch !== "seen") ? phoneMatch
+          : (emailMatch && emailMatch !== "seen") ? emailMatch
+          : null;
+
+        if (phoneMatch || emailMatch) {
           if (existingId) {
             duplicates.push({
               rowNum: lead._rowNum,
               name: fullName || "—",
               contact: (lead.phone as string) || (lead.email as string) || "",
-              reason: "Existing lead (phone)",
+              reason: phoneMatch ? "Existing lead (phone)" : "Existing lead (email)",
               existingLeadId: existingId,
               data: lead,
             });
           }
-          return;
-        }
-        if (!phone && email && (existingEmailMap.has(email) || seenEmails.has(email))) {
-          const existingId = existingEmailMap.get(email);
-          if (existingId) {
-            duplicates.push({
-              rowNum: lead._rowNum,
-              name: fullName || "—",
-              contact: (lead.email as string) || "",
-              reason: "Existing lead (email)",
-              existingLeadId: existingId,
-              data: lead,
-            });
-          }
+          // Also a dup if seen in current CSV batch (skip silently)
           return;
         }
 
