@@ -551,7 +551,7 @@ async function upsertLead(
   // corresponds to this fragment — skip the merge and create a new lead.
   const trimmedName = lead.name?.trim() || null;
   if (propertyId) {
-    const mergeWindowAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const mergeWindowAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recentSameProperty, error: dup3Err } = await supabase
       .from("leads")
       .select("id, full_name, source_detail, phone, email, interested_property_id")
@@ -1264,27 +1264,54 @@ serve(async (req: Request) => {
       // Hemlane sends paired emails:
       //   "Rental Message from {property}" → has name, no phone/email
       //   "New inquiry for {property}" → has phone/email, no name
-      // These can arrive up to 15+ min apart. Fix the nameless lead now.
-      if (leadInfo.name && leadInfo.name.length > 2 && leadInfo.property) {
-        const propertyId = await matchProperty(supabase, organizationId, leadInfo.property);
-        if (propertyId) {
-          const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-          const { data: recentNameless } = await supabase
-            .from("leads")
-            .select("id, full_name")
-            .eq("organization_id", organizationId)
-            .eq("source", "hemlane_email")
-            .eq("interested_property_id", propertyId)
-            .gte("created_at", thirtyMinAgo)
-            .order("created_at", { ascending: false })
-            .limit(5);
+      // These can arrive hours apart. Fix the nameless lead now.
+      if (leadInfo.name && leadInfo.name.length > 2) {
+        let merged = false;
 
-          if (recentNameless) {
-            // Only fix if EXACTLY ONE placeholder lead — multiple = ambiguous (different people, same property)
-            const placeholders = recentNameless.filter((c) =>
-              !c.full_name || c.full_name.startsWith("Hemlane Lead") || /\d{7,}/.test(c.full_name.replace(/\D/g, ""))
-            );
-            if (placeholders.length === 1) {
+        // Strategy 1: Match by property (expanded to 24h window)
+        if (leadInfo.property) {
+          const propertyId = await matchProperty(supabase, organizationId, leadInfo.property);
+          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+          // Search by matched property ID first, then by address text if no propertyId match
+          let recentCandidates: { id: string; full_name: string | null; source_detail: string | null }[] = [];
+
+          if (propertyId) {
+            const { data } = await supabase
+              .from("leads")
+              .select("id, full_name, source_detail")
+              .eq("organization_id", organizationId)
+              .eq("source", "hemlane_email")
+              .eq("interested_property_id", propertyId)
+              .gte("created_at", twentyFourHoursAgo)
+              .order("created_at", { ascending: false })
+              .limit(10);
+            if (data) recentCandidates = data;
+          }
+
+          // Fallback: search by property address text in source_detail
+          if (recentCandidates.length === 0 && leadInfo.property) {
+            const addrWords = leadInfo.property.split(/[\s,]+/).filter((w: string) => w.length > 3).slice(0, 3);
+            if (addrWords.length > 0) {
+              const { data } = await supabase
+                .from("leads")
+                .select("id, full_name, source_detail")
+                .eq("organization_id", organizationId)
+                .eq("source", "hemlane_email")
+                .gte("created_at", twentyFourHoursAgo)
+                .ilike("source_detail", `%${addrWords.join("%")}%`)
+                .order("created_at", { ascending: false })
+                .limit(10);
+              if (data) recentCandidates = data;
+            }
+          }
+
+          if (recentCandidates.length > 0) {
+            const isPlaceholder = (name: string | null) =>
+              !name || name.startsWith("Hemlane Lead") || /^\+?\d[\d\s()-]{6,}$/.test(name) || /\d{7,}/.test((name || "").replace(/\D/g, ""));
+            const placeholders = recentCandidates.filter((c) => isPlaceholder(c.full_name));
+            if (placeholders.length >= 1) {
+              // Take the most recent placeholder
               const candidate = placeholders[0];
               const { error: fixErr } = await supabase
                 .from("leads")
@@ -1296,17 +1323,18 @@ serve(async (req: Request) => {
                 })
                 .eq("id", candidate.id);
               if (!fixErr) {
-                console.log(`Esther: fixed name on lead ${candidate.id} "${candidate.full_name}" → "${leadInfo.name}" (paired-email merge, 1 match)`);
+                console.log(`Esther: Direction A name merge → ${candidate.id} "${candidate.full_name}" → "${leadInfo.name}"`);
                 if (leadInfo.message) {
                   await saveLeadNote(supabase, organizationId, candidate.id, leadInfo.message);
                 }
-              } else {
-                console.error(`Esther: failed to fix name on ${candidate.id}: ${fixErr.message}`);
+                merged = true;
               }
-            } else if (placeholders.length > 1) {
-              console.log(`Esther: skipping Direction A name fix — ${placeholders.length} placeholder leads for same property (ambiguous)`);
             }
           }
+        }
+
+        if (!merged) {
+          console.log(`Esther: Direction A — no merge target found for "${leadInfo.name}" (property: ${leadInfo.property || "none"})`);
         }
       }
 
