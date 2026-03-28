@@ -338,7 +338,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       const hasPhoneOnly = !!phoneValue;
       const lead: Record<string, unknown> & { _rowNum: number } = {
         _rowNum: rowNum,
-        source: "csv_import",
+        source: "campaign",
         status: hasPhoneOnly ? "new" : "nurturing",
       };
       if (phoneValue) lead.phone = phoneValue;
@@ -575,10 +575,12 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         if (lead.notes) leadNoteTexts.set(dedupKey, lead.notes as string);
         // Strip fields that are not DB columns or are trigger-managed
         const { notes, _rowNum, lead_score, ...cleanLead } = lead;
+        const VALID_SOURCES = ["inbound_call", "hemlane_email", "website", "referral", "manual", "sms", "campaign"];
+        const csvSource = (cleanLead.source as string) || "";
         return {
           ...cleanLead,
           organization_id: userRecord.organization_id,
-          source: (cleanLead.source as string) || "csv_import",
+          source: VALID_SOURCES.includes(csvSource) ? csvSource : "campaign",
           stage: "prospect",
           full_name: analyzed.name !== "—" ? analyzed.name : null,
           ...(phone ? { phone } : {}),
