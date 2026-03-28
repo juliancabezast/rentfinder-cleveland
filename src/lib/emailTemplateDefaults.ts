@@ -7,7 +7,9 @@ export type EmailTemplateType =
   | "schedule_showing"
   | "showing_confirmation"
   | "no_show"
-  | "post_showing";
+  | "post_showing"
+  | "cancelled_showing"
+  | "rescheduled_showing";
 
 export interface EmailButton {
   text: string;
@@ -38,6 +40,8 @@ export const TEMPLATE_TYPES: EmailTemplateType[] = [
   "showing_confirmation",
   "no_show",
   "post_showing",
+  "cancelled_showing",
+  "rescheduled_showing",
 ];
 
 export const TEMPLATE_META: Record<
@@ -63,6 +67,14 @@ export const TEMPLATE_META: Record<
   post_showing: {
     label: "Post-Showing",
     description: "Follow-up after a completed showing",
+  },
+  cancelled_showing: {
+    label: "Cancelled Showing",
+    description: "Sent to leads when their showing is cancelled",
+  },
+  rescheduled_showing: {
+    label: "Rescheduled Showing",
+    description: "Sent to leads when their showing is rescheduled",
   },
 };
 
@@ -104,6 +116,21 @@ export const TEMPLATE_VARIABLES: Record<EmailTemplateType, string[]> = {
     "{firstName}",
     "{fullName}",
     "{propertyAddress}",
+    "{orgName}",
+    "{senderDomain}",
+  ],
+  cancelled_showing: [
+    "{firstName}",
+    "{fullName}",
+    "{propertyAddress}",
+    "{orgName}",
+    "{senderDomain}",
+  ],
+  rescheduled_showing: [
+    "{firstName}",
+    "{fullName}",
+    "{propertyAddress}",
+    "{showingDate}",
     "{orgName}",
     "{senderDomain}",
   ],
@@ -195,6 +222,40 @@ export const DEFAULT_CONFIGS: Record<EmailTemplateType, EmailTemplateConfig> = {
     showSection8Badge: false,
     footerText: "Have questions? Just reply to this email.",
   },
+  cancelled_showing: {
+    subject: "Your Showing Has Been Cancelled — {propertyAddress}",
+    headerTitle: "{orgName}",
+    headerSubtitle: "We're sorry for the inconvenience",
+    bodyParagraphs: [
+      "Hi {firstName},",
+      "Your showing at {propertyAddress} has been cancelled. We apologize for the inconvenience.",
+      "We have more great properties available — book another tour and we'll find the right home for you!",
+    ],
+    buttons: [
+      { text: "Schedule Another Showing", url: "https://{senderDomain}/p/book-showing", style: "primary" },
+    ],
+    showPropertyCard: false,
+    showSteps: false,
+    showSection8Badge: true,
+    footerText: "Questions? Reply to this email or call us — we're here to help!",
+  },
+  rescheduled_showing: {
+    subject: "Your Showing Has Been Rescheduled — {propertyAddress}",
+    headerTitle: "{orgName}",
+    headerSubtitle: "Pick a new date and time",
+    bodyParagraphs: [
+      "Hi {firstName},",
+      "Your showing at {propertyAddress} on {showingDate} has been rescheduled.",
+      "Please pick a new date and time that works for you:",
+    ],
+    buttons: [
+      { text: "Reschedule Showing", url: "https://{senderDomain}/p/book-showing", style: "primary" },
+    ],
+    showPropertyCard: false,
+    showSteps: false,
+    showSection8Badge: true,
+    footerText: "Questions? Reply to this email or call us — we're here to help!",
+  },
 };
 
 // ── Sample variables for live preview ──────────────────────────────────────
@@ -234,12 +295,12 @@ export function renderEmailHtml(
   propertyInfoHtml?: string
 ): string {
   const v = (text: string) => interpolate(text, variables);
-  const PRIMARY = "#370d4b";
+  const PRIMARY = "#4F46E5";
   const GOLD = "#ffb22c";
 
   const headerHtml = `
     <tr>
-      <td style="background:linear-gradient(135deg,${PRIMARY} 0%,#5b1a7a 100%);padding:32px 30px;text-align:center;">
+      <td style="background:linear-gradient(135deg,${PRIMARY} 0%,#6366F1 100%);padding:32px 30px;text-align:center;">
         <h1 style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:26px;font-weight:700;color:#ffffff;">
           ${v(config.headerTitle)}
         </h1>
@@ -255,20 +316,18 @@ export function renderEmailHtml(
     )
     .join("\n");
 
-  const propertyCardHtml =
-    config.showPropertyCard && propertyInfoHtml
-      ? `<div style="background:#f8f5ff;border-left:4px solid ${PRIMARY};border-radius:8px;padding:16px 20px;margin:20px 0;">
-           ${propertyInfoHtml}
-         </div>`
-      : config.showPropertyCard
-        ? `<div style="background:#f8f5ff;border-left:4px solid ${PRIMARY};border-radius:8px;padding:16px 20px;margin:20px 0;">
-             <p style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:14px;color:#555;">
-               <strong>${v("{propertyAddress}")}</strong><br/>
-               ${variables["{propertyBeds}"] ? `${v("{propertyBeds}")} bed / ${v("{propertyBaths}")} bath` : ""}
-               ${variables["{propertyRent}"] ? ` &middot; ${v("{propertyRent}")}/mo` : ""}
-             </p>
-           </div>`
-        : "";
+  // Custom property info HTML is always shown when provided (e.g. available properties list)
+  const extraContentHtml = propertyInfoHtml || "";
+
+  const propertyCardHtml = config.showPropertyCard
+    ? `<div style="background:#EEF2FF;border-left:4px solid ${PRIMARY};border-radius:8px;padding:16px 20px;margin:20px 0;">
+         <p style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:14px;color:#555;">
+           <strong>${v("{propertyAddress}")}</strong><br/>
+           ${variables["{propertyBeds}"] ? `${v("{propertyBeds}")} bed / ${v("{propertyBaths}")} bath` : ""}
+           ${variables["{propertyRent}"] ? ` &middot; ${v("{propertyRent}")}/mo` : ""}
+         </p>
+       </div>`
+    : "";
 
   const stepsHtml = config.showSteps && config.stepTexts?.length
     ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
@@ -302,7 +361,7 @@ export function renderEmailHtml(
 
   const footerHtml = `
     <tr>
-      <td style="padding:20px 30px;text-align:center;background:#f7f5fa;border-top:1px solid #e8e5ed;">
+      <td style="padding:20px 30px;text-align:center;background:#f9fafb;border-top:1px solid #e5e7eb;">
         <p style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:13px;color:#888;">${v(config.footerText)}</p>
       </td>
     </tr>`;
@@ -318,6 +377,7 @@ export function renderEmailHtml(
         <tr><td style="padding:30px;">
           ${bodyHtml}
           ${propertyCardHtml}
+          ${extraContentHtml}
           ${stepsHtml}
           ${buttonsHtml}
           ${section8Html}

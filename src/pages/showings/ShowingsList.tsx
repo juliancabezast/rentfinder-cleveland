@@ -16,6 +16,7 @@ import {
   Link2,
   Clock,
   Download,
+  Image,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +45,7 @@ import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDial
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
 import { MyRouteTab } from "@/components/showings/MyRouteTab";
 import { ManageSlotsTab } from "@/components/showings/ManageSlotsTab";
+import { LandingPageTab } from "@/components/showings/LandingPageTab";
 import { ShowingDetailDialog } from "@/components/showings/ShowingDetailDialog";
 
 interface ShowingWithDetails {
@@ -534,6 +536,10 @@ const ShowingsList: React.FC = () => {
               <span>My Route</span>
             </TabsTrigger>
           )}
+          <TabsTrigger value="landing" className="flex-1 sm:flex-initial gap-2">
+            <Image className="h-4 w-4" />
+            <span>Landing Page</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="slots" className="space-y-6">
@@ -666,6 +672,10 @@ const ShowingsList: React.FC = () => {
             <MyRouteTab onRefresh={fetchShowings} />
           </TabsContent>
         )}
+
+        <TabsContent value="landing">
+          <LandingPageTab />
+        </TabsContent>
       </Tabs>
 
       {/* Schedule Showing Dialog */}

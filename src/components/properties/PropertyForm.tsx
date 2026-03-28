@@ -25,6 +25,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { PhotoUpload } from './PhotoUpload';
 import { AlternativePropertiesSelector } from './AlternativePropertiesSelector';
 import { Loader2, Sparkles, Globe, Check, X, CheckCircle, AlertCircle } from 'lucide-react';
@@ -75,6 +77,7 @@ interface Property {
   alternative_property_ids?: string[] | null;
   investor_id?: string | null;
   property_group_id?: string | null;
+  section_8_accepted?: boolean | null;
 }
 
 interface PropertyFormProps {
@@ -104,6 +107,9 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   const [saving, setSaving] = useState(false);
   const [photos, setPhotos] = useState<string[]>(
     Array.isArray(property?.photos) ? property.photos : []
+  );
+  const [section8Accepted, setSection8Accepted] = useState<boolean>(
+    property?.section_8_accepted ?? true
   );
   const [alternativePropertyIds, setAlternativePropertyIds] = useState<string[]>(
     Array.isArray(property?.alternative_property_ids) ? property.alternative_property_ids : []
@@ -388,6 +394,7 @@ Return ONLY the notes text, no quotes or labels.`,
         investor_id: data.investor_id || null,
         organization_id: organization.id,
         photos: photos,
+        section_8_accepted: section8Accepted,
         alternative_property_ids: alternativePropertyIds,
         ...(propertyGroupId ? { property_group_id: propertyGroupId } : {}),
       };
@@ -725,6 +732,28 @@ Return ONLY the notes text, no quotes or labels.`,
                 </FormItem>
               )}
             />
+
+            {/* Payment Type */}
+            <div className="flex flex-col justify-center gap-3 md:col-span-2">
+              <Label className="text-sm font-medium">Payment Type</Label>
+              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                <span className={`text-sm font-medium ${!section8Accepted ? 'text-slate-900' : 'text-slate-400'}`}>
+                  Private Rent
+                </span>
+                <Switch
+                  checked={section8Accepted}
+                  onCheckedChange={setSection8Accepted}
+                />
+                <span className={`text-sm font-medium ${section8Accepted ? 'text-emerald-700' : 'text-slate-400'}`}>
+                  Section 8 Accepted
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {section8Accepted
+                  ? 'This property accepts Housing Choice Vouchers (Section 8).'
+                  : 'This property only accepts private rent payments.'}
+              </p>
+            </div>
 
           </CardContent>
         </Card>

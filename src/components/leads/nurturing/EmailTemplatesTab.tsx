@@ -33,6 +33,8 @@ import {
   ThumbsUp,
   HandMetal,
   Braces,
+  Ban,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +64,8 @@ const TEMPLATE_ICONS: Record<EmailTemplateType, React.ElementType> = {
   showing_confirmation: CalendarCheck,
   no_show: UserX,
   post_showing: ThumbsUp,
+  cancelled_showing: Ban,
+  rescheduled_showing: CalendarClock,
 };
 
 // Human-friendly labels for template variables

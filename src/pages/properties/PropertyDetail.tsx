@@ -85,6 +85,7 @@ interface Property {
   alternative_property_ids?: string[] | null;
   investor_id?: string | null;
   property_group_id?: string | null;
+  section_8_accepted?: boolean | null;
   created_at?: string;
   listed_date?: string | null;
 }
@@ -181,6 +182,7 @@ const PropertyDetail: React.FC = () => {
           special_notes: propertyData.special_notes,
           investor_id: propertyData.investor_id,
           property_group_id: propertyData.property_group_id,
+          section_8_accepted: propertyData.section_8_accepted,
           created_at: propertyData.created_at,
           listed_date: propertyData.listed_date,
           photos: Array.isArray(propertyData.photos) 
@@ -572,6 +574,15 @@ const PropertyDetail: React.FC = () => {
                 <Badge className={cn('text-sm', statusInfo.className)}>
                   {statusInfo.label}
                 </Badge>
+                {property.section_8_accepted ? (
+                  <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-sm">
+                    Section 8 Accepted
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-sm">
+                    Private Rent Only
+                  </Badge>
+                )}
               </div>
 
               <div className="flex items-baseline gap-2 mb-4">

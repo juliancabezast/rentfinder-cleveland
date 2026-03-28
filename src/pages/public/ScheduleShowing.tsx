@@ -28,6 +28,8 @@ import {
   ChevronRight,
   Building2,
   Phone,
+  Star,
+  Sparkles,
 } from "lucide-react";
 import { format, addDays, parseISO, isSameDay } from "date-fns";
 import { getTimezoneForCity } from "@/lib/cityTimezone";
@@ -316,6 +318,12 @@ const ScheduleShowing: React.FC = () => {
   const [callNowConfig, setCallNowConfig] = useState<{ enabled: boolean; phone: string; label: string } | null>(null);
   const [callNowOrgFetched, setCallNowOrgFetched] = useState(false);
 
+  // City cover images from org settings
+  const [cityCoverImages, setCityCoverImages] = useState<Record<string, string>>({});
+
+  // Featured property
+  const [featuredProperty, setFeaturedProperty] = useState<Property | null>(null);
+
   // Booking
   const [submitting, setSubmitting] = useState(false);
   const [booked, setBooked] = useState(false);
@@ -392,6 +400,29 @@ const ScheduleShowing: React.FC = () => {
         const val = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
         if (val.enabled) {
           setCallNowConfig({ enabled: val.enabled, phone: val.phone || "", label: val.label || "Call Now" });
+        }
+      }
+    })();
+
+    // Also fetch city cover images + featured property
+    (async () => {
+      const { data: settingsData } = await supabase
+        .from("organization_settings")
+        .select("key, value")
+        .eq("organization_id", orgId)
+        .in("key", ["city_cover_images", "featured_property_id"]);
+
+      for (const row of settingsData || []) {
+        if (row.key === "city_cover_images" && row.value && typeof row.value === "object") {
+          setCityCoverImages(row.value as Record<string, string>);
+        }
+        if (row.key === "featured_property_id" && row.value && typeof row.value === "string" && row.value.length > 0) {
+          const { data: fp } = await supabase
+            .from("properties")
+            .select("*")
+            .eq("id", row.value)
+            .maybeSingle();
+          if (fp) setFeaturedProperty(fp as Property);
         }
       }
     })();
@@ -476,9 +507,14 @@ const ScheduleShowing: React.FC = () => {
       }
     });
     return [...map.entries()]
-      .map(([city, info]) => ({ city, ...info }))
+      .map(([city, info]) => ({
+        city,
+        ...info,
+        // Use admin-configured cover image if available
+        photoUrl: cityCoverImages[city] || info.photoUrl,
+      }))
       .sort((a, b) => b.count - a.count);
-  }, [buildingGroups]);
+  }, [buildingGroups, cityCoverImages]);
 
   // Auto-select city if only one
   useEffect(() => {
@@ -790,6 +826,73 @@ const ScheduleShowing: React.FC = () => {
       </div>
 
       <div className="max-w-[640px] mx-auto px-4 -mt-5 space-y-6 relative z-10">
+
+        {/* Featured Property Card */}
+        {isMultiMode && !property && !selectedBuilding && featuredProperty && (() => {
+          const fp = featuredProperty;
+          const fpPhoto = getPhotoUrl(fp);
+          const details: string[] = [];
+          if (fp.bedrooms) details.push(`${fp.bedrooms} Bed`);
+          if (fp.bathrooms) details.push(`${fp.bathrooms} Bath`);
+          if (fp.square_feet) details.push(`${fp.square_feet.toLocaleString()} sqft`);
+          return (
+            <Card className="shadow-lg border-0 overflow-hidden">
+              {/* Photo */}
+              {fpPhoto && (
+                <div className="relative h-44 w-full">
+                  <img src={fpPhoto} alt={fp.address} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                  <div className="absolute top-3 left-3">
+                    <Badge className="bg-amber-500 text-white text-[10px] font-bold gap-1 shadow-md">
+                      <Sparkles className="h-3 w-3" />
+                      Featured
+                    </Badge>
+                  </div>
+                </div>
+              )}
+              <CardContent className={fpPhoto ? "p-4 space-y-3" : "p-4 space-y-3 pt-5"}>
+                {!fpPhoto && (
+                  <Badge className="bg-amber-500 text-white text-[10px] font-bold gap-1 w-fit">
+                    <Sparkles className="h-3 w-3" />
+                    Featured
+                  </Badge>
+                )}
+                <div>
+                  <h3 className="font-bold text-base text-slate-900">
+                    {fp.address}{fp.unit_number ? ` #${fp.unit_number}` : ""}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {[fp.city, fp.state, fp.zip_code].filter(Boolean).join(", ")}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 flex-wrap">
+                  {fp.rent_price && (
+                    <span className="text-lg font-extrabold text-[#4F46E5]">
+                      ${fp.rent_price.toLocaleString()}<span className="text-xs font-medium text-muted-foreground">/mo</span>
+                    </span>
+                  )}
+                  <div className="flex gap-1.5">
+                    {details.map((d) => (
+                      <Badge key={d} variant="outline" className="text-[10px] h-5">{d}</Badge>
+                    ))}
+                    {fp.section_8_accepted && (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px] h-5">Section 8</Badge>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full h-11 bg-[#4F46E5] hover:bg-[#4F46E5]/90 font-semibold text-sm gap-2"
+                  onClick={() => setSelectedPropertyId(fp.id)}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  Book a Tour
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Multi-mode Step 1: City Selector */}
         {isMultiMode && !property && !selectedBuilding && !selectedCity && (

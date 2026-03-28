@@ -49,6 +49,10 @@ export const DEFAULT_SETTINGS = {
   auto_purge_leads_days: 180,
   tcpa_consent_language: "By providing my phone number, I consent to receive automated calls and text messages from this service. I understand that my consent is not required to apply for housing.",
 
+  // Showings landing page
+  city_cover_images: {} as Record<string, string>,
+  featured_property_id: "" as string,
+
   // Security settings
   photo_upload_restricted: false,
 

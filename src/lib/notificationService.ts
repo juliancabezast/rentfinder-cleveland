@@ -11,6 +11,11 @@ import {
   leadRescheduledShowingTemplate,
 } from "./emailTemplates";
 import type { LeadShowingEmailData } from "./emailTemplates";
+import {
+  type EmailTemplateType,
+  DEFAULT_CONFIGS,
+  renderEmailHtml,
+} from "./emailTemplateDefaults";
 
 // Default notification preferences
 export const DEFAULT_NOTIFICATION_PREFS = {
@@ -206,30 +211,114 @@ export async function fetchAvailableProperties(
   return data || [];
 }
 
+// Build "Other Available Properties" HTML block for branded templates
+function buildPropertyListHtml(
+  properties: LeadShowingEmailData["otherProperties"]
+): string {
+  if (properties.length === 0) return "";
+  const PRIMARY = "#4F46E5";
+  return `
+    <div style="margin:20px 0;">
+      <p style="margin:0 0 10px;font-family:Montserrat,Arial,sans-serif;font-size:14px;font-weight:700;color:#333;">
+        Other Available Properties
+      </p>
+      ${properties
+        .map(
+          (p) => `
+        <div style="background:#f8f9fa;border-left:4px solid ${PRIMARY};border-radius:8px;padding:12px 16px;margin-bottom:8px;">
+          <p style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:14px;font-weight:600;color:#1a1a1a;">${p.address}</p>
+          <p style="margin:4px 0 0;font-family:Montserrat,Arial,sans-serif;font-size:13px;color:#6b7280;">
+            ${p.bedrooms ? `${p.bedrooms} bed` : ""}${p.rent_price ? ` · $${p.rent_price.toLocaleString()}/mo` : ""}${p.section_8_accepted ? " · Section 8 OK" : ""}
+          </p>
+        </div>`
+        )
+        .join("")}
+    </div>`;
+}
+
 // Send showing re-engagement email to lead (no-show, cancelled, rescheduled)
-export function sendLeadShowingEmail(params: {
+// Uses the branded renderEmailHtml wrapper for a polished look
+export async function sendLeadShowingEmail(params: {
   leadEmail: string;
   organizationId: string;
   showingId: string;
   type: "no_show" | "cancelled" | "rescheduled";
   emailData: LeadShowingEmailData;
-}): void {
+}): Promise<void> {
   const { leadEmail, organizationId, showingId, type, emailData } = params;
-  const subjectMap = {
-    no_show: `We missed you — schedule another showing`,
-    cancelled: `Your showing has been cancelled — find another property`,
-    rescheduled: `Your showing has been rescheduled`,
+
+  // Map type to configurable template key
+  const templateTypeMap: Record<string, EmailTemplateType> = {
+    no_show: "no_show",
+    cancelled: "cancelled_showing",
+    rescheduled: "rescheduled_showing",
   };
-  const templateMap = {
-    no_show: leadNoShowTemplate,
-    cancelled: leadCancelledShowingTemplate,
-    rescheduled: leadRescheduledShowingTemplate,
+  const templateType = templateTypeMap[type];
+
+  // Try to load org-customized template, fall back to defaults
+  let config = DEFAULT_CONFIGS[templateType];
+  try {
+    const { data } = await supabase
+      .from("organization_settings")
+      .select("value")
+      .eq("organization_id", organizationId)
+      .eq("key", "email_templates")
+      .maybeSingle();
+    if (data?.value && typeof data.value === "object") {
+      const saved = data.value as Record<string, unknown>;
+      if (saved[templateType]) {
+        config = saved[templateType] as typeof config;
+      }
+    }
+  } catch {
+    // Use defaults if fetch fails
+  }
+
+  // Also fetch org name and sender domain for variables
+  let orgName = "Home Guard Management";
+  let senderDomain = "rentfindercleveland.com";
+  try {
+    const { data: settingsRows } = await supabase
+      .from("organization_settings")
+      .select("key, value")
+      .eq("organization_id", organizationId)
+      .in("key", ["org_name", "sender_domain"]);
+    for (const row of settingsRows || []) {
+      if (row.key === "org_name" && typeof row.value === "string") orgName = row.value;
+      if (row.key === "sender_domain" && typeof row.value === "string") senderDomain = row.value;
+    }
+  } catch {
+    // Use defaults
+  }
+
+  // Extract first name from lead name
+  const firstName = emailData.leadName.split(" ")[0] || emailData.leadName;
+
+  const variables: Record<string, string> = {
+    "{firstName}": firstName,
+    "{fullName}": emailData.leadName,
+    "{propertyAddress}": emailData.propertyAddress,
+    "{orgName}": orgName,
+    "{senderDomain}": senderDomain,
+    "{showingDate}": emailData.scheduledTime || "",
   };
+
+  // Build property list HTML as extra content
+  const propertyListHtml = buildPropertyListHtml(emailData.otherProperties);
+
+  // Render the branded email
+  const html = renderEmailHtml(config, variables, propertyListHtml);
+
+  // Interpolate the subject line
+  const subject = Object.entries(variables).reduce(
+    (s, [k, v]) => s.replaceAll(k, v),
+    config.subject
+  );
 
   sendNotificationEmail({
     to: leadEmail,
-    subject: subjectMap[type],
-    html: templateMap[type](emailData),
+    subject,
+    html,
     notificationType: `showing_${type}_lead`,
     organizationId,
     relatedEntityId: showingId,
