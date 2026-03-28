@@ -649,6 +649,8 @@ async function upsertLead(
   const fullName = lead.name || recoveredName || `Hemlane Lead ${fallbackIdentifier}`;
 
   // Create new lead — with consent flags since they initiated contact
+  // phone column is NOT NULL in DB — use "email-only" placeholder when no phone available
+  const phoneValue = phone || (lead.email ? `email:${lead.email}` : "unknown");
   const { data: newLead, error: err } = await supabase
     .from("leads")
     .insert({
@@ -656,7 +658,7 @@ async function upsertLead(
       full_name: fullName,
       first_name: (lead.name || recoveredName)?.split(" ")[0] || null,
       last_name: (lead.name || recoveredName)?.split(" ").slice(1).join(" ") || null,
-      phone: phone || null,
+      phone: phoneValue,
       email: lead.email || null,
       source: "hemlane_email",
       source_detail: propertyDetail,
