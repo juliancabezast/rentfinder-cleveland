@@ -295,6 +295,22 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       .gte("scheduled_at", `${startStr}T00:00:00`)
       .lte("scheduled_at", `${endStr}T23:59:59`);
 
+    // Fetch active showings (scheduled/confirmed) for the week — needed for days without slots
+    const { data: activeShowingsData } = await supabase
+      .from("showings")
+      .select("id, scheduled_at, status, property_id, leads(full_name), properties(address)")
+      .eq("organization_id", orgId)
+      .in("status", ["scheduled", "confirmed"])
+      .gte("scheduled_at", `${startStr}T00:00:00`)
+      .lte("scheduled_at", `${endStr}T23:59:59`);
+
+    // Build set of dates that have active showings
+    const datesWithShowings = new Set<string>();
+    (activeShowingsData || []).forEach((s: any) => {
+      const d = new Date(s.scheduled_at);
+      datesWithShowings.add(d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }));
+    });
+
     // Build a map: date -> time -> CancelledShowing[]
     const cancelledMap = new Map<string, Map<string, CancelledShowing[]>>();
     (cancelledData || []).forEach((s: any) => {
@@ -350,7 +366,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       const timeMap = dayMap.get(dateStr);
 
       if (!timeMap || timeMap.size === 0) {
-        return { date: dateStr, timeSlots: [], hasSlots: false };
+        return { date: dateStr, timeSlots: [], hasSlots: datesWithShowings.has(dateStr) };
       }
 
       const timeSlots: TimeSlotGroup[] = [];
@@ -436,7 +452,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     return Array.from(timeSet).sort();
   }, [slotData]);
 
-  // Days to render (optionally hiding empty ones)
+  // Days to render (optionally hiding empty ones — days with booked showings are kept via hasSlots)
   const visibleDays = useMemo(() => {
     if (!hideEmptyDays) return slotData;
     return slotData.filter((d) => d.hasSlots);
