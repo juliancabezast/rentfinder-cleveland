@@ -23,7 +23,7 @@ When doing "go" (commit + push), deploy any new/modified edge functions before f
 **NEVER run `npx supabase db push`** — migration history is out of sync with Lovable. Instead, use the Supabase Management API:
 ```bash
 curl -s -X POST "https://api.supabase.com/v1/projects/glzzzthgotfwoiaranmp/database/query" \
-  -H "Authorization: Bearer sbp_078d9b267c99e7ed6b88dcb8a34135dd8286f9a8" \
+  -H "Authorization: Bearer sbp_76dafac83af6242b4d8c91dcabb85c592c31e404" \
   -H "Content-Type: application/json" \
   -d '{"query": "YOUR SQL HERE"}'
 ```
