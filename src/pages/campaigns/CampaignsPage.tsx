@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Megaphone,
   Plus,
@@ -16,6 +17,7 @@ import {
   CheckCircle2,
   Send,
   XCircle,
+  MessageSquare,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CampaignCreateWizard } from "@/components/campaigns/CampaignCreateWizard";
 import { CampaignProgressPanel } from "@/components/campaigns/CampaignProgressPanel";
+import { SmsHistoryTab } from "@/components/campaigns/SmsHistoryTab";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -244,7 +247,7 @@ const CampaignsPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Campaigns</h1>
-          <p className="text-sm text-slate-500 mt-1">Upload lead databases and send bulk welcome emails</p>
+          <p className="text-sm text-slate-500 mt-1">Email campaigns and SMS history</p>
         </div>
         <Button
           onClick={() => setView("create")}
@@ -255,127 +258,143 @@ const CampaignsPage = () => {
         </Button>
       </div>
 
-      {/* Campaign list */}
-      {isLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} variant="glass">
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-12 w-12 rounded-xl" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                  <Skeleton className="h-6 w-20 rounded-full" />
-                </div>
+      <Tabs defaultValue="email">
+        <TabsList>
+          <TabsTrigger value="email" className="gap-1.5">
+            <Mail className="h-4 w-4" />
+            Email Campaigns
+          </TabsTrigger>
+          <TabsTrigger value="sms" className="gap-1.5">
+            <MessageSquare className="h-4 w-4" />
+            SMS
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="email" className="mt-4">
+          {/* Campaign list */}
+          {isLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} variant="glass">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-12 w-12 rounded-xl" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : !campaigns || campaigns.length === 0 ? (
+            <Card variant="glass">
+              <CardContent className="p-12">
+                <EmptyState
+                  icon={Megaphone}
+                  title="No campaigns yet"
+                  description="Create your first campaign to upload leads and send welcome emails"
+                />
               </CardContent>
             </Card>
-          ))}
-        </div>
-      ) : !campaigns || campaigns.length === 0 ? (
-        <Card variant="glass">
-          <CardContent className="p-12">
-            <EmptyState
-              icon={Megaphone}
-              title="No campaigns yet"
-              description="Create your first campaign to upload leads and send welcome emails"
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {campaigns.map((c) => {
-            const stats = campaignStats?.[c.id];
-            const propertyLabel = c.properties
-              ? `${c.properties.address}${c.properties.unit_number ? ` #${c.properties.unit_number}` : ""}`
-              : "No property";
+          ) : (
+            <div className="space-y-3">
+              {campaigns.map((c) => {
+                const stats = campaignStats?.[c.id];
+                const propertyLabel = c.properties
+                  ? `${c.properties.address}${c.properties.unit_number ? ` #${c.properties.unit_number}` : ""}`
+                  : "No property";
 
-            const processed = stats ? stats.delivered + stats.failed : 0;
-            const isCompletedNoTracking = c.status === "completed" && processed === 0;
-            const deliveredDisplay = stats
-              ? (isCompletedNoTracking ? c.emails_queued : stats.delivered)
-              : 0;
-            const failedDisplay = stats?.failed ?? 0;
-            // Use emails_queued from DB, or fall back to processed count from stats
-            const emailTotal = c.emails_queued > 0 ? c.emails_queued : processed;
-            const pending = c.status !== "completed" && stats
-              ? Math.max(0, emailTotal - stats.delivered - stats.failed)
-              : 0;
-            const pct = emailTotal > 0
-              ? (isCompletedNoTracking ? 100 : Math.min(100, Math.round((processed / emailTotal) * 100)))
-              : (c.status === "completed" ? 100 : 0);
+                const processed = stats ? stats.delivered + stats.failed : 0;
+                const isCompletedNoTracking = c.status === "completed" && processed === 0;
+                const deliveredDisplay = stats
+                  ? (isCompletedNoTracking ? c.emails_queued : stats.delivered)
+                  : 0;
+                const failedDisplay = stats?.failed ?? 0;
+                const emailTotal = c.emails_queued > 0 ? c.emails_queued : processed;
+                const pending = c.status !== "completed" && stats
+                  ? Math.max(0, emailTotal - stats.delivered - stats.failed)
+                  : 0;
+                const pct = emailTotal > 0
+                  ? (isCompletedNoTracking ? 100 : Math.min(100, Math.round((processed / emailTotal) * 100)))
+                  : (c.status === "completed" ? 100 : 0);
 
-            return (
-              <Card
-                key={c.id}
-                variant="glass"
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => { setSelectedCampaign(c); setView("detail"); }}
-              >
-                <CardContent className="px-5 py-3.5">
-                  {/* Row 1: Header */}
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                        <Megaphone className="h-5 w-5 text-indigo-600" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-slate-900 truncate">{c.name}</h3>
-                          {statusBadge(c.status)}
+                return (
+                  <Card
+                    key={c.id}
+                    variant="glass"
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => { setSelectedCampaign(c); setView("detail"); }}
+                  >
+                    <CardContent className="px-5 py-3.5">
+                      {/* Row 1: Header */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                            <Megaphone className="h-5 w-5 text-indigo-600" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-slate-900 truncate">{c.name}</h3>
+                              {statusBadge(c.status)}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5 truncate">
+                              {propertyLabel} &middot; {format(new Date(c.created_at), "MMM d, yyyy")}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5 truncate">
-                          {propertyLabel} &middot; {format(new Date(c.created_at), "MMM d, yyyy")}
-                        </p>
+                        <ChevronRight className="h-5 w-5 text-slate-300 shrink-0 mt-1" />
                       </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-slate-300 shrink-0 mt-1" />
-                  </div>
 
-                  {/* Row 2: Progress + Stats inline */}
-                  <div className="flex items-center gap-4">
-                    {/* Progress bar — always render the flex-1 spacer so stats stay right-aligned */}
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      {(emailTotal > 0 || c.status === "completed") && (
-                        <>
-                          <Progress value={pct} className="h-2 flex-1" />
-                          <span className="text-xs font-medium text-slate-500 tabular-nums whitespace-nowrap">
-                            {pct}%
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    {/* Stats */}
-                    <div className="flex items-center gap-5 shrink-0">
-                      <div className="text-center w-14">
-                        <p className="text-lg font-bold text-slate-700 tabular-nums leading-tight">{c.total_leads}</p>
-                        <p className="text-[10px] text-slate-400">Leads</p>
+                      {/* Row 2: Progress + Stats inline */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {(emailTotal > 0 || c.status === "completed") && (
+                            <>
+                              <Progress value={pct} className="h-2 flex-1" />
+                              <span className="text-xs font-medium text-slate-500 tabular-nums whitespace-nowrap">
+                                {pct}%
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-5 shrink-0">
+                          <div className="text-center w-14">
+                            <p className="text-lg font-bold text-slate-700 tabular-nums leading-tight">{c.total_leads}</p>
+                            <p className="text-[10px] text-slate-400">Leads</p>
+                          </div>
+                          <div className="text-center w-14">
+                            <p className="text-lg font-bold text-emerald-600 tabular-nums leading-tight">{deliveredDisplay}</p>
+                            <p className="text-[10px] text-slate-400">Delivered</p>
+                          </div>
+                          <div className="text-center w-14">
+                            <p className={cn("text-lg font-bold tabular-nums leading-tight", failedDisplay > 0 ? "text-red-600" : pending > 0 ? "text-amber-600" : "text-slate-300")}>
+                              {failedDisplay > 0 ? failedDisplay : pending > 0 ? pending : "—"}
+                            </p>
+                            <p className="text-[10px] text-slate-400">
+                              {failedDisplay > 0 ? "Failed" : pending > 0 ? "Pending" : "Failed"}
+                            </p>
+                          </div>
+                          <div className="text-center w-14">
+                            <p className="text-lg font-bold text-purple-600 tabular-nums leading-tight">{stats?.showings ?? 0}</p>
+                            <p className="text-[10px] text-slate-400">Showings</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-center w-14">
-                        <p className="text-lg font-bold text-emerald-600 tabular-nums leading-tight">{deliveredDisplay}</p>
-                        <p className="text-[10px] text-slate-400">Delivered</p>
-                      </div>
-                      <div className="text-center w-14">
-                        <p className={cn("text-lg font-bold tabular-nums leading-tight", failedDisplay > 0 ? "text-red-600" : pending > 0 ? "text-amber-600" : "text-slate-300")}>
-                          {failedDisplay > 0 ? failedDisplay : pending > 0 ? pending : "—"}
-                        </p>
-                        <p className="text-[10px] text-slate-400">
-                          {failedDisplay > 0 ? "Failed" : pending > 0 ? "Pending" : "Failed"}
-                        </p>
-                      </div>
-                      <div className="text-center w-14">
-                        <p className="text-lg font-bold text-purple-600 tabular-nums leading-tight">{stats?.showings ?? 0}</p>
-                        <p className="text-[10px] text-slate-400">Showings</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="sms" className="mt-4">
+          <SmsHistoryTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

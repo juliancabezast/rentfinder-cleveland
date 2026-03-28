@@ -130,39 +130,78 @@ export function useReportsData(dateRange: DateRange | undefined) {
       const prevStart = subMonths(dateRange.from, 1).toISOString();
       const prevEnd = subMonths(dateRange.to, 1).toISOString();
 
+      // Paginate through Supabase results (PostgREST caps at 1000 rows per request)
+      const fetchPaginated = async (
+        buildQuery: (from: number, to: number) => PromiseLike<{ data: any[] | null; error: any }>
+      ) => {
+        const PAGE = 1000;
+        let all: any[] = [];
+        let offset = 0;
+        while (true) {
+          const { data, error } = await buildQuery(offset, offset + PAGE - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          all = all.concat(data);
+          if (data.length < PAGE) break;
+          offset += PAGE;
+        }
+        return all;
+      };
+
+      // Base lead filters (exclude incomplete / junk data — matches LeadsList.tsx)
+      const applyLeadFilters = (query: any) =>
+        query
+          .not("full_name", "is", null)
+          .not("phone", "is", null)
+          .not("email", "is", null)
+          .not("full_name", "ilike", "%.com%")
+          .not("full_name", "ilike", "%http%")
+          .not("full_name", "ilike", "%@%")
+          .not("full_name", "ilike", "%comments%")
+          .not("full_name", "ilike", "%unsubscribe%")
+          .not("full_name", "ilike", "%click here%")
+          .not("full_name", "ilike", "%mailto:%")
+          .not("full_name", "ilike", "%subject:%")
+          .not("full_name", "ilike", "%reply%");
+
       // Parallel fetch all data
-      // Parallel fetch all data (merged showings into one query)
       const [
-        leadsRes,
+        leads,
         prevLeadsRes,
         showingsRes,
         callsRes,
         propertiesRes,
       ] = await Promise.all([
-        // Current period leads
-        supabase
-          .from("leads")
-          .select("id, status, source, lead_score, created_at, interested_property_id")
-          .eq("organization_id", orgId)
-          .gte("created_at", startDate)
-          .lte("created_at", endDate)
-          .limit(5000),
-        // Previous period leads
-        supabase
-          .from("leads")
-          .select("id")
-          .eq("organization_id", orgId)
-          .gte("created_at", prevStart)
-          .lte("created_at", prevEnd)
-          .limit(5000),
-        // Showings (single query with all needed fields)
+        // Current period leads (paginated — Supabase caps at 1000 per request)
+        fetchPaginated((from, to) =>
+          applyLeadFilters(
+            supabase
+              .from("leads")
+              .select("id, status, source, lead_score, created_at, interested_property_id")
+              .eq("organization_id", orgId)
+              .gte("created_at", startDate)
+              .lte("created_at", endDate)
+          )
+            .order("created_at")
+            .range(from, to)
+        ),
+        // Previous period leads (count only)
+        applyLeadFilters(
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", orgId)
+            .gte("created_at", prevStart)
+            .lte("created_at", prevEnd)
+        ),
+        // Showings
         supabase
           .from("showings")
           .select("id, status, scheduled_at, lead_id, property_id")
           .eq("organization_id", orgId)
           .gte("scheduled_at", startDate)
           .lte("scheduled_at", endDate)
-          .limit(5000),
+          .limit(1000),
         // Calls (for peak hours + response time)
         supabase
           .from("calls")
@@ -170,7 +209,7 @@ export function useReportsData(dateRange: DateRange | undefined) {
           .eq("organization_id", orgId)
           .gte("started_at", startDate)
           .lte("started_at", endDate)
-          .limit(5000),
+          .limit(1000),
         // Properties (for top properties)
         supabase
           .from("properties")
@@ -179,21 +218,18 @@ export function useReportsData(dateRange: DateRange | undefined) {
           .limit(1000),
       ]);
 
-      if (leadsRes.error) throw leadsRes.error;
       if (prevLeadsRes.error) throw prevLeadsRes.error;
       if (showingsRes.error) throw showingsRes.error;
       if (callsRes.error) throw callsRes.error;
       if (propertiesRes.error) throw propertiesRes.error;
 
-      const leads = leadsRes.data || [];
-      const prevLeads = prevLeadsRes.data || [];
+      const totalLeadsPrevious = prevLeadsRes.count || 0;
       const showings = showingsRes.data || [];
       const calls = callsRes.data || [];
       const properties = propertiesRes.data || [];
 
       // === SUMMARY STATS ===
       const totalLeads = leads.length;
-      const totalLeadsPrevious = prevLeads.length;
       const activePipeline = leads.filter(l => ACTIVE_STATUSES.includes(l.status)).length;
       const convertedLeads = leads.filter(l => l.status === "converted").length;
       const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;

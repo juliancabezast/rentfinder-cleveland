@@ -40,6 +40,18 @@ BEGIN
     WHERE organization_id = _org_id
       AND created_at >= _date_from
       AND created_at <= _date_to
+      AND full_name IS NOT NULL
+      AND phone IS NOT NULL
+      AND email IS NOT NULL
+      AND full_name NOT ILIKE '%.com%'
+      AND full_name NOT ILIKE '%http%'
+      AND full_name NOT ILIKE '%@%'
+      AND full_name NOT ILIKE '%comments%'
+      AND full_name NOT ILIKE '%unsubscribe%'
+      AND full_name NOT ILIKE '%click here%'
+      AND full_name NOT ILIKE '%mailto:%'
+      AND full_name NOT ILIKE '%subject:%'
+      AND full_name NOT ILIKE '%reply%'
   )
   SELECT json_build_object(
     'stages', json_build_array(
