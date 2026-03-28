@@ -292,7 +292,7 @@ serve(async (req: Request) => {
         category: channel === "email" ? "general" : "twilio",
         event_type: "message_sent",
         message: `${channel.toUpperCase()} message sent to ${lead.full_name || lead.phone}`,
-        details: { channel, message_id: messageId, lead_id },
+        details: { channel, message_id: messageId, lead_id, body: messageBody },
         related_lead_id: lead_id,
       });
     } catch (logErr) {

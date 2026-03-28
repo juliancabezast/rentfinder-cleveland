@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,28 +18,17 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  Phone,
+  ChevronDown,
+  ChevronUp,
   User,
-  Calendar,
   Hash,
+  Loader2,
+  Eye,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-
-interface SmsLogEntry {
-  id: string;
-  created_at: string;
-  message: string;
-  level: string;
-  details: {
-    channel: string;
-    message_id: string;
-    lead_id: string;
-  } | null;
-  related_lead_id: string | null;
-}
 
 interface LeadInfo {
   id: string;
@@ -47,12 +36,23 @@ interface LeadInfo {
   phone: string | null;
 }
 
-const PAGE_SIZE = 50;
+interface TwilioMessage {
+  body: string;
+  status: string;
+  to: string;
+  from: string;
+  date_sent: string;
+}
+
+const PAGE_SIZE = 25;
 
 export const SmsHistoryTab = () => {
   const { userRecord } = useAuth();
   const orgId = userRecord?.organization_id;
   const [page, setPage] = useState(0);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [twilioMessages, setTwilioMessages] = useState<Record<string, TwilioMessage>>({});
+  const [loadingSids, setLoadingSids] = useState<Set<string>>(new Set());
 
   // Summary stats
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -154,6 +154,76 @@ export const SmsHistoryTab = () => {
     enabled: !!orgId,
   });
 
+  // Fetch message body from Twilio via edge function
+  const fetchMessageBody = useCallback(
+    async (messageSid: string) => {
+      if (!orgId || !messageSid || messageSid === "—" || twilioMessages[messageSid]) return;
+
+      setLoadingSids((prev) => new Set(prev).add(messageSid));
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "fetch-twilio-messages",
+          { body: { organization_id: orgId, message_sids: [messageSid] } }
+        );
+        if (!error && data?.messages) {
+          setTwilioMessages((prev) => ({ ...prev, ...data.messages }));
+        }
+      } catch (e) {
+        console.error("Failed to fetch Twilio message:", e);
+      } finally {
+        setLoadingSids((prev) => {
+          const next = new Set(prev);
+          next.delete(messageSid);
+          return next;
+        });
+      }
+    },
+    [orgId, twilioMessages]
+  );
+
+  // Fetch all visible message bodies at once
+  const fetchAllVisible = useCallback(async () => {
+    if (!orgId || !logsData?.logs.length) return;
+
+    const sidsToFetch = logsData.logs
+      .map((log: any) => (log.details as any)?.message_id)
+      .filter((sid: string) => sid && sid !== "—" && !twilioMessages[sid])
+      .slice(0, 20);
+
+    if (sidsToFetch.length === 0) return;
+
+    setLoadingSids(new Set(sidsToFetch));
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "fetch-twilio-messages",
+        { body: { organization_id: orgId, message_sids: sidsToFetch } }
+      );
+      if (!error && data?.messages) {
+        setTwilioMessages((prev) => ({ ...prev, ...data.messages }));
+      }
+    } catch (e) {
+      console.error("Failed to fetch Twilio messages:", e);
+    } finally {
+      setLoadingSids(new Set());
+    }
+  }, [orgId, logsData, twilioMessages]);
+
+  const toggleRow = (logId: string, messageSid: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(logId)) {
+        next.delete(logId);
+      } else {
+        next.add(logId);
+        // Fetch body when expanding
+        if (messageSid && !twilioMessages[messageSid]) {
+          fetchMessageBody(messageSid);
+        }
+      }
+      return next;
+    });
+  };
+
   const totalPages = Math.ceil((logsData?.total || 0) / PAGE_SIZE);
 
   return (
@@ -238,24 +308,68 @@ export const SmsHistoryTab = () => {
             </div>
           ) : (
             <>
+              {/* Load all button */}
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <p className="text-sm font-medium text-slate-700">Message Log</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchAllVisible}
+                  disabled={loadingSids.size > 0}
+                  className="gap-1.5"
+                >
+                  {loadingSids.size > 0 ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
+                  Load Messages
+                </Button>
+              </div>
+
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8"></TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Lead</TableHead>
                     <TableHead>Phone</TableHead>
+                    <TableHead>Message</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Twilio SID</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {logsData.logs.map((log: any) => {
                     const isError = log.level === "error";
                     const details = log.details as any;
-                    const messageSid = details?.message_id || "—";
+                    const messageSid = details?.message_id || "";
+                    const isExpanded = expandedRows.has(log.id);
+                    const isLoadingSid = loadingSids.has(messageSid);
+
+                    // Body from details (new format) or from Twilio cache
+                    const bodyFromDetails = details?.body;
+                    const bodyFromTwilio = twilioMessages[messageSid]?.body;
+                    const twilioStatus = twilioMessages[messageSid]?.status;
+                    const messageBody = bodyFromDetails || bodyFromTwilio;
 
                     return (
-                      <TableRow key={log.id}>
+                      <TableRow
+                        key={log.id}
+                        className={cn(
+                          "cursor-pointer hover:bg-slate-50/50",
+                          isExpanded && "bg-slate-50/50"
+                        )}
+                        onClick={() => toggleRow(log.id, messageSid)}
+                      >
+                        <TableCell className="w-8 px-2">
+                          {isLoadingSid ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                          ) : isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-slate-400" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-slate-300" />
+                          )}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap text-sm">
                           {format(new Date(log.created_at), "MMM d, yyyy h:mm a")}
                         </TableCell>
@@ -265,19 +379,40 @@ export const SmsHistoryTab = () => {
                         <TableCell className="text-sm text-slate-500 font-mono">
                           {log.lead?.phone || "—"}
                         </TableCell>
+                        <TableCell className="text-sm text-slate-600 max-w-[300px]">
+                          {messageBody ? (
+                            <span className={cn("line-clamp-1", isExpanded && "line-clamp-none whitespace-pre-wrap")}>
+                              {messageBody}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 italic text-xs">
+                              Click to load
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {isError ? (
                             <Badge variant="destructive" className="text-xs">
                               Failed
+                            </Badge>
+                          ) : twilioStatus ? (
+                            <Badge
+                              className={cn(
+                                "text-xs",
+                                twilioStatus === "delivered"
+                                  ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                  : twilioStatus === "undelivered" || twilioStatus === "failed"
+                                    ? "bg-red-100 text-red-700 border-red-200"
+                                    : "bg-amber-100 text-amber-700 border-amber-200"
+                              )}
+                            >
+                              {twilioStatus}
                             </Badge>
                           ) : (
                             <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">
                               Sent
                             </Badge>
                           )}
-                        </TableCell>
-                        <TableCell className="text-xs text-slate-400 font-mono max-w-[180px] truncate">
-                          {messageSid}
                         </TableCell>
                       </TableRow>
                     );
@@ -289,14 +424,14 @@ export const SmsHistoryTab = () => {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-3 border-t">
                   <p className="text-sm text-slate-500">
-                    {(logsData.total).toLocaleString()} messages total
+                    {logsData.total.toLocaleString()} messages total
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={page === 0}
-                      onClick={() => setPage((p) => p - 1)}
+                      onClick={(e) => { e.stopPropagation(); setPage((p) => p - 1); }}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -307,7 +442,7 @@ export const SmsHistoryTab = () => {
                       variant="outline"
                       size="sm"
                       disabled={page >= totalPages - 1}
-                      onClick={() => setPage((p) => p + 1)}
+                      onClick={(e) => { e.stopPropagation(); setPage((p) => p + 1); }}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
