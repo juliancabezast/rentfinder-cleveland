@@ -195,40 +195,32 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
     rent_price: form.getValues('rent_price') || 'unknown',
   });
 
-  const callOpenAi = async (systemPrompt: string, userPrompt: string): Promise<string | null> => {
+  const callOpenAi = async (kind: 'description' | 'notes'): Promise<string | null> => {
     if (!organization?.id) return null;
 
-    const { data: creds } = await supabase
-      .from('organization_credentials')
-      .select('openai_api_key')
-      .eq('organization_id', organization.id)
-      .single();
-
-    if (!creds?.openai_api_key) {
-      toast.error('OpenAI API key not configured. Add it in Settings → Integrations.');
-      return null;
-    }
-
-    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${creds.openai_api_key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        max_tokens: 400,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      }),
+    const { data, error } = await supabase.functions.invoke('generate-property-description', {
+      body: { kind, context: getPropertyContext() },
     });
 
-    if (!resp.ok) throw new Error(`OpenAI error: ${resp.status}`);
-    const data = await resp.json();
-    return data.choices?.[0]?.message?.content?.trim() || null;
+    if (error) {
+      const msg = error.message || 'Failed to generate text';
+      if (/not configured/i.test(msg)) {
+        toast.error('OpenAI API key not configured. Add it in Settings → Integrations.');
+      } else {
+        throw new Error(msg);
+      }
+      return null;
+    }
+    if (data?.error) {
+      if (/not configured/i.test(data.error)) {
+        toast.error('OpenAI API key not configured. Add it in Settings → Integrations.');
+        return null;
+      }
+      throw new Error(data.error);
+    }
+    return (data?.text as string) || null;
   };
+
 
   const generateAiDescription = async () => {
     setGeneratingDesc(true);
