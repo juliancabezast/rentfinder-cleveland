@@ -228,50 +228,19 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
         rent_price: editRent || "unknown",
       };
 
-      const { data: creds } = await supabase
-        .from("organization_credentials")
-        .select("openai_api_key")
-        .eq("organization_id", userRecord.organization_id)
-        .single();
-
-      if (!creds?.openai_api_key) {
-        toast({ title: "OpenAI not configured", description: "Add your OpenAI API key in Settings → Integrations.", variant: "destructive" });
-        return;
-      }
-
-      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${creds.openai_api_key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          max_tokens: 300,
-          messages: [
-            {
-              role: "system",
-              content: `You are writing a concise rental property description optimized for AI agents that handle inbound calls and lead management. The description must:
-1. Lead with the most important details: rent, beds/baths, key features
-2. Be concise (3-4 sentences max)
-3. Include Section 8/voucher status clearly
-4. Mention pet policy if available
-5. Highlight move-in readiness and standout amenities
-6. Use a professional, informative tone (not marketing fluff)
-7. Write in English only
-Return ONLY the description text, no quotes or labels.`,
-            },
-            {
-              role: "user",
-              content: `Generate an AI-optimized property description:\n${JSON.stringify(context)}`,
-            },
-          ],
-        }),
+      const { data, error } = await supabase.functions.invoke("generate-property-description", {
+        body: { kind: "description", context },
       });
 
-      if (!resp.ok) throw new Error(`OpenAI error: ${resp.status}`);
-      const data = await resp.json();
-      const desc = data.choices?.[0]?.message?.content?.trim();
+      if (error) throw new Error(error.message || "Failed to generate description");
+      if (data?.error) {
+        if (/not configured/i.test(data.error)) {
+          toast({ title: "OpenAI not configured", description: "Add your OpenAI API key in Settings → Integrations.", variant: "destructive" });
+          return;
+        }
+        throw new Error(data.error);
+      }
+      const desc = data?.text as string | undefined;
       if (desc) setEditDescription(desc);
     } catch (err) {
       toast({ title: "Generation failed", description: (err as Error).message, variant: "destructive" });
@@ -279,6 +248,7 @@ Return ONLY the description text, no quotes or labels.`,
       setGeneratingDesc(false);
     }
   };
+
 
   const resetState = () => {
     setStep("url");

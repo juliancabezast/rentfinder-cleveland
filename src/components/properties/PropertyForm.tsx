@@ -195,56 +195,37 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
     rent_price: form.getValues('rent_price') || 'unknown',
   });
 
-  const callOpenAi = async (systemPrompt: string, userPrompt: string): Promise<string | null> => {
+  const callOpenAi = async (kind: 'description' | 'notes'): Promise<string | null> => {
     if (!organization?.id) return null;
 
-    const { data: creds } = await supabase
-      .from('organization_credentials')
-      .select('openai_api_key')
-      .eq('organization_id', organization.id)
-      .single();
-
-    if (!creds?.openai_api_key) {
-      toast.error('OpenAI API key not configured. Add it in Settings → Integrations.');
-      return null;
-    }
-
-    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${creds.openai_api_key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        max_tokens: 400,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      }),
+    const { data, error } = await supabase.functions.invoke('generate-property-description', {
+      body: { kind, context: getPropertyContext() },
     });
 
-    if (!resp.ok) throw new Error(`OpenAI error: ${resp.status}`);
-    const data = await resp.json();
-    return data.choices?.[0]?.message?.content?.trim() || null;
+    if (error) {
+      const msg = error.message || 'Failed to generate text';
+      if (/not configured/i.test(msg)) {
+        toast.error('OpenAI API key not configured. Add it in Settings → Integrations.');
+      } else {
+        throw new Error(msg);
+      }
+      return null;
+    }
+    if (data?.error) {
+      if (/not configured/i.test(data.error)) {
+        toast.error('OpenAI API key not configured. Add it in Settings → Integrations.');
+        return null;
+      }
+      throw new Error(data.error);
+    }
+    return (data?.text as string) || null;
   };
+
 
   const generateAiDescription = async () => {
     setGeneratingDesc(true);
     try {
-      const result = await callOpenAi(
-        `You are writing a concise rental property description optimized for AI agents that handle inbound calls and lead management. The description must:
-1. Lead with the most important details: rent, beds/baths, key features
-2. Be concise (3-4 sentences max)
-3. Include Section 8/voucher status clearly
-4. Mention pet policy if available
-5. Highlight move-in readiness and standout amenities
-6. Use a professional, informative tone (not marketing fluff)
-7. Write in English only
-Return ONLY the description text, no quotes or labels.`,
-        `Generate an AI-optimized property description:\n${JSON.stringify(getPropertyContext())}`
-      );
+      const result = await callOpenAi('description');
       if (result) form.setValue('description', result);
     } catch (err) {
       toast.error((err as Error).message);
@@ -256,17 +237,7 @@ Return ONLY the description text, no quotes or labels.`,
   const generateAiNotes = async () => {
     setGeneratingNotes(true);
     try {
-      const result = await callOpenAi(
-        `You generate internal notes for a property management team. These notes are NOT visible to tenants. Include:
-1. Key selling points for agents to mention on calls
-2. Potential objections and how to handle them
-3. Comparative market positioning (is the rent competitive for the area?)
-4. Any red flags or things to watch for
-5. Tips for showing the property
-Be direct and concise (4-6 bullet points). Write in English only.
-Return ONLY the notes text, no quotes or labels.`,
-        `Generate internal team notes for this property:\n${JSON.stringify(getPropertyContext())}`
-      );
+      const result = await callOpenAi('notes');
       if (result) form.setValue('special_notes', result);
     } catch (err) {
       toast.error((err as Error).message);
@@ -274,6 +245,7 @@ Return ONLY the notes text, no quotes or labels.`,
       setGeneratingNotes(false);
     }
   };
+
 
   const fieldLabels: Record<string, string> = {
     bedrooms: 'Bedrooms',

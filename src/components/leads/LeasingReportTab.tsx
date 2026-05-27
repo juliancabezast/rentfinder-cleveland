@@ -75,6 +75,14 @@ export const LeasingReportTab: React.FC<LeasingReportTabProps> = ({ leadId, lead
     fetchReports();
   }, [leadId]);
 
+  const escapeHtml = (val: unknown): string =>
+    String(val ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
   const handleDownload = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow || !reportRef.current) return;
@@ -106,30 +114,42 @@ export const LeasingReportTab: React.FC<LeasingReportTabProps> = ({ leadId, lead
 
     const cards = reports.map((r) => {
       const statusClass = r.status === "completed" ? "completed" : r.status === "no_show" || r.status === "cancelled" ? "no-show" : "default";
-      const interestClass = r.prospect_interest_level ? `interest-${r.prospect_interest_level}` : "";
+      const interestClass = r.prospect_interest_level ? `interest-${escapeHtml(r.prospect_interest_level)}` : "";
+      const addr = escapeHtml(r.properties?.address || "Unknown Property");
+      const unit = r.properties?.unit_number ? ` #${escapeHtml(r.properties.unit_number)}` : "";
+      const city = r.properties?.city ? `, ${escapeHtml(r.properties.city)}` : "";
+      const rent = r.properties?.rent_price ? ` — $${Number(r.properties.rent_price).toLocaleString()}/mo` : "";
+      const when = escapeHtml(format(parseISO(r.scheduled_at), "EEEE, MMMM d, yyyy 'at' h:mm a"));
+      const statusLabel = escapeHtml(statusBadge[r.status]?.label || r.status);
+      const interestLabel = r.prospect_interest_level
+        ? escapeHtml(interestBadge[r.prospect_interest_level]?.label || r.prospect_interest_level)
+        : "";
+      const reportText = r.agent_report ? escapeHtml(r.agent_report) : "";
+      const photoUrl = r.agent_report_photo_url ? encodeURI(r.agent_report_photo_url) : "";
       return `
         <div class="report-card">
           <div class="report-header">
             <div>
-              <div class="property">${r.properties?.address || "Unknown Property"}${r.properties?.unit_number ? ` #${r.properties.unit_number}` : ""}${r.properties?.city ? `, ${r.properties.city}` : ""}</div>
-              <div class="meta">${format(parseISO(r.scheduled_at), "EEEE, MMMM d, yyyy 'at' h:mm a")}${r.properties?.rent_price ? ` — $${r.properties.rent_price.toLocaleString()}/mo` : ""}</div>
+              <div class="property">${addr}${unit}${city}</div>
+              <div class="meta">${when}${rent}</div>
             </div>
-            <span class="badge badge-${statusClass}">${statusBadge[r.status]?.label || r.status}</span>
+            <span class="badge badge-${statusClass}">${statusLabel}</span>
           </div>
-          ${r.prospect_interest_level ? `<div class="interest"><span class="badge ${interestClass}">${interestBadge[r.prospect_interest_level]?.label || r.prospect_interest_level}</span></div>` : ""}
-          ${r.agent_report ? `<div class="report-text">${r.agent_report}</div>` : ""}
-          ${r.agent_report_photo_url ? `<img class="photo" src="${r.agent_report_photo_url}" alt="Showing photo" />` : ""}
+          ${interestLabel ? `<div class="interest"><span class="badge ${interestClass}">${interestLabel}</span></div>` : ""}
+          ${reportText ? `<div class="report-text">${reportText}</div>` : ""}
+          ${photoUrl ? `<img class="photo" src="${escapeHtml(photoUrl)}" alt="Showing photo" />` : ""}
         </div>
       `;
     }).join("");
 
+    const safeLeadName = escapeHtml(leadName);
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
-        <head><title>Leasing Report — ${leadName}</title>${styles}</head>
+        <head><title>Leasing Report — ${safeLeadName}</title>${styles}</head>
         <body>
           <h1>Leasing Report</h1>
-          <div class="subtitle">${leadName} — Generated ${format(new Date(), "MMMM d, yyyy")}</div>
+          <div class="subtitle">${safeLeadName} — Generated ${escapeHtml(format(new Date(), "MMMM d, yyyy"))}</div>
           ${cards}
         </body>
       </html>
@@ -137,6 +157,7 @@ export const LeasingReportTab: React.FC<LeasingReportTabProps> = ({ leadId, lead
     printWindow.document.close();
     printWindow.print();
   };
+
 
   if (loading) {
     return (
