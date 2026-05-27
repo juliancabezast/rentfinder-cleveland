@@ -108,6 +108,28 @@ serve(async (req: Request) => {
       let failed = 0;
       const errors: string[] = [];
 
+      // Pre-fetch each campaign's send_delay_seconds for emails in this batch
+      // so we can throttle accordingly.
+      const campaignIds = Array.from(
+        new Set(
+          queued
+            .map((e: { details?: { campaign_id?: string } }) => e.details?.campaign_id)
+            .filter((v: unknown): v is string => typeof v === "string" && v.length > 0),
+        ),
+      );
+      const campaignDelays = new Map<string, number>();
+      if (campaignIds.length > 0) {
+        const { data: campRows } = await supabase
+          .from("campaigns")
+          .select("id, send_delay_seconds")
+          .in("id", campaignIds);
+        for (const c of campRows || []) {
+          if (typeof c.send_delay_seconds === "number" && c.send_delay_seconds >= 0) {
+            campaignDelays.set(c.id, c.send_delay_seconds);
+          }
+        }
+      }
+
       for (const email of queued) {
         // Read attempt limits explicitly — the claim RPC may not project these
         // columns, so we can't trust email.attempt_number coming from it.
@@ -210,9 +232,16 @@ serve(async (req: Request) => {
             failed++;
           }
 
-          // Rate limiting delay between emails
+          // Rate limiting delay between emails. Use the MAX of the global
+          // Resend safety floor (DELAY_MS) and the campaign's configured
+          // send_delay_seconds, so a "Drip" campaign waits longer.
           if (queued.indexOf(email) < queued.length - 1) {
-            await new Promise((r) => setTimeout(r, DELAY_MS));
+            const campaignId = email.details?.campaign_id as string | undefined;
+            const campaignDelayMs = campaignId
+              ? (campaignDelays.get(campaignId) ?? 0) * 1000
+              : 0;
+            const wait = Math.max(DELAY_MS, campaignDelayMs);
+            await new Promise((r) => setTimeout(r, wait));
           }
         } catch (err) {
           const exhausted = currentAttempt >= maxAttempts;

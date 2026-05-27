@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,10 @@ import {
   Eye,
   UserPlus,
   UserCheck,
+  Building2,
+  Filter,
+  Gauge,
+  ListChecks,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,9 +42,22 @@ import {
   renderEmailHtml,
   DEFAULT_CONFIGS,
   TEMPLATE_META,
+  TEMPLATE_TYPES,
 } from "@/lib/emailTemplateDefaults";
 import type { EmailTemplateConfig, EmailTemplateType } from "@/lib/emailTemplateDefaults";
 import { CampaignProgressPanel } from "./CampaignProgressPanel";
+
+// ── Targeting modes ────────────────────────────────────────────────────
+type CampaignSourceMode = "upload" | "property_history";
+
+// ── Send pacing presets (UX over raw seconds) ──────────────────────────
+const PACING_OPTIONS: { value: number; label: string; description: string }[] = [
+  { value: 1,   label: "Burst",        description: "1s between emails — fastest, highest spam risk" },
+  { value: 5,   label: "Normal",       description: "5s between emails — recommended" },
+  { value: 15,  label: "Conservative", description: "15s between emails — gentler on inboxes" },
+  { value: 60,  label: "Trickle",      description: "1 min between emails — extremely safe" },
+  { value: 300, label: "Drip",         description: "5 min between emails — for very large lists" },
+];
 
 // ── Column auto-mapping ──────────────────────────────────────────────
 
@@ -87,10 +104,20 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
   const [campaignName, setCampaignName] = useState("");
   const [propertyId, setPropertyId] = useState("");
   const [templateType, setTemplateType] = useState<EmailTemplateType>("schedule_showing");
+  const [sourceMode, setSourceMode] = useState<CampaignSourceMode>("upload");
+  const [sendDelaySeconds, setSendDelaySeconds] = useState<number>(5);
   const [fileName, setFileName] = useState("");
   const [parsedLeads, setParsedLeads] = useState<ParsedLead[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+
+  // Property-history targeting state
+  const [historyExistingLeads, setHistoryExistingLeads] = useState<
+    Array<{ id: string; full_name: string | null; email: string | null; phone: string | null }>
+  >([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  // Optional filter: include only leads with email (default on)
+  const [historyOnlyWithEmail, setHistoryOnlyWithEmail] = useState(true);
 
   // Excel sheet selector
   const [excelSheetNames, setExcelSheetNames] = useState<string[]>([]);
@@ -203,7 +230,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
     return row as ParsedLead;
   };
 
-  // Apply column mapping to get actual lead data
+  // Apply column mapping to get actual lead data (upload mode only)
   const getMappedLeads = (): ParsedLead[] => {
     return parsedLeads.map((raw) => {
       const lead: ParsedLead = {};
@@ -211,7 +238,6 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         const val = raw[csvCol];
         if (val) lead[fieldKey] = val.toString().trim();
       }
-      // Build full_name if not directly mapped
       if (!lead.full_name && (lead.first_name || lead.last_name)) {
         lead.full_name = [lead.first_name, lead.last_name].filter(Boolean).join(" ");
       }
@@ -219,7 +245,114 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
     });
   };
 
-  const mappedLeads = step >= 2 ? getMappedLeads() : [];
+  // ── Fetch all leads that have ever been associated with this property ──
+  // Union of: leads.interested_property_id, showings.property_id (lead_id),
+  // campaign_leads via prior campaigns to this property.
+  const refreshPropertyHistoryLeads = useCallback(async () => {
+    if (!orgId || !propertyId) {
+      setHistoryExistingLeads([]);
+      return;
+    }
+    setHistoryLoading(true);
+    try {
+      // 1. Leads currently interested in this property
+      const { data: interested } = await supabase
+        .from("leads")
+        .select("id, full_name, email, phone, unsubscribed_at, email_marketing_consent")
+        .eq("organization_id", orgId)
+        .eq("interested_property_id", propertyId);
+
+      // 2. Leads with at least one showing for this property
+      const { data: showings } = await supabase
+        .from("showings")
+        .select("lead_id")
+        .eq("organization_id", orgId)
+        .eq("property_id", propertyId);
+      const showingLeadIds = Array.from(
+        new Set((showings || []).map((s) => s.lead_id).filter(Boolean) as string[]),
+      );
+
+      // 3. Leads from previous campaigns targeting this property
+      const { data: priorCampaigns } = await supabase
+        .from("campaigns")
+        .select("id")
+        .eq("organization_id", orgId)
+        .eq("property_id", propertyId);
+      const campaignIds = (priorCampaigns || []).map((c) => c.id);
+      let priorLeadIds: string[] = [];
+      if (campaignIds.length > 0) {
+        const { data: priorCL } = await supabase
+          .from("campaign_leads")
+          .select("lead_id")
+          .in("campaign_id", campaignIds);
+        priorLeadIds = Array.from(
+          new Set((priorCL || []).map((r) => r.lead_id).filter(Boolean) as string[]),
+        );
+      }
+
+      const extraIds = Array.from(new Set([...showingLeadIds, ...priorLeadIds]));
+      const knownIds = new Set((interested || []).map((l) => l.id));
+      const missingIds = extraIds.filter((id) => !knownIds.has(id));
+
+      type LeadRow = { id: string; full_name: string | null; email: string | null; phone: string | null; unsubscribed_at?: string | null; email_marketing_consent?: boolean | null };
+      let extraLeads: LeadRow[] = [];
+      if (missingIds.length > 0) {
+        const { data: extra } = await supabase
+          .from("leads")
+          .select("id, full_name, email, phone, unsubscribed_at, email_marketing_consent")
+          .eq("organization_id", orgId)
+          .in("id", missingIds);
+        extraLeads = (extra as LeadRow[] | null) || [];
+      }
+
+      const merged: LeadRow[] = [...((interested as LeadRow[] | null) || []), ...extraLeads];
+
+      // Drop leads that have explicitly unsubscribed (defense-in-depth on top of
+      // the edge-function consent gate)
+      const eligible = merged.filter((l) => !l.unsubscribed_at);
+
+      setHistoryExistingLeads(
+        eligible.map((l) => ({
+          id: l.id,
+          full_name: l.full_name,
+          email: l.email,
+          phone: l.phone,
+        })),
+      );
+    } catch (err) {
+      console.error("Property-history lead fetch failed:", err);
+      setHistoryExistingLeads([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [orgId, propertyId]);
+
+  // Auto-refresh history leads when entering property_history mode or
+  // when the property changes.
+  useEffect(() => {
+    if (sourceMode === "property_history") {
+      refreshPropertyHistoryLeads();
+    }
+  }, [sourceMode, refreshPropertyHistoryLeads]);
+
+  // Filtered subset honoring the "only with email" toggle
+  const historyLeadsFiltered = useMemo(() => {
+    if (!historyOnlyWithEmail) return historyExistingLeads;
+    return historyExistingLeads.filter((l) => Boolean(l.email && l.email.trim()));
+  }, [historyExistingLeads, historyOnlyWithEmail]);
+
+  // Unified `mappedLeads` for both modes — used by step 2/3 logic below.
+  const mappedLeads: ParsedLead[] = step >= 2
+    ? (sourceMode === "upload"
+        ? getMappedLeads()
+        : historyLeadsFiltered.map((l) => ({
+            full_name: l.full_name || undefined,
+            email: l.email || undefined,
+            phone: l.phone || undefined,
+            // Mark existing lead id so launch path skips INSERT
+            __lead_id: l.id,
+          } as ParsedLead & { __lead_id?: string })))
+    : [];
   const leadsWithEmail = mappedLeads.filter((l) => l.email);
   const selectedProperty = properties?.find((p) => p.id === propertyId);
 
@@ -317,12 +450,27 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
 
   const goToStep2 = async () => {
     setStep(2);
-    await checkDuplicates();
+    // Property-history leads are already known DB rows; no dedup needed
+    if (sourceMode === "upload") {
+      await checkDuplicates();
+    } else {
+      setDedupResult({
+        existingCount: historyLeadsFiltered.length,
+        newCount: 0,
+        existingMap: {},
+      });
+    }
   };
 
   // ── Step validation ────────────────────────────────────────────────
 
-  const canProceedStep1 = campaignName.trim() && propertyId && parsedLeads.length > 0;
+  const canProceedStep1 = Boolean(
+    campaignName.trim() &&
+      propertyId &&
+      (sourceMode === "upload"
+        ? parsedLeads.length > 0
+        : historyLeadsFiltered.length > 0),
+  );
   const canProceedStep2 = leadsWithEmail.length > 0;
 
   // ── Launch campaign ────────────────────────────────────────────────
@@ -333,6 +481,15 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
 
     try {
       // 1. Create campaign row
+      const targetCriteria: Record<string, unknown> = {
+        source: sourceMode === "upload" ? "csv_upload" : "property_history",
+        template: templateType,
+        send_delay_seconds: sendDelaySeconds,
+      };
+      if (sourceMode === "property_history") {
+        targetCriteria.property_id = propertyId;
+        targetCriteria.only_with_email = historyOnlyWithEmail;
+      }
       const { data: campaign, error: campErr } = await supabase
         .from("campaigns")
         .insert({
@@ -340,11 +497,12 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
           name: campaignName.trim(),
           property_id: propertyId,
           campaign_type: "email_blast",
-          target_criteria: { source: "csv_upload", template: templateType },
+          target_criteria: targetCriteria,
           status: "in_progress",
           total_leads: mappedLeads.length,
           leads_with_email: leadsWithEmail.length,
           emails_queued: 0,
+          send_delay_seconds: sendDelaySeconds,
           created_by: userRecord?.id || null,
         })
         .select("id")
@@ -394,12 +552,17 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         const phone = rawPhone.length === 10 ? `+1${rawPhone}` : rawPhone.length > 0 ? `+${rawPhone}` : "";
         const email = (lead.email || "").trim();
 
-        // Check if lead already exists (by phone or email)
-        let leadId: string | null = null;
-        if (phone && existingMap[`phone:${phone}`]) {
-          leadId = existingMap[`phone:${phone}`];
-        } else if (email && existingMap[`email:${email.toLowerCase()}`]) {
-          leadId = existingMap[`email:${email.toLowerCase()}`];
+        // Property-history mode passes existing lead_id explicitly — use it.
+        const directLeadId = (lead as ParsedLead & { __lead_id?: string }).__lead_id;
+        let leadId: string | null = directLeadId ?? null;
+
+        // Upload mode: check if lead already exists (by phone or email)
+        if (!leadId) {
+          if (phone && existingMap[`phone:${phone}`]) {
+            leadId = existingMap[`phone:${phone}`];
+          } else if (email && existingMap[`email:${email.toLowerCase()}`]) {
+            leadId = existingMap[`email:${email.toLowerCase()}`];
+          }
         }
 
         // Only create if truly new
@@ -427,13 +590,15 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
           leadId = insertedLead.id;
         }
 
-        // Insert campaign_leads junction
+        // Insert campaign_leads junction (UNIQUE constraint catches dupes)
         const { error: clErr } = await supabase.from("campaign_leads").insert({
           campaign_id: newCampaignId,
           lead_id: leadId,
           organization_id: orgId,
         });
-        if (clErr) console.warn("campaign_leads insert:", clErr.message);
+        if (clErr && !clErr.message?.includes("duplicate")) {
+          console.warn("campaign_leads insert:", clErr.message);
+        }
 
         // Queue email if lead has email (await to ensure it's actually queued)
         if (email) {
@@ -557,15 +722,64 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             </div>
           </div>
 
-          {/* Email template selector */}
+          {/* Source mode toggle: where do the leads come from? */}
           <div className="space-y-2">
-            <Label>Email Template</Label>
+            <Label>Audience Source</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSourceMode("upload")}
+                className={cn(
+                  "p-4 rounded-xl border-2 text-left transition-all",
+                  sourceMode === "upload"
+                    ? "border-[#4F46E5] bg-indigo-50/50"
+                    : "border-slate-200 hover:border-slate-300",
+                )}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <FileSpreadsheet className={cn("h-4 w-4", sourceMode === "upload" ? "text-[#4F46E5]" : "text-slate-400")} />
+                  <span className="font-semibold text-sm">Upload CSV / Excel</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Import a fresh list from a file. New leads will be created automatically.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSourceMode("property_history")}
+                disabled={!propertyId}
+                className={cn(
+                  "p-4 rounded-xl border-2 text-left transition-all",
+                  sourceMode === "property_history"
+                    ? "border-[#4F46E5] bg-indigo-50/50"
+                    : "border-slate-200 hover:border-slate-300",
+                  !propertyId && "opacity-50 cursor-not-allowed",
+                )}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className={cn("h-4 w-4", sourceMode === "property_history" ? "text-[#4F46E5]" : "text-slate-400")} />
+                  <span className="font-semibold text-sm">Target by Property History</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Every lead ever interested in, scheduled to tour, or campaigned about this unit.
+                  {!propertyId && " — pick a property first."}
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {/* Email template selector — shows ALL configured templates */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5" />
+              Email Template
+            </Label>
             <Select value={templateType} onValueChange={(v) => setTemplateType(v as EmailTemplateType)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(["welcome", "schedule_showing"] as EmailTemplateType[]).map((t) => (
+                {TEMPLATE_TYPES.map((t) => (
                   <SelectItem key={t} value={t}>
                     <div className="flex flex-col">
                       <span>{TEMPLATE_META[t].label}</span>
@@ -575,102 +789,231 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Edit copy under <strong>Leads → Nurturing → Email Templates</strong>. Templates with no
+              custom config use the system default.
+            </p>
           </div>
 
-          {/* File upload */}
+          {/* Pacing — delay between sends to avoid spam flags */}
           <div className="space-y-2">
-            <Label>Upload Lead Database</Label>
-            <div
-              className={cn(
-                "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
-                fileName
-                  ? "border-indigo-300 bg-indigo-50/50"
-                  : "border-slate-200 hover:border-indigo-300 hover:bg-slate-50"
-              )}
-              onClick={() => fileInputRef.current?.click()}
+            <Label className="flex items-center gap-1.5">
+              <Gauge className="h-3.5 w-3.5" />
+              Send Pacing
+            </Label>
+            <Select
+              value={String(sendDelaySeconds)}
+              onValueChange={(v) => setSendDelaySeconds(Number(v))}
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              {fileName ? (
-                <div className="flex items-center justify-center gap-3">
-                  <FileSpreadsheet className="h-8 w-8 text-indigo-500" />
-                  <div className="text-left">
-                    <p className="font-medium text-slate-900">{fileName}</p>
-                    <p className="text-sm text-slate-500">
-                      {excelSheetNames.length > 1 && !selectedSheet
-                        ? `${excelSheetNames.length} sheets — select one below`
-                        : `${parsedLeads.length} rows parsed${selectedSheet ? ` from "${selectedSheet}"` : ""}`}
-                    </p>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PACING_OPTIONS.map((p) => (
+                  <SelectItem key={p.value} value={String(p.value)}>
+                    <div className="flex flex-col">
+                      <span>{p.label} <span className="text-[11px] text-muted-foreground">({p.value < 60 ? `${p.value}s` : `${Math.round(p.value / 60)}min`})</span></span>
+                      <span className="text-[11px] text-muted-foreground">{p.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {leadsWithEmail.length > 0 && (
+              <p className="text-[11px] text-muted-foreground">
+                Estimated total send time: <strong>
+                  {(() => {
+                    const totalSeconds = (leadsWithEmail.length - 1) * sendDelaySeconds;
+                    if (totalSeconds < 60) return `${totalSeconds}s`;
+                    if (totalSeconds < 3600) return `${Math.round(totalSeconds / 60)} min`;
+                    return `${(totalSeconds / 3600).toFixed(1)} hours`;
+                  })()}
+                </strong>
+              </p>
+            )}
+          </div>
+
+          {/* ── Upload mode UI ─────────────────────────────────────── */}
+          {sourceMode === "upload" && (
+            <>
+              <div className="space-y-2">
+                <Label>Upload Lead Database</Label>
+                <div
+                  className={cn(
+                    "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
+                    fileName
+                      ? "border-indigo-300 bg-indigo-50/50"
+                      : "border-slate-200 hover:border-indigo-300 hover:bg-slate-50"
+                  )}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  {fileName ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <FileSpreadsheet className="h-8 w-8 text-indigo-500" />
+                      <div className="text-left">
+                        <p className="font-medium text-slate-900">{fileName}</p>
+                        <p className="text-sm text-slate-500">
+                          {excelSheetNames.length > 1 && !selectedSheet
+                            ? `${excelSheetNames.length} sheets — select one below`
+                            : `${parsedLeads.length} rows parsed${selectedSheet ? ` from "${selectedSheet}"` : ""}`}
+                        </p>
+                      </div>
+                      {parsedLeads.length > 0 ? (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200">
+                          <Check className="h-3 w-3 mr-1" /> Ready
+                        </Badge>
+                      ) : excelSheetNames.length > 1 ? (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
+                          Select Sheet
+                        </Badge>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="h-10 w-10 mx-auto text-slate-400 mb-3" />
+                      <p className="text-sm font-medium text-slate-600">
+                        Click to upload CSV or Excel file
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Columns will be auto-mapped (name, email, phone, etc.)
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Excel sheet selector */}
+              {excelSheetNames.length > 1 && (
+                <div className="space-y-2">
+                  <Label>Select Sheet</Label>
+                  <Select value={selectedSheet} onValueChange={handleSheetSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a sheet from this workbook..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {excelSheetNames.map((name) => (
+                        <SelectItem key={name} value={name}>
+                          <div className="flex items-center gap-2">
+                            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
+                            {name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Column mapping preview */}
+              {csvHeaders.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Column Mapping</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {csvHeaders.slice(0, 12).map((h) => (
+                      <div key={h} className="flex items-center gap-2 text-sm p-2 rounded-lg bg-slate-50">
+                        <span className="text-slate-500 truncate flex-1">{h}</span>
+                        <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />
+                        <span className={cn(
+                          "font-medium truncate",
+                          columnMapping[h] ? "text-indigo-600" : "text-slate-300"
+                        )}>
+                          {columnMapping[h] || "—"}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  {parsedLeads.length > 0 ? (
-                    <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200">
-                      <Check className="h-3 w-3 mr-1" /> Ready
-                    </Badge>
-                  ) : excelSheetNames.length > 1 ? (
-                    <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
-                      Select Sheet
-                    </Badge>
-                  ) : null}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Property-history mode UI ───────────────────────────── */}
+          {sourceMode === "property_history" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <Label className="flex items-center gap-1.5">
+                  <ListChecks className="h-3.5 w-3.5" />
+                  Matched Leads {historyLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryOnlyWithEmail((v) => !v)}
+                    className={cn(
+                      "text-[11px] px-2 py-1 rounded-md border transition-colors",
+                      historyOnlyWithEmail
+                        ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                        : "bg-white border-slate-200 text-slate-600",
+                    )}
+                  >
+                    <Filter className="h-3 w-3 mr-1 inline" />
+                    Only with email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => refreshPropertyHistoryLeads()}
+                    disabled={!propertyId || historyLoading}
+                    className="text-[11px] px-2 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Refresh
+                  </button>
+                </div>
+              </div>
+              {!propertyId ? (
+                <div className="text-sm text-muted-foreground p-4 rounded-lg border border-dashed text-center">
+                  Pick a property above to load its lead history.
+                </div>
+              ) : historyLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-10 rounded-lg bg-slate-100 animate-pulse" />
+                  ))}
+                </div>
+              ) : historyLeadsFiltered.length === 0 ? (
+                <div className="text-sm text-muted-foreground p-4 rounded-lg border border-dashed text-center">
+                  No leads associated with this property{historyOnlyWithEmail ? " have email addresses" : ""}.
                 </div>
               ) : (
                 <>
-                  <Upload className="h-10 w-10 mx-auto text-slate-400 mb-3" />
-                  <p className="text-sm font-medium text-slate-600">
-                    Click to upload CSV or Excel file
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Columns will be auto-mapped (name, email, phone, etc.)
-                  </p>
+                  <div className="text-sm text-slate-600 flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="gap-1">
+                      <Users className="h-3 w-3" /> {historyLeadsFiltered.length} leads
+                    </Badge>
+                    <Badge variant="outline" className="gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
+                      <Mail className="h-3 w-3" /> {historyLeadsFiltered.filter((l) => l.email).length} with email
+                    </Badge>
+                    {historyExistingLeads.length !== historyLeadsFiltered.length && (
+                      <span className="text-[11px] text-muted-foreground">
+                        ({historyExistingLeads.length - historyLeadsFiltered.length} hidden — no email)
+                      </span>
+                    )}
+                  </div>
+                  <ScrollArea className="h-44 rounded-lg border bg-white">
+                    <ul className="divide-y divide-slate-100">
+                      {historyLeadsFiltered.slice(0, 200).map((l) => (
+                        <li key={l.id} className="px-3 py-2 text-sm flex items-center gap-2">
+                          <span className="font-medium text-slate-800 truncate flex-1">
+                            {l.full_name || "—"}
+                          </span>
+                          <span className="text-xs text-slate-500 truncate">{l.email || "no email"}</span>
+                        </li>
+                      ))}
+                      {historyLeadsFiltered.length > 200 && (
+                        <li className="px-3 py-2 text-[11px] text-muted-foreground text-center">
+                          + {historyLeadsFiltered.length - 200} more not shown
+                        </li>
+                      )}
+                    </ul>
+                  </ScrollArea>
                 </>
               )}
-            </div>
-          </div>
-
-          {/* Excel sheet selector */}
-          {excelSheetNames.length > 1 && (
-            <div className="space-y-2">
-              <Label>Select Sheet</Label>
-              <Select value={selectedSheet} onValueChange={handleSheetSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a sheet from this workbook..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {excelSheetNames.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      <div className="flex items-center gap-2">
-                        <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
-                        {name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Column mapping preview */}
-          {csvHeaders.length > 0 && (
-            <div className="space-y-2">
-              <Label>Column Mapping</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {csvHeaders.slice(0, 12).map((h) => (
-                  <div key={h} className="flex items-center gap-2 text-sm p-2 rounded-lg bg-slate-50">
-                    <span className="text-slate-500 truncate flex-1">{h}</span>
-                    <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />
-                    <span className={cn(
-                      "font-medium truncate",
-                      columnMapping[h] ? "text-indigo-600" : "text-slate-300"
-                    )}>
-                      {columnMapping[h] || "—"}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
@@ -693,33 +1036,44 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       {/* ── Step 2: Review ───────────────────────────────────────────── */}
       {step === 2 && (
         <div className="space-y-6">
-          {/* Summary cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {/* Summary cards — labels adapt to source mode */}
+          <div className={cn(
+            "grid gap-4",
+            sourceMode === "upload"
+              ? "grid-cols-2 md:grid-cols-5"
+              : "grid-cols-2 md:grid-cols-3",
+          )}>
             <Card variant="glass">
               <CardContent className="p-4 text-center">
                 <Users className="h-6 w-6 mx-auto text-slate-500 mb-2" />
                 <p className="text-2xl font-bold">{mappedLeads.length}</p>
-                <p className="text-xs text-slate-500">In File</p>
-              </CardContent>
-            </Card>
-            <Card variant="glass">
-              <CardContent className="p-4 text-center">
-                <UserCheck className="h-6 w-6 mx-auto text-blue-500 mb-2" />
-                <p className="text-2xl font-bold">
-                  {isCheckingDupes ? <Loader2 className="h-5 w-5 mx-auto animate-spin" /> : dedupResult?.existingCount ?? "—"}
+                <p className="text-xs text-slate-500">
+                  {sourceMode === "upload" ? "In File" : "Matched Leads"}
                 </p>
-                <p className="text-xs text-slate-500">Already in DB</p>
               </CardContent>
             </Card>
-            <Card variant="glass">
-              <CardContent className="p-4 text-center">
-                <UserPlus className="h-6 w-6 mx-auto text-emerald-500 mb-2" />
-                <p className="text-2xl font-bold">
-                  {isCheckingDupes ? <Loader2 className="h-5 w-5 mx-auto animate-spin" /> : dedupResult?.newCount ?? "—"}
-                </p>
-                <p className="text-xs text-slate-500">New Leads</p>
-              </CardContent>
-            </Card>
+            {sourceMode === "upload" && (
+              <>
+                <Card variant="glass">
+                  <CardContent className="p-4 text-center">
+                    <UserCheck className="h-6 w-6 mx-auto text-blue-500 mb-2" />
+                    <p className="text-2xl font-bold">
+                      {isCheckingDupes ? <Loader2 className="h-5 w-5 mx-auto animate-spin" /> : dedupResult?.existingCount ?? "—"}
+                    </p>
+                    <p className="text-xs text-slate-500">Already in DB</p>
+                  </CardContent>
+                </Card>
+                <Card variant="glass">
+                  <CardContent className="p-4 text-center">
+                    <UserPlus className="h-6 w-6 mx-auto text-emerald-500 mb-2" />
+                    <p className="text-2xl font-bold">
+                      {isCheckingDupes ? <Loader2 className="h-5 w-5 mx-auto animate-spin" /> : dedupResult?.newCount ?? "—"}
+                    </p>
+                    <p className="text-xs text-slate-500">New Leads</p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
             <Card variant="glass">
               <CardContent className="p-4 text-center">
                 <Mail className="h-6 w-6 mx-auto text-indigo-500 mb-2" />
@@ -736,8 +1090,8 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             </Card>
           </div>
 
-          {/* Dedup notice */}
-          {dedupResult && dedupResult.existingCount > 0 && (
+          {/* Source-specific notice */}
+          {sourceMode === "upload" && dedupResult && dedupResult.existingCount > 0 && (
             <div className="flex items-start gap-3 rounded-xl bg-blue-50 border border-blue-200 p-4">
               <UserCheck className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
               <div className="text-sm text-blue-800">
@@ -746,6 +1100,20 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
                 </p>
                 <p className="text-blue-600 mt-1">
                   They won't be duplicated — the campaign email will be sent to all {leadsWithEmail.length} contacts with email.
+                </p>
+              </div>
+            </div>
+          )}
+          {sourceMode === "property_history" && (
+            <div className="flex items-start gap-3 rounded-xl bg-indigo-50 border border-indigo-200 p-4">
+              <Building2 className="h-5 w-5 text-[#4F46E5] mt-0.5 shrink-0" />
+              <div className="text-sm text-indigo-900">
+                <p className="font-medium">
+                  Targeting {mappedLeads.length} historical lead{mappedLeads.length !== 1 ? "s" : ""} of {selectedProperty?.address}{selectedProperty?.unit_number ? ` #${selectedProperty.unit_number}` : ""}
+                </p>
+                <p className="text-indigo-700 mt-1">
+                  Includes interested leads, prior showing attendees, and previous campaign recipients.
+                  Leads who explicitly unsubscribed are excluded.
                 </p>
               </div>
             </div>

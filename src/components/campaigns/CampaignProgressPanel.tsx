@@ -27,20 +27,30 @@ interface CampaignProgressPanelProps {
 }
 
 interface EmailStats {
-  queued: number;
-  sent: number;
-  delivered: number;
-  failed: number;
+  queued: number;     // waiting in queue, never attempted
+  processing: number; // claimed by a worker, send in flight
+  sent: number;       // Resend accepted (not yet confirmed in inbox)
+  delivered: number;  // Resend webhook: actually landed in mailbox
+  opened: number;     // recipient opened
+  clicked: number;    // recipient clicked
+  failed: number;     // permanent failure (max retries reached)
+  bounced: number;    // bounced (hard or soft)
+  complained: number; // spam complaint
 }
 
+// Newer status outranks older — used so we never downgrade a row from
+// "delivered" back to "sent" when multiple events exist per recipient.
 function statusPriority(status: string): number {
   switch (status) {
-    case "clicked": return 5;
-    case "opened": return 4;
-    case "delivered": return 3;
-    case "sent": return 2;
-    case "queued": case "processing": return 1;
-    default: return 0; // failed, bounced, etc.
+    case "complained": return 8;
+    case "bounced": return 7;
+    case "clicked": return 6;
+    case "opened": return 5;
+    case "delivered": return 4;
+    case "sent": return 3;
+    case "processing": return 2;
+    case "queued": return 1;
+    default: return 0; // unknown / pre-status
   }
 }
 
@@ -57,36 +67,57 @@ export const CampaignProgressPanel = ({
   const emailStatsKey = ["campaign-email-stats", campaignId];
   const showingsKey = ["campaign-showings", campaignId];
 
-  // Fetch email stats from email_events with campaign_id in details
+  const ZERO_STATS: EmailStats = {
+    queued: 0, processing: 0, sent: 0, delivered: 0,
+    opened: 0, clicked: 0, failed: 0, bounced: 0, complained: 0,
+  };
+
+  // Fetch email stats from email_events with campaign_id in details.
+  // Each row in email_events represents an event (sent / delivered / opened /
+  // etc). We group by recipient and keep the highest-priority status seen,
+  // so "delivered" never gets overwritten by an earlier "sent".
   const { data: emailStats } = useQuery({
     queryKey: emailStatsKey,
     queryFn: async (): Promise<EmailStats> => {
-      if (!orgId) return { queued: 0, sent: 0, delivered: 0, failed: 0 };
+      if (!orgId) return ZERO_STATS;
       const { data, error } = await supabase
         .from("email_events")
-        .select("recipient_email, details")
+        .select("recipient_email, event_type, details")
         .eq("organization_id", orgId)
         .contains("details", { campaign_id: campaignId });
       if (error) throw error;
 
-      // Deduplicate by recipient — keep latest status per email
       const byRecipient = new Map<string, string>();
       for (const row of data || []) {
         const d = row.details as Record<string, unknown> | null;
-        const status = (d?.status as string) || (d?.last_event as string) || "queued";
-        const key = (row.recipient_email || row.details?.toString() || "").toLowerCase();
-        // Keep the "best" status: delivered > sent > queued > failed
+        // Prefer details.status, then event_type, then last_event, then queued.
+        const status =
+          (d?.status as string) ||
+          (row.event_type as string) ||
+          (d?.last_event as string) ||
+          "queued";
+        const key = (row.recipient_email || "").toLowerCase();
+        if (!key) continue;
         const existing = byRecipient.get(key);
         if (!existing || statusPriority(status) > statusPriority(existing)) {
           byRecipient.set(key, status);
         }
       }
 
-      const stats: EmailStats = { queued: 0, sent: 0, delivered: 0, failed: 0 };
+      const stats = { ...ZERO_STATS };
       for (const status of byRecipient.values()) {
-        if (status === "sent" || status === "delivered" || status === "opened" || status === "clicked") stats.delivered++;
-        else if (status === "failed" || status === "bounced" || status === "complained") stats.failed++;
-        else stats.queued++;
+        switch (status) {
+          case "queued": stats.queued++; break;
+          case "processing": stats.processing++; break;
+          case "sent": stats.sent++; break;
+          case "delivered": stats.delivered++; break;
+          case "opened": stats.opened++; break;
+          case "clicked": stats.clicked++; break;
+          case "failed": stats.failed++; break;
+          case "bounced": stats.bounced++; break;
+          case "complained": stats.complained++; break;
+          default: stats.queued++;
+        }
       }
       setLastUpdate(new Date());
       return stats;
@@ -214,17 +245,26 @@ export const CampaignProgressPanel = ({
     refetchInterval: 2_000,
   });
 
-  const stats = emailStats || { queued: 0, sent: 0, delivered: 0, failed: 0 };
-  const processed = stats.delivered + stats.failed;
+  const stats = emailStats || ZERO_STATS;
+  // "Processed" = any state past queued/processing
+  const processed =
+    stats.sent + stats.delivered + stats.opened + stats.clicked +
+    stats.failed + stats.bounced + stats.complained;
   const progressPct = leadsWithEmail > 0 ? Math.round((processed / leadsWithEmail) * 100) : 0;
+  // "Engaged" rolls up opened + clicked (recipient actually interacted)
+  const engaged = stats.opened + stats.clicked;
+  // "Inbox-confirmed" = delivered + opened + clicked (delivered is the floor)
+  const inboxConfirmed = stats.delivered + stats.opened + stats.clicked;
+  // "Hard problems" = bounced + complained + permanent failed
+  const hardProblems = stats.bounced + stats.complained + stats.failed;
 
   const statCards = [
-    { label: "Total Leads", value: totalLeads, icon: Mail, color: "text-slate-600", bg: "bg-slate-50" },
     { label: "With Email", value: leadsWithEmail, icon: Send, color: "text-indigo-600", bg: "bg-indigo-50" },
-    { label: "Queued", value: stats.queued, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
-    { label: "Delivered", value: stats.delivered, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Failed", value: stats.failed, icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
-    { label: "Showings Booked", value: showingsCount || 0, icon: CalendarDays, color: "text-purple-600", bg: "bg-purple-50" },
+    { label: "Queued", value: stats.queued + stats.processing, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
+    { label: "Sent", value: stats.sent + inboxConfirmed, icon: Send, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Delivered", value: inboxConfirmed, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Engaged", value: engaged, icon: Mail, color: "text-purple-600", bg: "bg-purple-50" },
+    { label: "Bounced / Failed", value: hardProblems, icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
   ];
 
   const statusIcon = (status: string) => {

@@ -118,3 +118,7 @@ ALTER TABLE public.leads
   ADD COLUMN IF NOT EXISTS email_marketing_consent_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS unsubscribed_at            TIMESTAMPTZ;
 
+-- 7. Per-campaign send pacing — used by process-email-queue to throttle
+ALTER TABLE public.campaigns
+  ADD COLUMN IF NOT EXISTS send_delay_seconds INTEGER NOT NULL DEFAULT 5;
+
