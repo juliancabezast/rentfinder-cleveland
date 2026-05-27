@@ -35,6 +35,7 @@ export interface PropertyInfo {
   bedrooms?: number;
   bathrooms?: number;
   rent_price?: number;
+  unit_number?: string | null;
 }
 
 interface CsvImportDialogProps {
