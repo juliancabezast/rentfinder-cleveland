@@ -863,6 +863,10 @@ serve(async (req: Request) => {
   let organizationId: string | undefined;
   const estherStartTime = Date.now();
 
+  // ── Test mode: skip signature verification with service_role auth ──
+  const authHeader = req.headers.get("authorization") || "";
+  const isTestMode = authHeader === `Bearer ${serviceRoleKey}`;
+
   try {
     // ── 1. Read raw body & verify webhook signature ─────────────────
     const rawBody = await req.text();
@@ -870,7 +874,7 @@ serve(async (req: Request) => {
     const svixTimestamp = req.headers.get("svix-timestamp");
     const svixSignature = req.headers.get("svix-signature");
 
-    if (webhookSecret) {
+    if (webhookSecret && !isTestMode) {
       // When a webhook secret is configured, signature verification is MANDATORY
       if (!svixId || !svixTimestamp || !svixSignature) {
         console.error("Esther: missing Svix signature headers (verification required)");

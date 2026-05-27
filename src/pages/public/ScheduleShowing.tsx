@@ -3,9 +3,9 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   SmsConsentCheckbox,
@@ -252,12 +252,12 @@ const BuildingSelectCard: React.FC<{
   return (
     <div className="rounded-xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <div className="flex gap-3 p-3">
-        {/* Photo (left, compact) */}
+        {/* Photo (left) */}
         <PhotoCarousel
           photos={photos}
           alt={building.address}
-          className="h-28 w-28 sm:h-32 sm:w-32 rounded-lg shrink-0"
-          arrowSize="sm"
+          className="h-36 w-36 sm:h-40 sm:w-40 rounded-lg shrink-0"
+          arrowSize="md"
         />
 
         {/* Info (right) */}
@@ -265,7 +265,7 @@ const BuildingSelectCard: React.FC<{
           <div className="space-y-0.5">
             {rentLabel && (
               <div className="flex items-baseline gap-1 leading-none">
-                <span className="text-lg font-extrabold text-slate-900">{rentLabel}</span>
+                <span className="text-xl font-extrabold text-slate-900">{rentLabel}</span>
                 <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
               </div>
             )}
@@ -331,14 +331,14 @@ const UnitSelectCard: React.FC<{
         <PhotoCarousel
           photos={photos}
           alt={property.unit_number || property.address}
-          className="h-24 w-24 sm:h-28 sm:w-28 rounded-lg shrink-0"
-          arrowSize="sm"
+          className="h-32 w-32 sm:h-36 sm:w-36 rounded-lg shrink-0"
+          arrowSize="md"
         />
 
         <div className="flex-1 min-w-0 flex flex-col justify-between">
           <div className="space-y-0.5">
             <div className="flex items-baseline gap-1 leading-none">
-              <span className="text-lg font-extrabold text-slate-900">
+              <span className="text-xl font-extrabold text-slate-900">
                 ${property.rent_price?.toLocaleString()}
               </span>
               <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
@@ -349,9 +349,19 @@ const UnitSelectCard: React.FC<{
             <p className="font-semibold text-sm text-slate-900 truncate">
               {property.unit_number ? `Unit ${property.unit_number}` : "Main Unit"}
             </p>
-            <p className="text-[11px] text-muted-foreground">
-              {property.available_slot_count} {property.available_slot_count === 1 ? "slot" : "slots"} available
-            </p>
+            {(() => {
+              const unitInfo: string[] = [];
+              if (property.section_8_accepted) unitInfo.push("Section 8 OK");
+              if (property.pet_policy && property.pet_policy.toLowerCase() !== "no pets" && property.pet_policy.toLowerCase() !== "none") {
+                unitInfo.push("Pets welcome");
+              }
+              const label = unitInfo.length > 0 ? unitInfo.join(" · ") : "Tour this unit";
+              return (
+                <p className="text-[11px] text-emerald-700 font-medium truncate">
+                  {label}
+                </p>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -408,10 +418,11 @@ const ScheduleShowing: React.FC = () => {
   const [paymentType, setPaymentType] = useState<"self" | "voucher" | "">(
     () => (localStorage.getItem("rf_payment") as "self" | "voucher") || ""
   );
+  const [note, setNote] = useState("");
 
   // Call Now button config
   const [callNowConfig, setCallNowConfig] = useState<{ enabled: boolean; phone: string; label: string } | null>(null);
-  const [callNowOrgFetched, setCallNowOrgFetched] = useState(false);
+  const [orgSettingsFetched, setOrgSettingsFetched] = useState<string | null>(null);
 
   // City cover images from org settings
   const [cityCoverImages, setCityCoverImages] = useState<Record<string, string>>({});
@@ -518,51 +529,54 @@ const ScheduleShowing: React.FC = () => {
       .map((p) => ({ ...p, available_slot_count: counts.get(p.id) || 0 }));
   }, [rawProperties, futureSlots]);
 
-  // ---- Fetch Call Now button config ----
+  // ---- Fetch org-level public settings (call-now, city covers, featured) ----
+  // Single source of truth — keyed by orgId so it survives refresh and only
+  // fires once per org. The featured-property fetch is intentionally inside
+  // this effect so it's not coupled to the lifecycle of other state like
+  // `property` or `selectedBuilding`.
   useEffect(() => {
-    if (callNowOrgFetched) return;
-    // Get org_id from any available source
     const orgId = property?.organization_id || properties[0]?.organization_id;
     if (!orgId) return;
-    setCallNowOrgFetched(true);
-    (async () => {
-      const { data } = await supabase
-        .from("organization_settings")
-        .select("value")
-        .eq("organization_id", orgId)
-        .eq("key", "call_now_button")
-        .single();
-      if (data?.value) {
-        const val = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
-        if (val.enabled) {
-          setCallNowConfig({ enabled: val.enabled, phone: val.phone || "", label: val.label || "Call Now" });
-        }
-      }
-    })();
+    if (orgSettingsFetched === orgId) return;
+    setOrgSettingsFetched(orgId);
 
-    // Also fetch city cover images + featured property
     (async () => {
       const { data: settingsData } = await supabase
         .from("organization_settings")
         .select("key, value")
         .eq("organization_id", orgId)
-        .in("key", ["city_cover_images", "featured_property_id"]);
+        .in("key", ["call_now_button", "city_cover_images", "featured_property_id"]);
 
+      let featuredId: string | null = null;
       for (const row of settingsData || []) {
+        if (row.key === "call_now_button" && row.value) {
+          const val = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+          if (val?.enabled) {
+            setCallNowConfig({
+              enabled: !!val.enabled,
+              phone: val.phone || "",
+              label: val.label || "Call Now",
+            });
+          }
+        }
         if (row.key === "city_cover_images" && row.value && typeof row.value === "object") {
           setCityCoverImages(row.value as Record<string, string>);
         }
         if (row.key === "featured_property_id" && row.value && typeof row.value === "string" && row.value.length > 0) {
-          const { data: fp } = await supabase
-            .from("properties")
-            .select("*")
-            .eq("id", row.value)
-            .maybeSingle();
-          if (fp) setFeaturedProperty(fp as Property);
+          featuredId = row.value;
         }
       }
+
+      if (featuredId) {
+        const { data: fp } = await supabase
+          .from("properties")
+          .select("*")
+          .eq("id", featuredId)
+          .maybeSingle();
+        if (fp) setFeaturedProperty(fp as Property);
+      }
     })();
-  }, [property, properties, callNowOrgFetched]);
+  }, [property?.organization_id, properties, orgSettingsFetched]);
 
   // Group properties by building address
   const buildingGroups = useMemo<BuildingGroup[]>(() => {
@@ -798,6 +812,7 @@ const ScheduleShowing: React.FC = () => {
           phone: phone.trim(),
           email: email.trim() || null,
           has_voucher: paymentType === "voucher",
+          note: note.trim() || null,
           consent: buildConsentPayload(consent),
         },
       });
@@ -901,6 +916,7 @@ const ScheduleShowing: React.FC = () => {
     setFullName("");
     setPhone("");
     setEmail("");
+    setNote("");
     setConsent(false);
     setBookingError(null);
     setBookedLeadId(null);
@@ -989,15 +1005,15 @@ const ScheduleShowing: React.FC = () => {
                 <PhotoCarousel
                   photos={fpPhotos}
                   alt={fp.address}
-                  className="h-28 w-28 sm:h-32 sm:w-32 rounded-lg shrink-0"
-                  arrowSize="sm"
+                  className="h-36 w-36 sm:h-40 sm:w-40 rounded-lg shrink-0"
+                  arrowSize="md"
                 />
 
                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                   <div className="space-y-0.5 pr-16">
                     {fp.rent_price != null && (
                       <div className="flex items-baseline gap-1 leading-none">
-                        <span className="text-lg font-extrabold text-slate-900">
+                        <span className="text-xl font-extrabold text-slate-900">
                           ${fp.rent_price.toLocaleString()}
                         </span>
                         <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
@@ -1195,21 +1211,21 @@ const ScheduleShowing: React.FC = () => {
           </div>
         )}
 
-        {/* Property Card — compact horizontal, same for multi-mode and direct URL */}
+        {/* Property Card — horizontal summary, same for multi-mode and direct URL */}
         {property && (
           <div className="rounded-xl border bg-white overflow-hidden shadow-sm">
             <div className="flex gap-3 p-3">
               <PhotoCarousel
                 photos={allPhotos}
                 alt={property.address}
-                className="h-24 w-24 sm:h-28 sm:w-28 rounded-lg shrink-0"
-                arrowSize="sm"
+                className="h-32 w-32 sm:h-36 sm:w-36 rounded-lg shrink-0"
+                arrowSize="md"
               />
 
               <div className="flex-1 min-w-0 flex flex-col justify-between">
                 <div className="space-y-0.5">
                   <div className="flex items-baseline gap-1 leading-none">
-                    <span className="text-lg font-extrabold text-slate-900">
+                    <span className="text-xl font-extrabold text-slate-900">
                       ${property.rent_price?.toLocaleString()}
                     </span>
                     <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
@@ -1315,7 +1331,7 @@ const ScheduleShowing: React.FC = () => {
           </Card>
         ) : property && !booked ? (
           <>
-            {/* Step 1: Calendar */}
+            {/* Step 1: Compact available-date picker */}
             <Card>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-1">
@@ -1326,36 +1342,53 @@ const ScheduleShowing: React.FC = () => {
                 </div>
 
                 {datesLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Skeleton key={i} className="h-[78px] w-16 rounded-xl shrink-0" />
+                    ))}
                   </div>
                 ) : availableDates.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">
                     No available dates at this time. Please check back later or call us.
                   </p>
                 ) : (
-                  <div className="flex justify-center">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      disabled={(date) =>
-                        !availableDates.some((d) => isSameDay(d, date))
-                      }
-                      modifiers={{
-                        available: availableDates,
-                      }}
-                      modifiersStyles={{
-                        available: {
-                          backgroundColor: "#ffb22c20",
-                          borderRadius: "8px",
-                          fontWeight: 600,
-                        },
-                      }}
-                      fromDate={new Date()}
-                      toDate={addDays(new Date(), 30)}
-                      className="rounded-md"
-                    />
+                  <div
+                    className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+                    style={{ scrollbarWidth: "none" }}
+                  >
+                    {[...availableDates]
+                      .sort((a, b) => a.getTime() - b.getTime())
+                      .map((date) => {
+                        const isSelected = selectedDate && isSameDay(selectedDate, date);
+                        const now = new Date();
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const tomorrow = new Date(today);
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        const isToday = isSameDay(date, today);
+                        const isTomorrow = isSameDay(date, tomorrow);
+                        return (
+                          <button
+                            key={date.toISOString()}
+                            type="button"
+                            onClick={() => setSelectedDate(date)}
+                            className={`shrink-0 snap-start w-16 rounded-xl border-2 px-2 py-2 text-center transition-all active:scale-95 ${
+                              isSelected
+                                ? "border-[#4F46E5] bg-[#4F46E5] text-white shadow-md"
+                                : "border-slate-200 bg-white hover:border-[#4F46E5]/40 text-slate-900"
+                            }`}
+                          >
+                            <div className={`text-[10px] font-semibold uppercase tracking-wider ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+                              {isToday ? "Today" : isTomorrow ? "Tmrw" : format(date, "EEE")}
+                            </div>
+                            <div className={`text-xl font-extrabold leading-tight mt-0.5 ${isSelected ? "text-white" : "text-slate-900"}`}>
+                              {format(date, "d")}
+                            </div>
+                            <div className={`text-[10px] font-medium ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+                              {format(date, "MMM")}
+                            </div>
+                          </button>
+                        );
+                      })}
                   </div>
                 )}
               </CardContent>
@@ -1365,25 +1398,24 @@ const ScheduleShowing: React.FC = () => {
             {selectedDate && (
               <Card>
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-2 mb-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDate(undefined);
+                      setSelectedTime(null);
+                    }}
+                    className="flex items-center gap-1 text-xs font-medium text-[#4F46E5] hover:underline -ml-1"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to dates
+                  </button>
+                  <div className="flex items-center gap-2">
                     <div className="h-6 w-6 rounded-full bg-[#4F46E5] text-white flex items-center justify-center text-xs font-bold">
                       2
                     </div>
                     <h3 className="font-semibold">
                       Pick a Time — {format(selectedDate, "EEE, MMM d")}
                     </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-auto text-xs"
-                      onClick={() => {
-                        setSelectedDate(undefined);
-                        setSelectedTime(null);
-                      }}
-                    >
-                      <ArrowLeft className="h-3 w-3 mr-1" />
-                      Change Date
-                    </Button>
                   </div>
 
                   {slotsLoading ? (
@@ -1423,14 +1455,22 @@ const ScheduleShowing: React.FC = () => {
             {selectedTime && (
               <Card>
                 <CardContent className="p-4 space-y-4">
-                  <div className="flex items-center gap-2 mb-1">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTime(null)}
+                    className="flex items-center gap-1 text-xs font-medium text-[#4F46E5] hover:underline -ml-1"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to times
+                  </button>
+                  <div className="flex items-center gap-2">
                     <div className="h-6 w-6 rounded-full bg-[#4F46E5] text-white flex items-center justify-center text-xs font-bold">
                       3
                     </div>
                     <h3 className="font-semibold">Your Information</h3>
                   </div>
 
-                  {/* Summary badge */}
+                  {/* Summary badges */}
                   <div className="flex flex-wrap gap-2 text-sm">
                     <Badge variant="outline" className="gap-1">
                       <CalendarDays className="h-3 w-3" />
@@ -1440,14 +1480,6 @@ const ScheduleShowing: React.FC = () => {
                       <Clock className="h-3 w-3" />
                       {formatTime(selectedTime)}
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs h-auto py-0.5"
-                      onClick={() => setSelectedTime(null)}
-                    >
-                      Change
-                    </Button>
                   </div>
 
                   <div className="space-y-3">
@@ -1528,6 +1560,23 @@ const ScheduleShowing: React.FC = () => {
                       </div>
                     </div>
 
+                    <div>
+                      <Label htmlFor="note">Note (optional)</Label>
+                      <Textarea
+                        id="note"
+                        placeholder="Anything we should know? (move-in date, questions, etc.)"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value.slice(0, 500))}
+                        rows={3}
+                        className="mt-1 resize-none"
+                      />
+                      {note.length > 400 && (
+                        <p className="text-[11px] text-muted-foreground mt-1 text-right">
+                          {500 - note.length} characters left
+                        </p>
+                      )}
+                    </div>
+
                     <SmsConsentCheckbox
                       checked={consent}
                       onCheckedChange={(val) => {
@@ -1568,9 +1617,12 @@ const ScheduleShowing: React.FC = () => {
         ) : null}
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground pb-16">
+        <p className="text-center text-xs text-muted-foreground">
           Powered by Rent Finder Cleveland
         </p>
+
+        {/* Spacer so the floating Call Now button never overlaps content */}
+        <div className={callNowConfig?.enabled ? "h-32" : "h-6"} aria-hidden />
       </div>
 
       {/* Floating Call Now Button — always visible, safe area aware */}

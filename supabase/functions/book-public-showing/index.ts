@@ -199,6 +199,7 @@ serve(async (req: Request) => {
       phone,
       email,
       has_voucher,
+      note,
       consent,
     } = body;
 
@@ -365,6 +366,18 @@ serve(async (req: Request) => {
         JSON.stringify({ error: `Failed to create showing: ${showingErr?.message || "Unknown error"}. Please try again.` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // ── Save optional visitor note ────────────────────────────────────
+    if (typeof note === "string" && note.trim().length > 0) {
+      const trimmed = note.trim().slice(0, 500);
+      await supabase.from("lead_notes").insert({
+        organization_id,
+        lead_id: leadId,
+        note_type: "booking_request",
+        content: trimmed,
+        related_showing_id: showing.id,
+      });
     }
 
     // ── Mark slot as booked (with race condition protection) ──────────
@@ -722,6 +735,12 @@ serve(async (req: Request) => {
         const leadEmailStr = leadEmail || email?.trim() || "—";
         const mapsQuery = encodeURIComponent(`${property?.address || ""}, ${property?.city || ""}, ${property?.state || ""} ${property?.zip_code || ""}`);
 
+        const visitorNote = typeof note === "string" ? note.trim().slice(0, 500) : "";
+        const escapedNote = visitorNote
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+
         const msg = [
           `🏠 <b>New Showing Booked!</b>`,
           ``,
@@ -731,6 +750,7 @@ serve(async (req: Request) => {
           `👤 <b>${full_name.trim()}</b>`,
           `📞 ${leadPhoneStr}`,
           `✉️ ${leadEmailStr}`,
+          ...(visitorNote ? [``, `📝 <i>${escapedNote}</i>`] : []),
           `🔗 Source: Public booking page`,
           ``,
           `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
