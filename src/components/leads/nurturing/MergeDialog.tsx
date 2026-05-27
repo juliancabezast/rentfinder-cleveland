@@ -165,7 +165,7 @@ export async function performMerge(
     "cost_records", "lead_predictions", "competitor_mentions",
   ];
   for (const table of leadIdTables) {
-    await supabase.from(table).update({ lead_id: winnerId }).eq("lead_id", loserId);
+    await (supabase as any).from(table as any).update({ lead_id: winnerId }).eq("lead_id", loserId);
   }
   await supabase.from("system_logs").update({ related_lead_id: winnerId }).eq("related_lead_id", loserId);
   await supabase.from("referrals").update({ referrer_lead_id: winnerId }).eq("referrer_lead_id", loserId);
@@ -233,7 +233,7 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
     await Promise.all(
       tables.map(async (table) => {
         const { count } = await supabase
-          .from(table)
+          .from(table as any)
           .select("id", { count: "exact", head: true })
           .eq("lead_id", loser.id);
         counts[table] = count || 0;
@@ -283,7 +283,7 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
 
       for (const table of leadIdTables) {
         const { error: moveErr } = await supabase
-          .from(table)
+          .from(table as any)
           .update({ lead_id: winner.id })
           .eq("lead_id", loser.id);
         if (moveErr) {
