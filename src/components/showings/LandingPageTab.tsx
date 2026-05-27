@@ -201,8 +201,14 @@ export const LandingPageTab: React.FC = () => {
       setIsDirty(false);
       setFeaturedDirty(false);
       toast({ title: "Saved", description: "Landing page updated. Changes are live on the booking page." });
-    } catch {
-      toast({ title: "Save failed", variant: "destructive" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error("Landing page save failed:", err);
+      toast({
+        title: "Save failed",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }

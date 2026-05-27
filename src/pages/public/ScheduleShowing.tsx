@@ -14,8 +14,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import {
   MapPin,
-  BedDouble,
-  Bath,
   DollarSign,
   CheckCircle,
   ArrowLeft,
@@ -23,13 +21,12 @@ import {
   Clock,
   Loader2,
   Home,
-  SquareIcon,
   FileText,
   ChevronRight,
   Building2,
   Phone,
-  Star,
   Sparkles,
+  Camera,
 } from "lucide-react";
 import { format, addDays, parseISO, isSameDay } from "date-fns";
 import { getTimezoneForCity } from "@/lib/cityTimezone";
@@ -54,6 +51,15 @@ function formatTime(t: string) {
   return `${display}:${m} ${ampm}`;
 }
 
+function getAllPhotoUrls(property: Property | null | undefined): string[] {
+  if (!property?.photos) return [];
+  const photos = property.photos as any;
+  if (!Array.isArray(photos)) return [];
+  return photos
+    .map((p) => (typeof p === "string" ? p : p?.url))
+    .filter((url): url is string => typeof url === "string" && url.length > 0);
+}
+
 function getPhotoUrl(property: Property, index = 0): string | null {
   if (!property?.photos) return null;
   const photos = property.photos as any;
@@ -69,51 +75,87 @@ function getPhotoUrl(property: Property, index = 0): string | null {
   return null;
 }
 
-/* ---- Property Select Card (multi-mode) ---- */
-const PropertySelectCard: React.FC<{
-  property: PropertyWithSlots;
-  onClick: () => void;
-}> = ({ property, onClick }) => {
-  const photoUrl = getPhotoUrl(property);
+/* ---- Photo carousel: swipeable inline gallery ---- */
+const PhotoCarousel: React.FC<{
+  photos: string[];
+  alt: string;
+  aspectClass?: string;
+}> = ({ photos, alt, aspectClass = "aspect-[16/10]" }) => {
+  const [current, setCurrent] = React.useState(0);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const total = photos.length;
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    if (idx !== current && idx >= 0 && idx < total) setCurrent(idx);
+  };
+
+  const goTo = (e: React.MouseEvent, idx: number) => {
+    e.stopPropagation();
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
+  };
+
+  if (total === 0) {
+    return (
+      <div className={`${aspectClass} w-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center`}>
+        <Home className="h-12 w-12 text-slate-400" />
+      </div>
+    );
+  }
 
   return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-all text-left"
-    >
-      <div className="h-16 w-24 rounded-lg overflow-hidden shrink-0 bg-muted">
-        {photoUrl ? (
-          <img src={photoUrl} alt={property.address} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Home className="h-6 w-6 text-muted-foreground/50" />
-          </div>
-        )}
+    <div className={`relative ${aspectClass} w-full overflow-hidden bg-muted`}>
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        <style>{`.photo-carousel-scroll::-webkit-scrollbar{display:none}`}</style>
+        {photos.map((url, i) => (
+          <img
+            key={url + i}
+            src={url}
+            alt={`${alt} — photo ${i + 1}`}
+            loading={i === 0 ? "eager" : "lazy"}
+            draggable={false}
+            className="w-full h-full object-cover shrink-0 snap-start select-none"
+          />
+        ))}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm truncate">
-          {property.address}
-          {property.unit_number && `, Unit ${property.unit_number}`}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {property.city}, {property.state} {property.zip_code}
-        </p>
-        <div className="flex flex-wrap gap-1.5 mt-1">
-          <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
-            <BedDouble className="h-2.5 w-2.5" /> {property.bedrooms}
-          </Badge>
-          <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
-            <Bath className="h-2.5 w-2.5" /> {property.bathrooms}
-          </Badge>
-          <Badge className="bg-[#4F46E5] text-white text-[10px] h-5">
-            ${property.rent_price?.toLocaleString()}/mo
-          </Badge>
+
+      {/* Photo count badge (top-left) */}
+      {total > 1 && (
+        <div className="absolute top-2 left-2 bg-black/65 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 pointer-events-none">
+          <Camera className="h-3 w-3" />
+          {total} PHOTOS
         </div>
-      </div>
-      <Badge variant="outline" className="shrink-0 text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50">
-        {property.available_slot_count} {property.available_slot_count === 1 ? "slot" : "slots"}
-      </Badge>
-    </button>
+      )}
+
+      {/* Position badge (top-right) */}
+      {total > 1 && (
+        <div className="absolute top-2 right-2 bg-black/65 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-md pointer-events-none">
+          {current + 1} / {total}
+        </div>
+      )}
+
+      {/* Dot indicators (bottom) — only when small set */}
+      {total > 1 && total <= 10 && (
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-none">
+          {photos.map((_, i) => (
+            <div
+              key={i}
+              onClick={(e) => goTo(e, i)}
+              className={`h-1.5 rounded-full transition-all pointer-events-auto cursor-pointer ${
+                i === current ? "bg-white w-5" : "bg-white/60 w-1.5"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -140,13 +182,6 @@ interface BuildingGroup {
   displayVariant: 1 | 2; // which urgency style to show
 }
 
-/** Simple deterministic hash from string → number */
-function hashStr(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
 /** Format a slot date as a friendly label: "Today", "Tomorrow", or "Wed, Mar 19" */
 function friendlyDate(dateStr: string): string {
   const d = parseISO(dateStr);
@@ -163,71 +198,103 @@ const BuildingSelectCard: React.FC<{
   building: BuildingGroup;
   onClick: () => void;
 }> = ({ building, onClick }) => {
+  const isMulti = building.units.length > 1;
+  const firstUnit = building.units[0];
+  const photos = getAllPhotoUrls(firstUnit);
+
   const rentLabel =
     building.rentMin != null && building.rentMax != null && building.rentMin !== building.rentMax
-      ? `$${building.rentMin.toLocaleString()}–$${building.rentMax.toLocaleString()}/mo`
+      ? `$${building.rentMin.toLocaleString()}–$${building.rentMax.toLocaleString()}`
       : building.rentMin != null
-        ? `$${building.rentMin.toLocaleString()}/mo`
+        ? `$${building.rentMin.toLocaleString()}`
         : null;
 
   const dateLabel = friendlyDate(building.nextSlotDate);
   const timeLabel = formatTime(building.nextSlotTime);
   const spots = building.spotsNextDay;
-  const v = building.displayVariant;
+  const isScarce = spots > 0 && spots <= 3;
+
+  // Single-unit info to display (only when there's exactly one unit)
+  const specs: { value: number | string; label: string }[] = [];
+  if (!isMulti && firstUnit) {
+    if (firstUnit.bedrooms != null) specs.push({ value: firstUnit.bedrooms, label: "BR" });
+    if (firstUnit.bathrooms != null) specs.push({ value: firstUnit.bathrooms, label: "BA" });
+    if (firstUnit.square_feet) specs.push({ value: firstUnit.square_feet.toLocaleString(), label: "SF" });
+  }
 
   return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-all text-left"
-    >
-      <div className="h-16 w-24 rounded-lg overflow-hidden shrink-0 bg-muted">
-        {building.photoUrl ? (
-          <img src={building.photoUrl} alt={building.address} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Building2 className="h-6 w-6 text-muted-foreground/50" />
-          </div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm truncate">{building.address}</p>
-        <p className="text-xs text-muted-foreground">
-          {building.city}, {building.state} {building.zip_code}
-        </p>
-        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-          <Badge variant="outline" className="text-[10px] h-5">
-            {building.units.length} {building.units.length === 1 ? "unit" : "units"}
-          </Badge>
+    <div className="rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <PhotoCarousel photos={photos} alt={building.address} />
+
+      <div className="p-4 space-y-3">
+        {/* Price + specs */}
+        <div className="flex items-baseline justify-between gap-3 flex-wrap">
           {rentLabel && (
-            <Badge className="bg-[#4F46E5] text-white text-[10px] h-5">
-              {rentLabel}
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-extrabold text-slate-900">{rentLabel}</span>
+              <span className="text-xs font-medium text-muted-foreground">/mo</span>
+            </div>
+          )}
+          {specs.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              {specs.map((s, i) => (
+                <React.Fragment key={s.label}>
+                  {i > 0 && <span className="text-slate-300">|</span>}
+                  <span>
+                    <strong className="font-bold">{s.value}</strong>
+                    <span className="ml-1 text-slate-500">{s.label}</span>
+                  </span>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Title + address */}
+        <div>
+          <h3 className="font-bold text-base text-slate-900 leading-tight">
+            {building.address}
+            {isMulti && (
+              <span className="text-sm font-medium text-muted-foreground ml-1.5">
+                · {building.units.length} units
+              </span>
+            )}
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+            <MapPin className="h-3 w-3 shrink-0" />
+            {building.city}, {building.state} {building.zip_code}
+          </p>
+        </div>
+
+        {/* Availability info */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {isScarce ? (
+            <Badge variant="outline" className="text-[11px] h-6 text-orange-700 border-orange-300 bg-orange-50">
+              Only {spots} slot{spots > 1 ? "s" : ""} left {dateLabel.toLowerCase()}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[11px] h-6 text-emerald-700 border-emerald-300 bg-emerald-50">
+              Available {dateLabel.toLowerCase()} · {timeLabel}
+            </Badge>
+          )}
+          {!isMulti && firstUnit?.section_8_accepted && (
+            <Badge className="text-[11px] h-6 bg-blue-100 text-blue-700 border-0">
+              Section 8
             </Badge>
           )}
         </div>
+
+        {/* CTA */}
+        <Button
+          onClick={onClick}
+          className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20"
+        >
+          <CalendarDays className="h-4 w-4 mr-2" />
+          {isMulti ? "View Units" : "Schedule a Showing"}
+          <ChevronRight className="h-4 w-4 ml-auto" />
+        </Button>
       </div>
-      <div className="flex flex-col items-end gap-0.5 shrink-0 max-w-[110px]">
-        {v === 1 ? (
-          /* Variant 1: "Next: Tomorrow 9 AM" */
-          <>
-            <span className="text-[10px] font-semibold text-[#4F46E5]">
-              Next: {dateLabel}
-            </span>
-            <span className="text-[10px] text-muted-foreground">{timeLabel}</span>
-          </>
-        ) : (
-          /* Variant 2: "Only X left" */
-          <>
-            <Badge
-              variant="outline"
-              className="text-[10px] text-orange-700 border-orange-300 bg-orange-50"
-            >
-              Only {spots} left
-            </Badge>
-            <span className="text-[10px] text-muted-foreground">{dateLabel}</span>
-          </>
-        )}
-      </div>
-    </button>
+    </div>
   );
 };
 
@@ -235,41 +302,59 @@ const UnitSelectCard: React.FC<{
   property: PropertyWithSlots;
   onClick: () => void;
 }> = ({ property, onClick }) => {
-  // Show 2nd photo (interior) if available, fallback to 1st
-  const unitPhoto = getPhotoUrl(property, 1);
+  const photos = getAllPhotoUrls(property);
+
+  const specs: { value: number | string; label: string }[] = [];
+  if (property.bedrooms != null) specs.push({ value: property.bedrooms, label: "BR" });
+  if (property.bathrooms != null) specs.push({ value: property.bathrooms, label: "BA" });
+  if (property.square_feet) specs.push({ value: property.square_feet.toLocaleString(), label: "SF" });
 
   return (
-  <button
-    onClick={onClick}
-    className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-all text-left"
-  >
-    <div className="h-14 w-20 rounded-lg overflow-hidden shrink-0 bg-muted">
-      {unitPhoto ? (
-        <img src={unitPhoto} alt={property.unit_number || "Unit"} className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <Home className="h-5 w-5 text-muted-foreground/50" />
+    <div className="rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <PhotoCarousel photos={photos} alt={property.unit_number || property.address} aspectClass="aspect-[16/9]" />
+
+      <div className="p-4 space-y-3">
+        <div className="flex items-baseline justify-between gap-3 flex-wrap">
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-extrabold text-slate-900">
+              ${property.rent_price?.toLocaleString()}
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">/mo</span>
+          </div>
+          {specs.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              {specs.map((s, i) => (
+                <React.Fragment key={s.label}>
+                  {i > 0 && <span className="text-slate-300">|</span>}
+                  <span>
+                    <strong className="font-bold">{s.value}</strong>
+                    <span className="ml-1 text-slate-500">{s.label}</span>
+                  </span>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="font-semibold text-sm">
-        {property.unit_number ? `Unit ${property.unit_number}` : "Main Unit"}
-      </p>
-      <div className="flex flex-wrap gap-1.5 mt-1">
-        <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
-          <BedDouble className="h-2.5 w-2.5" /> {property.bedrooms}
-        </Badge>
-        <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
-          <Bath className="h-2.5 w-2.5" /> {property.bathrooms}
-        </Badge>
-        <Badge className="bg-[#4F46E5] text-white text-[10px] h-5">
-          ${property.rent_price?.toLocaleString()}/mo
-        </Badge>
+
+        <div>
+          <h4 className="font-bold text-base text-slate-900">
+            {property.unit_number ? `Unit ${property.unit_number}` : "Main Unit"}
+          </h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {property.available_slot_count} {property.available_slot_count === 1 ? "slot" : "slots"} available
+          </p>
+        </div>
+
+        <Button
+          onClick={onClick}
+          className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20"
+        >
+          <CalendarDays className="h-4 w-4 mr-2" />
+          Schedule a Showing
+          <ChevronRight className="h-4 w-4 ml-auto" />
+        </Button>
       </div>
     </div>
-    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-  </button>
   );
 };
 
@@ -283,7 +368,7 @@ const ScheduleShowing: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null); // address key
-  const [properties, setProperties] = useState<PropertyWithSlots[]>([]);
+  const [rawProperties, setRawProperties] = useState<Property[]>([]);
   const [rawSlots, setRawSlots] = useState<SlotRecord[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(isMultiMode);
 
@@ -349,7 +434,7 @@ const ScheduleShowing: React.FC = () => {
         .lte("slot_date", maxDate);
 
       if (!slotData || slotData.length === 0) {
-        setProperties([]);
+        setRawProperties([]);
         setRawSlots([]);
         setPropertiesLoading(false);
         return;
@@ -357,11 +442,7 @@ const ScheduleShowing: React.FC = () => {
 
       setRawSlots(slotData as SlotRecord[]);
 
-      const slotCounts = new Map<string, number>();
-      slotData.forEach((s) => {
-        slotCounts.set(s.property_id, (slotCounts.get(s.property_id) || 0) + 1);
-      });
-      const uniqueIds = [...slotCounts.keys()];
+      const uniqueIds = [...new Set(slotData.map((s) => s.property_id))];
 
       const { data: propData } = await supabase
         .from("properties")
@@ -370,17 +451,62 @@ const ScheduleShowing: React.FC = () => {
         .eq("status", "available")
         .order("address");
 
-      if (propData) {
-        setProperties(
-          propData.map((p) => ({
-            ...p,
-            available_slot_count: slotCounts.get(p.id) || 0,
-          }))
-        );
-      }
+      setRawProperties((propData as Property[] | null) || []);
       setPropertiesLoading(false);
     })();
   }, [isMultiMode]);
+
+  // ---- Multi-mode: fetch org-level lead time once we know org ----
+  useEffect(() => {
+    if (!isMultiMode) return;
+    const orgId = rawProperties[0]?.organization_id;
+    if (!orgId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("organization_settings")
+        .select("value")
+        .eq("organization_id", orgId)
+        .eq("key", "showing_lead_time_minutes")
+        .maybeSingle();
+      if (data?.value != null) {
+        setLeadTimeMinutes(typeof data.value === "number" ? data.value : parseInt(String(data.value)) || 60);
+      }
+    })();
+  }, [isMultiMode, rawProperties]);
+
+  // ---- Derived: filter past slots (per-property TZ) ----
+  const futureSlots = useMemo<SlotRecord[]>(() => {
+    if (rawSlots.length === 0 || rawProperties.length === 0) return [];
+    const propertyById = new Map(rawProperties.map((p) => [p.id, p]));
+    const cutoffByTz = new Map<string, { date: string; minute: number }>();
+    return rawSlots.filter((s) => {
+      const prop = propertyById.get(s.property_id);
+      if (!prop) return false;
+      const tz = getTimezoneForCity(prop.city);
+      let cutoff = cutoffByTz.get(tz);
+      if (!cutoff) {
+        const nowInTz = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+        cutoff = {
+          date: format(nowInTz, "yyyy-MM-dd"),
+          minute: nowInTz.getHours() * 60 + nowInTz.getMinutes() + leadTimeMinutes,
+        };
+        cutoffByTz.set(tz, cutoff);
+      }
+      if (s.slot_date > cutoff.date) return true;
+      if (s.slot_date < cutoff.date) return false;
+      const [h, m] = s.slot_time.split(":").map(Number);
+      return h * 60 + m >= cutoff.minute;
+    });
+  }, [rawSlots, rawProperties, leadTimeMinutes]);
+
+  // ---- Derived: properties with up-to-date slot counts ----
+  const properties = useMemo<PropertyWithSlots[]>(() => {
+    const counts = new Map<string, number>();
+    futureSlots.forEach((s) => counts.set(s.property_id, (counts.get(s.property_id) || 0) + 1));
+    return rawProperties
+      .filter((p) => (counts.get(p.id) || 0) > 0)
+      .map((p) => ({ ...p, available_slot_count: counts.get(p.id) || 0 }));
+  }, [rawProperties, futureSlots]);
 
   // ---- Fetch Call Now button config ----
   useEffect(() => {
@@ -437,12 +563,12 @@ const ScheduleShowing: React.FC = () => {
       map.get(key)!.push(p);
     });
 
-    return [...map.entries()].map(([address, units], idx) => {
+    return [...map.entries()].map(([address, units]) => {
       const unitIds = new Set(units.map((u) => u.id));
 
       // Collect unique (date|time) pairs for this building, sorted chronologically
       const uniquePairs = new Set<string>();
-      rawSlots.forEach((s) => {
+      futureSlots.forEach((s) => {
         if (unitIds.has(s.property_id)) {
           uniquePairs.add(`${s.slot_date}|${s.slot_time}`);
         }
@@ -454,15 +580,15 @@ const ScheduleShowing: React.FC = () => {
         ? sorted[0].split("|")
         : [format(new Date(), "yyyy-MM-dd"), "09:00:00"];
 
-      // Spots on the nearest available day — display a small urgency number (1–3)
-      const realSpots = sorted.filter((p) => p.startsWith(nextDate + "|")).length;
-      const spotsNextDay = realSpots === 0 ? 1 : Math.max(1, ((hashStr(address) % 3) + 1));
+      // Real number of distinct times on the nearest available day
+      const spotsNextDay = sorted.filter((p) => p.startsWith(nextDate + "|")).length;
 
       // Rent range
       const rents = units.map((u) => u.rent_price).filter((r): r is number => r != null).sort((a, b) => a - b);
 
-      // Deterministic variant (1 or 2) based on address hash
-      const displayVariant = ((hashStr(address) % 2) + 1) as 1 | 2;
+      // Variant: show "Only X left" only when it's actually scarce (≤ 3),
+      // otherwise show "Next: <date> <time>".
+      const displayVariant: 1 | 2 = spotsNextDay > 0 && spotsNextDay <= 3 ? 2 : 1;
 
       return {
         address,
@@ -479,7 +605,7 @@ const ScheduleShowing: React.FC = () => {
         displayVariant,
       };
     });
-  }, [properties, rawSlots]);
+  }, [properties, futureSlots]);
 
   // Unique cities with property counts and representative photo
   const cityGroups = useMemo(() => {
@@ -634,6 +760,10 @@ const ScheduleShowing: React.FC = () => {
     })();
   }, [effectivePropertyId, selectedDate, property?.city, leadTimeMinutes]);
 
+  // Phone is valid only with 10 digits (NANP).
+  const phoneDigits = phone.replace(/\D/g, "");
+  const isPhoneValid = phoneDigits.length === 10;
+
   // ---- Handle booking ----
   const handleBook = async () => {
     if (!consent) {
@@ -641,7 +771,7 @@ const ScheduleShowing: React.FC = () => {
       return;
     }
     setConsentError(false);
-    if (!fullName.trim() || !phone.trim()) return;
+    if (!fullName.trim() || !isPhoneValid) return;
     if (!selectedDate || !selectedTime || !effectivePropertyId || !property) return;
 
     setSubmitting(true);
@@ -713,8 +843,8 @@ const ScheduleShowing: React.FC = () => {
     }
   };
 
-  // Property photo
-  const photoUrl = useMemo(() => getPhotoUrl(property!), [property?.photos]);
+  // Property photos for carousel
+  const allPhotos = useMemo(() => getAllPhotoUrls(property), [property?.photos]);
 
   // Reset to property selection (multi-mode)
   const handleChangeProperty = () => {
@@ -830,64 +960,68 @@ const ScheduleShowing: React.FC = () => {
         {/* Featured Property Card */}
         {isMultiMode && !property && !selectedBuilding && featuredProperty && (() => {
           const fp = featuredProperty;
-          const fpPhoto = getPhotoUrl(fp);
-          const details: string[] = [];
-          if (fp.bedrooms) details.push(`${fp.bedrooms} Bed`);
-          if (fp.bathrooms) details.push(`${fp.bathrooms} Bath`);
-          if (fp.square_feet) details.push(`${fp.square_feet.toLocaleString()} sqft`);
+          const fpPhotos = getAllPhotoUrls(fp);
+          const specs: { value: number | string; label: string }[] = [];
+          if (fp.bedrooms != null) specs.push({ value: fp.bedrooms, label: "BR" });
+          if (fp.bathrooms != null) specs.push({ value: fp.bathrooms, label: "BA" });
+          if (fp.square_feet) specs.push({ value: fp.square_feet.toLocaleString(), label: "SF" });
           return (
-            <Card className="shadow-lg border-0 overflow-hidden">
-              {/* Photo */}
-              {fpPhoto && (
-                <div className="relative h-44 w-full">
-                  <img src={fpPhoto} alt={fp.address} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                  <div className="absolute top-3 left-3">
-                    <Badge className="bg-amber-500 text-white text-[10px] font-bold gap-1 shadow-md">
-                      <Sparkles className="h-3 w-3" />
-                      Featured
-                    </Badge>
-                  </div>
-                </div>
-              )}
-              <CardContent className={fpPhoto ? "p-4 space-y-3" : "p-4 space-y-3 pt-5"}>
-                {!fpPhoto && (
-                  <Badge className="bg-amber-500 text-white text-[10px] font-bold gap-1 w-fit">
+            <Card className="shadow-lg border-0 overflow-hidden relative">
+              <div className="relative">
+                <PhotoCarousel photos={fpPhotos} alt={fp.address} aspectClass="aspect-[16/10]" />
+                <div className="absolute top-3 left-3 z-10 pointer-events-none">
+                  <Badge className="bg-amber-500 text-white text-[10px] font-bold gap-1 shadow-md">
                     <Sparkles className="h-3 w-3" />
                     Featured
                   </Badge>
-                )}
+                </div>
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                  {fp.rent_price != null && (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-extrabold text-slate-900">
+                        ${fp.rent_price.toLocaleString()}
+                      </span>
+                      <span className="text-xs font-medium text-muted-foreground">/mo</span>
+                    </div>
+                  )}
+                  {specs.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      {specs.map((s, i) => (
+                        <React.Fragment key={s.label}>
+                          {i > 0 && <span className="text-slate-300">|</span>}
+                          <span>
+                            <strong className="font-bold">{s.value}</strong>
+                            <span className="ml-1 text-slate-500">{s.label}</span>
+                          </span>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div>
-                  <h3 className="font-bold text-base text-slate-900">
+                  <h3 className="font-bold text-base text-slate-900 leading-tight">
                     {fp.address}{fp.unit_number ? ` #${fp.unit_number}` : ""}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                    <MapPin className="h-3 w-3 shrink-0" />
                     {[fp.city, fp.state, fp.zip_code].filter(Boolean).join(", ")}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 flex-wrap">
-                  {fp.rent_price && (
-                    <span className="text-lg font-extrabold text-[#4F46E5]">
-                      ${fp.rent_price.toLocaleString()}<span className="text-xs font-medium text-muted-foreground">/mo</span>
-                    </span>
-                  )}
-                  <div className="flex gap-1.5">
-                    {details.map((d) => (
-                      <Badge key={d} variant="outline" className="text-[10px] h-5">{d}</Badge>
-                    ))}
-                    {fp.section_8_accepted && (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px] h-5">Section 8</Badge>
-                    )}
-                  </div>
-                </div>
+                {fp.section_8_accepted && (
+                  <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[11px] h-6">Section 8</Badge>
+                )}
 
                 <Button
-                  className="w-full h-11 bg-[#4F46E5] hover:bg-[#4F46E5]/90 font-semibold text-sm gap-2"
+                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20"
                   onClick={() => setSelectedPropertyId(fp.id)}
                 >
-                  <CalendarDays className="h-4 w-4" />
-                  Book a Tour
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  Schedule a Showing
+                  <ChevronRight className="h-4 w-4 ml-auto" />
                 </Button>
               </CardContent>
             </Card>
@@ -1052,91 +1186,66 @@ const ScheduleShowing: React.FC = () => {
           </div>
         )}
 
-        {/* Property Card — compact inline for multi-mode, hero for direct URL */}
+        {/* Property Card — single shared design for multi-mode and direct URL */}
         {property && (
-          <>
-            {isMultiMode ? (
-              <div className="flex items-center gap-3 p-3 rounded-xl border bg-white">
-                <div className="h-14 w-20 rounded-lg overflow-hidden shrink-0 bg-muted">
-                  {photoUrl ? (
-                    <img src={photoUrl} alt={property.address} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Home className="h-5 w-5 text-muted-foreground/50" />
-                    </div>
+          <Card className="overflow-hidden">
+            <PhotoCarousel photos={allPhotos} alt={property.address} aspectClass="aspect-[16/10]" />
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-extrabold text-slate-900">
+                    ${property.rent_price?.toLocaleString()}
+                  </span>
+                  <span className="text-xs font-medium text-muted-foreground">/mo</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-700">
+                  <span><strong className="font-bold">{property.bedrooms}</strong> <span className="text-slate-500">BR</span></span>
+                  <span className="text-slate-300">|</span>
+                  <span><strong className="font-bold">{property.bathrooms}</strong> <span className="text-slate-500">BA</span></span>
+                  {property.square_feet && (
+                    <>
+                      <span className="text-slate-300">|</span>
+                      <span><strong className="font-bold">{property.square_feet.toLocaleString()}</strong> <span className="text-slate-500">SF</span></span>
+                    </>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">
-                    {property.address}
-                    {property.unit_number && `, Unit ${property.unit_number}`}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {property.city}, {property.state} {property.zip_code}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
-                      <BedDouble className="h-2.5 w-2.5" /> {property.bedrooms}
-                    </Badge>
-                    <Badge variant="outline" className="text-[10px] h-5 gap-0.5">
-                      <Bath className="h-2.5 w-2.5" /> {property.bathrooms}
-                    </Badge>
-                    <Badge className="bg-[#4F46E5] text-white text-[10px] h-5">
-                      ${property.rent_price?.toLocaleString()}/mo
-                    </Badge>
-                  </div>
-                </div>
-                {!booked && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 text-xs text-muted-foreground"
-                    onClick={handleChangeProperty}
-                  >
-                    Change
-                  </Button>
-                )}
               </div>
-            ) : (
-              <Card className="overflow-hidden">
-                {photoUrl && (
-                  <div className="aspect-video overflow-hidden">
-                    <img
-                      src={photoUrl}
-                      alt={property.address}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <CardContent className="p-4 space-y-2">
-                  <h2 className="text-lg font-bold flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 text-[#4F46E5] shrink-0" />
-                    {property.address}
-                    {property.unit_number && `, Unit ${property.unit_number}`}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {property.city}, {property.state} {property.zip_code}
-                  </p>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <Badge variant="outline" className="gap-1">
-                      <BedDouble className="h-3 w-3" /> {property.bedrooms} bed
-                    </Badge>
-                    <Badge variant="outline" className="gap-1">
-                      <Bath className="h-3 w-3" /> {property.bathrooms} bath
-                    </Badge>
-                    <Badge className="bg-[#4F46E5] text-white gap-1">
-                      <DollarSign className="h-3 w-3" /> ${property.rent_price?.toLocaleString()}/mo
-                    </Badge>
-                    {property.square_feet && (
-                      <Badge variant="outline" className="gap-1">
-                        <SquareIcon className="h-3 w-3" /> {property.square_feet} sqft
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </>
+
+              <div>
+                <h2 className="text-base font-bold text-slate-900 leading-tight">
+                  {property.address}
+                  {property.unit_number && `, Unit ${property.unit_number}`}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  {property.city}, {property.state} {property.zip_code}
+                </p>
+              </div>
+
+              {(property.section_8_accepted || property.pet_policy) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {property.section_8_accepted && (
+                    <Badge className="text-[11px] h-6 bg-blue-100 text-blue-700 border-0">Section 8</Badge>
+                  )}
+                  {property.pet_policy && (
+                    <Badge variant="outline" className="text-[11px] h-6 capitalize">{property.pet_policy}</Badge>
+                  )}
+                </div>
+              )}
+
+              {isMultiMode && !booked && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground -ml-2"
+                  onClick={handleChangeProperty}
+                >
+                  <ArrowLeft className="h-3 w-3 mr-1" />
+                  Change property
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Success screen */}
@@ -1367,11 +1476,18 @@ const ScheduleShowing: React.FC = () => {
                       <Input
                         id="phone"
                         type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
                         placeholder="(216) 555-1234"
                         value={phone}
                         onChange={handlePhoneChange}
-                        className="mt-1"
+                        className={`mt-1 ${phoneDigits.length > 0 && !isPhoneValid ? "border-destructive" : ""}`}
                       />
+                      {phoneDigits.length > 0 && !isPhoneValid && (
+                        <p className="text-xs text-destructive mt-1">
+                          Please enter a 10-digit US phone number.
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -1435,7 +1551,7 @@ const ScheduleShowing: React.FC = () => {
                     <Button
                       className="w-full h-12 bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white font-semibold text-base"
                       onClick={handleBook}
-                      disabled={submitting || !fullName.trim() || !phone.trim() || !paymentType}
+                      disabled={submitting || !fullName.trim() || !isPhoneValid || !paymentType}
                     >
                       {submitting ? (
                         <>

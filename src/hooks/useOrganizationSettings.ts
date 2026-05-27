@@ -163,42 +163,32 @@ export function useOrganizationSettings(): UseOrganizationSettingsReturn {
       throw new Error('Not authenticated');
     }
 
-    // Check if setting exists
-    const { data: existing } = await supabase
+    // UPSERT on the (organization_id, key) unique constraint, then SELECT back.
+    // Chaining `.select()` is REQUIRED so that an RLS-blocked write surfaces
+    // as `data: []` instead of silently succeeding with no row affected.
+    const payload: Record<string, Json | string> = {
+      organization_id: organizationId,
+      key,
+      value,
+      category,
+      updated_by: userRecord.id,
+      updated_at: new Date().toISOString(),
+    };
+    if (description !== undefined) {
+      payload.description = description;
+    }
+
+    const { data: written, error: upsertError } = await supabase
       .from('organization_settings')
+      .upsert(payload, { onConflict: 'organization_id,key' })
       .select('id')
-      .eq('organization_id', organizationId)
-      .eq('key', key)
-      .maybeSingle();
+      .single();
 
-    if (existing) {
-      // Update existing
-      const { error: updateError } = await supabase
-        .from('organization_settings')
-        .update({
-          value,
-          category,
-          description,
-          updated_by: userRecord.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id);
-
-      if (updateError) throw updateError;
-    } else {
-      // Insert new
-      const { error: insertError } = await supabase
-        .from('organization_settings')
-        .insert({
-          organization_id: organizationId,
-          key,
-          value,
-          category,
-          description,
-          updated_by: userRecord.id,
-        });
-
-      if (insertError) throw insertError;
+    if (upsertError) throw upsertError;
+    if (!written) {
+      throw new Error(
+        'Settings write returned no row — RLS may be blocking your role from writing this setting.'
+      );
     }
 
     // Update local state and cache

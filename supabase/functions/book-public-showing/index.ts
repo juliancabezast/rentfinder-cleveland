@@ -35,21 +35,26 @@ function showingConfirmationEmail(data: {
   duration: number;
   googleCalUrl: string;
   icsDataUri: string;
+  brandName: string;
+  primaryColor: string;
+  accentColor: string;
 }) {
+  const primary = data.primaryColor || "#4F46E5";
+  const accent = data.accentColor || "#ffb22c";
   return `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background-color:#f4f1f1;font-family:'Helvetica Neue',Arial,sans-serif;">
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:'Helvetica Neue',Arial,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:24px;">
-    <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
-      <h1 style="margin:0;color:#ffb22c;font-size:20px;">Showing Confirmed</h1>
+    <div style="background-color:${primary};padding:20px 24px;border-radius:12px 12px 0 0;">
+      <h1 style="margin:0;color:${accent};font-size:20px;">Showing Confirmed</h1>
     </div>
     <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
       <p style="margin:0 0 16px;color:#1a1a1a;font-size:16px;">
         Hi <strong>${data.leadName}</strong>, your showing is confirmed!
       </p>
-      <div style="background-color:#f8f8f8;border-left:4px solid #370d4b;padding:16px 20px;border-radius:4px;margin:16px 0;">
+      <div style="background-color:#f8f8f8;border-left:4px solid ${primary};padding:16px 20px;border-radius:4px;margin:16px 0;">
         <table style="border-collapse:collapse;width:100%;">
           <tr>
             <td style="padding:6px 0;color:#666;font-size:14px;width:100px;">Property:</td>
@@ -70,10 +75,10 @@ function showingConfirmationEmail(data: {
         </table>
       </div>
       <div style="text-align:center;margin:20px 0;">
-        <a href="${data.googleCalUrl}" target="_blank" style="display:inline-block;background-color:#370d4b;color:#ffffff;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;margin:0 6px 8px;">
+        <a href="${data.googleCalUrl}" target="_blank" style="display:inline-block;background-color:${primary};color:#ffffff;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;margin:0 6px 8px;">
           Add to Google Calendar
         </a>
-        <a href="${data.icsDataUri}" download="showing.ics" style="display:inline-block;background-color:#ffffff;color:#370d4b;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;border:1px solid #370d4b;margin:0 6px 8px;">
+        <a href="${data.icsDataUri}" download="showing.ics" style="display:inline-block;background-color:#ffffff;color:${primary};text-decoration:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;border:1px solid ${primary};margin:0 6px 8px;">
           Download .ics
         </a>
       </div>
@@ -83,7 +88,7 @@ function showingConfirmationEmail(data: {
       </p>
       <hr style="margin:20px 0;border:none;border-top:1px solid #eee;" />
       <p style="margin:0;color:#999;font-size:11px;text-align:center;">
-        Rent Finder Cleveland &bull; HomeGuard Management
+        ${data.brandName}
       </p>
     </div>
   </div>
@@ -232,16 +237,26 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Get property info ─────────────────────────────────────────────
-    const { data: property } = await supabase
-      .from("properties")
-      .select("address, city, state, zip_code")
-      .eq("id", property_id)
-      .single();
+    // ── Get property + org info ───────────────────────────────────────
+    const [{ data: property }, { data: org }] = await Promise.all([
+      supabase
+        .from("properties")
+        .select("address, city, state, zip_code, rent_price")
+        .eq("id", property_id)
+        .single(),
+      supabase
+        .from("organizations")
+        .select("name, primary_color, accent_color")
+        .eq("id", organization_id)
+        .single(),
+    ]);
 
     const propertyAddress = property
       ? `${property.address}, ${property.city}, ${property.state} ${property.zip_code}`
       : "Property";
+    const brandName = org?.name || "Property Tours";
+    const primaryColor = org?.primary_color || "#4F46E5";
+    const accentColor = org?.accent_color || "#ffb22c";
 
     // ── Find or create lead ───────────────────────────────────────────
     const cleanPhone = phone.replace(/\D/g, "");
@@ -426,9 +441,10 @@ serve(async (req: Request) => {
           .eq("is_booked", false);
       }
 
-      // Buffer BEFORE
-      const beforeTotal = h * 60 + m - 30;
-      if (beforeTotal >= 0) {
+      // Buffer BEFORE: block slots within buffer range (mirror of AFTER)
+      for (let i = 1; i <= bufferSlots; i++) {
+        const beforeTotal = h * 60 + m - (i * 30);
+        if (beforeTotal < 0) break;
         const beforeH = Math.floor(beforeTotal / 60);
         const beforeM = beforeTotal % 60;
         const bufferBefore = `${String(beforeH).padStart(2, "0")}:${String(beforeM).padStart(2, "0")}:00`;
@@ -479,25 +495,28 @@ serve(async (req: Request) => {
     });
 
     // ── Schedule Samuel confirmation task (24h before showing) ────────
+    // Skip if the showing is < 24h away — confirmation email would already be
+    // overdue and would fire immediately, surprising the user who just booked.
     const showingDate = new Date(scheduledAt);
     const confirmationTime = new Date(showingDate.getTime() - 24 * 60 * 60 * 1000);
-
-    await supabase.from("agent_tasks").insert({
-      organization_id,
-      lead_id: leadId,
-      agent_type: "showing_confirmation",
-      action_type: "email",
-      scheduled_for: confirmationTime.toISOString(),
-      max_attempts: 2,
-      status: "pending",
-      context: {
-        showing_id: showing.id,
-        property_id,
-        property_address: propertyAddress,
-        scheduled_at: scheduledAt,
-        source: "website",
-      },
-    });
+    if (confirmationTime.getTime() > Date.now()) {
+      await supabase.from("agent_tasks").insert({
+        organization_id,
+        lead_id: leadId,
+        agent_type: "showing_confirmation",
+        action_type: "email",
+        scheduled_for: confirmationTime.toISOString(),
+        max_attempts: 2,
+        status: "pending",
+        context: {
+          showing_id: showing.id,
+          property_id,
+          property_address: propertyAddress,
+          scheduled_at: scheduledAt,
+          source: "website",
+        },
+      });
+    }
 
     // ── Send confirmation email (if lead has email) ───────────────────
     if (leadEmail) {
@@ -525,6 +544,9 @@ serve(async (req: Request) => {
               duration: durationMinutes,
               googleCalUrl: buildGoogleCalUrl(calData),
               icsDataUri: buildIcsDataUri(calData),
+              brandName,
+              primaryColor,
+              accentColor,
             }),
             notification_type: "showing_confirmation",
             organization_id,
@@ -696,8 +718,8 @@ serve(async (req: Request) => {
         const timeHuman = formatTimeHuman(slot_time);
         const addr = `${propertyAddress}`;
         const rentStr = property?.rent_price ? `$${Number(property.rent_price).toLocaleString()}/mo` : "";
-        const leadPhone = phone?.trim() || "—";
-        const leadEmail = email?.trim() || "—";
+        const leadPhoneStr = phone?.trim() || "—";
+        const leadEmailStr = leadEmail || email?.trim() || "—";
         const mapsQuery = encodeURIComponent(`${property?.address || ""}, ${property?.city || ""}, ${property?.state || ""} ${property?.zip_code || ""}`);
 
         const msg = [
@@ -707,8 +729,8 @@ serve(async (req: Request) => {
           `📅 ${dateHuman} at ${timeHuman}`,
           ``,
           `👤 <b>${full_name.trim()}</b>`,
-          `📞 ${leadPhone}`,
-          `✉️ ${leadEmail}`,
+          `📞 ${leadPhoneStr}`,
+          `✉️ ${leadEmailStr}`,
           `🔗 Source: Public booking page`,
           ``,
           `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
