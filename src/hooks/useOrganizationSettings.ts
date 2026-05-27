@@ -180,7 +180,7 @@ export function useOrganizationSettings(): UseOrganizationSettingsReturn {
 
     const { data: written, error: upsertError } = await supabase
       .from('organization_settings')
-      .upsert(payload, { onConflict: 'organization_id,key' })
+      .upsert(payload as any, { onConflict: 'organization_id,key' })
       .select('id')
       .single();
 
