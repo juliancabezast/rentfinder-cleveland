@@ -223,6 +223,7 @@ const CampaignsPage = () => {
     return (
       <CampaignDetailView
         campaign={selectedCampaign}
+        orgId={orgId || ""}
         propertyLabel={propertyLabel}
         onBack={() => { setView("list"); setSelectedCampaign(null); }}
         onCampaignUpdated={(updated) => setSelectedCampaign((c) => (c ? { ...c, ...updated } : c))}
@@ -394,6 +395,7 @@ const CampaignsPage = () => {
 
 interface CampaignDetailViewProps {
   campaign: Campaign;
+  orgId: string;
   propertyLabel: string;
   onBack: () => void;
   onCampaignUpdated: (partial: Partial<Campaign>) => void;
@@ -401,6 +403,7 @@ interface CampaignDetailViewProps {
 
 const CampaignDetailView = ({
   campaign,
+  orgId,
   propertyLabel,
   onBack,
   onCampaignUpdated,
@@ -414,22 +417,62 @@ const CampaignDetailView = ({
     setIsMutating(true);
     const prev = campaign.status;
     onCampaignUpdated({ status: next });
+
+    // 1) Flip the campaign row
     const { error } = await supabase
       .from("campaigns")
       .update({ status: next })
       .eq("id", campaign.id);
+
     if (error) {
-      // rollback optimistic update
       onCampaignUpdated({ status: prev });
       toast.error(`Failed to ${next === "paused" ? "pause" : "resume"} campaign: ${error.message}`);
-    } else {
-      toast.success(
-        next === "paused"
-          ? "Campaign paused. Queued emails will hold until you resume."
-          : "Campaign resumed. Pending emails will start sending again.",
-      );
-      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      setIsMutating(false);
+      return;
     }
+
+    // 2) Flip the campaign's queued email_events so the queue worker stops
+    //    picking them up (paused) or resumes them (queued). The RPC that
+    //    drives process-email-queue selects by details->>'status'='queued',
+    //    so moving paused emails to status='paused' frees the batch budget
+    //    for other campaigns.
+    try {
+      // Fetch the email_events belonging to this campaign that are in the
+      // relevant state, then flip them in chunks. We can't filter by JSONB
+      // path inline-update in supabase-js, so we read IDs first.
+      const fromStatus = next === "paused" ? "queued" : "paused";
+      const { data: rows } = await supabase
+        .from("email_events")
+        .select("id, details")
+        .eq("organization_id", orgId)
+        .contains("details", { campaign_id: campaign.id, status: fromStatus })
+        .limit(5000);
+
+      if (rows && rows.length > 0) {
+        const newStatus = next === "paused" ? "paused" : "queued";
+        // Batched updates — one per row is unavoidable here because each
+        // row has a different `details` JSONB to merge.
+        await Promise.all(
+          rows.map((row) =>
+            supabase
+              .from("email_events")
+              .update({
+                details: { ...(row.details as Record<string, unknown>), status: newStatus },
+              })
+              .eq("id", row.id),
+          ),
+        );
+      }
+    } catch (flipErr) {
+      console.warn("Email events flip failed (non-fatal):", flipErr);
+    }
+
+    toast.success(
+      next === "paused"
+        ? "Campaign paused. Pending emails are held until you resume."
+        : "Campaign resumed. Pending emails are back in the queue.",
+    );
+    queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     setIsMutating(false);
   };
 
