@@ -140,6 +140,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
 
   // Step 3 state
   const [isLaunching, setIsLaunching] = useState(false);
+  const [launchStage, setLaunchStage] = useState<string>("");
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [launchStats, setLaunchStats] = useState({ totalLeads: 0, leadsWithEmail: 0 });
 
@@ -656,86 +657,144 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       const orgName = organization?.name || "Rent Finder Cleveland";
 
       const existingMap = dedupResult?.existingMap || {};
+      const propertyAddress = `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ""}, ${selectedProperty.city || "Cleveland"}`;
 
-      for (const lead of mappedLeads) {
-        // Build lead name
+      // ── PASS 1: Resolve lead_id for every row ──
+      // Bulk-INSERT new leads instead of one-by-one INSERT inside a loop.
+      type ResolvedLead = {
+        index: number;
+        leadId: string | null; // null until inserted
+        full_name: string | null;
+        first_name: string | null;
+        last_name: string | null;
+        email: string | null;
+        phone: string | null;
+        firstName: string;
+        fullName: string;
+      };
+
+      setLaunchStage(`Resolving ${mappedLeads.length} leads…`);
+      const resolved: ResolvedLead[] = mappedLeads.map((lead, i) => {
         const fullName = lead.full_name || [lead.first_name, lead.last_name].filter(Boolean).join(" ") || "there";
         const firstName = lead.first_name || fullName.split(" ")[0] || "there";
         const rawPhone = (lead.phone || "").replace(/\D/g, "");
         const phone = rawPhone.length === 10 ? `+1${rawPhone}` : rawPhone.length > 0 ? `+${rawPhone}` : "";
         const email = (lead.email || "").trim();
-
-        // Property-history mode passes existing lead_id explicitly — use it.
         const directLeadId = (lead as ParsedLead & { __lead_id?: string }).__lead_id;
         let leadId: string | null = directLeadId ?? null;
-
-        // Upload mode: check if lead already exists (by phone or email)
         if (!leadId) {
-          if (phone && existingMap[`phone:${phone}`]) {
-            leadId = existingMap[`phone:${phone}`];
-          } else if (email && existingMap[`email:${email.toLowerCase()}`]) {
-            leadId = existingMap[`email:${email.toLowerCase()}`];
-          }
+          if (phone && existingMap[`phone:${phone}`]) leadId = existingMap[`phone:${phone}`];
+          else if (email && existingMap[`email:${email.toLowerCase()}`]) leadId = existingMap[`email:${email.toLowerCase()}`];
         }
+        return {
+          index: i,
+          leadId,
+          full_name: fullName !== "there" ? fullName : null,
+          first_name: lead.first_name || null,
+          last_name: lead.last_name || null,
+          email: email || null,
+          phone: phone || null,
+          firstName,
+          fullName,
+        };
+      });
 
-        // Only create if truly new
-        if (!leadId) {
-          const { data: insertedLead, error: leadErr } = await supabase
+      // Bulk-insert the truly-new ones in chunks of 500
+      const newRows = resolved.filter((r) => !r.leadId);
+      if (newRows.length > 0) {
+        setLaunchStage(`Creating ${newRows.length} new leads…`);
+        for (let i = 0; i < newRows.length; i += 500) {
+          const chunk = newRows.slice(i, i + 500);
+          const payload = chunk.map((r) => ({
+            organization_id: orgId,
+            full_name: r.full_name,
+            first_name: r.first_name,
+            last_name: r.last_name,
+            phone: r.phone,
+            email: r.email,
+            source: "campaign",
+            status: "new",
+            interested_property_id: propertyId,
+          }));
+          const { data: inserted, error: insErr } = await supabase
             .from("leads")
-            .insert({
-              organization_id: orgId,
-              full_name: fullName !== "there" ? fullName : null,
-              first_name: lead.first_name || null,
-              last_name: lead.last_name || null,
-              phone: phone || null,
-              email: email || null,
-              source: "campaign",
-              status: "new",
-              interested_property_id: propertyId,
-            })
-            .select("id")
-            .single();
-
-          if (leadErr || !insertedLead) {
-            console.error("Lead insert error:", leadErr?.message);
+            .insert(payload)
+            .select("id");
+          if (insErr) {
+            console.error("Bulk lead insert error:", insErr.message);
             continue;
           }
-          leadId = insertedLead.id;
+          // Order is preserved by PostgREST → map back to resolved rows
+          (inserted || []).forEach((row, idx) => {
+            const target = chunk[idx];
+            if (target) target.leadId = (row as { id: string }).id;
+          });
         }
+      }
 
-        // Insert campaign_leads junction (UNIQUE constraint catches dupes)
-        const { error: clErr } = await supabase.from("campaign_leads").insert({
-          campaign_id: newCampaignId,
-          lead_id: leadId,
-          organization_id: orgId,
-        });
-        if (clErr && !clErr.message?.includes("duplicate")) {
-          console.warn("campaign_leads insert:", clErr.message);
+      // ── PASS 2: Bulk-insert campaign_leads junction rows ──
+      const validLeadIds = resolved
+        .map((r) => r.leadId)
+        .filter((v): v is string => Boolean(v));
+      if (validLeadIds.length > 0) {
+        setLaunchStage(`Linking ${validLeadIds.length} leads to campaign…`);
+        for (let i = 0; i < validLeadIds.length; i += 1000) {
+          const chunk = validLeadIds.slice(i, i + 1000);
+          const payload = chunk.map((lead_id) => ({
+            campaign_id: newCampaignId,
+            lead_id,
+            organization_id: orgId,
+          }));
+          // upsert with onConflict to swallow UNIQUE-violation duplicates
+          // (also tolerates absence of UNIQUE constraint)
+          const { error: clErr } = await supabase
+            .from("campaign_leads")
+            .upsert(payload, { onConflict: "campaign_id,lead_id", ignoreDuplicates: true });
+          if (clErr && !/duplicate/i.test(clErr.message)) {
+            console.warn("campaign_leads bulk insert:", clErr.message);
+          }
         }
+      }
 
-        // Queue SMS via campaign_recipients (channel=sms, status=pending).
-        // The process-sms-queue worker picks these up.
-        if (sendsSms && phone) {
-          const { error: smsRecipErr } = await supabase
-            .from("campaign_recipients")
-            .insert({
+      // ── PASS 3: Bulk-insert campaign_recipients for SMS ──
+      if (sendsSms) {
+        const smsLeadIds = resolved
+          .filter((r) => r.leadId && r.phone)
+          .map((r) => r.leadId!) as string[];
+        if (smsLeadIds.length > 0) {
+          setLaunchStage(`Queuing ${smsLeadIds.length} SMS recipients…`);
+          for (let i = 0; i < smsLeadIds.length; i += 1000) {
+            const chunk = smsLeadIds.slice(i, i + 1000);
+            const payload = chunk.map((lead_id) => ({
               campaign_id: newCampaignId,
-              lead_id: leadId,
+              lead_id,
               organization_id: orgId,
               channel: "sms",
               status: "pending",
-            });
-          if (smsRecipErr && !smsRecipErr.message?.includes("duplicate")) {
-            console.warn("campaign_recipients (sms) insert:", smsRecipErr.message);
+            }));
+            const { error: smsErr } = await supabase
+              .from("campaign_recipients")
+              .upsert(payload, { onConflict: "campaign_id,lead_id", ignoreDuplicates: true });
+            if (smsErr && !/duplicate/i.test(smsErr.message)) {
+              console.warn("campaign_recipients (sms) bulk insert:", smsErr.message);
+            }
           }
         }
+      }
 
-        // Queue email if lead has email and channel includes email
-        if (sendsEmail && email) {
-          const propertyAddress = `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ""}, ${selectedProperty.city || "Cleveland"}`;
+      // ── PASS 4: Bulk-insert email_events for Email ──
+      // This is the BIG win: previously we invoked send-notification-email
+      // once per lead (n network round-trips, ~500ms each → minutes for 1k
+      // leads). Now we render the per-lead HTML client-side and bulk INSERT
+      // into email_events with status=queued; process-email-queue picks them
+      // up on its next tick.
+      if (sendsEmail) {
+        const emailEventRows: Array<Record<string, unknown>> = [];
+        for (const r of resolved) {
+          if (!r.leadId || !r.email) continue;
           const variables: Record<string, string> = {
-            "{firstName}": firstName,
-            "{fullName}": fullName,
+            "{firstName}": r.firstName,
+            "{fullName}": r.fullName,
             "{propertyAddress}": propertyAddress,
             "{propertyRent}": selectedProperty.rent_price ? `$${selectedProperty.rent_price.toLocaleString()}` : "",
             "{propertyBeds}": selectedProperty.bedrooms?.toString() || "",
@@ -743,49 +802,64 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             "{orgName}": orgName,
             "{senderDomain}": senderDomain,
           };
-
           const html = renderEmailHtml(emailConfig, variables);
           const subject = emailConfig.subject
             .replace("{orgName}", orgName)
             .replace("{propertyAddress}", propertyAddress);
-
-          try {
-            const { error: emailErr } = await supabase.functions.invoke("send-notification-email", {
-              body: {
-                to: email,
-                subject,
-                html,
-                notification_type: `campaign_${templateType}`,
-                organization_id: orgId,
-                related_entity_id: leadId,
-                related_entity_type: "lead",
-                queue: true,
-                campaign_id: newCampaignId,
-              },
-            });
+          emailEventRows.push({
+            organization_id: orgId,
+            event_type: "delivery_delayed",
+            recipient_email: r.email,
+            subject,
+            details: {
+              html,
+              from_name: orgName,
+              status: "queued",
+              notification_type: `campaign_${templateType}`,
+              related_entity_id: r.leadId,
+              related_entity_type: "lead",
+              queued_at: new Date().toISOString(),
+              campaign_id: newCampaignId,
+            },
+          });
+        }
+        if (emailEventRows.length > 0) {
+          setLaunchStage(`Queuing ${emailEventRows.length} emails…`);
+          // Chunk size capped to avoid hitting PostgREST payload limits.
+          // Each row is ~50KB (rendered HTML) → 100 rows ≈ 5MB per request.
+          for (let i = 0; i < emailEventRows.length; i += 100) {
+            const chunk = emailEventRows.slice(i, i + 100);
+            const { error: emailErr } = await supabase
+              .from("email_events")
+              .insert(chunk);
             if (emailErr) {
-              console.error("Email queue error:", emailErr);
+              console.error(`Email queue chunk ${i}-${i + chunk.length} failed:`, emailErr.message);
             } else {
-              emailsQueued++;
+              emailsQueued += chunk.length;
+              setLaunchStage(`Queued ${emailsQueued} of ${emailEventRows.length} emails…`);
             }
-          } catch (emailErr) {
-            console.error("Email queue exception:", emailErr);
           }
         }
       }
 
-      // 3. Update campaign with queued count (keep status in_progress — process-email-queue handles completion)
+      // ── PASS 5: Update campaign with queued count ──
+      setLaunchStage("Finalizing…");
       await supabase
         .from("campaigns")
         .update({ emails_queued: emailsQueued })
         .eq("id", newCampaignId);
 
       setStep(3);
-      toast.success(`Campaign launched! ${emailsQueued} emails queued.`);
+      const launched = [
+        emailsQueued > 0 ? `${emailsQueued} emails` : null,
+        sendsSms ? `${resolved.filter((r) => r.leadId && r.phone).length} SMS` : null,
+      ].filter(Boolean).join(" + ");
+      toast.success(`Campaign launched! ${launched || "0"} queued.`);
     } catch (err: any) {
       console.error("Campaign launch error:", err);
       toast.error(`Failed to launch campaign: ${err?.message || err}`);
     } finally {
+      setLaunchStage("");
       setIsLaunching(false);
     }
   };
@@ -1494,7 +1568,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
               {isLaunching ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Launching...
+                  {launchStage || "Launching..."}
                 </>
               ) : (
                 <>
