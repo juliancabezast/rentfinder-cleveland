@@ -51,7 +51,7 @@ import type { EmailTemplateConfig, EmailTemplateType } from "@/lib/emailTemplate
 import { CampaignProgressPanel } from "./CampaignProgressPanel";
 
 // ── Targeting modes ────────────────────────────────────────────────────
-type CampaignSourceMode = "upload" | "property_history";
+type CampaignSourceMode = "upload" | "property_history" | "all_org_leads";
 
 // ── Channel mode (what we actually send) ───────────────────────────────
 type CampaignChannel = "email" | "sms" | "both";
@@ -259,67 +259,94 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
     });
   };
 
-  // ── Fetch all leads that have ever been associated with this property ──
-  // Union of: leads.interested_property_id, showings.property_id (lead_id),
-  // campaign_leads via prior campaigns to this property.
-  const refreshPropertyHistoryLeads = useCallback(async () => {
-    if (!orgId || !propertyId) {
+  // ── Fetch leads from DB based on the active source mode ──
+  // - property_history: union of interested + showings + prior campaigns for this property
+  // - all_org_leads:    every lead in the org (with light status guards)
+  const refreshDbLeads = useCallback(async () => {
+    if (!orgId) {
       setHistoryExistingLeads([]);
       return;
     }
+    if (sourceMode !== "property_history" && sourceMode !== "all_org_leads") return;
+
     setHistoryLoading(true);
     try {
-      // 1. Leads currently interested in this property
-      const { data: interested } = await supabase
-        .from("leads")
-        .select("id, full_name, email, phone, unsubscribed_at, email_marketing_consent")
-        .eq("organization_id", orgId)
-        .eq("interested_property_id", propertyId);
+      type LeadRow = {
+        id: string;
+        full_name: string | null;
+        email: string | null;
+        phone: string | null;
+        unsubscribed_at?: string | null;
+        email_marketing_consent?: boolean | null;
+        status?: string | null;
+      };
 
-      // 2. Leads with at least one showing for this property
-      const { data: showings } = await supabase
-        .from("showings")
-        .select("lead_id")
-        .eq("organization_id", orgId)
-        .eq("property_id", propertyId);
-      const showingLeadIds = Array.from(
-        new Set((showings || []).map((s) => s.lead_id).filter(Boolean) as string[]),
-      );
+      let merged: LeadRow[] = [];
 
-      // 3. Leads from previous campaigns targeting this property
-      const { data: priorCampaigns } = await supabase
-        .from("campaigns")
-        .select("id")
-        .eq("organization_id", orgId)
-        .eq("property_id", propertyId);
-      const campaignIds = (priorCampaigns || []).map((c) => c.id);
-      let priorLeadIds: string[] = [];
-      if (campaignIds.length > 0) {
-        const { data: priorCL } = await supabase
-          .from("campaign_leads")
-          .select("lead_id")
-          .in("campaign_id", campaignIds);
-        priorLeadIds = Array.from(
-          new Set((priorCL || []).map((r) => r.lead_id).filter(Boolean) as string[]),
-        );
-      }
-
-      const extraIds = Array.from(new Set([...showingLeadIds, ...priorLeadIds]));
-      const knownIds = new Set((interested || []).map((l) => l.id));
-      const missingIds = extraIds.filter((id) => !knownIds.has(id));
-
-      type LeadRow = { id: string; full_name: string | null; email: string | null; phone: string | null; unsubscribed_at?: string | null; email_marketing_consent?: boolean | null };
-      let extraLeads: LeadRow[] = [];
-      if (missingIds.length > 0) {
-        const { data: extra } = await supabase
+      if (sourceMode === "all_org_leads") {
+        // Pull every lead in the org. Exclude obvious dead-ends:
+        // already converted, lost, or unsubscribed.
+        const { data } = await supabase
           .from("leads")
-          .select("id, full_name, email, phone, unsubscribed_at, email_marketing_consent")
+          .select(
+            "id, full_name, email, phone, unsubscribed_at, email_marketing_consent, status",
+          )
           .eq("organization_id", orgId)
-          .in("id", missingIds);
-        extraLeads = (extra as LeadRow[] | null) || [];
-      }
+          .not("status", "in", "(lost,converted)")
+          .order("created_at", { ascending: false })
+          .limit(5000);
+        merged = (data as LeadRow[] | null) || [];
+      } else if (propertyId) {
+        // 1. Leads currently interested in this property
+        const { data: interested } = await supabase
+          .from("leads")
+          .select("id, full_name, email, phone, unsubscribed_at, email_marketing_consent, status")
+          .eq("organization_id", orgId)
+          .eq("interested_property_id", propertyId);
 
-      const merged: LeadRow[] = [...((interested as LeadRow[] | null) || []), ...extraLeads];
+        // 2. Leads with at least one showing for this property
+        const { data: showings } = await supabase
+          .from("showings")
+          .select("lead_id")
+          .eq("organization_id", orgId)
+          .eq("property_id", propertyId);
+        const showingLeadIds = Array.from(
+          new Set((showings || []).map((s) => s.lead_id).filter(Boolean) as string[]),
+        );
+
+        // 3. Leads from previous campaigns targeting this property
+        const { data: priorCampaigns } = await supabase
+          .from("campaigns")
+          .select("id")
+          .eq("organization_id", orgId)
+          .eq("property_id", propertyId);
+        const campaignIds = (priorCampaigns || []).map((c) => c.id);
+        let priorLeadIds: string[] = [];
+        if (campaignIds.length > 0) {
+          const { data: priorCL } = await supabase
+            .from("campaign_leads")
+            .select("lead_id")
+            .in("campaign_id", campaignIds);
+          priorLeadIds = Array.from(
+            new Set((priorCL || []).map((r) => r.lead_id).filter(Boolean) as string[]),
+          );
+        }
+
+        const extraIds = Array.from(new Set([...showingLeadIds, ...priorLeadIds]));
+        const knownIds = new Set((interested || []).map((l) => l.id));
+        const missingIds = extraIds.filter((id) => !knownIds.has(id));
+
+        let extraLeads: LeadRow[] = [];
+        if (missingIds.length > 0) {
+          const { data: extra } = await supabase
+            .from("leads")
+            .select("id, full_name, email, phone, unsubscribed_at, email_marketing_consent, status")
+            .eq("organization_id", orgId)
+            .in("id", missingIds);
+          extraLeads = (extra as LeadRow[] | null) || [];
+        }
+        merged = [...((interested as LeadRow[] | null) || []), ...extraLeads];
+      }
 
       // Drop leads that have explicitly unsubscribed (defense-in-depth on top of
       // the edge-function consent gate)
@@ -334,20 +361,19 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         })),
       );
     } catch (err) {
-      console.error("Property-history lead fetch failed:", err);
+      console.error("DB lead fetch failed:", err);
       setHistoryExistingLeads([]);
     } finally {
       setHistoryLoading(false);
     }
-  }, [orgId, propertyId]);
+  }, [orgId, propertyId, sourceMode]);
 
-  // Auto-refresh history leads when entering property_history mode or
-  // when the property changes.
+  // Auto-refresh when source mode or property changes
   useEffect(() => {
-    if (sourceMode === "property_history") {
-      refreshPropertyHistoryLeads();
+    if (sourceMode === "property_history" || sourceMode === "all_org_leads") {
+      refreshDbLeads();
     }
-  }, [sourceMode, refreshPropertyHistoryLeads]);
+  }, [sourceMode, refreshDbLeads]);
 
   // Filtered subset honoring the "only with email" toggle
   const historyLeadsFiltered = useMemo(() => {
@@ -355,7 +381,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
     return historyExistingLeads.filter((l) => Boolean(l.email && l.email.trim()));
   }, [historyExistingLeads, historyOnlyWithEmail]);
 
-  // Unified `mappedLeads` for both modes — used by step 2/3 logic below.
+  // Unified `mappedLeads` for all modes — used by step 2/3 logic below.
   const mappedLeads: ParsedLead[] = step >= 2
     ? (sourceMode === "upload"
         ? getMappedLeads()
@@ -471,7 +497,8 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
 
   const goToStep2 = async () => {
     setStep(2);
-    // Property-history leads are already known DB rows; no dedup needed
+    // DB-sourced leads (property_history / all_org_leads) are already known
+    // rows; only CSV upload needs an explicit dedup pass.
     if (sourceMode === "upload") {
       await checkDuplicates();
     } else {
@@ -497,6 +524,16 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
   const canProceedStep2 =
     (sendsEmail && leadsWithEmail.length > 0) || (sendsSms && leadsWithPhone.length > 0);
 
+  // Empty-state taxonomy for the audience preview list
+  const historyEmptyKind: "no_property" | "no_history" | "only_filtered" | "ok" =
+    !propertyId
+      ? "no_property"
+      : historyExistingLeads.length === 0
+        ? "no_history"
+        : historyLeadsFiltered.length === 0
+          ? "only_filtered"
+          : "ok";
+
   // ── Launch campaign ────────────────────────────────────────────────
 
   const launchCampaign = async () => {
@@ -506,12 +543,16 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
     try {
       // 1. Create campaign row
       const targetCriteria: Record<string, unknown> = {
-        source: sourceMode === "upload" ? "csv_upload" : "property_history",
+        source: sourceMode === "upload"
+          ? "csv_upload"
+          : sourceMode === "property_history"
+            ? "property_history"
+            : "all_org_leads",
         template: templateType,
         channel,
         send_delay_seconds: sendDelaySeconds,
       };
-      if (sourceMode === "property_history") {
+      if (sourceMode === "property_history" || sourceMode === "all_org_leads") {
         targetCriteria.property_id = propertyId;
         targetCriteria.only_with_email = historyOnlyWithEmail;
       }
@@ -770,7 +811,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
           {/* Source mode toggle: where do the leads come from? */}
           <div className="space-y-2">
             <Label>Audience Source</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button
                 type="button"
                 onClick={() => setSourceMode("upload")}
@@ -783,10 +824,10 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
               >
                 <div className="flex items-center gap-2 mb-1">
                   <FileSpreadsheet className={cn("h-4 w-4", sourceMode === "upload" ? "text-[#4F46E5]" : "text-slate-400")} />
-                  <span className="font-semibold text-sm">Upload CSV / Excel</span>
+                  <span className="font-semibold text-sm">Upload File</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Import a fresh list from a file. New leads will be created automatically.
+                  Import a fresh list from a CSV/Excel file. New leads created automatically.
                 </p>
               </button>
               <button
@@ -803,11 +844,28 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Building2 className={cn("h-4 w-4", sourceMode === "property_history" ? "text-[#4F46E5]" : "text-slate-400")} />
-                  <span className="font-semibold text-sm">Target by Property History</span>
+                  <span className="font-semibold text-sm">Property History</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Every lead ever interested in, scheduled to tour, or campaigned about this unit.
-                  {!propertyId && " — pick a property first."}
+                  Leads ever interested in, scheduled, or campaigned about this exact unit.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSourceMode("all_org_leads")}
+                className={cn(
+                  "p-4 rounded-xl border-2 text-left transition-all",
+                  sourceMode === "all_org_leads"
+                    ? "border-[#4F46E5] bg-indigo-50/50"
+                    : "border-slate-200 hover:border-slate-300",
+                )}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className={cn("h-4 w-4", sourceMode === "all_org_leads" ? "text-[#4F46E5]" : "text-slate-400")} />
+                  <span className="font-semibold text-sm">All Active Leads</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Every lead in your database (excluding lost / converted / unsubscribed).
                 </p>
               </button>
             </div>
@@ -1061,8 +1119,8 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             </>
           )}
 
-          {/* ── Property-history mode UI ───────────────────────────── */}
-          {sourceMode === "property_history" && (
+          {/* ── DB-source mode UI (property_history / all_org_leads) ── */}
+          {(sourceMode === "property_history" || sourceMode === "all_org_leads") && (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <Label className="flex items-center gap-1.5">
@@ -1085,27 +1143,64 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
                   </button>
                   <button
                     type="button"
-                    onClick={() => refreshPropertyHistoryLeads()}
-                    disabled={!propertyId || historyLoading}
+                    onClick={() => refreshDbLeads()}
+                    disabled={historyLoading}
                     className="text-[11px] px-2 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                   >
                     Refresh
                   </button>
                 </div>
               </div>
-              {!propertyId ? (
-                <div className="text-sm text-muted-foreground p-4 rounded-lg border border-dashed text-center">
-                  Pick a property above to load its lead history.
-                </div>
-              ) : historyLoading ? (
+
+              {historyLoading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="h-10 rounded-lg bg-slate-100 animate-pulse" />
                   ))}
                 </div>
-              ) : historyLeadsFiltered.length === 0 ? (
+              ) : historyEmptyKind === "no_property" ? (
                 <div className="text-sm text-muted-foreground p-4 rounded-lg border border-dashed text-center">
-                  No leads associated with this property{historyOnlyWithEmail ? " have email addresses" : ""}.
+                  Pick a property above to load its lead history.
+                </div>
+              ) : historyEmptyKind === "no_history" ? (
+                <div className="text-sm p-4 rounded-lg border border-dashed bg-amber-50/50 border-amber-200 space-y-2">
+                  <p className="font-medium text-amber-800 flex items-center gap-1.5">
+                    <AlertCircle className="h-4 w-4" />
+                    {sourceMode === "property_history"
+                      ? "No lead has ever been associated with this property."
+                      : "Your organization has no leads yet."}
+                  </p>
+                  <p className="text-amber-700 text-[12px]">
+                    {sourceMode === "property_history"
+                      ? "This is a brand-new unit — no one has booked a showing, marked it as interesting, or been campaigned about it yet."
+                      : "Add leads from the Leads page first, or use Upload File mode."}
+                  </p>
+                  {sourceMode === "property_history" && (
+                    <button
+                      type="button"
+                      onClick={() => setSourceMode("all_org_leads")}
+                      className="text-[12px] text-[#4F46E5] hover:underline font-medium"
+                    >
+                      → Switch to "All Active Leads" to blast your whole list instead
+                    </button>
+                  )}
+                </div>
+              ) : historyEmptyKind === "only_filtered" ? (
+                <div className="text-sm p-4 rounded-lg border border-dashed bg-indigo-50/50 border-indigo-200 space-y-2">
+                  <p className="font-medium text-indigo-900 flex items-center gap-1.5">
+                    <Filter className="h-4 w-4" />
+                    Found {historyExistingLeads.length} lead{historyExistingLeads.length === 1 ? "" : "s"} — but none have an email address.
+                  </p>
+                  <p className="text-indigo-700 text-[12px]">
+                    Toggle "Only with email" off to see them, or switch the campaign to SMS-only.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryOnlyWithEmail(false)}
+                    className="text-[12px] text-[#4F46E5] hover:underline font-medium"
+                  >
+                    → Show all {historyExistingLeads.length} matched lead{historyExistingLeads.length === 1 ? "" : "s"}
+                  </button>
                 </div>
               ) : (
                 <>
@@ -1116,9 +1211,12 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
                     <Badge variant="outline" className="gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
                       <Mail className="h-3 w-3" /> {historyLeadsFiltered.filter((l) => l.email).length} with email
                     </Badge>
+                    <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700 border-blue-200">
+                      <Phone className="h-3 w-3" /> {historyLeadsFiltered.filter((l) => l.phone).length} with phone
+                    </Badge>
                     {historyExistingLeads.length !== historyLeadsFiltered.length && (
                       <span className="text-[11px] text-muted-foreground">
-                        ({historyExistingLeads.length - historyLeadsFiltered.length} hidden — no email)
+                        ({historyExistingLeads.length - historyLeadsFiltered.length} hidden by filter)
                       </span>
                     )}
                   </div>
@@ -1241,6 +1339,20 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
                 <p className="text-indigo-700 mt-1">
                   Includes interested leads, prior showing attendees, and previous campaign recipients.
                   Leads who explicitly unsubscribed are excluded.
+                </p>
+              </div>
+            </div>
+          )}
+          {sourceMode === "all_org_leads" && (
+            <div className="flex items-start gap-3 rounded-xl bg-indigo-50 border border-indigo-200 p-4">
+              <Users className="h-5 w-5 text-[#4F46E5] mt-0.5 shrink-0" />
+              <div className="text-sm text-indigo-900">
+                <p className="font-medium">
+                  Targeting {mappedLeads.length} active lead{mappedLeads.length !== 1 ? "s" : ""} from your whole database
+                </p>
+                <p className="text-indigo-700 mt-1">
+                  Excludes leads marked as <em>lost</em>, <em>converted</em>, or <em>unsubscribed</em>.
+                  Featured property in the email will be {selectedProperty?.address}{selectedProperty?.unit_number ? ` #${selectedProperty.unit_number}` : ""}.
                 </p>
               </div>
             </div>
