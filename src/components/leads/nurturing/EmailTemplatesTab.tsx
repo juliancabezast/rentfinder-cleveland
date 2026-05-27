@@ -234,7 +234,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
     try {
       const existing = getSetting<EmailTemplatesMap>("email_templates", {});
       const updated: EmailTemplatesMap = { ...existing, [selectedType]: config };
-      await updateSetting("email_templates", updated as unknown as Record<string, unknown>, "communications");
+      await (updateSetting as any)("email_templates", updated as unknown as Record<string, unknown>, "communications");
       setIsDirty(false);
       toast({ title: "Template saved", description: `${TEMPLATE_META[selectedType].label} template updated. Changes take effect on next send.` });
     } catch {
