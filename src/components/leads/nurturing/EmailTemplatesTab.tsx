@@ -213,8 +213,8 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
 
   // Build preview variables (merge sample with org-specific)
   const previewVars = useMemo(() => {
-    const orgName = getSetting<string>("org_name", SAMPLE_VARIABLES["{orgName}"]);
-    const senderDomain = getSetting<string>("sender_domain", SAMPLE_VARIABLES["{senderDomain}"]);
+    const orgName = (getSetting as any)("org_name", SAMPLE_VARIABLES["{orgName}"]);
+    const senderDomain = (getSetting as any)("sender_domain", SAMPLE_VARIABLES["{senderDomain}"]);
     return {
       ...SAMPLE_VARIABLES,
       "{orgName}": orgName || SAMPLE_VARIABLES["{orgName}"],
