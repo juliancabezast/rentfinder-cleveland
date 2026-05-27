@@ -772,6 +772,7 @@ export type Database = {
           organization_id: string
           property_id: string | null
           scheduled_at: string | null
+          send_delay_seconds: number
           sent_count: number | null
           sms_template: string | null
           started_at: string | null
@@ -801,6 +802,7 @@ export type Database = {
           organization_id: string
           property_id?: string | null
           scheduled_at?: string | null
+          send_delay_seconds?: number
           sent_count?: number | null
           sms_template?: string | null
           started_at?: string | null
@@ -830,6 +832,7 @@ export type Database = {
           organization_id?: string
           property_id?: string | null
           scheduled_at?: string | null
+          send_delay_seconds?: number
           sent_count?: number | null
           sms_template?: string | null
           started_at?: string | null
@@ -1392,36 +1395,42 @@ export type Database = {
       }
       email_events: {
         Row: {
+          attempt_number: number
           communication_id: string | null
           created_at: string | null
           details: Json | null
           event_type: string
           id: string
           lead_id: string | null
+          max_attempts: number
           organization_id: string | null
           recipient_email: string | null
           resend_email_id: string | null
           subject: string | null
         }
         Insert: {
+          attempt_number?: number
           communication_id?: string | null
           created_at?: string | null
           details?: Json | null
           event_type: string
           id?: string
           lead_id?: string | null
+          max_attempts?: number
           organization_id?: string | null
           recipient_email?: string | null
           resend_email_id?: string | null
           subject?: string | null
         }
         Update: {
+          attempt_number?: number
           communication_id?: string | null
           created_at?: string | null
           details?: Json | null
           event_type?: string
           id?: string
           lead_id?: string | null
+          max_attempts?: number
           organization_id?: string | null
           recipient_email?: string | null
           resend_email_id?: string | null
@@ -2306,6 +2315,8 @@ export type Database = {
           do_not_contact: boolean | null
           doorloop_prospect_id: string | null
           email: string | null
+          email_marketing_consent: boolean | null
+          email_marketing_consent_at: string | null
           first_name: string | null
           full_name: string | null
           has_voucher: boolean | null
@@ -2340,6 +2351,7 @@ export type Database = {
           source_detail: string | null
           stage: string
           status: string
+          unsubscribed_at: string | null
           updated_at: string | null
           verification_completed_at: string | null
           verification_provider: string | null
@@ -2365,6 +2377,8 @@ export type Database = {
           do_not_contact?: boolean | null
           doorloop_prospect_id?: string | null
           email?: string | null
+          email_marketing_consent?: boolean | null
+          email_marketing_consent_at?: string | null
           first_name?: string | null
           full_name?: string | null
           has_voucher?: boolean | null
@@ -2399,6 +2413,7 @@ export type Database = {
           source_detail?: string | null
           stage?: string
           status?: string
+          unsubscribed_at?: string | null
           updated_at?: string | null
           verification_completed_at?: string | null
           verification_provider?: string | null
@@ -2424,6 +2439,8 @@ export type Database = {
           do_not_contact?: boolean | null
           doorloop_prospect_id?: string | null
           email?: string | null
+          email_marketing_consent?: boolean | null
+          email_marketing_consent_at?: string | null
           first_name?: string | null
           full_name?: string | null
           has_voucher?: boolean | null
@@ -2458,6 +2475,7 @@ export type Database = {
           source_detail?: string | null
           stage?: string
           status?: string
+          unsubscribed_at?: string | null
           updated_at?: string | null
           verification_completed_at?: string | null
           verification_provider?: string | null
@@ -4829,12 +4847,14 @@ export type Database = {
       claim_queued_emails: {
         Args: { p_batch_size?: number; p_organization_id: string }
         Returns: {
+          attempt_number: number
           communication_id: string | null
           created_at: string | null
           details: Json | null
           event_type: string
           id: string
           lead_id: string | null
+          max_attempts: number
           organization_id: string | null
           recipient_email: string | null
           resend_email_id: string | null

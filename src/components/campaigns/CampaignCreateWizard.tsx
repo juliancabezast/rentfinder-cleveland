@@ -581,8 +581,8 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       }
       const campaignType =
         channel === "email" ? "email_blast" : channel === "sms" ? "sms_blast" : "multi_channel";
-      const { data: campaign, error: campErr } = await supabase
-        .from("campaigns")
+      const { data: campaign, error: campErr } = await (supabase
+        .from("campaigns") as any)
         .insert({
           organization_id: orgId,
           name: campaignName.trim(),
