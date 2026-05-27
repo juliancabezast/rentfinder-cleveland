@@ -23,6 +23,7 @@ import {
   Home,
   FileText,
   ChevronRight,
+  ChevronLeft,
   Building2,
   Phone,
   Sparkles,
@@ -75,12 +76,14 @@ function getPhotoUrl(property: Property, index = 0): string | null {
   return null;
 }
 
-/* ---- Photo carousel: swipeable inline gallery ---- */
+/* ---- Photo carousel: swipeable inline gallery with arrows ---- */
 const PhotoCarousel: React.FC<{
   photos: string[];
   alt: string;
-  aspectClass?: string;
-}> = ({ photos, alt, aspectClass = "aspect-[16/10]" }) => {
+  className?: string;
+  countPosition?: "top-left" | "bottom-left";
+  arrowSize?: "sm" | "md";
+}> = ({ photos, alt, className = "aspect-square", countPosition = "top-left", arrowSize = "md" }) => {
   const [current, setCurrent] = React.useState(0);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const total = photos.length;
@@ -91,29 +94,46 @@ const PhotoCarousel: React.FC<{
     if (idx !== current && idx >= 0 && idx < total) setCurrent(idx);
   };
 
-  const goTo = (e: React.MouseEvent, idx: number) => {
-    e.stopPropagation();
+  const goToIdx = (idx: number) => {
     const el = scrollRef.current;
-    if (el) el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
+    if (!el) return;
+    const clamped = Math.max(0, Math.min(total - 1, idx));
+    el.scrollTo({ left: clamped * el.clientWidth, behavior: "smooth" });
+  };
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    goToIdx(current - 1);
+  };
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    goToIdx(current + 1);
   };
 
   if (total === 0) {
     return (
-      <div className={`${aspectClass} w-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center`}>
-        <Home className="h-12 w-12 text-slate-400" />
+      <div className={`${className} bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center`}>
+        <Home className="h-8 w-8 text-slate-400" />
       </div>
     );
   }
 
+  const arrowBtn =
+    arrowSize === "sm"
+      ? "h-6 w-6 rounded-full"
+      : "h-7 w-7 rounded-full";
+  const arrowIcon = arrowSize === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
+
   return (
-    <div className={`relative ${aspectClass} w-full overflow-hidden bg-muted`}>
+    <div className={`relative overflow-hidden bg-muted ${className}`}>
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory"
+        className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        <style>{`.photo-carousel-scroll::-webkit-scrollbar{display:none}`}</style>
         {photos.map((url, i) => (
           <img
             key={url + i}
@@ -126,34 +146,40 @@ const PhotoCarousel: React.FC<{
         ))}
       </div>
 
-      {/* Photo count badge (top-left) */}
+      {/* Photo count badge */}
       {total > 1 && (
-        <div className="absolute top-2 left-2 bg-black/65 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 pointer-events-none">
-          <Camera className="h-3 w-3" />
+        <div
+          className={`absolute ${
+            countPosition === "top-left" ? "top-1.5 left-1.5" : "bottom-1.5 left-1.5"
+          } bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 pointer-events-none`}
+        >
+          <Camera className="h-2.5 w-2.5" />
           {total} PHOTOS
         </div>
       )}
 
-      {/* Position badge (top-right) */}
-      {total > 1 && (
-        <div className="absolute top-2 right-2 bg-black/65 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-md pointer-events-none">
-          {current + 1} / {total}
-        </div>
+      {/* Prev arrow */}
+      {total > 1 && current > 0 && (
+        <button
+          type="button"
+          onClick={handlePrev}
+          aria-label="Previous photo"
+          className={`absolute top-1/2 left-1.5 -translate-y-1/2 ${arrowBtn} bg-black/55 hover:bg-black/75 text-white flex items-center justify-center shadow-md transition-all`}
+        >
+          <ChevronLeft className={arrowIcon} />
+        </button>
       )}
 
-      {/* Dot indicators (bottom) — only when small set */}
-      {total > 1 && total <= 10 && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-none">
-          {photos.map((_, i) => (
-            <div
-              key={i}
-              onClick={(e) => goTo(e, i)}
-              className={`h-1.5 rounded-full transition-all pointer-events-auto cursor-pointer ${
-                i === current ? "bg-white w-5" : "bg-white/60 w-1.5"
-              }`}
-            />
-          ))}
-        </div>
+      {/* Next arrow */}
+      {total > 1 && current < total - 1 && (
+        <button
+          type="button"
+          onClick={handleNext}
+          aria-label="Next photo"
+          className={`absolute top-1/2 right-1.5 -translate-y-1/2 ${arrowBtn} bg-black/55 hover:bg-black/75 text-white flex items-center justify-center shadow-md transition-all`}
+        >
+          <ChevronRight className={arrowIcon} />
+        </button>
       )}
     </div>
   );
@@ -214,86 +240,76 @@ const BuildingSelectCard: React.FC<{
   const spots = building.spotsNextDay;
   const isScarce = spots > 0 && spots <= 3;
 
-  // Single-unit info to display (only when there's exactly one unit)
-  const specs: { value: number | string; label: string }[] = [];
+  const specs: string[] = [];
   if (!isMulti && firstUnit) {
-    if (firstUnit.bedrooms != null) specs.push({ value: firstUnit.bedrooms, label: "BR" });
-    if (firstUnit.bathrooms != null) specs.push({ value: firstUnit.bathrooms, label: "BA" });
-    if (firstUnit.square_feet) specs.push({ value: firstUnit.square_feet.toLocaleString(), label: "SF" });
+    if (firstUnit.bedrooms != null) specs.push(`${firstUnit.bedrooms} BR`);
+    if (firstUnit.bathrooms != null) specs.push(`${firstUnit.bathrooms} BA`);
+    if (firstUnit.square_feet) specs.push(`${firstUnit.square_feet.toLocaleString()} SF`);
+  } else if (isMulti) {
+    specs.push(`${building.units.length} units`);
   }
 
   return (
-    <div className="rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <PhotoCarousel photos={photos} alt={building.address} />
+    <div className="rounded-xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex gap-3 p-3">
+        {/* Photo (left, compact) */}
+        <PhotoCarousel
+          photos={photos}
+          alt={building.address}
+          className="h-28 w-28 sm:h-32 sm:w-32 rounded-lg shrink-0"
+          arrowSize="sm"
+        />
 
-      <div className="p-4 space-y-3">
-        {/* Price + specs */}
-        <div className="flex items-baseline justify-between gap-3 flex-wrap">
-          {rentLabel && (
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-extrabold text-slate-900">{rentLabel}</span>
-              <span className="text-xs font-medium text-muted-foreground">/mo</span>
-            </div>
-          )}
-          {specs.length > 0 && (
-            <div className="flex items-center gap-2 text-sm text-slate-700">
-              {specs.map((s, i) => (
-                <React.Fragment key={s.label}>
-                  {i > 0 && <span className="text-slate-300">|</span>}
-                  <span>
-                    <strong className="font-bold">{s.value}</strong>
-                    <span className="ml-1 text-slate-500">{s.label}</span>
-                  </span>
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Title + address */}
-        <div>
-          <h3 className="font-bold text-base text-slate-900 leading-tight">
-            {building.address}
-            {isMulti && (
-              <span className="text-sm font-medium text-muted-foreground ml-1.5">
-                · {building.units.length} units
-              </span>
+        {/* Info (right) */}
+        <div className="flex-1 min-w-0 flex flex-col justify-between">
+          <div className="space-y-0.5">
+            {rentLabel && (
+              <div className="flex items-baseline gap-1 leading-none">
+                <span className="text-lg font-extrabold text-slate-900">{rentLabel}</span>
+                <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
+              </div>
             )}
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-            <MapPin className="h-3 w-3 shrink-0" />
-            {building.city}, {building.state} {building.zip_code}
-          </p>
-        </div>
+            {specs.length > 0 && (
+              <p className="text-xs text-slate-600 truncate">{specs.join(" · ")}</p>
+            )}
+            <p className="font-semibold text-sm text-slate-900 truncate leading-tight">
+              {building.address}
+            </p>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-0.5 truncate">
+              <MapPin className="h-2.5 w-2.5 shrink-0" />
+              {building.city}, {building.state}
+            </p>
+          </div>
 
-        {/* Availability info */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {isScarce ? (
-            <Badge variant="outline" className="text-[11px] h-6 text-orange-700 border-orange-300 bg-orange-50">
-              Only {spots} slot{spots > 1 ? "s" : ""} left {dateLabel.toLowerCase()}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-[11px] h-6 text-emerald-700 border-emerald-300 bg-emerald-50">
-              Available {dateLabel.toLowerCase()} · {timeLabel}
-            </Badge>
-          )}
-          {!isMulti && firstUnit?.section_8_accepted && (
-            <Badge className="text-[11px] h-6 bg-blue-100 text-blue-700 border-0">
-              Section 8
-            </Badge>
-          )}
+          {/* Availability + Section 8 */}
+          <div className="flex flex-wrap items-center gap-1 mt-1">
+            {isScarce ? (
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5 text-orange-700 border-orange-300 bg-orange-50">
+                Only {spots} left {dateLabel.toLowerCase()}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5 text-emerald-700 border-emerald-300 bg-emerald-50">
+                {dateLabel} · {timeLabel}
+              </Badge>
+            )}
+            {!isMulti && firstUnit?.section_8_accepted && (
+              <Badge className="text-[10px] h-5 px-1.5 bg-blue-100 text-blue-700 border-0">
+                Sec 8
+              </Badge>
+            )}
+          </div>
         </div>
-
-        {/* CTA */}
-        <Button
-          onClick={onClick}
-          className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20"
-        >
-          <CalendarDays className="h-4 w-4 mr-2" />
-          {isMulti ? "View Units" : "Schedule a Showing"}
-          <ChevronRight className="h-4 w-4 ml-auto" />
-        </Button>
       </div>
+
+      {/* CTA — full width below */}
+      <Button
+        onClick={onClick}
+        className="w-full h-10 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+      >
+        <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+        {isMulti ? "View Units" : "Schedule a Showing"}
+        <ChevronRight className="h-3.5 w-3.5 ml-auto" />
+      </Button>
     </div>
   );
 };
@@ -304,56 +320,50 @@ const UnitSelectCard: React.FC<{
 }> = ({ property, onClick }) => {
   const photos = getAllPhotoUrls(property);
 
-  const specs: { value: number | string; label: string }[] = [];
-  if (property.bedrooms != null) specs.push({ value: property.bedrooms, label: "BR" });
-  if (property.bathrooms != null) specs.push({ value: property.bathrooms, label: "BA" });
-  if (property.square_feet) specs.push({ value: property.square_feet.toLocaleString(), label: "SF" });
+  const specs: string[] = [];
+  if (property.bedrooms != null) specs.push(`${property.bedrooms} BR`);
+  if (property.bathrooms != null) specs.push(`${property.bathrooms} BA`);
+  if (property.square_feet) specs.push(`${property.square_feet.toLocaleString()} SF`);
 
   return (
-    <div className="rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <PhotoCarousel photos={photos} alt={property.unit_number || property.address} aspectClass="aspect-[16/9]" />
+    <div className="rounded-xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex gap-3 p-3">
+        <PhotoCarousel
+          photos={photos}
+          alt={property.unit_number || property.address}
+          className="h-24 w-24 sm:h-28 sm:w-28 rounded-lg shrink-0"
+          arrowSize="sm"
+        />
 
-      <div className="p-4 space-y-3">
-        <div className="flex items-baseline justify-between gap-3 flex-wrap">
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-extrabold text-slate-900">
-              ${property.rent_price?.toLocaleString()}
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">/mo</span>
-          </div>
-          {specs.length > 0 && (
-            <div className="flex items-center gap-2 text-sm text-slate-700">
-              {specs.map((s, i) => (
-                <React.Fragment key={s.label}>
-                  {i > 0 && <span className="text-slate-300">|</span>}
-                  <span>
-                    <strong className="font-bold">{s.value}</strong>
-                    <span className="ml-1 text-slate-500">{s.label}</span>
-                  </span>
-                </React.Fragment>
-              ))}
+        <div className="flex-1 min-w-0 flex flex-col justify-between">
+          <div className="space-y-0.5">
+            <div className="flex items-baseline gap-1 leading-none">
+              <span className="text-lg font-extrabold text-slate-900">
+                ${property.rent_price?.toLocaleString()}
+              </span>
+              <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
             </div>
-          )}
+            {specs.length > 0 && (
+              <p className="text-xs text-slate-600 truncate">{specs.join(" · ")}</p>
+            )}
+            <p className="font-semibold text-sm text-slate-900 truncate">
+              {property.unit_number ? `Unit ${property.unit_number}` : "Main Unit"}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {property.available_slot_count} {property.available_slot_count === 1 ? "slot" : "slots"} available
+            </p>
+          </div>
         </div>
-
-        <div>
-          <h4 className="font-bold text-base text-slate-900">
-            {property.unit_number ? `Unit ${property.unit_number}` : "Main Unit"}
-          </h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {property.available_slot_count} {property.available_slot_count === 1 ? "slot" : "slots"} available
-          </p>
-        </div>
-
-        <Button
-          onClick={onClick}
-          className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20"
-        >
-          <CalendarDays className="h-4 w-4 mr-2" />
-          Schedule a Showing
-          <ChevronRight className="h-4 w-4 ml-auto" />
-        </Button>
       </div>
+
+      <Button
+        onClick={onClick}
+        className="w-full h-10 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+      >
+        <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+        Schedule a Showing
+        <ChevronRight className="h-3.5 w-3.5 ml-auto" />
+      </Button>
     </div>
   );
 };
@@ -957,74 +967,73 @@ const ScheduleShowing: React.FC = () => {
 
       <div className="max-w-[640px] mx-auto px-4 -mt-5 space-y-6 relative z-10">
 
-        {/* Featured Property Card */}
+        {/* Featured Property Card — compact horizontal */}
         {isMultiMode && !property && !selectedBuilding && featuredProperty && (() => {
           const fp = featuredProperty;
           const fpPhotos = getAllPhotoUrls(fp);
-          const specs: { value: number | string; label: string }[] = [];
-          if (fp.bedrooms != null) specs.push({ value: fp.bedrooms, label: "BR" });
-          if (fp.bathrooms != null) specs.push({ value: fp.bathrooms, label: "BA" });
-          if (fp.square_feet) specs.push({ value: fp.square_feet.toLocaleString(), label: "SF" });
+          const specs: string[] = [];
+          if (fp.bedrooms != null) specs.push(`${fp.bedrooms} BR`);
+          if (fp.bathrooms != null) specs.push(`${fp.bathrooms} BA`);
+          if (fp.square_feet) specs.push(`${fp.square_feet.toLocaleString()} SF`);
           return (
-            <Card className="shadow-lg border-0 overflow-hidden relative">
-              <div className="relative">
-                <PhotoCarousel photos={fpPhotos} alt={fp.address} aspectClass="aspect-[16/10]" />
-                <div className="absolute top-3 left-3 z-10 pointer-events-none">
-                  <Badge className="bg-amber-500 text-white text-[10px] font-bold gap-1 shadow-md">
-                    <Sparkles className="h-3 w-3" />
-                    Featured
-                  </Badge>
+            <div className="rounded-xl border-2 border-amber-300 bg-white overflow-hidden shadow-md relative">
+              {/* Featured ribbon */}
+              <div className="absolute top-2 right-2 z-10 pointer-events-none">
+                <Badge className="bg-amber-500 text-white text-[10px] font-bold gap-1 shadow-md">
+                  <Sparkles className="h-3 w-3" />
+                  Featured
+                </Badge>
+              </div>
+
+              <div className="flex gap-3 p-3">
+                <PhotoCarousel
+                  photos={fpPhotos}
+                  alt={fp.address}
+                  className="h-28 w-28 sm:h-32 sm:w-32 rounded-lg shrink-0"
+                  arrowSize="sm"
+                />
+
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div className="space-y-0.5 pr-16">
+                    {fp.rent_price != null && (
+                      <div className="flex items-baseline gap-1 leading-none">
+                        <span className="text-lg font-extrabold text-slate-900">
+                          ${fp.rent_price.toLocaleString()}
+                        </span>
+                        <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
+                      </div>
+                    )}
+                    {specs.length > 0 && (
+                      <p className="text-xs text-slate-600 truncate">{specs.join(" · ")}</p>
+                    )}
+                    <p className="font-semibold text-sm text-slate-900 truncate leading-tight">
+                      {fp.address}{fp.unit_number ? ` #${fp.unit_number}` : ""}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-0.5 truncate">
+                      <MapPin className="h-2.5 w-2.5 shrink-0" />
+                      {[fp.city, fp.state].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+
+                  {fp.section_8_accepted && (
+                    <div className="mt-1">
+                      <Badge className="text-[10px] h-5 px-1.5 bg-blue-100 text-blue-700 border-0">
+                        Section 8
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </div>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                  {fp.rent_price != null && (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-extrabold text-slate-900">
-                        ${fp.rent_price.toLocaleString()}
-                      </span>
-                      <span className="text-xs font-medium text-muted-foreground">/mo</span>
-                    </div>
-                  )}
-                  {specs.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-slate-700">
-                      {specs.map((s, i) => (
-                        <React.Fragment key={s.label}>
-                          {i > 0 && <span className="text-slate-300">|</span>}
-                          <span>
-                            <strong className="font-bold">{s.value}</strong>
-                            <span className="ml-1 text-slate-500">{s.label}</span>
-                          </span>
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  )}
-                </div>
 
-                <div>
-                  <h3 className="font-bold text-base text-slate-900 leading-tight">
-                    {fp.address}{fp.unit_number ? ` #${fp.unit_number}` : ""}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                    <MapPin className="h-3 w-3 shrink-0" />
-                    {[fp.city, fp.state, fp.zip_code].filter(Boolean).join(", ")}
-                  </p>
-                </div>
-
-                {fp.section_8_accepted && (
-                  <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[11px] h-6">Section 8</Badge>
-                )}
-
-                <Button
-                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20"
-                  onClick={() => setSelectedPropertyId(fp.id)}
-                >
-                  <CalendarDays className="h-4 w-4 mr-2" />
-                  Schedule a Showing
-                  <ChevronRight className="h-4 w-4 ml-auto" />
-                </Button>
-              </CardContent>
-            </Card>
+              <Button
+                className="w-full h-10 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                onClick={() => setSelectedPropertyId(fp.id)}
+              >
+                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+                Schedule a Showing
+                <ChevronRight className="h-3.5 w-3.5 ml-auto" />
+              </Button>
+            </div>
           );
         })()}
 
@@ -1186,66 +1195,52 @@ const ScheduleShowing: React.FC = () => {
           </div>
         )}
 
-        {/* Property Card — single shared design for multi-mode and direct URL */}
+        {/* Property Card — compact horizontal, same for multi-mode and direct URL */}
         {property && (
-          <Card className="overflow-hidden">
-            <PhotoCarousel photos={allPhotos} alt={property.address} aspectClass="aspect-[16/10]" />
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-extrabold text-slate-900">
-                    ${property.rent_price?.toLocaleString()}
-                  </span>
-                  <span className="text-xs font-medium text-muted-foreground">/mo</span>
+          <div className="rounded-xl border bg-white overflow-hidden shadow-sm">
+            <div className="flex gap-3 p-3">
+              <PhotoCarousel
+                photos={allPhotos}
+                alt={property.address}
+                className="h-24 w-24 sm:h-28 sm:w-28 rounded-lg shrink-0"
+                arrowSize="sm"
+              />
+
+              <div className="flex-1 min-w-0 flex flex-col justify-between">
+                <div className="space-y-0.5">
+                  <div className="flex items-baseline gap-1 leading-none">
+                    <span className="text-lg font-extrabold text-slate-900">
+                      ${property.rent_price?.toLocaleString()}
+                    </span>
+                    <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
+                  </div>
+                  <p className="text-xs text-slate-600 truncate">
+                    {property.bedrooms} BR · {property.bathrooms} BA
+                    {property.square_feet ? ` · ${property.square_feet.toLocaleString()} SF` : ""}
+                  </p>
+                  <p className="font-semibold text-sm text-slate-900 truncate leading-tight">
+                    {property.address}
+                    {property.unit_number && `, Unit ${property.unit_number}`}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-0.5 truncate">
+                    <MapPin className="h-2.5 w-2.5 shrink-0" />
+                    {property.city}, {property.state}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-700">
-                  <span><strong className="font-bold">{property.bedrooms}</strong> <span className="text-slate-500">BR</span></span>
-                  <span className="text-slate-300">|</span>
-                  <span><strong className="font-bold">{property.bathrooms}</strong> <span className="text-slate-500">BA</span></span>
-                  {property.square_feet && (
-                    <>
-                      <span className="text-slate-300">|</span>
-                      <span><strong className="font-bold">{property.square_feet.toLocaleString()}</strong> <span className="text-slate-500">SF</span></span>
-                    </>
-                  )}
-                </div>
+
+                {isMultiMode && !booked && (
+                  <button
+                    type="button"
+                    onClick={handleChangeProperty}
+                    className="text-[11px] text-[#4F46E5] hover:underline self-start mt-1 flex items-center gap-0.5"
+                  >
+                    <ArrowLeft className="h-2.5 w-2.5" />
+                    Change
+                  </button>
+                )}
               </div>
-
-              <div>
-                <h2 className="text-base font-bold text-slate-900 leading-tight">
-                  {property.address}
-                  {property.unit_number && `, Unit ${property.unit_number}`}
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  {property.city}, {property.state} {property.zip_code}
-                </p>
-              </div>
-
-              {(property.section_8_accepted || property.pet_policy) && (
-                <div className="flex flex-wrap gap-1.5">
-                  {property.section_8_accepted && (
-                    <Badge className="text-[11px] h-6 bg-blue-100 text-blue-700 border-0">Section 8</Badge>
-                  )}
-                  {property.pet_policy && (
-                    <Badge variant="outline" className="text-[11px] h-6 capitalize">{property.pet_policy}</Badge>
-                  )}
-                </div>
-              )}
-
-              {isMultiMode && !booked && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-muted-foreground -ml-2"
-                  onClick={handleChangeProperty}
-                >
-                  <ArrowLeft className="h-3 w-3 mr-1" />
-                  Change property
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Success screen */}
