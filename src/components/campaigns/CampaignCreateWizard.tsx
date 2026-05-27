@@ -369,7 +369,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       let emailConfig: EmailTemplateConfig = DEFAULT_CONFIGS[templateType];
       if (templateSetting?.value) {
         try {
-          const parsed = JSON.parse(templateSetting.value);
+          const parsed = JSON.parse(templateSetting.value as string);
           if (parsed[templateType]) emailConfig = parsed[templateType];
         } catch (_) { /* use default */ }
       }
