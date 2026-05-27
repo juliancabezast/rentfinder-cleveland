@@ -44,6 +44,7 @@ interface Campaign {
   leads_with_email: number;
   emails_queued: number;
   created_at: string;
+  started_at: string | null;
   completed_at: string | null;
   properties: { address: string; unit_number: string | null; city: string | null } | null;
 }
@@ -67,7 +68,7 @@ const CampaignsPage = () => {
         .from("campaigns")
         .select(`
           id, name, property_id, status, total_leads, leads_with_email,
-          emails_queued, created_at, completed_at,
+          emails_queued, created_at, started_at, completed_at,
           properties:property_id (address, unit_number, city)
         `)
         .eq("organization_id", orgId)
@@ -119,7 +120,10 @@ const CampaignsPage = () => {
           // else: still queued/processing — don't count as delivered
         }
 
-        // Showings count
+        // Showings attributable to this campaign — only count showings
+        // CREATED AFTER the campaign launched, otherwise we'd be counting
+        // every showing that lead has ever had (including ones from before
+        // the campaign was sent).
         const { data: cl } = await supabase
           .from("campaign_leads")
           .select("lead_id")
@@ -127,11 +131,13 @@ const CampaignsPage = () => {
         let showings = 0;
         if (cl && cl.length > 0) {
           const leadIds = cl.map((r) => r.lead_id);
+          const startedAt = c.started_at || c.created_at;
           const { count } = await supabase
             .from("showings")
             .select("id", { count: "exact", head: true })
             .eq("organization_id", orgId)
-            .in("lead_id", leadIds);
+            .in("lead_id", leadIds)
+            .gte("created_at", startedAt);
           showings = count || 0;
         }
 

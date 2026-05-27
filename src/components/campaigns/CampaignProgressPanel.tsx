@@ -162,12 +162,22 @@ export const CampaignProgressPanel = ({
     refetchInterval: 5_000,
   });
 
-  // Fetch showings count for campaign leads
+  // Fetch showings count for campaign leads — only count showings created
+  // AFTER the campaign started, otherwise pre-existing showings would
+  // falsely inflate the campaign's apparent conversion.
   const { data: showingsCount } = useQuery({
     queryKey: showingsKey,
     queryFn: async () => {
       if (!orgId) return 0;
-      // Get lead IDs for this campaign
+      // Need the campaign's start time to scope showings
+      const { data: campRow } = await supabase
+        .from("campaigns")
+        .select("started_at, created_at")
+        .eq("id", campaignId)
+        .maybeSingle();
+      const startedAt = (campRow?.started_at as string | null) || (campRow?.created_at as string | null);
+      if (!startedAt) return 0;
+
       const { data: cl } = await supabase
         .from("campaign_leads")
         .select("lead_id")
@@ -178,7 +188,8 @@ export const CampaignProgressPanel = ({
         .from("showings")
         .select("id", { count: "exact", head: true })
         .eq("organization_id", orgId)
-        .in("lead_id", leadIds);
+        .in("lead_id", leadIds)
+        .gte("created_at", startedAt);
       return count || 0;
     },
     enabled: !!orgId && !!campaignId,

@@ -592,6 +592,10 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         campaign_type: campaignType,
         target_criteria: targetCriteria,
         status: "in_progress",
+        // Stamp the launch moment so we can scope conversion metrics
+        // (showings booked AFTER this point) — without this, the dashboard
+        // would count every pre-existing showing as campaign-attributable.
+        started_at: new Date().toISOString(),
         total_leads: mappedLeads.length,
         leads_with_email: leadsWithEmail.length,
         emails_queued: 0,
