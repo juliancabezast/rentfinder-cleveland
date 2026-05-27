@@ -102,7 +102,10 @@
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_76dafac83af6242b4d8c91dcabb85c592c31e404 npx supabase functions deploy fetch-twilio-messages --no-verify-jwt --project-ref glzzzthgotfwoiaranmp 2>&1)",
       "Bash(kill bqnepx0da *)",
       "Bash(pkill -f \"vite --port 5173\")",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(env)",
+      "Read(//Users/julian/**)",
+      "Read(//Users/julian/.supabase/**)"
     ]
   }
 }

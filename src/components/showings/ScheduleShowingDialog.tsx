@@ -467,102 +467,116 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         }
       }
 
+      // ── SIDE EFFECTS (showing is already saved; don't fail the booking) ──
+      // Each side effect runs in its own try/catch so a single failure
+      // (RLS, constraint, etc.) doesn't surface to the user as "Failed to
+      // schedule showing" when the showing actually got created.
+
+      const showingDate = new Date(scheduledAt);
+      const propertyAddr = selectedProperty ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ''}` : "Property";
+      const lead = leads.find((l) => l.id === selectedLeadId);
+
       // Update lead status + boost score +30
-      const { data: currentLead } = await supabase
-        .from("leads")
-        .select("lead_score")
-        .eq("id", selectedLeadId)
-        .single();
+      try {
+        const { data: currentLead } = await supabase
+          .from("leads")
+          .select("lead_score")
+          .eq("id", selectedLeadId)
+          .single();
 
-      const previousScore = currentLead?.lead_score ?? 50;
-      const newScore = Math.min(previousScore + 30, 100);
+        const previousScore = currentLead?.lead_score ?? 50;
+        const newScore = Math.min(previousScore + 30, 100);
 
-      await supabase
-        .from("leads")
-        .update({
-          status: "showing_scheduled",
-          lead_score: newScore,
-          is_priority: true,
-          priority_reason: "Showing requested (+30 pts)",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", selectedLeadId);
+        await supabase
+          .from("leads")
+          .update({
+            status: "showing_scheduled",
+            lead_score: newScore,
+            is_priority: true,
+            priority_reason: "Showing requested (+30 pts)",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", selectedLeadId);
 
-      await supabase.from("lead_score_history").insert({
-        lead_id: selectedLeadId,
-        organization_id: userRecord.organization_id,
-        previous_score: previousScore,
-        new_score: newScore,
-        change_amount: 30,
-        reason_code: "showing_requested",
-        reason_text: "Showing scheduled — automatic Hot Lead boost",
-        triggered_by: "engagement",
-        related_showing_id: showingData.id,
-        changed_by_user_id: userRecord.id,
-      });
+        await supabase.from("lead_score_history").insert({
+          lead_id: selectedLeadId,
+          organization_id: userRecord.organization_id,
+          previous_score: previousScore,
+          new_score: newScore,
+          change_amount: 30,
+          reason_code: "showing_requested",
+          reason_text: "Showing scheduled — automatic Hot Lead boost",
+          triggered_by: "engagement",
+          related_showing_id: showingData.id,
+          changed_by_user_id: userRecord.id,
+        });
+      } catch (scoreErr) {
+        console.error("Lead score update failed (showing still created):", scoreErr);
+      }
 
       // Schedule Samuel confirmation task (24h before) — uses email since voice/SMS not configured
-      const showingDate = new Date(scheduledAt);
-      const confirmationTime = new Date(showingDate.getTime() - 24 * 60 * 60 * 1000);
-      const propertyAddr = selectedProperty ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ''}` : "Property";
+      try {
+        const confirmationTime = new Date(showingDate.getTime() - 24 * 60 * 60 * 1000);
 
-      await supabase.from("agent_tasks").insert({
-        organization_id: userRecord.organization_id,
-        lead_id: selectedLeadId,
-        agent_type: "showing_confirmation",
-        action_type: "email",
-        scheduled_for: confirmationTime.toISOString(),
-        max_attempts: 2,
-        status: "pending",
-        context: {
-          showing_id: showingData.id,
-          property_id: selectedPropertyId,
-          property_address: propertyAddr,
-          scheduled_at: scheduledAt,
-          source: "admin_manual",
-        },
-      });
+        await supabase.from("agent_tasks").insert({
+          organization_id: userRecord.organization_id,
+          lead_id: selectedLeadId,
+          agent_type: "showing_confirmation",
+          action_type: "email",
+          scheduled_for: confirmationTime.toISOString(),
+          max_attempts: 2,
+          status: "pending",
+          context: {
+            showing_id: showingData.id,
+            property_id: selectedPropertyId,
+            property_address: propertyAddr,
+            scheduled_at: scheduledAt,
+            source: "admin_manual",
+          },
+        });
 
-      // Schedule no-show follow-up (1 hour after showing) — email
-      const noShowTime = new Date(showingDate.getTime() + 60 * 60 * 1000);
-      await supabase.from("agent_tasks").insert({
-        organization_id: userRecord.organization_id,
-        lead_id: selectedLeadId,
-        agent_type: "no_show_followup",
-        action_type: "email",
-        scheduled_for: noShowTime.toISOString(),
-        max_attempts: 1,
-        status: "pending",
-        context: {
-          showing_id: showingData.id,
-          property_id: selectedPropertyId,
-          property_address: propertyAddr,
-          scheduled_at: scheduledAt,
-          source: "admin_manual",
-        },
-      });
+        // Schedule no-show follow-up (1 hour after showing) — email
+        const noShowTime = new Date(showingDate.getTime() + 60 * 60 * 1000);
+        await supabase.from("agent_tasks").insert({
+          organization_id: userRecord.organization_id,
+          lead_id: selectedLeadId,
+          agent_type: "no_show_followup",
+          action_type: "email",
+          scheduled_for: noShowTime.toISOString(),
+          max_attempts: 1,
+          status: "pending",
+          context: {
+            showing_id: showingData.id,
+            property_id: selectedPropertyId,
+            property_address: propertyAddr,
+            scheduled_at: scheduledAt,
+            source: "admin_manual",
+          },
+        });
 
-      // Schedule post-showing follow-up (24h after showing)
-      const postShowingTime = new Date(showingDate.getTime() + 24 * 60 * 60 * 1000);
-      await supabase.from("agent_tasks").insert({
-        organization_id: userRecord.organization_id,
-        lead_id: selectedLeadId,
-        agent_type: "post_showing",
-        action_type: "email",
-        scheduled_for: postShowingTime.toISOString(),
-        max_attempts: 1,
-        status: "pending",
-        context: {
-          showing_id: showingData.id,
-          property_id: selectedPropertyId,
-          property_address: propertyAddr,
-          scheduled_at: scheduledAt,
-          source: "admin_manual",
-        },
-      });
+        // Schedule post-showing follow-up (24h after showing)
+        const postShowingTime = new Date(showingDate.getTime() + 24 * 60 * 60 * 1000);
+        await supabase.from("agent_tasks").insert({
+          organization_id: userRecord.organization_id,
+          lead_id: selectedLeadId,
+          agent_type: "post_showing",
+          action_type: "email",
+          scheduled_for: postShowingTime.toISOString(),
+          max_attempts: 1,
+          status: "pending",
+          context: {
+            showing_id: showingData.id,
+            property_id: selectedPropertyId,
+            property_address: propertyAddr,
+            scheduled_at: scheduledAt,
+            source: "admin_manual",
+          },
+        });
+      } catch (tasksErr) {
+        console.error("Follow-up tasks scheduling failed (showing still created):", tasksErr);
+      }
 
       // Send immediate confirmation email to lead (if they have email)
-      const lead = leads.find((l) => l.id === selectedLeadId);
       if (lead?.email) {
         try {
           // Try to use custom template, fall back to default
@@ -612,24 +626,28 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       }
 
       // System log
-      await supabase.from("system_logs").insert({
-        organization_id: userRecord.organization_id,
-        level: "info",
-        category: "general",
-        event_type: "admin_showing_scheduled",
-        message: `Showing scheduled by admin: ${propertyAddr} on ${dateStr} at ${formatTimeDisplay(slotTime)}`,
-        details: {
-          showing_id: showingData.id,
-          lead_id: selectedLeadId,
-          property_id: selectedPropertyId,
-          scheduled_by: userRecord.id,
-          source: "admin_manual",
-          slot_id: slot.id,
-          email_sent: !!lead?.email,
-        },
-        related_lead_id: selectedLeadId,
-        related_showing_id: showingData.id,
-      });
+      try {
+        await supabase.from("system_logs").insert({
+          organization_id: userRecord.organization_id,
+          level: "info",
+          category: "general",
+          event_type: "admin_showing_scheduled",
+          message: `Showing scheduled by admin: ${propertyAddr} on ${dateStr} at ${formatTimeDisplay(slotTime)}`,
+          details: {
+            showing_id: showingData.id,
+            lead_id: selectedLeadId,
+            property_id: selectedPropertyId,
+            scheduled_by: userRecord.id,
+            source: "admin_manual",
+            slot_id: slot.id,
+            email_sent: !!lead?.email,
+          },
+          related_lead_id: selectedLeadId,
+          related_showing_id: showingData.id,
+        });
+      } catch (logErr) {
+        console.error("System log insert failed (showing still created):", logErr);
+      }
 
       // ── Telegram notification ──────────────────────────────────────
       try {
@@ -695,9 +713,10 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       resetForm();
       onOpenChange(false);
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error scheduling showing:", error);
-      toast.error("Failed to schedule showing");
+      const detail = error?.message || error?.error?.message || error?.hint || "Unknown error";
+      toast.error(`Failed to schedule showing: ${detail}`);
     } finally {
       setSubmitting(false);
     }
