@@ -602,8 +602,8 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         sms_template: sendsSms ? smsBody : null,
         created_by: userRecord?.id || null,
       };
-      let { data: campaign, error: campErr } = await supabase
-        .from("campaigns")
+      let { data: campaign, error: campErr } = await (supabase
+        .from("campaigns") as any)
         .insert({ ...baseInsert, send_delay_seconds: sendDelaySeconds })
         .select("id")
         .single();
@@ -614,8 +614,8 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         // Persist the delay inside target_criteria so process-email-queue
         // can still read it (it already reads from campaigns.send_delay_seconds
         // OR target_criteria.send_delay_seconds as fallback).
-        const retry = await supabase
-          .from("campaigns")
+        const retry = await (supabase
+          .from("campaigns") as any)
           .insert({
             ...baseInsert,
             target_criteria: { ...targetCriteria, send_delay_seconds: sendDelaySeconds },
@@ -625,6 +625,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         campaign = retry.data;
         campErr = retry.error;
       }
+
 
       if (campErr || !campaign) throw campErr || new Error("Failed to create campaign");
       const newCampaignId = campaign.id;
@@ -833,9 +834,10 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
           // Each row is ~50KB (rendered HTML) → 100 rows ≈ 5MB per request.
           for (let i = 0; i < emailEventRows.length; i += 100) {
             const chunk = emailEventRows.slice(i, i + 100);
-            const { error: emailErr } = await supabase
-              .from("email_events")
+            const { error: emailErr } = await (supabase
+              .from("email_events") as any)
               .insert(chunk);
+
             if (emailErr) {
               console.error(`Email queue chunk ${i}-${i + chunk.length} failed:`, emailErr.message);
             } else {
