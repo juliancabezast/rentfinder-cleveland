@@ -284,7 +284,7 @@ function escapeHtml(str: string): string {
 
 function interpolate(text: string, vars: Record<string, string>): string {
   return Object.entries(vars).reduce(
-    (result, [key, value]) => result.split(key, escapeHtml(value)),
+    (result, [key, value]) => result.split(key).join(escapeHtml(value)),
     text
   );
 }
