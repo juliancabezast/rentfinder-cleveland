@@ -311,7 +311,7 @@ export async function sendLeadShowingEmail(params: {
 
   // Interpolate the subject line
   const subject = Object.entries(variables).reduce(
-    (s, [k, v]) => s.replaceAll(k, v),
+    (s, [k, v]) => s.split(k).join(v),
     config.subject
   );
 

@@ -34,7 +34,7 @@ export function logError(context: ErrorContext, error: unknown, additionalInfo?:
     // Send to server-side system_logs table
     logSystemEvent({
       level: 'error',
-      category: 'system',
+      category: 'general',
       event_type: `frontend_error_${context.toLowerCase().replace(/\s+/g, '_')}`,
       message: error instanceof Error ? error.message : String(error),
       details: {

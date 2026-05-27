@@ -69,6 +69,7 @@ interface LeadDetailHeaderProps {
     has_voucher?: boolean | null;
     voucher_amount?: number | null;
     housing_authority?: string | null;
+    interested_property_id?: string | null;
   };
   property?: Property | null;
   permissions: {
@@ -163,7 +164,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   >([]);
   // All properties this lead is interested in (from lead_property_interests junction)
   const [additionalProperties, setAdditionalProperties] = useState<
-    { property_id: string; address: string; unit_number: string | null }[]
+    { property_id: string; address: string; unit_number: string | null; listing_source?: string | null }[]
   >([]);
 
   // Fetch property interests from junction table

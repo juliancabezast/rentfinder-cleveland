@@ -187,14 +187,14 @@ export const LandingPageTab: React.FC = () => {
         const merged = { ...savedCovers, ...selections };
         await updateSetting(
           "city_cover_images",
-          merged as unknown as Record<string, unknown>,
+          merged as any,
           "showings"
         );
       }
       if (featuredDirty) {
         await updateSetting(
           "featured_property_id",
-          (pendingFeaturedId ?? "") as unknown as Record<string, unknown>,
+          (pendingFeaturedId ?? "") as any,
           "showings"
         );
       }

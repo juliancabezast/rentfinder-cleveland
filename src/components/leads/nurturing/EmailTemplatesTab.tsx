@@ -213,8 +213,8 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
 
   // Build preview variables (merge sample with org-specific)
   const previewVars = useMemo(() => {
-    const orgName = getSetting<string>("org_name", SAMPLE_VARIABLES["{orgName}"]);
-    const senderDomain = getSetting<string>("sender_domain", SAMPLE_VARIABLES["{senderDomain}"]);
+    const orgName = (getSetting as any)("org_name", SAMPLE_VARIABLES["{orgName}"]);
+    const senderDomain = (getSetting as any)("sender_domain", SAMPLE_VARIABLES["{senderDomain}"]);
     return {
       ...SAMPLE_VARIABLES,
       "{orgName}": orgName || SAMPLE_VARIABLES["{orgName}"],
@@ -234,7 +234,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
     try {
       const existing = getSetting<EmailTemplatesMap>("email_templates", {});
       const updated: EmailTemplatesMap = { ...existing, [selectedType]: config };
-      await updateSetting("email_templates", updated as unknown as Record<string, unknown>, "communications");
+      await (updateSetting as any)("email_templates", updated as unknown as Record<string, unknown>, "communications");
       setIsDirty(false);
       toast({ title: "Template saved", description: `${TEMPLATE_META[selectedType].label} template updated. Changes take effect on next send.` });
     } catch {
@@ -260,7 +260,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
     try {
       const html = renderEmailHtml(config, previewVars);
       const subject = Object.entries(previewVars).reduce(
-        (s, [k, v]) => s.replaceAll(k, v),
+        (s, [k, v]) => s.split(k).join(v),
         config.subject
       );
       await supabase.functions.invoke("send-notification-email", {

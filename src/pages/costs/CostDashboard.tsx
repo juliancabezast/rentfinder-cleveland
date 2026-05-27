@@ -639,11 +639,11 @@ const CostDashboard: React.FC = () => {
                       verticalAlign="bottom"
                       height={36}
                       wrapperStyle={{ fontSize: "11px" }}
-                      formatter={(value: string, entry: { payload?: { amount?: number } }) => (
+                      formatter={((value: string, entry: any) => (
                         <span>
-                          {value}: {formatCurrencyDecimal(entry.payload?.amount ?? 0)}
+                          {value}: {formatCurrencyDecimal(entry?.payload?.amount ?? 0)}
                         </span>
-                      )}
+                      )) as any}
                     />
                   </PieChart>
                 </ResponsiveContainer>

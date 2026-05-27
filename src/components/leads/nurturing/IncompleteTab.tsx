@@ -114,7 +114,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
         }
       }
 
-      for (const lead of incomplete) {
+      for (const lead of incomplete as any[]) {
         const task = taskMap[lead.id];
         if (task) {
           lead.nextAgent = AGENT_NAMES[task.agent_type] || task.agent_type;
@@ -196,7 +196,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
       "cost_records", "lead_predictions", "competitor_mentions",
     ];
     for (const table of leadIdTables) {
-      await supabase.from(table).delete().eq("lead_id", deleteTarget.id);
+      await (supabase as any).from(table as any).delete().eq("lead_id", deleteTarget.id);
     }
     await supabase.from("system_logs").update({ related_lead_id: null }).eq("related_lead_id", deleteTarget.id);
     await supabase.from("referrals").delete().eq("referrer_lead_id", deleteTarget.id);

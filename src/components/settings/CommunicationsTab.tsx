@@ -46,7 +46,7 @@ const DAYS_OF_WEEK = [
 ];
 
 export const CommunicationsTab: React.FC = () => {
-  const { getSetting, updateMultipleSettings, loading } = useOrganizationSettings();
+  const { getSetting, updateMultipleSettings, updateSetting, loading } = useOrganizationSettings();
   const { userRecord } = useAuth();
   const [saving, setSaving] = useState(false);
 

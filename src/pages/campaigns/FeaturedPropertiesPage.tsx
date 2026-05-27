@@ -304,7 +304,7 @@ const FeaturedPropertiesPage = () => {
 
       const results: PropertyWithShowings[] = (allProperties || []).map(
         (p) => ({
-          ...p,
+          ...(p as any),
           upcoming_showings: showingsByProperty[p.id] || [],
         })
       );
@@ -357,8 +357,8 @@ const FeaturedPropertiesPage = () => {
     [propertiesWithShowings, selectedIds]
   );
 
-  const orgName = getSetting<string>("org_name", "Home Guard Management") || "Home Guard Management";
-  const senderDomain = getSetting<string>("sender_domain", "rentfindercleveland.com") || "rentfindercleveland.com";
+  const orgName = (getSetting as any)("org_name", "Home Guard Management") || "Home Guard Management";
+  const senderDomain = (getSetting as any)("sender_domain", "rentfindercleveland.com") || "rentfindercleveland.com";
 
   const previewHtml = useMemo(
     () =>
