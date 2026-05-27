@@ -84,7 +84,7 @@ export const CampaignProgressPanel = ({
         .from("email_events")
         .select("recipient_email, event_type, details")
         .eq("organization_id", orgId)
-        .contains("details", { campaign_id: campaignId });
+        .eq("details->>campaign_id", campaignId);
       if (error) throw error;
 
       const byRecipient = new Map<string, string>();
@@ -239,7 +239,7 @@ export const CampaignProgressPanel = ({
         .from("email_events")
         .select("id, recipient_email, subject, created_at, details")
         .eq("organization_id", orgId)
-        .contains("details", { campaign_id: campaignId })
+        .eq("details->>campaign_id", campaignId)
         .order("created_at", { ascending: true });
 
       if (!emails || emails.length === 0) return [];

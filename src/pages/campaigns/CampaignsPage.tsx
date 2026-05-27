@@ -90,14 +90,19 @@ const CampaignsPage = () => {
       const stats: Record<string, { delivered: number; failed: number; showings: number }> = {};
 
       for (const c of campaigns) {
-        // Fetch all email_events for this campaign and count statuses client-side
-        // (PostgREST .or() doesn't work with JSONB paths, and total-minus-failed
-        //  incorrectly counts "queued" emails as delivered)
-        const { data: emailRows } = await supabase
+        // Query email_events by JSONB text-path equality. The previous
+        // `.contains({ campaign_id: c.id })` was silently returning 0 rows
+        // on some Postgres + PostgREST versions (jsonb_contains type-coercion
+        // edge case), even though DB-side `details->>'campaign_id' = c.id::text`
+        // matched correctly.
+        const { data: emailRows, error: statsErr } = await supabase
           .from("email_events")
           .select("details")
           .eq("organization_id", orgId)
-          .contains("details", { campaign_id: c.id });
+          .eq("details->>campaign_id", c.id);
+        if (statsErr) {
+          console.warn(`Stats query failed for campaign ${c.id}:`, statsErr.message);
+        }
 
         let delivered = 0;
         let failed = 0;
