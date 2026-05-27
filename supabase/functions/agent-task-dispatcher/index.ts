@@ -367,8 +367,8 @@ async function handleWelcomeSequence(
       if (prop) {
         propData = prop;
         propertyInfo = `
-          <div style="background-color:#f9f5fc;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #370d4b;">
-            <p style="margin:0 0 4px;font-weight:600;color:#370d4b;">${escapeHtml(prop.address)}</p>
+          <div style="background-color:#EEF2FF;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #4F46E5;">
+            <p style="margin:0 0 4px;font-weight:600;color:#4F46E5;">${escapeHtml(prop.address)}</p>
             <p style="margin:0;color:#666;">
               ${prop.bedrooms ? `${prop.bedrooms} bed` : ""}${prop.bathrooms ? ` / ${prop.bathrooms} bath` : ""}${prop.rent_price ? ` — $${prop.rent_price}/mo` : ""}
             </p>
@@ -700,17 +700,20 @@ async function handleNotificationDispatch(
 }
 
 async function handleCampaign(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   task: AgentTask,
-  lead: AgentTask
+  _lead: AgentTask,
 ): Promise<string> {
-  // Stub: log and complete
-  console.log(
-    `Campaign task ${task.id}:`,
-    task.action_type,
-    JSON.stringify(task.context)
+  // Campaign agent_tasks are not actually executed by the dispatcher.
+  // Email campaigns flow through process-email-queue (via email_events queued
+  // rows), and there is no SMS/voice campaign UI yet. Until that exists, we
+  // throw so the task is marked failed rather than silently "completed",
+  // which previously hid the gap.
+  const err = new Error(
+    `Campaign execution not implemented for agent_type="${task.agent_type}", action_type="${task.action_type}". Use the Campaigns wizard for email blasts, or remove this task.`,
   );
-  return "Campaign task logged (stub handler)";
+  console.error(err.message, { taskId: task.id, context: task.context });
+  throw err;
 }
 
 // ── Config-driven Email Renderer ─────────────────────────────────────────────
@@ -728,11 +731,11 @@ function buildEmailFromConfig(
   propertyInfoHtml?: string
 ): string {
   const v = (text: string) => interpolateVars(text, vars);
-  const PRIMARY = "#370d4b";
+  const PRIMARY = "#4F46E5";
   const GOLD = "#ffb22c";
 
   const headerHtml = `<tr>
-    <td style="background:linear-gradient(135deg,${PRIMARY} 0%,#5b1a7a 100%);padding:32px 30px;text-align:center;">
+    <td style="background:linear-gradient(135deg,${PRIMARY} 0%,#6366F1 100%);padding:32px 30px;text-align:center;">
       <h1 style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:26px;font-weight:700;color:#ffffff;">${v(config.headerTitle)}</h1>
       ${config.headerSubtitle ? `<p style="margin:8px 0 0;font-family:Montserrat,Arial,sans-serif;font-size:14px;color:${GOLD};font-weight:500;">${v(config.headerSubtitle)}</p>` : ""}
       <div style="width:60px;height:3px;background:${GOLD};margin:16px auto 0;border-radius:2px;"></div>
@@ -745,9 +748,9 @@ function buildEmailFromConfig(
 
   let propHtml = "";
   if (config.showPropertyCard && propertyInfoHtml) {
-    propHtml = `<div style="background:#f8f5ff;border-left:4px solid ${PRIMARY};border-radius:8px;padding:16px 20px;margin:20px 0;">${propertyInfoHtml}</div>`;
+    propHtml = `<div style="background:#EEF2FF;border-left:4px solid ${PRIMARY};border-radius:8px;padding:16px 20px;margin:20px 0;">${propertyInfoHtml}</div>`;
   } else if (config.showPropertyCard && vars["{propertyAddress}"]) {
-    propHtml = `<div style="background:#f8f5ff;border-left:4px solid ${PRIMARY};border-radius:8px;padding:16px 20px;margin:20px 0;">
+    propHtml = `<div style="background:#EEF2FF;border-left:4px solid ${PRIMARY};border-radius:8px;padding:16px 20px;margin:20px 0;">
       <p style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:14px;color:#555;"><strong>${v("{propertyAddress}")}</strong></p>
     </div>`;
   }
@@ -811,15 +814,15 @@ function buildShowingConfirmationEmail(
   date: string
 ): string {
   return `<div style="font-family:'Montserrat',sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-    <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+    <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
       <h1 style="margin:0;color:#ffb22c;font-size:20px;">Home Guard Management</h1>
     </div>
     <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
-      <h2 style="color:#370d4b;margin-top:0;">Showing Reminder</h2>
+      <h2 style="color:#4F46E5;margin-top:0;">Showing Reminder</h2>
       <p>Hi <strong>${escapeHtml(name)}</strong>,</p>
       <p>This is a friendly reminder about your upcoming showing:</p>
-      <div style="background-color:#f9f5fc;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #370d4b;">
-        <p style="margin:0 0 4px;font-weight:600;color:#370d4b;">${escapeHtml(address)}</p>
+      <div style="background-color:#EEF2FF;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #4F46E5;">
+        <p style="margin:0 0 4px;font-weight:600;color:#4F46E5;">${escapeHtml(address)}</p>
         <p style="margin:0;color:#666;">${escapeHtml(date)}</p>
       </div>
       <p>Please reply to this email or call us if you need to reschedule.</p>
@@ -842,7 +845,7 @@ function buildWelcomeEmail(firstName: string, propertyInfo: string, senderDomain
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;">
 
   <!-- Header -->
-  <tr><td style="background:linear-gradient(135deg,#370d4b 0%,#5a1d7a 100%);padding:32px 32px 24px;border-radius:16px 16px 0 0;text-align:center;">
+  <tr><td style="background:linear-gradient(135deg,#4F46E5 0%,#6366F1 100%);padding:32px 32px 24px;border-radius:16px 16px 0 0;text-align:center;">
     <h1 style="margin:0 0 4px;color:#ffb22c;font-size:24px;font-weight:700;letter-spacing:-0.5px;">${escapeHtml(orgName)}</h1>
     <p style="margin:0;color:rgba(255,255,255,0.7);font-size:13px;">Quality Rental Homes in Cleveland</p>
   </td></tr>
@@ -850,7 +853,7 @@ function buildWelcomeEmail(firstName: string, propertyInfo: string, senderDomain
   <!-- Body -->
   <tr><td style="background-color:#ffffff;padding:32px;border-left:1px solid #e5e5e5;border-right:1px solid #e5e5e5;">
 
-    <h2 style="color:#370d4b;margin:0 0 16px;font-size:22px;font-weight:700;">Welcome, ${escapeHtml(firstName)}!</h2>
+    <h2 style="color:#4F46E5;margin:0 0 16px;font-size:22px;font-weight:700;">Welcome, ${escapeHtml(firstName)}!</h2>
 
     <p style="color:#444;font-size:15px;line-height:1.6;margin:0 0 20px;">
       Thank you for your interest in our rental properties. We're excited to help you find your next home in Cleveland.
@@ -860,19 +863,19 @@ function buildWelcomeEmail(firstName: string, propertyInfo: string, senderDomain
 
     <!-- Steps -->
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0;">
-      <tr><td style="padding:12px 16px;background-color:#f9f5fc;border-radius:10px;">
-        <p style="margin:0 0 12px;font-weight:600;color:#370d4b;font-size:15px;">Here's what happens next:</p>
+      <tr><td style="padding:12px 16px;background-color:#EEF2FF;border-radius:10px;">
+        <p style="margin:0 0 12px;font-weight:600;color:#4F46E5;font-size:15px;">Here's what happens next:</p>
         <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
           <tr>
-            <td style="padding:6px 0;vertical-align:top;width:28px;"><span style="display:inline-block;width:22px;height:22px;background-color:#370d4b;color:#ffb22c;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;">1</span></td>
+            <td style="padding:6px 0;vertical-align:top;width:28px;"><span style="display:inline-block;width:22px;height:22px;background-color:#4F46E5;color:#ffb22c;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;">1</span></td>
             <td style="padding:6px 0;color:#444;font-size:14px;line-height:1.5;">We'll match you with available properties based on your preferences</td>
           </tr>
           <tr>
-            <td style="padding:6px 0;vertical-align:top;width:28px;"><span style="display:inline-block;width:22px;height:22px;background-color:#370d4b;color:#ffb22c;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;">2</span></td>
+            <td style="padding:6px 0;vertical-align:top;width:28px;"><span style="display:inline-block;width:22px;height:22px;background-color:#4F46E5;color:#ffb22c;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;">2</span></td>
             <td style="padding:6px 0;color:#444;font-size:14px;line-height:1.5;">Schedule a showing at your convenience</td>
           </tr>
           <tr>
-            <td style="padding:6px 0;vertical-align:top;width:28px;"><span style="display:inline-block;width:22px;height:22px;background-color:#370d4b;color:#ffb22c;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;">3</span></td>
+            <td style="padding:6px 0;vertical-align:top;width:28px;"><span style="display:inline-block;width:22px;height:22px;background-color:#4F46E5;color:#ffb22c;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;">3</span></td>
             <td style="padding:6px 0;color:#444;font-size:14px;line-height:1.5;">Apply online and move in!</td>
           </tr>
         </table>
@@ -882,15 +885,15 @@ function buildWelcomeEmail(firstName: string, propertyInfo: string, senderDomain
     <!-- CTA Buttons -->
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:28px 0 24px;">
       <tr><td style="text-align:center;">
-        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="https://${senderDomain}/p/book-showing" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="17%" fillcolor="#ffb22c" stroke="f"><v:textbox inset="0,0,0,0"><center style="color:#370d4b;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;">Book a Showing</center></v:textbox></v:roundrect><![endif]-->
+        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="https://${senderDomain}/p/book-showing" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="17%" fillcolor="#ffb22c" stroke="f"><v:textbox inset="0,0,0,0"><center style="color:#4F46E5;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;">Book a Showing</center></v:textbox></v:roundrect><![endif]-->
         <!--[if !mso]><!-->
-        <a href="https://${senderDomain}/p/book-showing" style="display:inline-block;background-color:#ffb22c;color:#370d4b;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;line-height:1;">Book a Showing</a>
+        <a href="https://${senderDomain}/p/book-showing" style="display:inline-block;background-color:#ffb22c;color:#4F46E5;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;line-height:1;">Book a Showing</a>
         <!--<![endif]-->
       </td></tr>
       <tr><td style="text-align:center;padding-top:12px;">
-        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="https://homeguard.app.doorloop.com/tenant-portal/rental-applications/listing?source=rfc" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="17%" fillcolor="#370d4b" stroke="f"><v:textbox inset="0,0,0,0"><center style="color:#ffffff;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;">Apply Now</center></v:textbox></v:roundrect><![endif]-->
+        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="https://homeguard.app.doorloop.com/tenant-portal/rental-applications/listing?source=rfc" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="17%" fillcolor="#4F46E5" stroke="f"><v:textbox inset="0,0,0,0"><center style="color:#ffffff;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;">Apply Now</center></v:textbox></v:roundrect><![endif]-->
         <!--[if !mso]><!-->
-        <a href="https://homeguard.app.doorloop.com/tenant-portal/rental-applications/listing?source=rfc" style="display:inline-block;background-color:#370d4b;color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;line-height:1;">Apply Now</a>
+        <a href="https://homeguard.app.doorloop.com/tenant-portal/rental-applications/listing?source=rfc" style="display:inline-block;background-color:#4F46E5;color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;line-height:1;">Apply Now</a>
         <!--<![endif]-->
       </td></tr>
     </table>
@@ -921,11 +924,11 @@ function buildWelcomeEmail(firstName: string, propertyInfo: string, senderDomain
 
 function buildNoShowEmail(firstName: string, address: string): string {
   return `<div style="font-family:'Montserrat',sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-    <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+    <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
       <h1 style="margin:0;color:#ffb22c;font-size:20px;">Home Guard Management</h1>
     </div>
     <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
-      <h2 style="color:#370d4b;margin-top:0;">We Missed You!</h2>
+      <h2 style="color:#4F46E5;margin-top:0;">We Missed You!</h2>
       <p>Hi <strong>${escapeHtml(firstName)}</strong>,</p>
       <p>We noticed you weren't able to make it to the showing at <strong>${escapeHtml(address)}</strong>. No worries — we'd love to reschedule!</p>
       <p>Reply to this email or give us a call to find a time that works better for you.</p>
@@ -936,16 +939,16 @@ function buildNoShowEmail(firstName: string, address: string): string {
 
 function buildPostShowingEmail(firstName: string, address: string): string {
   return `<div style="font-family:'Montserrat',sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-    <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+    <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
       <h1 style="margin:0;color:#ffb22c;font-size:20px;">Home Guard Management</h1>
     </div>
     <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
-      <h2 style="color:#370d4b;margin-top:0;">Thanks for Visiting!</h2>
+      <h2 style="color:#4F46E5;margin-top:0;">Thanks for Visiting!</h2>
       <p>Hi <strong>${escapeHtml(firstName)}</strong>,</p>
       <p>Thanks for visiting <strong>${escapeHtml(address)}</strong> today! We hope you enjoyed the tour.</p>
       <p><strong>Ready to apply?</strong> You can start your rental application online:</p>
       <div style="text-align:center;margin:24px 0;">
-        <a href="https://rentfindercleveland.com" style="background-color:#ffb22c;color:#370d4b;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Start Application</a>
+        <a href="https://rentfindercleveland.com" style="background-color:#ffb22c;color:#4F46E5;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Start Application</a>
       </div>
       <p>If you have any questions or would like to schedule another showing, just reply to this email.</p>
       <p style="color:#666;font-size:14px;">— Home Guard Management</p>

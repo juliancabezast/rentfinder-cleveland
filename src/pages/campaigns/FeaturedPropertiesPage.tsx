@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { useToast } from "@/hooks/use-toast";
+import { getTimezoneForCity } from "@/lib/cityTimezone";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -243,25 +244,29 @@ const FeaturedPropertiesPage = () => {
     queryFn: async () => {
       if (!orgId) return [];
 
-      // Calculate this weekend's range (Saturday + Sunday) in Cleveland time
+      // Calculate this weekend's range (Saturday + Sunday) in the org's
+      // primary timezone. We read the first property's city to infer TZ;
+      // falls back to America/New_York if no city info available yet.
+      const { data: anyProp } = await supabase
+        .from("properties")
+        .select("city")
+        .eq("organization_id", orgId)
+        .limit(1)
+        .maybeSingle();
+      const orgTz = getTimezoneForCity(anyProp?.city ?? null);
+
       const now = new Date();
-      const clevelandNow = new Date(
-        now.toLocaleString("en-US", { timeZone: "America/New_York" })
-      );
-      const dayOfWeek = clevelandNow.getDay(); // 0=Sun .. 6=Sat
+      const localNow = new Date(now.toLocaleString("en-US", { timeZone: orgTz }));
+      const dayOfWeek = localNow.getDay(); // 0=Sun .. 6=Sat
       const daysUntilSaturday = dayOfWeek <= 6 ? (6 - dayOfWeek) % 7 : 0;
-      const saturday = new Date(clevelandNow);
-      saturday.setDate(clevelandNow.getDate() + (daysUntilSaturday === 0 && dayOfWeek !== 6 ? 7 : daysUntilSaturday));
+      const saturday = new Date(localNow);
+      saturday.setDate(localNow.getDate() + (daysUntilSaturday === 0 && dayOfWeek !== 6 ? 7 : daysUntilSaturday));
       saturday.setHours(0, 0, 0, 0);
       const monday = new Date(saturday);
       monday.setDate(saturday.getDate() + 2);
 
-      // Convert back to UTC for query
-      const offset =
-        now.getTime() -
-        new Date(
-          now.toLocaleString("en-US", { timeZone: "America/New_York" })
-        ).getTime();
+      // Convert back to UTC for query, accounting for the org tz offset
+      const offset = now.getTime() - localNow.getTime();
       const weekendStart = new Date(saturday.getTime() + offset).toISOString();
       const weekendEnd = new Date(monday.getTime() + offset).toISOString();
 

@@ -8,6 +8,19 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Resend pricing fallback when org has no `email_unit_cost` setting
+const DEFAULT_EMAIL_UNIT_COST = 0.001;
+
+// Notification types treated as marketing for consent purposes.
+// Transactional types (showing confirmations, etc.) bypass the consent gate.
+const MARKETING_NOTIFICATION_TYPES = new Set([
+  "campaign",
+  "marketing",
+  "featured_property",
+  "newsletter",
+  "promotion",
+]);
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -41,6 +54,44 @@ serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    // ── Marketing consent gate ──
+    // Campaign / newsletter / marketing emails check the recipient lead has
+    // not unsubscribed and has positive email_marketing_consent. Transactional
+    // emails (showing confirms, application invites, password resets) skip
+    // this — they are legitimate interest under CAN-SPAM/CASL.
+    const isMarketing =
+      MARKETING_NOTIFICATION_TYPES.has(String(notification_type || "")) ||
+      Boolean(campaign_id);
+    if (isMarketing && related_entity_type === "lead" && related_entity_id) {
+      try {
+        const { data: leadConsent, error: consentErr } = await supabase
+          .from("leads")
+          .select("email_marketing_consent, unsubscribed_at")
+          .eq("id", related_entity_id)
+          .maybeSingle();
+        // If the consent columns aren't deployed yet, the SELECT errors with
+        // PGRST204 — degrade gracefully and allow the send (logged below).
+        if (consentErr) {
+          console.warn(
+            "Consent columns unavailable, allowing marketing email:",
+            consentErr.message,
+          );
+        } else if (leadConsent?.unsubscribed_at) {
+          return new Response(
+            JSON.stringify({ error: "Lead has unsubscribed from marketing emails." }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        } else if (leadConsent?.email_marketing_consent === false) {
+          return new Response(
+            JSON.stringify({ error: "Lead has not consented to marketing emails." }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      } catch (consentCheckErr) {
+        console.warn("Consent check failed, allowing send:", consentCheckErr);
+      }
     }
 
     // ── QUEUE MODE: Insert into email_events as "queued" for agent processing ──
@@ -151,16 +202,29 @@ serve(async (req: Request) => {
       });
     }
 
-    // Record cost (non-blocking)
+    // Record cost (non-blocking) — read per-org pricing from settings, default $0.001
     if (organization_id) {
       try {
+        const { data: costSetting } = await supabase
+          .from("organization_settings")
+          .select("value")
+          .eq("organization_id", organization_id)
+          .eq("key", "email_unit_cost")
+          .maybeSingle();
+        let unitCost = DEFAULT_EMAIL_UNIT_COST;
+        if (costSetting?.value != null) {
+          const parsed = typeof costSetting.value === "number"
+            ? costSetting.value
+            : Number(costSetting.value);
+          if (Number.isFinite(parsed) && parsed >= 0) unitCost = parsed;
+        }
         await supabase.rpc("zacchaeus_record_cost", {
           p_organization_id: organization_id,
           p_service: "resend",
           p_usage_quantity: 1,
           p_usage_unit: "email",
-          p_unit_cost: 0.0,
-          p_total_cost: 0.0,
+          p_unit_cost: unitCost,
+          p_total_cost: unitCost,
           p_lead_id: related_entity_type === "lead" ? related_entity_id : null,
         });
       } catch (costErr) {

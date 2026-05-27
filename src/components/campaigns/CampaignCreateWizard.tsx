@@ -411,7 +411,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
               full_name: fullName !== "there" ? fullName : null,
               first_name: lead.first_name || null,
               last_name: lead.last_name || null,
-              phone: phone || `no-phone-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              phone: phone || null,
               email: email || null,
               source: "campaign",
               status: "new",

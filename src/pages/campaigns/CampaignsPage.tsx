@@ -348,8 +348,8 @@ const CampaignsPage = () => {
                         <ChevronRight className="h-5 w-5 text-slate-300 shrink-0 mt-1" />
                       </div>
 
-                      {/* Row 2: Progress + Stats inline */}
-                      <div className="flex items-center gap-4">
+                      {/* Row 2: Progress + Stats inline (stack on mobile) */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           {(emailTotal > 0 || c.status === "completed") && (
                             <>
@@ -360,25 +360,25 @@ const CampaignsPage = () => {
                             </>
                           )}
                         </div>
-                        <div className="flex items-center gap-5 shrink-0">
-                          <div className="text-center w-14">
-                            <p className="text-lg font-bold text-slate-700 tabular-nums leading-tight">{c.total_leads}</p>
+                        <div className="grid grid-cols-4 sm:flex sm:items-center sm:gap-5 sm:shrink-0 gap-2 mt-1 sm:mt-0 w-full sm:w-auto">
+                          <div className="text-center min-w-0 sm:w-14">
+                            <p className="text-base sm:text-lg font-bold text-slate-700 tabular-nums leading-tight">{c.total_leads}</p>
                             <p className="text-[10px] text-slate-400">Leads</p>
                           </div>
-                          <div className="text-center w-14">
-                            <p className="text-lg font-bold text-emerald-600 tabular-nums leading-tight">{deliveredDisplay}</p>
+                          <div className="text-center min-w-0 sm:w-14">
+                            <p className="text-base sm:text-lg font-bold text-emerald-600 tabular-nums leading-tight">{deliveredDisplay}</p>
                             <p className="text-[10px] text-slate-400">Delivered</p>
                           </div>
-                          <div className="text-center w-14">
-                            <p className={cn("text-lg font-bold tabular-nums leading-tight", failedDisplay > 0 ? "text-red-600" : pending > 0 ? "text-amber-600" : "text-slate-300")}>
+                          <div className="text-center min-w-0 sm:w-14">
+                            <p className={cn("text-base sm:text-lg font-bold tabular-nums leading-tight", failedDisplay > 0 ? "text-red-600" : pending > 0 ? "text-amber-600" : "text-slate-300")}>
                               {failedDisplay > 0 ? failedDisplay : pending > 0 ? pending : "—"}
                             </p>
                             <p className="text-[10px] text-slate-400">
                               {failedDisplay > 0 ? "Failed" : pending > 0 ? "Pending" : "Failed"}
                             </p>
                           </div>
-                          <div className="text-center w-14">
-                            <p className="text-lg font-bold text-purple-600 tabular-nums leading-tight">{stats?.showings ?? 0}</p>
+                          <div className="text-center min-w-0 sm:w-14">
+                            <p className="text-base sm:text-lg font-bold text-purple-600 tabular-nums leading-tight">{stats?.showings ?? 0}</p>
                             <p className="text-[10px] text-slate-400">Showings</p>
                           </div>
                         </div>

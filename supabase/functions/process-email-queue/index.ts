@@ -12,6 +12,10 @@ const corsHeaders = {
 const BATCH_SIZE = 10;
 const DELAY_MS = 1500; // 1.5s between emails (safe for Resend 10/sec limit)
 
+// Resend pricing fallback (overridden by org settings.email_unit_cost when set)
+const DEFAULT_EMAIL_UNIT_COST = 0.001;
+const DEFAULT_MAX_ATTEMPTS = 3;
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -62,14 +66,26 @@ serve(async (req: Request) => {
         continue; // Skip orgs without Resend key
       }
 
-      // Get org's sender domain from settings, fallback to rentfindercleveland.com
-      const { data: orgSettings } = await supabase
+      // Read org settings: sender domain + per-email cost
+      const { data: orgSettingsRows } = await supabase
         .from("organization_settings")
-        .select("value")
+        .select("key, value")
         .eq("organization_id", org.id)
-        .eq("key", "sender_domain")
-        .single();
-      const senderDomain = orgSettings?.value || "rentfindercleveland.com";
+        .in("key", ["sender_domain", "email_unit_cost"]);
+      const settingsMap = new Map(
+        (orgSettingsRows || []).map((r: { key: string; value: unknown }) => [r.key, r.value]),
+      );
+      const senderDomain =
+        (settingsMap.get("sender_domain") as string) || "rentfindercleveland.com";
+      const emailUnitCost = (() => {
+        const raw = settingsMap.get("email_unit_cost");
+        if (typeof raw === "number") return raw;
+        if (typeof raw === "string") {
+          const parsed = Number(raw);
+          if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+        }
+        return DEFAULT_EMAIL_UNIT_COST;
+      })();
 
       // Atomically claim queued emails (prevents duplicate sends on concurrent runs)
       const { data: queued, error: fetchErr } = await supabase
@@ -93,12 +109,25 @@ serve(async (req: Request) => {
       const errors: string[] = [];
 
       for (const email of queued) {
+        // Read attempt limits explicitly — the claim RPC may not project these
+        // columns, so we can't trust email.attempt_number coming from it.
+        const { data: attemptRow } = await supabase
+          .from("email_events")
+          .select("attempt_number, max_attempts")
+          .eq("id", email.id)
+          .maybeSingle();
+        const priorAttempts = attemptRow?.attempt_number ?? 0;
+        const maxAttempts = attemptRow?.max_attempts ?? DEFAULT_MAX_ATTEMPTS;
+        const currentAttempt = priorAttempts + 1;
         try {
           const html = email.details?.html;
           if (!email.recipient_email || !email.subject || !html) {
             await supabase
               .from("email_events")
-              .update({ details: { ...email.details, status: "failed", error: "Missing email data" } })
+              .update({
+                attempt_number: currentAttempt,
+                details: { ...email.details, status: "failed", error: "Missing email data" },
+              })
               .eq("id", email.id);
             failed++;
             continue;
@@ -129,6 +158,7 @@ serve(async (req: Request) => {
               .from("email_events")
               .update({
                 resend_email_id: resendData.id,
+                attempt_number: currentAttempt,
                 details: {
                   ...email.details,
                   status: "sent",
@@ -138,15 +168,15 @@ serve(async (req: Request) => {
               })
               .eq("id", email.id);
 
-            // Record cost
+            // Record cost (real Resend pricing from org settings, fallback $0.001/email)
             try {
               await supabase.rpc("zacchaeus_record_cost", {
                 p_organization_id: email.organization_id,
                 p_service: "resend",
                 p_usage_quantity: 1,
                 p_usage_unit: "email",
-                p_unit_cost: 0.0,
-                p_total_cost: 0.0,
+                p_unit_cost: emailUnitCost,
+                p_total_cost: emailUnitCost,
                 p_lead_id: email.details?.related_entity_type === "lead"
                   ? email.details?.related_entity_id
                   : null,
@@ -158,18 +188,25 @@ serve(async (req: Request) => {
             sent++;
           } else {
             const errMsg = resendData.message || `HTTP ${resendResponse.status}`;
+            // Bounded retry: keep "queued" until max_attempts reached, then permanent fail.
+            const exhausted = currentAttempt >= maxAttempts;
             await supabase
               .from("email_events")
               .update({
+                attempt_number: currentAttempt,
                 details: {
                   ...email.details,
-                  status: "failed",
+                  status: exhausted ? "failed" : "queued",
                   error: errMsg,
-                  failed_at: new Date().toISOString(),
+                  failed_at: exhausted ? new Date().toISOString() : undefined,
+                  last_attempt_at: new Date().toISOString(),
+                  attempts: currentAttempt,
                 },
               })
               .eq("id", email.id);
-            errors.push(`${email.recipient_email}: ${errMsg}`);
+            errors.push(
+              `${email.recipient_email}: ${errMsg}${exhausted ? " (max retries reached)" : ` (attempt ${currentAttempt}/${maxAttempts})`}`,
+            );
             failed++;
           }
 
@@ -178,13 +215,22 @@ serve(async (req: Request) => {
             await new Promise((r) => setTimeout(r, DELAY_MS));
           }
         } catch (err) {
+          const exhausted = currentAttempt >= maxAttempts;
           console.warn(`Email processing error for ${email.recipient_email}:`, err);
-          // Revert to queued so it can be retried on next run
           await supabase
             .from("email_events")
-            .update({ details: { ...email.details, status: "queued" } })
+            .update({
+              attempt_number: currentAttempt,
+              details: {
+                ...email.details,
+                status: exhausted ? "failed" : "queued",
+                error: String(err).slice(0, 500),
+                last_attempt_at: new Date().toISOString(),
+                attempts: currentAttempt,
+              },
+            })
             .eq("id", email.id);
-          errors.push(`${email.recipient_email}: ${String(err).slice(0, 100)}`);
+          errors.push(`${email.recipient_email}: ${String(err).slice(0, 100)}${exhausted ? " (max retries reached)" : ""}`);
           failed++;
         }
       }
@@ -207,31 +253,61 @@ serve(async (req: Request) => {
 
       allResults.push({ org_id: org.id, sent, failed, total: queued.length });
 
-      // Check if any in_progress campaigns for this org are now fully sent
+      // Reconcile any in_progress campaigns for this org.
+      // Completion criterion: no emails left in queued/processing AND every
+      // recipient has either been delivered/sent OR permanently failed.
+      // Also refresh `emails_queued` so the UI shows the real pending count.
       const { data: activeCampaigns } = await supabase
         .from("campaigns")
-        .select("id, emails_queued")
+        .select("id, total_leads, leads_with_email")
         .eq("organization_id", org.id)
         .eq("status", "in_progress");
 
       for (const camp of activeCampaigns || []) {
-        const { count: queuedLeft } = await supabase
-          .from("email_events")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", org.id)
-          .contains("details", { campaign_id: camp.id, status: "queued" });
-        const { count: processingLeft } = await supabase
-          .from("email_events")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", org.id)
-          .contains("details", { campaign_id: camp.id, status: "processing" });
+        const [{ count: queuedLeft }, { count: processingLeft }, { count: sentCount }, { count: failedCount }] =
+          await Promise.all([
+            supabase
+              .from("email_events")
+              .select("id", { count: "exact", head: true })
+              .eq("organization_id", org.id)
+              .contains("details", { campaign_id: camp.id, status: "queued" }),
+            supabase
+              .from("email_events")
+              .select("id", { count: "exact", head: true })
+              .eq("organization_id", org.id)
+              .contains("details", { campaign_id: camp.id, status: "processing" }),
+            supabase
+              .from("email_events")
+              .select("id", { count: "exact", head: true })
+              .eq("organization_id", org.id)
+              .contains("details", { campaign_id: camp.id, status: "sent" }),
+            supabase
+              .from("email_events")
+              .select("id", { count: "exact", head: true })
+              .eq("organization_id", org.id)
+              .contains("details", { campaign_id: camp.id, status: "failed" }),
+          ]);
 
-        if ((queuedLeft || 0) === 0 && (processingLeft || 0) === 0) {
+        const pending = (queuedLeft || 0) + (processingLeft || 0);
+
+        // Keep emails_queued in sync with reality (was previously stuck at launch value)
+        await supabase
+          .from("campaigns")
+          .update({
+            emails_queued: pending,
+            sent_count: sentCount || 0,
+            failed_count: failedCount || 0,
+          })
+          .eq("id", camp.id);
+
+        if (pending === 0 && ((sentCount || 0) + (failedCount || 0)) > 0) {
           await supabase
             .from("campaigns")
             .update({ status: "completed", completed_at: new Date().toISOString() })
             .eq("id", camp.id);
-          console.log(`Campaign ${camp.id} marked as completed`);
+          console.log(
+            `Campaign ${camp.id} marked completed — sent=${sentCount}, failed=${failedCount}`,
+          );
         }
       }
     }

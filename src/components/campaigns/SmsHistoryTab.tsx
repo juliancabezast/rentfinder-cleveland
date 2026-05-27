@@ -45,6 +45,9 @@ interface TwilioMessage {
 }
 
 const PAGE_SIZE = 25;
+// Twilio SMS pricing fallback (US toll-free). Overridden per-org by the
+// `sms_unit_cost` setting in organization_settings.
+const DEFAULT_SMS_UNIT_COST = 0.0083;
 
 export const SmsHistoryTab = () => {
   const { userRecord } = useAuth();
@@ -60,7 +63,7 @@ export const SmsHistoryTab = () => {
     queryFn: async () => {
       if (!orgId) return null;
 
-      const [sentRes, errorRes, uniqueRes] = await Promise.all([
+      const [sentRes, errorRes, uniqueRes, costSetting] = await Promise.all([
         supabase
           .from("system_logs")
           .select("id", { count: "exact", head: true })
@@ -81,13 +84,30 @@ export const SmsHistoryTab = () => {
           .eq("category", "twilio")
           .not("related_lead_id", "is", null)
           .limit(1000),
+        supabase
+          .from("organization_settings")
+          .select("value")
+          .eq("organization_id", orgId)
+          .eq("key", "sms_unit_cost")
+          .maybeSingle(),
       ]);
 
       const uniqueLeads = new Set(
         (uniqueRes.data || []).map((r) => r.related_lead_id)
       ).size;
 
-      const totalCost = (sentRes.count || 0) * 0.0079;
+      // Cost per SMS from org settings, falling back to Twilio US default
+      const settingRaw = costSetting.data?.value;
+      const parsedCost =
+        typeof settingRaw === "number"
+          ? settingRaw
+          : typeof settingRaw === "string"
+            ? Number(settingRaw)
+            : NaN;
+      const unitCost = Number.isFinite(parsedCost) && parsedCost >= 0
+        ? parsedCost
+        : DEFAULT_SMS_UNIT_COST;
+      const totalCost = (sentRes.count || 0) * unitCost;
 
       return {
         sent: sentRes.count || 0,

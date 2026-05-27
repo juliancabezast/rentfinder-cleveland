@@ -118,7 +118,11 @@ export const CampaignProgressPanel = ({
     refetchInterval: 15_000,
   });
 
-  // Realtime subscription for email_events
+  // Realtime subscription for email_events.
+  // Note: Postgres-changes filter doesn't support JSONB lookups, so we
+  // subscribe at the org level and then check the campaign_id from the
+  // payload before invalidating. This avoids invalidating on every
+  // unrelated email in the org (transactional, other campaigns).
   useEffect(() => {
     if (!orgId) return;
     const channel: RealtimeChannel = supabase
@@ -131,7 +135,9 @@ export const CampaignProgressPanel = ({
           table: "email_events",
           filter: `organization_id=eq.${orgId}`,
         },
-        () => {
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { details?: { campaign_id?: string } } | null;
+          if (row?.details?.campaign_id !== campaignId) return;
           queryClient.invalidateQueries({ queryKey: emailStatsKey });
           queryClient.invalidateQueries({ queryKey: emailLogKey });
           setLastUpdate(new Date());
@@ -141,6 +147,7 @@ export const CampaignProgressPanel = ({
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId, campaignId, queryClient]);
 
   // Fetch detailed email log with lead names
