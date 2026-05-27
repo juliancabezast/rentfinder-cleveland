@@ -260,7 +260,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
     try {
       const html = renderEmailHtml(config, previewVars);
       const subject = Object.entries(previewVars).reduce(
-        (s, [k, v]) => s.replaceAll(k, v),
+        (s, [k, v]) => s.split(k).join(v),
         config.subject
       );
       await supabase.functions.invoke("send-notification-email", {
