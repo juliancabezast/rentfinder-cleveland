@@ -649,63 +649,37 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         console.error("System log insert failed (showing still created):", logErr);
       }
 
-      // ── Telegram notification ──────────────────────────────────────
+      // ── Telegram notification (server-side) ────────────────────────
       try {
-        const [{ data: creds }, { data: showingsSettings }] = await Promise.all([
-          supabase
-            .from("organization_credentials")
-            .select("telegram_bot_token, telegram_chat_id")
-            .eq("organization_id", userRecord.organization_id)
-            .single(),
-          supabase
-            .from("organization_settings")
-            .select("key, value")
-            .eq("organization_id", userRecord.organization_id!)
-            .in("key", ["telegram_showings_bot_token", "telegram_showings_chat_id"]),
-        ]);
+        const displayDateFull = format(selectedDate, "EEEE, MMMM d, yyyy");
+        const leadName = lead?.full_name || "—";
+        const leadPhone = lead?.phone || "—";
+        const leadEmailAddr = lead?.email || "—";
+        const rentStr = selectedProperty?.rent_price ? `$${Number(selectedProperty.rent_price).toLocaleString()}/mo` : "";
+        const fullAddr = `${propertyAddr}${selectedProperty?.city ? `, ${selectedProperty.city}` : ""}`;
+        const mapsQuery = encodeURIComponent(`${selectedProperty?.address || ""}, ${selectedProperty?.city || ""}, ${selectedProperty?.state || ""} ${selectedProperty?.zip_code || ""}`);
 
-        const showingsMap = new Map((showingsSettings || []).map((s: any) => [s.key, s.value]));
-        // Use showings-specific bot+chat if set, otherwise fall back to general
-        const botToken = (showingsMap.get("telegram_showings_bot_token") as string) || creds?.telegram_bot_token;
-        const chatId = (showingsMap.get("telegram_showings_chat_id") as string) || creds?.telegram_chat_id;
+        const msg = [
+          `🏠 <b>New Showing Scheduled</b>`,
+          ``,
+          `📍 <b>${fullAddr}</b>${rentStr ? ` — ${rentStr}` : ""}`,
+          `📅 ${displayDateFull} at ${formatTimeDisplay(slotTime)}`,
+          ``,
+          `👤 <b>${leadName}</b>`,
+          `📞 ${leadPhone}`,
+          `✉️ ${leadEmailAddr}`,
+          `🔗 Source: Admin (${userRecord.full_name || "team"})`,
+          ``,
+          `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
+        ].join("\n");
 
-        if (botToken && chatId) {
-          const displayDateFull = format(selectedDate, "EEEE, MMMM d, yyyy");
-          const leadName = lead?.full_name || "—";
-          const leadPhone = lead?.phone || "—";
-          const leadEmailAddr = lead?.email || "—";
-          const rentStr = selectedProperty?.rent_price ? `$${Number(selectedProperty.rent_price).toLocaleString()}/mo` : "";
-          const fullAddr = `${propertyAddr}${selectedProperty?.city ? `, ${selectedProperty.city}` : ""}`;
-          const mapsQuery = encodeURIComponent(`${selectedProperty?.address || ""}, ${selectedProperty?.city || ""}, ${selectedProperty?.state || ""} ${selectedProperty?.zip_code || ""}`);
-
-          const msg = [
-            `🏠 <b>New Showing Scheduled</b>`,
-            ``,
-            `📍 <b>${fullAddr}</b>${rentStr ? ` — ${rentStr}` : ""}`,
-            `📅 ${displayDateFull} at ${formatTimeDisplay(slotTime)}`,
-            ``,
-            `👤 <b>${leadName}</b>`,
-            `📞 ${leadPhone}`,
-            `✉️ ${leadEmailAddr}`,
-            `🔗 Source: Admin (${userRecord.full_name || "team"})`,
-            ``,
-            `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
-          ].join("\n");
-
-          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: msg,
-              parse_mode: "HTML",
-              disable_web_page_preview: true,
-            }),
-          });
-        }
+        await supabase.functions.invoke("send-telegram-notification", {
+          body: { message: msg, channel: "showings" },
+        });
       } catch (tgErr) {
         console.warn("Telegram notification failed:", tgErr);
       }
+
 
       const displayDate = format(selectedDate, "MMM d, yyyy");
       toast.success(`Showing scheduled for ${displayDate} at ${formatTimeDisplay(slotTime)}`);
