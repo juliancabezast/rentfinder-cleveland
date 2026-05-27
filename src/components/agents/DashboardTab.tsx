@@ -113,8 +113,8 @@ function buildPlainSummary(report: SystemReport, services: IntegrationHealth[]):
   }
 
   // 3. Errors — with trend awareness
-  const errorTrend = st.errors.trend as string | undefined;
-  const errorsLastHour = st.errors.lastHour as number | undefined;
+  const errorTrend = (st.errors as any).trend as string | undefined;
+  const errorsLastHour = (st.errors as any).lastHour as number | undefined;
   if (st.errors.count24h === 0) {
     summary.push("Zero errors in the last 24 hours — the system is running clean.");
   } else if (errorTrend === "stopped" || errorsLastHour === 0) {
