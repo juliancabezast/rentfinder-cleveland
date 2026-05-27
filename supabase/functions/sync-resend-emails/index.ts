@@ -30,16 +30,66 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  // Accept either a specific organization_id (manual / per-org invoke)
+  // OR an empty body (cron) — in which case we iterate over every org
+  // that has a Resend API key configured.
+  let bodyOrgId: string | null = null;
   try {
-    const { organization_id } = await req.json();
-
-    if (!organization_id) {
-      return new Response(
-        JSON.stringify({ error: "Missing organization_id" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const body = await req.json();
+    if (body && typeof body.organization_id === "string" && body.organization_id) {
+      bodyOrgId = body.organization_id;
     }
+  } catch { /* empty body — fine, iterate all orgs */ }
 
+  // Resolve the list of orgs to sync.
+  const orgIds: string[] = [];
+  if (bodyOrgId) {
+    orgIds.push(bodyOrgId);
+  } else {
+    const { data: orgs } = await supabase
+      .from("organization_credentials")
+      .select("organization_id")
+      .not("resend_api_key", "is", null);
+    for (const o of orgs || []) {
+      if (o.organization_id) orgIds.push(o.organization_id as string);
+    }
+  }
+
+  if (orgIds.length === 0) {
+    return new Response(
+      JSON.stringify({ message: "No orgs with Resend API keys to sync", results: [] }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const allResults: Array<Record<string, unknown>> = [];
+
+  for (const organization_id of orgIds) {
+    try {
+      const result = await syncOneOrg(supabase, organization_id);
+      allResults.push({ organization_id, ...result });
+    } catch (orgErr) {
+      console.error(`Sync failed for org ${organization_id}:`, orgErr);
+      allResults.push({
+        organization_id,
+        success: false,
+        error: (orgErr as Error).message || "Sync failed",
+      });
+    }
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, results: allResults }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+});
+
+// Per-org sync — extracted so the top-level serve() can iterate over orgs.
+async function syncOneOrg(
+  supabase: ReturnType<typeof createClient>,
+  organization_id: string,
+): Promise<Record<string, unknown>> {
+  try {
     // ── Get Resend API key ────────────────────────────────────────
     let resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
 
@@ -49,22 +99,22 @@ serve(async (req: Request) => {
         .select("resend_api_key")
         .eq("organization_id", organization_id)
         .single();
-      if (creds?.resend_api_key) resendApiKey = creds.resend_api_key;
+      if (creds?.resend_api_key) resendApiKey = creds.resend_api_key as string;
     }
 
     if (!resendApiKey) {
-      return new Response(
-        JSON.stringify({ error: "No Resend API key configured" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return { success: false, error: "No Resend API key configured" };
     }
 
-    // ── Fetch ALL emails from Resend (paginated, max 100 per page) ──
+    // ── Fetch recent emails from Resend (paginated, max 100 per page) ──
+    // Reduced from 20 pages → 5 to fit within edge function CPU limit.
+    // Cron runs every 5 minutes so we'll catch up incrementally if there
+    // are more emails than this batch can handle in one pass.
     const allResendEmails: ResendEmail[] = [];
     let afterCursor: string | null = null;
     let hasMore = true;
     let pageCount = 0;
-    const MAX_PAGES = 20; // Safety limit: 20 pages × 100 = 2000 emails max
+    const MAX_PAGES = 5; // Safety limit: 5 pages × 100 = 500 emails per run
 
     const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -152,45 +202,74 @@ serve(async (req: Request) => {
       };
     });
 
-    // ── Batch upsert (50 at a time) — unique index prevents duplicates ──
+    // ── Bulk lookup of existing email_events by resend_email_id ──
+    // Single round trip instead of N (used to be 500+ individual SELECTs).
     let created = 0;
     let updated = 0;
     let skipped = 0;
-    const BATCH = 50;
 
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const batch = rows.slice(i, i + BATCH);
+    const allResendIds = rows
+      .map((r) => r.resend_email_id)
+      .filter((id): id is string => Boolean(id));
 
-      for (const row of batch) {
-        // Check if this email already exists — fetch current details to MERGE
-        const { data: existing } = await supabase
+    type ExistingRow = { id: string; resend_email_id: string; details: Record<string, unknown> | null };
+    const existingById = new Map<string, ExistingRow>();
+
+    if (allResendIds.length > 0) {
+      // Chunk the IN() clause to keep URL size reasonable
+      for (let i = 0; i < allResendIds.length; i += 100) {
+        const idChunk = allResendIds.slice(i, i + 100);
+        const { data: existingRows } = await supabase
           .from("email_events")
-          .select("id, details")
-          .eq("resend_email_id", row.resend_email_id)
+          .select("id, resend_email_id, details")
           .eq("organization_id", organization_id)
-          .maybeSingle();
-
-        if (existing) {
-          // Merge: preserve existing fields (campaign_id, related_entity_id, etc.)
-          // then overlay with fresh Resend data
-          const mergedDetails = {
-            ...(existing.details as Record<string, unknown> || {}),
-            ...row.details,
-          };
-          await supabase
-            .from("email_events")
-            .update({ details: mergedDetails })
-            .eq("id", existing.id);
-          updated++;
-        } else {
-          // New email — insert
-          const { error: insertErr } = await supabase.from("email_events").insert(row);
-          if (insertErr) {
-            skipped++;
-          } else {
-            created++;
-          }
+          .in("resend_email_id", idChunk);
+        for (const r of (existingRows as ExistingRow[] | null) || []) {
+          if (r.resend_email_id) existingById.set(r.resend_email_id, r);
         }
+      }
+    }
+
+    // Partition into updates (merge with existing details) vs inserts.
+    const toInsert: typeof rows = [];
+    const toUpdate: Array<{ id: string; details: Record<string, unknown> }> = [];
+    for (const row of rows) {
+      const existing = existingById.get(row.resend_email_id);
+      if (existing) {
+        const mergedDetails = {
+          ...(existing.details || {}),
+          ...row.details,
+        };
+        toUpdate.push({ id: existing.id, details: mergedDetails });
+      } else {
+        toInsert.push(row);
+      }
+    }
+
+    // Apply updates in parallel batches of 25 (one statement per row is
+    // unavoidable for JSONB merges in PostgREST without a custom RPC).
+    for (let i = 0; i < toUpdate.length; i += 25) {
+      const chunk = toUpdate.slice(i, i + 25);
+      await Promise.all(
+        chunk.map((u) =>
+          supabase
+            .from("email_events")
+            .update({ details: u.details })
+            .eq("id", u.id),
+        ),
+      );
+      updated += chunk.length;
+    }
+
+    // Bulk-insert net-new rows in chunks of 100
+    for (let i = 0; i < toInsert.length; i += 100) {
+      const chunk = toInsert.slice(i, i + 100);
+      const { error: insertErr } = await supabase.from("email_events").insert(chunk);
+      if (insertErr) {
+        skipped += chunk.length;
+        console.warn(`Insert chunk ${i}-${i + chunk.length} failed:`, insertErr.message);
+      } else {
+        created += chunk.length;
       }
     }
 
@@ -212,34 +291,29 @@ serve(async (req: Request) => {
       });
     } catch { /* non-blocking */ }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        total_from_resend: allResendEmails.length,
-        created,
-        updated,
-        skipped,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return {
+      success: true,
+      total_from_resend: allResendEmails.length,
+      created,
+      updated,
+      skipped,
+    };
   } catch (err) {
-    console.error("sync-resend-emails error:", err);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: (err as Error).message || "Sync failed",
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error(`sync-resend-emails error (org ${organization_id}):`, err);
+    return {
+      success: false,
+      error: (err as Error).message || "Sync failed",
+    };
   }
-});
+}
 
 // ── Fallback: sync by existing IDs if list endpoint not available ──
 async function syncByExistingIds(
+  // deno-lint-ignore no-explicit-any
   supabase: any,
   apiKey: string,
-  organizationId: string
-) {
+  organizationId: string,
+): Promise<Record<string, unknown>> {
   const { data: records } = await supabase
     .from("email_events")
     .select("id, resend_email_id, details")
@@ -247,10 +321,7 @@ async function syncByExistingIds(
     .not("resend_email_id", "is", null);
 
   if (!records || records.length === 0) {
-    return new Response(
-      JSON.stringify({ success: true, total_from_resend: 0, created: 0, updated: 0, skipped: 0, message: "No emails to sync" }),
-      { status: 200, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" } }
-    );
+    return { success: true, total_from_resend: 0, created: 0, updated: 0, skipped: 0, message: "No emails to sync" };
   }
 
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -287,8 +358,5 @@ async function syncByExistingIds(
     }
   }
 
-  return new Response(
-    JSON.stringify({ success: true, total_from_resend: records.length, created: 0, updated, skipped: 0, fallback: true }),
-    { status: 200, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" } }
-  );
+  return { success: true, total_from_resend: records.length, created: 0, updated, skipped: 0, fallback: true };
 }
