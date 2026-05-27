@@ -381,7 +381,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         .eq("organization_id", orgId)
         .eq("key", "sender_domain")
         .single();
-      const senderDomain = domainSetting?.value || "rentfindercleveland.com";
+      const senderDomain = (domainSetting?.value as string) || "rentfindercleveland.com";
       const orgName = organization?.name || "Rent Finder Cleveland";
 
       const existingMap = dedupResult?.existingMap || {};
