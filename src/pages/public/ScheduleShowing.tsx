@@ -256,7 +256,7 @@ const BuildingSelectCard: React.FC<{
         <PhotoCarousel
           photos={photos}
           alt={building.address}
-          className="h-36 w-36 sm:h-40 sm:w-40 rounded-lg shrink-0"
+          className="h-44 w-44 sm:h-52 sm:w-52 rounded-lg shrink-0"
           arrowSize="md"
         />
 
@@ -331,7 +331,7 @@ const UnitSelectCard: React.FC<{
         <PhotoCarousel
           photos={photos}
           alt={property.unit_number || property.address}
-          className="h-32 w-32 sm:h-36 sm:w-36 rounded-lg shrink-0"
+          className="h-40 w-40 sm:h-48 sm:w-48 rounded-lg shrink-0"
           arrowSize="md"
         />
 
@@ -938,7 +938,7 @@ const ScheduleShowing: React.FC = () => {
   if (propertyId && propertyLoading) {
     return (
       <div className="min-h-screen bg-[#f4f1f1] flex items-center justify-center p-4">
-        <div className="w-full max-w-[640px] space-y-4">
+        <div className="w-full max-w-[760px] space-y-4">
           <Skeleton className="h-[200px] w-full rounded-xl" />
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-4 w-64" />
@@ -951,7 +951,7 @@ const ScheduleShowing: React.FC = () => {
   if (propertyId && (propertyError || !property)) {
     return (
       <div className="min-h-screen bg-[#f4f1f1] flex items-center justify-center p-4">
-        <Card className="w-full max-w-[640px]">
+        <Card className="w-full max-w-[760px]">
           <CardContent className="p-8 text-center">
             <Home className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Property Not Found</h2>
@@ -968,7 +968,7 @@ const ScheduleShowing: React.FC = () => {
     <div className="min-h-screen bg-[#f4f1f1]">
       {/* Hero header */}
       <div className="bg-[#4F46E5] text-white px-4 pt-8 pb-10" style={{ fontFamily: "Montserrat, sans-serif" }}>
-        <div className="max-w-[640px] mx-auto space-y-2">
+        <div className="max-w-[760px] mx-auto space-y-2">
           <p className="text-[#ffb22c] text-xs font-semibold tracking-widest uppercase">
             Book a Free Tour
           </p>
@@ -981,7 +981,7 @@ const ScheduleShowing: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-[640px] mx-auto px-4 -mt-5 space-y-6 relative z-10">
+      <div className="max-w-[760px] mx-auto px-4 -mt-5 space-y-6 relative z-10">
 
         {/* Featured Property Card — compact horizontal */}
         {isMultiMode && !property && !selectedBuilding && featuredProperty && (() => {
@@ -1005,7 +1005,7 @@ const ScheduleShowing: React.FC = () => {
                 <PhotoCarousel
                   photos={fpPhotos}
                   alt={fp.address}
-                  className="h-36 w-36 sm:h-40 sm:w-40 rounded-lg shrink-0"
+                  className="h-44 w-44 sm:h-52 sm:w-52 rounded-lg shrink-0"
                   arrowSize="md"
                 />
 
@@ -1218,7 +1218,7 @@ const ScheduleShowing: React.FC = () => {
               <PhotoCarousel
                 photos={allPhotos}
                 alt={property.address}
-                className="h-32 w-32 sm:h-36 sm:w-36 rounded-lg shrink-0"
+                className="h-40 w-40 sm:h-48 sm:w-48 rounded-lg shrink-0"
                 arrowSize="md"
               />
 
@@ -1342,9 +1342,9 @@ const ScheduleShowing: React.FC = () => {
                 </div>
 
                 {datesLoading ? (
-                  <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Skeleton key={i} className="h-[78px] w-16 rounded-xl shrink-0" />
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                    {Array.from({ length: 7 }).map((_, i) => (
+                      <Skeleton key={i} className="h-14 w-12 rounded-lg shrink-0" />
                     ))}
                   </div>
                 ) : availableDates.length === 0 ? (
@@ -1353,7 +1353,7 @@ const ScheduleShowing: React.FC = () => {
                   </p>
                 ) : (
                   <div
-                    className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+                    className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
                     style={{ scrollbarWidth: "none" }}
                   >
                     {[...availableDates]
@@ -1371,19 +1371,19 @@ const ScheduleShowing: React.FC = () => {
                             key={date.toISOString()}
                             type="button"
                             onClick={() => setSelectedDate(date)}
-                            className={`shrink-0 snap-start w-16 rounded-xl border-2 px-2 py-2 text-center transition-all active:scale-95 ${
+                            className={`shrink-0 snap-start w-12 rounded-lg border px-1 py-1.5 text-center transition-all active:scale-95 ${
                               isSelected
-                                ? "border-[#4F46E5] bg-[#4F46E5] text-white shadow-md"
+                                ? "border-[#4F46E5] bg-[#4F46E5] text-white shadow-sm"
                                 : "border-slate-200 bg-white hover:border-[#4F46E5]/40 text-slate-900"
                             }`}
                           >
-                            <div className={`text-[10px] font-semibold uppercase tracking-wider ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+                            <div className={`text-[9px] font-semibold uppercase tracking-wider leading-tight ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
                               {isToday ? "Today" : isTomorrow ? "Tmrw" : format(date, "EEE")}
                             </div>
-                            <div className={`text-xl font-extrabold leading-tight mt-0.5 ${isSelected ? "text-white" : "text-slate-900"}`}>
+                            <div className={`text-base font-extrabold leading-tight ${isSelected ? "text-white" : "text-slate-900"}`}>
                               {format(date, "d")}
                             </div>
-                            <div className={`text-[10px] font-medium ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+                            <div className={`text-[9px] font-medium leading-tight ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
                               {format(date, "MMM")}
                             </div>
                           </button>
@@ -1630,7 +1630,7 @@ const ScheduleShowing: React.FC = () => {
         <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.08) 60%, transparent)" }}>
           <a
             href={`tel:${callNowConfig.phone}`}
-            className="mx-auto flex items-center justify-center gap-2.5 w-full max-w-[640px] py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg shadow-xl shadow-emerald-600/40 transition-all hover:scale-[1.02] active:scale-95 animate-call-pulse"
+            className="mx-auto flex items-center justify-center gap-2.5 w-full max-w-[760px] py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg shadow-xl shadow-emerald-600/40 transition-all hover:scale-[1.02] active:scale-95 animate-call-pulse"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             <Phone className="h-5 w-5 animate-wiggle" />
