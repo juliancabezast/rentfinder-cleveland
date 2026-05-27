@@ -304,7 +304,7 @@ const FeaturedPropertiesPage = () => {
 
       const results: PropertyWithShowings[] = (allProperties || []).map(
         (p) => ({
-          ...p,
+          ...(p as any),
           upcoming_showings: showingsByProperty[p.id] || [],
         })
       );
