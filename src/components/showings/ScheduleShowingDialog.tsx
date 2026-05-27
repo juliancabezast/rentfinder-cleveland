@@ -69,6 +69,8 @@ interface PropertyOption {
   unit_number: string | null;
   rent_price: number;
   city: string | null;
+  state?: string | null;
+  zip_code?: string | null;
 }
 
 interface AgentOption {
