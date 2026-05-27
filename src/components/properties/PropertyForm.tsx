@@ -225,18 +225,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   const generateAiDescription = async () => {
     setGeneratingDesc(true);
     try {
-      const result = await callOpenAi(
-        `You are writing a concise rental property description optimized for AI agents that handle inbound calls and lead management. The description must:
-1. Lead with the most important details: rent, beds/baths, key features
-2. Be concise (3-4 sentences max)
-3. Include Section 8/voucher status clearly
-4. Mention pet policy if available
-5. Highlight move-in readiness and standout amenities
-6. Use a professional, informative tone (not marketing fluff)
-7. Write in English only
-Return ONLY the description text, no quotes or labels.`,
-        `Generate an AI-optimized property description:\n${JSON.stringify(getPropertyContext())}`
-      );
+      const result = await callOpenAi('description');
       if (result) form.setValue('description', result);
     } catch (err) {
       toast.error((err as Error).message);
@@ -248,17 +237,7 @@ Return ONLY the description text, no quotes or labels.`,
   const generateAiNotes = async () => {
     setGeneratingNotes(true);
     try {
-      const result = await callOpenAi(
-        `You generate internal notes for a property management team. These notes are NOT visible to tenants. Include:
-1. Key selling points for agents to mention on calls
-2. Potential objections and how to handle them
-3. Comparative market positioning (is the rent competitive for the area?)
-4. Any red flags or things to watch for
-5. Tips for showing the property
-Be direct and concise (4-6 bullet points). Write in English only.
-Return ONLY the notes text, no quotes or labels.`,
-        `Generate internal team notes for this property:\n${JSON.stringify(getPropertyContext())}`
-      );
+      const result = await callOpenAi('notes');
       if (result) form.setValue('special_notes', result);
     } catch (err) {
       toast.error((err as Error).message);
@@ -266,6 +245,7 @@ Return ONLY the notes text, no quotes or labels.`,
       setGeneratingNotes(false);
     }
   };
+
 
   const fieldLabels: Record<string, string> = {
     bedrooms: 'Bedrooms',
