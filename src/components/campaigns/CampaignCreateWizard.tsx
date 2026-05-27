@@ -581,24 +581,45 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       }
       const campaignType =
         channel === "email" ? "email_blast" : channel === "sms" ? "sms_blast" : "multi_channel";
-      const { data: campaign, error: campErr } = await supabase
+      // Build the INSERT payload defensively — `send_delay_seconds` lives in
+      // the hardening migration that may not have run yet. We attempt with
+      // it first and retry without it on PGRST 42703.
+      const baseInsert: Record<string, unknown> = {
+        organization_id: orgId,
+        name: campaignName.trim(),
+        property_id: propertyId,
+        campaign_type: campaignType,
+        target_criteria: targetCriteria,
+        status: "in_progress",
+        total_leads: mappedLeads.length,
+        leads_with_email: leadsWithEmail.length,
+        emails_queued: 0,
+        sms_template: sendsSms ? smsBody : null,
+        created_by: userRecord?.id || null,
+      };
+      let { data: campaign, error: campErr } = await supabase
         .from("campaigns")
-        .insert({
-          organization_id: orgId,
-          name: campaignName.trim(),
-          property_id: propertyId,
-          campaign_type: campaignType,
-          target_criteria: targetCriteria,
-          status: "in_progress",
-          total_leads: mappedLeads.length,
-          leads_with_email: leadsWithEmail.length,
-          emails_queued: 0,
-          send_delay_seconds: sendDelaySeconds,
-          sms_template: sendsSms ? smsBody : null,
-          created_by: userRecord?.id || null,
-        })
+        .insert({ ...baseInsert, send_delay_seconds: sendDelaySeconds })
         .select("id")
         .single();
+      if (campErr && (campErr.code === "PGRST204" || campErr.code === "42703" || /send_delay_seconds/.test(campErr.message))) {
+        console.warn(
+          "send_delay_seconds column missing — falling back. Apply migration 20260527070000_campaigns_hardening.sql.",
+        );
+        // Persist the delay inside target_criteria so process-email-queue
+        // can still read it (it already reads from campaigns.send_delay_seconds
+        // OR target_criteria.send_delay_seconds as fallback).
+        const retry = await supabase
+          .from("campaigns")
+          .insert({
+            ...baseInsert,
+            target_criteria: { ...targetCriteria, send_delay_seconds: sendDelaySeconds },
+          })
+          .select("id")
+          .single();
+        campaign = retry.data;
+        campErr = retry.error;
+      }
 
       if (campErr || !campaign) throw campErr || new Error("Failed to create campaign");
       const newCampaignId = campaign.id;

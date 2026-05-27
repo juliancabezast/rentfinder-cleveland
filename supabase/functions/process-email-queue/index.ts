@@ -108,8 +108,10 @@ serve(async (req: Request) => {
       let failed = 0;
       const errors: string[] = [];
 
-      // Pre-fetch send_delay_seconds AND status for every campaign referenced
-      // in this batch. Status === "paused" means we skip its emails this run.
+      // Pre-fetch pacing AND status for every campaign referenced in this
+      // batch. Status === "paused" means we skip its emails this run.
+      // Tolerate the case where `send_delay_seconds` column hasn't been
+      // deployed yet — fall back to target_criteria.send_delay_seconds.
       const campaignIds = Array.from(
         new Set(
           queued
@@ -120,17 +122,27 @@ serve(async (req: Request) => {
       const campaignDelays = new Map<string, number>();
       const pausedCampaigns = new Set<string>();
       if (campaignIds.length > 0) {
-        const { data: campRows } = await supabase
+        let campRows: Array<Record<string, unknown>> | null = null;
+        const rich = await supabase
           .from("campaigns")
-          .select("id, send_delay_seconds, status")
+          .select("id, send_delay_seconds, status, target_criteria")
           .in("id", campaignIds);
+        if (rich.error && /send_delay_seconds/.test(rich.error.message || "")) {
+          const fallback = await supabase
+            .from("campaigns")
+            .select("id, status, target_criteria")
+            .in("id", campaignIds);
+          campRows = (fallback.data as Array<Record<string, unknown>> | null) || null;
+        } else {
+          campRows = (rich.data as Array<Record<string, unknown>> | null) || null;
+        }
         for (const c of campRows || []) {
-          if (typeof c.send_delay_seconds === "number" && c.send_delay_seconds >= 0) {
-            campaignDelays.set(c.id, c.send_delay_seconds);
-          }
-          if (c.status === "paused") {
-            pausedCampaigns.add(c.id);
-          }
+          const id = c.id as string;
+          const direct = c.send_delay_seconds;
+          const fromCriteria = (c.target_criteria as { send_delay_seconds?: number } | null)?.send_delay_seconds;
+          const delay = typeof direct === "number" ? direct : typeof fromCriteria === "number" ? fromCriteria : null;
+          if (delay !== null && delay >= 0) campaignDelays.set(id, delay);
+          if (c.status === "paused") pausedCampaigns.add(id);
         }
       }
 
