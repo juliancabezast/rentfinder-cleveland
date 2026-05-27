@@ -18,7 +18,11 @@ import {
   Send,
   XCircle,
   MessageSquare,
+  Pause,
+  Play,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -217,25 +221,12 @@ const CampaignsPage = () => {
       : "—";
 
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">{selectedCampaign.name}</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {propertyLabel} &middot; Created {format(new Date(selectedCampaign.created_at), "MMM d, yyyy")}
-            </p>
-          </div>
-          <Button variant="ghost" onClick={() => { setView("list"); setSelectedCampaign(null); }}>
-            Back to Campaigns
-          </Button>
-        </div>
-
-        <CampaignProgressPanel
-          campaignId={selectedCampaign.id}
-          totalLeads={selectedCampaign.total_leads}
-          leadsWithEmail={selectedCampaign.leads_with_email}
-        />
-      </div>
+      <CampaignDetailView
+        campaign={selectedCampaign}
+        propertyLabel={propertyLabel}
+        onBack={() => { setView("list"); setSelectedCampaign(null); }}
+        onCampaignUpdated={(updated) => setSelectedCampaign((c) => (c ? { ...c, ...updated } : c))}
+      />
     );
   }
 
@@ -395,6 +386,103 @@ const CampaignsPage = () => {
           <SmsHistoryTab />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+};
+
+// ── Detail view ──────────────────────────────────────────────────────────
+
+interface CampaignDetailViewProps {
+  campaign: Campaign;
+  propertyLabel: string;
+  onBack: () => void;
+  onCampaignUpdated: (partial: Partial<Campaign>) => void;
+}
+
+const CampaignDetailView = ({
+  campaign,
+  propertyLabel,
+  onBack,
+  onCampaignUpdated,
+}: CampaignDetailViewProps) => {
+  const queryClient = useQueryClient();
+  const [isMutating, setIsMutating] = useState(false);
+  const isPaused = campaign.status === "paused";
+  const isFinished = campaign.status === "completed" || campaign.status === "failed";
+
+  const setStatus = async (next: "paused" | "in_progress") => {
+    setIsMutating(true);
+    const prev = campaign.status;
+    onCampaignUpdated({ status: next });
+    const { error } = await supabase
+      .from("campaigns")
+      .update({ status: next })
+      .eq("id", campaign.id);
+    if (error) {
+      // rollback optimistic update
+      onCampaignUpdated({ status: prev });
+      toast.error(`Failed to ${next === "paused" ? "pause" : "resume"} campaign: ${error.message}`);
+    } else {
+      toast.success(
+        next === "paused"
+          ? "Campaign paused. Queued emails will hold until you resume."
+          : "Campaign resumed. Pending emails will start sending again.",
+      );
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    }
+    setIsMutating(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-bold text-slate-900 truncate">{campaign.name}</h1>
+            {isPaused && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 gap-1">
+                <Pause className="h-3 w-3" /> Paused
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-slate-500 mt-1">
+            {propertyLabel} &middot; Created {format(new Date(campaign.created_at), "MMM d, yyyy")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isFinished && (
+            isPaused ? (
+              <Button
+                onClick={() => setStatus("in_progress")}
+                disabled={isMutating}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              >
+                {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                Resume
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setStatus("paused")}
+                disabled={isMutating}
+                variant="outline"
+                className="gap-2"
+              >
+                {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pause className="h-4 w-4" />}
+                Pause
+              </Button>
+            )
+          )}
+          <Button variant="ghost" onClick={onBack}>
+            Back to Campaigns
+          </Button>
+        </div>
+      </div>
+
+      <CampaignProgressPanel
+        campaignId={campaign.id}
+        totalLeads={campaign.total_leads}
+        leadsWithEmail={campaign.leads_with_email}
+      />
     </div>
   );
 };

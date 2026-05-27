@@ -126,6 +126,42 @@ export const CampaignProgressPanel = ({
     refetchInterval: 2_000,
   });
 
+  // Fetch SMS stats from campaign_recipients
+  const smsStatsKey = ["campaign-sms-stats", campaignId];
+  const { data: smsStats } = useQuery({
+    queryKey: smsStatsKey,
+    queryFn: async () => {
+      if (!orgId) return { pending: 0, sent: 0, failed: 0 };
+      const [{ count: pending }, { count: sent }, { count: failed }] = await Promise.all([
+        supabase
+          .from("campaign_recipients")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .eq("channel", "sms")
+          .in("status", ["pending", "processing"]),
+        supabase
+          .from("campaign_recipients")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .eq("channel", "sms")
+          .eq("status", "sent"),
+        supabase
+          .from("campaign_recipients")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .eq("channel", "sms")
+          .eq("status", "failed"),
+      ]);
+      return {
+        pending: pending || 0,
+        sent: sent || 0,
+        failed: failed || 0,
+      };
+    },
+    enabled: !!orgId && !!campaignId,
+    refetchInterval: 5_000,
+  });
+
   // Fetch showings count for campaign leads
   const { data: showingsCount } = useQuery({
     queryKey: showingsKey,
@@ -340,7 +376,48 @@ export const CampaignProgressPanel = ({
         </p>
       </div>
 
-      {/* Stat cards */}
+      {/* SMS stat cards — only shown if campaign has SMS recipients */}
+      {smsStats && (smsStats.pending + smsStats.sent + smsStats.failed) > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-700">SMS Progress</h3>
+            <span className="text-xs text-slate-400">
+              {smsStats.sent} sent · {smsStats.pending} pending · {smsStats.failed} failed
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Card variant="glass" className="p-0">
+              <CardContent className="p-4 text-center">
+                <div className="mx-auto h-9 w-9 rounded-full flex items-center justify-center mb-2 bg-amber-50">
+                  <Clock className="h-4 w-4 text-amber-600" />
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{smsStats.pending}</p>
+                <p className="text-xs text-slate-500 mt-0.5">SMS Pending</p>
+              </CardContent>
+            </Card>
+            <Card variant="glass" className="p-0">
+              <CardContent className="p-4 text-center">
+                <div className="mx-auto h-9 w-9 rounded-full flex items-center justify-center mb-2 bg-emerald-50">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{smsStats.sent}</p>
+                <p className="text-xs text-slate-500 mt-0.5">SMS Sent</p>
+              </CardContent>
+            </Card>
+            <Card variant="glass" className="p-0">
+              <CardContent className="p-4 text-center">
+                <div className="mx-auto h-9 w-9 rounded-full flex items-center justify-center mb-2 bg-red-50">
+                  <XCircle className="h-4 w-4 text-red-600" />
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{smsStats.failed}</p>
+                <p className="text-xs text-slate-500 mt-0.5">SMS Failed</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Email stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {statCards.map((s) => (
           <Card key={s.label} variant="glass" className="p-0">

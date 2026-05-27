@@ -108,8 +108,8 @@ serve(async (req: Request) => {
       let failed = 0;
       const errors: string[] = [];
 
-      // Pre-fetch each campaign's send_delay_seconds for emails in this batch
-      // so we can throttle accordingly.
+      // Pre-fetch send_delay_seconds AND status for every campaign referenced
+      // in this batch. Status === "paused" means we skip its emails this run.
       const campaignIds = Array.from(
         new Set(
           queued
@@ -118,19 +118,34 @@ serve(async (req: Request) => {
         ),
       );
       const campaignDelays = new Map<string, number>();
+      const pausedCampaigns = new Set<string>();
       if (campaignIds.length > 0) {
         const { data: campRows } = await supabase
           .from("campaigns")
-          .select("id, send_delay_seconds")
+          .select("id, send_delay_seconds, status")
           .in("id", campaignIds);
         for (const c of campRows || []) {
           if (typeof c.send_delay_seconds === "number" && c.send_delay_seconds >= 0) {
             campaignDelays.set(c.id, c.send_delay_seconds);
           }
+          if (c.status === "paused") {
+            pausedCampaigns.add(c.id);
+          }
         }
       }
 
       for (const email of queued) {
+        // Skip emails belonging to a paused campaign — re-queue them as-is
+        // so they sit in queued status until the campaign resumes.
+        const emailCampaignId = email.details?.campaign_id as string | undefined;
+        if (emailCampaignId && pausedCampaigns.has(emailCampaignId)) {
+          await supabase
+            .from("email_events")
+            .update({ details: { ...email.details, status: "queued" } })
+            .eq("id", email.id);
+          continue;
+        }
+
         // Read attempt limits explicitly — the claim RPC may not project these
         // columns, so we can't trust email.attempt_number coming from it.
         const { data: attemptRow } = await supabase

@@ -32,7 +32,10 @@ import {
   Filter,
   Gauge,
   ListChecks,
+  MessageSquare,
+  Phone,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -49,6 +52,13 @@ import { CampaignProgressPanel } from "./CampaignProgressPanel";
 
 // ── Targeting modes ────────────────────────────────────────────────────
 type CampaignSourceMode = "upload" | "property_history";
+
+// ── Channel mode (what we actually send) ───────────────────────────────
+type CampaignChannel = "email" | "sms" | "both";
+
+// SMS body length limit (single SMS = 160 chars, soft warn at 320)
+const SMS_SOFT_LIMIT = 160;
+const SMS_HARD_LIMIT = 480;
 
 // ── Send pacing presets (UX over raw seconds) ──────────────────────────
 const PACING_OPTIONS: { value: number; label: string; description: string }[] = [
@@ -105,6 +115,10 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
   const [propertyId, setPropertyId] = useState("");
   const [templateType, setTemplateType] = useState<EmailTemplateType>("schedule_showing");
   const [sourceMode, setSourceMode] = useState<CampaignSourceMode>("upload");
+  const [channel, setChannel] = useState<CampaignChannel>("email");
+  const [smsBody, setSmsBody] = useState<string>(
+    "Hi {firstName}, this is {orgName}. We have {propertyAddress} available. Reply YES for details or STOP to opt out.",
+  );
   const [sendDelaySeconds, setSendDelaySeconds] = useState<number>(5);
   const [fileName, setFileName] = useState("");
   const [parsedLeads, setParsedLeads] = useState<ParsedLead[]>([]);
@@ -354,7 +368,14 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
           } as ParsedLead & { __lead_id?: string })))
     : [];
   const leadsWithEmail = mappedLeads.filter((l) => l.email);
+  const leadsWithPhone = mappedLeads.filter((l) => l.phone && l.phone.replace(/\D/g, "").length >= 10);
   const selectedProperty = properties?.find((p) => p.id === propertyId);
+
+  const sendsEmail = channel === "email" || channel === "both";
+  const sendsSms = channel === "sms" || channel === "both";
+  const smsChars = smsBody.length;
+  const smsOverSoftLimit = smsChars > SMS_SOFT_LIMIT;
+  const smsOverHardLimit = smsChars > SMS_HARD_LIMIT;
 
   // ── Email preview ─────────────────────────────────────────────────
   const [showPreview, setShowPreview] = useState(false);
@@ -469,9 +490,12 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       propertyId &&
       (sourceMode === "upload"
         ? parsedLeads.length > 0
-        : historyLeadsFiltered.length > 0),
+        : historyLeadsFiltered.length > 0) &&
+      // SMS path needs at least the body filled and within hard limit
+      (!sendsSms || (smsBody.trim().length > 0 && !smsOverHardLimit)),
   );
-  const canProceedStep2 = leadsWithEmail.length > 0;
+  const canProceedStep2 =
+    (sendsEmail && leadsWithEmail.length > 0) || (sendsSms && leadsWithPhone.length > 0);
 
   // ── Launch campaign ────────────────────────────────────────────────
 
@@ -484,25 +508,29 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       const targetCriteria: Record<string, unknown> = {
         source: sourceMode === "upload" ? "csv_upload" : "property_history",
         template: templateType,
+        channel,
         send_delay_seconds: sendDelaySeconds,
       };
       if (sourceMode === "property_history") {
         targetCriteria.property_id = propertyId;
         targetCriteria.only_with_email = historyOnlyWithEmail;
       }
+      const campaignType =
+        channel === "email" ? "email_blast" : channel === "sms" ? "sms_blast" : "multi_channel";
       const { data: campaign, error: campErr } = await supabase
         .from("campaigns")
         .insert({
           organization_id: orgId,
           name: campaignName.trim(),
           property_id: propertyId,
-          campaign_type: "email_blast",
+          campaign_type: campaignType,
           target_criteria: targetCriteria,
           status: "in_progress",
           total_leads: mappedLeads.length,
           leads_with_email: leadsWithEmail.length,
           emails_queued: 0,
           send_delay_seconds: sendDelaySeconds,
+          sms_template: sendsSms ? smsBody : null,
           created_by: userRecord?.id || null,
         })
         .select("id")
@@ -600,8 +628,25 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
           console.warn("campaign_leads insert:", clErr.message);
         }
 
-        // Queue email if lead has email (await to ensure it's actually queued)
-        if (email) {
+        // Queue SMS via campaign_recipients (channel=sms, status=pending).
+        // The process-sms-queue worker picks these up.
+        if (sendsSms && phone) {
+          const { error: smsRecipErr } = await supabase
+            .from("campaign_recipients")
+            .insert({
+              campaign_id: newCampaignId,
+              lead_id: leadId,
+              organization_id: orgId,
+              channel: "sms",
+              status: "pending",
+            });
+          if (smsRecipErr && !smsRecipErr.message?.includes("duplicate")) {
+            console.warn("campaign_recipients (sms) insert:", smsRecipErr.message);
+          }
+        }
+
+        // Queue email if lead has email and channel includes email
+        if (sendsEmail && email) {
           const propertyAddress = `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ""}, ${selectedProperty.city || "Cleveland"}`;
           const variables: Record<string, string> = {
             "{firstName}": firstName,
@@ -768,32 +813,114 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             </div>
           </div>
 
-          {/* Email template selector — shows ALL configured templates */}
+          {/* Channel selector: Email / SMS / Both */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5" />
-              Email Template
-            </Label>
-            <Select value={templateType} onValueChange={(v) => setTemplateType(v as EmailTemplateType)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TEMPLATE_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    <div className="flex flex-col">
-                      <span>{TEMPLATE_META[t].label}</span>
-                      <span className="text-[11px] text-muted-foreground">{TEMPLATE_META[t].description}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] text-muted-foreground">
-              Edit copy under <strong>Leads → Nurturing → Email Templates</strong>. Templates with no
-              custom config use the system default.
-            </p>
+            <Label>Channel</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  { value: "email", label: "Email", icon: Mail },
+                  { value: "sms", label: "SMS", icon: MessageSquare },
+                  { value: "both", label: "Both", icon: Phone },
+                ] as const
+              ).map((opt) => {
+                const active = channel === opt.value;
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setChannel(opt.value)}
+                    className={cn(
+                      "p-3 rounded-lg border-2 flex flex-col items-center gap-1 transition-all",
+                      active
+                        ? "border-[#4F46E5] bg-indigo-50/50 text-[#4F46E5]"
+                        : "border-slate-200 text-slate-600 hover:border-slate-300",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-semibold">{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Email template selector — shown when email is one of the channels */}
+          {sendsEmail && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5" />
+                Email Template
+              </Label>
+              <Select value={templateType} onValueChange={(v) => setTemplateType(v as EmailTemplateType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEMPLATE_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      <div className="flex flex-col">
+                        <span>{TEMPLATE_META[t].label}</span>
+                        <span className="text-[11px] text-muted-foreground">{TEMPLATE_META[t].description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Edit copy under <strong>Leads → Nurturing → Email Templates</strong>. Templates with no
+                custom config use the system default.
+              </p>
+            </div>
+          )}
+
+          {/* SMS body editor — shown when SMS is one of the channels */}
+          {sendsSms && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label className="flex items-center gap-1.5">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  SMS Message
+                </Label>
+                <span
+                  className={cn(
+                    "text-[11px] tabular-nums",
+                    smsOverHardLimit
+                      ? "text-red-600 font-semibold"
+                      : smsOverSoftLimit
+                        ? "text-amber-600"
+                        : "text-slate-500",
+                  )}
+                >
+                  {smsChars}/{SMS_SOFT_LIMIT} chars ({Math.ceil(smsChars / SMS_SOFT_LIMIT)} {Math.ceil(smsChars / SMS_SOFT_LIMIT) === 1 ? "segment" : "segments"})
+                </span>
+              </div>
+              <Textarea
+                value={smsBody}
+                onChange={(e) => setSmsBody(e.target.value)}
+                rows={4}
+                placeholder="Hi {firstName}, ..."
+                className={cn(smsOverHardLimit && "border-red-400 focus-visible:ring-red-400")}
+              />
+              <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
+                <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>
+                  Available variables: <code className="bg-slate-100 px-1 rounded">{"{firstName}"}</code>,{" "}
+                  <code className="bg-slate-100 px-1 rounded">{"{fullName}"}</code>,{" "}
+                  <code className="bg-slate-100 px-1 rounded">{"{propertyAddress}"}</code>,{" "}
+                  <code className="bg-slate-100 px-1 rounded">{"{orgName}"}</code>. Must include
+                  opt-out language (e.g. <em>"Reply STOP to opt out"</em>) per TCPA. Leads
+                  without <strong>sms_consent</strong> are auto-skipped.
+                </span>
+              </div>
+              {smsOverHardLimit && (
+                <p className="text-xs text-red-600">
+                  Message exceeds {SMS_HARD_LIMIT} characters — Twilio will reject it. Shorten it.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Pacing — delay between sends to avoid spam flags */}
           <div className="space-y-2">
