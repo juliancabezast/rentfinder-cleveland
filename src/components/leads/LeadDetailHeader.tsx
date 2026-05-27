@@ -69,6 +69,7 @@ interface LeadDetailHeaderProps {
     has_voucher?: boolean | null;
     voucher_amount?: number | null;
     housing_authority?: string | null;
+    interested_property_id?: string | null;
   };
   property?: Property | null;
   permissions: {
