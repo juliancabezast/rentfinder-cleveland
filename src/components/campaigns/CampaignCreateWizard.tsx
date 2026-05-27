@@ -834,9 +834,10 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
           // Each row is ~50KB (rendered HTML) → 100 rows ≈ 5MB per request.
           for (let i = 0; i < emailEventRows.length; i += 100) {
             const chunk = emailEventRows.slice(i, i + 100);
-            const { error: emailErr } = await supabase
-              .from("email_events")
+            const { error: emailErr } = await (supabase
+              .from("email_events") as any)
               .insert(chunk);
+
             if (emailErr) {
               console.error(`Email queue chunk ${i}-${i + chunk.length} failed:`, emailErr.message);
             } else {
