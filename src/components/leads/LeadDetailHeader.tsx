@@ -164,7 +164,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   >([]);
   // All properties this lead is interested in (from lead_property_interests junction)
   const [additionalProperties, setAdditionalProperties] = useState<
-    { property_id: string; address: string; unit_number: string | null }[]
+    { property_id: string; address: string; unit_number: string | null; listing_source?: string | null }[]
   >([]);
 
   // Fetch property interests from junction table
