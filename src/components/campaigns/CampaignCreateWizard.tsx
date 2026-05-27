@@ -262,6 +262,13 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
   // ── Fetch leads from DB based on the active source mode ──
   // - property_history: union of interested + showings + prior campaigns for this property
   // - all_org_leads:    every lead in the org (with light status guards)
+  //
+  // The SELECT only requests columns that are guaranteed to exist on the
+  // leads table. Optional consent columns (email_marketing_consent /
+  // unsubscribed_at) live in the campaigns-hardening migration which Lovable
+  // may not have applied yet — selecting them would error out with PGRST 42703
+  // and return data=null, dropping the whole list. We fetch the consent state
+  // in a separate best-effort query and treat absence as "not unsubscribed".
   const refreshDbLeads = useCallback(async () => {
     if (!orgId) {
       setHistoryExistingLeads([]);
@@ -276,8 +283,6 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         full_name: string | null;
         email: string | null;
         phone: string | null;
-        unsubscribed_at?: string | null;
-        email_marketing_consent?: boolean | null;
         status?: string | null;
       };
 
@@ -287,24 +292,26 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         // Pull every lead in the org. We filter dead-ends client-side because
         // PostgREST's `NOT IN` follows SQL semantics and silently drops rows
         // with NULL status — which most leads created via webhook/scrape have.
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("leads")
-          .select(
-            "id, full_name, email, phone, unsubscribed_at, email_marketing_consent, status",
-          )
+          .select("id, full_name, email, phone, status")
           .eq("organization_id", orgId)
           .order("created_at", { ascending: false })
           .limit(5000);
+        if (error) {
+          console.error("All-leads fetch failed:", error);
+        }
         merged = ((data as LeadRow[] | null) || []).filter(
           (l) => l.status !== "lost" && l.status !== "converted",
         );
       } else if (propertyId) {
         // 1. Leads currently interested in this property
-        const { data: interested } = await supabase
+        const { data: interested, error: intErr } = await supabase
           .from("leads")
-          .select("id, full_name, email, phone, unsubscribed_at, email_marketing_consent, status")
+          .select("id, full_name, email, phone, status")
           .eq("organization_id", orgId)
           .eq("interested_property_id", propertyId);
+        if (intErr) console.error("Interested-leads fetch failed:", intErr);
 
         // 2. Leads with at least one showing for this property
         const { data: showings } = await supabase
@@ -342,7 +349,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         if (missingIds.length > 0) {
           const { data: extra } = await supabase
             .from("leads")
-            .select("id, full_name, email, phone, unsubscribed_at, email_marketing_consent, status")
+            .select("id, full_name, email, phone, status")
             .eq("organization_id", orgId)
             .in("id", missingIds);
           extraLeads = (extra as LeadRow[] | null) || [];
@@ -350,9 +357,23 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         merged = [...((interested as LeadRow[] | null) || []), ...extraLeads];
       }
 
-      // Drop leads that have explicitly unsubscribed (defense-in-depth on top of
-      // the edge-function consent gate)
-      const eligible = merged.filter((l) => !l.unsubscribed_at);
+      // Best-effort: drop leads that have unsubscribed. Only runs if the
+      // consent column has been deployed; otherwise leaves the list as-is.
+      let unsubscribedIds = new Set<string>();
+      if (merged.length > 0) {
+        const ids = merged.map((l) => l.id);
+        const { data: unsubRows, error: unsubErr } = await supabase
+          .from("leads")
+          .select("id")
+          .in("id", ids)
+          .not("unsubscribed_at", "is", null);
+        // If the column doesn't exist yet, PostgREST returns 42703 — ignore.
+        if (!unsubErr && unsubRows) {
+          unsubscribedIds = new Set((unsubRows as Array<{ id: string }>).map((r) => r.id));
+        }
+      }
+
+      const eligible = merged.filter((l) => !unsubscribedIds.has(l.id));
 
       setHistoryExistingLeads(
         eligible.map((l) => ({
