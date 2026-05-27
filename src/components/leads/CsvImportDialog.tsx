@@ -947,7 +947,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 </span>
                 {preImportAnalysis.newLeads.length > 0 && (
                   <span className="px-2 py-1 bg-green-50 text-green-700 border border-green-200 rounded font-medium">
-                    Score: {preImportAnalysis.newLeads[0].data.lead_score}
+                    Score: {String(preImportAnalysis.newLeads[0].data.lead_score ?? "")}
                   </span>
                 )}
                 {preImportAnalysis.mappedFields.map((field) => (
