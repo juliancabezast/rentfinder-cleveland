@@ -844,10 +844,10 @@ const PropertyDetail: React.FC = () => {
                   .eq('interested_property_id', id!)
                   .order('created_at', { ascending: false })
                   .limit(5)
-                  .then(({ data }) => {
+                  .then(({ data, error }) => {
+                    if (error) { console.error('Error refetching leads:', error); return; }
                     if (data) setRecentLeads(data);
-                  })
-                  .catch((err) => console.error('Error refetching leads:', err));
+                  });
               }}
             />
           )}
