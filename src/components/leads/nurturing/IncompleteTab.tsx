@@ -114,7 +114,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
         }
       }
 
-      for (const lead of incomplete) {
+      for (const lead of incomplete as any[]) {
         const task = taskMap[lead.id];
         if (task) {
           lead.nextAgent = AGENT_NAMES[task.agent_type] || task.agent_type;
