@@ -173,11 +173,17 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     setLoadingOptions(true);
     try {
       const [leadsRes, propertiesRes, agentsRes] = await Promise.all([
+        // Bump explicit limit well past the org lead count — PostgREST's
+        // default cap is 1000, which silently dropped Virginia (alphabetical
+        // tail) and made her search return "No leads found". 10000 covers
+        // multi-thousand-lead orgs without paying a server-side search
+        // refactor right now.
         supabase
           .from("leads")
           .select("id, full_name, phone, email")
           .eq("organization_id", userRecord.organization_id)
-          .order("full_name"),
+          .order("full_name")
+          .limit(10000),
         supabase
           .from("properties")
           .select("id, address, unit_number, rent_price, city")
