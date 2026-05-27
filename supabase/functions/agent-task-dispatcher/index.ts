@@ -164,6 +164,68 @@ const escapeHtml = (str: string) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+// Self-healing property address resolver. Agent tasks queued by OLDER code
+// paths sometimes have empty `context.property_address`, which made the
+// dispatcher fall back to literal strings like "your scheduled property"
+// in the email. This walks every available source (context.property_id,
+// then showing_id → property_id) and formats a real address.
+async function resolvePropertyAddress(
+  supabase: SupabaseClient,
+  ctx: Record<string, unknown>,
+  fallback = "your scheduled property",
+): Promise<string> {
+  const fromCtx = (ctx?.property_address as string | undefined)?.trim();
+  if (fromCtx) return fromCtx;
+
+  type PropRow = {
+    address: string | null;
+    unit_number: string | null;
+    city: string | null;
+    state: string | null;
+    zip_code: string | null;
+  };
+  const fmt = (p: PropRow | null): string | null => {
+    if (!p?.address) return null;
+    const head = `${p.address}${p.unit_number ? ` #${p.unit_number}` : ""}`;
+    const tail = [p.city, p.state, p.zip_code].filter(Boolean).join(" ");
+    return tail ? `${head}, ${tail}` : head;
+  };
+
+  // 1) Look up by property_id directly
+  const propId = ctx?.property_id as string | undefined;
+  if (propId) {
+    const { data } = await supabase
+      .from("properties")
+      .select("address, unit_number, city, state, zip_code")
+      .eq("id", propId)
+      .maybeSingle();
+    const formatted = fmt(data as PropRow | null);
+    if (formatted) return formatted;
+  }
+
+  // 2) Walk through the showing → property
+  const showingId = ctx?.showing_id as string | undefined;
+  if (showingId) {
+    const { data: showing } = await supabase
+      .from("showings")
+      .select("property_id")
+      .eq("id", showingId)
+      .maybeSingle();
+    const sPropId = (showing as { property_id?: string } | null)?.property_id;
+    if (sPropId) {
+      const { data: prop } = await supabase
+        .from("properties")
+        .select("address, unit_number, city, state, zip_code")
+        .eq("id", sPropId)
+        .maybeSingle();
+      const formatted = fmt(prop as PropRow | null);
+      if (formatted) return formatted;
+    }
+  }
+
+  return fallback;
+}
+
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
 async function handleShowingConfirmation(
@@ -174,7 +236,7 @@ async function handleShowingConfirmation(
   settings: OrgSettings
 ): Promise<string> {
   const ctx = task.context || {};
-  const propertyAddress = ctx.property_address || "your scheduled property";
+  const propertyAddress = await resolvePropertyAddress(supabase, ctx, "your scheduled property");
   const scheduledAt = ctx.scheduled_at || "";
 
   // Format date for message (Cleveland timezone)
@@ -563,7 +625,7 @@ async function handleNoShowFollowup(
 ): Promise<string> {
   const ctx = task.context || {};
   const firstName = lead.full_name?.split(" ")[0] || "there";
-  const propertyAddress = ctx.property_address || "the property";
+  const propertyAddress = await resolvePropertyAddress(supabase, ctx, "the property");
 
   if (lead.phone && task.action_type === "sms") {
     const smsBody = `Hi ${firstName}, we missed you at the showing for ${propertyAddress}. Would you like to reschedule? We're happy to find a time that works better for you. Reply YES to reschedule.`;
@@ -629,7 +691,7 @@ async function handlePostShowing(
 ): Promise<string> {
   const ctx = task.context || {};
   const firstName = lead.full_name?.split(" ")[0] || "there";
-  const propertyAddress = ctx.property_address || "the property";
+  const propertyAddress = await resolvePropertyAddress(supabase, ctx, "the property");
 
   if (lead.email) {
     const customConfig = settings.email_templates?.post_showing as EmailTemplateConfig | undefined;
