@@ -284,18 +284,20 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       let merged: LeadRow[] = [];
 
       if (sourceMode === "all_org_leads") {
-        // Pull every lead in the org. Exclude obvious dead-ends:
-        // already converted, lost, or unsubscribed.
+        // Pull every lead in the org. We filter dead-ends client-side because
+        // PostgREST's `NOT IN` follows SQL semantics and silently drops rows
+        // with NULL status — which most leads created via webhook/scrape have.
         const { data } = await supabase
           .from("leads")
           .select(
             "id, full_name, email, phone, unsubscribed_at, email_marketing_consent, status",
           )
           .eq("organization_id", orgId)
-          .not("status", "in", "(lost,converted)")
           .order("created_at", { ascending: false })
           .limit(5000);
-        merged = (data as LeadRow[] | null) || [];
+        merged = ((data as LeadRow[] | null) || []).filter(
+          (l) => l.status !== "lost" && l.status !== "converted",
+        );
       } else if (propertyId) {
         // 1. Leads currently interested in this property
         const { data: interested } = await supabase
