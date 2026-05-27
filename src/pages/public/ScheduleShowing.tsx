@@ -28,7 +28,9 @@ import {
   Phone,
   Sparkles,
   Camera,
+  X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { format, addDays, parseISO, isSameDay } from "date-fns";
 import { getTimezoneForCity } from "@/lib/cityTimezone";
 
@@ -76,7 +78,136 @@ function getPhotoUrl(property: Property, index = 0): string | null {
   return null;
 }
 
-/* ---- Photo carousel: swipeable inline gallery with arrows ---- */
+/* ---- Photo lightbox: fullscreen viewer with swipe + keyboard nav ---- */
+const PhotoLightbox: React.FC<{
+  photos: string[];
+  alt: string;
+  initialIndex: number;
+  onClose: () => void;
+}> = ({ photos, alt, initialIndex, onClose }) => {
+  const [index, setIndex] = React.useState(initialIndex);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const total = photos.length;
+
+  // Lock body scroll while open
+  React.useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = original; };
+  }, []);
+
+  // Sync scroll position when index changes via arrow
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: index * el.clientWidth, behavior: "smooth" });
+  }, [index]);
+
+  // Snap to initial index without animation on mount
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollLeft = initialIndex * el.clientWidth;
+  }, [initialIndex]);
+
+  // Keyboard navigation
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") setIndex((i) => Math.max(0, i - 1));
+      if (e.key === "ArrowRight") setIndex((i) => Math.min(total - 1, i + 1));
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose, total]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    if (idx !== index && idx >= 0 && idx < total) setIndex(idx);
+  };
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center select-none"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${alt} — photo viewer`}
+    >
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        aria-label="Close"
+        className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm transition-all"
+        style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+      >
+        <X className="h-5 w-5" />
+      </button>
+
+      {/* Photo counter */}
+      {total > 1 && (
+        <div
+          className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full pointer-events-none"
+          style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+        >
+          {index + 1} / {total}
+        </div>
+      )}
+
+      {/* Swipeable scroll track */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {photos.map((url, i) => (
+          <div
+            key={url + i}
+            className="w-full h-full shrink-0 snap-start flex items-center justify-center px-4"
+          >
+            <img
+              src={url}
+              alt={`${alt} — photo ${i + 1}`}
+              draggable={false}
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Prev arrow (hidden on touch where swipe is natural) */}
+      {total > 1 && index > 0 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setIndex(index - 1); }}
+          aria-label="Previous photo"
+          className="hidden sm:flex absolute top-1/2 left-4 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 text-white items-center justify-center backdrop-blur-sm transition-all"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Next arrow */}
+      {total > 1 && index < total - 1 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setIndex(index + 1); }}
+          aria-label="Next photo"
+          className="hidden sm:flex absolute top-1/2 right-4 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 text-white items-center justify-center backdrop-blur-sm transition-all"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      )}
+    </div>,
+    document.body
+  );
+};
+
+/* ---- Photo carousel: swipeable inline gallery with arrows + tap-to-zoom ---- */
 const PhotoCarousel: React.FC<{
   photos: string[];
   alt: string;
@@ -85,6 +216,7 @@ const PhotoCarousel: React.FC<{
   arrowSize?: "sm" | "md";
 }> = ({ photos, alt, className = "aspect-square", countPosition = "top-left", arrowSize = "md" }) => {
   const [current, setCurrent] = React.useState(0);
+  const [lightboxIndex, setLightboxIndex] = React.useState<number | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const total = photos.length;
 
@@ -112,6 +244,26 @@ const PhotoCarousel: React.FC<{
     goToIdx(current + 1);
   };
 
+  // Detect tap vs swipe so taps open the lightbox without hijacking horizontal scrolls
+  const pointerStart = React.useRef<{ x: number; y: number; t: number } | null>(null);
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+  };
+  const handlePointerUp = (e: React.PointerEvent, idx: number) => {
+    const start = pointerStart.current;
+    pointerStart.current = null;
+    if (!start) return;
+    const dx = Math.abs(e.clientX - start.x);
+    const dy = Math.abs(e.clientY - start.y);
+    const dt = Date.now() - start.t;
+    // Treat as a tap only when movement and dwell are small
+    if (dx < 8 && dy < 8 && dt < 400) {
+      e.stopPropagation();
+      e.preventDefault();
+      setLightboxIndex(idx);
+    }
+  };
+
   if (total === 0) {
     return (
       <div className={`${className} bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center`}>
@@ -127,61 +279,74 @@ const PhotoCarousel: React.FC<{
   const arrowIcon = arrowSize === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
 
   return (
-    <div className={`relative overflow-hidden bg-muted ${className}`}>
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        {photos.map((url, i) => (
-          <img
-            key={url + i}
-            src={url}
-            alt={`${alt} — photo ${i + 1}`}
-            loading={i === 0 ? "eager" : "lazy"}
-            draggable={false}
-            className="w-full h-full object-cover shrink-0 snap-start select-none"
-          />
-        ))}
+    <>
+      <div className={`relative overflow-hidden bg-muted ${className}`}>
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {photos.map((url, i) => (
+            <img
+              key={url + i}
+              src={url}
+              alt={`${alt} — photo ${i + 1}`}
+              loading={i === 0 ? "eager" : "lazy"}
+              draggable={false}
+              onPointerDown={handlePointerDown}
+              onPointerUp={(e) => handlePointerUp(e, i)}
+              className="w-full h-full object-cover shrink-0 snap-start select-none cursor-zoom-in"
+            />
+          ))}
+        </div>
+
+        {/* Photo count badge */}
+        {total > 1 && (
+          <div
+            className={`absolute ${
+              countPosition === "top-left" ? "top-1.5 left-1.5" : "bottom-1.5 left-1.5"
+            } bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 pointer-events-none`}
+          >
+            <Camera className="h-2.5 w-2.5" />
+            {total} PHOTOS
+          </div>
+        )}
+
+        {/* Prev arrow */}
+        {total > 1 && current > 0 && (
+          <button
+            type="button"
+            onClick={handlePrev}
+            aria-label="Previous photo"
+            className={`absolute top-1/2 left-1.5 -translate-y-1/2 ${arrowBtn} bg-black/55 hover:bg-black/75 text-white flex items-center justify-center shadow-md transition-all`}
+          >
+            <ChevronLeft className={arrowIcon} />
+          </button>
+        )}
+
+        {/* Next arrow */}
+        {total > 1 && current < total - 1 && (
+          <button
+            type="button"
+            onClick={handleNext}
+            aria-label="Next photo"
+            className={`absolute top-1/2 right-1.5 -translate-y-1/2 ${arrowBtn} bg-black/55 hover:bg-black/75 text-white flex items-center justify-center shadow-md transition-all`}
+          >
+            <ChevronRight className={arrowIcon} />
+          </button>
+        )}
       </div>
 
-      {/* Photo count badge */}
-      {total > 1 && (
-        <div
-          className={`absolute ${
-            countPosition === "top-left" ? "top-1.5 left-1.5" : "bottom-1.5 left-1.5"
-          } bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 pointer-events-none`}
-        >
-          <Camera className="h-2.5 w-2.5" />
-          {total} PHOTOS
-        </div>
+      {lightboxIndex !== null && (
+        <PhotoLightbox
+          photos={photos}
+          alt={alt}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
-
-      {/* Prev arrow */}
-      {total > 1 && current > 0 && (
-        <button
-          type="button"
-          onClick={handlePrev}
-          aria-label="Previous photo"
-          className={`absolute top-1/2 left-1.5 -translate-y-1/2 ${arrowBtn} bg-black/55 hover:bg-black/75 text-white flex items-center justify-center shadow-md transition-all`}
-        >
-          <ChevronLeft className={arrowIcon} />
-        </button>
-      )}
-
-      {/* Next arrow */}
-      {total > 1 && current < total - 1 && (
-        <button
-          type="button"
-          onClick={handleNext}
-          aria-label="Next photo"
-          className={`absolute top-1/2 right-1.5 -translate-y-1/2 ${arrowBtn} bg-black/55 hover:bg-black/75 text-white flex items-center justify-center shadow-md transition-all`}
-        >
-          <ChevronRight className={arrowIcon} />
-        </button>
-      )}
-    </div>
+    </>
   );
 };
 
