@@ -622,6 +622,48 @@ export type Database = {
           },
         ]
       }
+      campaign_leads: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          email_event_id: string | null
+          id: string
+          lead_id: string
+          organization_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          email_event_id?: string | null
+          id?: string
+          lead_id: string
+          organization_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          email_event_id?: string | null
+          id?: string
+          lead_id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_leads_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_leads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_recipients: {
         Row: {
           call_id: string | null
@@ -720,12 +762,15 @@ export type Database = {
           description: string | null
           email_body: string | null
           email_subject: string | null
+          emails_queued: number | null
           failed_count: number | null
           id: string
+          leads_with_email: number | null
           max_per_hour: number | null
           max_total: number | null
           name: string
           organization_id: string
+          property_id: string | null
           scheduled_at: string | null
           sent_count: number | null
           sms_template: string | null
@@ -733,6 +778,7 @@ export type Database = {
           status: string
           target_count: number | null
           target_criteria: Json
+          total_leads: number | null
           updated_at: string | null
           voice_script: string | null
         }
@@ -745,12 +791,15 @@ export type Database = {
           description?: string | null
           email_body?: string | null
           email_subject?: string | null
+          emails_queued?: number | null
           failed_count?: number | null
           id?: string
+          leads_with_email?: number | null
           max_per_hour?: number | null
           max_total?: number | null
           name: string
           organization_id: string
+          property_id?: string | null
           scheduled_at?: string | null
           sent_count?: number | null
           sms_template?: string | null
@@ -758,6 +807,7 @@ export type Database = {
           status?: string
           target_count?: number | null
           target_criteria?: Json
+          total_leads?: number | null
           updated_at?: string | null
           voice_script?: string | null
         }
@@ -770,12 +820,15 @@ export type Database = {
           description?: string | null
           email_body?: string | null
           email_subject?: string | null
+          emails_queued?: number | null
           failed_count?: number | null
           id?: string
+          leads_with_email?: number | null
           max_per_hour?: number | null
           max_total?: number | null
           name?: string
           organization_id?: string
+          property_id?: string | null
           scheduled_at?: string | null
           sent_count?: number | null
           sms_template?: string | null
@@ -783,6 +836,7 @@ export type Database = {
           status?: string
           target_count?: number | null
           target_criteria?: Json
+          total_leads?: number | null
           updated_at?: string | null
           voice_script?: string | null
         }
@@ -800,6 +854,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
           },
         ]
       }
