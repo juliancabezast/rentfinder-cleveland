@@ -219,6 +219,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         .from("showing_available_slots")
         .select("slot_date")
         .eq("organization_id", userRecord.organization_id)
+        .eq("property_id", selectedPropertyId)
         .eq("is_enabled", true)
         .eq("is_booked", false)
         .gte("slot_date", today)
@@ -244,15 +245,25 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("showing_available_slots")
-        .select("id, slot_time, duration_minutes")
+        .select("id, slot_time, duration_minutes, property_id")
         .eq("organization_id", userRecord.organization_id)
+        .eq("property_id", selectedPropertyId)
         .eq("slot_date", dateStr)
         .eq("is_enabled", true)
         .eq("is_booked", false)
         .order("slot_time");
 
       if (error) throw error;
-      setAvailableSlots(data || []);
+      // Defensive dedup by slot_time — protects against stale duplicate rows
+      // in DB until the UNIQUE constraint is applied. Keep the earliest id
+      // per time so submit binds to a deterministic slot row.
+      const seen = new Set<string>();
+      const deduped = (data || []).filter((slot) => {
+        if (seen.has(slot.slot_time)) return false;
+        seen.add(slot.slot_time);
+        return true;
+      });
+      setAvailableSlots(deduped);
     } catch (error) {
       console.error("Error fetching available slots:", error);
       setAvailableSlots([]);
