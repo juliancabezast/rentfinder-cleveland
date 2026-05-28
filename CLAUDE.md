@@ -20,13 +20,19 @@ npx supabase functions deploy <function-name> --no-verify-jwt
 When doing "go" (commit + push), deploy any new/modified edge functions before finishing.
 
 ### Database Changes
-**NEVER run `npx supabase db push`** — migration history is out of sync with Lovable. Instead, use the Supabase Management API:
-```bash
-curl -s -X POST "https://api.supabase.com/v1/projects/glzzzthgotfwoiaranmp/database/query" \
-  -H "Authorization: Bearer sbp_76dafac83af6242b4d8c91dcabb85c592c31e404" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "YOUR SQL HERE"}'
-```
+**NEVER run `npx supabase db push`** — migration history is out of sync with Lovable. Use one of these (in order of preference):
+
+1. **MCP Supabase tools** when available (`mcp__supabase__execute_sql`, `mcp__supabase__apply_migration`) — configured via `~/.mcp.json`.
+2. **Fallback to Management API** — pull the token from `~/.mcp.json` so it never lives in this repo:
+   ```bash
+   SUPABASE_TOKEN=$(grep -oE 'access-token=sbp_[a-z0-9]+' ~/.mcp.json | cut -d= -f2)
+   curl -s -X POST "https://api.supabase.com/v1/projects/glzzzthgotfwoiaranmp/database/query" \
+     -H "Authorization: Bearer $SUPABASE_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"query": "YOUR SQL HERE"}'
+   ```
+3. **Last resort: SQL Editor** at https://supabase.com/dashboard/project/glzzzthgotfwoiaranmp/sql/new — only if neither of the above works.
+
 After pushing to GitHub, remind the user to trigger a Lovable rebuild if the live site needs updating.
 
 ## Working Style
