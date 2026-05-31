@@ -1,5 +1,5 @@
 # PROJECT COMPLETE — Rent Finder Cleveland
-## Version 14 | March 21, 2026
+## Version 15 | May 30, 2026
 
 ---
 
@@ -1832,203 +1832,270 @@ Insights stored in `investor_insights` table with types:
 
 # 22. Latest Session Update
 
-## Session: March 21, 2026
+## Session: May 27–30, 2026
 
-### Changes Since MD13 (Feb 25, 2026) — 209 Commits
+### Changes Since MD14 (Mar 21, 2026) — 303 Commits
 
-#### 1. Voice/Call Removal
-- **Removed all call/voice/Bland.ai functionality from the codebase**. The system now operates via email-based lead processing only.
-- Removed agents: Aaron (inbound calls), Ruth (SMS inbound), Joshua (campaign voice), Jonah (no-show calls), Miriam (welcome calls), Luke (email outbound direct), Joel (campaign orchestrator), Naomi (post-showing calls)
-- Removed Twilio voice/SMS integration
-- Removed Bland.ai pathway system
-- Stopped creating fake call/SMS agent tasks — use email instead
-
-#### 2. Property Groups (Building/Unit Hierarchy)
-- New `property_groups` table for multi-unit buildings (duplex/triplex/fourplex)
-- Properties link to groups via `property_group_id` FK
-- **Zillow import** now supports multi-unit properties — detects duplex/triplex/fourplex and creates property_group + individual unit rows
-- **ZillowImportDialog** (917 lines) — full import dialog with multi-unit support
-- **PropertyGroupDetail** page (445 lines) — building-level detail view
-- **PropertyGroupCard** (222 lines) and **PropertyGroupForm** (424 lines) — group UI components
-- Collapsible building rows with direct photo upload (WebP conversion)
-- Quick "+" button to add units without expanding
-- Leads count column on properties list
-- Global **PropertyRulesDialog** (166 lines) — amenities, Section 8, HUD at org level (removed per-property)
-
-#### 3. Comprehensive Showings Overhaul
-- **ShowingsList** expanded to 991 lines with metrics, filters, reports, leasing tab
-- **ShowingDetailDialog** expanded to 852 lines with:
-  - Reschedule button for cancelled/no-show/rescheduled showings with date/time picker
-  - Email notification on reschedule
-  - Voucher/Self-pay badge display
-- **ManageSlotsTab** expanded to 788 lines with:
-  - Cancelled/no-show/rescheduled showings visible in calendar
-  - Blocked time slots visible (instead of hidden)
-  - View/Cancel Showing button on booked slots
-  - Quick-enable slots from empty cells with city picker popover
-  - Slot totals, Enable Slots, and booking link on all tabs
-- **ScheduleShowingDialog** expanded to 1,047 lines with Telegram showing notification
-- Compact showing cards with single-row layout, less padding
-- Mobile-responsive showings page layout
-- Warn before deleting leads with upcoming showings in For Review tab
-
-#### 4. Telegram Showing Reminders (NEW)
-- New `showing-reminder` edge function (239 lines) — sends Telegram notifications 30 min before showings
-- Cron job `samuel-showing-reminder-5min` runs every 5 minutes
-- Uses separate **route bot** (`telegram_route_bot_token` / `telegram_route_chat_id`)
-- Message includes: address, specs, rent, Section 8 badge, lead name, voucher badge, Google Maps navigation, call link
-- Deduplication via system_logs to prevent repeat reminders
-
-#### 5. Separate Telegram Bot Support
-- **3 independent Telegram bots** configurable per organization:
-  1. Report bot (credentials table) — hourly reports, on-demand commands
-  2. Showings bot (org settings) — new showing booked notifications
-  3. Route bot (org settings) — 30-min pre-showing reminders
-- CommunicationsTab settings updated with separate bot token/chat ID fields
-
-#### 6. Campaigns System
-- New **CampaignsPage** (383 lines) with campaign list
-- **CampaignCreateWizard** (886 lines) — step-by-step campaign creation with audience builder
-- **CampaignProgressPanel** (369 lines) — real-time campaign progress tracking
-- Campaign email stats with deduplication, delivery tracking
-- Campaign cards redesigned: compact layout with larger stats numbers
-
-#### 7. Agent Task Dispatcher
-- New `agent-task-dispatcher` edge function (1,298 lines) — Nehemiah fully implemented
-- Dispatches all pending tasks from agent_tasks table
-- Also handles campaign task dispatching
-- Custom email template support for dispatched tasks
-
-#### 8. Dashboard & Agents Redesign
-- Dashboard redesigned with Agent Activity + Task Queue live panels
-- Agent control center with embedded Logs & Costs
-- **DashboardTab** (837 lines) — agent dashboard with real-time monitoring
-- **EstherPipelineTab** (379 lines) — Esther pipeline monitoring
-- **AgentActivityPanel** (282 lines), **RealTimeAgentPanel** (410 lines), **TaskQueuePanel** (336 lines)
-- Clean task queue: removed OVERDUE alarm, show UP NEXT + relative time
-
-#### 9. Email System Expansion
-- **EmailsPage** expanded to 1,129 lines with Templates tab
-- **EmailTemplatesTab** (621 lines) — full email template editor
-- Email template defaults library (331 lines)
-- Custom template support in agent-task-dispatcher
-- Campaign dedup, delivery tracking, and email log
-
-#### 10. Esther Parser Improvements
-- Replaced regex parsing with **LLM (GPT-4o-mini)** for more accurate extraction
-- Rewritten duplicate checks — only merge on hard identifiers (phone/email match)
-- Removed auto-create property — only humans add properties
-- Pipeline tab for monitoring Esther's processing
-- Narrowed merge windows from 2-5min to 15-30min
-
-#### 11. Properties Redesign
-- Compact table view with admin-only edits
-- Removed per-property amenities and pet policy (now global in Rules)
-- Property Health Check fetches fresh data on open + refresh button
-- Inline status change per unit
-- Photo upload with WebP conversion
-- Google Maps link on addresses, tel: link on phone numbers
-
-#### 12. Mobile & UI Improvements
-- Comprehensive mobile UI/UX overhaul
-- Mobile-responsive showings page
-- Dropdown scroll fixes
-- Compact campaign cards
-- Standardized all font sizes to Tailwind standard scale
-- iOS 26 glass aesthetic with frosted glass cards
-
-#### 13. Starktank Investor Page
-- New `/starktank` public page (1,215 lines) — investor pitch deck with animated carousel, YouTube embed, sections for market opportunity, real traction, revenue path
-
-#### 14. Other New Edge Functions
-- `recalculate-scores` (131 lines) — bulk score recalculation
-- `agent-system-analysis` (355 lines) — system analysis and diagnostics
-- `sync-resend-emails` (294 lines) — enhanced Resend email sync
-- `enhance-report` (108 lines) — AI-enhanced report generation
-
-#### 15. New Hooks & Libraries
-- `useDashboardAnalytics` hook (494 lines) — dashboard analytics data
-- `cityTimezone.ts` (72 lines) — DST-aware city timezone utilities
-- `emailTemplateDefaults.ts` (331 lines) — default email template content
-- `imageUtils.ts` (69 lines) — image processing utilities
-
-#### 16. Other Improvements
-- Public booking city selector for multi-city organizations
-- Apply redirect page (`/p/apply`) for DoorLoop applications
-- Voucher/Self-pay badge on showing cards and detail dialog
-- Google Maps links on addresses (excludes unit number from search)
-- tel: links on phone numbers
-- Lead count column on properties list
-- Warn before deleting leads with upcoming showings
-- delete-lead edge function used in SuspectTab to handle FK constraints
-- City-based timezone handling (not hardcoded Eastern)
-- Score recalculation from frontend
-
-### Updated Statistics (vs. MD13)
-
-| Metric | MD13 | MD14 | Change |
-|--------|------|------|--------|
-| Total LoC (src/) | 57,896 | 71,244 | **+13,348** |
-| Total LoC (supabase/) | 8,737 | 15,090 | **+6,353** |
-| Combined Total | 67,890 | 86,334 | **+18,444** |
-| Edge functions (local) | 24 | 30 | **+6** |
-| Edge function lines | 8,737 | 11,498 | +2,761 |
-| Page files | 36 | 37 | +1 |
-| Page lines | 15,044 | 18,326 | +3,282 |
-| Component files (custom) | 111 | 122 | +11 |
-| Component lines (total) | 34,895 | 41,165 | +6,270 |
-| shadcn/ui components | 52 | 52 | 0 |
-| Custom hooks | 7 | 8 | +1 |
-| Hook lines | 1,799 | 2,236 | +437 |
-| Library files | 7 | 10 | +3 |
-| Library lines | 1,100 | 1,725 | +625 |
-| Database tables | 40 | 67 | **+27** |
-| npm packages | 76 | 79 | +3 |
-| Commits (total since Feb 25) | — | 209 | — |
-
-### Key Commits Since MD13
-
-```
-bd13d4b feat: showing reminder Telegram notifications + reschedule date/time picker
-1eab472 feat: add Reschedule button for cancelled/no-show showings in detail dialog
-5c12ce1 feat: support separate Telegram bot for showing notifications
-9c2a95e feat: show cancelled/no-show/rescheduled showings in ManageSlotsTab calendar
-4f5dec8 fix: mobile-responsive showings page layout
-ad48fd8 fix: compact showing cards — single row layout, less padding
-ad523a0 feat: show Voucher/Self-pay badge on showing cards and detail dialog
-886a10a feat: quick-enable slots from empty cells with city picker popover
-d3d18d0 feat: comprehensive showings system overhaul — metrics, filters, reports, emails, leasing tab
-8bd71be feat: remove all call/voice/Bland.ai functionality from codebase
-eaac540 feat: property groups — building/unit hierarchy, WebP uploads, grouped UI
-5b890f0 feat: replace Esther regex parsing with LLM (GPT-4o-mini)
-b890fe0 feat: add Esther Pipeline tab to Agents page
-129d68a feat: properties section redesign — compact table view, admin-only edits
-975c9b6 feat: redesign ScheduleShowingDialog — better UX, available dates, email sequence
-eea24b1 feat: public booking city selector, ManageSlotsTab external controls
-3af0a59 feat: real-time campaign progress, faster polling, fix sync-resend dedup
-69b4612 feat: campaign dedup, delivery tracking, and email log
-2083a70 feat: dashboard redesign, Esther name recovery, showings grid, RLS fix
-cb15532 feat: timezone fixes, showings rewrite, Esther parser hardening
-7ee4e66 feat: add Templates tab to Emails page with full email template editor
-9f01074 feat: redesign Cost Dashboard into professional Analytics Dashboard
-6ab9ece feat: restructure AI Agents Control Center with Dashboard + embedded Logs & Costs
-e4cab28 feat: add Agent Activity + Task Queue live panels to dashboard sidebar
-```
-
-### Edge Functions Deployed (30 local, all deployed)
-
-All 30 local edge functions have been deployed to Supabase, including the 6 new ones:
-1. `agent-system-analysis` — System analysis and diagnostics
-2. `agent-task-dispatcher` — Nehemiah: task dispatcher
-3. `enhance-report` — AI-enhanced report generation
-4. `recalculate-scores` — Bulk score recalculation
-5. `showing-reminder` — 30-min pre-showing Telegram reminders
-6. `sync-resend-emails` — Enhanced Resend email sync
+This window focused on three pillars: **the public booking page (`/p/book-showing`)**, **end-to-end Campaigns hardening + new features**, and **security hardening of storage + slots**. Plus a handful of high-leverage admin fixes (Schedule Showing manual, lead search at scale, dispatcher self-healing) and infrastructure work (cron jobs, Resend webhook, Supabase MCP).
 
 ---
 
-*Document Version: 14*
-*Last Updated: March 21, 2026*
+#### 1. Public Booking Page Redesign (`/p/book-showing`)
+
+**Bugs fixed (book-public-showing edge function)**:
+- `rent_price` was missing from the property SELECT — Telegram alerts always showed empty rent.
+- Buffer-BEFORE only blocked one 30-min slot regardless of `buffer_minutes` (vs. buffer-AFTER which looped correctly).
+- `agent_tasks.scheduled_for` could land in the past for same-day bookings — guarded with `confirmationTime > now` check.
+- Email template colors `#370d4b` (legacy purple) → `#4F46E5` indigo across all templates.
+- Hardcoded "Rent Finder Cleveland • HomeGuard Management" brand → now reads `organizations.name` + `primary_color` + `accent_color`.
+- `leadEmail` variable shadowing in Telegram block — used form-only email, ignoring existing lead email.
+
+**Bugs fixed (frontend, `ScheduleShowing.tsx`)**:
+- Today's already-passed slots leaked into multi-mode counts/nextSlot — added TZ-aware filter using per-property `getTimezoneForCity`.
+- "Only X left" badge was a **hash-based fake** number (1-3 from `hashStr(address) % 3 + 1`) — now shows real `spotsNextDay`, badge style chosen by actual scarcity.
+- Phone field validated only `.trim()` non-empty — now requires 10 digits with inline error.
+- Multi-mode lead-time fetch now triggered by `properties[0]?.organization_id` (was only after a property was picked).
+
+**New design (matches user reference)**:
+- `PhotoCarousel` component: swipeable scroll-snap with **visible prev/next arrow buttons**, "📷 N PHOTOS" badge top-left, "1 / N" position counter top-right.
+- `BuildingSelectCard` and `UnitSelectCard` rebuilt as compact horizontal cards (photo ~112px left, info right, full-width CTA below). Drops from ~350px tall to ~140px.
+- Featured property card uses the same horizontal layout with amber border + "Featured" ribbon overlay.
+- Post-selection card carries the carousel through.
+- Date pills compact; optional note field; tap-photo-fullscreen viewer (commit `849224a`).
+
+**Featured property fix**:
+- Silent save failure in `useOrganizationSettings.updateSetting`: `.insert/.update` without `.select()` meant RLS-blocked writes returned no error. Switched to `upsert + select().single()` so failures surface.
+- `LandingPageTab.handleSave` toast now shows the actual error message.
+
+---
+
+#### 2. Campaigns — End-to-End Hardening + New Features
+
+##### 2.1 Initial Audit (red flags found)
+- `handleCampaign` in `agent-task-dispatcher` was a **stub** that returned "completed" without doing anything — replaced with explicit `throw` so tasks fail visibly.
+- `CampaignCreateWizard` was inserting `phone: \`no-phone-\${Date.now()}-\${rand}\`` for leads without phone — fake E.164 strings polluting the leads table and breaking dedup. Changed to `phone || null` (column is nullable since commit `47dd90a`).
+- `process-email-queue` reverted failed emails to `queued` with **no `max_attempts`, no backoff** → infinite retry storm on hard-bounced emails. Added `attempt_number` + `max_attempts` columns; emails now graduate to `failed` after 3 attempts.
+- Campaign "completed" was a false positive — marked done when queue was empty regardless of delivery. Now requires `pending === 0 AND (sent + failed) > 0`.
+- Cost recording was `unit_cost: 0.0` everywhere. Now reads `email_unit_cost` / `sms_unit_cost` from `organization_settings` (default Resend $0.001 / Twilio $0.0083).
+- `email_marketing_consent` consent gate added to `send-notification-email` — campaigns / newsletter / marketing notification types are blocked if lead has `unsubscribed_at` or `email_marketing_consent = false`. Transactional emails bypass the gate (CAN-SPAM legitimate interest).
+- Stats list query used `.contains("details", { campaign_id })` which silently returned 0 rows in production due to jsonb_contains type-coercion edge case. Switched to `.eq("details->>campaign_id", c.id)` text-path equality.
+- `CampaignProgressPanel` realtime subscription was invalidating on every email_events change in the org. Now filters payload by `payload.new.details.campaign_id`.
+- Showings count was counting **every showing each campaign lead had ever booked**, not just ones booked after the campaign launched. Now scoped by `campaigns.started_at`.
+
+##### 2.2 New Features in Wizard (`CampaignCreateWizard.tsx`)
+- **Audience Source toggle** with 3 modes:
+  - `upload` — CSV/Excel file (existing).
+  - `property_history` — every lead ever associated with the selected unit (`interested_property_id` ∪ showings ∪ prior campaign recipients), unsubscribed leads filtered out.
+  - `all_org_leads` — entire org's active leads (excludes `status IN ('lost','converted')` and `unsubscribed_at` rows). Filter applied client-side because PostgREST `NOT IN` drops NULL-status rows silently.
+- **Empty-state taxonomy** with one-click switches: `no_property` / `no_history` / `only_filtered` / `ok`.
+- **Channel selector**: Email / SMS / Both with SMS textarea, segment counter (160 / 480 hard limit), TCPA reminder.
+- **All 7 templates** exposed (was hardcoded `welcome` + `schedule_showing`).
+- **Send Pacing** select: Burst (1s) / Normal (5s) / Conservative (15s) / Trickle (1min) / Drip (5min). Stored in `campaigns.send_delay_seconds` (new column) with fallback to `target_criteria.send_delay_seconds` JSONB if column missing.
+- **Launch flow refactor — bulk insert**: was 997 sequential `send-notification-email` invocations (~8 min for 1k leads). Now 5 batched passes: resolve identities → bulk INSERT new leads (500/chunk) → bulk UPSERT campaign_leads (1000/chunk) → bulk UPSERT campaign_recipients for SMS → bulk INSERT email_events with rendered HTML (100/chunk). **Drops to ~5 seconds.**
+- **`launchStage` progress text** in the Launch button: "Resolving N leads…" → "Creating N new leads…" → "Queued X of N emails…" → "Finalizing…".
+
+##### 2.3 Pause / Resume
+- New `CampaignDetailView` with Pause + Resume buttons in the detail header.
+- On pause: flips all the campaign's queued `email_events.details.status` to `"paused"` so `process-email-queue` no longer claims them (the RPC selects by `status='queued'`). Was previously skipping in-memory after claim, which consumed batch budget and starved other campaigns.
+- On resume: flips status back to `"queued"`.
+
+##### 2.4 SMS Campaign Channel
+- New `campaign_type` values: `sms_blast`, `multi_channel`.
+- SMS recipients queued via `campaign_recipients` with `channel='sms'`, `status='pending'`.
+- New edge function **`process-sms-queue`** (~270 lines): atomic claim-and-send via `update WHERE status='pending'`, per-campaign delay from `send_delay_seconds`, invokes `send-message` (which handles TCPA + Twilio + cost recording), updates recipient row with `sent` / `failed` + error_message.
+- Skips leads without phone or without `sms_consent=true` — recorded as `failed` with reason.
+- `CampaignProgressPanel` shows SMS Progress section (Pending / Sent / Failed) when campaign has SMS recipients.
+
+##### 2.5 Real Progress Panel
+- Replaced 4-bucket conflation (queued/sent/delivered/failed where "sent" was lumped with "delivered") with **9 honest buckets**: `queued`, `processing`, `sent`, `delivered`, `opened`, `clicked`, `failed`, `bounced`, `complained`.
+- `statusPriority` map prevents downgrades (`delivered` outranks `sent`).
+- Stat cards: With Email · Queued · Sent · **Delivered** · Engaged · Bounced/Failed.
+
+---
+
+#### 3. New Edge Functions
+
+| Function | Purpose | Lines |
+|---|---|---|
+| `process-sms-queue` | SMS campaign worker mirroring `process-email-queue` | ~270 |
+| `resend-webhook` | Real-time Resend event handler with Svix signature verification | 241 |
+
+`resend-webhook` accepts `email.sent / delivered / delivery_delayed / bounced / complained / opened / clicked`, applies a status priority map so out-of-order events never downgrade a row, writes event-specific timestamps (`delivered_at`, `opened_at`, etc.) into `details`. Endpoint configured in Resend dashboard. Replaces 5-min polling delay with real-time updates.
+
+`sync-resend-emails` rewritten as multi-org cron-friendly: empty body iterates over all orgs with a Resend API key; bulk SELECT existing rows by `resend_email_id` in 100-id chunks; bulk INSERT/UPDATE partitioning; `MAX_PAGES` lowered from 20 to 5 (500 emails/run) so it fits under edge function CPU limit.
+
+---
+
+#### 4. Schedule Showing Manual Dialog Fix
+
+`ScheduleShowingDialog.tsx` had **two queries missing `.eq("property_id", selectedPropertyId)`**:
+- `fetchAvailableDates` (line 218-225) — calendar enabled every date that had ANY property's slot.
+- `fetchAvailableSlots` (line 245-252) — time picker rendered duplicate `10:30 AM` entries (one per property with a 10:30 slot).
+
+Symptom: user clicked one of the duplicate "10:30 AM" entries, expected showing for Property A, but the `slot.id` belonged to Property C. Atomic booking marked Property C's slot booked; the showing INSERT used the user's `selectedPropertyId` (correct); the all-properties block then also booked Property A's 10:30. End state: showing existed but the slot↔showing link was on the wrong property, making the user think nothing was saved.
+
+Frontend fix adds the `property_id` filter to both queries + defensive client-side dedup by `slot_time`. DB hardening adds `UNIQUE (organization_id, property_id, slot_date, slot_time)` constraint so the existing `.upsert({ onConflict: ... })` calls in `EnableSlotsDialog` and `ManageSlotsTab` become truly atomic (the constraint didn't exist before, so `onConflict` was a no-op).
+
+Lovable also wrapped the submit handler's side effects (lead score update, agent_tasks, system_logs) in try/catch (commit `a94d383`) so a single failure no longer kills the booking.
+
+---
+
+#### 5. Security Hardening
+
+##### Storage bucket RLS
+Detected by Supabase Security Advisor — applicant resumes, tenant statements, and documents were publicly readable; anyone could upload to the academy bucket. Property photos let any authenticated user delete/update across orgs.
+
+Fixed via SQL migration applied directly:
+- `applicant-files` → bucket private, all ops restricted to admin/super_admin.
+- `statements`, `documents`, `work-order-files` → bucket private, all ops admin/editor/super_admin.
+- `academy` → read by any authenticated user, write/delete by super_admin only.
+- `property-photos` → public read (booking page needs it); writes org-scoped via `(storage.foldername(name))[2]` joined to `properties.organization_id`.
+- Dropped 10 legacy `Allow read X` / `Allow uploads X` policies that gave public access.
+
+##### Showing slot anon read
+`showing_available_slots` anon SELECT now restricted to `is_enabled = true AND is_booked = false`. Internal columns (`booked_showing_id`, `booked_at`, `created_at`, etc.) no longer projected to anon traffic.
+
+---
+
+#### 6. DB Hardening Migration
+
+Single migration covering retry + uniqueness + RLS + consent + pacing:
+
+```sql
+-- email_events
+ALTER TABLE email_events
+  ADD COLUMN attempt_number INT NOT NULL DEFAULT 0,
+  ADD COLUMN max_attempts INT NOT NULL DEFAULT 3;
+
+-- UNIQUE constraints
+ALTER TABLE campaign_leads
+  ADD CONSTRAINT campaign_leads_campaign_lead_unique UNIQUE (campaign_id, lead_id);
+ALTER TABLE campaign_recipients
+  ADD CONSTRAINT campaign_recipients_campaign_lead_unique UNIQUE (campaign_id, lead_id);
+ALTER TABLE showing_available_slots
+  ADD CONSTRAINT showing_available_slots_org_property_date_time_unique
+  UNIQUE (organization_id, property_id, slot_date, slot_time);
+
+-- RLS for users (was only service_role)
+-- campaigns / campaign_leads / campaign_recipients now have authenticated
+-- read + admin/editor write policies, all org-scoped.
+
+-- Marketing consent columns
+ALTER TABLE leads
+  ADD COLUMN email_marketing_consent BOOLEAN,
+  ADD COLUMN email_marketing_consent_at TIMESTAMPTZ,
+  ADD COLUMN unsubscribed_at TIMESTAMPTZ;
+
+-- Per-campaign pacing
+ALTER TABLE campaigns
+  ADD COLUMN send_delay_seconds INT NOT NULL DEFAULT 5;
+
+-- GIN index for campaign stats queries
+CREATE INDEX idx_email_events_details_campaign_status
+  ON email_events USING gin (details jsonb_path_ops)
+  WHERE details ? 'campaign_id';
+```
+
+All code paths gracefully degrade when columns don't exist yet — wizard launch retries the INSERT without `send_delay_seconds` on 42703, consent check is wrapped in try/catch, etc.
+
+---
+
+#### 7. Dispatcher Self-Healing
+
+Production showed Cildred James receiving a Showing Reminder email reading "your scheduled property" instead of the actual address. Cause: older `agent_tasks` rows had empty `context.property_address` (queued before `book-public-showing` started passing the address).
+
+New helper `resolvePropertyAddress(supabase, ctx, fallback)` in `agent-task-dispatcher`:
+1. Returns `ctx.property_address` if non-empty.
+2. Else SELECTs from `properties` by `ctx.property_id`.
+3. Else SELECTs from `showings` by `ctx.showing_id` → `property_id` → `properties`.
+4. Only returns the literal fallback string if all three sources are empty.
+
+Applied to `handleShowingConfirmation`, `handleNoShowFollowup`, `handlePostShowing`.
+
+Old purple `#370d4b` (and related shades `#5a1d7a` / `#5b1a7a` / `#f8f5ff` / `#f9f5fc`) replaced with current design system across **29 occurrences** in the dispatcher's inline email templates.
+
+---
+
+#### 8. Cron Jobs Activated
+
+`pg_cron` + `pg_net` schedules created via SQL:
+- `process-email-queue-every-minute` — `* * * * *`
+- `process-sms-queue-every-minute` — `* * * * *`
+- `sync-resend-emails-every-5-min` — `*/5 * * * *`
+
+These run the edge functions without any body params; functions now iterate over all orgs that have the relevant credentials.
+
+---
+
+#### 9. Smaller Fixes
+
+- `ScheduleShowingDialog` lead dropdown query gained `.limit(10000)` — PostgREST default 1000 was dropping Virginia Mcbee and every other lead alphabetically past row 1000.
+- `CampaignsPage` list stats responsive (mobile 4-col grid, desktop flex).
+- `CampaignProgressPanel` realtime subscription scoped by JSONB `campaign_id`.
+- `SmsHistoryTab` cost configurable via `sms_unit_cost` org setting (was hardcoded $0.0079, Twilio US tariff is now $0.0083).
+- `FeaturedPropertiesPage` weekend calculation uses dynamic timezone via `getTimezoneForCity` (was hardcoded `America/New_York`).
+
+---
+
+#### 10. Infrastructure
+
+- **Supabase MCP** registered in `~/.mcp.json` with project-scoped access token. When Claude Code starts with the MCP server, dedicated tools (`mcp__supabase__execute_sql`, `apply_migration`, `deploy_edge_function`, etc.) replace ad-hoc curl invocations.
+- **CLAUDE.md** rewritten so the Management API token is **read from `~/.mcp.json` at call time** via a shell snippet — token no longer hardcoded in the repo (GitHub Secret Scanning was rejecting commits that touched the old hardcoded token anyway).
+
+---
+
+### Updated Statistics (vs. MD14)
+
+| Metric | MD14 | MD15 | Change |
+|--------|------|------|--------|
+| Total LoC (src/) | 71,244 | 74,271 | **+3,027** |
+| Total LoC (supabase/) | 15,090 | 12,795 | **−2,295** ¹ |
+| Combined Total | 86,334 | 87,066 | **+732** |
+| Edge functions (local) | 30 | 35 | **+5** |
+| Database tables | 67 | 67 | 0 |
+| Commits since MD14 | — | 303 | — |
+
+¹ supabase/ LoC dropped because the previous count included migration files that have been consolidated.
+
+### Key Commits Since MD14
+
+```
+b371af4 chore: read Supabase token from ~/.mcp.json instead of hardcoding
+fa436af fix(showings): Schedule Showing — duplicate times + bad slot binding
+ba990c0 Fixed 3 security issues (Lovable auto-fix)
+a94d383 fix(showings): isolate side-effects so one failure doesn't kill the booking
+b431862 fix(showings): Schedule Showing dialog couldn't find leads past row 1000
+6225166 fix(dispatcher): self-heal missing property_address in agent_task context
+1ce306c fix(campaigns): use details->>campaign_id text-path for stats query
+37a6df9 feat(campaigns): real-time delivery status via Resend webhook
+84a7b5c fix(sync-resend-emails): batch operations + multi-org cron-friendly
+68c6f68 fix(campaigns): scope showings to campaign.started_at
+fa36a1e fix(campaigns): pause/resume now flips email_events status
+f5f1273 perf(campaigns): bulk-insert launch — minutes to seconds
+7d18433 fix(campaigns): launch tolerates missing send_delay_seconds column
+bde86f8 fix(campaigns): tolerate missing email_marketing_consent column
+e5c6b63 fix(campaigns): All-Active-Leads now finds leads with NULL status
+849224a feat(booking): tap a photo to open fullscreen viewer
+9d16e0b feat(campaigns): All Active Leads mode + explicit empty states
+2f1de4f fix(booking): allow anon to read featured + city-cover settings
+43d7166 feat(campaigns): pause/resume + SMS channel
+964b436 feat(campaigns): target-by-property, pacing, all templates, real progress
+bf4243c fix(campaigns): end-to-end hardening — RLS, retry limits, real costs, consent
+c48cd76 fix(booking): compact horizontal cards + carousel arrows
+```
+
+### Edge Functions Deployed (35 local, all deployed)
+
+The 5 new local edge functions since MD14:
+1. `process-sms-queue` — SMS campaign worker (atomic claim-and-send)
+2. `resend-webhook` — Real-time Resend delivery status (Svix-signed)
+
+The remaining 3 ("new" since MD14) were already present in production but not in local repo — now synced.
+
+---
+
+*Document Version: 15*
+*Last Updated: May 30, 2026*
 *Project: Rent Finder Cleveland*
 *Architecture: Multi-Tenant SaaS*
-*Total Lines of Code: 86,334*
+*Total Lines of Code: 87,066*
