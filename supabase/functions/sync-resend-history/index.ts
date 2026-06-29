@@ -8,8 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// All app domains for filtering
-const APP_DOMAINS = ["rentfindercleveland.com", "homeguardmanagement.com", "portafoliodiversificado.com"];
+// All app domains for filtering (single-domain after 2026-06-29 reorientation)
+const APP_DOMAINS = ["rentfindercleveland.com"];
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {

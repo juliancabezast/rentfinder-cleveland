@@ -88,15 +88,9 @@ function predictConversion(lead: Record<string, unknown>, stats: {
     });
   }
 
-  // Voucher is a strong signal for commitment
-  if (lead.has_voucher) {
-    probability += 0.1;
-    factors.push({
-      factor: "Has housing voucher",
-      impact: "positive",
-      weight: 0.1,
-    });
-  }
+  // Fair Housing: source of income (housing vouchers / Section 8) must NOT influence
+  // conversion probability or ranking. Voucher status is used only for property matching
+  // (pairing voucher holders with voucher-accepting units), never as a scoring signal.
 
   // Budget clarity
   if (lead.budget_max) {

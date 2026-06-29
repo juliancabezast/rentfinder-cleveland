@@ -819,19 +819,8 @@ function detectAllIntents(message: string): { boost: number; reason: string; rea
     }
   }
 
-  // Tier 2 — Section 8 voucher (+15)
-  const section8Patterns = [
-    /\b(have|got|using|with)\s+(a\s+)?(voucher|section\s*8|hcv)/,
-    /\b(voucher|section\s*8|hcv)\s+(holder|recipient|approved|accepted)/,
-    /\bmy\s+(voucher|section\s*8|hcv)\b/,
-    /\b(voucher|section\s*8|hcv)\b/,
-  ];
-  for (const pat of section8Patterns) {
-    if (pat.test(m)) {
-      intents.push({ boost: 15, reason: "Lead mentioned Section 8 voucher", reason_code: "section8_voucher" });
-      break;
-    }
-  }
+  // Fair Housing: source of income (Section 8 / housing vouchers) must NOT boost the lead
+  // score. Voucher status is captured for property matching only, never for scoring/ranking.
 
   // Tier 3 — General engagement signals (+20)
   const engagementPatterns = [
