@@ -525,6 +525,23 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         console.error("Lead score update failed (showing still created):", scoreErr);
       }
 
+      // Persist the admin's internal notes as a lead note (mirrors public booking flow)
+      const trimmedNotes = notes.trim();
+      if (trimmedNotes) {
+        try {
+          await supabase.from("lead_notes").insert({
+            organization_id: userRecord.organization_id,
+            lead_id: selectedLeadId,
+            created_by: userRecord.id,
+            content: trimmedNotes,
+            note_type: "showing_note",
+            related_showing_id: showingData.id,
+          });
+        } catch (noteErr) {
+          console.error("Showing note save failed (showing still created):", noteErr);
+        }
+      }
+
       // Schedule Samuel confirmation task (24h before) — uses email since voice/SMS not configured
       try {
         const confirmationTime = new Date(showingDate.getTime() - 24 * 60 * 60 * 1000);

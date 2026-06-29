@@ -172,12 +172,14 @@ export async function performMerge(
   await supabase.from("referrals").update({ referred_lead_id: winnerId }).eq("referred_lead_id", loserId);
 
   // Log merge note
-  await (supabase as any).from("lead_notes").insert({
+  const { error: noteErr } = await (supabase as any).from("lead_notes").insert({
+    organization_id: winnerFull.organization_id,
     lead_id: winnerId,
-    user_id: userId,
-    note: `Merged duplicate lead (${loserFull.full_name || loserId.slice(0, 8)}) into this record. Fields kept from duplicate: ${Object.keys(overrides).filter(k => k !== "updated_at").join(", ") || "none"}.`,
-    created_at: new Date().toISOString(),
+    created_by: userId,
+    content: `Merged duplicate lead "${loserFull.full_name || loserId.slice(0, 8)}" into this record on ${new Date().toLocaleString()}. Fields kept from duplicate: ${Object.keys(overrides).filter(k => k !== "updated_at").join(", ") || "none"}.`,
+    note_type: "system",
   });
+  if (noteErr) console.error(`Merge note insert failed: ${noteErr.message}`);
 
   // Delete loser
   const { error: deleteErr } = await supabase.from("leads").delete().eq("id", loserId);
@@ -308,12 +310,17 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
         .eq("referred_lead_id", loser.id);
 
       // 4. Log the merge as a note on the winner
-      await (supabase as any).from("lead_notes").insert({
+      const { error: noteErr } = await (supabase as any).from("lead_notes").insert({
+        organization_id: userRecord?.organization_id ?? winnerFull?.organization_id ?? null,
         lead_id: winner.id,
-        user_id: userRecord?.id || null,
-        note: `Merged duplicate lead (${loser.full_name || loser.id.slice(0, 8)}) into this record. Fields kept from duplicate: ${Object.keys(overrides).filter(k => k !== "updated_at").join(", ") || "none"}.`,
-        created_at: new Date().toISOString(),
+        created_by: userRecord?.id || null,
+        content: `Merged duplicate lead "${loser.full_name || loser.id.slice(0, 8)}" into this record by ${userRecord?.full_name || userRecord?.email || "a user"} on ${new Date().toLocaleString()}. Fields kept from duplicate: ${Object.keys(overrides).filter(k => k !== "updated_at").join(", ") || "none"}.`,
+        note_type: "system",
       });
+      if (noteErr) {
+        console.error("Merge note insert failed:", noteErr.message);
+        toast.error("Merge audit note could not be saved", { description: noteErr.message });
+      }
 
       // 5. Delete the loser lead
       const { error: deleteErr } = await supabase

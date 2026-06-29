@@ -174,6 +174,17 @@ function normalizePhone(phone: string): string {
   return digits.slice(-10);
 }
 
+// Normalize a phone to E.164 for storage (US default). Falls back to the
+// trimmed original if it can't be confidently normalized so no data is lost.
+function normalizePhoneE164(phone: string): string {
+  const trimmed = phone.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (trimmed.startsWith("+")) return `+${digits}`;        // already international
+  if (digits.length === 10) return `+1${digits}`;          // US 10-digit
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return trimmed;
+}
+
 function calculateImportScore(lead: Record<string, unknown>, hasPropertyAssigned: boolean): number {
   let score = 30;
   if (lead.phone) score += 5;
@@ -567,10 +578,11 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         const lead = analyzed.data;
         const phone = (lead.phone as string) || "";
         const email = (lead.email as string) || "";
+        const phoneE164 = phone ? normalizePhoneE164(phone) : "";
         const dedupKey = phone ? normalizePhone(phone) : email.toLowerCase().trim();
         if (lead.notes) leadNoteTexts.set(dedupKey, lead.notes as string);
-        // Strip fields that are not DB columns or are trigger-managed
-        const { notes, _rowNum, lead_score, ...cleanLead } = lead;
+        // Strip fields that are not DB columns (lead_score IS a real column — keep it)
+        const { notes, _rowNum, ...cleanLead } = lead;
         const VALID_SOURCES = ["inbound_call", "hemlane_email", "website", "referral", "manual", "sms", "campaign"];
         const csvSource = (cleanLead.source as string) || "";
         return {
@@ -579,7 +591,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           source: VALID_SOURCES.includes(csvSource) ? csvSource : "campaign",
           stage: "prospect",
           full_name: analyzed.name !== "—" ? analyzed.name : null,
-          ...(phone ? { phone } : {}),
+          ...(phoneE164 ? { phone: phoneE164 } : {}),
           ...(email ? { email } : {}),
           ...(effectivePropertyId ? { interested_property_id: effectivePropertyId } : {}),
         };

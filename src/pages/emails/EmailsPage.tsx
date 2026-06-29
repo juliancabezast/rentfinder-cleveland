@@ -262,13 +262,13 @@ const EmailsPage = () => {
             query = query.not("resend_email_id", "is", null);
             break;
           case "queued":
-            query = query.is("resend_email_id", null).eq("event_type", "delivery_delayed");
+            query = query.is("resend_email_id", null).contains("details", { status: "queued" });
             break;
           case "bounced":
             query = query.contains("details", { last_event: "bounced" });
             break;
           case "failed":
-            query = query.eq("event_type", "failed");
+            query = query.contains("details", { status: "failed" });
             break;
         }
       }
@@ -314,12 +314,12 @@ const EmailsPage = () => {
           ]);
           return { count: (o || 0) + (k || 0) };
         })(),
-        // Queued = no resend_email_id + status queued
-        countQuery().is("resend_email_id", null).eq("event_type", "delivery_delayed"),
+        // Queued = no resend_email_id + details.status queued (matches per-row badge)
+        countQuery().is("resend_email_id", null).contains("details", { status: "queued" }),
         // Bounced
         countQuery().contains("details", { last_event: "bounced" }),
-        // Failed
-        countQuery().eq("event_type", "failed"),
+        // Failed — status lives in details JSONB (matches per-row badge)
+        countQuery().contains("details", { status: "failed" }),
       ]);
 
       setSentCount(cSent || 0);

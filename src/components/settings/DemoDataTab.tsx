@@ -529,51 +529,57 @@ export const DemoDataTab: React.FC = () => {
     try {
       // Delete in reverse order to respect foreign keys
       // 1. Delete score history where is_demo = true
-      const { count: scoreCount } = await supabase
+      const { count: scoreCount, error: scoreErr } = await supabase
         .from('lead_score_history')
         .delete({ count: 'exact' })
         .eq('organization_id', orgId)
         .eq('is_demo', true);
+      if (scoreErr) throw new Error(`lead_score_history: ${scoreErr.message}`);
       totalDeleted += scoreCount || 0;
 
       // 2. Delete communications where is_demo = true
-      const { count: commCount } = await supabase
+      const { count: commCount, error: commErr } = await supabase
         .from('communications')
         .delete({ count: 'exact' })
         .eq('organization_id', orgId)
         .eq('is_demo', true);
+      if (commErr) throw new Error(`communications: ${commErr.message}`);
       totalDeleted += commCount || 0;
 
       // 3. Delete showings where is_demo = true
-      const { count: showingCount } = await supabase
+      const { count: showingCount, error: showingErr } = await supabase
         .from('showings')
         .delete({ count: 'exact' })
         .eq('organization_id', orgId)
         .eq('is_demo', true);
+      if (showingErr) throw new Error(`showings: ${showingErr.message}`);
       totalDeleted += showingCount || 0;
 
       // 4. Delete calls where is_demo = true
-      const { count: callCount } = await supabase
+      const { count: callCount, error: callErr } = await supabase
         .from('calls')
         .delete({ count: 'exact' })
         .eq('organization_id', orgId)
         .eq('is_demo', true);
+      if (callErr) throw new Error(`calls: ${callErr.message}`);
       totalDeleted += callCount || 0;
 
       // 5. Delete leads where is_demo = true
-      const { count: leadCount } = await supabase
+      const { count: leadCount, error: leadErr } = await supabase
         .from('leads')
         .delete({ count: 'exact' })
         .eq('organization_id', orgId)
         .eq('is_demo', true);
+      if (leadErr) throw new Error(`leads: ${leadErr.message}`);
       totalDeleted += leadCount || 0;
 
       // 6. Delete properties where is_demo = true
-      const { count: propCount } = await supabase
+      const { count: propCount, error: propErr } = await supabase
         .from('properties')
         .delete({ count: 'exact' })
         .eq('organization_id', orgId)
         .eq('is_demo', true);
+      if (propErr) throw new Error(`properties: ${propErr.message}`);
       totalDeleted += propCount || 0;
 
       // Refresh counts from database
@@ -584,9 +590,9 @@ export const DemoDataTab: React.FC = () => {
       } else {
         toast.info('No demo data to delete');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing demo data:', error);
-      toast.error('Failed to remove all demo data');
+      toast.error(`Failed to remove all demo data — ${error?.message || 'a delete failed'}`);
     } finally {
       setRemoving(false);
     }
@@ -603,6 +609,11 @@ export const DemoDataTab: React.FC = () => {
     try {
       // Delete in correct FK order - children first, then parents
       
+      // Abort on the first delete error so a partial purge can't report success
+      const firstError = (
+        results: { table: string; error: { message: string } | null }[]
+      ) => results.find((r) => r.error);
+
       // First wave: tables with no critical FK dependencies
       const [consentResult, insightsResult, costResult, scoreResult, commResult, tasksResult] = await Promise.all([
         supabase.from('consent_log').delete({ count: 'exact' }).eq('organization_id', orgId),
@@ -612,7 +623,16 @@ export const DemoDataTab: React.FC = () => {
         supabase.from('communications').delete({ count: 'exact' }).eq('organization_id', orgId),
         supabase.from('agent_tasks').delete({ count: 'exact' }).eq('organization_id', orgId),
       ]);
-      totalDeleted += (consentResult.count || 0) + (insightsResult.count || 0) + (costResult.count || 0) + 
+      const wave1Err = firstError([
+        { table: 'consent_log', error: consentResult.error },
+        { table: 'investor_insights', error: insightsResult.error },
+        { table: 'cost_records', error: costResult.error },
+        { table: 'lead_score_history', error: scoreResult.error },
+        { table: 'communications', error: commResult.error },
+        { table: 'agent_tasks', error: tasksResult.error },
+      ]);
+      if (wave1Err) throw new Error(`${wave1Err.table}: ${wave1Err.error!.message}`);
+      totalDeleted += (consentResult.count || 0) + (insightsResult.count || 0) + (costResult.count || 0) +
                       (scoreResult.count || 0) + (commResult.count || 0) + (tasksResult.count || 0);
 
       // Second wave: showings, calls, property_alerts, investor_property_access, referrals, competitor_mentions
@@ -624,28 +644,40 @@ export const DemoDataTab: React.FC = () => {
         supabase.from('referrals').delete({ count: 'exact' }).eq('organization_id', orgId),
         supabase.from('competitor_mentions').delete({ count: 'exact' }).eq('organization_id', orgId),
       ]);
-      totalDeleted += (showingsResult.count || 0) + (callsResult.count || 0) + (alertsResult.count || 0) + 
+      const wave2Err = firstError([
+        { table: 'showings', error: showingsResult.error },
+        { table: 'calls', error: callsResult.error },
+        { table: 'property_alerts', error: alertsResult.error },
+        { table: 'investor_property_access', error: accessResult.error },
+        { table: 'referrals', error: referralsResult.error },
+        { table: 'competitor_mentions', error: competitorResult.error },
+      ]);
+      if (wave2Err) throw new Error(`${wave2Err.table}: ${wave2Err.error!.message}`);
+      totalDeleted += (showingsResult.count || 0) + (callsResult.count || 0) + (alertsResult.count || 0) +
                       (accessResult.count || 0) + (referralsResult.count || 0) + (competitorResult.count || 0);
 
       // Third wave: leads (after all lead-dependent records are gone)
-      const { count: leadsCount } = await supabase.from('leads').delete({ count: 'exact' }).eq('organization_id', orgId);
+      const { count: leadsCount, error: leadsErr } = await supabase.from('leads').delete({ count: 'exact' }).eq('organization_id', orgId);
+      if (leadsErr) throw new Error(`leads: ${leadsErr.message}`);
       totalDeleted += leadsCount || 0;
 
       // Fourth wave: properties (after all property-dependent records are gone)
-      const { count: propsCount } = await supabase.from('properties').delete({ count: 'exact' }).eq('organization_id', orgId);
+      const { count: propsCount, error: propsErr } = await supabase.from('properties').delete({ count: 'exact' }).eq('organization_id', orgId);
+      if (propsErr) throw new Error(`properties: ${propsErr.message}`);
       totalDeleted += propsCount || 0;
 
       // Finally: system_logs
-      const { count: logsCount } = await supabase.from('system_logs').delete({ count: 'exact' }).eq('organization_id', orgId);
+      const { count: logsCount, error: logsErr } = await supabase.from('system_logs').delete({ count: 'exact' }).eq('organization_id', orgId);
+      if (logsErr) throw new Error(`system_logs: ${logsErr.message}`);
       totalDeleted += logsCount || 0;
 
       // Refresh counts from database
       await fetchDemoDataCounts();
 
       toast.success(`Purge complete — ${totalDeleted} records deleted from your organization`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error purging org data:', error);
-      toast.error('Purge failed. Some records may have been deleted');
+      toast.error(`Purge aborted — ${error?.message || 'a delete failed'}. Some records may remain; please retry.`);
     } finally {
       setPurging(false);
     }
