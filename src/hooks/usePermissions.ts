@@ -4,8 +4,6 @@ import type { AppRole } from '@/types/auth';
 
 export interface Permissions {
   // Organizations
-  canViewAllOrganizations: boolean;
-  canCreateOrganization: boolean;
   canEditOrganizationSettings: boolean;
 
   // Dashboard
@@ -93,8 +91,6 @@ const createPermissions = (role: AppRole | null): Permissions => {
 
   return {
     // Organizations
-    canViewAllOrganizations: isSuperAdmin,
-    canCreateOrganization: isSuperAdmin,
     canEditOrganizationSettings: isAdminOrAbove,
 
     // Dashboard

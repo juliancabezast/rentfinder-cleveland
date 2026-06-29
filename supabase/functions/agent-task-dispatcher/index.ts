@@ -879,7 +879,7 @@ function buildShowingConfirmationEmail(
 ): string {
   return `<div style="font-family:'Montserrat',sans-serif;max-width:600px;margin:0 auto;padding:24px;">
     <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
-      <h1 style="margin:0;color:#ffb22c;font-size:20px;">Home Guard Management</h1>
+      <h1 style="margin:0;color:#ffb22c;font-size:20px;">Rent Finder Cleveland</h1>
     </div>
     <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
       <h2 style="color:#4F46E5;margin-top:0;">Showing Reminder</h2>
@@ -890,7 +890,7 @@ function buildShowingConfirmationEmail(
         <p style="margin:0;color:#666;">${escapeHtml(date)}</p>
       </div>
       <p>Please reply to this email or call us if you need to reschedule.</p>
-      <p style="color:#666;font-size:14px;">— Home Guard Management</p>
+      <p style="color:#666;font-size:14px;">— Rent Finder Cleveland</p>
     </div>
   </div>`;
 }
@@ -989,14 +989,14 @@ function buildWelcomeEmail(firstName: string, propertyInfo: string, senderDomain
 function buildNoShowEmail(firstName: string, address: string): string {
   return `<div style="font-family:'Montserrat',sans-serif;max-width:600px;margin:0 auto;padding:24px;">
     <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
-      <h1 style="margin:0;color:#ffb22c;font-size:20px;">Home Guard Management</h1>
+      <h1 style="margin:0;color:#ffb22c;font-size:20px;">Rent Finder Cleveland</h1>
     </div>
     <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
       <h2 style="color:#4F46E5;margin-top:0;">We Missed You!</h2>
       <p>Hi <strong>${escapeHtml(firstName)}</strong>,</p>
       <p>We noticed you weren't able to make it to the showing at <strong>${escapeHtml(address)}</strong>. No worries — we'd love to reschedule!</p>
       <p>Reply to this email or give us a call to find a time that works better for you.</p>
-      <p style="color:#666;font-size:14px;">— Home Guard Management</p>
+      <p style="color:#666;font-size:14px;">— Rent Finder Cleveland</p>
     </div>
   </div>`;
 }
@@ -1004,7 +1004,7 @@ function buildNoShowEmail(firstName: string, address: string): string {
 function buildPostShowingEmail(firstName: string, address: string): string {
   return `<div style="font-family:'Montserrat',sans-serif;max-width:600px;margin:0 auto;padding:24px;">
     <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
-      <h1 style="margin:0;color:#ffb22c;font-size:20px;">Home Guard Management</h1>
+      <h1 style="margin:0;color:#ffb22c;font-size:20px;">Rent Finder Cleveland</h1>
     </div>
     <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
       <h2 style="color:#4F46E5;margin-top:0;">Thanks for Visiting!</h2>
@@ -1015,7 +1015,7 @@ function buildPostShowingEmail(firstName: string, address: string): string {
         <a href="https://rentfindercleveland.com" style="background-color:#ffb22c;color:#4F46E5;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Start Application</a>
       </div>
       <p>If you have any questions or would like to schedule another showing, just reply to this email.</p>
-      <p style="color:#666;font-size:14px;">— Home Guard Management</p>
+      <p style="color:#666;font-size:14px;">— Rent Finder Cleveland</p>
     </div>
   </div>`;
 }
@@ -1163,7 +1163,7 @@ serve(async (req: Request) => {
         sender_domain:
           String(settingsMap["sender_domain"] || "rentfindercleveland.com"),
         outbound_pathway_id: settingsMap["outbound_pathway_id"] ? String(settingsMap["outbound_pathway_id"]) : null,
-        org_name: org.name || "Home Guard Management",
+        org_name: org.name || "Rent Finder Cleveland",
         email_templates: emailTemplates,
       };
 

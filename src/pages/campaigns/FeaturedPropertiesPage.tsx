@@ -362,7 +362,7 @@ const FeaturedPropertiesPage = () => {
     [propertiesWithShowings, selectedIds]
   );
 
-  const orgName = (getSetting as any)("org_name", "Home Guard Management") || "Home Guard Management";
+  const orgName = (getSetting as any)("org_name", "Rent Finder Cleveland") || "Rent Finder Cleveland";
   const senderDomain = (getSetting as any)("sender_domain", "rentfindercleveland.com") || "rentfindercleveland.com";
 
   const previewHtml = useMemo(

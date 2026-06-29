@@ -268,7 +268,7 @@ export const SAMPLE_VARIABLES: Record<string, string> = {
   "{propertyBeds}": "3",
   "{propertyBaths}": "2",
   "{showingDate}": "Saturday, March 15 at 2:00 PM",
-  "{orgName}": "Home Guard Management",
+  "{orgName}": "Rent Finder Cleveland",
   "{senderDomain}": "rentfindercleveland.com",
 };
 

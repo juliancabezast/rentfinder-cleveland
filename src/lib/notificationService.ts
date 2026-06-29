@@ -275,7 +275,7 @@ export async function sendLeadShowingEmail(params: {
   }
 
   // Also fetch org name and sender domain for variables
-  let orgName = "Home Guard Management";
+  let orgName = "Rent Finder Cleveland";
   let senderDomain = "rentfindercleveland.com";
   try {
     const { data: settingsRows } = await supabase
