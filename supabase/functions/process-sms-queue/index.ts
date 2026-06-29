@@ -268,12 +268,22 @@ serve(async (req: Request) => {
       // done, mark campaign completed. For multi_channel campaigns, the
       // email worker is the one that finalizes status.
       if ((smsPending || 0) === 0 && camp.status === "in_progress") {
-        const { data: emailLeft } = await supabase
+        // Only finalize when the EMAIL side is ALSO fully drained (both queued AND processing),
+        // so multi-channel ("both") campaigns aren't marked completed while emails keep sending.
+        // Fail-safe: on any count error, treat as NOT drained (don't finalize prematurely).
+        const { count: emailQueued, error: eqErr } = await supabase
           .from("email_events")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", camp.organization_id)
           .contains("details", { campaign_id: camp.id, status: "queued" });
-        if ((emailLeft as unknown as { count?: number } | null)?.count === 0 || !emailLeft) {
+        const { count: emailProcessing, error: epErr } = await supabase
+          .from("email_events")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", camp.organization_id)
+          .contains("details", { campaign_id: camp.id, status: "processing" });
+        const emailDrained =
+          !eqErr && !epErr && (emailQueued ?? 1) === 0 && (emailProcessing ?? 1) === 0;
+        if (emailDrained) {
           await supabase
             .from("campaigns")
             .update({

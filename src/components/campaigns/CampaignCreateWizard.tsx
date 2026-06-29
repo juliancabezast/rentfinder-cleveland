@@ -634,6 +634,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
 
       // 2. Insert leads + campaign_leads
       let emailsQueued = 0;
+      let suppressedCount = 0; // email recipients dropped by the marketing-consent gate
 
       // Get org's welcome template
       const { data: templateSetting } = await supabase
@@ -794,9 +795,56 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       // into email_events with status=queued; process-email-queue picks them
       // up on its next tick.
       if (sendsEmail) {
+        // ── Marketing-consent gate (CAN-SPAM / CASL) ──
+        // Before queueing ANY marketing email, drop leads that have either
+        // unsubscribed (`unsubscribed_at` set) or explicitly declined email
+        // marketing consent (`email_marketing_consent === false`). This mirrors
+        // the server-side gate in send-notification-email and applies to every
+        // audience source (upload, property_history, all_org_leads) as well as
+        // any dedup-matched existing leads. Brand-new upload leads have no
+        // consent state yet → treated as ALLOWED (only an explicit `false` or a
+        // set `unsubscribed_at` suppresses, matching the server's IS NOT FALSE
+        // semantics). This gate is EMAIL-only — SMS recipients (PASS 3) are
+        // unaffected. If the consent columns aren't deployed on this DB yet the
+        // SELECT errors (PGRST 42703/204); we degrade gracefully and allow all.
+        const suppressedLeadIds = new Set<string>();
+        const emailLeadIds = Array.from(
+          new Set(
+            resolved.filter((r) => r.leadId && r.email).map((r) => r.leadId!) as string[],
+          ),
+        );
+        for (let i = 0; i < emailLeadIds.length; i += 1000) {
+          const chunk = emailLeadIds.slice(i, i + 1000);
+          const { data: consentRows, error: consentErr } = await supabase
+            .from("leads")
+            .select("id, unsubscribed_at, email_marketing_consent")
+            .in("id", chunk);
+          if (consentErr) {
+            console.warn(
+              "Marketing-consent columns unavailable — allowing all email recipients:",
+              consentErr.message,
+            );
+            suppressedLeadIds.clear();
+            break;
+          }
+          for (const row of ((consentRows as Array<{
+            id: string;
+            unsubscribed_at: string | null;
+            email_marketing_consent: boolean | null;
+          }> | null) || [])) {
+            if (row.unsubscribed_at != null || row.email_marketing_consent === false) {
+              suppressedLeadIds.add(row.id);
+            }
+          }
+        }
+
         const emailEventRows: Array<Record<string, unknown>> = [];
         for (const r of resolved) {
           if (!r.leadId || !r.email) continue;
+          if (suppressedLeadIds.has(r.leadId)) {
+            suppressedCount++;
+            continue;
+          }
           const variables: Record<string, string> = {
             "{firstName}": r.firstName,
             "{fullName}": r.fullName,
@@ -860,7 +908,10 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         emailsQueued > 0 ? `${emailsQueued} emails` : null,
         sendsSms ? `${resolved.filter((r) => r.leadId && r.phone).length} SMS` : null,
       ].filter(Boolean).join(" + ");
-      toast.success(`Campaign launched! ${launched || "0"} queued.`);
+      const suppressedNote = suppressedCount > 0
+        ? ` ${suppressedCount} skipped (unsubscribed / no marketing consent).`
+        : "";
+      toast.success(`Campaign launched! ${launched || "0"} queued.${suppressedNote}`);
     } catch (err: any) {
       console.error("Campaign launch error:", err);
       toast.error(`Failed to launch campaign: ${err?.message || err}`);
