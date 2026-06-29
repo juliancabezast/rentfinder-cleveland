@@ -56,6 +56,30 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── Authenticate caller (close open-relay hole) ────────────────
+    // This function sends HTML mail from the org's verified domain; it must not be callable
+    // anonymously. Accept internal service-role calls (edge fns / queue processor / cron) OR a
+    // logged-in user; reject anon/invalid tokens.
+    const authHeader = req.headers.get("Authorization") || "";
+    const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+    if (!isServiceRole) {
+      if (!callerToken || callerToken === anonKey) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
+      if (authErr || !authData?.user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // ── Marketing consent gate ──
     // Campaign / newsletter / marketing emails check the recipient lead has
     // not unsubscribed and has positive email_marketing_consent. Transactional
