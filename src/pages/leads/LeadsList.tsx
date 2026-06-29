@@ -500,13 +500,17 @@ const LeadsList: React.FC = () => {
         ? Math.round(scoresBefore.reduce((a, b) => a + b, 0) / scoresBefore.length)
         : 0;
 
-      // Run recalculation
-      const { data, error } = await supabase.rpc("recalculate_lead_scores");
+      // Run recalculation via the org-scoped edge function (recalculate-scores).
+      // The legacy recalculate_lead_scores() RPC rewrote leads across ALL orgs and was
+      // anon-executable; this edge fn is scoped to the caller's organization.
+      const { data, error } = await supabase.functions.invoke("recalculate-scores", {
+        body: { organization_id: userRecord.organization_id },
+      });
       if (error) throw error;
 
-      const result = Array.isArray(data) ? data[0] : data;
-      const checked = result?.leads_checked || 0;
-      const updated = result?.leads_updated || 0;
+      const result = (data || {}) as { updated?: number; leads_updated?: number };
+      const checked = scoresBefore.length;
+      const updated = result?.updated ?? result?.leads_updated ?? 0;
 
       // Get avg score AFTER
       const { data: afterData } = await supabase

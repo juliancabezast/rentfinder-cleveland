@@ -42,6 +42,45 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── Authenticate caller (C2) ───────────────────────────────────
+    // Accept either an internal service-role call (other edge functions/cron) OR a
+    // logged-in user. Anonymous/unauthenticated callers are rejected, and for user
+    // callers the organization_id is derived from THEIR record (never trusted from body)
+    // to prevent cross-tenant message sending.
+    const authHeader = req.headers.get("Authorization") || "";
+    const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+
+    if (!isServiceRole) {
+      if (!callerToken || callerToken === anonKey) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
+      if (authErr || !authData?.user) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: callerRec } = await supabase
+        .from("users")
+        .select("organization_id, is_active")
+        .eq("auth_user_id", authData.user.id)
+        .single();
+      if (!callerRec || callerRec.is_active === false || !callerRec.organization_id) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Force the caller's own org — ignore any body-supplied organization_id.
+      organization_id = callerRec.organization_id;
+    }
+
     // ── Get lead info ──────────────────────────────────────────────
     const { data: lead, error: leadErr } = await supabase
       .from("leads")
@@ -60,22 +99,28 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Joseph compliance check ────────────────────────────────────
+    // ── Joseph compliance check (C4 — fail CLOSED) ─────────────────
+    // Correct RPC signature: {p_organization_id, p_lead_id, p_action_type, p_agent_key}
+    // returning jsonb {passed, violations}. Previously called with wrong arg names and
+    // compared as a boolean, so the gate never triggered (TCPA/consent bypass).
     try {
-      const { data: complianceOk } = await supabase.rpc(
+      const { data: compliance, error: complianceErr } = await supabase.rpc(
         "joseph_compliance_check",
         {
+          p_organization_id: organization_id,
           p_lead_id: lead_id,
-          p_contact_method: channel === "email" ? "email" : "sms",
+          p_action_type: channel === "email" ? "email" : "sms",
           p_agent_key: "manual",
         }
       );
+      if (complianceErr) throw complianceErr;
 
-      if (complianceOk === false) {
+      if (compliance?.passed === false) {
         return new Response(
           JSON.stringify({
             success: false,
-            error: "Compliance check failed — lead has not consented to this contact method.",
+            error: "Compliance check failed — contact is not permitted for this lead.",
+            violations: compliance?.violations ?? [],
           }),
           {
             status: 403,
@@ -84,32 +129,18 @@ serve(async (req: Request) => {
         );
       }
     } catch (complianceErr) {
-      console.warn("Joseph compliance check unavailable, using manual check:", complianceErr);
-      // If compliance function doesn't exist, proceed with manual consent check
-      if (channel === "sms" && !lead.sms_consent) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Lead has not consented to SMS messages.",
-          }),
-          {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-      if (channel === "whatsapp" && !lead.sms_consent) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Lead has not consented to WhatsApp messages.",
-          }),
-          {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
+      // Fail CLOSED: if the compliance gate cannot run, do NOT send.
+      console.error("Joseph compliance check error (failing closed):", complianceErr);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Compliance check unavailable; message blocked.",
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // ── Get org credentials ────────────────────────────────────────

@@ -258,16 +258,17 @@ async function handleShowingConfirmation(
   // Try call first if lead has phone and Bland is configured
   if (lead.phone && creds.bland_api_key && settings.outbound_pathway_id) {
     // Compliance check
-    const { data: complianceOk } = await supabase.rpc(
+    const { data: compliance, error: complianceErr } = await supabase.rpc(
       "joseph_compliance_check",
       {
+        p_organization_id: task.organization_id,
         p_lead_id: task.lead_id,
-        p_contact_method: "call",
+        p_action_type: "call",
         p_agent_key: "samuel",
       }
     );
 
-    if (complianceOk !== false) {
+    if (!complianceErr && compliance?.passed === true) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const callResp = await fetch("https://api.bland.ai/v1/calls", {
         method: "POST",
@@ -513,16 +514,17 @@ async function handleRecapture(
       throw new Error("Bland.ai not configured for outbound calls");
     }
 
-    const { data: complianceOk } = await supabase.rpc(
+    const { data: compliance, error: complianceErr } = await supabase.rpc(
       "joseph_compliance_check",
       {
+        p_organization_id: task.organization_id,
         p_lead_id: task.lead_id,
-        p_contact_method: "call",
+        p_action_type: "call",
         p_agent_key: "elijah",
       }
     );
 
-    if (complianceOk === false) {
+    if (complianceErr || compliance?.passed !== true) {
       throw new Error("Compliance check failed for recapture call");
     }
 

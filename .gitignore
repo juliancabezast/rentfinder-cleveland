@@ -24,3 +24,11 @@ dist-ssr
 *.sw?
 supabase/.temp/
 md/
+
+# Secrets / local config — never commit
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/
