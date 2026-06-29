@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -12,7 +12,6 @@ import {
   Calendar,
   Users,
   CheckCircle,
-  DollarSign,
   ChevronRight,
   FileText,
 } from "lucide-react";
@@ -25,7 +24,6 @@ interface AgentStats {
   showingsThisMonth: number;
   completedThisMonth: number;
   assignedLeads: number;
-  commissionEarned?: number;
 }
 
 interface TodayShowing {
@@ -78,9 +76,10 @@ export const AgentDashboard = () => {
   const [assignedLeads, setAssignedLeads] = useState<AssignedLead[]>([]);
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
 
-  useEffect(() => {
-    const fetchAgentData = async () => {
+  const fetchAgentData = useCallback(async () => {
       if (!userRecord?.id || !userRecord?.organization_id) return;
+
+      setLoading(true);
 
       try {
         const today = new Date();
@@ -155,9 +154,6 @@ export const AgentDashboard = () => {
           showingsThisMonth: showingsMonth.length,
           completedThisMonth,
           assignedLeads: assignedLeadsResult.data?.length || 0,
-          commissionEarned: userRecord.commission_rate
-            ? completedThisMonth * 50 // Placeholder calculation
-            : undefined,
         });
 
         // Process today's showings for route card
@@ -209,19 +205,15 @@ export const AgentDashboard = () => {
       } finally {
         setLoading(false);
       }
-    };
+  }, [userRecord?.id, userRecord?.organization_id]);
 
+  useEffect(() => {
     fetchAgentData();
-  }, [userRecord?.id, userRecord?.organization_id, userRecord?.commission_rate]);
+  }, [fetchAgentData]);
 
-  // Refresh function for route card
+  // Refresh function for route card — actually re-runs the fetch
   const refreshShowings = () => {
-    // Refetch data by triggering useEffect
-    if (userRecord?.id && userRecord?.organization_id) {
-      setLoading(true);
-      // This will trigger the useEffect
-      setTodayShowings([]);
-    }
+    fetchAgentData();
   };
 
   const handleGetDirections = (address: string) => {
@@ -306,23 +298,13 @@ export const AgentDashboard = () => {
           icon={CheckCircle}
           loading={loading}
         />
-        {stats?.commissionEarned !== undefined ? (
-          <StatCard
-            title="Commission"
-            value={`$${stats.commissionEarned.toLocaleString()}`}
-            subtitle="Estimated this month"
-            icon={DollarSign}
-            loading={loading}
-          />
-        ) : (
-          <StatCard
-            title="Assigned Leads"
-            value={stats?.assignedLeads || 0}
-            subtitle="Requiring attention"
-            icon={Users}
-            loading={loading}
-          />
-        )}
+        <StatCard
+          title="Assigned Leads"
+          value={stats?.assignedLeads || 0}
+          subtitle="Requiring attention"
+          icon={Users}
+          loading={loading}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

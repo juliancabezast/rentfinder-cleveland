@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { Brain, FileText, MessageSquare, Download } from "lucide-react";
 import { toast } from "sonner";
@@ -27,6 +28,13 @@ const PAGE_SIZE = 25;
 
 const KnowledgeHub: React.FC = () => {
   const { userRecord } = useAuth();
+
+  // Tab state from URL (?tab=documents|chat|export)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "documents";
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   // Filters state
   const [filters, setFilters] = useState<InsightFiltersState>(getDefaultFilters());
@@ -359,7 +367,7 @@ const KnowledgeHub: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="documents" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="inline-flex w-full sm:w-auto">
           <TabsTrigger value="documents" className="flex-1 sm:flex-initial gap-2">
             <FileText className="h-4 w-4" />

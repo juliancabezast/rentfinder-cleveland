@@ -14,7 +14,6 @@ import {
   DollarSign,
   MapPin,
   Target,
-  FileText,
   Brain,
   Bot,
   UserCheck,
@@ -60,7 +59,6 @@ const adminNavItems: NavItem[] = [
   { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
   { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
-  { title: 'System Logs', href: '/logs', icon: FileText, permission: 'canViewSystemLogs' },
 ];
 
 export const MobileNav: React.FC = () => {

@@ -1,6 +1,7 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,6 @@ const routeTitles: Record<string, string> = {
   '/knowledge': 'Knowledge Hub',
   '/users': 'User Management',
   '/settings': 'Settings',
-  '/logs': 'System Logs',
   '/costs': 'Cost Dashboard',
 };
 
@@ -37,6 +37,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const location = useLocation();
   const { userRecord, signOut } = useAuth();
+  const { canModifySettings } = usePermissions();
 
   const getPageTitle = () => {
     // Check exact match first
@@ -128,13 +129,17 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="/settings" className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                My Profile
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            {canModifySettings && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem
               onClick={handleSignOut}
               className="text-destructive focus:text-destructive cursor-pointer"

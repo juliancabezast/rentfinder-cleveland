@@ -219,7 +219,7 @@ const LandingPage: React.FC = () => {
                     Start Your Free Trial
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
-                  <Button size="lg" variant="outline" className="text-base px-8">
+                  <Button size="lg" variant="outline" className="text-base px-8" onClick={() => setShowDemoDialog(true)}>
                     <PlayCircle className="mr-2 h-5 w-5" />
                     Watch Demo
                   </Button>
