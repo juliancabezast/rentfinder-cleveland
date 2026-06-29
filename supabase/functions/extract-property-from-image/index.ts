@@ -27,6 +27,30 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── Authenticate caller (close open-relay hole) ────────────────
+    // Called from the authenticated frontend (ZillowImportDialog). This spends the org's
+    // OpenAI credits, so it must not be callable anonymously. Accept an internal
+    // service-role call OR a logged-in user; reject anon/invalid tokens.
+    const authHeader = req.headers.get("Authorization") || "";
+    const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+    if (!isServiceRole) {
+      if (!callerToken || callerToken === anonKey) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
+      if (authErr || !authData?.user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // ── Get OpenAI key from organization_credentials ──────────────
     const { data: creds } = await supabase
       .from("organization_credentials")

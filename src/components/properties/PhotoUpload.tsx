@@ -87,9 +87,11 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
           }
 
           const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
+          // New-property uploads go to an org-scoped temp prefix so storage RLS can authorize
+          // them (a bare properties/temp/ path matched no property row and failed for non-admins).
           const filePath = propertyId
             ? `properties/${propertyId}/${fileName}`
-            : `properties/temp/${fileName}`;
+            : `properties/temp/${userRecord?.organization_id ?? "unknown"}/${fileName}`;
 
           const { error: uploadError } = await supabase.storage
             .from('property-photos')

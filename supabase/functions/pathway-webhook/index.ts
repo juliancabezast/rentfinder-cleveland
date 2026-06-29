@@ -54,9 +54,19 @@ serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  // ── Verify webhook authenticity ──────────────────────────────────────
+  // ── Verify webhook authenticity (fail-CLOSED) ────────────────────────
+  // Previously this only verified when BLAND_WEBHOOK_SECRET was set, silently
+  // accepting unverified payloads otherwise (fail-open). Now: if the secret is not
+  // configured we REJECT outright, so spoofed payloads can never be processed.
   const webhookSecret = Deno.env.get("BLAND_WEBHOOK_SECRET");
-  if (webhookSecret) {
+  if (!webhookSecret) {
+    console.error("pathway-webhook: BLAND_WEBHOOK_SECRET not configured — rejecting request");
+    return new Response(
+      JSON.stringify({ error: "Webhook authentication not configured" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  {
     const authHeader = req.headers.get("authorization") || "";
     const providedSecret = req.headers.get("x-webhook-secret") || authHeader.replace("Bearer ", "");
     if (providedSecret !== webhookSecret) {

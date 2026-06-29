@@ -24,6 +24,18 @@ serve(async (req: Request) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // ── Authenticate caller (service-role only) ────────────────────
+    // This is a cron/background bulk sync. Only the scheduler / internal edge calls
+    // (which carry the service-role key) may invoke it. Reject user/anon callers.
+    const authHeader = req.headers.get("Authorization") || "";
+    const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (callerToken !== serviceRoleKey) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Accept optional organization_id from request body
     let targetOrgId: string | null = null;
     try {

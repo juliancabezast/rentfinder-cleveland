@@ -388,6 +388,48 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── Authenticate caller (close open-relay hole) ────────────────
+    // This is called from the authenticated frontend (ZillowImportDialog / PropertyForm).
+    // Accept an internal service-role call OR a logged-in user; reject anon/invalid tokens.
+    // For user callers, derive the org from THEIR record and reject if the body-supplied
+    // organization_id doesn't match (it was previously trusted blindly => cross-tenant risk).
+    const authHeader = req.headers.get("Authorization") || "";
+    const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+    if (!isServiceRole) {
+      if (!callerToken || callerToken === anonKey) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
+      if (authErr || !authData?.user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: callerRec } = await supabase
+        .from("users")
+        .select("organization_id, is_active")
+        .eq("auth_user_id", authData.user.id)
+        .single();
+      if (!callerRec || callerRec.is_active === false || !callerRec.organization_id) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (organization_id !== callerRec.organization_id) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: organization mismatch" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const zpid = extractZpid(zillow_url);
 
     // ── Try RapidAPI if key is available ─────────────────────────────
