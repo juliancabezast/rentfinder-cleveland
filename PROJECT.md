@@ -1,10 +1,65 @@
 # PROJECT COMPLETE — Rent Finder Cleveland
-## Version 15 | May 30, 2026
+## Version 16 | June 29, 2026
+
+---
+
+# MD16 — Reorientation to Single-Domain + System Saneamiento (2026-06-29)
+
+> This snapshot supersedes MD15 (May 30, 2026). It records a strategic reorientation, the findings of a full system audit, and the sequential remediation ("saneamiento") plan now in progress. All factual sections below have been corrected to match the live database and code (6 agents / 4 departments, voice removed, real DB counts, single tenant).
+
+## A. The Reorientation Decision
+
+- **Single domain.** The product now targets **only `rentfindercleveland.com`**. The legacy "3 apps / 3 domains on 1 Supabase DB" model (which also listed `homeguardmanagement.com` and `portafoliodiversificado.com`) is historical/aspirational and out of product scope.
+- **Brands removed.** HomeGuard Management and Portafolio Diversificado are removed from product scope. The 10DLC / SMS legal copy that still references those brands is **flagged for separate legal review** (not silently deleted). The functional `homeguard.app.doorloop.com` DoorLoop URLs are **retained** — they are the live apply/portal endpoints, not brand identity.
+- **Single-tenant consolidation (non-destructive).** The database holds exactly **one organization**: "Smart Leasing AI", slug `rent-finder-cleveland`. This is a consolidation, not a collapse: every table keeps `organization_id` and all RLS policies remain active as defense-in-depth, so the multi-tenant plumbing can be re-activated later without a migration.
+- **Voice is gone.** All Bland.ai / voice-call functionality is removed. Twilio remains for **SMS only** (plus `fetch-twilio-messages`).
+
+## B. Audit Summary (June 2026)
+
+**What works well**
+- Core CRUD + dashboards + auth across 5 roles, build is clean (Vite, 0 errors).
+- Email pipeline (queue → Resend → webhook), campaigns (email + SMS), public showing booking, DoorLoop sync, Telegram reporting, identity verification (Persona → MaxMind fallback).
+- Multi-tenant RLS scaffolding is broad (291 policies) and storage buckets were hardened in MD15.
+
+**Key broken / risky items by severity**
+
+| Severity | Finding |
+|----------|---------|
+| **CRITICAL** | `users` self-update RLS allowed privilege escalation (a user could change their own `role`/`organization_id`). |
+| **CRITICAL** | `send-message` edge function was effectively unauthenticated — any caller could send email/SMS on the org's behalf. |
+| **CRITICAL** | `recalculate_lead_scores` / `log_score_change` granted `EXECUTE` to the `anon` role — anonymous score manipulation. |
+| **CRITICAL** | `joseph_compliance_check()` call sites failed *open* — on error/exception the outbound contact proceeded instead of being blocked (dead compliance gate). |
+| **HIGH** | Scoring audit trigger `prevent_direct_lead_score_update` is **DISABLED** — `lead_score_history` integrity is convention-only. |
+| **HIGH** | Doc drift: docs claimed 11 agents / 6 Spanish departments, voice calls, and stale DB counts (32 tables / 131 RLS / 19 fns / 12 triggers) vs. real 67 / 291 / 77 / 33. |
+| **HIGH** | Brand/domain hardcoding referencing HomeGuard/Portafolio in legal + email copy. |
+| **MEDIUM** | DB performance: missing/duplicative indexes, unindexed FKs flagged by Supabase advisors. |
+| **MEDIUM** | Source/schema drift: many tables (property_groups, campaigns, etc.) created via Management API, not in local migrations; edge-function code duplication (~45%, no `_shared/`). |
+| **MEDIUM/LOW** | Build hardening (~40 `any` types), dual toast system, Fair-Housing prompt review, and a UI/UX live-test pass. |
+
+## C. Sequential Remediation Plan (Phases 0–11)
+
+Executed in strict order; each phase verified before the next begins.
+
+| Phase | Name | Scope |
+|-------|------|-------|
+| **0** | Secrets + branch | Rotate/verify secrets, confirm token reads from `~/.mcp.json`, create a working branch. |
+| **1** | Critical security | Block `users` self-escalation via trigger; revoke `anon` EXECUTE on `recalculate_lead_scores`/`log_score_change`; authenticate `send-message`; make `joseph_compliance_check` call sites fail-closed. |
+| **2** | Docs / MD16 | Correct doc drift (this snapshot + CLAUDE.md + PROJECT.md): 6 agents/4 depts, voice removed, real DB counts. |
+| **3** | Brand removal | Remove HomeGuard & Portafolio from product surfaces; flag their 10DLC/SMS legal text for legal review; keep functional DoorLoop `homeguard.app.doorloop.com` URLs. |
+| **4** | Single-tenant consolidation | Confirm one org; keep `organization_id` + RLS as defense-in-depth; remove multi-domain assumptions from runtime. |
+| **5** | High-sec + functional bugs | Enable/clean the score audit trigger, fix remaining auth/RLS gaps and functional defects. |
+| **6** | Compliance / Fair-Housing | Re-verify TCPA consent gating and Fair-Housing scoring prompts; ensure no protected-class proxies. |
+| **7** | DB performance | Add missing indexes, index unindexed FKs, remove duplicates per Supabase advisors. |
+| **8** | Source / schema drift | Reconcile Management-API-created tables into migrations; reduce edge-function duplication. |
+| **9** | Build hardening | Reduce `any` types, consolidate toast system, ensure clean `vite build` + lint + tests. |
+| **10** | UI/UX live test | End-to-end live testing of the single-domain product across all 5 roles. |
+| **11** | Final verify + deploy | Full verification, deploy edge functions, push, trigger Lovable rebuild. |
 
 ---
 
 # Table of Contents
 
+0. [MD16 — Reorientation to Single-Domain + System Saneamiento (2026-06-29)](#md16--reorientation-to-single-domain--system-saneamiento-2026-06-29)
 1. [Project Overview](#1-project-overview)
 2. [Current State](#2-current-state)
 3. [Tech Stack](#3-tech-stack)
@@ -38,14 +93,12 @@ Rent Finder Cleveland is an AI-powered lead management SaaS platform for propert
 
 **SaaS Vision**: While launching as Rent Finder Cleveland, the platform is architected from day one to support multiple property management companies (tenants) as a white-label SaaS product. Each organization operates in complete data isolation with customizable branding, workflows, and pricing rules.
 
-## 1.2 Multi-App Architecture
+## 1.2 Architecture (Single-Domain Consolidation)
 
-Three domains sharing one Supabase database:
-- **rentfindercleveland.com** — Primary instance
-- **homeguardmanagement.com** — Second tenant
-- **portafoliodiversificado.com** — Third tenant (Spanish-focused)
+The product runs as a **single tenant on a single domain**:
+- **rentfindercleveland.com** — the only active domain (organization "Smart Leasing AI", slug `rent-finder-cleveland`).
 
-Each domain operates as a separate organization with independent branding, API keys, and settings, all on a shared infrastructure.
+**Historical note**: earlier snapshots described a multi-app model where three domains (rentfindercleveland.com, homeguardmanagement.com, portafoliodiversificado.com) shared one Supabase database. As of MD16 that model is **historical/aspirational** — HomeGuard and Portafolio have been removed from product scope. The multi-tenant plumbing (`organization_id` on every table + RLS scoping) is **retained as defense-in-depth**, so additional tenants/domains can be re-introduced later without a destructive migration.
 
 ## 1.3 Core Problems Solved
 
@@ -94,10 +147,12 @@ English (primary) with Spanish language support for prospect-facing interactions
 | Phase 12: Showings Overhaul | Code Complete | Metrics, filters, reports, email notifications, leasing tab, showing reminders |
 | Phase 13: Telegram Showing Reminders | Code Complete | 30-min pre-showing Telegram notifications with Google Maps + call links |
 | Pre-Production Deep Audit | Complete | 32-bug deep audit across all edge functions + frontend (security, multi-tenant, functional, hardcoding) |
-| Voice/Bland.ai Removal | Complete | All call/voice/Bland.ai functionality removed from codebase (not yet configured) |
-| Documentation System | Complete | PROJECT.md (source of truth) + incremental snapshots (MD5-MD14) |
+| Voice/Bland.ai Removal | Complete | All call/voice/Bland.ai functionality removed from codebase (Twilio retained for SMS only) |
+| Single-Domain Reorientation (MD16) | In Progress | Single domain (rentfindercleveland.com); HomeGuard & Portafolio removed from product scope; single-tenant consolidation (RLS retained as defense-in-depth) |
+| System Saneamiento (MD16) | In Progress | Sequential 12-phase remediation (Phases 0–11): critical security, docs, brand removal, compliance, DB performance, schema drift, build hardening, live test |
+| Documentation System | Complete | PROJECT.md (source of truth) + incremental snapshots (MD5-MD16) |
 
-**Status**: Code complete. In active production configuration and testing.
+**Status**: Code complete. Undergoing single-domain reorientation and a sequential security/quality remediation (see top "MD16" section).
 
 ## 2.2 Codebase Statistics
 
@@ -110,7 +165,7 @@ English (primary) with Spanish language support for prospect-facing interactions
 | **TS files** | 10,180 lines |
 | **CSS files** | 481 lines |
 | **SQL migrations** | 3,592 lines |
-| **Edge functions (Deno TS)** | 11,498 lines (30 local directories) |
+| **Edge functions (Deno TS)** | 35 local directories |
 | **Page Files** | 37 (18,326 lines) |
 | **Custom Components** | 122 |
 | **shadcn/ui Components** | 52 |
@@ -122,13 +177,14 @@ English (primary) with Spanish language support for prospect-facing interactions
 | **Integration Files** | 2 (5,156 lines) |
 | **Database Tables** | 67 |
 | **Database Views** | 1 |
-| **RLS Policies (estimated active)** | ~250+ |
-| **Database Functions (RPCs)** | 40+ |
-| **Database Triggers** | 11 |
+| **RLS Policies (verified, live DB)** | 291 |
+| **Database Functions** | 77 |
+| **Database Triggers** | 33 |
 | **Database Enums** | 1 (app_role) |
 | **SQL Migrations** | 28 (3,592 lines) |
-| **Edge Functions (deployed in Supabase)** | 50+ |
-| **Edge Functions (local repo)** | 30 |
+| **Edge Functions (deployed total)** | 66 (35 from local repo + 31 Lovable-only) |
+| **Edge Functions (local repo)** | 35 |
+| **Organizations (tenants)** | 1 (Smart Leasing AI / `rent-finder-cleveland`) |
 | **Cron Jobs** | 2 (property alert check + samuel-showing-reminder-5min) |
 | **npm Dependencies** | 58 |
 | **npm devDependencies** | 21 |
@@ -166,15 +222,16 @@ vite v6 built in ~3.9s — 0 errors, 0 warnings
 
 | Service | Purpose | Edge Functions Using It |
 |---------|---------|----------------------|
-| **OpenAI** | Scoring, transcript analysis, insights, PAIp chat, AI Chat, Esther LLM parsing | Daniel (scoring), Isaiah (transcript), Solomon (prediction), Moses (insights), David (reports), ai-chat, agent-hemlane-parser, PAIp assistant |
-| **Persona** | Identity verification before showings (primary) | Joseph (compliance check / verification), verify-identity (primary provider) |
+| **OpenAI** | Scoring, transcript analysis, insights, PAIp chat, AI Chat, Esther LLM parsing | Nehemiah (scoring/transcript/prediction/insights/reports via agent-task-dispatcher), ai-chat, agent-hemlane-parser, PAIp assistant |
+| **Persona** | Identity verification before showings (primary) | verify-identity (primary provider); compliance gate is the `joseph_compliance_check()` DB RPC |
 | **MaxMind** | Identity verification via minFraud risk scoring (Plan B) | verify-identity (fallback provider), test-integration, agent-health-checker |
-| **Doorloop** | Application/lease status sync, prospect push | Ezra (pull), sync-leads-to-doorloop (push), send-application-invite |
-| **Resend** | Transactional email, queue processing, history sync | process-email-queue, send-notification-email, book-public-showing, sync-resend-history, sync-resend-emails |
+| **Doorloop** | Application/lease status sync, prospect push | Samuel (pull, agent-doorloop-pull), sync-leads-to-doorloop (push), send-application-invite |
+| **Resend** | Transactional email, queue processing, history sync | process-email-queue, send-notification-email, book-public-showing, sync-resend-history, sync-resend-emails, resend-webhook |
+| **Twilio** | **SMS only** (voice removed) — campaign blasts + outbound messages | send-message, process-sms-queue, fetch-twilio-messages |
 | **Gmail / Hemlane** | Parse Hemlane lead notification emails | Esther (Hemlane parser with LLM-powered extraction) |
-| **Telegram** | On-demand reports, hourly activity updates, showing reminders | telegram-webhook, agent-hourly-report, showing-reminder |
+| **Telegram** | On-demand reports, hourly activity updates, showing reminders | telegram-webhook, agent-hourly-report, showing-reminder, send-telegram-notification |
 
-**Removed** (as of Feb 2026): Twilio (voice/SMS), Bland.ai (AI voice conversations), Google Sheets backup. All call/voice functionality has been stripped from the codebase.
+**Removed**: Bland.ai (AI voice conversations) and all voice-call functionality, plus Google Sheets backup. **Twilio is retained for SMS only** — voice has been fully stripped from the codebase. The `pathway-webhook` function remains in the repo only as a legacy Bland.ai reference and is not part of the active flow.
 
 ---
 
@@ -530,6 +587,8 @@ CREATE TABLE leads (
 
 ## 5.3 Key Database Functions (RPCs)
 
+The live database has **77 functions** in the `public` schema. The most important ones are listed below.
+
 | # | Function | Purpose | Type |
 |---|----------|---------|------|
 | 1 | `get_user_role(auth_user_id)` | Returns user role from auth UUID (overloaded: no-arg version) | Helper |
@@ -573,9 +632,11 @@ CREATE TABLE leads (
 | 39 | `rebekah_find_alternatives(property_id, org_id)` | Find alternative properties | Matching |
 | 40 | `rebekah_match_properties(org_id, criteria)` | Match properties to lead preferences | Matching |
 
-## 5.4 All 11 Database Triggers
+## 5.4 Database Triggers (33 total)
 
-### Updated_at Triggers (10)
+The live database has **33 non-internal triggers**. The majority are `updated_at` row-stamp triggers across the 67 tables; the representative set below covers the core tables and the one business-logic trigger. The scoring audit trigger `prevent_direct_lead_score_update` exists but is **DISABLED** (see note).
+
+### Updated_at Triggers (representative)
 | # | Trigger | Table |
 |---|---------|-------|
 | 1 | `update_organizations_updated_at` | organizations |
@@ -665,12 +726,13 @@ CREATE TABLE leads (
 
 ## 6.2 RLS Policy Architecture
 
-- **~250+ Row Level Security policies** across all tables (67 tables)
-- **Multi-tenant scoping**: Every policy checks `organization_id = get_user_organization_id(auth.uid())`
+- **291 Row Level Security policies** (verified, live DB) across all tables (67 tables)
+- **Multi-tenant scoping**: Every policy checks `organization_id = get_user_organization_id(auth.uid())`. Retained as defense-in-depth even though the system currently runs a single tenant.
 - **Security Definer functions**: `get_user_role`, `get_user_organization_id`, `has_role`, `is_super_admin`, `is_admin`, `is_editor_or_above` called from within RLS policies
 - **Programmatic deny_anon policies**: Sensitive tables deny all anonymous access
+- **Privilege-escalation fix (MD16)**: `users` self-update is now blocked by a trigger so a user can no longer change their own `role`/`organization_id`; `anon` EXECUTE was revoked from `recalculate_lead_scores` / `log_score_change`.
 - **Exception**: `demo_requests` allows anonymous INSERT for landing page form submissions
-- **Exception**: `showing_available_slots` allows anonymous SELECT for public scheduling page
+- **Exception**: `showing_available_slots` allows anonymous SELECT (restricted to `is_enabled = true AND is_booked = false`) for public scheduling page
 
 ---
 
@@ -775,6 +837,8 @@ Every score change MUST be logged in `lead_score_history` with:
 
 The `log_score_change()` database function handles all of this atomically, clamping scores to 0-100 and auto-setting `is_priority = true` when score >= 85.
 
+**Enforcement note (MD16)**: This is **convention, not hard-enforced**. The audit-trail trigger `prevent_direct_lead_score_update` — which would force every `leads.lead_score` write through `log_score_change()` — is currently **DISABLED**. Until it is re-enabled, scoring changes should go through `log_score_change` / the `recalculate-scores` edge function by convention. (`anon` EXECUTE on these scoring RPCs was revoked in the MD16 security pass.)
+
 ## 8.5 Priority Lead Triggers
 
 A lead becomes `is_priority = true` when:
@@ -841,50 +905,39 @@ Allow team members to take manual control of high-value or sensitive leads, paus
 
 ## 10.1 Overview
 
-AI agents organized by department, implemented as Supabase Edge Functions (Deno). The local repository contains 30 edge function directories; additional agents are deployed directly in Supabase (50+ total deployed).
+The canonical agent model is **6 agents in 4 English departments** (source of truth: `src/components/agents/constants.ts`). Agents are implemented as Supabase Edge Functions (Deno). The local repository contains **35** edge function directories; combined with Lovable-only functions there are **66 deployed** in Supabase.
 
-**Note**: All voice/call agents (Aaron, Deborah, Ruth, Joshua, Jonah, Miriam, Luke, Joel, Naomi) have been removed from the codebase. The system now operates via email-based lead processing only.
+**Voice removed**: All voice/call agents and Bland.ai integration have been removed from the codebase. The system now operates via **email-based lead processing** (plus SMS via Twilio for campaigns). **Aaron is NOT a voice agent** — it is the email-based "Inbound Lead Processing" agent.
 
-## 10.2 Active Agent Departments
+**Consolidation**: The older agent roster (Daniel, Isaiah, Solomon, Moses, David, Ezra, Deborah, Ruth, etc.) has been consolidated into 6 canonical agents. `LEGACY_TO_CANONICAL` maps the old keys: Daniel/Isaiah/Solomon/Moses/David → **Nehemiah**; Ezra → **Samuel**. **Deborah** and **Ruth** are removed (SMS automation to be replaced by n8n).
 
-### Recepcion (1 agent)
-| Biblical Name | Edge Function | Purpose |
-|--------------|---------------|---------|
-| **Esther** | `agent-hemlane-parser` | Parses Hemlane lead notification emails with LLM-powered extraction (GPT-4o-mini), smart property matching |
+## 10.2 Active Agent Departments (6 agents / 4 departments)
 
-### Evaluacion (2 agents)
-| Biblical Name | Edge Function | Purpose |
-|--------------|---------------|---------|
-| **Daniel** | `agent-scoring` (deployed in Supabase) | AI lead scoring with OpenAI, Fair Housing compliance enforced |
-| **Isaiah** | `agent-transcript-analyst` (deployed in Supabase) | Deep analysis of transcripts for insights and patterns |
+### Qualification (`calificacion`) — 3 agents
+| Biblical Name | Canonical Role | Edge Function | Purpose |
+|--------------|----------------|---------------|---------|
+| **Aaron** | Inbound Lead Processing | (email intake) | Processes inbound leads — **EMAIL-based, not calls**. Captures name/email/phone, hands off to qualification. |
+| **Esther** | Email Reception | `agent-hemlane-parser` | Parses Hemlane lead notification emails with LLM-powered extraction (GPT-4o-mini), smart property matching, dedup. |
+| **Nehemiah** | Qualification Analyst + sole dispatcher | `agent-task-dispatcher` | Orchestrates ALL pending tasks in `agent_tasks` (cron). **Absorbs** scoring, transcript analysis, conversion prediction, insights, reports, and notifications (the old Daniel/Isaiah/Solomon/Moses/David roles). Also dispatches campaign tasks. |
 
-### Operaciones (1 agent — sole dispatcher)
-| Biblical Name | Edge Function | Purpose |
-|--------------|---------------|---------|
-| **Nehemiah** | `agent-task-dispatcher` | Orchestrates ALL pending tasks from agent_tasks table (cron every 5 min). Also dispatches campaign tasks. |
+### Leasing — 1 agent
+| Biblical Name | Canonical Role | Edge Function | Purpose |
+|--------------|----------------|---------------|---------|
+| **Elijah** | Leasing Consultant | `agent-recapture` (+ campaign paths) | Outbound contact: campaigns, recapture of dropped/disengaged leads, welcome sequences. |
 
-### Ventas (2 agents)
-| Biblical Name | Edge Function | Purpose |
-|--------------|---------------|---------|
-| **Elijah** | `agent-recapture` (deployed in Supabase) | Follow-up with dropped/disengaged leads via email |
-| **Samuel** | `agent-showing-confirmation` (deployed in Supabase) + `showing-reminder` | Full showing lifecycle: confirmation emails, no-show follow-up, 30-min pre-showing Telegram reminder |
+### Closing (`cierre`) — 1 agent
+| Biblical Name | Canonical Role | Edge Function | Purpose |
+|--------------|----------------|---------------|---------|
+| **Samuel** | Closing Agent | `agent-showing-confirmation` + `showing-reminder` + `agent-doorloop-pull` / `sync-leads-to-doorloop` | Full showing → application → close lifecycle: confirmation emails, no-show / post-showing follow-up, 30-min pre-showing Telegram reminder, and DoorLoop application/lease pull (the old Ezra role). |
 
-### Inteligencia (3 agents)
-| Biblical Name | Edge Function | Purpose |
-|--------------|---------------|---------|
-| **Solomon** | `agent-conversion-predictor` (deployed in Supabase) | ML-based prediction of lead conversion probability |
-| **Moses** | `agent-insight-generator` (deployed in Supabase) | Generate narrative insights from lead/property data |
-| **David** | `agent-report-generator` (deployed in Supabase) | Generate comprehensive reports (investor, performance) |
+### System (`sistema`) — 1 agent
+| Biblical Name | Canonical Role | Edge Function | Purpose |
+|--------------|----------------|---------------|---------|
+| **Zacchaeus** | Health & Cost Monitor | `agent-health-checker` | Health monitoring of all services + cost tracking (cost function called by 16+ edge functions). |
 
-### Administracion (1 agent)
-| Biblical Name | Edge Function | Purpose |
-|--------------|---------------|---------|
-| **Ezra** | `agent-doorloop-pull` / `sync-leads-to-doorloop` | Doorloop Bridge: bidirectional sync of applications and lease status |
+**Joseph is NOT a department agent** — it is the `joseph_compliance_check()` DB RPC, a TCPA / Fair-Housing gate invoked before outbound contact (now fail-closed; see §10.5 and §11).
 
-**Support agents**:
-- **Zacchaeus**: Cost tracking function called by 16+ edge functions; health monitoring via `agent-health-checker`
-
-## 10.3 All 30 Local Edge Functions
+## 10.3 All 35 Local Edge Functions
 
 | Function | Lines | Purpose |
 |----------|:-----:|---------|
@@ -914,10 +967,15 @@ AI agents organized by department, implemented as Supabase Edge Functions (Deno)
 | `showing-reminder` | 239 | **NEW** 30-min pre-showing Telegram reminder with Google Maps + call links |
 | `sync-leads-to-doorloop` | 192 | Multi-tenant DoorLoop prospect push (bulk sync) |
 | `sync-resend-emails` | 294 | **NEW** Enhanced Resend email sync |
-| `sync-resend-history` | 234 | Multi-tenant Resend email history sync for all 3 domains |
+| `sync-resend-history` | 234 | Resend email history sync (org-iterating; single active domain) |
 | `telegram-webhook` | 140 | Telegram bot webhook for on-demand reports |
 | `test-integration` | 357 | Test external service connections |
 | `verify-identity` | 338 | Identity verification with Persona->MaxMind fallback |
+| `process-sms-queue` | ~270 | SMS campaign worker mirroring process-email-queue (atomic claim-and-send via Twilio) |
+| `resend-webhook` | 241 | Real-time Resend delivery-status handler with Svix signature verification |
+| `fetch-twilio-messages` | — | Pull inbound/outbound Twilio SMS history (SMS only — no voice) |
+| `generate-property-description` | — | AI-generated property listing copy |
+| `send-telegram-notification` | — | Generic Telegram notification sender |
 
 ## 10.4 Showing Reminder System (NEW)
 
@@ -932,7 +990,7 @@ The `showing-reminder` edge function sends Telegram notifications 30 minutes bef
 
 ## 10.5 Compliance Gates
 
-**Joseph Compliance Check** — Outbound agents require TCPA compliance verification before execution.
+**Joseph Compliance Check** — the `joseph_compliance_check()` DB RPC (NOT a department agent). Outbound paths must pass this TCPA / Fair-Housing gate before execution. As of MD16 the call sites are **fail-closed**: on error/exception the contact is blocked rather than allowed through.
 
 **Zacchaeus Cost Tracking** — 16+ functions call cost recording after execution.
 
@@ -943,7 +1001,10 @@ The `showing-reminder` edge function sends Telegram notifications 30 minutes bef
 | Property alert check | Daily 9:00 AM EST | `check_coming_soon_expiring()` |
 | Showing reminder | Every 5 min | `showing-reminder` edge function (`samuel-showing-reminder-5min`) |
 | Task dispatcher | Every 5 min (planned) | Nehemiah `agent-task-dispatcher` |
-| Doorloop sync | Every 15 min (planned) | Ezra `agent-doorloop-pull` |
+| Doorloop sync | Every 15 min (planned) | Samuel `agent-doorloop-pull` |
+| Email queue | Every minute | `process-email-queue` |
+| SMS queue | Every minute | `process-sms-queue` |
+| Resend sync | Every 5 min | `sync-resend-emails` |
 
 ---
 
@@ -966,12 +1027,12 @@ The `showing-reminder` edge function sends Telegram notifications 30 minutes bef
 
 | Requirement | Implementation | Status |
 |-------------|---------------|--------|
-| Prior express written consent | `SmsConsentCheckbox` component covers both automated calls AND SMS. Consent defaults to `false`, opt-in required | PASS |
+| Prior express written consent | `SmsConsentCheckbox` component; consent defaults to `false`, opt-in required. **Voice removed** — TCPA now applies to **SMS** (Twilio) and email only; legacy "automated calls" wording in the consent copy is flagged for legal review. | PASS |
 | Consent record with timestamp | `consent_log` table with method, evidence, IP, user_agent. `buildConsentPayload()` captures version, URL, user_agent | PASS |
 | Opt-out mechanism | `do_not_contact` flag enforced | PASS |
-| Calling hours | Configurable `working_hours_start`/`working_hours_end` per org | PASS |
-| Joseph compliance gate | Outbound agents check consent before execution | PASS |
-| A2P 10DLC compliance | Privacy Policy and Terms of Service updated for Twilio campaign registration | PASS |
+| Contact hours | Configurable `working_hours_start`/`working_hours_end` per org | PASS |
+| Joseph compliance gate | `joseph_compliance_check()` RPC checks consent before outbound execution — now **fail-closed** (MD16) | PASS |
+| A2P 10DLC compliance | Privacy Policy and Terms of Service support Twilio SMS campaign registration. **HomeGuard/Portafolio brand references** in this 10DLC/SMS legal text are flagged for **separate legal review** (single-domain reorientation). | REVIEW |
 
 ## 11.3 Privacy & Data
 
@@ -1280,6 +1341,8 @@ The `SmsConsentCheckbox` component (`src/components/public/SmsConsentCheckbox.ts
 
 # 13. Multi-Tenancy
 
+> **Single-tenant consolidation (MD16)**: The system currently runs **one organization** ("Smart Leasing AI", slug `rent-finder-cleveland`) on **one domain** (`rentfindercleveland.com`). The multi-tenant model described in this section is **retained as defense-in-depth**, not actively used for multiple tenants — `organization_id` + RLS stay in place so additional tenants can be re-introduced without a destructive migration.
+
 ## 13.1 Data Isolation Model
 
 Every table with tenant-specific data includes `organization_id` as a required foreign key. RLS policies ensure queries only return rows matching the authenticated user's organization.
@@ -1378,7 +1441,7 @@ Every interaction logs costs in the `cost_records` table:
 - **Direction**: Bidirectional
   - Doorloop -> RFC: Application status, lease status
   - RFC -> Doorloop: Lead data when they start application (auto-push on property assignment)
-- **Agents**: Ezra (pull), sync-leads-to-doorloop (push), send-application-invite
+- **Agents**: Samuel (pull, `agent-doorloop-pull`), sync-leads-to-doorloop (push), send-application-invite
 - **Polling**: Every 15 minutes for status updates
 - **Status mapping**: Application created -> `in_application`, Lease signed -> `converted`
 - **Side effects**: `in_application` cancels all pending agent tasks; `converted` marks property as `rented`
@@ -1388,7 +1451,7 @@ Every interaction logs costs in the `cost_records` table:
 ## 15.2 Identity Verification (Persona + MaxMind)
 
 ### Primary: Persona
-- **Agent**: Joseph (`agent-persona-verification`)
+- **Edge Function**: `verify-identity` (Persona is the primary provider). Note: `joseph_compliance_check()` is the separate TCPA/Fair-Housing **DB RPC** gate, not a verification agent.
 - **Flow**: Before showings, verify lead identity via Persona inquiry
 - **Cost**: ~$0.50/verification
 
@@ -1437,8 +1500,8 @@ Has Persona key? --Yes--> Is Persona "down" in integration_health?
 - **Event tracking**: `email_events` table records delivery events
 - **Showing confirmations**: `book-public-showing` sends branded HTML confirmation emails with property/date/time details
 - **Dynamic sender**: Each org uses its own sender domain from `organization_settings`
-- **History sync**: `sync-resend-history` pulls delivery data from Resend API for all 3 app domains
-- **Multi-tenant**: All email functions iterate all organizations (not single-org)
+- **History sync**: `sync-resend-history` pulls delivery data from the Resend API for the active domain
+- **Org-iterating**: Email functions iterate all organizations by design (defense-in-depth), though only one org is currently active
 
 ## 15.4 Hemlane Email Parsing
 
@@ -1679,7 +1742,7 @@ Insights stored in `investor_insights` table with types:
 - [ ] Configure Doorloop sync cron (every 15 min)
 - [ ] Configure organization API keys (OpenAI, Persona, MaxMind, Doorloop, Resend)
 - [ ] Set up Resend domain verification
-- [ ] Configure DNS for all 3 domains
+- [ ] Configure DNS for `rentfindercleveland.com` (single active domain)
 - [ ] Set up SSL certificates
 - [ ] Enable `prevent_direct_score_update` trigger in database
 - [ ] Verify RLS policies with test data across all 5 roles
@@ -1831,6 +1894,18 @@ Insights stored in `investor_insights` table with types:
 ---
 
 # 22. Latest Session Update
+
+## Session: June 29, 2026 — Reorientation + System Saneamiento (MD16)
+
+This session pivoted the product and kicked off a sequential remediation. Full detail is in the top **"MD16 — Reorientation to Single-Domain + System Saneamiento"** section; summary:
+
+- **Single-domain reorientation**: the product now targets **only `rentfindercleveland.com`**. **HomeGuard Management** and **Portafolio Diversificado** are removed from product scope. Their 10DLC/SMS legal copy is **flagged for separate legal review** (not auto-deleted); the functional `homeguard.app.doorloop.com` DoorLoop apply URLs are **retained** (live portal, not brand).
+- **Single-tenant consolidation**: the DB holds exactly one organization ("Smart Leasing AI", slug `rent-finder-cleveland`). `organization_id` + RLS retained as defense-in-depth.
+- **Doc drift corrected**: agent model is **6 canonical agents in 4 English departments** (Qualification/Leasing/Closing/System), **voice/Bland.ai fully removed** (Twilio = SMS only), and real DB counts (**67 tables, 291 RLS, 77 functions, 33 triggers**) replace the stale 32/131/19/12 figures. Edge functions: **35 local + 31 Lovable = 66 deployed**.
+- **Security hardening in progress**: `users` self-update privilege-escalation blocked via trigger; `anon` EXECUTE revoked on `recalculate_lead_scores` / `log_score_change`; `send-message` now authenticates callers; `joseph_compliance_check()` call sites fixed to **fail-closed**.
+- **Remediation plan**: Phases 0–11 (secrets+branch → critical security → docs/MD16 → brand removal → single-tenant consolidation → high-sec+functional bugs → compliance/Fair-Housing → DB performance → source/schema drift → build hardening → UI/UX live test → final verify+deploy).
+
+---
 
 ## Session: May 27–30, 2026
 
@@ -2094,8 +2169,8 @@ The remaining 3 ("new" since MD14) were already present in production but not in
 
 ---
 
-*Document Version: 15*
-*Last Updated: May 30, 2026*
+*Document Version: 16*
+*Last Updated: June 29, 2026*
 *Project: Rent Finder Cleveland*
-*Architecture: Multi-Tenant SaaS*
+*Architecture: Single-tenant on a single domain (multi-tenant plumbing retained as defense-in-depth)*
 *Total Lines of Code: 87,066*

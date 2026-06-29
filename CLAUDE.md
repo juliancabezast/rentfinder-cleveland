@@ -45,12 +45,18 @@ After pushing to GitHub, remind the user to trigger a Lovable rebuild if the liv
 - **"md"** — Generate comprehensive project documentation. Check `md/` (project root) for existing `PROJECT_COMPLETE_Rent_Finder_Cleveland_MD*.md` files, increment the number. Use `PROJECT.md` as source of truth. Also copy to `PROJECT.md` in repo root. No confirmation.
 
 ## Project Overview
-AI-powered lead management SaaS for property management. Automates the rental lead lifecycle: inbound calls → AI voice agents → lead scoring → follow-ups → showings → applications. Multi-tenant architecture with 3 apps on 1 Supabase DB.
+AI-powered lead management SaaS for property management. Automates the rental lead lifecycle: inbound emails → AI lead processing → lead scoring → follow-ups → showings → applications. Currently runs as a **single tenant on a single domain** (rentfindercleveland.com), while the multi-tenant plumbing (`organization_id` + RLS) is retained as defense-in-depth.
+
+### Reorientation (2026-06-29)
+- **Single-domain focus**: only `rentfindercleveland.com`. HomeGuard & Portafolio removed from product scope (the legacy "3 apps / 3 domains" model is historical/aspirational). The 10DLC/SMS legal text referencing those brands is flagged for separate legal review; functional `homeguard.app.doorloop.com` DoorLoop URLs are retained because they are the live apply portal, not the brand.
+- **Single-tenant consolidation** (not a destructive collapse): exactly one organization ("Smart Leasing AI", slug `rent-finder-cleveland`). `organization_id` columns and RLS policies stay as defense-in-depth.
+- **Doc drift corrected**: 6 canonical agents / 4 departments, voice fully removed, real DB counts (67 tables, 291 RLS, 77 functions, 33 triggers).
+- **Security hardening in progress**: users self-update privilege-escalation blocked via trigger; `recalculate_lead_scores`/`log_score_change` anon EXECUTE revoked; `send-message` now authenticates callers; `joseph_compliance_check()` calls fixed to fail-closed.
 
 ## Tech Stack
 - **Frontend**: React + TypeScript, Vite, Tailwind CSS, shadcn/ui (mandatory for all UI)
-- **Backend**: Supabase (PostgreSQL) — 32 tables, 131 RLS policies, 19 DB functions, 12 triggers
-- **Edge Functions**: Deno (not Node.js) — 24 local functions in `supabase/functions/`, ~20 more deployed via Lovable
+- **Backend**: Supabase (PostgreSQL) — 67 tables, 291 RLS policies, 77 DB functions, 33 triggers
+- **Edge Functions**: Deno (not Node.js) — 35 local functions in `supabase/functions/` (all deployed from local) + 31 Lovable-only = 66 deployed
 - **Auth**: Supabase Auth — roles: super_admin, admin, editor, viewer, leasing_agent
 - **Font**: Montserrat
 - **Design colors**: Primary #4F46E5 (indigo), Accent #ffb22c (gold), Background #f3f4f6 (cool gray). iOS 26 glass aesthetic.
@@ -60,8 +66,8 @@ AI-powered lead management SaaS for property management. Automates the rental le
 ### Multi-Tenancy
 Every table has `organization_id`. All RLS policies scope by user's org. **Never query without org context.** Never hardcode org-specific values — use `organization_settings` table.
 
-### Multi-App Domains
-3 domains share 1 Supabase database: rentfindercleveland.com, homeguardmanagement.com, portafoliodiversificado.com. Use `window.location.origin` for URLs, org settings for sender domains. Never hardcode domain names.
+### Domain (Single-Domain Consolidation)
+The product now runs on a **single domain**: `rentfindercleveland.com`. The historical "3 apps / 3 domains on 1 DB" model (which also listed homeguardmanagement.com and portafoliodiversificado.com) is no longer in product scope — those brands have been removed. Still use `window.location.origin` for URLs and org settings for sender domains; never hardcode domain names (this keeps the code multi-domain-safe even though only one domain is active).
 
 ### Code Patterns
 - **Exports**: Components use named exports (`export const X`). Pages use `export default` (required for React.lazy).
@@ -73,13 +79,15 @@ Every table has `organization_id`. All RLS policies scope by user's org. **Never
 - **lucide-react `Map` icon**: Always import as `Map as MapIcon` — bare `import { Map }` shadows the native `Map` constructor and causes `TypeError: Map is not a constructor` at runtime.
 
 ### AI Agents (Biblical Names)
-11 operational agents organized by department (Ruth/SMS removed — will be replaced by n8n):
-- **Recepción**: Aaron (inbound calls), Deborah (call processor + smart matching)
-- **Evaluación**: Daniel (AI scoring, Fair Housing compliant), Isaiah (transcript analysis)
-- **Operaciones**: Nehemiah (sole dispatcher, cron every 5 min)
-- **Ventas**: Elijah (outbound sales), Samuel (showing lifecycle)
-- **Inteligencia**: Solomon (conversion predictor), Moses (insights), David (reports)
-- **Administración**: Ezra (DoorLoop Bridge), Zacchaeus (health monitoring + cost tracking)
+**6 canonical agents in 4 English departments** (source of truth: `src/components/agents/constants.ts`). Voice/SMS-call agents and Ruth (SMS) are removed — SMS automation will be replaced by n8n.
+- **Qualification** (`calificacion`): **Aaron** = "Inbound Lead Processing" (EMAIL-based, not calls); **Esther** = "Email Reception" (`agent-hemlane-parser`); **Nehemiah** = "Qualification Analyst" + sole task dispatcher (`agent-task-dispatcher`; absorbs scoring, transcript analysis, conversion prediction, insights, reports, notifications).
+- **Leasing**: **Elijah** = "Leasing Consultant" (outbound/campaigns/recapture/welcome).
+- **Closing** (`cierre`): **Samuel** = "Closing Agent" (showings, applications, DoorLoop pull, no-show/post-showing).
+- **System** (`sistema`): **Zacchaeus** = "Health & Cost Monitor".
+
+**Legacy → canonical mapping** (`LEGACY_TO_CANONICAL`): Daniel/Isaiah/Solomon/Moses/David → Nehemiah; Ezra → Samuel. **Deborah removed**, **Ruth removed**.
+
+**Joseph is NOT a department agent** — it is the `joseph_compliance_check()` DB RPC (TCPA / Fair-Housing gate).
 
 **Utility functions**: joseph_compliance_check(), send-notification-email, send-message, match-properties, generate-lead-brief, predict-conversion, book-public-showing, process-email-queue
 **Webhook**: Esther (agent-hemlane-parser — Hemlane/Resend email parser)
@@ -89,27 +97,25 @@ new → contacted → engaged → nurturing → qualified → showing_scheduled 
 
 ### Compliance (Non-negotiable)
 - **Fair Housing Act**: Scoring NEVER uses race, religion, sex, familial status, disability, age, or proxies
-- **TCPA**: All outbound contact requires prior consent. Outbound agents call `joseph_compliance_check()` DB function before contact
+- **TCPA**: All outbound contact requires prior consent. Outbound paths call `joseph_compliance_check()` DB function before contact (calls now fail-closed). Outbound is SMS/email only — no voice.
 - **Consent logging**: Every consent action recorded in `consent_log` table with evidence text
-- **Call Recording**: Disclosure at start of every call via Bland.ai
 
 ### Human Takeover System
 Leads can be taken under manual control, pausing all AI automation. Requires mandatory 20-char reason note. `pause_lead_agent_tasks()` RPC pauses all pending agent_tasks.
 
 ### Key Database Tables
 - `organizations` — Multi-tenant core with branding, subscription
-- `organization_credentials` — Per-org API keys (Twilio, OpenAI, Resend, DoorLoop, Bland)
+- `organization_credentials` — Per-org API keys (Twilio SMS, OpenAI, Resend, DoorLoop, Persona, Telegram)
 - `organization_settings` — Per-org config (key/value with category)
 - `leads` — Core records with scoring, status flow, human control flags
 - `agent_tasks` — Scheduled AI actions (columns: `agent_type`, `action_type`, `status`)
-- `lead_score_history` — Explainable scoring audit trail (trigger-enforced)
+- `lead_score_history` — Explainable scoring audit trail (enforcement trigger `prevent_direct_lead_score_update` is currently DISABLED; go through `log_score_change` / recalculate edge fn by convention)
 - `consent_log` — TCPA compliance evidence
 - `email_events` — Email queue + delivery tracking (details JSONB with `status: "queued"/"sent"/"failed"`)
 - `cost_records` — Per-interaction cost attribution
 
 ### External Services
-- **Twilio**: Voice + SMS (credentials in organization_credentials, phone in twilio_phone_number)
-- **Bland.ai**: AI voice conversations (webhook secret: BLAND_WEBHOOK_SECRET)
+- **Twilio**: SMS only (credentials in organization_credentials, phone in twilio_phone_number; also `fetch-twilio-messages`). Voice has been fully removed.
 - **OpenAI**: Scoring, analysis, insights (GPT-4o-mini for briefs, GPT-4o for vision)
 - **Resend**: Transactional email (webhook secret: RESEND_WEBHOOK_SECRET, queue via process-email-queue)
 - **DoorLoop**: Application/lease sync
@@ -137,12 +143,12 @@ const todayStart = new Date(clevelandNow.getTime() + offset).toISOString(); // U
 - Every query MUST filter by `organization_id` passed in the request body
 
 ## Critical Rules
-- All scoring changes MUST go through `lead_score_history` (trigger enforces this)
+- Scoring changes should go through `log_score_change` / the recalculate edge fn so `lead_score_history` stays accurate — but note the audit-trail trigger `prevent_direct_lead_score_update` is currently DISABLED (enforcement is OFF; this is convention, not hard-enforced)
 - Edge functions use Deno imports (`https://deno.land/std@0.168.0/`, `https://esm.sh/`)
 - For cron-triggered agents, DB settings `app.settings.supabase_url` and `app.settings.service_role_key` must be set
 - Emails: sender domain should come from org's `sender_domain` setting, not hardcoded
 - Timezone: use dynamic DST-aware offset computation, never hardcode `-05:00` (see Timezone Handling section above)
 - `agent_tasks` table has NO `updated_at` column (trigger was removed) — don't add one
 
-## Edge Functions Deployed from Local Repo
-invite-user, send-notification-email, pathway-webhook, agent-hemlane-parser, import-zillow-property, book-public-showing, test-integration, send-message, match-properties, generate-lead-brief, predict-conversion, agent-health-checker, process-email-queue, sync-resend-history, sync-leads-to-doorloop, agent-hourly-report, agent-rent-benchmark, send-application-invite, delete-lead, delete-user, verify-identity, extract-property-from-image, ai-chat, telegram-webhook
+## Edge Functions Deployed from Local Repo (35)
+invite-user, send-notification-email, pathway-webhook, agent-hemlane-parser, import-zillow-property, book-public-showing, test-integration, send-message, match-properties, generate-lead-brief, predict-conversion, agent-health-checker, process-email-queue, sync-resend-history, sync-leads-to-doorloop, agent-hourly-report, agent-rent-benchmark, send-application-invite, delete-lead, delete-user, verify-identity, extract-property-from-image, ai-chat, telegram-webhook, agent-system-analysis, agent-task-dispatcher, enhance-report, fetch-twilio-messages, generate-property-description, process-sms-queue, recalculate-scores, resend-webhook, send-telegram-notification, showing-reminder, sync-resend-emails
