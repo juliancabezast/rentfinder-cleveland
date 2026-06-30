@@ -323,7 +323,7 @@ export const CommunicationsTab: React.FC = () => {
             <div key={key} className="flex items-start gap-2 p-3 border rounded-lg">
               <div className="flex-1">
                 <p className="font-medium text-sm">{key}</p>
-                <p className="text-sm text-muted-foreground">{value}</p>
+                <p className="text-sm text-muted-foreground">{typeof value === 'string' ? value : JSON.stringify(value)}</p>
               </div>
               <Button
                 variant="ghost"
@@ -367,7 +367,7 @@ export const CommunicationsTab: React.FC = () => {
             <div key={key} className="flex items-start gap-2 p-3 border rounded-lg">
               <div className="flex-1">
                 <p className="font-medium text-sm">{key}</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{value}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{typeof value === 'string' ? value : JSON.stringify(value)}</p>
               </div>
               <Button
                 variant="ghost"
