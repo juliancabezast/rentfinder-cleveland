@@ -442,7 +442,7 @@ function buildEmailHtml(content: { title: string; message: string }, orgName: st
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #370d4b 0%, #5a1a75 100%); padding: 20px 30px; border-radius: 12px 12px 0 0;">
+      <div style="background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%); padding: 20px 30px; border-radius: 12px 12px 0 0;">
         <h1 style="color: white; margin: 0; font-size: 20px;">${content.title}</h1>
       </div>
 
@@ -450,7 +450,7 @@ function buildEmailHtml(content: { title: string; message: string }, orgName: st
         <p style="font-size: 16px; margin: 0 0 20px 0;">${content.message}</p>
 
         <div style="margin: 30px 0; text-align: center;">
-          <a href="https://app.leaseflow.ai/dashboard" style="display: inline-block; background: #ffb22c; color: #370d4b; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+          <a href="https://rentfindercleveland.com/dashboard" style="display: inline-block; background: #ffb22c; color: #4F46E5; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
             View Dashboard
           </a>
         </div>

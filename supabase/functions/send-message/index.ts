@@ -246,7 +246,7 @@ serve(async (req: Request) => {
             to: lead.email,
             subject: "Message from Rent Finder Cleveland",
             html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-              <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+              <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
                 <h1 style="margin:0;color:#ffb22c;font-size:20px;">Rent Finder Cleveland</h1>
               </div>
               <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">

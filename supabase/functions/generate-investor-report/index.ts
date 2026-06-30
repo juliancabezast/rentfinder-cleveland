@@ -156,7 +156,7 @@ function generateReportHTML(
 
     <!-- CTA -->
     <div style="padding: 0 32px 32px; text-align: center;">
-      <a href="https://cleveland-lease-buddy.lovable.app"
+      <a href="https://rentfindercleveland.com"
          style="display: inline-block; background: #1e40af; color: white; padding: 14px 32px;
                 border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
         View Full Dashboard →
@@ -169,7 +169,7 @@ function generateReportHTML(
         ${orgName} · Automated Property Intelligence
       </p>
       <p style="margin: 0; font-size: 12px;">
-        <a href="https://cleveland-lease-buddy.lovable.app/p/privacy" style="color: #9ca3af;">Privacy Policy</a>
+        <a href="https://rentfindercleveland.com/p/privacy" style="color: #9ca3af;">Privacy Policy</a>
       </p>
     </div>
   </div>

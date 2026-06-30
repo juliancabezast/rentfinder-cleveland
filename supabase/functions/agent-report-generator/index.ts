@@ -38,7 +38,7 @@ function generateReportEmail(
     .map(
       (h) => `
       <div style="background: #f8f8f8; padding: 16px; border-radius: 8px; text-align: center; min-width: 140px;">
-        <div style="font-size: 24px; font-weight: bold; color: #370d4b;">${h.value}</div>
+        <div style="font-size: 24px; font-weight: bold; color: #4F46E5;">${h.value}</div>
         <div style="font-size: 12px; color: #666; margin-top: 4px;">${h.metric}</div>
         <div style="font-size: 12px; color: ${h.trend === "up" ? "#22c55e" : h.trend === "down" ? "#ef4444" : "#666"}; margin-top: 4px;">
           ${h.change} ${h.trend === "up" ? "↑" : h.trend === "down" ? "↓" : "→"}
@@ -52,7 +52,7 @@ function generateReportEmail(
     .map(
       (s) => `
       <div style="margin-bottom: 24px;">
-        <h3 style="color: #370d4b; margin-bottom: 8px;">${s.title}</h3>
+        <h3 style="color: #4F46E5; margin-bottom: 8px;">${s.title}</h3>
         <p style="color: #333; line-height: 1.6;">${s.content}</p>
       </div>
     `
@@ -74,7 +74,7 @@ function generateReportEmail(
         <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, #370d4b, #5a1a7a); padding: 24px 32px;">
+            <td style="background: linear-gradient(135deg, #4F46E5, #6366F1); padding: 24px 32px;">
               <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700;">
                 🏠 ${report.title}
               </h1>
@@ -99,7 +99,7 @@ function generateReportEmail(
           <!-- Highlights -->
           <tr>
             <td style="padding: 16px 32px;">
-              <h2 style="color: #370d4b; font-size: 16px; margin: 0 0 16px 0;">Key Highlights</h2>
+              <h2 style="color: #4F46E5; font-size: 16px; margin: 0 0 16px 0;">Key Highlights</h2>
               <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                 ${highlightsHtml}
               </div>
@@ -379,7 +379,7 @@ Write professionally but accessibly. Investors want to know:
 
           // Generate HTML content
           const investorName = `${investor.first_name || ""} ${investor.last_name || ""}`.trim() || "Investor";
-          const dashboardUrl = `https://cleveland-lease-buddy.lovable.app/dashboard`;
+          const dashboardUrl = `https://rentfindercleveland.com/dashboard`;
           const htmlContent = generateReportEmail(parsed, org.name, investorName, dashboardUrl);
 
           // Insert report

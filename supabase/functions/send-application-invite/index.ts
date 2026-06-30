@@ -167,14 +167,14 @@ serve(async (req: Request) => {
                 to: adminEmail,
                 subject: `🔔 Send Application: ${lead.full_name || "Lead"} — ${property?.address || "Property"}`,
                 html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-                  <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+                  <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
                     <h1 style="margin:0;color:#ffb22c;font-size:20px;">Action Required: Send Rental Application</h1>
                   </div>
                   <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
                     <p><strong>${lead.full_name || "A lead"}</strong> requested a rental application for <strong>${propertyAddress}</strong>.</p>
                     <p>Their prospect has been created in DoorLoop. Click the button below to send the application directly:</p>
                     <div style="text-align:center;margin:24px 0;">
-                      <a href="${doorloopLink}" style="background-color:#ffb22c;color:#370d4b;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">
+                      <a href="${doorloopLink}" style="background-color:#ffb22c;color:#4F46E5;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">
                         Send Application in DoorLoop
                       </a>
                     </div>
@@ -211,7 +211,7 @@ serve(async (req: Request) => {
             to: lead.email,
             subject: `Apply Now — ${property?.address || "Rental Application"}`,
             html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-              <div style="background-color:#370d4b;padding:20px 24px;border-radius:12px 12px 0 0;">
+              <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
                 <h1 style="margin:0;color:#ffb22c;font-size:20px;">Rental Application</h1>
               </div>
               <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">

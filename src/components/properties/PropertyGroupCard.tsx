@@ -109,7 +109,7 @@ export const PropertyGroupCard: React.FC<PropertyGroupCardProps> = ({
             </div>
           )}
           {/* Type badge */}
-          <Badge className="absolute top-2 left-2 bg-[#370d4b] text-white">
+          <Badge className="absolute top-2 left-2 bg-[#4F46E5] text-white">
             {typeLabel}
           </Badge>
         </div>

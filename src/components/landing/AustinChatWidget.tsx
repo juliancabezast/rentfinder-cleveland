@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { SMS_CONSENT_LANGUAGE, buildConsentPayload } from "@/components/public/SmsConsentCheckbox";
 
-const BOT_AVATAR_URL = "https://api.dicebear.com/9.x/bottts/svg?seed=austin&backgroundColor=370d4b";
+const BOT_AVATAR_URL = "https://api.dicebear.com/9.x/bottts/svg?seed=austin&backgroundColor=4F46E5";
 
 type Message = {
   id: string;
