@@ -1,58 +1,23 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const FALLBACK_URL =
+// The live application portal (DoorLoop). This is the permanent apply destination
+// for the single domain (see CLAUDE.md — the homeguard.app.doorloop.com DoorLoop
+// URL is the live apply portal, not a brand reference).
+//
+// Note: this component previously tried to read a per-org `application_url` from
+// organization_settings, but anonymous RLS always blocked that read, so it always
+// fell through to this URL. The dead lookup (and its pointless network round-trip)
+// was removed in the 2026-06-30 saneamiento.
+const PORTAL_URL =
   "https://homeguard.app.doorloop.com/tenant-portal/rental-applications/listing?source=CompanyLink";
 
 export default function ApplyRedirect() {
-  const [error, setError] = useState(false);
-
   useEffect(() => {
-    let cancelled = false;
-
-    async function resolve() {
-      try {
-        // Try to fetch a custom application_url from the org that owns this domain
-        const { data } = await supabase
-          .from("organization_settings")
-          .select("value")
-          .eq("key", "application_url")
-          .maybeSingle();
-
-        if (cancelled) return;
-
-        const url =
-          data?.value && typeof data.value === "string"
-            ? data.value
-            : typeof data?.value === "object" && data.value !== null && "url" in (data.value as Record<string, unknown>)
-              ? (data.value as Record<string, unknown>).url as string
-              : FALLBACK_URL;
-
-        window.location.replace(url);
-      } catch {
-        if (!cancelled) {
-          // On any error just go to fallback
-          window.location.replace(FALLBACK_URL);
-        }
-      }
-    }
-
-    // Small delay so the user sees the redirect page briefly
-    const timer = setTimeout(resolve, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+    // Small delay so the user sees the redirect page briefly.
+    const timer = setTimeout(() => window.location.replace(PORTAL_URL), 300);
+    return () => clearTimeout(timer);
   }, []);
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-sm text-muted-foreground">Redirecting to application portal...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">

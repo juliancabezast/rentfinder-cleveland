@@ -56,7 +56,7 @@ serve(async (req: Request) => {
     const [{ data: creds }, { data: showingsSettings }] = await Promise.all([
       supabase
         .from("organization_credentials")
-        .select("telegram_bot_token, telegram_chat_id")
+        .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
         .eq("organization_id", callerRecord.organization_id)
         .single(),
       supabase
@@ -71,8 +71,10 @@ serve(async (req: Request) => {
     let botToken: string | undefined;
     let chatId: string | undefined;
     if (channel === "showings") {
-      botToken = (settingsMap.get("telegram_showings_bot_token") as string) || creds?.telegram_bot_token;
-      chatId = (settingsMap.get("telegram_showings_chat_id") as string) || creds?.telegram_chat_id;
+      // Prefer admin-only credentials; fall back to legacy org_settings during the
+      // migration window, then to the general bot token.
+      botToken = creds?.telegram_showings_bot_token || (settingsMap.get("telegram_showings_bot_token") as string) || creds?.telegram_bot_token;
+      chatId = creds?.telegram_showings_chat_id || (settingsMap.get("telegram_showings_chat_id") as string) || creds?.telegram_chat_id;
     } else {
       botToken = creds?.telegram_bot_token;
       chatId = creds?.telegram_chat_id;

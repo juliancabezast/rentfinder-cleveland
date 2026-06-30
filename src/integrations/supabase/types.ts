@@ -2710,6 +2710,8 @@ export type Database = {
           resend_api_key: string | null
           telegram_bot_token: string | null
           telegram_chat_id: string | null
+          telegram_showings_bot_token: string | null
+          telegram_showings_chat_id: string | null
           twilio_account_sid: string | null
           twilio_auth_token: string | null
           twilio_phone_number: string | null
@@ -2729,6 +2731,8 @@ export type Database = {
           resend_api_key?: string | null
           telegram_bot_token?: string | null
           telegram_chat_id?: string | null
+          telegram_showings_bot_token?: string | null
+          telegram_showings_chat_id?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_phone_number?: string | null
@@ -2748,6 +2752,8 @@ export type Database = {
           resend_api_key?: string | null
           telegram_bot_token?: string | null
           telegram_chat_id?: string | null
+          telegram_showings_bot_token?: string | null
+          telegram_showings_chat_id?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_phone_number?: string | null

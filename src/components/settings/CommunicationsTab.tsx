@@ -103,10 +103,9 @@ export const CommunicationsTab: React.FC = () => {
       setWhatsappEnabled(getSetting('whatsapp_enabled' as any, false));
       setWhatsappAutoSwitch(getSetting('whatsapp_auto_switch_spanish' as any, false));
 
-      // Load Telegram settings
+      // Load Telegram settings. The showings bot token/chat id now live in
+      // organization_credentials (admin-only); they are loaded in the effect below.
       setTelegramEnabled(getSetting('telegram_enabled' as any, false));
-      setShowingsBotToken(getSetting('telegram_showings_bot_token' as any, '') as string);
-      setShowingsChatId(getSetting('telegram_showings_chat_id' as any, '') as string);
       
       // Load notification preferences
       const prefs = getSetting('email_notification_preferences' as any, DEFAULT_NOTIFICATION_PREFS);
@@ -128,7 +127,7 @@ export const CommunicationsTab: React.FC = () => {
           .single(),
         supabase
           .from('organization_credentials')
-          .select('telegram_bot_token, telegram_chat_id')
+          .select('telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id')
           .eq('organization_id', userRecord.organization_id)
           .single(),
       ]);
@@ -141,6 +140,8 @@ export const CommunicationsTab: React.FC = () => {
       setTelegramConfigured(
         !!(credsData?.telegram_bot_token && credsData?.telegram_chat_id)
       );
+      if (credsData?.telegram_showings_bot_token) setShowingsBotToken(credsData.telegram_showings_bot_token);
+      if (credsData?.telegram_showings_chat_id) setShowingsChatId(credsData.telegram_showings_chat_id);
     };
     fetchOrgData();
   }, [userRecord?.organization_id]);
@@ -603,11 +604,20 @@ export const CommunicationsTab: React.FC = () => {
                 disabled={showingsBotSaving}
                 onClick={async () => {
                   setShowingsBotSaving(true);
-                  await Promise.all([
-                    updateSetting('telegram_showings_bot_token' as any, showingsBotToken, 'communications', 'Telegram bot token for showing notifications'),
-                    updateSetting('telegram_showings_chat_id' as any, showingsChatId, 'communications', 'Telegram chat ID for showing notifications'),
-                  ]);
-                  toast.success('Showings bot saved');
+                  // Stored in organization_credentials (admin-only RLS), not
+                  // organization_settings, so non-admin org members can't read the token.
+                  const { error: showingsBotErr } = await supabase
+                    .from('organization_credentials')
+                    .update({
+                      telegram_showings_bot_token: showingsBotToken,
+                      telegram_showings_chat_id: showingsChatId,
+                    })
+                    .eq('organization_id', userRecord!.organization_id);
+                  if (showingsBotErr) {
+                    toast.error('Failed to save showings bot');
+                  } else {
+                    toast.success('Showings bot saved');
+                  }
                   setShowingsBotSaving(false);
                 }}
               >

@@ -711,7 +711,7 @@ serve(async (req: Request) => {
       const [{ data: creds }, { data: showingsSettings }] = await Promise.all([
         supabase
           .from("organization_credentials")
-          .select("telegram_bot_token, telegram_chat_id")
+          .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
           .eq("organization_id", organization_id)
           .single(),
         supabase
@@ -722,8 +722,10 @@ serve(async (req: Request) => {
       ]);
 
       const showingsMap = new Map((showingsSettings || []).map((s: any) => [s.key, s.value]));
-      const botToken = (showingsMap.get("telegram_showings_bot_token") as string) || creds?.telegram_bot_token;
-      const chatId = (showingsMap.get("telegram_showings_chat_id") as string) || creds?.telegram_chat_id;
+      // Prefer admin-only credentials; fall back to legacy org_settings during the
+      // migration window, then to the general bot token.
+      const botToken = creds?.telegram_showings_bot_token || (showingsMap.get("telegram_showings_bot_token") as string) || creds?.telegram_bot_token;
+      const chatId = creds?.telegram_showings_chat_id || (showingsMap.get("telegram_showings_chat_id") as string) || creds?.telegram_chat_id;
 
       if (botToken && chatId) {
         const tz = getTimezoneForCity(property?.city || null);
