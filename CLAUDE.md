@@ -55,8 +55,8 @@ AI-powered lead management SaaS for property management. Automates the rental le
 
 ## Tech Stack
 - **Frontend**: React + TypeScript, Vite, Tailwind CSS, shadcn/ui (mandatory for all UI)
-- **Backend**: Supabase (PostgreSQL) — 67 tables, 291 RLS policies, 77 DB functions, 33 triggers
-- **Edge Functions**: Deno (not Node.js) — 35 local functions in `supabase/functions/` (all deployed from local) + 31 Lovable-only = 66 deployed
+- **Backend**: Supabase (PostgreSQL) — 67 tables, 254 RLS policies (after 2026-06-30 perf consolidation), 77 DB functions, 33 triggers
+- **Edge Functions**: Deno (not Node.js) — **54 functions, all in `supabase/functions/` and all deployed (repo↔prod byte-exact parity)**. 12 obsolete voice/Bland + SMS-era functions deprecated 2026-06-30 (`agent-sms-inbound` retained pending n8n inbound-SMS migration).
 - **Auth**: Supabase Auth — roles: super_admin, admin, editor, viewer, leasing_agent
 - **Font**: Montserrat
 - **Design colors**: Primary #4F46E5 (indigo), Accent #ffb22c (gold), Background #f3f4f6 (cool gray). iOS 26 glass aesthetic.
