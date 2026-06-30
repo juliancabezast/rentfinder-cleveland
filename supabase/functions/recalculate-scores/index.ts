@@ -76,6 +76,10 @@ serve(async (req: Request) => {
 
         for (const entry of history || []) {
           const code = entry.reason_code;
+          // Fair Housing: never re-apply source-of-income (voucher / Section 8)
+          // score changes when replaying history — these may exist from before
+          // voucher scoring was removed, but must not be re-introduced.
+          if (code && /voucher|section.?8/i.test(code)) continue;
           // If there's a custom rule override for this reason code, use it
           if (code && rules[code] !== undefined) {
             newScore += rules[code];

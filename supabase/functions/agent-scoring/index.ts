@@ -205,14 +205,13 @@ Score adjustment guidelines:
 - High interest (asking specific questions): +5 to +10
 - Positive sentiment: +5
 - Negative sentiment: -5
-- Has active voucher: +10
 - Wants to schedule showing: +15
 - Gave consent for follow-up: +5
 - Captured email: +5
 - Red flags (rude, unrealistic expectations): -10 to -15
 - Brief/unengaged call: -5
 
-CRITICAL: Do NOT score based on race, ethnicity, national origin, religion, sex, gender, familial status, disability, or age. Only use behavioral and engagement signals.
+CRITICAL: Do NOT score based on race, ethnicity, national origin, religion, sex, gender, familial status, disability, age, OR source of income (housing vouchers / Section 8). You may record section_8_mentioned / voucher_status as operational metadata, but NEVER add or subtract score points for it. Only use behavioral and engagement signals.
 
 Return ONLY valid JSON, no markdown.`;
 

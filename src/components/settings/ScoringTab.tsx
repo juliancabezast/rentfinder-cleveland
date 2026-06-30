@@ -24,8 +24,8 @@ const SCORING_RULES: ScoringRule[] = [
   { key: 'showing_cancelled', label: 'Showing Cancelled', defaultValue: -10, category: 'Showing Outcomes' },
   { key: 'no_show', label: 'No Show', defaultValue: -30, category: 'Showing Outcomes' },
   // Lead Attributes
-  { key: 'voucher_holder_bonus', label: 'Voucher Holder', defaultValue: 10, category: 'Lead Attributes' },
-  { key: 'voucher_expiring', label: 'Voucher Expiring (<30 days)', defaultValue: 20, category: 'Lead Attributes' },
+  // NOTE (Fair Housing): voucher / Section 8 (source of income) rules removed —
+  // scoring must never use source of income or its proxies.
   { key: 'ready_to_move', label: 'Ready to Move', defaultValue: 15, category: 'Lead Attributes' },
   { key: 'quick_move_in_bonus', label: 'Quick Move-In', defaultValue: 5, category: 'Lead Attributes' },
   // Engagement
