@@ -752,15 +752,23 @@ async function handlePostShowing(
 }
 
 async function handleNotificationDispatch(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   task: AgentTask
 ): Promise<string> {
-  // Stub: log context and mark completed
-  console.log(
-    `Notification dispatch task ${task.id}:`,
-    JSON.stringify(task.context)
+  // notification_dispatcher tasks (e.g. "human_review_needed" from the conversion
+  // predictor) are NOT wired to a real delivery channel yet: the standalone
+  // agent-notification-dispatcher function has no caller/cron and its
+  // NOTIFICATION_ROUTING does not cover the notification_type these tasks use.
+  // Until that routing is built, we throw so the task is marked failed rather
+  // than silently "completed" — which previously hid the gap (2,200+ tasks
+  // marked done without ever notifying anyone). Same precedent as handleCampaign.
+  const err = new Error(
+    `Notification dispatch not implemented for notification_type="${
+      (task.context as Record<string, unknown>)?.notification_type ?? "unknown"
+    }". Wire agent-notification-dispatcher (routing + invocation) before enabling.`,
   );
-  return "Notification logged (stub handler)";
+  console.error(err.message, { taskId: task.id, context: task.context });
+  throw err;
 }
 
 async function handleCampaign(

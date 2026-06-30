@@ -42,6 +42,25 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── Abuse gate ─────────────────────────────────────────────────────
+    // This function is anon-invokable (CORS *, no JWT). The only legitimate
+    // caller is the public ScheduleShowing "Apply Now" flow, which always runs
+    // AFTER the lead booked a showing. Require an existing showing for this lead
+    // so an attacker with the anon key can't spam application invites / create
+    // DoorLoop prospects for arbitrary lead_ids.
+    const { count: showingCount } = await supabase
+      .from("showings")
+      .select("id", { count: "exact", head: true })
+      .eq("lead_id", lead_id)
+      .eq("organization_id", organization_id);
+
+    if (!showingCount || showingCount < 1) {
+      return new Response(
+        JSON.stringify({ error: "No showing on record for this lead." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── Get property info ──────────────────────────────────────────────
     const { data: property } = await supabase
       .from("properties")

@@ -290,7 +290,7 @@ serve(async (req) => {
           result = { operation: "update", row: targetRow };
         } else {
           // No existing row found, append instead
-          operation === "append";
+          operation = "append";
         }
       }
     }
