@@ -122,18 +122,26 @@ Key factors to consider:
 - Lead score and score trajectory (trending up or down?)
 - Number and quality of interactions
 - Time in pipeline vs org average
-- Voucher status (active vouchers = higher urgency)
 - Showing attendance vs no-shows
 - Response rate to outreach
 - Budget alignment with interested property
 - Sentiment trend across calls
 
-Do NOT factor in any protected class information.
+Do NOT factor in any protected class information, including source of income (housing vouchers / Section 8).
 
 Org benchmarks:
 - Average converted lead score: ${avgScore}
 - Average days to convert: ${avgDays}
 - Total conversions (90 days): ${totalConverted}`;
+
+    // Fair Housing: source of income (housing vouchers / Section 8) must NOT influence
+    // conversion probability or ranking, so strip it from the model input. Voucher status
+    // is retained elsewhere only for property matching (voucher-accepting units).
+    if (leadContext.lead) {
+      delete leadContext.lead.has_voucher;
+      delete leadContext.lead.voucher_amount;
+      delete leadContext.lead.voucher_status;
+    }
 
     const userMessage = JSON.stringify(leadContext, null, 2);
 

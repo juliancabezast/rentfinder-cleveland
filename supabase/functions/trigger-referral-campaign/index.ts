@@ -25,11 +25,13 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { lead_id, organization_id, action } = await req.json();
+    // Read the request body ONCE — a Request stream can only be consumed a single time
+    const body = await req.json();
+    const { lead_id, organization_id, action } = body;
 
     if (action === "create_referral") {
       // Create a new referral invitation for a converted lead
-      const { referred_name, referred_phone, referred_email, referral_channel } = await req.json();
+      const { referred_name, referred_phone, referred_email, referral_channel } = body;
 
       // Get the referrer lead info
       const { data: referrerLead, error: leadError } = await supabase
@@ -104,7 +106,7 @@ serve(async (req) => {
 
     if (action === "validate_code") {
       // Validate a referral code (for public referral page)
-      const { referral_code } = await req.json();
+      const { referral_code } = body;
 
       const { data: referral, error } = await supabase
         .from("referrals")
@@ -150,7 +152,7 @@ serve(async (req) => {
 
     if (action === "submit_referral") {
       // Submit a referral from the public page
-      const { referral_code, name, phone, email, consent } = await req.json();
+      const { referral_code, name, phone, email, consent } = body;
 
       if (!consent) {
         return new Response(

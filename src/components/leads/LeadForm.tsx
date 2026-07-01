@@ -148,9 +148,10 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         organization_id: userRecord.organization_id,
         first_name: formData.first_name || null,
         last_name: formData.last_name || null,
+        // Fall back to the existing full_name so editing a name-only lead (no first/last parts) doesn't wipe it
         full_name: [formData.first_name, formData.last_name]
           .filter(Boolean)
-          .join(" ") || null,
+          .join(" ") || lead?.full_name || null,
         phone: formData.phone,
         email: formData.email || null,
         preferred_language: formData.preferred_language,
@@ -168,9 +169,14 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         housing_authority: formData.housing_authority || null,
         contact_preference: formData.contact_preference,
         sms_consent: formData.sms_consent,
-        sms_consent_at: formData.sms_consent ? new Date().toISOString() : null,
+        // Preserve the original grant timestamp (TCPA evidence); only stamp now() on a new grant
+        sms_consent_at: formData.sms_consent
+          ? (lead?.sms_consent_at ?? new Date().toISOString())
+          : null,
         call_consent: formData.call_consent,
-        call_consent_at: formData.call_consent ? new Date().toISOString() : null,
+        call_consent_at: formData.call_consent
+          ? (lead?.call_consent_at ?? new Date().toISOString())
+          : null,
         // If creating a new lead and user is a leasing_agent, auto-assign to themselves
         assigned_leasing_agent_id: !lead && userRecord.role === "leasing_agent" 
           ? userRecord.id 
