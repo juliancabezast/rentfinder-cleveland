@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -76,11 +76,13 @@ export const PAIpAssistant: React.FC = () => {
       content: m.content,
     }));
 
+    const { data: { session } } = await supabase.auth.getSession();
     const response = await fetch(`${SUPABASE_URL}/functions/v1/paip-chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${session?.access_token ?? SUPABASE_PUBLISHABLE_KEY}`,
       },
       body: JSON.stringify({
         messages: apiMessages,

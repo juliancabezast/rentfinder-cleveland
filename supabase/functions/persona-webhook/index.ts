@@ -11,6 +11,38 @@ const SUPABASE_URL = "https://glzzzthgotfwoiaranmp.supabase.co";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 /**
+ * Verify Persona's webhook HMAC signature (fail-closed).
+ * Header format: "t=<timestamp>,v1=<hmac>" (comma/space separated; multiple v1 during rotation).
+ * Signed payload is `${t}.${rawBody}`, HMAC-SHA256 with the webhook secret, hex-encoded.
+ */
+async function verifyPersonaSignature(rawBody: string, sigHeader: string, secret: string): Promise<boolean> {
+  if (!sigHeader) return false;
+  const parts = sigHeader.split(/[,\s]+/).map((p) => p.trim()).filter(Boolean);
+  const t = parts.find((p) => p.startsWith("t="))?.slice(2);
+  const signatures = parts.filter((p) => p.startsWith("v1=")).map((p) => p.slice(3));
+  if (!t || signatures.length === 0) return false;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${t}.${rawBody}`));
+  const expected = Array.from(new Uint8Array(mac)).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  return signatures.some((sig) => sig.length === expected.length && timingSafeEqual(sig, expected));
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
+}
+
+/**
  * Persona Webhook Handler
  * Receives verification results from Persona and updates lead status
  */
@@ -22,7 +54,26 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+
+    // ── Verify Persona webhook signature (fail-closed) ─────────────
+    const webhookSecret = Deno.env.get("PERSONA_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      console.error("[Persona Webhook] PERSONA_WEBHOOK_SECRET not set — rejecting");
+      return new Response(
+        JSON.stringify({ error: "Webhook not configured" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!(await verifyPersonaSignature(rawBody, req.headers.get("Persona-Signature") || "", webhookSecret))) {
+      console.error("[Persona Webhook] Invalid signature — rejecting");
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const payload = JSON.parse(rawBody);
 
     console.log("[Persona Webhook] Received event:", payload.data?.attributes?.name);
 
