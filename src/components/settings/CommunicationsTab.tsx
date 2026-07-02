@@ -252,12 +252,16 @@ export const CommunicationsTab: React.FC = () => {
     }
   };
 
+  // NOTE: these toggles persist to organization_settings.email_notification_preferences,
+  // but the notification-dispatch engine that would honor them is not built yet (no event
+  // producers, agent-notification-dispatcher undeployed). Marked comingSoon so the UI does
+  // not imply they are active. Remove comingSoon per-toggle as each event path is wired up.
   const NOTIFICATION_TOGGLES = [
-    { key: 'priority_lead' as const, label: 'Priority Lead Alerts', icon: AlertTriangle, description: 'Get notified when a high-priority lead is identified' },
-    { key: 'no_show' as const, label: 'Showing No-Show Alerts', icon: Phone, description: 'Get notified when a lead misses their scheduled showing' },
-    { key: 'critical_error' as const, label: 'Critical System Errors', icon: AlertTriangle, description: 'Get notified of critical system errors requiring attention' },
+    { key: 'priority_lead' as const, label: 'Priority Lead Alerts', icon: AlertTriangle, description: 'Get notified when a high-priority lead is identified', comingSoon: true },
+    { key: 'no_show' as const, label: 'Showing No-Show Alerts', icon: Phone, description: 'Get notified when a lead misses their scheduled showing', comingSoon: true },
+    { key: 'critical_error' as const, label: 'Critical System Errors', icon: AlertTriangle, description: 'Get notified of critical system errors requiring attention', comingSoon: true },
     { key: 'daily_summary' as const, label: 'Daily Summary', icon: BarChart, description: 'Receive a daily summary of activity', comingSoon: true },
-    { key: 'score_jump' as const, label: 'Lead Score Jump (+20 points)', icon: Bot, description: 'Get notified when a lead score increases significantly' },
+    { key: 'score_jump' as const, label: 'Lead Score Jump (+20 points)', icon: Bot, description: 'Get notified when a lead score increases significantly', comingSoon: true },
   ];
 
   if (loading) {
