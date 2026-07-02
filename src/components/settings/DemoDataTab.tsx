@@ -674,7 +674,7 @@ export const DemoDataTab: React.FC = () => {
       // Refresh counts from database
       await fetchDemoDataCounts();
 
-      toast.success(`Purge complete — ${totalDeleted} records deleted from your organization`);
+      toast.success(`Purge complete — ${totalDeleted} records deleted from the system`);
     } catch (error: any) {
       console.error('Error purging org data:', error);
       toast.error(`Purge aborted — ${error?.message || 'a delete failed'}. Some records may remain; please retry.`);
@@ -970,7 +970,7 @@ export const DemoDataTab: React.FC = () => {
                   </AlertDialogTitle>
                   <AlertDialogDescription className="space-y-3">
                     <p className="text-red-600 dark:text-red-400 font-bold">
-                      This will delete ABSOLUTELY ALL records from your organization:
+                      This will delete ABSOLUTELY ALL records from the system:
                     </p>
                     <ul className="list-disc list-inside text-sm space-y-1">
                       <li>{orgTotalStats.properties} properties</li>
@@ -985,7 +985,7 @@ export const DemoDataTab: React.FC = () => {
                       Total: {totalOrgCount}+ records will be permanently deleted.
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      This action CANNOT BE UNDONE. Only users and organization settings will be preserved.
+                      This action CANNOT BE UNDONE. Only users and system settings will be preserved.
                     </p>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -1004,7 +1004,7 @@ export const DemoDataTab: React.FC = () => {
 
           {/* Status Summary */}
           <div className="space-y-2 pt-4 border-t">
-            <h4 className="text-sm font-medium text-muted-foreground">Organization Status</h4>
+            <h4 className="text-sm font-medium text-muted-foreground">System Data Status</h4>
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Demo flagged:</span>
@@ -1017,7 +1017,7 @@ export const DemoDataTab: React.FC = () => {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Total organization:</span>
+                <span className="text-muted-foreground">Total records:</span>
                 <span className="font-medium">{totalOrgCount}</span>
               </div>
             </div>
@@ -1025,7 +1025,7 @@ export const DemoDataTab: React.FC = () => {
             {totalOrgCount === 0 ? (
               <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2 mt-2">
                 <CheckCircle className="h-4 w-4" />
-                Your organization is clean. No data records found.
+                The system is clean. No data records found.
               </p>
             ) : totalDemoCount > 0 ? (
               <p className="text-sm text-muted-foreground mt-2">

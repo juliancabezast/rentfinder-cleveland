@@ -91,7 +91,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           {/* Organization Logo/Name */}
           <div className="h-16 flex items-center px-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm">
+              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
                 <Building2 className="h-4 w-4 text-white" />
               </div>
               <span className="font-semibold text-sm text-slate-900">
@@ -112,7 +112,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     'flex items-center gap-3 px-3 py-3 rounded-xl text-[13px] font-medium transition-all duration-200 min-h-[48px]',
                     'text-slate-500 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-50'
                   )}
-                  activeClassName="!bg-indigo-50 !text-indigo-600 font-semibold"
+                  activeClassName="!bg-sidebar-accent !text-sidebar-accent-foreground font-semibold"
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
                   <span>{item.title}</span>

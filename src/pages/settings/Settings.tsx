@@ -24,13 +24,13 @@ const Settings: React.FC = () => {
           Settings
         </h1>
         <p className="text-muted-foreground">
-          Configure your organization preferences
+          Configure your business and system settings
         </p>
       </div>
 
-      <Tabs defaultValue="organization" className="space-y-6">
+      <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="inline-flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="organization">Organization</TabsTrigger>
+          <TabsTrigger value="general">General</TabsTrigger>
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
           <TabsTrigger value="lead-capture">Lead Capture</TabsTrigger>
           <TabsTrigger value="scoring">Scoring</TabsTrigger>
@@ -42,7 +42,7 @@ const Settings: React.FC = () => {
           )}
         </TabsList>
 
-        <TabsContent value="organization">
+        <TabsContent value="general">
           <OrganizationTab />
         </TabsContent>
 

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { applyBrandTheme } from '@/lib/brandTheme';
 import { toast } from 'sonner';
 
 const TIMEZONES = [
@@ -120,7 +121,8 @@ export const OrganizationTab: React.FC = () => {
 
       if (error) throw error;
 
-      toast.success('Organization settings have been updated');
+      applyBrandTheme(primaryColor, accentColor); // apply new brand colors immediately
+      toast.success('Settings saved');
     } catch (error) {
       console.error('Error saving settings:', error);
       toast.error('Failed to save settings');
@@ -133,8 +135,8 @@ export const OrganizationTab: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Organization Profile</CardTitle>
-          <CardDescription>Basic organization information and branding</CardDescription>
+          <CardTitle>Business Profile</CardTitle>
+          <CardDescription>Your business information and branding</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-6">
@@ -166,7 +168,7 @@ export const OrganizationTab: React.FC = () => {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Organization Name</Label>
+              <Label htmlFor="name">Business Name</Label>
               <Input
                 id="name"
                 value={name}
@@ -258,7 +260,7 @@ export const OrganizationTab: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Branding</CardTitle>
-          <CardDescription>Customize colors for your organization</CardDescription>
+          <CardDescription>Customize your brand colors — applied across the app</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">

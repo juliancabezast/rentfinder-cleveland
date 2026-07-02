@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthContextType, UserRecord, Organization } from '@/types/auth';
+import { applyBrandTheme } from '@/lib/brandTheme';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -108,6 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.error('Error fetching organization:', orgError);
           } else if (orgData) {
             setOrganization(orgData as Organization);
+            applyBrandTheme(orgData.primary_color, orgData.accent_color);
           }
         }
       }
@@ -192,6 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUserRecord(null);
     setOrganization(null);
     setSession(null);
+    applyBrandTheme(); // reset to design-system defaults
   };
 
   const resetPassword = async (email: string) => {

@@ -103,7 +103,7 @@ const UsersList: React.FC = () => {
             Team Members
           </h1>
           <p className="text-muted-foreground">
-            Manage your organization's team members and permissions
+            Manage your team members and permissions
           </p>
         </div>
         <Button onClick={() => setIsInviteModalOpen(true)}>
