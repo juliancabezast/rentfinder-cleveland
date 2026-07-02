@@ -21,6 +21,20 @@ interface ResendEmail {
   scheduled_at: string | null;
 }
 
+// Priority — richer engagement states outrank earlier ones so a status
+// recorded in real time by resend-webhook (e.g. "clicked") is never
+// downgraded back to Resend's coarser current last_event ("opened") by this
+// 5-min polling sync. Mirrors STATUS_PRIORITY in resend-webhook/index.ts.
+const STATUS_PRIORITY: Record<string, number> = {
+  complained: 8,
+  bounced: 7,
+  clicked: 6,
+  opened: 5,
+  delivered: 4,
+  sent: 3,
+  queued: 1,
+};
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -236,10 +250,23 @@ async function syncOneOrg(
     for (const row of rows) {
       const existing = existingById.get(row.resend_email_id);
       if (existing) {
-        const mergedDetails = {
-          ...(existing.details || {}),
+        const existingDetails: Record<string, unknown> = existing.details || {};
+        const mergedDetails: Record<string, unknown> = {
+          ...existingDetails,
           ...row.details,
         };
+        // Never downgrade the recorded status: if Resend's current last_event
+        // is lower-priority than what we already have (e.g. resend-webhook
+        // recorded a "clicked"), keep the richer stored status/last_event and
+        // only merge the other detail fields (from, synced_at, …).
+        const storedStatus = (existingDetails.status as string) || "queued";
+        const incomingStatus = row.details.status;
+        const newPriority = STATUS_PRIORITY[incomingStatus] ?? 0;
+        const oldPriority = STATUS_PRIORITY[storedStatus] ?? 0;
+        if (newPriority < oldPriority) {
+          mergedDetails.status = storedStatus;
+          mergedDetails.last_event = existingDetails.last_event ?? storedStatus;
+        }
         toUpdate.push({ id: existing.id, details: mergedDetails });
       } else {
         toInsert.push(row);
@@ -340,16 +367,26 @@ async function syncByExistingIds(
       const emailData = await resp.json();
       const lastEvent = emailData.last_event || "sent";
 
+      const existingDetails: Record<string, unknown> = record.details || {};
+      const incomingStatus = lastEvent === "delivered" ? "delivered" : lastEvent;
+      const mergedDetails: Record<string, unknown> = {
+        ...existingDetails,
+        status: incomingStatus,
+        last_event: lastEvent,
+        synced_at: new Date().toISOString(),
+      };
+      // Never downgrade a richer status recorded by resend-webhook.
+      const storedStatus = (existingDetails.status as string) || "queued";
+      const newPriority = STATUS_PRIORITY[incomingStatus] ?? 0;
+      const oldPriority = STATUS_PRIORITY[storedStatus] ?? 0;
+      if (newPriority < oldPriority) {
+        mergedDetails.status = storedStatus;
+        mergedDetails.last_event = existingDetails.last_event ?? storedStatus;
+      }
+
       await supabase
         .from("email_events")
-        .update({
-          details: {
-            ...(record.details || {}),
-            status: lastEvent === "delivered" ? "delivered" : lastEvent,
-            last_event: lastEvent,
-            synced_at: new Date().toISOString(),
-          },
-        })
+        .update({ details: mergedDetails })
         .eq("id", record.id);
 
       updated++;

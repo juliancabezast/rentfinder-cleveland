@@ -289,10 +289,37 @@ function interpolate(text: string, vars: Record<string, string>): string {
   );
 }
 
+// ── CAN-SPAM marketing footer ──────────────────────────────────────────────
+// Marketing (campaign / newsletter) emails MUST carry a working unsubscribe
+// mechanism and the sender's physical postal address. Transactional emails
+// (showing confirmations, application invites, etc.) are exempt and pass
+// `marketing: false` (the default), so their output is unchanged.
+
+/** Placeholder left in marketing HTML for the sending edge function to fill
+ * with a per-recipient, HMAC-signed unsubscribe URL. */
+export const UNSUBSCRIBE_URL_PLACEHOLDER = "{{unsubscribe_url}}";
+
+/** Fallback physical postal address (CAN-SPAM). Callers should override with
+ * the org's real address (organizations.address/city/state/zip). */
+export const DEFAULT_MARKETING_POSTAL_ADDRESS = "Rent Finder Cleveland, Cleveland, OH";
+
+export interface RenderEmailOptions {
+  /** When true, append the CAN-SPAM marketing footer (postal address +
+   * unsubscribe link). Leave false/undefined for transactional emails. */
+  marketing?: boolean;
+  /** Sender's physical postal address shown in the marketing footer. */
+  postalAddress?: string;
+  /** Per-recipient unsubscribe URL. When omitted, the
+   * {{unsubscribe_url}} placeholder is left intact for the sending edge
+   * function to substitute (keeps the HMAC secret server-side only). */
+  unsubscribeUrl?: string;
+}
+
 export function renderEmailHtml(
   config: EmailTemplateConfig,
   variables: Record<string, string>,
-  propertyInfoHtml?: string
+  propertyInfoHtml?: string,
+  options: RenderEmailOptions = {}
 ): string {
   const v = (text: string) => interpolate(text, variables);
   const PRIMARY = "#4F46E5";
@@ -359,10 +386,28 @@ export function renderEmailHtml(
        </div>`
     : "";
 
+  // Marketing footer (CAN-SPAM): postal address + unsubscribe link. Only
+  // rendered for marketing emails; transactional templates omit it entirely.
+  const unsubscribeUrl = options.unsubscribeUrl || UNSUBSCRIBE_URL_PLACEHOLDER;
+  const postalAddress = (options.postalAddress || DEFAULT_MARKETING_POSTAL_ADDRESS).trim();
+  const marketingFooterHtml = options.marketing
+    ? `
+        <p style="margin:14px 0 0;font-family:Montserrat,Arial,sans-serif;font-size:12px;line-height:1.5;color:#9ca3af;">
+          You are receiving this email because you inquired about a rental home with ${v(config.headerTitle)}.
+        </p>
+        <p style="margin:6px 0 0;font-family:Montserrat,Arial,sans-serif;font-size:12px;line-height:1.5;color:#9ca3af;">
+          ${escapeHtml(postalAddress)}
+        </p>
+        <p style="margin:6px 0 0;font-family:Montserrat,Arial,sans-serif;font-size:12px;line-height:1.5;color:#9ca3af;">
+          <a href="${unsubscribeUrl}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a> from marketing emails.
+        </p>`
+    : "";
+
   const footerHtml = `
     <tr>
       <td style="padding:20px 30px;text-align:center;background:#f9fafb;border-top:1px solid #e5e7eb;">
         <p style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:13px;color:#888;">${v(config.footerText)}</p>
+        ${marketingFooterHtml}
       </td>
     </tr>`;
 

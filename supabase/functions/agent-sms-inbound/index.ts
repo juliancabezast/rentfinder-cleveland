@@ -26,6 +26,54 @@ function twiml(content: string = ""): Response {
   });
 }
 
+// Constant-time string comparison to avoid signature timing attacks
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+// Verify Twilio's X-Twilio-Signature header.
+// Algorithm (https://www.twilio.com/docs/usage/security#validating-requests):
+//   1. Take the full request URL.
+//   2. Sort the POST params alphabetically by key and append each as key+value
+//      (no delimiter) to the URL string.
+//   3. HMAC-SHA1 the resulting string keyed by the account's auth token.
+//   4. Base64-encode and constant-time compare against X-Twilio-Signature.
+async function verifyTwilioSignature(
+  authToken: string,
+  url: string,
+  params: Record<string, string>,
+  signature: string,
+): Promise<boolean> {
+  if (!authToken || !signature) return false;
+
+  let data = url;
+  for (const key of Object.keys(params).sort()) {
+    data += key + params[key];
+  }
+
+  const encoder = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(authToken),
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"],
+  );
+  const sigBytes = await crypto.subtle.sign(
+    "HMAC",
+    cryptoKey,
+    encoder.encode(data),
+  );
+  const expected = btoa(String.fromCharCode(...new Uint8Array(sigBytes)));
+
+  return constantTimeEqual(expected, signature);
+}
+
 serve(async (req) => {
   const startTime = Date.now();
 
@@ -41,6 +89,14 @@ serve(async (req) => {
   try {
     // Parse Twilio form data
     const formData = await req.formData();
+
+    // Capture ALL params for Twilio signature verification (the signature is
+    // computed over every field Twilio sent, not just the ones we read).
+    const twilioParams: Record<string, string> = {};
+    for (const [key, value] of formData.entries()) {
+      twilioParams[key] = typeof value === "string" ? value : "";
+    }
+
     const from = formData.get("From") as string;
     const to = formData.get("To") as string;
     const body = (formData.get("Body") as string || "").trim();
@@ -59,7 +115,7 @@ serve(async (req) => {
     // Look up organization by Twilio phone number
     const { data: credentials, error: credError } = await supabase
       .from("organization_credentials")
-      .select("organization_id, twilio_phone_number")
+      .select("organization_id, twilio_phone_number, twilio_auth_token")
       .or(`twilio_phone_number.eq.${normalizedTo},twilio_phone_number.eq.${to}`)
       .limit(1)
       .single();
@@ -70,6 +126,43 @@ serve(async (req) => {
     }
 
     const orgId = credentials.organization_id;
+
+    // ── Verify Twilio request signature (fail CLOSED) ────────────────────
+    // This is a public webhook (verify_jwt=false) that runs with service-role
+    // privileges. Without signature verification, anyone could forge inbound
+    // messages, opt-outs, or showing confirmations. Require the org's Twilio
+    // auth token; if none is configured, reject outright so spoofed requests
+    // can never be processed.
+    const twilioAuthToken = credentials.twilio_auth_token;
+    if (!twilioAuthToken) {
+      console.error(
+        "agent-sms-inbound: no Twilio auth token configured for org",
+        orgId,
+        "— rejecting request",
+      );
+      return new Response("Forbidden: signature verification not configured", {
+        status: 403,
+        headers: corsHeaders,
+      });
+    }
+
+    const twilioSignature = req.headers.get("X-Twilio-Signature") || "";
+    const signatureValid = await verifyTwilioSignature(
+      twilioAuthToken,
+      req.url,
+      twilioParams,
+      twilioSignature,
+    );
+    if (!signatureValid) {
+      console.error(
+        "agent-sms-inbound: invalid or missing X-Twilio-Signature — rejecting",
+        { to: normalizedTo },
+      );
+      return new Response("Forbidden: invalid Twilio signature", {
+        status: 403,
+        headers: corsHeaders,
+      });
+    }
 
     // Fetch organization
     const { data: org } = await supabase
@@ -92,7 +185,7 @@ serve(async (req) => {
         await supabase.rpc("handle_sms_opt_out", {
           p_organization_id: orgId,
           p_phone: normalizedFrom,
-          p_action: "stop",
+          p_keyword: "STOP",
         });
       } catch (optOutErr) {
         console.error("handle_sms_opt_out error:", optOutErr);
@@ -118,7 +211,7 @@ serve(async (req) => {
         await supabase.rpc("handle_sms_opt_out", {
           p_organization_id: orgId,
           p_phone: normalizedFrom,
-          p_action: "start",
+          p_keyword: "START",
         });
       } catch (optOutErr) {
         console.error("handle_sms_opt_out error:", optOutErr);

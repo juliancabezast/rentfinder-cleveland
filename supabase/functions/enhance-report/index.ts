@@ -18,11 +18,57 @@ serve(async (req: Request) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    const { report_text, organization_id, property_address } = await req.json();
+    const body = await req.json();
+    const report_text = body.report_text;
+    const property_address = body.property_address;
+    let organization_id = body.organization_id;
 
-    if (!report_text || !organization_id) {
+    if (!report_text) {
       return new Response(
-        JSON.stringify({ error: "Missing report_text or organization_id" }),
+        JSON.stringify({ error: "Missing report_text" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Authenticate caller (close open-relay hole) ────────────────
+    // Runs with the service role and calls paid OpenAI + books cost — reject anon callers.
+    // Accept an internal service-role call OR a logged-in user; reject anon/invalid tokens.
+    // For user callers, FORCE the org from THEIR record (ignore any body-supplied value).
+    const authHeader = req.headers.get("Authorization") || "";
+    const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+    if (!isServiceRole) {
+      if (!callerToken || callerToken === anonKey) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
+      if (authErr || !authData?.user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: callerRec } = await supabase
+        .from("users")
+        .select("organization_id, is_active")
+        .eq("auth_user_id", authData.user.id)
+        .single();
+      if (!callerRec || callerRec.is_active === false || !callerRec.organization_id) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      organization_id = callerRec.organization_id;
+    }
+
+    if (!organization_id) {
+      return new Response(
+        JSON.stringify({ error: "Missing organization_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

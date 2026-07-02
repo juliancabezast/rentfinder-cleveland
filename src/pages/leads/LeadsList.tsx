@@ -385,6 +385,11 @@ const LeadsList: React.FC = () => {
       if (activeFilters.section8) {
         query = query.or("has_voucher.eq.true,voucher_status.eq.active");
       }
+      // "Has Showing" — apply server-side against the full set of lead IDs with
+      // active showings so count/pagination stay correct (not a page-only filter).
+      if (activeFilters.hasShowing) {
+        query = query.in("id", [...leadsWithShowings]);
+      }
 
       // Search filter
       if (searchQuery) {
@@ -405,12 +410,7 @@ const LeadsList: React.FC = () => {
 
       if (error) throw error;
 
-      let leadsData = data || [];
-
-      // If "Has Showing" filter is active, filter client-side
-      if (activeFilters.hasShowing) {
-        leadsData = leadsData.filter((l: any) => leadsWithShowings.has(l.id));
-      }
+      const leadsData = data || [];
 
       const leadIds = leadsData.map((l: any) => l.id);
 
@@ -441,8 +441,7 @@ const LeadsList: React.FC = () => {
       }));
 
       setLeads(processedLeads);
-      // Adjust count for client-side filtering
-      setTotalCount(activeFilters.hasShowing ? processedLeads.length : (count || 0));
+      setTotalCount(count || 0);
     } catch (error) {
       console.error("Error fetching leads:", error);
       toast.error("Failed to load leads");
@@ -574,6 +573,11 @@ const LeadsList: React.FC = () => {
           .lte("move_in_date", in20Days.toISOString().split("T")[0]);
       }
       if (activeFilters.section8) query = query.or("has_voucher.eq.true,voucher_status.eq.active");
+      // "Has Showing" — filter server-side against the full set of lead IDs with
+      // active showings so the export matches the list view exactly.
+      if (activeFilters.hasShowing) {
+        query = query.in("id", [...leadsWithShowings]);
+      }
       if (searchQuery) {
         query = query.or(
           `full_name.ilike.%${searchQuery}%,first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`
@@ -589,10 +593,7 @@ const LeadsList: React.FC = () => {
         return;
       }
 
-      let rows = data;
-      if (activeFilters.hasShowing) {
-        rows = rows.filter((l) => leadsWithShowings.has(l.id));
-      }
+      const rows = data;
 
       const headers = [
         "Name", "First Name", "Last Name", "Email", "Phone", "Status", "Source",

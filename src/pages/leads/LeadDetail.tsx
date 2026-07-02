@@ -220,11 +220,20 @@ const LeadDetail: React.FC = () => {
       if (error) throw error;
 
       if (data?.prediction) {
+        const p = data.prediction;
         setPrediction({
-          ...data.prediction,
-          conversion_probability: Number(data.prediction.conversion_probability),
-          factors: (data.prediction.factors || []) as unknown as LeadPrediction["factors"],
-          predicted_outcome: data.prediction.predicted_outcome as LeadPrediction["predicted_outcome"],
+          ...p,
+          id: p.id ?? lead.id,
+          lead_id: p.lead_id ?? lead.id,
+          conversion_probability: Number(p.conversion_probability),
+          predicted_days_to_convert: p.predicted_days_to_convert ?? null,
+          predicted_outcome: p.predicted_outcome as LeadPrediction["predicted_outcome"],
+          factors: (p.factors || []) as unknown as LeadPrediction["factors"],
+          model_version: p.model_version ?? p.model ?? "unknown",
+          based_on_leads_count: p.based_on_leads_count ?? null,
+          // edge fn returns `generated_at`, not `predicted_at` — normalize so the card doesn't crash
+          predicted_at: p.predicted_at ?? p.generated_at ?? new Date().toISOString(),
+          expires_at: p.expires_at ?? "",
         });
         toast({ title: "Prediction updated" });
       }

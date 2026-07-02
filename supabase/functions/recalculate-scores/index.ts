@@ -18,7 +18,46 @@ serve(async (req: Request) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    const { organization_id } = await req.json();
+    let { organization_id } = await req.json();
+
+    // ── Authenticate caller ─────────────────────────────────────────
+    // Called by a cron (service-role key) AND by the frontend recalculate
+    // button (supabase.functions.invoke sends the logged-in user's JWT as
+    // Authorization). Preserve BOTH: accept an internal service-role call OR
+    // a logged-in user; reject anon/invalid tokens. For user callers, force
+    // the org from THEIR record — never trust a body-supplied organization_id.
+    const authHeader = req.headers.get("Authorization") || "";
+    const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+    if (!isServiceRole) {
+      if (!callerToken || callerToken === anonKey) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
+      if (authErr || !authData?.user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: callerRec } = await supabase
+        .from("users")
+        .select("organization_id, is_active")
+        .eq("auth_user_id", authData.user.id)
+        .single();
+      if (!callerRec || callerRec.is_active === false || !callerRec.organization_id) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Force org from the caller's own record — override any body value.
+      organization_id = callerRec.organization_id;
+    }
 
     if (!organization_id) {
       return new Response(
@@ -80,6 +119,11 @@ serve(async (req: Request) => {
           // score changes when replaying history — these may exist from before
           // voucher scoring was removed, but must not be re-introduced.
           if (code && /voucher|section.?8/i.test(code)) continue;
+          // Idempotency: skip this function's OWN prior recalculation deltas.
+          // Each run logs a "recalculation" delta into lead_score_history; replaying
+          // those on top of the freshly-recomputed base would re-sum prior
+          // adjustments, drifting scores upward every run until clamped at 100.
+          if (code === "recalculation") continue;
           // If there's a custom rule override for this reason code, use it
           if (code && rules[code] !== undefined) {
             newScore += rules[code];

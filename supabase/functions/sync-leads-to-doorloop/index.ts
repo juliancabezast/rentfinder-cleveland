@@ -8,6 +8,38 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Look up an existing DoorLoop tenant by email/phone before creating a new one.
+// This makes the sync idempotent: if a prior run POSTed the tenant but died before
+// writing doorloop_prospect_id back locally, the next run finds it here and links
+// to it instead of creating a duplicate. Returns the DoorLoop id or null.
+async function findExistingDoorLoopTenant(
+  dlHeaders: Record<string, string>,
+  email: string | null,
+  phone: string,
+): Promise<string | null> {
+  const searchTerms: string[] = [];
+  if (email) searchTerms.push(email);
+  if (phone && phone.length >= 10) searchTerms.push(phone);
+
+  for (const term of searchTerms) {
+    try {
+      const url =
+        "https://app.doorloop.com/api/tenants?page_size=5&filter_text=" +
+        encodeURIComponent(term);
+      const resp = await fetch(url, { method: "GET", headers: new Headers(dlHeaders) });
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      const items = Array.isArray(json) ? json : (json?.data ?? []);
+      if (items.length > 0 && items[0]?.id != null) {
+        return String(items[0].id);
+      }
+    } catch {
+      // Search is best-effort — on failure fall through to create.
+    }
+  }
+  return null;
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -79,13 +111,18 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       };
 
-      // Get all leads without a DoorLoop prospect ID
+      // Get a bounded batch of leads without a DoorLoop prospect ID.
+      // Cap each run so a large backlog drains incrementally across invocations
+      // instead of blowing the edge wall-clock (each lead does a search + create
+      // round-trip plus a 200ms throttle).
+      const BATCH_LIMIT = 50;
       const { data: leads, error: leadsErr } = await supabase
         .from("leads")
         .select("id, full_name, phone, email, status")
         .eq("organization_id", org.id)
         .is("doorloop_prospect_id", null)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(BATCH_LIMIT);
 
       if (leadsErr) {
         allResults.push({ org_id: org.id, error: leadsErr.message, synced: 0 });
@@ -127,6 +164,32 @@ serve(async (req: Request) => {
           const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "N/A";
 
           const dlStatus = statusMap[lead.status] || "NEW";
+
+          // Dedupe guard: if DoorLoop already has this person (e.g. a prior run
+          // created the tenant but crashed before saving the id), link to the
+          // existing record instead of POSTing a duplicate.
+          const existingId = await findExistingDoorLoopTenant(
+            dlHeaders,
+            lead.email,
+            phoneForCreate,
+          );
+          if (existingId) {
+            const { error: linkErr } = await supabase
+              .from("leads")
+              .update({ doorloop_prospect_id: existingId })
+              .eq("id", lead.id);
+
+            if (linkErr) {
+              console.warn(`Lead ${lead.id} matched DoorLoop tenant ${existingId} but update failed:`, linkErr.message);
+              errors.push(`${lead.full_name}: Matched existing DoorLoop tenant but failed to save ID`);
+              failed++;
+            } else {
+              skipped++;
+            }
+
+            await new Promise((r) => setTimeout(r, 200));
+            continue;
+          }
 
           const createResp = await fetch("https://app.doorloop.com/api/tenants", {
             method: "POST",

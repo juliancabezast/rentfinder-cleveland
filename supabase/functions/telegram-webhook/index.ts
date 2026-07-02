@@ -29,6 +29,29 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // ── Verify Telegram's secret token ──────────────────────────
+  // Telegram echoes the secret configured via setWebhook in this header.
+  // If TELEGRAM_WEBHOOK_SECRET is set, reject mismatches; if unset, warn but
+  // allow through so the live webhook keeps working until it's configured.
+  const expectedSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET");
+  const okResponse = () =>
+    new Response(JSON.stringify({ ok: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  if (expectedSecret) {
+    const providedSecret =
+      req.headers.get("X-Telegram-Bot-Api-Secret-Token") ?? "";
+    if (!timingSafeEqual(providedSecret, expectedSecret)) {
+      console.warn("telegram-webhook: secret token mismatch — ignoring update");
+      // Return 200 so Telegram doesn't retry, but do nothing.
+      return okResponse();
+    }
+  } else {
+    console.warn(
+      "telegram-webhook: TELEGRAM_WEBHOOK_SECRET is not set — accepting unverified update"
+    );
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -137,4 +160,19 @@ async function sendTelegramReply(chatId: string, text: string, update: any) {
   // For unknown chats we don't have the bot token, so we can't reply
   // This is a no-op fallback — the user needs to configure their chat_id first
   console.log(`Cannot reply to unlinked chat ${chatId}: ${text}`);
+}
+
+// Constant-time string comparison to avoid leaking the secret via timing.
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const aBytes = enc.encode(a);
+  const bBytes = enc.encode(b);
+  // Compare against a length-matched buffer so length differences don't
+  // short-circuit; still fold in the real length mismatch at the end.
+  const len = Math.max(aBytes.length, bBytes.length);
+  let diff = aBytes.length ^ bBytes.length;
+  for (let i = 0; i < len; i++) {
+    diff |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  }
+  return diff === 0;
 }

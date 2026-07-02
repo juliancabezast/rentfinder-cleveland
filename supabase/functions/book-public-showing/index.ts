@@ -368,18 +368,6 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Save optional visitor note ────────────────────────────────────
-    if (typeof note === "string" && note.trim().length > 0) {
-      const trimmed = note.trim().slice(0, 500);
-      await supabase.from("lead_notes").insert({
-        organization_id,
-        lead_id: leadId,
-        note_type: "booking_request",
-        content: trimmed,
-        related_showing_id: showing.id,
-      });
-    }
-
     // ── Mark slot as booked (with race condition protection) ──────────
     const { data: bookedSlot, error: bookErr } = await supabase
       .from("showing_available_slots")
@@ -395,12 +383,34 @@ serve(async (req: Request) => {
       .single();
 
     if (bookErr || !bookedSlot) {
-      // Slot was taken by another request — delete the showing we just created
-      await supabase.from("showings").delete().eq("id", showing.id);
+      // Slot was taken by another request — delete the showing we just created.
+      // The visitor note is inserted only AFTER a successful claim, so there is
+      // no related_showing_id referencing this showing to block the delete here.
+      const { error: rollbackErr } = await supabase
+        .from("showings")
+        .delete()
+        .eq("id", showing.id);
+      if (rollbackErr) {
+        console.error("Failed to roll back showing after lost slot race:", rollbackErr);
+      }
       return new Response(
         JSON.stringify({ error: "That time slot was just taken. Please choose another." }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // ── Save optional visitor note (only after the slot is claimed) ────
+    // Inserted post-claim so a lost-race rollback delete of the showing is
+    // never blocked by lead_notes.related_showing_id (ON DELETE NO ACTION).
+    if (typeof note === "string" && note.trim().length > 0) {
+      const trimmed = note.trim().slice(0, 500);
+      await supabase.from("lead_notes").insert({
+        organization_id,
+        lead_id: leadId,
+        note_type: "booking_request",
+        content: trimmed,
+        related_showing_id: showing.id,
+      });
     }
 
     // ── Block ALL properties at this time slot (single-agent model) ────

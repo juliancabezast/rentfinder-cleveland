@@ -10,6 +10,8 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const DOORLOOP_API_BASE = "https://app.doorloop.com/api";
+const MAX_PAGES = 50; // Safety cap: 50 pages × 100 = 5000 records per endpoint per org
+const MAX_RETRIES = 3; // Max 429 retries per page before giving up
 
 interface DoorloopTenant {
   id: string;
@@ -78,18 +80,26 @@ serve(async (req) => {
         let tenantsPage = 1;
         let hasMoreTenants = true;
 
-        while (hasMoreTenants) {
-          const tenantsResponse = await fetch(
-            `${DOORLOOP_API_BASE}/tenants?page=${tenantsPage}&limit=100`,
-            { headers }
-          );
+        while (hasMoreTenants && tenantsPage <= MAX_PAGES) {
+          let tenantsResponse: Response;
+          let tenantsRetries = 0;
+          while (true) {
+            tenantsResponse = await fetch(
+              `${DOORLOOP_API_BASE}/tenants?page=${tenantsPage}&limit=100`,
+              { headers }
+            );
 
-          if (!tenantsResponse.ok) {
-            if (tenantsResponse.status === 429) {
-              // Rate limited, wait and retry
-              await new Promise(resolve => setTimeout(resolve, 5000));
+            // Rate limited — bounded retry with backoff, then fall through
+            if (tenantsResponse.status === 429 && tenantsRetries < MAX_RETRIES) {
+              tenantsRetries++;
+              console.log(`[Esther] Rate limited on tenants page ${tenantsPage}, retry ${tenantsRetries}/${MAX_RETRIES} after ${5 * tenantsRetries}s...`);
+              await new Promise(resolve => setTimeout(resolve, 5000 * tenantsRetries));
               continue;
             }
+            break;
+          }
+
+          if (!tenantsResponse.ok) {
             throw new Error(`Doorloop tenants API error: ${tenantsResponse.status}`);
           }
 
@@ -171,11 +181,37 @@ serve(async (req) => {
         }
 
         // 2. Fetch rental applications from Doorloop
-        const appsResponse = await fetch(`${DOORLOOP_API_BASE}/rental-applications?page=1&limit=100`, { headers });
+        let appsPage = 1;
+        let hasMoreApps = true;
 
-        if (appsResponse.ok) {
+        while (hasMoreApps && appsPage <= MAX_PAGES) {
+          let appsResponse: Response;
+          let appsRetries = 0;
+          while (true) {
+            appsResponse = await fetch(
+              `${DOORLOOP_API_BASE}/rental-applications?page=${appsPage}&limit=100`,
+              { headers }
+            );
+
+            // Rate limited — bounded retry with backoff, then fall through
+            if (appsResponse.status === 429 && appsRetries < MAX_RETRIES) {
+              appsRetries++;
+              console.log(`[Esther] Rate limited on rental-applications page ${appsPage}, retry ${appsRetries}/${MAX_RETRIES} after ${5 * appsRetries}s...`);
+              await new Promise(resolve => setTimeout(resolve, 5000 * appsRetries));
+              continue;
+            }
+            break;
+          }
+
+          if (!appsResponse.ok) break;
+
           const appsData = await appsResponse.json();
           const applications: DoorloopApplication[] = appsData.data || [];
+
+          if (applications.length === 0) {
+            hasMoreApps = false;
+            break;
+          }
 
           for (const app of applications) {
             if (app.tenantId) {
@@ -224,14 +260,45 @@ serve(async (req) => {
               }
             }
           }
+
+          appsPage++;
+          if (applications.length < 100) {
+            hasMoreApps = false;
+          }
         }
 
         // 3. Fetch lease tenants from Doorloop (tenants with active leases)
-        const leaseTenantsResponse = await fetch(`${DOORLOOP_API_BASE}/lease-tenants?page=1&limit=100`, { headers });
+        let leasePage = 1;
+        let hasMoreLeaseTenants = true;
 
-        if (leaseTenantsResponse.ok) {
+        while (hasMoreLeaseTenants && leasePage <= MAX_PAGES) {
+          let leaseTenantsResponse: Response;
+          let leaseRetries = 0;
+          while (true) {
+            leaseTenantsResponse = await fetch(
+              `${DOORLOOP_API_BASE}/lease-tenants?page=${leasePage}&limit=100`,
+              { headers }
+            );
+
+            // Rate limited — bounded retry with backoff, then fall through
+            if (leaseTenantsResponse.status === 429 && leaseRetries < MAX_RETRIES) {
+              leaseRetries++;
+              console.log(`[Esther] Rate limited on lease-tenants page ${leasePage}, retry ${leaseRetries}/${MAX_RETRIES} after ${5 * leaseRetries}s...`);
+              await new Promise(resolve => setTimeout(resolve, 5000 * leaseRetries));
+              continue;
+            }
+            break;
+          }
+
+          if (!leaseTenantsResponse.ok) break;
+
           const leaseTenantsData = await leaseTenantsResponse.json();
           const leaseTenants: DoorloopTenant[] = leaseTenantsData.data || [];
+
+          if (leaseTenants.length === 0) {
+            hasMoreLeaseTenants = false;
+            break;
+          }
 
           for (const tenant of leaseTenants) {
             // A tenant appearing in lease-tenants means they converted
@@ -267,6 +334,11 @@ serve(async (req) => {
 
               leadsUpdated++;
             }
+          }
+
+          leasePage++;
+          if (leaseTenants.length < 100) {
+            hasMoreLeaseTenants = false;
           }
         }
 

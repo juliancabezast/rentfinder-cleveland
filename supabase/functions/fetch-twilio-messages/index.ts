@@ -18,7 +18,46 @@ serve(async (req: Request) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    const { organization_id, message_sids } = await req.json();
+    let { organization_id, message_sids } = await req.json();
+
+    // ── Authenticate caller ────────────────────────────────────────
+    // This runs with the service role and reads an org's Twilio credentials —
+    // reject anonymous callers. Accept an internal service-role call (cron) OR a
+    // logged-in user; for user callers, force the org from THEIR record so the
+    // body-supplied organization_id can't be used to read another tenant's creds.
+    const incomingAuth = req.headers.get("Authorization") || "";
+    const callerToken = incomingAuth.replace(/^Bearer\s+/i, "").trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+
+    if (!isServiceRole) {
+      if (!callerToken || callerToken === anonKey) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
+      if (authErr || !authData?.user) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: callerRec } = await supabase
+        .from("users")
+        .select("organization_id, is_active")
+        .eq("auth_user_id", authData.user.id)
+        .single();
+      if (!callerRec || callerRec.is_active === false || !callerRec.organization_id) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Force org from the caller's record — never trust the body value.
+      organization_id = callerRec.organization_id;
+    }
 
     if (!organization_id || !message_sids?.length) {
       return new Response(

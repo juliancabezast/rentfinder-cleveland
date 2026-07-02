@@ -21,6 +21,42 @@ const MARKETING_NOTIFICATION_TYPES = new Set([
   "promotion",
 ]);
 
+// ── CAN-SPAM unsubscribe (per-recipient, HMAC-signed) ──────────────────────
+function base64urlEncode(bytes: Uint8Array): string {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function signLeadId(leadId: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(leadId));
+  return base64urlEncode(new Uint8Array(sig));
+}
+
+// Build a per-lead unsubscribe URL. Falls back to a mailto opt-out when the
+// signing secret or lead id is unavailable, so marketing mail always ships a
+// working unsubscribe path.
+async function buildUnsubscribeUrl(
+  leadId: string | null | undefined,
+  supabaseUrl: string,
+  senderDomain: string,
+): Promise<string> {
+  const secret = Deno.env.get("UNSUBSCRIBE_SECRET") || "";
+  if (!secret || !leadId) {
+    return `mailto:unsubscribe@${senderDomain}?subject=Unsubscribe`;
+  }
+  const sig = await signLeadId(leadId, secret);
+  const token = `${leadId}.${sig}`;
+  return `${supabaseUrl}/functions/v1/unsubscribe?token=${token}`;
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -191,6 +227,25 @@ serve(async (req: Request) => {
     const senderName = from_name || "Rent Finder Cleveland";
     const fromAddress = `${senderName} <support@${senderDomain}>`;
 
+    // ── CAN-SPAM: only marketing mail gets the unsubscribe URL + headers ──
+    // Transactional emails are left untouched (no {{unsubscribe_url}} in their
+    // templates, and no List-Unsubscribe header added).
+    let outboundHtml = html as string;
+    const resendExtraHeaders: Record<string, string> = {};
+    if (isMarketing && related_entity_type === "lead" && related_entity_id) {
+      const unsubUrl = await buildUnsubscribeUrl(
+        String(related_entity_id),
+        supabaseUrl,
+        senderDomain,
+      );
+      outboundHtml = outboundHtml.split("{{unsubscribe_url}}").join(unsubUrl);
+      resendExtraHeaders["List-Unsubscribe"] = `<${unsubUrl}>`;
+      // One-Click POST is only valid against an HTTPS endpoint (not a mailto).
+      if (unsubUrl.startsWith("http")) {
+        resendExtraHeaders["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+      }
+    }
+
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -201,7 +256,10 @@ serve(async (req: Request) => {
         from: fromAddress,
         to: [to],
         subject,
-        html,
+        html: outboundHtml,
+        ...(Object.keys(resendExtraHeaders).length
+          ? { headers: resendExtraHeaders }
+          : {}),
       }),
     });
 

@@ -263,7 +263,9 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
             Based on {prediction.based_on_leads_count?.toLocaleString() || "—"} similar leads
           </span>
           <span>
-            Updated {formatDistanceToNow(new Date(prediction.predicted_at), { addSuffix: true })}
+            Updated {prediction.predicted_at
+              ? formatDistanceToNow(new Date(prediction.predicted_at), { addSuffix: true })
+              : "just now"}
           </span>
         </div>
       </CardContent>

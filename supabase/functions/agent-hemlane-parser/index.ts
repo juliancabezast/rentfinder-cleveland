@@ -648,7 +648,8 @@ async function upsertLead(
   const fallbackIdentifier = displayPhone || lead.email || "unknown";
   const fullName = lead.name || recoveredName || `Hemlane Lead ${fallbackIdentifier}`;
 
-  // Create new lead — with consent flags since they initiated contact
+  // Create new lead — NO marketing/SMS/call consent. An inbound email inquiry
+  // is NOT TCPA prior express written consent; we may only reply transactionally.
   const { data: newLead, error: err } = await supabase
     .from("leads")
     .insert({
@@ -663,10 +664,8 @@ async function upsertLead(
       status: "new",
       hemlane_email_id: emailId,
       interested_property_id: propertyId,
-      sms_consent: true,
-      sms_consent_at: new Date().toISOString(),
-      call_consent: true,
-      call_consent_at: new Date().toISOString(),
+      sms_consent: false,
+      call_consent: false,
     })
     .select("id")
     .single();
@@ -698,26 +697,27 @@ async function upsertLead(
   const leadId = newLead.id;
   const now = new Date().toISOString();
   const listingPlatform = lead.listingSource || "Hemlane";
-  const evidenceText = `Lead initiated contact via ${listingPlatform} property listing${lead.property ? ` for ${lead.property}` : ""}. Inbound inquiry = implicit consent to be contacted back. Received ${now}. Email ID: ${emailId}`;
+  const evidenceText = `Inbound listing inquiry via ${listingPlatform}${lead.property ? ` for ${lead.property}` : ""} — reply-only, not marketing consent. Received ${now}. Email ID: ${emailId}`;
 
   // ── Save initial message as a lead note ──────────────────────────
   if (lead.message) {
     await saveLeadNote(supabase, organizationId, leadId, lead.message);
   }
 
-  // ── Record consent (inbound inquiry = they contacted us) ─────────
-  const consentTypes = ["automated_calls", "sms_marketing", "email_marketing"] as const;
-  for (const consentType of consentTypes) {
+  // ── Record transactional reply basis (NOT marketing/TCPA consent) ─
+  // An inbound email inquiry does not grant SMS/call/marketing consent; it only
+  // establishes a legitimate basis to reply transactionally to the inquiry.
+  {
     const { error: consentErr } = await supabase.from("consent_log").insert({
       organization_id: organizationId,
       lead_id: leadId,
-      consent_type: consentType,
+      consent_type: "transactional_reply",
       granted: true,
       method: "listing_inquiry",
       evidence_text: evidenceText,
     });
     if (consentErr) {
-      console.error(`Esther: consent_log insert failed (${consentType}): ${consentErr.message}`);
+      console.error(`Esther: consent_log insert failed (transactional_reply): ${consentErr.message}`);
     }
   }
 

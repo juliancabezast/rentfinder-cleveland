@@ -449,7 +449,10 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       "{orgName}": orgName,
       "{senderDomain}": senderDomain,
     };
-    return renderEmailHtml(config, variables);
+    // Campaign emails are marketing → show the CAN-SPAM footer (postal address
+    // + unsubscribe) in the preview. The {{unsubscribe_url}} placeholder is
+    // filled per-recipient by the sending edge function at send time.
+    return renderEmailHtml(config, variables, undefined, { marketing: true });
   }, [step, templateType, selectedProperty, leadsWithEmail, organization]);
 
   // ── Dedup check ──────────────────────────────────────────────────
@@ -662,6 +665,26 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       const senderDomain = (domainSetting?.value as string) || "rentfindercleveland.com";
       const orgName = organization?.name || "Rent Finder Cleveland";
 
+      // Physical postal address for the CAN-SPAM marketing footer. Composed
+      // from the organizations record; falls back to the renderer's default
+      // when the org hasn't set a street address.
+      const { data: orgAddr } = await supabase
+        .from("organizations")
+        .select("address, city, state, zip_code")
+        .eq("id", orgId)
+        .maybeSingle();
+      const postalAddress = orgAddr?.address
+        ? [
+            orgName,
+            orgAddr.address,
+            [[orgAddr.city, orgAddr.state].filter(Boolean).join(", "), orgAddr.zip_code]
+              .filter(Boolean)
+              .join(" "),
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : undefined;
+
       const existingMap = dedupResult?.existingMap || {};
       const propertyAddress = `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ""}, ${selectedProperty.city || "Cleveland"}`;
 
@@ -862,7 +885,14 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             "{orgName}": orgName,
             "{senderDomain}": senderDomain,
           };
-          const html = renderEmailHtml(emailConfig, variables);
+          // Marketing send: render with the CAN-SPAM footer (postal address +
+          // {{unsubscribe_url}} placeholder). The placeholder is substituted
+          // per-recipient by process-email-queue using the org's UNSUBSCRIBE_SECRET,
+          // so the HMAC signing key never touches the client.
+          const html = renderEmailHtml(emailConfig, variables, undefined, {
+            marketing: true,
+            postalAddress,
+          });
           const subject = emailConfig.subject
             .replace("{orgName}", orgName)
             .replace("{propertyAddress}", propertyAddress);

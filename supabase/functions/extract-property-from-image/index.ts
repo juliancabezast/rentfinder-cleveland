@@ -31,6 +31,8 @@ serve(async (req: Request) => {
     // Called from the authenticated frontend (ZillowImportDialog). This spends the org's
     // OpenAI credits, so it must not be callable anonymously. Accept an internal
     // service-role call OR a logged-in user; reject anon/invalid tokens.
+    // For user callers, derive the org from THEIR record and reject if the body-supplied
+    // organization_id doesn't match (prevents spending another org's OpenAI credits).
     const authHeader = req.headers.get("Authorization") || "";
     const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -47,6 +49,23 @@ serve(async (req: Request) => {
         return new Response(
           JSON.stringify({ error: "Unauthorized" }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: callerRec } = await supabase
+        .from("users")
+        .select("organization_id, is_active")
+        .eq("auth_user_id", authData.user.id)
+        .single();
+      if (!callerRec || callerRec.is_active === false || !callerRec.organization_id) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (organization_id !== callerRec.organization_id) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: organization mismatch" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }

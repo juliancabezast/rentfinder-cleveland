@@ -22,6 +22,47 @@ serve(async (req: Request) => {
     const parsed = await req.json();
     organization_id = parsed.organization_id;
 
+    // ── Authenticate caller ─────────────────────────────────────────
+    // Runs with the service role; returns internal ops metrics, spends the org's
+    // OpenAI budget, and overwrites organization_settings — reject anonymous callers.
+    // Accept an internal service-role call (cron) OR a logged-in user. For user
+    // callers, FORCE the org from THEIR record (ignore any body-supplied value) to
+    // prevent cross-tenant access. The frontend uses supabase.functions.invoke(),
+    // which forwards the user's JWT, so getUser() resolves them; cron sends the key.
+    const authHeader = req.headers.get("Authorization") || "";
+    const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+
+    if (!isServiceRole) {
+      if (!callerToken || callerToken === anonKey) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
+      if (authErr || !authData?.user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: callerRec } = await supabase
+        .from("users")
+        .select("organization_id, is_active")
+        .eq("auth_user_id", authData.user.id)
+        .single();
+      if (!callerRec || callerRec.is_active === false || !callerRec.organization_id) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Force org from the caller's record — ignore any body-supplied value.
+      organization_id = callerRec.organization_id;
+    }
+
     if (!organization_id) {
       return new Response(
         JSON.stringify({ error: "Missing organization_id" }),
