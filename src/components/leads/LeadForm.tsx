@@ -82,6 +82,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
   const [properties, setProperties] = useState<PropertyOption[]>([]);
 
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [interestsLoaded, setInterestsLoaded] = useState(false);
   const [propertyPopoverOpen, setPropertyPopoverOpen] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -132,6 +133,10 @@ export const LeadForm: React.FC<LeadFormProps> = ({
           setSelectedPropertyIds([lead.interested_property_id]);
         }
       }
+
+      // Mark interests as loaded so an early submit can't wipe existing
+      // property interests via the delete/insert sync in handleSubmit
+      setInterestsLoaded(true);
     };
 
     fetchData();
@@ -190,22 +195,32 @@ export const LeadForm: React.FC<LeadFormProps> = ({
           .eq("id", lead.id);
         if (error) throw error;
 
-        // Sync junction table: delete old, insert new
-        const { error: deleteErr } = await supabase
-          .from("lead_property_interests")
-          .delete()
-          .eq("lead_id", lead.id);
-        if (deleteErr) console.error("Failed to clear property interests:", deleteErr);
+        // Sync junction table: delete old, insert new — but only once existing
+        // interests have loaded, so an early submit can't wipe them
+        if (interestsLoaded) {
+          const { error: deleteErr } = await supabase
+            .from("lead_property_interests")
+            .delete()
+            .eq("lead_id", lead.id);
+          if (deleteErr) console.error("Failed to clear property interests:", deleteErr);
 
-        if (selectedPropertyIds.length > 0) {
-          const { error: insertErr } = await supabase.from("lead_property_interests").insert(
-            selectedPropertyIds.map((pid) => ({
-              organization_id: userRecord.organization_id,
-              lead_id: lead.id,
-              property_id: pid,
-            }))
-          );
-          if (insertErr) console.error("Failed to save property interests:", insertErr);
+          if (selectedPropertyIds.length > 0) {
+            const { error: insertErr } = await supabase.from("lead_property_interests").insert(
+              selectedPropertyIds.map((pid) => ({
+                organization_id: userRecord.organization_id,
+                lead_id: lead.id,
+                property_id: pid,
+              }))
+            );
+            if (insertErr) {
+              console.error("Failed to save property interests:", insertErr);
+              toast({
+                title: "Warning",
+                description: "Lead saved, but its property interests couldn't be updated.",
+                variant: "destructive",
+              });
+            }
+          }
         }
 
         toast({ title: "Success", description: "Lead updated successfully." });

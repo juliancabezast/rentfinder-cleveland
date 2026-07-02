@@ -274,10 +274,19 @@ Return ONLY valid JSON, no markdown.`;
       p_call_id: callId,
     });
 
-    // Calculate new score
-    const totalAdjustment = Math.max(-30, Math.min(30, analysis.total_recommended_adjustment || 0));
+    // Fair Housing: source of income (housing vouchers / Section 8) must NEVER
+    // affect scoring. Discard any LLM-suggested adjustment whose reason_code
+    // matches and exclude its points from the recommended total; do not rely on
+    // the prompt alone. Mirrors recalculate-scores.
+    const allAdjustments = analysis.score_adjustments || [];
+    const adjustments = allAdjustments.filter((adj) => !(adj.reason_code && /voucher|section.?8/i.test(adj.reason_code)));
+    const excludedPoints = allAdjustments
+      .filter((adj) => adj.reason_code && /voucher|section.?8/i.test(adj.reason_code))
+      .reduce((sum, adj) => sum + (adj.points || 0), 0);
+
+    // Calculate new score (voucher / Section 8 points excluded from the total)
+    const totalAdjustment = Math.max(-30, Math.min(30, (analysis.total_recommended_adjustment || 0) - excludedPoints));
     let runningScore = currentScore;
-    const adjustments = analysis.score_adjustments || [];
 
     // Insert score history for each adjustment
     for (const adj of adjustments) {

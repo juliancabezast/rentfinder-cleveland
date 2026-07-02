@@ -499,7 +499,7 @@ serve(async (req: Request) => {
       organization_id,
       previous_score: previousScore,
       new_score: newScore,
-      change_amount: 30,
+      change_amount: newScore - previousScore,
       reason_code: "showing_requested",
       reason_text: "Lead requested a property showing — automatic Hot Lead boost",
       triggered_by: "engagement",

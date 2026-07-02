@@ -286,14 +286,27 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       });
     }
 
+    // Cleveland-aware fetch window: convert the visible date range to UTC instants at
+    // America/New_York boundaries so evening showings on the last day aren't dropped.
+    const orgTz = "America/New_York";
+    const clevelandBoundaryUTC = (dateStr: string, endOfDay: boolean) => {
+      const asUTC = new Date(`${dateStr}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}Z`);
+      const offset =
+        new Date(asUTC.toLocaleString("en-US", { timeZone: orgTz })).getTime() -
+        new Date(asUTC.toLocaleString("en-US", { timeZone: "UTC" })).getTime();
+      return new Date(asUTC.getTime() - offset).toISOString();
+    };
+    const startInstant = clevelandBoundaryUTC(startStr, false);
+    const endInstant = clevelandBoundaryUTC(endStr, true);
+
     // Also fetch cancelled/no_show/rescheduled showings for this week to display in calendar
     const { data: cancelledData } = await supabase
       .from("showings")
       .select("id, scheduled_at, status, lead_id, property_id, leads(full_name), properties(address)")
       .eq("organization_id", orgId)
       .in("status", ["cancelled", "no_show", "rescheduled"])
-      .gte("scheduled_at", `${startStr}T00:00:00`)
-      .lte("scheduled_at", `${endStr}T23:59:59`);
+      .gte("scheduled_at", startInstant)
+      .lte("scheduled_at", endInstant);
 
     // Fetch active showings (scheduled/confirmed) for the week — needed for days without slots
     const { data: activeShowingsData } = await supabase
@@ -301,8 +314,8 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       .select("id, scheduled_at, status, property_id, leads(full_name), properties(address)")
       .eq("organization_id", orgId)
       .in("status", ["scheduled", "confirmed"])
-      .gte("scheduled_at", `${startStr}T00:00:00`)
-      .lte("scheduled_at", `${endStr}T23:59:59`);
+      .gte("scheduled_at", startInstant)
+      .lte("scheduled_at", endInstant);
 
     // Build set of dates that have active showings
     const datesWithShowings = new Set<string>();

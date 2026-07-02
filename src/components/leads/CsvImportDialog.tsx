@@ -195,6 +195,51 @@ function calculateImportScore(lead: Record<string, unknown>, hasPropertyAssigned
   return Math.min(score, 100);
 }
 
+// Robustly parse a move-in date from CSV/Excel input. Handles Excel date
+// serials (e.g. "46000"), ISO yyyy-mm-dd, and DD/MM/YYYY. Returns a
+// YYYY-MM-DD string, or null when the value can't be parsed (no garbage).
+function parseMoveInDate(value: string): string | null {
+  const v = value.trim();
+  if (!v) return null;
+
+  // Excel date serial (numeric): days since the Excel epoch (1899-12-30).
+  if (/^\d+(\.\d+)?$/.test(v)) {
+    const serial = Number(v);
+    if (serial >= 10000 && serial <= 100000) {
+      const ms = Math.round((serial - 25569) * 86400 * 1000);
+      const d = new Date(ms);
+      if (!isNaN(d.getTime())) return d.toISOString().split("T")[0];
+    }
+    return null;
+  }
+
+  // ISO yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) return d.toISOString().split("T")[0];
+    return null;
+  }
+
+  // DD/MM/YYYY (or DD-MM-YYYY)
+  const dmy = v.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (dmy) {
+    const day = Number(dmy[1]);
+    const month = Number(dmy[2]);
+    const year = Number(dmy[3]);
+    const d = new Date(Date.UTC(year, month - 1, day));
+    if (
+      d.getUTCFullYear() === year &&
+      d.getUTCMonth() === month - 1 &&
+      d.getUTCDate() === day
+    ) {
+      return d.toISOString().split("T")[0];
+    }
+    return null;
+  }
+
+  return null;
+}
+
 // Fuzzy match CSV content against known properties
 function detectPropertyFromCsv(
   headers: string[],
@@ -373,8 +418,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
             lead[ourField] = ["true", "yes", "1", "y"].includes(value.toLowerCase());
             break;
           case "move_in_date": {
-            const dateVal = new Date(value);
-            if (!isNaN(dateVal.getTime())) lead[ourField] = dateVal.toISOString().split("T")[0];
+            lead[ourField] = parseMoveInDate(value);
             break;
           }
           default:
@@ -433,8 +477,14 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         const normalizedHeader = header.toLowerCase().trim();
         const mappedField = COLUMN_ALIASES[normalizedHeader];
         if (mappedField) {
-          autoMapping[header] = mappedField;
-          alreadyMapped.add(mappedField);
+          if (alreadyMapped.has(mappedField)) {
+            // Field already claimed by an earlier column — don't map twice
+            // (that would overwrite/drop data). Route the extra column to notes.
+            autoMapping[header] = "skip";
+          } else {
+            autoMapping[header] = mappedField;
+            alreadyMapped.add(mappedField);
+          }
         }
       });
 

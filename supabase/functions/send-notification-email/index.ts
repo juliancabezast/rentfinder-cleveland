@@ -95,12 +95,17 @@ serve(async (req: Request) => {
           .select("email_marketing_consent, unsubscribed_at")
           .eq("id", related_entity_id)
           .maybeSingle();
-        // If the consent columns aren't deployed yet, the SELECT errors with
-        // PGRST204 — degrade gracefully and allow the send (logged below).
+        // Fail closed: if the consent columns can't be read (transient error,
+        // columns not deployed yet, etc.) we cannot confirm consent, so a
+        // marketing email must NOT be sent.
         if (consentErr) {
-          console.warn(
-            "Consent columns unavailable, allowing marketing email:",
+          console.error(
+            "Consent read failed, blocking marketing email:",
             consentErr.message,
+          );
+          return new Response(
+            JSON.stringify({ error: "Unable to verify marketing consent; email not sent." }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         } else if (leadConsent?.unsubscribed_at) {
           return new Response(
@@ -114,7 +119,11 @@ serve(async (req: Request) => {
           );
         }
       } catch (consentCheckErr) {
-        console.warn("Consent check failed, allowing send:", consentCheckErr);
+        console.error("Consent check failed, blocking marketing email:", consentCheckErr);
+        return new Response(
+          JSON.stringify({ error: "Unable to verify marketing consent; email not sent." }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
     }
 

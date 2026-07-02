@@ -243,7 +243,7 @@ serve(async (req: Request) => {
       const orgTz = "America/New_York";
       const tzRef = new Date(`${slotDate}T12:00:00Z`);
       const tzLocal = new Date(tzRef.toLocaleString("en-US", { timeZone: orgTz }));
-      const tzOffsetHrs = Math.round((tzRef.getTime() - tzLocal.getTime()) / 3600000);
+      const tzOffsetHrs = Math.round((tzLocal.getTime() - tzRef.getTime()) / 3600000);
       const tzSign = tzOffsetHrs >= 0 ? "+" : "-";
       const tzAbs = String(Math.abs(tzOffsetHrs)).padStart(2, "0");
       const scheduledAt = `${slotDate}T${slotTime}${tzSign}${tzAbs}:00`;

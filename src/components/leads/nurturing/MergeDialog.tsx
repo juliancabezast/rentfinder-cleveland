@@ -163,6 +163,7 @@ export async function performMerge(
     "lead_notes", "calls", "showings", "agent_tasks",
     "lead_score_history", "consent_log", "communications",
     "cost_records", "lead_predictions", "competitor_mentions",
+    "conversion_predictions", "lead_field_changes",
   ];
   for (const table of leadIdTables) {
     await (supabase as any).from(table as any).update({ lead_id: winnerId }).eq("lead_id", loserId);
@@ -170,6 +171,23 @@ export async function performMerge(
   await supabase.from("system_logs").update({ related_lead_id: winnerId }).eq("related_lead_id", loserId);
   await supabase.from("referrals").update({ referrer_lead_id: winnerId }).eq("referrer_lead_id", loserId);
   await supabase.from("referrals").update({ referred_lead_id: winnerId }).eq("referred_lead_id", loserId);
+
+  // Re-point CASCADE-linked tables with a unique (lead_id, X) constraint. Skip
+  // loser rows whose X already exists on the winner (they'd collide) — those are
+  // left on the loser and cascade-deleted with it.
+  const dedupTables = [
+    { table: "lead_property_interests", col: "property_id" },
+    { table: "lead_properties", col: "property_id" },
+    { table: "campaign_leads", col: "campaign_id" },
+    { table: "campaign_recipients", col: "campaign_id" },
+  ];
+  for (const { table, col } of dedupTables) {
+    const { data: winnerRows } = await (supabase as any)
+      .from(table as any).select(col).eq("lead_id", winnerId);
+    const taken = (winnerRows || []).map((r: any) => r[col]).filter(Boolean);
+    const move = (supabase as any).from(table as any).update({ lead_id: winnerId }).eq("lead_id", loserId);
+    await (taken.length > 0 ? move.not(col, "in", `(${taken.join(",")})`) : move);
+  }
 
   // Log merge note
   const { error: noteErr } = await (supabase as any).from("lead_notes").insert({
@@ -281,6 +299,7 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
         "lead_notes", "calls", "showings", "agent_tasks",
         "lead_score_history", "consent_log", "communications",
         "cost_records", "lead_predictions", "competitor_mentions",
+        "conversion_predictions", "lead_field_changes",
       ];
 
       for (const table of leadIdTables) {
@@ -308,6 +327,33 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
         .from("referrals")
         .update({ referred_lead_id: winner.id })
         .eq("referred_lead_id", loser.id);
+
+      // 3b. Re-point CASCADE-linked tables with a unique (lead_id, X) constraint.
+      // Skip loser rows whose X already exists on the winner (they'd collide) —
+      // those are left on the loser and cascade-deleted with it.
+      const dedupTables = [
+        { table: "lead_property_interests", col: "property_id" },
+        { table: "lead_properties", col: "property_id" },
+        { table: "campaign_leads", col: "campaign_id" },
+        { table: "campaign_recipients", col: "campaign_id" },
+      ];
+      for (const { table, col } of dedupTables) {
+        const { data: winnerRows } = await supabase
+          .from(table as any)
+          .select(col)
+          .eq("lead_id", winner.id);
+        const taken = (winnerRows || []).map((r: any) => r[col]).filter(Boolean);
+        const move = supabase
+          .from(table as any)
+          .update({ lead_id: winner.id })
+          .eq("lead_id", loser.id);
+        const { error: moveErr } = await (taken.length > 0
+          ? move.not(col, "in", `(${taken.join(",")})`)
+          : move);
+        if (moveErr) {
+          console.warn(`Merge: moving ${table} records: ${moveErr.message}`);
+        }
+      }
 
       // 4. Log the merge as a note on the winner
       const { error: noteErr } = await (supabase as any).from("lead_notes").insert({

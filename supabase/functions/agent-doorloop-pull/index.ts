@@ -105,12 +105,22 @@ serve(async (req) => {
           }
 
           for (const prospect of prospects) {
+            // Build match conditions — only include phone/email when non-empty
+            // so we never match unrelated leads with a blank phone/email.
+            const orConditions: string[] = [];
+            if (prospect.id) orConditions.push(`doorloop_prospect_id.eq.${prospect.id}`);
+            if (prospect.phone) orConditions.push(`phone.eq.${prospect.phone}`);
+            if (prospect.email) orConditions.push(`email.eq.${prospect.email}`);
+
+            // No usable identifier — skip to avoid overwriting the wrong lead
+            if (orConditions.length === 0) continue;
+
             // Try to match to our lead
             const { data: lead } = await supabase
               .from("leads")
               .select("id, status, doorloop_prospect_id")
               .eq("organization_id", organization_id)
-              .or(`doorloop_prospect_id.eq.${prospect.id},phone.eq.${prospect.phone || ""},email.eq.${prospect.email || ""}`)
+              .or(orConditions.join(","))
               .maybeSingle();
 
             if (lead) {

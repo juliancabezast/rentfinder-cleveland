@@ -142,17 +142,17 @@ serve(async (req: Request) => {
       console.error("DoorLoop error:", dlErr);
     }
 
-    // ── Create Ezra agent task to send application from DoorLoop portal ──
-    await supabase.from("agent_tasks").insert({
+    // ── Create Samuel agent task to send application from DoorLoop portal ──
+    const { error: taskErr } = await supabase.from("agent_tasks").insert({
       organization_id,
-      agent_key: "ezra",
-      action_type: "send_application",
       lead_id,
-      property_id,
+      agent_type: "doorloop_pull",
+      action_type: "send_application",
       scheduled_for: new Date().toISOString(),
       status: "pending",
-      metadata: {
+      context: {
         source: "public_booking_page",
+        property_id,
         lead_email: lead.email || null,
         lead_name: lead.full_name || null,
         lead_phone: lead.phone || null,
@@ -160,6 +160,9 @@ serve(async (req: Request) => {
         doorloop_prospect_id: doorloopProspectId || null,
       },
     });
+    if (taskErr) {
+      console.error("Failed to create send_application agent task:", taskErr);
+    }
 
     // ── Send notification to leasing team with direct DoorLoop link ────
     const doorloopLink = doorloopProspectId

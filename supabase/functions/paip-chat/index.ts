@@ -105,13 +105,20 @@ serve(async (req) => {
           .select("*", { count: "exact", head: true })
           .eq("organization_id", organizationId);
 
-        const today = new Date().toISOString().split("T")[0];
+        // Compute "today" in Cleveland time (America/New_York), DST-aware.
+        const orgTz = "America/New_York";
+        const now = new Date();
+        const today = now.toLocaleDateString("en-CA", { timeZone: orgTz });
+        const clevelandOffsetMs =
+          now.getTime() - new Date(now.toLocaleString("en-US", { timeZone: orgTz })).getTime();
+        const todayStart = new Date(new Date(`${today}T00:00:00`).getTime() + clevelandOffsetMs).toISOString();
+        const todayEnd = new Date(new Date(`${today}T23:59:59.999`).getTime() + clevelandOffsetMs).toISOString();
         const { count: todayShowingCount } = await supabase
           .from("showings")
           .select("*", { count: "exact", head: true })
           .eq("organization_id", organizationId)
-          .gte("scheduled_at", `${today}T00:00:00`)
-          .lte("scheduled_at", `${today}T23:59:59`);
+          .gte("scheduled_at", todayStart)
+          .lte("scheduled_at", todayEnd);
 
         // Fetch call stats
         const { count: callCount } = await supabase

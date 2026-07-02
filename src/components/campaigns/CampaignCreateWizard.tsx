@@ -806,7 +806,8 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         // set `unsubscribed_at` suppresses, matching the server's IS NOT FALSE
         // semantics). This gate is EMAIL-only — SMS recipients (PASS 3) are
         // unaffected. If the consent columns aren't deployed on this DB yet the
-        // SELECT errors (PGRST 42703/204); we degrade gracefully and allow all.
+        // SELECT errors (PGRST 42703/204); we FAIL CLOSED — suppress every
+        // unverified recipient rather than risk emailing someone who opted out.
         const suppressedLeadIds = new Set<string>();
         const emailLeadIds = Array.from(
           new Set(
@@ -820,11 +821,17 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             .select("id, unsubscribed_at, email_marketing_consent")
             .in("id", chunk);
           if (consentErr) {
-            console.warn(
-              "Marketing-consent columns unavailable — allowing all email recipients:",
+            // FAIL-CLOSED: consent could not be verified for these recipients.
+            // Never assume consent — suppress ALL email recipients rather than
+            // risk mailing someone who opted out (CAN-SPAM / CASL).
+            console.error(
+              "Marketing-consent check failed — skipping all email recipients:",
               consentErr.message,
             );
-            suppressedLeadIds.clear();
+            for (const id of emailLeadIds) suppressedLeadIds.add(id);
+            toast.error(
+              "Couldn't verify marketing consent — email recipients were skipped to stay compliant.",
+            );
             break;
           }
           for (const row of ((consentRows as Array<{
