@@ -126,6 +126,7 @@ export const TaskQueuePanel = () => {
         `)
         .eq("organization_id", orgId)
         .in("status", ["pending", "in_progress"])
+        .neq("action_type", "call") // voice removed — never show dead 'call' tasks
         .order("scheduled_for", { ascending: true })
         .limit(30);
       if (error) throw error;

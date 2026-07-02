@@ -204,31 +204,10 @@ Org benchmarks:
 
     // Action triggers based on recommended action
     if (prediction.recommended_action === "call_now") {
-      // Check if there's already a pending call task
-      const { data: existingTasks } = await supabase
-        .from("agent_tasks")
-        .select("id")
-        .eq("lead_id", lead_id)
-        .eq("agent_type", "recapture")
-        .eq("status", "pending")
-        .limit(1);
-
-      if (!existingTasks || existingTasks.length === 0) {
-        // Create a recapture task for Boaz
-        await supabase.from("agent_tasks").insert({
-          organization_id,
-          lead_id,
-          agent_type: "recapture",
-          action_type: "call",
-          scheduled_for: new Date().toISOString(),
-          status: "pending",
-          context: {
-            triggered_by: "conversion_predictor",
-            prediction_id: predictionRecord?.id,
-            reason: "High conversion probability, recommended immediate call",
-          },
-        });
-      }
+      // Voice/call capability was removed from the product — do NOT enqueue outbound
+      // 'call' recapture tasks (they can never execute and would clutter the queue).
+      // The "call_now" recommendation is still recorded on the prediction above; wire
+      // an SMS/email recapture deliberately if/when that channel is desired.
     }
 
     if (prediction.recommended_action === "human_review") {

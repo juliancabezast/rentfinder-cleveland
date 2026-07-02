@@ -1210,6 +1210,23 @@ serve(async (req: Request) => {
         const taskStart = Date.now();
         const canonicalAgent = resolveAgentKey(task.agent_type);
 
+        // ── Voice removed: auto-cancel any legacy 'call' tasks ───────────
+        // Voice/Bland was removed from the product; a 'call' task can never run.
+        // Cancel it (instead of letting it fail-loop) so the queue self-cleans.
+        if (task.action_type === "call") {
+          await supabase
+            .from("agent_tasks")
+            .update({ status: "cancelled" })
+            .eq("id", task.id);
+          totalSkipped++;
+          allResults.push({
+            taskId: task.id,
+            status: "cancelled",
+            reason: "Voice/call capability removed — task auto-cancelled",
+          });
+          continue;
+        }
+
         // ── Skip tasks for disabled agents ───────────────────────────────
         if (disabledAgents.has(canonicalAgent)) {
           // Return task to pending so it can run when agent is re-enabled
