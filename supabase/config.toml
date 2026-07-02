@@ -134,6 +134,10 @@ verify_jwt = false
 [functions.book-public-showing]
 verify_jwt = false
 
+# Public Leasing Tracker (property-owner facing, read-only aggregates)
+[functions.leasing-tracker-lookup]
+verify_jwt = false
+
 # Zillow Property Import
 [functions.import-zillow-property]
 verify_jwt = false

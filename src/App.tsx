@@ -50,6 +50,7 @@ const TermsOfService = lazy(() => import("./pages/public/TermsOfService"));
 const SmsSignup = lazy(() => import("./pages/public/SmsSignup"));
 const ScheduleShowing = lazy(() => import("./pages/public/ScheduleShowing"));
 const ApplyRedirect = lazy(() => import("./pages/public/ApplyRedirect"));
+const LeasingTracker = lazy(() => import("./pages/public/LeasingTracker"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -98,6 +99,7 @@ const App = () => (
                 <Route path="/p/schedule-showing/:propertyId" element={<ScheduleShowing />} />
                 <Route path="/p/apply" element={<ApplyRedirect />} />
                 <Route path="/apply" element={<ApplyRedirect />} />
+                <Route path="/leasingtracker" element={<LeasingTracker />} />
 
                 {/* Public auth routes */}
                 <Route path="/auth/login" element={<Login />} />
