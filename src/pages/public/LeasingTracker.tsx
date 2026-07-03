@@ -47,6 +47,7 @@ import {
   Info,
   CalendarDays,
   CalendarPlus,
+  Zap,
   Globe,
   Layers,
   MessageSquareQuote,
@@ -115,6 +116,8 @@ interface TrackerData {
     leads_last_30d?: number;
     first_lead_at: string | null;
     last_lead_at: string | null;
+    response_median_minutes?: number | null;
+    response_pct_under_1h?: number | null;
   };
   funnel: { stage: string; count: number }[];
   lead_sources: { source: string; count: number }[];
@@ -139,6 +142,11 @@ interface TrackerData {
     past_count: number;
     upcoming: OpenSlot[];
   };
+  global?: {
+    total_leads: number;
+    leads_7d: number;
+    leads_prev_7d: number;
+  } | null;
 }
 
 interface CityAgenda {
@@ -146,6 +154,7 @@ interface CityAgenda {
   slots: number;
   properties: number;
   next_date: string;
+  dates?: string[];
 }
 
 const MIN_CHARS = 4;
@@ -184,6 +193,7 @@ const STRINGS = {
     agendaTitle: "Agenda abierta de visitas",
     agendaSubtitle:
       "Estas ciudades tienen visitas disponibles para agendar ahora mismo. Busca tu propiedad para ver y reservar los cupos.",
+    agendaMoreDates: (n: number) => `+${n} más`,
     searching: "Buscando…",
     noMatch: "Ninguna propiedad coincide con",
     unit: (n: number) => (n === 1 ? "1 unidad" : `${n} unidades`),
@@ -192,8 +202,9 @@ const STRINGS = {
     totalLeadsSub: "prospectos interesados",
     showingsDone: "Showings realizados",
     showingsDoneSub: (n: number) => `${n} agendados en total`,
-    upcomingShowings: "Próximos showings",
-    upcomingShowingsSub: "agendados",
+    responseSpeed: "Velocidad de respuesta",
+    responseSpeedSub: "primera respuesta",
+    responseSpeedSub2: (pct: number) => `${pct}% en menos de 1 hora`,
     recentLeads: "Interesados recientes",
     recentLeadsSub: "últimos 30 días",
     recentLeadsSub2: (last: string) => `última consulta: ${last}`,
@@ -232,6 +243,10 @@ const STRINGS = {
     sqft: "sqft total",
     privacy:
       "Por privacidad, nunca se muestran nombres ni datos de contacto de los prospectos. Los prospectos que pasaron a la etapa de solicitud quedan excluidos de estas cifras.",
+    globalLive: "Sistema en línea · datos en tiempo real",
+    globalLabel: "prospectos gestionados en nuestro sistema",
+    globalWeek: (n: number) => `+${n} esta semana`,
+    globalVsPrev: (p: number) => `+${p}% vs. la semana anterior`,
     poweredBy: "Con tecnología de Rent Finder Cleveland",
     langTitle: "Idioma / Language",
     stages: {
@@ -292,6 +307,7 @@ const STRINGS = {
     agendaTitle: "Open showing availability",
     agendaSubtitle:
       "These cities have visits open to book right now. Search your property to see and reserve its slots.",
+    agendaMoreDates: (n: number) => `+${n} more`,
     searching: "Searching…",
     noMatch: "No property matches",
     unit: (n: number) => (n === 1 ? "1 unit" : `${n} units`),
@@ -300,8 +316,9 @@ const STRINGS = {
     totalLeadsSub: "interested prospects",
     showingsDone: "Showings Done",
     showingsDoneSub: (n: number) => `${n} total booked`,
-    upcomingShowings: "Upcoming Showings",
-    upcomingShowingsSub: "scheduled ahead",
+    responseSpeed: "Response Speed",
+    responseSpeedSub: "median first reply",
+    responseSpeedSub2: (pct: number) => `${pct}% within 1 hour`,
     recentLeads: "Recent Prospects",
     recentLeadsSub: "last 30 days",
     recentLeadsSub2: (last: string) => `latest inquiry: ${last}`,
@@ -340,6 +357,10 @@ const STRINGS = {
     sqft: "sqft total",
     privacy:
       "For privacy, individual prospect names and contact details are never shown here. Prospects who have moved into the application stage are excluded from these figures.",
+    globalLive: "System online · real-time data",
+    globalLabel: "prospects managed across our system",
+    globalWeek: (n: number) => `+${n} this week`,
+    globalVsPrev: (p: number) => `+${p}% vs. last week`,
     poweredBy: "Powered by Rent Finder Cleveland",
     langTitle: "Language / Idioma",
     stages: {
@@ -496,6 +517,17 @@ function formatDateLong(dateStr: string, locale: string): string {
     weekday: "long",
     day: "numeric",
     month: "long",
+    timeZone: "UTC",
+  });
+}
+
+// Compact date for the extra agenda dates, e.g. "sáb, 19 jul" / "Sat, Jul 19".
+function formatDateShort(dateStr: string, locale: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(locale, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
     timeZone: "UTC",
   });
 }
@@ -831,6 +863,23 @@ export default function LeasingTracker() {
                           <p className="text-xl sm:text-2xl font-bold text-[#4F46E5] first-letter:uppercase leading-tight mt-1">
                             {formatDateLong(c.next_date, t.locale)}
                           </p>
+                          {c.dates && c.dates.length > 1 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {c.dates.slice(1, 6).map((d) => (
+                                <span
+                                  key={d}
+                                  className="rounded-md bg-[#4F46E5]/10 px-1.5 py-0.5 text-xs font-semibold text-[#4F46E5] first-letter:uppercase"
+                                >
+                                  {formatDateShort(d, t.locale)}
+                                </span>
+                              ))}
+                              {c.dates.length > 6 && (
+                                <span className="px-1 py-0.5 text-xs font-medium text-muted-foreground">
+                                  {t.agendaMoreDates(c.dates.length - 6)}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1023,6 +1072,46 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
         </CardContent>
       </Card>
 
+      {/* Global system pulse — org-wide, real-time proof of movement */}
+      {data.global && data.global.total_leads > 0 && (
+        <div className="rounded-2xl bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white p-5 sm:p-6 shadow-lg shadow-indigo-500/20">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-white/80">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-300" />
+                </span>
+                {t.globalLive}
+              </div>
+              <p className="mt-1.5 text-3xl sm:text-4xl font-bold tracking-tight">
+                {data.global.total_leads.toLocaleString(t.locale)}
+              </p>
+              <p className="text-sm text-white/85">{t.globalLabel}</p>
+            </div>
+            {data.global.leads_7d > 0 && (
+              <div className="text-right shrink-0">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-sm font-semibold backdrop-blur-sm">
+                  <TrendingUp className="h-4 w-4 text-[#FFB22C]" />
+                  {t.globalWeek(data.global.leads_7d)}
+                </span>
+                {data.global.leads_prev_7d > 0 &&
+                  data.global.leads_7d > data.global.leads_prev_7d && (
+                    <p className="mt-1.5 text-xs text-white/75">
+                      {t.globalVsPrev(
+                        Math.round(
+                          ((data.global.leads_7d - data.global.leads_prev_7d) /
+                            data.global.leads_prev_7d) * 100,
+                        ),
+                      )}
+                    </p>
+                  )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard title={t.totalLeads} value={summary.total_leads} icon={Users} subtitle={t.totalLeadsSub} />
@@ -1033,10 +1122,19 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
           subtitle={t.showingsDoneSub(summary.showings_total)}
         />
         <StatCard
-          title={t.upcomingShowings}
-          value={summary.showings_upcoming}
-          icon={CalendarClock}
-          subtitle={t.upcomingShowingsSub}
+          title={t.responseSpeed}
+          value={
+            summary.response_median_minutes != null
+              ? `${Math.max(1, Math.round(summary.response_median_minutes))} min`
+              : "—"
+          }
+          icon={Zap}
+          subtitle={t.responseSpeedSub}
+          subtitle2={
+            summary.response_pct_under_1h != null
+              ? t.responseSpeedSub2(Math.round(summary.response_pct_under_1h))
+              : undefined
+          }
         />
         <StatCard
           title={t.recentLeads}

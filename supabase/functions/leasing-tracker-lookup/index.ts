@@ -217,18 +217,19 @@ serve(async (req) => {
 
       const byCity = new Map<
         string,
-        { city: string; slots: number; propIds: Set<string>; next_date: string }
+        { city: string; slots: number; propIds: Set<string>; next_date: string; dates: Set<string> }
       >();
       for (const s of slots) {
         const city = cityById.get(s.property_id);
         if (!city) continue; // skip slots with no known city
         let g = byCity.get(city);
         if (!g) {
-          g = { city, slots: 0, propIds: new Set(), next_date: s.slot_date };
+          g = { city, slots: 0, propIds: new Set(), next_date: s.slot_date, dates: new Set() };
           byCity.set(city, g);
         }
         g.slots++;
         g.propIds.add(s.property_id);
+        g.dates.add(s.slot_date);
         if (s.slot_date < g.next_date) g.next_date = s.slot_date;
       }
       const cities = [...byCity.values()]
@@ -237,8 +238,10 @@ serve(async (req) => {
           slots: g.slots,
           properties: g.propIds.size,
           next_date: g.next_date,
+          dates: [...g.dates].sort().slice(0, 12), // all open dates, soonest first
         }))
-        .sort((a, b) => b.slots - a.slots || a.city.localeCompare(b.city));
+        // soonest first (YYYY-MM-DD sorts chronologically), then A–Z
+        .sort((a, b) => a.next_date.localeCompare(b.next_date) || a.city.localeCompare(b.city));
       return json({
         cities,
         total_slots: cities.reduce((n, c) => n + c.slots, 0),
@@ -409,6 +412,48 @@ serve(async (req) => {
     const openUpcoming = openUpcomingCount || 0;
     const openPast = openPastCount || 0;
 
+    // Org-wide first-response speed (median minutes to first email reply,
+    // last 120 days) — same responder serves every property. Soft-fails to
+    // null so a stats hiccup never breaks the tracker.
+    let responseStats: {
+      responded_count?: number;
+      median_minutes?: number | null;
+      pct_under_1h?: number | null;
+    } | null = null;
+    try {
+      const { data: rs } = await supabase.rpc("leasing_tracker_response_stats", {
+        p_organization_id: orgId,
+      });
+      if (rs && typeof rs === "object") responseStats = rs;
+    } catch (_) { /* keep null */ }
+
+    // Org-wide "pulse" figures for the global banner shown above the
+    // per-property stats: total leads ever managed + this-week volume and
+    // week-over-week trend. Three cheap head-count queries; soft-fail to null.
+    let globalPulse: {
+      total_leads: number;
+      leads_7d: number;
+      leads_prev_7d: number;
+    } | null = null;
+    try {
+      const leadCount = () =>
+        supabase.from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId).eq("is_demo", false);
+      const d7 = new Date(nowMs - 7 * 86400000).toISOString();
+      const d14 = new Date(nowMs - 14 * 86400000).toISOString();
+      const [tot, wk, prev] = await Promise.all([
+        leadCount(),
+        leadCount().gte("created_at", d7),
+        leadCount().gte("created_at", d14).lt("created_at", d7),
+      ]);
+      globalPulse = {
+        total_leads: tot.count || 0,
+        leads_7d: wk.count || 0,
+        leads_prev_7d: prev.count || 0,
+      };
+    } catch (_) { /* keep null */ }
+
     // Building-level header, aggregated across the units.
     const [rentMin, rentMax] = range(units.map((u) => u.rent_price));
     const [bedMin, bedMax] = range(units.map((u) => u.bedrooms));
@@ -459,7 +504,10 @@ serve(async (req) => {
         leads_last_30d: leadsLast30d,
         first_lead_at: firstLeadAt,
         last_lead_at: lastLeadAt,
+        response_median_minutes: responseStats?.median_minutes ?? null,
+        response_pct_under_1h: responseStats?.pct_under_1h ?? null,
       },
+      global: globalPulse,
       funnel,
       lead_sources: leadSources,
       leads_over_time: fillMonths(byMonth),

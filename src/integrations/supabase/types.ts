@@ -4881,6 +4881,24 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: number
       }
+      top_properties_by_interest: {
+        Args: { p_limit?: number }
+        Returns: {
+          property_id: string
+          address: string
+          city: string
+          lead_count: number
+        }[]
+      }
+      nurturing_widget_stats: {
+        Args: never
+        Returns: {
+          incomplete: number
+          duplicates: number
+          for_review: number
+          graduated_this_week: number
+        }[]
+      }
       create_default_feature_toggles: {
         Args: {
           p_created_by: string

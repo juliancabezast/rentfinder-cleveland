@@ -245,13 +245,9 @@ export const AdminDashboard = () => {
             .select("id", { count: "exact", head: true })
             .eq("organization_id", userRecord.organization_id)
             .in("status", ["pending", "in_progress"]),
-          // Leads with property interest (for top properties widget)
-          supabase
-            .from("leads")
-            .select("interested_property_id, properties(id, address, city)")
-            .eq("organization_id", userRecord.organization_id)
-            .not("interested_property_id", "is", null)
-            .not("status", "eq", "lost"),
+          // Top properties by interest — DB-side aggregate (no 1000-row cap;
+          // sums all units of a building and counts all-time interest).
+          supabase.rpc("top_properties_by_interest", { p_limit: 5 }),
         ]);
 
         if (summaryResult.error) console.error("Dashboard summary RPC error:", summaryResult.error);
@@ -315,21 +311,18 @@ export const AdminDashboard = () => {
           }))
         );
 
-        // Process top properties by interest
-        const propCounts: Record<string, { address: string; city: string; count: number }> = {};
-        (leadsWithPropertyResult.data || []).forEach((l: any) => {
-          const pid = l.interested_property_id;
-          if (!pid || !l.properties) return;
-          if (!propCounts[pid]) {
-            propCounts[pid] = { address: l.properties.address, city: l.properties.city, count: 0 };
-          }
-          propCounts[pid].count++;
-        });
-        const sortedProps = Object.entries(propCounts)
-          .map(([id, data]) => ({ property_id: id, ...data, lead_count: data.count }))
-          .sort((a, b) => b.lead_count - a.lead_count)
-          .slice(0, 5);
-        setTopProperties(sortedProps);
+        // Top properties by interest — already ranked + counted by the RPC.
+        if (leadsWithPropertyResult.error) {
+          console.error("Top properties RPC error:", leadsWithPropertyResult.error);
+        }
+        setTopProperties(
+          ((leadsWithPropertyResult.data as any[]) || []).map((r) => ({
+            property_id: r.property_id,
+            address: r.address,
+            city: r.city,
+            lead_count: Number(r.lead_count) || 0,
+          })),
+        );
 
       } catch (error) {
         console.error("Error fetching dashboard data:", error);

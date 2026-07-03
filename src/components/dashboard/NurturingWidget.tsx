@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, UserX, Copy, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { detectDuplicates, fetchAllLeadsForDedup } from "@/lib/leadDedup";
 
 interface NurturingStats {
   incomplete: number;
@@ -29,72 +30,25 @@ export const NurturingWidget: React.FC<{ loading?: boolean }> = ({ loading: pare
   const fetchStats = async () => {
     if (!userRecord?.organization_id) return;
     setLoading(true);
-    const orgId = userRecord.organization_id;
-
     try {
-      // 1. Incomplete: leads missing name, phone, or email (not lost)
-      const { count: incompleteCount } = await supabase
-        .from("leads")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .neq("status", "lost")
-        .or("full_name.is.null,phone.is.null,email.is.null");
+      // Incomplete / For Review / Graduated: cheap DB-side counts (uncapped).
+      const { data, error } = await supabase.rpc("nurturing_widget_stats");
+      if (error) throw error;
+      const row = (data as any[] | null)?.[0];
 
-      // 2. For Review: leads with junk name patterns
-      const { count: reviewCount } = await supabase
-        .from("leads")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .neq("status", "lost")
-        .or("full_name.ilike.%.com%,full_name.ilike.%http%,full_name.ilike.%@%,full_name.ilike.%comments%,full_name.ilike.%unsubscribe%,full_name.ilike.%mailto:%,full_name.ilike.%subject:%,full_name.ilike.%reply%");
-
-      // 3. Graduated this week: leads updated this week that now have all 3 fields
-      //    and were updated well after creation (enriched after being incomplete)
-      const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - 7);
-      const { count: graduatedCount } = await supabase
-        .from("leads")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .not("full_name", "is", null)
-        .not("phone", "is", null)
-        .not("email", "is", null)
-        .gte("updated_at", weekStart.toISOString())
-        .neq("status", "lost");
-
-      // 4. Duplicates: fetch leads and detect client-side (lightweight — only check phone/email)
-      const { data: leadsForDup } = await supabase
-        .from("leads")
-        .select("id, phone, email")
-        .eq("organization_id", orgId)
-        .neq("status", "lost");
-
-      let dupGroups = 0;
-      if (leadsForDup && leadsForDup.length > 0) {
-        const seen = new Set<string>();
-        const duped = new Set<string>();
-        for (const l of leadsForDup) {
-          const normPhone = l.phone ? l.phone.replace(/\D/g, "").slice(-10) : null;
-          const normEmail = l.email ? l.email.trim().toLowerCase() : null;
-          if (normPhone && normPhone.length === 10) {
-            const key = `p:${normPhone}`;
-            if (seen.has(key)) duped.add(key);
-            seen.add(key);
-          }
-          if (normEmail) {
-            const key = `e:${normEmail}`;
-            if (seen.has(key)) duped.add(key);
-            seen.add(key);
-          }
-        }
-        dupGroups = duped.size;
-      }
+      // Duplicates: run the SAME union-find as the Duplicates tab, over ALL leads
+      // (paginated past the 1000-row cap), so the widget and the tab always agree.
+      const dupLeads = await fetchAllLeadsForDedup(
+        supabase,
+        userRecord.organization_id,
+      );
+      const duplicates = detectDuplicates(dupLeads).length;
 
       setStats({
-        incomplete: incompleteCount || 0,
-        duplicates: dupGroups,
-        forReview: reviewCount || 0,
-        graduatedThisWeek: graduatedCount || 0,
+        incomplete: Number(row?.incomplete) || 0,
+        duplicates,
+        forReview: Number(row?.for_review) || 0,
+        graduatedThisWeek: Number(row?.graduated_this_week) || 0,
       });
     } catch (err) {
       console.error("NurturingWidget fetch error:", err);

@@ -180,6 +180,11 @@ function detectDuplicates(leads: LeadRow[]): DuplicateGroup[] {
   return groups.sort((a, b) => b.leads.length - a.leads.length);
 }
 
+// Cap how many groups render at once — with hundreds of duplicates, drawing
+// every card would jank the page. detectDuplicates sorts largest-first, so the
+// biggest cleanups always show; "Merge All" still acts on every group.
+const RENDER_LIMIT = 60;
+
 export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCountChange }) => {
   const { userRecord } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -204,21 +209,30 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
     if (!userRecord?.organization_id) return;
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("leads")
-      .select(
-        "id, full_name, phone, email, status, lead_score, source, interested_property_id, created_at, last_contact_at, properties:interested_property_id(address)"
-      )
-      .eq("organization_id", userRecord.organization_id)
-      .neq("status", "lost");
-
-    if (error) {
-      console.error("Failed to fetch leads for dedup:", error.message);
-      setLoading(false);
-      return;
+    // Fetch ALL non-lost leads, paginating past PostgREST's 1000-row cap —
+    // otherwise dedup only sees the first 1000 leads and massively undercounts.
+    const SELECT_COLS =
+      "id, full_name, phone, email, status, lead_score, source, interested_property_id, created_at, last_contact_at, properties:interested_property_id(address)";
+    const raw: any[] = [];
+    const PAGE = 1000;
+    for (let from = 0; from < 100000; from += PAGE) {
+      const { data, error } = await supabase
+        .from("leads")
+        .select(SELECT_COLS)
+        .eq("organization_id", userRecord.organization_id)
+        .neq("status", "lost")
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error("Failed to fetch leads for dedup:", error.message);
+        setLoading(false);
+        return;
+      }
+      raw.push(...(data || []));
+      if (!data || data.length < PAGE) break;
     }
 
-    const leads: LeadRow[] = (data || []).map((l: any) => ({
+    const leads: LeadRow[] = raw.map((l: any) => ({
       ...l,
       property_address: l.properties?.address || null,
     }));
@@ -356,8 +370,11 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Found {groups.length} group{groups.length !== 1 ? "s" : ""} of potential duplicates.
-          Select the primary lead in each group, then click Merge.
+          Found {groups.length} group{groups.length !== 1 ? "s" : ""} of potential duplicates
+          {groups.length > RENDER_LIMIT
+            ? ` — showing the ${RENDER_LIMIT} largest (merge these, then refresh for more)`
+            : ""}
+          . Select the primary lead in each group, then click Merge.
         </p>
         {mergeableCount > 1 && !mergeAllProgress && (
           <Button
@@ -390,7 +407,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
         </Card>
       )}
 
-      {groups.map((group) => (
+      {groups.slice(0, RENDER_LIMIT).map((group) => (
         <Card key={group.key}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
