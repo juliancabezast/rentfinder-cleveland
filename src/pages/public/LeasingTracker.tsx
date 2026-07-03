@@ -36,7 +36,7 @@ import {
   Users,
   CalendarClock,
   CheckCircle2,
-  Clock,
+  TrendingUp,
   BedDouble,
   Bath,
   Ruler,
@@ -112,6 +112,7 @@ interface TrackerData {
     showings_upcoming: number;
     open_slots_upcoming: number;
     days_on_market: number | null;
+    leads_last_30d?: number;
     first_lead_at: string | null;
     last_lead_at: string | null;
   };
@@ -140,6 +141,13 @@ interface TrackerData {
   };
 }
 
+interface CityAgenda {
+  city: string;
+  slots: number;
+  properties: number;
+  next_date: string;
+}
+
 const MIN_CHARS = 4;
 
 // ── i18n ──────────────────────────────────────────────────────────────
@@ -147,13 +155,35 @@ const STRINGS = {
   es: {
     brand: "Rent Finder Cleveland",
     eyebrow: "Seguimiento de Leasing",
-    title: "Seguí la actividad de leasing de tu propiedad",
+    title: "Sigue en vivo la actividad de leasing de tu propiedad",
     subtitle:
-      "Empezá a escribir el número o la dirección de tu propiedad y elegila de la lista para ver leads, showings y el progreso del pipeline en vivo.",
-    placeholder: "Empezá a escribir… ej. 1234 Main St · Main · 44101",
+      "Consulta en tiempo real cómo avanza el arrendamiento de tu propiedad. Escribe el número o la dirección y elígela de la lista para ver todo el detalle.",
+    placeholder: "Escribe aquí… ej. 1234 Main St · Main · 44101",
     searchBtn: "Buscar",
     newSearch: "Nueva búsqueda",
-    hint: `Escribí al menos ${MIN_CHARS} caracteres y elegí tu propiedad de la lista.`,
+    hint: `Escribe al menos ${MIN_CHARS} caracteres y elige tu propiedad de la lista.`,
+    whatYouFind: "Lo que encontrarás aquí",
+    features: [
+      {
+        title: "Personas interesadas",
+        desc: "Cuántos prospectos han consultado por tu propiedad y en qué etapa del proceso están.",
+      },
+      {
+        title: "Visitas (showings)",
+        desc: "Las visitas ya realizadas con su fecha y las que están agendadas próximamente.",
+      },
+      {
+        title: "Horarios disponibles",
+        desc: "Los cupos abiertos en la agenda para que se agenden nuevas visitas.",
+      },
+      {
+        title: "Notas del agente",
+        desc: "El feedback que deja nuestro agente de arrendamiento después de cada visita.",
+      },
+    ],
+    agendaTitle: "Agenda abierta de visitas",
+    agendaSubtitle:
+      "Estas ciudades tienen visitas disponibles para agendar ahora mismo. Busca tu propiedad para ver y reservar los cupos.",
     searching: "Buscando…",
     noMatch: "Ninguna propiedad coincide con",
     unit: (n: number) => (n === 1 ? "1 unidad" : `${n} unidades`),
@@ -164,8 +194,12 @@ const STRINGS = {
     showingsDoneSub: (n: number) => `${n} agendados en total`,
     upcomingShowings: "Próximos showings",
     upcomingShowingsSub: "agendados",
-    daysListed: "Días publicado",
-    daysListedSub: "en el mercado",
+    recentLeads: "Interesados recientes",
+    recentLeadsSub: "últimos 30 días",
+    recentLeadsSub2: (last: string) => `última consulta: ${last}`,
+    lastToday: "hoy",
+    lastYesterday: "ayer",
+    lastDaysAgo: (n: number) => `hace ${n} días`,
     pipeline: "Pipeline de leads",
     pipelineSub: "Prospectos por etapa actual",
     leadsOverTime: "Leads en el tiempo",
@@ -175,7 +209,8 @@ const STRINGS = {
     sourcesSub: "De dónde vinieron los prospectos",
     showingsByStatus: "Showings por estado",
     showingsByStatusSub: "Todos los tours agendados a la fecha",
-    timeline: "Historial de Showings",
+    timeline: "Showings y notas del agente",
+    timelineSub: "Próximas visitas e historial, con el comentario del agente de cada tour",
     upcoming: "Próximos",
     history: "Historial",
     openAvailability: "Disponibilidad abierta",
@@ -184,8 +219,6 @@ const STRINGS = {
     openSlotsMore: (n: number) => `+${n} cupos más`,
     noOpenSlots: "No hay cupos abiertos próximos para esta propiedad",
     minutes: "min",
-    agentComments: "Comentarios del agente de leasing",
-    agentCommentsSub: "Feedback de los tours realizados",
     commentUnit: (u: string) => `Unidad ${u}`,
     interest: (lvl: string) => `Interés ${lvl}`,
     noShowings: "Aún no hay showings agendados para esta propiedad",
@@ -230,13 +263,35 @@ const STRINGS = {
   en: {
     brand: "Rent Finder Cleveland",
     eyebrow: "Leasing Tracker",
-    title: "Track your property's leasing activity",
+    title: "Follow your property's leasing activity live",
     subtitle:
-      "Start typing your property's street number or address and pick it from the list to see live leads, showings, and pipeline progress.",
-    placeholder: "Start typing… e.g. 1234 Main St · Main · 44101",
+      "See in real time how your property's leasing is progressing. Type its street number or address and pick it from the list to see the full picture.",
+    placeholder: "Type here… e.g. 1234 Main St · Main · 44101",
     searchBtn: "Search",
     newSearch: "New search",
     hint: `Type at least ${MIN_CHARS} characters, then pick your property from the list.`,
+    whatYouFind: "What you'll find here",
+    features: [
+      {
+        title: "Interested prospects",
+        desc: "How many prospects have inquired about your property and what stage they're in.",
+      },
+      {
+        title: "Showings",
+        desc: "Tours already completed with their date, plus the ones coming up next.",
+      },
+      {
+        title: "Open time slots",
+        desc: "The open slots on the agenda where new tours can be booked.",
+      },
+      {
+        title: "Agent notes",
+        desc: "The feedback our leasing agent leaves after each tour.",
+      },
+    ],
+    agendaTitle: "Open showing availability",
+    agendaSubtitle:
+      "These cities have visits open to book right now. Search your property to see and reserve its slots.",
     searching: "Searching…",
     noMatch: "No property matches",
     unit: (n: number) => (n === 1 ? "1 unit" : `${n} units`),
@@ -247,8 +302,12 @@ const STRINGS = {
     showingsDoneSub: (n: number) => `${n} total booked`,
     upcomingShowings: "Upcoming Showings",
     upcomingShowingsSub: "scheduled ahead",
-    daysListed: "Days Listed",
-    daysListedSub: "on the market",
+    recentLeads: "Recent Prospects",
+    recentLeadsSub: "last 30 days",
+    recentLeadsSub2: (last: string) => `latest inquiry: ${last}`,
+    lastToday: "today",
+    lastYesterday: "yesterday",
+    lastDaysAgo: (n: number) => `${n} days ago`,
     pipeline: "Lead Pipeline",
     pipelineSub: "Prospects by current stage",
     leadsOverTime: "Leads Over Time",
@@ -258,7 +317,8 @@ const STRINGS = {
     sourcesSub: "Where prospects came from",
     showingsByStatus: "Showings by Status",
     showingsByStatusSub: "All tours booked to date",
-    timeline: "Showings Timeline",
+    timeline: "Showings & Agent Notes",
+    timelineSub: "Upcoming and past tours, with the agent's note for each",
     upcoming: "Upcoming",
     history: "History",
     openAvailability: "Open Availability",
@@ -267,8 +327,6 @@ const STRINGS = {
     openSlotsMore: (n: number) => `+${n} more slots`,
     noOpenSlots: "No upcoming open slots for this property",
     minutes: "min",
-    agentComments: "Leasing Agent Comments",
-    agentCommentsSub: "Feedback from completed tours",
     commentUnit: (u: string) => `Unit ${u}`,
     interest: (lvl: string) => `${lvl} interest`,
     noShowings: "No showings scheduled for this property yet",
@@ -401,13 +459,16 @@ function showingDateTime(iso: string | null, tz: string, locale: string): string
   });
 }
 
-function formatDateOnly(iso: string | null, locale: string): string {
+// "hoy" / "ayer" / "hace N días" for the latest inquiry, using the property's
+// timezone so calendar-day boundaries match what the owner expects.
+function lastInquiryLabel(iso: string | null, tz: string, t: T): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const dayStr = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: tz });
+  const today = dayStr(new Date());
+  const that = dayStr(new Date(iso));
+  if (that >= today) return t.lastToday;
+  const diff = Math.round((Date.parse(today) - Date.parse(that)) / 86400000);
+  return diff === 1 ? t.lastYesterday : t.lastDaysAgo(diff);
 }
 
 function formatSlot(slot: OpenSlot, locale: string): { date: string; time: string } {
@@ -425,6 +486,18 @@ function formatSlot(slot: OpenSlot, locale: string): { date: string; time: strin
     timeZone: "UTC",
   });
   return { date, time };
+}
+
+// Format a bare YYYY-MM-DD (no time) as a prominent long date for the
+// city-agenda banner, e.g. "sábado, 4 de julio" / "Saturday, July 4".
+function formatDateLong(dateStr: string, locale: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(locale, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
 }
 
 // Translated status pill (color dot + label) — replaces the app StatusBadge
@@ -449,6 +522,9 @@ function StatusPill({
   );
 }
 
+// Icons for the "what you'll find" feature cards (zipped with t.features).
+const FEATURE_ICONS = [Users, CalendarClock, CalendarPlus, MessageSquareQuote];
+
 // ══════════════════════════════════════════════════════════════════════
 export default function LeasingTracker() {
   const [lang, setLang] = useState<Lang>("es");
@@ -462,6 +538,7 @@ export default function LeasingTracker() {
   const [showLookup, setShowLookup] = useState(false);
   const [data, setData] = useState<TrackerData | null>(null);
   const [loadingTracker, setLoadingTracker] = useState(false);
+  const [cityAgenda, setCityAgenda] = useState<{ cities: CityAgenda[] } | null>(null);
 
   const skipSearchRef = useRef(false);
   const reqIdRef = useRef(0);
@@ -505,6 +582,30 @@ export default function LeasingTracker() {
     }, 280);
     return () => window.clearTimeout(timer);
   }, [qStr]);
+
+  // Load the org-wide open showing agenda (grouped by city) once — shown to
+  // every visitor on the landing state, before any property search.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: res, error } = await supabase.functions.invoke(
+          "leasing-tracker-lookup",
+          { body: { mode: "open_agenda" } },
+        );
+        if (error) throw error;
+        if (!cancelled)
+          setCityAgenda(
+            Array.isArray(res?.cities) ? { cities: res.cities } : { cities: [] },
+          );
+      } catch (e) {
+        console.error("[LeasingTracker] open agenda load failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function selectProperty(card: PropertyCard) {
     skipSearchRef.current = true;
@@ -697,6 +798,73 @@ export default function LeasingTracker() {
           </CardContent>
         </Card>
 
+        {/* Landing state (no property selected): open agenda by city +
+            a friendly explainer of what the tracker shows. */}
+        {!data && !loadingTracker && (
+          <>
+            {cityAgenda && cityAgenda.cities.length > 0 && (
+              <Card variant="glass" className="overflow-hidden border-[#4F46E5]/20">
+                <div className="bg-gradient-to-r from-[#4F46E5] to-[#6366F1] px-5 sm:px-6 py-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur shrink-0">
+                    <CalendarPlus className="h-5 w-5 text-white" />
+                  </div>
+                  <p className="text-base sm:text-lg font-semibold text-white">{t.agendaTitle}</p>
+                </div>
+                <CardContent className="p-5 sm:p-6">
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                    {t.agendaSubtitle}
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {cityAgenda.cities.map((c) => (
+                      <div
+                        key={c.city}
+                        className="flex items-center gap-4 rounded-2xl border border-[#4F46E5]/15 bg-white/70 p-4 shadow-sm transition-shadow hover:shadow-md"
+                      >
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#4F46E5] to-[#6366F1] flex items-center justify-center shrink-0 shadow-sm">
+                          <CalendarDays className="h-7 w-7 text-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                            <MapPin className="h-3.5 w-3.5 text-[#4F46E5] shrink-0" />
+                            <span className="truncate">{c.city}</span>
+                          </p>
+                          <p className="text-xl sm:text-2xl font-bold text-[#4F46E5] first-letter:uppercase leading-tight mt-1">
+                            {formatDateLong(c.next_date, t.locale)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div>
+              <p className="text-sm font-semibold text-foreground mb-3 px-1">
+                {t.whatYouFind}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {t.features.map((f, i) => {
+                  const Icon = FEATURE_ICONS[i] || Info;
+                  return (
+                    <Card key={i} variant="glass">
+                      <CardContent className="p-4">
+                        <div className="w-9 h-9 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center mb-2.5">
+                          <Icon className="h-4 w-4 text-[#4F46E5]" />
+                        </div>
+                        <p className="text-sm font-semibold mb-1">{f.title}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {f.desc}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
         {loadingTracker && <LoadingState />}
         {data && !loadingTracker && <Tracker data={data} t={t} />}
       </main>
@@ -770,6 +938,8 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
   const overTime = leads_over_time.map((m) => ({ ...m, label: formatMonth(m.month, locale) }));
   const upcoming = data.showings_timeline.filter((s) => s.is_upcoming);
   const history = data.showings_timeline.filter((s) => !s.is_upcoming);
+  // Agent notes are keyed by showing id — rendered inline inside the timeline.
+  const noteById = new Map(data.agent_comments.map((c) => [c.id, c]));
   const hasLeads = summary.total_leads > 0;
   const bedRange = numRange(property.bedrooms_min, property.bedrooms_max);
   const baRange = numRange(property.bathrooms_min, property.bathrooms_max);
@@ -869,49 +1039,13 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
           subtitle={t.upcomingShowingsSub}
         />
         <StatCard
-          title={t.daysListed}
-          value={summary.days_on_market ?? "—"}
-          icon={Clock}
-          subtitle={t.daysListedSub}
+          title={t.recentLeads}
+          value={summary.leads_last_30d ?? "—"}
+          icon={TrendingUp}
+          subtitle={t.recentLeadsSub}
+          subtitle2={t.recentLeadsSub2(lastInquiryLabel(summary.last_lead_at, tz, t))}
         />
       </div>
-
-      {/* Leasing agent comments (visible to the owner/investor) */}
-      {data.agent_comments.length > 0 && (
-        <Card variant="glass">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <MessageSquareQuote className="h-4 w-4 text-[#4F46E5]" /> {t.agentComments}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">{t.agentCommentsSub}</p>
-          </CardHeader>
-          <CardContent className="pt-1 space-y-3">
-            {data.agent_comments.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-xl border border-border/60 bg-white/50 p-3.5"
-              >
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <span className="text-xs font-semibold text-foreground">
-                    {formatDateOnly(c.date, locale)}
-                  </span>
-                  {c.unit_number && (
-                    <Badge variant="outline" className="text-xs text-[#4F46E5] border-[#4F46E5]/30">
-                      {t.commentUnit(c.unit_number)}
-                    </Badge>
-                  )}
-                  {c.interest_level && (
-                    <Badge variant="outline" className="text-xs">
-                      {t.interest(t.interestLvl[c.interest_level] || c.interest_level)}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm leading-relaxed text-foreground/90">{c.comment}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Charts row 1 */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -1048,12 +1182,13 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
         </CardContent>
       </Card>
 
-      {/* Showings timeline */}
+      {/* Showings timeline + agent notes (merged) */}
       <Card variant="glass">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-[#4F46E5]" /> {t.timeline}
           </CardTitle>
+          <p className="text-xs text-muted-foreground">{t.timelineSub}</p>
         </CardHeader>
         <CardContent className="pt-0">
           {data.showings_timeline.length === 0 ? (
@@ -1061,10 +1196,10 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
           ) : (
             <div className="space-y-5">
               {upcoming.length > 0 && (
-                <TimelineGroup heading={t.upcoming} items={upcoming} tz={tz} t={t} accent />
+                <TimelineGroup heading={t.upcoming} items={upcoming} tz={tz} t={t} accent notes={noteById} />
               )}
               {history.length > 0 && (
-                <TimelineGroup heading={t.history} items={history} tz={tz} t={t} />
+                <TimelineGroup heading={t.history} items={history} tz={tz} t={t} notes={noteById} />
               )}
             </div>
           )}
@@ -1118,12 +1253,14 @@ function TimelineGroup({
   tz,
   t,
   accent,
+  notes,
 }: {
   heading: string;
   items: TrackerData["showings_timeline"];
   tz: string;
   t: T;
   accent?: boolean;
+  notes?: Map<string, TrackerData["agent_comments"][number]>;
 }) {
   return (
     <div>
@@ -1131,26 +1268,44 @@ function TimelineGroup({
         {heading}
       </p>
       <div className="space-y-2">
-        {items.map((s) => (
-          <div
-            key={s.id}
-            className={cn(
-              "flex items-center gap-3 rounded-xl border p-3",
-              accent ? "border-[#4F46E5]/20 bg-[#4F46E5]/5" : "border-border/60 bg-white/40",
-            )}
-          >
-            <div className={cn("w-2 h-2 rounded-full shrink-0", accent ? "bg-[#4F46E5]" : "bg-muted-foreground/40")} />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{showingDateTime(s.scheduled_at, tz, t.locale)}</p>
+        {items.map((s) => {
+          const note = notes?.get(s.id);
+          return (
+            <div
+              key={s.id}
+              className={cn(
+                "rounded-xl border p-3",
+                accent ? "border-[#4F46E5]/20 bg-[#4F46E5]/5" : "border-border/60 bg-white/40",
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn("w-2 h-2 rounded-full shrink-0", accent ? "bg-[#4F46E5]" : "bg-muted-foreground/40")} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{showingDateTime(s.scheduled_at, tz, t.locale)}</p>
+                </div>
+                {s.interest_level && t.interestLvl[s.interest_level] && (
+                  <Badge variant="outline" className="text-xs">
+                    {t.interest(t.interestLvl[s.interest_level])}
+                  </Badge>
+                )}
+                <StatusPill status={s.status} kind="showStatus" t={t} />
+              </div>
+              {note && (
+                <div className="mt-2 ml-5 flex items-start gap-2 rounded-lg border border-border/50 bg-white/60 p-2.5">
+                  <MessageSquareQuote className="h-3.5 w-3.5 mt-0.5 text-[#4F46E5] shrink-0" />
+                  <div className="min-w-0">
+                    {note.unit_number && (
+                      <Badge variant="outline" className="mb-1 text-xs text-[#4F46E5] border-[#4F46E5]/30">
+                        {t.commentUnit(note.unit_number)}
+                      </Badge>
+                    )}
+                    <p className="text-sm leading-relaxed text-foreground/90">{note.comment}</p>
+                  </div>
+                </div>
+              )}
             </div>
-            {s.interest_level && (
-              <Badge variant="outline" className="text-xs">
-                {t.interest(t.interestLvl[s.interest_level] || s.interest_level)}
-              </Badge>
-            )}
-            <StatusPill status={s.status} kind="showStatus" t={t} />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

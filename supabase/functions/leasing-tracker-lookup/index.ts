@@ -186,6 +186,65 @@ serve(async (req) => {
     if (propErr) throw propErr;
     const catalog: Prop[] = allProps || [];
 
+    // ── OPEN-AGENDA mode: city-grouped open showing availability. Public and
+    // shown to every visitor (landing banner), independent of any search.
+    // Aggregates enabled + unbooked upcoming slots across the org's real
+    // properties and groups them by city.
+    if (payload.mode === "open_agenda") {
+      const today = orgToday();
+      const catalogIds = catalog.map((p) => p.id);
+      const cityById = new Map(
+        catalog.map((p) => [p.id, String(p.city || "").trim()]),
+      );
+      if (catalogIds.length === 0) return json({ cities: [], total_slots: 0 });
+
+      const slots: { property_id: string; slot_date: string }[] = [];
+      const PAGE = 1000;
+      for (let from = 0; from < 50000; from += PAGE) {
+        const { data, error } = await supabase
+          .from("showing_available_slots")
+          .select("property_id, slot_date")
+          .in("property_id", catalogIds)
+          .eq("is_enabled", true)
+          .eq("is_booked", false)
+          .gte("slot_date", today)
+          .order("slot_date", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        slots.push(...((data || []) as { property_id: string; slot_date: string }[]));
+        if (!data || data.length < PAGE) break;
+      }
+
+      const byCity = new Map<
+        string,
+        { city: string; slots: number; propIds: Set<string>; next_date: string }
+      >();
+      for (const s of slots) {
+        const city = cityById.get(s.property_id);
+        if (!city) continue; // skip slots with no known city
+        let g = byCity.get(city);
+        if (!g) {
+          g = { city, slots: 0, propIds: new Set(), next_date: s.slot_date };
+          byCity.set(city, g);
+        }
+        g.slots++;
+        g.propIds.add(s.property_id);
+        if (s.slot_date < g.next_date) g.next_date = s.slot_date;
+      }
+      const cities = [...byCity.values()]
+        .map((g) => ({
+          city: g.city,
+          slots: g.slots,
+          properties: g.propIds.size,
+          next_date: g.next_date,
+        }))
+        .sort((a, b) => b.slots - a.slots || a.city.localeCompare(b.city));
+      return json({
+        cities,
+        total_slots: cities.reduce((n, c) => n + c.slots, 0),
+      });
+    }
+
     // ── SEARCH mode: return one grouped card per matching building ─────
     if (!groupKey) {
       if (q.length < 2) return json({ matches: [] });
@@ -251,6 +310,8 @@ serve(async (req) => {
     const byMonth: Record<string, number> = {};
     let firstLeadAt: string | null = null;
     let lastLeadAt: string | null = null;
+    let leadsLast30d = 0;
+    const cutoff30d = new Date(Date.now() - 30 * 86400000).toISOString();
     for (const l of leads) {
       const st = (l.status as string) || "new";
       byStatus[st] = (byStatus[st] || 0) + 1;
@@ -261,6 +322,7 @@ serve(async (req) => {
         byMonth[monthKey(c)] = (byMonth[monthKey(c)] || 0) + 1;
         if (!firstLeadAt || c < firstLeadAt) firstLeadAt = c;
         if (!lastLeadAt || c > lastLeadAt) lastLeadAt = c;
+        if (c >= cutoff30d) leadsLast30d++;
       }
     }
 
@@ -394,6 +456,7 @@ serve(async (req) => {
         showings_upcoming: upcomingCount,
         open_slots_upcoming: openUpcoming,
         days_on_market: daysOnMarket,
+        leads_last_30d: leadsLast30d,
         first_lead_at: firstLeadAt,
         last_lead_at: lastLeadAt,
       },

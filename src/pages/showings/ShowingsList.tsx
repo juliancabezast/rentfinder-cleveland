@@ -17,6 +17,7 @@ import {
   Clock,
   Download,
   Image,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -492,7 +493,7 @@ const ShowingsList: React.FC = () => {
                 variant="outline"
                 size="sm"
                 className="h-8"
-                title="Copy booking link"
+                title="Copy the public booking-page link"
                 onClick={() => {
                   const url = `${window.location.origin}/p/book-showing`;
                   navigator.clipboard.writeText(url);
@@ -500,7 +501,23 @@ const ShowingsList: React.FC = () => {
                 }}
               >
                 <Link2 className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Copy Link</span>
+                <span className="hidden sm:inline">Copy Booking Link</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                title="Open the public Leasing Tracker page"
+                onClick={() =>
+                  window.open(
+                    `${window.location.origin}/leasingtracker`,
+                    "_blank",
+                    "noopener,noreferrer",
+                  )
+                }
+              >
+                <ExternalLink className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Leasing Tracker</span>
               </Button>
               <Button
                 variant="outline"

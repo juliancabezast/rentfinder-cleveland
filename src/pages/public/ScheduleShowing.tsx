@@ -29,6 +29,8 @@ import {
   Sparkles,
   Camera,
   X,
+  BedDouble,
+  Layers,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { format, addDays, parseISO, isSameDay } from "date-fns";
@@ -96,12 +98,19 @@ const PhotoLightbox: React.FC<{
     return () => { document.body.style.overflow = original; };
   }, []);
 
-  // Sync scroll position when index changes via arrow
-  React.useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTo({ left: index * el.clientWidth, behavior: "smooth" });
-  }, [index]);
+  // Programmatically scroll to a photo. The scroll position — not an effect on
+  // `index` — drives navigation, so `handleScroll` updating `index` mid-scroll
+  // can't fight an in-flight arrow/keyboard move (which previously bounced it
+  // straight back to the first photo).
+  const goTo = React.useCallback(
+    (idx: number) => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const clamped = Math.max(0, Math.min(total - 1, idx));
+      el.scrollTo({ left: clamped * el.clientWidth, behavior: "smooth" });
+    },
+    [total],
+  );
 
   // Snap to initial index without animation on mount
   React.useEffect(() => {
@@ -114,12 +123,12 @@ const PhotoLightbox: React.FC<{
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") setIndex((i) => Math.max(0, i - 1));
-      if (e.key === "ArrowRight") setIndex((i) => Math.min(total - 1, i + 1));
+      else if (e.key === "ArrowLeft") goTo(index - 1);
+      else if (e.key === "ArrowRight") goTo(index + 1);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose, total]);
+  }, [onClose, index, goTo]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -183,7 +192,7 @@ const PhotoLightbox: React.FC<{
       {total > 1 && index > 0 && (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); setIndex(index - 1); }}
+          onClick={(e) => { e.stopPropagation(); goTo(index - 1); }}
           aria-label="Previous photo"
           className="hidden sm:flex absolute top-1/2 left-4 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 text-white items-center justify-center backdrop-blur-sm transition-all"
         >
@@ -195,7 +204,7 @@ const PhotoLightbox: React.FC<{
       {total > 1 && index < total - 1 && (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); setIndex(index + 1); }}
+          onClick={(e) => { e.stopPropagation(); goTo(index + 1); }}
           aria-label="Next photo"
           className="hidden sm:flex absolute top-1/2 right-4 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 text-white items-center justify-center backdrop-blur-sm transition-all"
         >
@@ -385,6 +394,33 @@ function friendlyDate(dateStr: string): string {
   return format(d, "EEE, MMM d");
 }
 
+/** Simple public-facing filters for the city property list */
+const BEDS_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: "Any" },
+  { value: 1, label: "1+" },
+  { value: 2, label: "2+" },
+  { value: 3, label: "3+" },
+  { value: 4, label: "4+" },
+];
+const TYPE_OPTIONS: { value: "all" | "single" | "multi"; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "single", label: "Single" },
+  { value: "multi", label: "Multi" },
+];
+
+/** A building is "multi-family" if it exposes more than one bookable unit OR
+ * its property type is a duplex / triplex / fourplex / apartment. Classifying
+ * on type (not just how many units currently have open slots) means a duplex
+ * with a single bookable unit is still correctly treated as multi-family. */
+function isMultiFamilyType(t?: string | null): boolean {
+  if (!t) return false;
+  const s = t.toLowerCase();
+  return s.includes("plex") || s.includes("multi") || s.includes("apart") || s.includes("unit");
+}
+function buildingIsMulti(b: BuildingGroup): boolean {
+  return b.units.length > 1 || b.units.some((u) => isMultiFamilyType(u.property_type));
+}
+
 const BuildingSelectCard: React.FC<{
   building: BuildingGroup;
   onClick: () => void;
@@ -421,44 +457,44 @@ const BuildingSelectCard: React.FC<{
         <PhotoCarousel
           photos={photos}
           alt={building.address}
-          className="h-44 w-44 sm:h-52 sm:w-52 rounded-lg shrink-0"
+          className="h-40 w-44 sm:h-44 sm:w-52 rounded-lg shrink-0"
           arrowSize="md"
         />
 
-        {/* Info (right) */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between">
-          <div className="space-y-0.5">
-            {rentLabel && (
-              <div className="flex items-baseline gap-1 leading-none">
-                <span className="text-xl font-extrabold text-slate-900">{rentLabel}</span>
-                <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
-              </div>
-            )}
-            {specs.length > 0 && (
-              <p className="text-xs text-slate-600 truncate">{specs.join(" · ")}</p>
-            )}
-            <p className="font-semibold text-sm text-slate-900 truncate leading-tight">
+        {/* Info (right) — vertically centered so there's no dead white space */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+          {rentLabel && (
+            <div className="flex items-baseline gap-1 leading-none">
+              <span className="text-2xl font-extrabold text-slate-900">{rentLabel}</span>
+              <span className="text-xs font-medium text-muted-foreground">/mo</span>
+            </div>
+          )}
+          {specs.length > 0 && (
+            <p className="text-sm text-slate-600 truncate">{specs.join(" · ")}</p>
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-base text-slate-900 truncate leading-tight">
               {building.address}
             </p>
-            <p className="text-[11px] text-muted-foreground flex items-center gap-0.5 truncate">
-              <MapPin className="h-2.5 w-2.5 shrink-0" />
+            <p className="text-xs text-muted-foreground flex items-center gap-0.5 truncate mt-0.5">
+              <MapPin className="h-3 w-3 shrink-0" />
               {building.city}, {building.state}
             </p>
           </div>
 
           {/* Availability + Section 8 */}
-          <div className="flex flex-wrap items-center gap-1 mt-1">
+          <div className="flex flex-wrap items-center gap-1.5">
             {isScarce ? (
-              <Badge variant="outline" className="text-[10px] h-5 px-1.5 text-orange-700 border-orange-300 bg-orange-50">
+              <Badge variant="outline" className="text-[11px] h-6 px-2 text-orange-700 border-orange-300 bg-orange-50">
                 Only {spots} left {dateLabel.toLowerCase()}
               </Badge>
             ) : (
-              <Badge variant="outline" className="text-[10px] h-5 px-1.5 text-emerald-700 border-emerald-300 bg-emerald-50">
+              <Badge variant="outline" className="text-[11px] h-6 px-2 text-emerald-700 border-emerald-300 bg-emerald-50">
                 {dateLabel} · {timeLabel}
               </Badge>
             )}
             {!isMulti && firstUnit?.section_8_accepted && (
-              <Badge className="text-[10px] h-5 px-1.5 bg-blue-100 text-blue-700 border-0">
+              <Badge className="text-[11px] h-6 px-2 bg-blue-100 text-blue-700 border-0">
                 Sec 8
               </Badge>
             )}
@@ -496,38 +532,36 @@ const UnitSelectCard: React.FC<{
         <PhotoCarousel
           photos={photos}
           alt={property.unit_number || property.address}
-          className="h-40 w-40 sm:h-48 sm:w-48 rounded-lg shrink-0"
+          className="h-36 w-40 sm:h-44 sm:w-48 rounded-lg shrink-0"
           arrowSize="md"
         />
 
-        <div className="flex-1 min-w-0 flex flex-col justify-between">
-          <div className="space-y-0.5">
-            <div className="flex items-baseline gap-1 leading-none">
-              <span className="text-xl font-extrabold text-slate-900">
-                ${property.rent_price?.toLocaleString()}
-              </span>
-              <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
-            </div>
-            {specs.length > 0 && (
-              <p className="text-xs text-slate-600 truncate">{specs.join(" · ")}</p>
-            )}
-            <p className="font-semibold text-sm text-slate-900 truncate">
-              {property.unit_number ? `Unit ${property.unit_number}` : "Main Unit"}
-            </p>
-            {(() => {
-              const unitInfo: string[] = [];
-              if (property.section_8_accepted) unitInfo.push("Section 8 OK");
-              if (property.pet_policy && property.pet_policy.toLowerCase() !== "no pets" && property.pet_policy.toLowerCase() !== "none") {
-                unitInfo.push("Pets welcome");
-              }
-              const label = unitInfo.length > 0 ? unitInfo.join(" · ") : "Tour this unit";
-              return (
-                <p className="text-[11px] text-emerald-700 font-medium truncate">
-                  {label}
-                </p>
-              );
-            })()}
+        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+          <div className="flex items-baseline gap-1 leading-none">
+            <span className="text-2xl font-extrabold text-slate-900">
+              ${property.rent_price?.toLocaleString()}
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">/mo</span>
           </div>
+          {specs.length > 0 && (
+            <p className="text-sm text-slate-600 truncate">{specs.join(" · ")}</p>
+          )}
+          <p className="font-semibold text-base text-slate-900 truncate">
+            {property.unit_number ? `Unit ${property.unit_number}` : "Main Unit"}
+          </p>
+          {(() => {
+            const unitInfo: string[] = [];
+            if (property.section_8_accepted) unitInfo.push("Section 8 OK");
+            if (property.pet_policy && property.pet_policy.toLowerCase() !== "no pets" && property.pet_policy.toLowerCase() !== "none") {
+              unitInfo.push("Pets welcome");
+            }
+            const label = unitInfo.length > 0 ? unitInfo.join(" · ") : "Tour this unit";
+            return (
+              <p className="text-xs text-emerald-700 font-medium truncate">
+                {label}
+              </p>
+            );
+          })()}
         </div>
       </div>
 
@@ -551,6 +585,8 @@ const ScheduleShowing: React.FC = () => {
 
   // Multi-mode: property selection
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [bedsFilter, setBedsFilter] = useState<number>(0); // 0 = any, else minimum beds
+  const [typeFilter, setTypeFilter] = useState<"all" | "single" | "multi">("all");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null); // address key
   const [rawProperties, setRawProperties] = useState<Property[]>([]);
@@ -839,10 +875,22 @@ const ScheduleShowing: React.FC = () => {
   }, [cityGroups, propertiesLoading, isMultiMode, selectedCity]);
 
   // Filter buildings by selected city
-  const filteredBuildings = useMemo(
+  const cityBuildings = useMemo(
     () => selectedCity ? buildingGroups.filter((b) => (b.city || "Other") === selectedCity) : buildingGroups,
     [buildingGroups, selectedCity]
   );
+  const filteredBuildings = useMemo(() => {
+    let list = cityBuildings;
+    if (typeFilter === "single") list = list.filter((b) => !buildingIsMulti(b));
+    else if (typeFilter === "multi") list = list.filter((b) => buildingIsMulti(b));
+    if (bedsFilter > 0) {
+      list = list.filter(
+        (b) => Math.max(0, ...b.units.map((u) => u.bedrooms ?? 0)) >= bedsFilter,
+      );
+    }
+    return list;
+  }, [cityBuildings, typeFilter, bedsFilter]);
+  const filtersActive = bedsFilter > 0 || typeFilter !== "all";
 
   // Units in the currently selected building
   const selectedBuildingUnits = useMemo(
@@ -1170,35 +1218,35 @@ const ScheduleShowing: React.FC = () => {
                 <PhotoCarousel
                   photos={fpPhotos}
                   alt={fp.address}
-                  className="h-44 w-44 sm:h-52 sm:w-52 rounded-lg shrink-0"
+                  className="h-40 w-44 sm:h-44 sm:w-52 rounded-lg shrink-0"
                   arrowSize="md"
                 />
 
-                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                  <div className="space-y-0.5 pr-16">
-                    {fp.rent_price != null && (
-                      <div className="flex items-baseline gap-1 leading-none">
-                        <span className="text-xl font-extrabold text-slate-900">
-                          ${fp.rent_price.toLocaleString()}
-                        </span>
-                        <span className="text-[11px] font-medium text-muted-foreground">/mo</span>
-                      </div>
-                    )}
-                    {specs.length > 0 && (
-                      <p className="text-xs text-slate-600 truncate">{specs.join(" · ")}</p>
-                    )}
-                    <p className="font-semibold text-sm text-slate-900 truncate leading-tight">
+                <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+                  {fp.rent_price != null && (
+                    <div className="flex items-baseline gap-1 leading-none pr-16">
+                      <span className="text-2xl font-extrabold text-slate-900">
+                        ${fp.rent_price.toLocaleString()}
+                      </span>
+                      <span className="text-xs font-medium text-muted-foreground">/mo</span>
+                    </div>
+                  )}
+                  {specs.length > 0 && (
+                    <p className="text-sm text-slate-600 truncate">{specs.join(" · ")}</p>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-base text-slate-900 truncate leading-tight">
                       {fp.address}{fp.unit_number ? ` #${fp.unit_number}` : ""}
                     </p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-0.5 truncate">
-                      <MapPin className="h-2.5 w-2.5 shrink-0" />
+                    <p className="text-xs text-muted-foreground flex items-center gap-0.5 truncate mt-0.5">
+                      <MapPin className="h-3 w-3 shrink-0" />
                       {[fp.city, fp.state].filter(Boolean).join(", ")}
                     </p>
                   </div>
 
                   {fp.section_8_accepted && (
-                    <div className="mt-1">
-                      <Badge className="text-[10px] h-5 px-1.5 bg-blue-100 text-blue-700 border-0">
+                    <div>
+                      <Badge className="text-[11px] h-6 px-2 bg-blue-100 text-blue-700 border-0">
                         Section 8
                       </Badge>
                     </div>
@@ -1306,12 +1354,76 @@ const ScheduleShowing: React.FC = () => {
                   </Button>
                 )}
               </div>
+
+              {/* Simple filters: bedrooms + single/multi — centered & labeled */}
+              {cityBuildings.length > 1 && (
+                <div className="flex flex-wrap items-end justify-center gap-x-8 gap-y-4">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      <BedDouble className="h-4 w-4" /> Bedrooms
+                    </span>
+                    <div className="inline-flex rounded-xl border bg-white p-1">
+                      {BEDS_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => setBedsFilter(o.value)}
+                          className={`h-10 min-w-[3rem] px-3 rounded-lg text-sm font-semibold transition-colors ${
+                            bedsFilter === o.value
+                              ? "bg-[#4F46E5] text-white"
+                              : "text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center gap-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      <Layers className="h-4 w-4" /> Home type
+                    </span>
+                    <div className="inline-flex rounded-xl border bg-white p-1">
+                      {TYPE_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => setTypeFilter(o.value)}
+                          className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                            typeFilter === o.value
+                              ? "bg-[#4F46E5] text-white"
+                              : "text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {filteredBuildings.length === 0 ? (
                 <div className="text-center py-6">
                   <Home className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">
-                    No properties available in {selectedCity} right now.
+                    {filtersActive && cityBuildings.length > 0
+                      ? "No properties match these filters."
+                      : `No properties available in ${selectedCity} right now.`}
                   </p>
+                  {filtersActive && cityBuildings.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => {
+                        setBedsFilter(0);
+                        setTypeFilter("all");
+                      }}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2">
