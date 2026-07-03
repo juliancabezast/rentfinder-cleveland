@@ -211,6 +211,64 @@ serve(async (req) => {
     }
 
     // ── TRACKER mode: aggregate a whole building (all its units) ──────
+    // This surface returns private owner-facing analytics (funnel counts,
+    // lead sources, showings timeline, prospect interest levels, and
+    // leasing-agent post-showing comments). Require an authenticated caller
+    // that is either staff (admin/super_admin) OR the property's owner /
+    // an investor granted access via investor_property_access.
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const authHeader = req.headers.get("Authorization") || "";
+    const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+
+    let authorized = false;
+    if (isServiceRole) {
+      authorized = true;
+    } else if (callerToken && callerToken !== anonKey) {
+      const { data: authData } = await supabase.auth.getUser(callerToken);
+      if (authData?.user) {
+        const uid = authData.user.id;
+        const { data: userRec } = await supabase
+          .from("users")
+          .select("organization_id, role, is_active")
+          .eq("auth_user_id", uid)
+          .maybeSingle();
+        if (userRec && userRec.is_active !== false &&
+            userRec.organization_id === orgId &&
+            ["super_admin", "admin", "editor", "leasing_agent"].includes(userRec.role || "")) {
+          authorized = true;
+        }
+        if (!authorized) {
+          // Investor path: property owner or explicit investor_property_access grant.
+          const unitIdsForCheck = catalog
+            .filter((p) => addrKey(p.address) === groupKey)
+            .map((p) => p.id);
+          if (unitIdsForCheck.length > 0) {
+            const { data: ownedProps } = await supabase
+              .from("properties")
+              .select("id")
+              .in("id", unitIdsForCheck)
+              .eq("owner_id", uid)
+              .limit(1);
+            if (ownedProps && ownedProps.length > 0) authorized = true;
+            if (!authorized) {
+              const { data: accessProps } = await supabase
+                .from("investor_property_access")
+                .select("property_id")
+                .in("property_id", unitIdsForCheck)
+                .eq("investor_id", uid)
+                .limit(1);
+              if (accessProps && accessProps.length > 0) authorized = true;
+            }
+          }
+        }
+      }
+    }
+    if (!authorized) {
+      return json({ error: "unauthorized" }, 401);
+    }
+
     const units = catalog.filter((p) => addrKey(p.address) === groupKey);
     if (units.length === 0) return json({ matches: [] });
     const unitIds = units.map((u) => u.id);
