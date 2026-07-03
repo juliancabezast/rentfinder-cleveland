@@ -30,6 +30,41 @@ serve(async (req) => {
     const { lead_id, organization_id, action } = body;
 
     if (action === "create_referral") {
+      // ── Authenticate caller (staff-only or service-role) ─────────
+      // Prevents anonymous minting of paid referral codes for arbitrary leads.
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+      const authHeader = req.headers.get("Authorization") || "";
+      const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+      const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+      if (!isServiceRole) {
+        if (!callerToken || callerToken === anonKey) {
+          return new Response(
+            JSON.stringify({ error: "Unauthorized" }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
+        if (authErr || !authData?.user) {
+          return new Response(
+            JSON.stringify({ error: "Unauthorized" }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const { data: callerRec } = await supabase
+          .from("users")
+          .select("organization_id, role, is_active")
+          .eq("auth_user_id", authData.user.id)
+          .maybeSingle();
+        if (!callerRec || callerRec.is_active === false ||
+            !["super_admin", "admin", "editor", "leasing_agent"].includes(callerRec.role || "")) {
+          return new Response(
+            JSON.stringify({ error: "Forbidden" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       // Create a new referral invitation for a converted lead
       const { referred_name, referred_phone, referred_email, referral_channel } = body;
 

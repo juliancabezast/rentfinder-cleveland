@@ -43,6 +43,28 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // ── Require service-role or admin authenticated caller ─────────
+  {
+    const _srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const _ak = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const _tok = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+    if (_tok !== _srk) {
+      if (!_tok || _tok === _ak) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const _sb = createClient(Deno.env.get("SUPABASE_URL")!, _srk);
+      const { data: _auth } = await _sb.auth.getUser(_tok);
+      if (!_auth?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const { data: _u } = await _sb.from("users").select("role, is_active").eq("auth_user_id", _auth.user.id).maybeSingle();
+      if (!_u || _u.is_active === false || !["super_admin","admin"].includes(_u.role || "")) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+  }
+
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);

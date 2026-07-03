@@ -4903,6 +4903,7 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_current_profile_role: { Args: never; Returns: string }
       get_dashboard_summary: { Args: never; Returns: Json }
       get_lead_full_context: { Args: { p_lead_id: string }; Returns: Json }
       get_lead_funnel: {
@@ -4951,6 +4952,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_editor_or_above: { Args: never; Returns: boolean }
+      is_staff_role: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _auth_user_id: string }; Returns: boolean }
       joseph_compliance_check: {
         Args: {
@@ -5030,6 +5032,7 @@ export type Database = {
         Args: { _lead_id: string; _reason: string; _user_id: string }
         Returns: number
       }
+      property_in_user_org: { Args: { _property_id: string }; Returns: boolean }
       rebekah_find_alternatives: {
         Args: {
           p_lead_id?: string
