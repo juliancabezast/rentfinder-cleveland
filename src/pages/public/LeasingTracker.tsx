@@ -150,7 +150,7 @@ const STRINGS = {
     title: "Seguí la actividad de leasing de tu propiedad",
     subtitle:
       "Empezá a escribir el número o la dirección de tu propiedad y elegila de la lista para ver leads, showings y el progreso del pipeline en vivo.",
-    placeholder: "Empezá a escribir… ej. 14504 Ardenall · Ardenall · 44105",
+    placeholder: "Empezá a escribir… ej. 1234 Main St · Main · 44101",
     searchBtn: "Buscar",
     newSearch: "Nueva búsqueda",
     hint: `Escribí al menos ${MIN_CHARS} caracteres y elegí tu propiedad de la lista.`,
@@ -233,7 +233,7 @@ const STRINGS = {
     title: "Track your property's leasing activity",
     subtitle:
       "Start typing your property's street number or address and pick it from the list to see live leads, showings, and pipeline progress.",
-    placeholder: "Start typing… e.g. 14504 Ardenall · Ardenall · 44105",
+    placeholder: "Start typing… e.g. 1234 Main St · Main · 44101",
     searchBtn: "Search",
     newSearch: "New search",
     hint: `Type at least ${MIN_CHARS} characters, then pick your property from the list.`,
