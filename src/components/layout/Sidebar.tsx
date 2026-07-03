@@ -19,9 +19,7 @@ import {
   Bot,
   Sparkles,
   UserCheck,
-  Mail,
-  Megaphone,
-  Star,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -50,11 +48,10 @@ const propertiesNavItems: NavItem[] = [
   { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
 ];
 
-// COMMUNICATIONS — contact channels
+// COMMUNICATIONS — single hub entry; the /communications landing links out to
+// its modules (Property Spotlight, Campaigns, Emails).
 const commsNavItems: NavItem[] = [
-  { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
-  { title: 'Campaigns', href: '/campaigns', icon: Megaphone, permission: 'canViewAllCallLogs', end: true },
-  { title: 'Featured', href: '/campaigns/featured', icon: Star, permission: 'canViewAllCallLogs' },
+  { title: 'Communications', href: '/communications', icon: Send, permission: 'canViewAllCallLogs' },
 ];
 
 // ANALYTICS — data & reports
@@ -175,8 +172,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
           {/* PROPERTIES Section */}
           {renderSection('Properties', filteredPropertiesItems)}
 
-          {/* COMMUNICATIONS Section */}
-          {renderSection('Communications', filteredCommsItems)}
+          {/* COMMUNICATIONS — single hub entry (no redundant section label) */}
+          {filteredCommsItems.length > 0 && (
+            <>
+              <div className="my-3 mx-3 h-px bg-slate-100" />
+              {filteredCommsItems.map(renderNavItem)}
+            </>
+          )}
 
           {/* ANALYTICS Section */}
           {renderSection('Analytics', filteredAnalyticsItems)}

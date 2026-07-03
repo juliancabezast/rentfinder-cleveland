@@ -39,7 +39,8 @@ const EmailsPage = lazy(() => import("./pages/emails/EmailsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
 const CampaignsPage = lazy(() => import("./pages/campaigns/CampaignsPage"));
-const FeaturedPropertiesPage = lazy(() => import("./pages/campaigns/FeaturedPropertiesPage"));
+const CommunicationsHub = lazy(() => import("./pages/communications/CommunicationsHub"));
+const PropertySpotlightPage = lazy(() => import("./pages/communications/PropertySpotlightPage"));
 const DemoRequests = lazy(() => import("./pages/DemoRequests"));
 const StarktankPage = lazy(() => import("./pages/starktank/StarktankPage"));
 
@@ -227,15 +228,29 @@ const App = () => (
             />
 
             <Route
-              path="/campaigns/featured"
+              path="/communications"
               element={
                 <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
                   <MainLayout>
-                    <FeaturedPropertiesPage />
+                    <CommunicationsHub />
                   </MainLayout>
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="/communications/spotlight"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
+                  <MainLayout>
+                    <PropertySpotlightPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Legacy path → new Property Spotlight location */}
+            <Route path="/campaigns/featured" element={<Navigate to="/communications/spotlight" replace />} />
 
             <Route
               path="/emails"

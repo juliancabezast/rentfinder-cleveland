@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -8,6 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Star,
@@ -20,9 +32,13 @@ import {
   DollarSign,
   Ruler,
   CalendarDays,
-  MapPin,
   Copy,
   Check,
+  Users,
+  Loader2,
+  CheckCircle2,
+  ShieldCheck,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,6 +47,17 @@ import { useToast } from "@/hooks/use-toast";
 import { getTimezoneForCity } from "@/lib/cityTimezone";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import {
+  UNSUBSCRIBE_URL_PLACEHOLDER,
+  DEFAULT_MARKETING_POSTAL_ADDRESS,
+} from "@/lib/emailTemplateDefaults";
+import {
+  fetchSpotlightRecipients,
+  sendSpotlightCampaign,
+  DEFAULT_SPOTLIGHT_STATUSES,
+  type SpotlightAudienceMode,
+  type SendSpotlightResult,
+} from "@/lib/spotlightCampaign";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -59,6 +86,20 @@ interface PropertyWithShowings {
 const PRIMARY = "#4F46E5";
 const GOLD = "#ffb22c";
 
+/** Minimal HTML escaping for values interpolated into the marketing footer. */
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+interface RenderOptions {
+  /** Append the CAN-SPAM marketing footer (postal address + unsubscribe link). */
+  marketing?: boolean;
+  postalAddress?: string;
+  /** Per-recipient unsubscribe URL. Omit for a real send so the
+   *  {{unsubscribe_url}} placeholder survives for process-email-queue to fill. */
+  unsubscribeUrl?: string;
+}
+
 function renderFeaturedEmailHtml(
   properties: PropertyWithShowings[],
   orgName: string,
@@ -66,7 +107,8 @@ function renderFeaturedEmailHtml(
   headerText: string,
   introText: string,
   ctaText: string,
-  footerText: string
+  footerText: string,
+  opts: RenderOptions = {}
 ): string {
   const propertyCardsHtml = properties
     .map((p) => {
@@ -155,6 +197,24 @@ function renderFeaturedEmailHtml(
     })
     .join("");
 
+  // CAN-SPAM marketing footer: sender's physical postal address + a working
+  // unsubscribe link. The {{unsubscribe_url}} placeholder is filled per-recipient
+  // by process-email-queue at send time (real send passes no unsubscribeUrl).
+  const unsub = opts.unsubscribeUrl || UNSUBSCRIBE_URL_PLACEHOLDER;
+  const postal = (opts.postalAddress || DEFAULT_MARKETING_POSTAL_ADDRESS).trim();
+  const marketingFooterHtml = opts.marketing
+    ? `
+        <p style="margin:14px 0 0;font-family:Montserrat,Arial,sans-serif;font-size:12px;line-height:1.5;color:#9ca3af;">
+          You are receiving this email because you inquired about a rental home with ${esc(orgName)}.
+        </p>
+        <p style="margin:6px 0 0;font-family:Montserrat,Arial,sans-serif;font-size:12px;line-height:1.5;color:#9ca3af;">
+          ${esc(postal)}
+        </p>
+        <p style="margin:6px 0 0;font-family:Montserrat,Arial,sans-serif;font-size:12px;line-height:1.5;color:#9ca3af;">
+          <a href="${unsub}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a> from marketing emails.
+        </p>`
+    : "";
+
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -204,6 +264,7 @@ function renderFeaturedEmailHtml(
         <tr>
           <td style="padding:20px 30px;text-align:center;background:#f9fafb;border-top:1px solid #e5e7eb;">
             <p style="margin:0;font-family:Montserrat,Arial,sans-serif;font-size:13px;color:#9ca3af;">${footerText}</p>
+            ${marketingFooterHtml}
           </td>
         </tr>
       </table>
@@ -213,12 +274,25 @@ function renderFeaturedEmailHtml(
 </html>`;
 }
 
+// Lead statuses offered as audience filter chips (dead-ends excluded).
+const STATUS_CHIPS = [
+  "new",
+  "contacted",
+  "engaged",
+  "nurturing",
+  "qualified",
+  "showing_scheduled",
+  "showed",
+  "in_application",
+];
+
 // ── Component ─────────────────────────────────────────────────────────
 
-const FeaturedPropertiesPage = () => {
+const PropertySpotlightPage = () => {
   const { userRecord } = useAuth();
   const { getSetting } = useOrganizationSettings();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const orgId = userRecord?.organization_id;
 
   // Editor state
@@ -238,9 +312,19 @@ const FeaturedPropertiesPage = () => {
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Audience + send state
+  const [audienceMode, setAudienceMode] = useState<SpotlightAudienceMode>("interested");
+  const [statuses, setStatuses] = useState<string[]>(DEFAULT_SPOTLIGHT_STATUSES);
+  const [campaignName, setCampaignName] = useState(
+    `Property Spotlight — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+  );
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [sendResult, setSendResult] = useState<SendSpotlightResult | null>(null);
+
   // Fetch properties with upcoming showings this weekend
   const { data: propertiesWithShowings, isLoading } = useQuery({
-    queryKey: ["featured-properties-weekend", orgId],
+    queryKey: ["spotlight-properties-weekend", orgId],
     queryFn: async () => {
       if (!orgId) return [];
 
@@ -336,6 +420,21 @@ const FeaturedPropertiesPage = () => {
     enabled: !!orgId,
   });
 
+  // Org postal address for the CAN-SPAM footer (composed like the campaign wizard).
+  const { data: orgAddr } = useQuery({
+    queryKey: ["spotlight-org-postal", orgId],
+    queryFn: async () => {
+      if (!orgId) return null;
+      const { data } = await supabase
+        .from("organizations")
+        .select("address, city, state, zip_code")
+        .eq("id", orgId)
+        .maybeSingle();
+      return data as { address: string | null; city: string | null; state: string | null; zip_code: string | null } | null;
+    },
+    enabled: !!orgId,
+  });
+
   const toggleProperty = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -356,6 +455,9 @@ const FeaturedPropertiesPage = () => {
     });
   };
 
+  const toggleStatus = (s: string) =>
+    setStatuses((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+
   const selectedProperties = useMemo(
     () =>
       (propertiesWithShowings || []).filter((p) => selectedIds.has(p.id)),
@@ -365,6 +467,19 @@ const FeaturedPropertiesPage = () => {
   const orgName = (getSetting as any)("org_name", "Rent Finder Cleveland") || "Rent Finder Cleveland";
   const senderDomain = (getSetting as any)("sender_domain", "rentfindercleveland.com") || "rentfindercleveland.com";
 
+  const postalAddress = orgAddr?.address
+    ? [
+        orgName,
+        orgAddr.address,
+        [[orgAddr.city, orgAddr.state].filter(Boolean).join(", "), orgAddr.zip_code]
+          .filter(Boolean)
+          .join(" "),
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : undefined;
+
+  // Preview shows the marketing footer with a live link (real send keeps the placeholder).
   const previewHtml = useMemo(
     () =>
       renderFeaturedEmailHtml(
@@ -374,10 +489,43 @@ const FeaturedPropertiesPage = () => {
         headerText,
         introText,
         ctaText,
-        footerText
+        footerText,
+        { marketing: true, postalAddress, unsubscribeUrl: "#" }
       ),
-    [selectedProperties, orgName, senderDomain, headerText, introText, ctaText, footerText]
+    [selectedProperties, orgName, senderDomain, headerText, introText, ctaText, footerText, postalAddress]
   );
+
+  const propertyIds = useMemo(() => selectedProperties.map((p) => p.id), [selectedProperties]);
+
+  // Live recipient count (pre-consent-suppression upper bound).
+  const { data: recipientCount = 0, isFetching: countLoading } = useQuery({
+    queryKey: [
+      "spotlight-audience-count",
+      orgId,
+      audienceMode,
+      audienceMode === "by_status" ? [...statuses].sort().join(",") : "",
+      audienceMode === "interested" ? [...propertyIds].sort().join(",") : "",
+    ],
+    queryFn: async () => {
+      if (!orgId) return 0;
+      const recips = await fetchSpotlightRecipients(supabase, orgId, audienceMode, {
+        statuses,
+        propertyIds,
+      });
+      return recips.length;
+    },
+    enabled: !!orgId,
+  });
+
+  const audienceLabelText =
+    audienceMode === "interested"
+      ? "Leads interested in the selected properties"
+      : audienceMode === "by_status"
+        ? `Leads with status: ${statuses.join(", ") || "(none selected)"}`
+        : "All active leads";
+
+  const canSend =
+    selectedProperties.length > 0 && recipientCount > 0 && !isSending && !!orgId;
 
   const handleSendTest = async () => {
     if (!userRecord?.email) {
@@ -394,7 +542,16 @@ const FeaturedPropertiesPage = () => {
         body: {
           to: userRecord.email,
           subject: `[TEST] ${subjectLine}`,
-          html: previewHtml,
+          html: renderFeaturedEmailHtml(
+            selectedProperties,
+            orgName,
+            senderDomain,
+            headerText,
+            introText,
+            ctaText,
+            footerText,
+            { marketing: true, postalAddress, unsubscribeUrl: "#" }
+          ),
           notification_type: "test",
           organization_id: orgId,
           queue: false,
@@ -409,10 +566,81 @@ const FeaturedPropertiesPage = () => {
   };
 
   const handleCopyHtml = () => {
-    navigator.clipboard.writeText(previewHtml);
+    navigator.clipboard.writeText(
+      renderFeaturedEmailHtml(
+        selectedProperties,
+        orgName,
+        senderDomain,
+        headerText,
+        introText,
+        ctaText,
+        footerText,
+        { marketing: true, postalAddress, unsubscribeUrl: "#" }
+      )
+    );
     setCopied(true);
     toast({ title: "HTML copied to clipboard" });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleConfirmSend = async () => {
+    setConfirmOpen(false);
+    if (!orgId || selectedProperties.length === 0) return;
+    setIsSending(true);
+    setSendResult(null);
+    try {
+      // Re-fetch a fresh recipient pool at send time.
+      const recipients = await fetchSpotlightRecipients(supabase, orgId, audienceMode, {
+        statuses,
+        propertyIds,
+      });
+      if (recipients.length === 0) {
+        toast({ title: "No recipients", description: "No leads match this audience.", variant: "destructive" });
+        return;
+      }
+      // Real send: keep the {{unsubscribe_url}} placeholder (no unsubscribeUrl)
+      // so process-email-queue signs a per-recipient URL server-side.
+      const sendHtml = renderFeaturedEmailHtml(
+        selectedProperties,
+        orgName,
+        senderDomain,
+        headerText,
+        introText,
+        ctaText,
+        footerText,
+        { marketing: true, postalAddress }
+      );
+      const result = await sendSpotlightCampaign({
+        supabase,
+        orgId,
+        orgName,
+        createdBy: userRecord?.id,
+        campaignName,
+        subject: subjectLine,
+        html: sendHtml,
+        recipients,
+        propertyIds,
+        audienceLabel: audienceLabelText,
+      });
+      setSendResult(result);
+      toast({
+        title: "Spotlight queued 🎉",
+        description: `${result.queued} email${result.queued === 1 ? "" : "s"} queued${
+          result.suppressed > 0
+            ? `, ${result.suppressed} skipped (unsubscribed / no consent)`
+            : ""
+        }.`,
+      });
+    } catch (err) {
+      console.error("Spotlight send failed:", err);
+      toast({
+        title: "Send failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -421,22 +649,22 @@ const FeaturedPropertiesPage = () => {
       <div>
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <Star className="h-6 w-6 text-amber-500" />
-          Featured Properties Campaign
+          Property Spotlight
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Select up to 3 properties to highlight in a weekend showings email blast
+          Curate up to 3 properties into a branded email and send it to a chosen audience of leads
         </p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_600px] gap-6">
-        {/* LEFT COLUMN: Property Selector + Editor */}
+        {/* LEFT COLUMN: Property Selector + Editor + Audience */}
         <div className="space-y-6">
           {/* Property Selector */}
           <Card variant="glass">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
-                Select Properties
+                1. Select Properties
                 <Badge
                   variant="outline"
                   className={cn(
@@ -575,7 +803,7 @@ const FeaturedPropertiesPage = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Pencil className="h-4 w-4" />
-                Email Content
+                2. Email Content
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -619,7 +847,7 @@ const FeaturedPropertiesPage = () => {
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Composer actions (test / copy) */}
               <div className="flex flex-wrap gap-2 pt-3 border-t">
                 <Button
                   variant="outline"
@@ -647,12 +875,178 @@ const FeaturedPropertiesPage = () => {
                       isSendingTest && "animate-pulse"
                     )}
                   />
-                  {isSendingTest ? "Sending..." : "Send Test Email"}
+                  {isSendingTest ? "Sending..." : "Send Test to Myself"}
                 </Button>
                 <Badge variant="outline" className="ml-auto text-xs text-slate-500">
                   {selectedProperties.length} propert{selectedProperties.length === 1 ? "y" : "ies"} in email
                 </Badge>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Audience + Send */}
+          <Card variant="glass">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                3. Audience &amp; Send
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Campaign Name</Label>
+                <Input
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                  placeholder="Property Spotlight..."
+                />
+                <p className="text-[11px] text-slate-400">Shown in Campaigns for tracking. Not visible to recipients.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Who receives this?</Label>
+                <RadioGroup
+                  value={audienceMode}
+                  onValueChange={(v) => setAudienceMode(v as SpotlightAudienceMode)}
+                  className="space-y-2"
+                >
+                  <label
+                    htmlFor="aud-interested"
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                      audienceMode === "interested"
+                        ? "border-indigo-300 bg-indigo-50/50 ring-1 ring-indigo-200"
+                        : "border-slate-200 hover:bg-slate-50/50"
+                    )}
+                  >
+                    <RadioGroupItem value="interested" id="aud-interested" className="mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900">Interested in these properties</p>
+                      <p className="text-xs text-slate-500">
+                        Best targeted — leads whose interest is one of the properties above.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    htmlFor="aud-status"
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                      audienceMode === "by_status"
+                        ? "border-indigo-300 bg-indigo-50/50 ring-1 ring-indigo-200"
+                        : "border-slate-200 hover:bg-slate-50/50"
+                    )}
+                  >
+                    <RadioGroupItem value="by_status" id="aud-status" className="mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-900">By lead status</p>
+                      <p className="text-xs text-slate-500 mb-2">Pick which pipeline stages to include.</p>
+                      {audienceMode === "by_status" && (
+                        <div className="flex flex-wrap gap-1.5" onClick={(e) => e.preventDefault()}>
+                          {STATUS_CHIPS.map((s) => {
+                            const on = statuses.includes(s);
+                            return (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => toggleStatus(s)}
+                                className={cn(
+                                  "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                                  on
+                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                                )}
+                              >
+                                {s.replace(/_/g, " ")}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </label>
+
+                  <label
+                    htmlFor="aud-all"
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                      audienceMode === "all_active"
+                        ? "border-indigo-300 bg-indigo-50/50 ring-1 ring-indigo-200"
+                        : "border-slate-200 hover:bg-slate-50/50"
+                    )}
+                  >
+                    <RadioGroupItem value="all_active" id="aud-all" className="mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900">All active leads</p>
+                      <p className="text-xs text-slate-500">
+                        Everyone with an email, excluding lost / converted.
+                      </p>
+                    </div>
+                  </label>
+                </RadioGroup>
+              </div>
+
+              {/* Recipient count + compliance note */}
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-1.5">
+                <div className="flex items-center gap-2 text-sm">
+                  <Users className="h-4 w-4 text-indigo-600" />
+                  <span className="font-semibold text-slate-900">
+                    {countLoading ? "…" : recipientCount.toLocaleString()}
+                  </span>
+                  <span className="text-slate-600">
+                    lead{recipientCount === 1 ? "" : "s"} with email match this audience
+                  </span>
+                </div>
+                <div className="flex items-start gap-2 text-[11px] text-slate-500">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 mt-px shrink-0" />
+                  <span>
+                    Unsubscribed, no-marketing-consent, and do-not-contact leads are skipped automatically.
+                    Each email includes a one-click unsubscribe (CAN-SPAM).
+                  </span>
+                </div>
+              </div>
+
+              {/* Send result */}
+              {sendResult && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Queued {sendResult.queued} email{sendResult.queued === 1 ? "" : "s"}
+                    {sendResult.suppressed > 0 ? ` · ${sendResult.suppressed} skipped` : ""}
+                  </div>
+                  <p className="text-xs text-emerald-700 mt-1">
+                    They send in the background (rate-limited). Track delivery in Campaigns.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 gap-1.5"
+                    onClick={() => navigate("/campaigns")}
+                  >
+                    View in Campaigns
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Send button */}
+              <Button
+                className="w-full gap-2"
+                disabled={!canSend}
+                onClick={() => setConfirmOpen(true)}
+              >
+                {isSending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {isSending
+                  ? "Queuing…"
+                  : `Send Spotlight to ${countLoading ? "…" : recipientCount.toLocaleString()} lead${recipientCount === 1 ? "" : "s"}`}
+              </Button>
+              {selectedProperties.length === 0 && (
+                <p className="text-[11px] text-amber-600 text-center">Select at least one property first.</p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -678,7 +1072,7 @@ const FeaturedPropertiesPage = () => {
               ) : (
                 <div className="border rounded-lg overflow-hidden bg-[#f3f4f6]">
                   <iframe
-                    title="Featured Properties Email Preview"
+                    title="Property Spotlight Email Preview"
                     srcDoc={previewHtml}
                     className="w-full border-0"
                     style={{ minHeight: 800 }}
@@ -690,8 +1084,30 @@ const FeaturedPropertiesPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* Send confirmation */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Send this Spotlight to ~{recipientCount.toLocaleString()} lead{recipientCount === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedProperties.length} propert{selectedProperties.length === 1 ? "y" : "ies"} will be emailed to:{" "}
+              <span className="font-medium text-slate-700">{audienceLabelText}</span>.
+              <br />
+              Unsubscribed, no-consent, and do-not-contact leads are skipped automatically, so the final
+              count may be lower. This can’t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSend}>Send now</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
 
-export default FeaturedPropertiesPage;
+export default PropertySpotlightPage;
