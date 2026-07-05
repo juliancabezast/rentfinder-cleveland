@@ -409,9 +409,32 @@ const LandingPage: React.FC = () => {
             </p>
           </div>
 
+          {/* Renter resources — links to the static content hub.
+              Plain <a> (NOT react-router <Link>) so the browser does a full-page
+              navigation to the static HTML pages, which live outside the SPA router. */}
+          <nav className="mt-8 pt-6 border-t border-border/50" aria-label="Rental resources for renters">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 text-center">
+              For Renters — Cleveland Rentals
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+              <a href="/houses-for-rent-cleveland-oh/" className="text-muted-foreground hover:text-foreground transition-colors">
+                Houses for Rent in Cleveland
+              </a>
+              <a href="/apartments-for-rent-cleveland-oh/" className="text-muted-foreground hover:text-foreground transition-colors">
+                Apartments for Rent
+              </a>
+              <a href="/section-8-housing-cleveland-oh/" className="text-muted-foreground hover:text-foreground transition-colors">
+                Section 8 Housing
+              </a>
+              <a href="/cleveland-rentals/" className="text-muted-foreground hover:text-foreground transition-colors">
+                Rental Guides &amp; Neighborhoods
+              </a>
+            </div>
+          </nav>
+
           {/* SEO Footer Text */}
           <p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-4xl mx-auto leading-relaxed">
-            Rent Finder Cleveland is an AI-powered leasing automation platform for property managers in Cleveland, Ohio and across the United States. Automate lead qualification, follow-ups, and showing scheduling with intelligent voice agents and TCPA-compliant communications.
+            Rent Finder Cleveland is an AI-powered leasing automation platform for property managers in Cleveland, Ohio and across the United States. Automate lead qualification, follow-ups, and showing scheduling with intelligent email and SMS automation and TCPA-compliant communications.
           </p>
 
           {/* Compliance Text */}
