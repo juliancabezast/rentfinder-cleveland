@@ -16,8 +16,11 @@ import {
 import {
   MapPin, BedDouble, Bath, Search, CheckCircle2, Home as HomeIcon,
   Phone, CalendarCheck, ShieldCheck, Clock, KeyRound, ArrowRight, FileSignature,
-  MessageSquare, X,
+  MessageSquare, X, SlidersHorizontal,
 } from "lucide-react";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
 import { ApplicationDialog } from "@/components/public/ApplicationDialog";
 import { SiteFooter } from "@/components/public/SiteFooter";
 
@@ -340,6 +343,17 @@ export default function RenterHome() {
     priceRange[0] > PRICE_MIN || priceRange[1] < PRICE_MAX ||
     !showSingle || !showMulti;
 
+  // Badge for the mobile "Filters" button — how many filters are active.
+  const activeFilterCount =
+    (area !== "all" ? 1 : 0) +
+    (beds !== "any" ? 1 : 0) +
+    (zip !== "all" ? 1 : 0) +
+    (priceRange[0] > PRICE_MIN || priceRange[1] < PRICE_MAX ? 1 : 0) +
+    (!showSingle || !showMulti ? 1 : 0);
+
+  // Mobile filters bottom-sheet visibility
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   const resetFilters = () => {
     setArea("all"); setBeds("any"); setZip("all");
     setPriceRange([PRICE_MIN, PRICE_MAX]);
@@ -382,11 +396,11 @@ export default function RenterHome() {
           className="absolute inset-0 bg-gradient-to-br from-primary/85 to-[hsl(239,84%,60%)]/75"
           aria-hidden="true"
         />
-        <div className="relative max-w-7xl mx-auto px-5 py-20 md:py-28 text-center">
-          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight max-w-4xl mx-auto">
+        <div className="relative max-w-7xl mx-auto px-5 py-10 lg:py-28 text-center">
+          <h1 className="text-[26px] sm:text-3xl lg:text-5xl font-extrabold leading-tight max-w-4xl mx-auto">
             Houses for Rent in Cleveland, OH
           </h1>
-          <p className="mt-4 text-base md:text-lg opacity-95 max-w-2xl mx-auto">
+          <p className="mt-3 text-sm sm:text-base lg:text-lg opacity-95 max-w-2xl mx-auto">
             Browse available rental homes across Cleveland with a local team that knows every house.
             Every home welcomes Housing Choice Vouchers — tour in person and apply online.
           </p>
@@ -394,13 +408,43 @@ export default function RenterHome() {
       </section>
 
       {/* Sticky brand + filter bar — sits below the hero and pins to the top
-          once you scroll past it. Every control is labeled, sized to breathe,
-          and the row stretches edge-to-edge (results counter fills the right). */}
+          once you scroll past it. Desktop: full inline row. Mobile (<lg):
+          compact bar (logo · live count · Filters button) + bottom sheet. */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border shadow-sm">
-        {/* Single row on desktop (lg:flex-nowrap): selects shrink instead of
-            pushing Results to a new line; the Clear ✕ always reserves its
-            space so toggling filters never reflows the bar. */}
-        <div className="w-full px-6 py-4 flex flex-wrap lg:flex-nowrap items-end gap-x-5 gap-y-3">
+        {/* ── Mobile compact bar ── */}
+        <div className="flex lg:hidden items-center gap-3 px-4 py-2.5">
+          <Link to="/" className="flex items-center gap-2 shrink-0">
+            <img src="/favicon-96.png" alt="Rent Finder Cleveland" className="w-9 h-9 rounded-full" width={36} height={36} />
+          </Link>
+          <span className="text-[15px] font-extrabold text-primary tabular-nums whitespace-nowrap">
+            {qFiltered.length} <span className="font-semibold text-foreground">home{qFiltered.length === 1 ? "" : "s"}</span>
+          </span>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-[13px] font-semibold text-muted-foreground underline underline-offset-2 whitespace-nowrap"
+            >
+              Clear
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="ml-auto inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-[15px] font-semibold text-foreground shadow-sm active:bg-muted"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* ── Desktop inline row ── */}
+        <div className="w-full px-6 py-4 hidden lg:flex flex-wrap lg:flex-nowrap items-end gap-x-5 gap-y-3">
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2 shrink-0 h-11 self-end">
             <img
@@ -527,6 +571,121 @@ export default function RenterHome() {
           </div>
         </div>
       </div>
+
+      {/* ── Mobile filters bottom sheet ── */}
+      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto px-5 pb-6">
+          <SheetHeader className="text-left pb-1">
+            <SheetTitle className="flex items-center gap-2 text-lg">
+              <SlidersHorizontal className="h-5 w-5 text-primary" />
+              Filters
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="space-y-5 pt-2">
+            {/* Area */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Area</span>
+              <Select value={area} onValueChange={setArea}>
+                <SelectTrigger className="h-12 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-[15px] py-2.5">All areas</SelectItem>
+                  {areaOptions.map((a) => <SelectItem key={a} value={a} className="text-[15px] py-2.5">{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Beds + ZIP side by side (big touch targets) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Beds</span>
+                <Select value={beds} onValueChange={setBeds}>
+                  <SelectTrigger className="h-12 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any" className="text-[15px] py-2.5">Any</SelectItem>
+                    {bedOptions.map((b) => (
+                      <SelectItem key={b} value={b} className="text-[15px] py-2.5">{b}+ beds</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">ZIP code</span>
+                <Select value={zip} onValueChange={setZip}>
+                  <SelectTrigger className="h-12 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-[15px] py-2.5">All ZIPs</SelectItem>
+                    {zipOptions.map((z) => <SelectItem key={z} value={z} className="text-[15px] py-2.5">{z}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Price */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Price</span>
+                <span className="text-[15px] font-bold text-primary tabular-nums">
+                  {money(priceRange[0])} – {priceRange[1] >= PRICE_MAX ? `${money(PRICE_MAX)}+` : money(priceRange[1])}
+                </span>
+              </div>
+              <div className="px-1 py-2">
+                <Slider
+                  min={PRICE_MIN}
+                  max={PRICE_MAX}
+                  step={50}
+                  value={priceRange}
+                  onValueChange={(v) => setPriceRange(v as [number, number])}
+                  aria-label="Price range"
+                />
+              </div>
+            </div>
+
+            {/* Home type */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Home type</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSingle((v) => !v)}
+                  aria-pressed={showSingle}
+                  className={`h-12 rounded-xl border text-[15px] font-semibold transition-all ${
+                    showSingle
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border"
+                  }`}
+                >
+                  Single-family
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMulti((v) => !v)}
+                  aria-pressed={showMulti}
+                  className={`h-12 rounded-xl border text-[15px] font-semibold transition-all ${
+                    showMulti
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border"
+                  }`}
+                >
+                  Multi-family
+                </button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
+              {hasActiveFilters && (
+                <Button variant="outline" className="h-12 rounded-xl px-4" onClick={resetFilters}>
+                  <X className="h-4 w-4 mr-1.5" /> Clear
+                </Button>
+              )}
+              <Button className="flex-1 h-12 rounded-xl text-[15px] font-semibold" onClick={() => setFiltersOpen(false)}>
+                Show {qFiltered.length} home{qFiltered.length === 1 ? "" : "s"}
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Listings */}
       <section id="listings" className="max-w-7xl mx-auto px-5 py-12 scroll-mt-20">
@@ -701,10 +860,14 @@ export default function RenterHome() {
         }`}
       >
         <div className="bg-emerald-600 text-white shadow-[0_-4px_20px_rgba(0,0,0,0.18)]">
-          <div className="max-w-7xl mx-auto px-5 py-3 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-5 text-center">
-            <p className="text-sm md:text-base font-semibold flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 shrink-0" />
-              Have a Section 8 voucher? We handle everything for you.
+          <div className="max-w-7xl mx-auto px-5 py-2.5 lg:py-3 flex flex-col lg:flex-row items-center justify-center gap-2 lg:gap-5 text-center">
+            <p className="text-sm md:text-base font-semibold leading-snug">
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 shrink-0" />
+                Have a Section 8 voucher?
+              </span>
+              <br />
+              We handle everything for you.
             </p>
             <div className="flex items-center gap-2">
               <Button asChild size="sm" className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold">
