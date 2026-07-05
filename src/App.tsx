@@ -15,6 +15,7 @@ import Login from "./pages/auth/Login";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import LandingPage from "./pages/LandingPage";
+import RenterHome from "./pages/public/RenterHome";
 
 // Lazy-loaded protected pages for code splitting (Phase 12.3)
 const Dashboard = lazy(() => import("./pages/dashboard"));
@@ -107,8 +108,10 @@ const App = () => (
                 <Route path="/auth/forgot-password" element={<ForgotPassword />} />
                 <Route path="/auth/reset-password" element={<ResetPassword />} />
 
-                {/* Landing page - public homepage */}
-                <Route path="/" element={<LandingPage />} />
+                {/* Public homepage — renter marketplace (Houses for Rent in Cleveland OH) */}
+                <Route path="/" element={<RenterHome />} />
+                {/* SaaS product page (moved off the homepage) */}
+                <Route path="/saas" element={<LandingPage />} />
 
                 {/* Protected routes with MainLayout */}
                 <Route

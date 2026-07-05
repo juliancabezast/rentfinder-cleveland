@@ -248,6 +248,70 @@ serve(async (req) => {
       });
     }
 
+    // ── LISTINGS mode: public renter marketplace. Returns available (+coming
+    // soon) buildings in Ohio as renter-facing cards, one per building, each
+    // with a representative available unit id for the "schedule a showing" link.
+    // Milwaukee/St. Louis units are out of the Cleveland-market scope.
+    if (payload.mode === "listings") {
+      const ZIP_NEIGHBORHOOD: Record<string, string> = {
+        "44105": "Slavic Village", "44110": "Collinwood", "44108": "Glenville",
+        "44104": "Central / Fairfax", "44103": "Hough", "44120": "Buckeye-Shaker",
+        "44102": "Detroit-Shoreway", "44109": "Old Brooklyn", "44112": "East Cleveland",
+        "44113": "Ohio City / Tremont", "44128": "Lee-Harvard", "44106": "University Circle",
+        "44127": "Kinsman", "44115": "Central",
+      };
+      const avail = catalog.filter(
+        (p) =>
+          ["available", "coming_soon"].includes(p.status) &&
+          String(p.state || "").toUpperCase() === "OH",
+      );
+      const groups = new Map<string, Prop[]>();
+      for (const p of avail) {
+        const k = addrKey(p.address);
+        const arr = groups.get(k);
+        if (arr) arr.push(p);
+        else groups.set(k, [p]);
+      }
+      const listings = [...groups.values()]
+        .map((units) => {
+          const first = units[0];
+          const [rentMin, rentMax] = range(units.map((u) => u.rent_price));
+          const [bedMin, bedMax] = range(units.map((u) => u.bedrooms));
+          const [baMin, baMax] = range(units.map((u) => u.bathrooms));
+          const photo = units.map((u) => firstPhoto(u.photos)).find(Boolean) || null;
+          const availUnit = units.find((u) => u.status === "available") || first;
+          const types = [...new Set(units.map((u) => u.property_type).filter(Boolean))];
+          return {
+            key: addrKey(first.address),
+            address: first.address,
+            city: first.city,
+            state: first.state,
+            zip_code: first.zip_code,
+            neighborhood: ZIP_NEIGHBORHOOD[String(first.zip_code)] || first.city,
+            units: units.length,
+            status: aggregateStatus(units.map((u) => u.status)),
+            section_8_accepted: units.some((u) => u.section_8_accepted),
+            rent_min: rentMin,
+            rent_max: rentMax,
+            bedrooms_min: bedMin,
+            bedrooms_max: bedMax,
+            bathrooms_min: baMin,
+            bathrooms_max: baMax,
+            property_type: types[0] || null,
+            photo,
+            property_id: availUnit.id,
+          };
+        })
+        .sort(
+          (a, b) =>
+            (a.status === "available" ? 0 : 1) - (b.status === "available" ? 0 : 1) ||
+            (a.rent_min ?? 1e9) - (b.rent_min ?? 1e9),
+        );
+      const areas = [...new Set(listings.map((l) => l.neighborhood))].sort();
+      const cities = [...new Set(listings.map((l) => l.city))].sort();
+      return json({ listings, total: listings.length, areas, cities });
+    }
+
     // ── SEARCH mode: return one grouped card per matching building ─────
     if (!groupKey) {
       if (q.length < 2) return json({ matches: [] });

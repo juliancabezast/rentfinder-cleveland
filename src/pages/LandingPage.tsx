@@ -40,6 +40,12 @@ const LandingPage: React.FC = () => {
   const { session, loading } = useAuth();
   const [showDemoDialog, setShowDemoDialog] = useState(false);
 
+  // This page now lives at /saas (the renter marketplace owns "/"); set its own
+  // title since the shared index.html <title> is renter-focused.
+  React.useEffect(() => {
+    document.title = "AI Leasing Assistant for Property Managers | Rent Finder Cleveland";
+  }, []);
+
   // Redirect authenticated users to dashboard
   React.useEffect(() => {
     if (session && !loading) {

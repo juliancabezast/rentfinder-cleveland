@@ -227,6 +227,7 @@ for (const pillarBase of taxonomy.pillars || []) {
 // ── Extra static routes (real public pages, not app/auth) ──
 for (const s of taxonomy.extraSitemap || [
   { loc: "/" },
+  { loc: "/saas" },
   { loc: "/leasingtracker" },
   { loc: "/p/book-showing" },
   { loc: "/sms-signup/" },
