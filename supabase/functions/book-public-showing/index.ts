@@ -242,7 +242,7 @@ serve(async (req: Request) => {
     const [{ data: property }, { data: org }] = await Promise.all([
       supabase
         .from("properties")
-        .select("address, city, state, zip_code, rent_price")
+        .select("address, city, state, zip_code, rent_price, status")
         .eq("id", property_id)
         .single(),
       supabase
@@ -251,6 +251,15 @@ serve(async (req: Request) => {
         .eq("id", organization_id)
         .single(),
     ]);
+
+    // Inactive properties are hidden from all public surfaces — refuse direct
+    // POSTs even if a stale enabled slot still exists for them.
+    if (property?.status === "inactive") {
+      return new Response(
+        JSON.stringify({ error: "This property is no longer available for showings." }),
+        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const propertyAddress = property
       ? `${property.address}, ${property.city}, ${property.state} ${property.zip_code}`

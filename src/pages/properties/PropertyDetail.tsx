@@ -111,6 +111,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   coming_soon: { label: 'Coming Soon', className: 'bg-warning text-warning-foreground' },
   in_leasing_process: { label: 'In Leasing', className: 'bg-primary text-primary-foreground' },
   rented: { label: 'Rented', className: 'bg-muted text-muted-foreground' },
+  inactive: { label: 'Inactive', className: 'bg-slate-200 text-slate-600' },
 };
 
 const amenityLabels: Record<string, string> = {
@@ -775,6 +776,7 @@ const PropertyDetail: React.FC = () => {
                     <SelectItem value="coming_soon">Coming Soon</SelectItem>
                     <SelectItem value="in_leasing_process">In Leasing Process</SelectItem>
                     <SelectItem value="rented">Rented</SelectItem>
+                    <SelectItem value="inactive">Inactive (hidden from public)</SelectItem>
                   </SelectContent>
                 </Select>
               </CardContent>

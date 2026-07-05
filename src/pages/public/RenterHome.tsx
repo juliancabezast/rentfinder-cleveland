@@ -16,8 +16,10 @@ import {
 import {
   MapPin, BedDouble, Bath, Search, CheckCircle2, Home as HomeIcon,
   Phone, CalendarCheck, ShieldCheck, Clock, KeyRound, ArrowRight, FileSignature,
-  MessageSquare, X, SlidersHorizontal, Plus,
+  MessageSquare, X, SlidersHorizontal, Plus, List, Map as MapIcon, ChevronDown,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ListingsMap } from "@/components/public/ListingsMap";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -45,6 +47,8 @@ interface Listing {
   bathrooms_max: number | null;
   property_type: string | null;
   coming_soon_date: string | null;
+  latitude: number | null;
+  longitude: number | null;
   photo: string | null;
   property_id: string;
 }
@@ -101,6 +105,146 @@ function isMultiFamilyType(t?: string | null): boolean {
   if (!t) return false;
   const s = t.toLowerCase();
   return s.includes("plex") || s.includes("multi") || s.includes("apart") || s.includes("unit");
+}
+
+/* ── Segmented filter cells (Bedrooms / Bathrooms / Property type) ──
+   Exact-match semantics: a building whose units span 1–3 bd matches "2".
+   "5" means 5+. "0" is Studio. */
+function bedMatches(l: Listing, v: string): boolean {
+  if (v === "any") return true;
+  const min = l.bedrooms_min;
+  if (min == null) return false;
+  const max = l.bedrooms_max ?? min;
+  const n = Number(v);
+  if (n === 5) return max >= 5;
+  return min <= n && n <= max;
+}
+function bathMatches(l: Listing, v: string): boolean {
+  if (v === "any") return true;
+  const min = l.bathrooms_min;
+  if (min == null) return false;
+  const max = l.bathrooms_max ?? min;
+  const n = Number(v);
+  if (n === 5) return max >= 5;
+  // Forgiving band for half-baths: a 1.5-ba home matches both "1" and "2"
+  return Math.floor(min) <= n && n <= Math.ceil(max);
+}
+function typeMatches(l: Listing, v: string): boolean {
+  if (v === "any") return true;
+  return isMultiFamilyType(l.property_type) === (v === "multi");
+}
+
+const BED_OPTS = [
+  { value: "any", label: "Any" }, { value: "0", label: "Studio" },
+  { value: "1", label: "1" }, { value: "2", label: "2" }, { value: "3", label: "3" },
+  { value: "4", label: "4" }, { value: "5", label: "5+" },
+];
+const BATH_OPTS = [
+  { value: "any", label: "Any" },
+  { value: "1", label: "1" }, { value: "2", label: "2" }, { value: "3", label: "3" },
+  { value: "4", label: "4" }, { value: "5", label: "5+" },
+];
+/** Two-story house glyph (lucide-style stroke) so "Multi-family" reads as a
+ *  multi-unit home at a glance — lucide has no literal two-story house. */
+function MultiFamilyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 11 12 4l9 7" />
+      <path d="M5 9.5V20h14V9.5" />
+      <path d="M5 14.5h14" />
+      <path d="M10.5 20v-3h3v3" />
+      <path d="M8.4 11.8h.01M15.6 11.8h.01" />
+    </svg>
+  );
+}
+
+const TYPE_OPTS = [
+  { value: "any", label: "Any" },
+  { value: "single", label: "Single", icon: HomeIcon },
+  { value: "multi", label: "Multi", icon: MultiFamilyIcon },
+];
+
+/** Shared style for the popover trigger pills in the sticky filter bar. */
+const FILTER_PILL =
+  "h-12 rounded-full border border-transparent bg-card px-5 text-[15px] font-semibold shadow-sm transition-shadow hover:shadow-md inline-flex items-center justify-between gap-2 whitespace-nowrap";
+
+interface SegmentedOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+  icon?: React.ComponentType<{ className?: string }>;
+}
+
+/** Segmented button row — a padded track with floating pills. The active pill
+ *  gets a warm-gray fill and a dark inset outline; the track padding + gaps
+ *  keep that outline from colliding with the track edge (no broken corners). */
+function SegmentedRow({
+  options, value, onChange, ariaLabel,
+}: {
+  options: SegmentedOption[]; value: string; onChange: (v: string) => void; ariaLabel: string;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      className="flex w-full items-stretch gap-1 rounded-xl border border-stone-300 bg-card p-1"
+    >
+      {options.map((o) => {
+        const active = value === o.value;
+        const Icon = o.icon;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={o.disabled}
+            onClick={() => onChange(o.value)}
+            className={`inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-[15px] transition-colors ${
+              active
+                ? "bg-stone-100 font-semibold text-stone-900 shadow-[inset_0_0_0_2px_#57534e]"
+                : o.disabled
+                  ? "cursor-not-allowed text-stone-300"
+                  : "text-stone-700 hover:bg-stone-50"
+            }`}
+          >
+            {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
+            <span className="truncate">{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Panel chrome for the filter popovers: bold title + underlined "Done". */
+function FilterPanel({
+  title, onDone, children,
+}: { title: string; onDone: () => void; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-[22px] font-extrabold leading-none text-stone-900">{title}</h3>
+        <button
+          type="button"
+          onClick={onDone}
+          className="text-[15px] font-bold text-stone-900 underline underline-offset-4 hover:text-stone-600"
+        >
+          Done
+        </button>
+      </div>
+      {children}
+    </div>
+  );
 }
 
 /** A single listing card. */
@@ -241,23 +385,24 @@ export default function RenterHome() {
   const listings = data?.listings ?? [];
 
   const [area, setArea] = useState("all");
-  const [beds, setBeds] = useState("any");
+  const [beds, setBeds] = useState("any");   // exact match; "0" = Studio, "5" = 5+
+  const [baths, setBaths] = useState("any"); // exact match; "5" = 5+
   const [zip, setZip] = useState("all");
   const [priceRange, setPriceRange] = useState<[number, number]>([PRICE_MIN, PRICE_MAX]);
-  const [showSingle, setShowSingle] = useState(true);
-  const [showMulti, setShowMulti] = useState(true);
+  const [homeType, setHomeType] = useState("any"); // any | single | multi
 
-  // Shared predicate. `skip` lets each dropdown compute its own options
-  // against the OTHER active filters (faceted search) — an option only shows
-  // if choosing it yields at least one home, so "0 homes" dead-ends are
-  // impossible to pick.
-  type FacetSkip = "area" | "beds" | "zip" | "price" | "type";
+  // Shared predicate. `skip` lets each control compute its own options
+  // against the OTHER active filters (faceted search) — an option only
+  // enables if choosing it yields at least one home, so "0 homes"
+  // dead-ends are impossible to pick.
+  type FacetSkip = "area" | "beds" | "baths" | "zip" | "price" | "type";
   const passes = (l: Listing, skip?: FacetSkip): boolean => {
     const [pMin, pMax] = priceRange;
     const priceFilterOn = pMin > PRICE_MIN || pMax < PRICE_MAX;
 
     if (skip !== "area" && area !== "all" && l.neighborhood !== area) return false;
-    if (skip !== "beds" && beds !== "any" && (l.bedrooms_max ?? 0) < Number(beds)) return false;
+    if (skip !== "beds" && !bedMatches(l, beds)) return false;
+    if (skip !== "baths" && !bathMatches(l, baths)) return false;
     if (skip !== "zip" && zip !== "all" && l.zip_code !== zip) return false;
 
     // Price: only filters when the slider moved off the full range, so
@@ -269,11 +414,7 @@ export default function RenterHome() {
       if (hi < pMin || l.rent_min > upper) return false;
     }
 
-    if (skip !== "type") {
-      const multi = isMultiFamilyType(l.property_type);
-      if (multi && !showMulti) return false;
-      if (!multi && !showSingle) return false;
-    }
+    if (skip !== "type" && !typeMatches(l, homeType)) return false;
     return true;
   };
 
@@ -286,7 +427,7 @@ export default function RenterHome() {
     )].sort();
     if (area !== "all" && !opts.includes(area)) opts.push(area);
     return opts;
-  }, [listings, area, beds, zip, priceRange, showSingle, showMulti]);
+  }, [listings, area, beds, baths, zip, priceRange, homeType]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const zipOptions = useMemo(() => {
@@ -295,17 +436,31 @@ export default function RenterHome() {
     )].sort();
     if (zip !== "all" && !opts.includes(zip)) opts.push(zip);
     return opts;
-  }, [listings, area, beds, zip, priceRange, showSingle, showMulti]);
+  }, [listings, area, beds, baths, zip, priceRange, homeType]);
+
+  // Faceted enablement for the segmented cells: a cell is clickable only if
+  // choosing it (given the OTHER filters) yields ≥1 home. Current value and
+  // "any" always stay enabled.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const bedEnabled = useMemo(() => new Set([
+    "any", beds,
+    ...["0", "1", "2", "3", "4", "5"].filter((v) =>
+      listings.some((l) => passes(l, "beds") && bedMatches(l, v))),
+  ]), [listings, area, beds, baths, zip, priceRange, homeType]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const bedOptions = useMemo(() => {
-    const pool = listings.filter((l) => passes(l, "beds"));
-    const opts = ["1", "2", "3", "4"].filter((b) =>
-      pool.some((l) => (l.bedrooms_max ?? 0) >= Number(b)),
-    );
-    if (beds !== "any" && !opts.includes(beds)) opts.push(beds);
-    return opts;
-  }, [listings, area, beds, zip, priceRange, showSingle, showMulti]);
+  const bathEnabled = useMemo(() => new Set([
+    "any", baths,
+    ...["1", "2", "3", "4", "5"].filter((v) =>
+      listings.some((l) => passes(l, "baths") && bathMatches(l, v))),
+  ]), [listings, area, beds, baths, zip, priceRange, homeType]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const typeEnabled = useMemo(() => new Set([
+    "any", homeType,
+    ...["single", "multi"].filter((v) =>
+      listings.some((l) => passes(l, "type") && typeMatches(l, v))),
+  ]), [listings, area, beds, baths, zip, priceRange, homeType]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const filtered = useMemo(() => {
@@ -317,7 +472,7 @@ export default function RenterHome() {
         (a, b) =>
           (a.status === "coming_soon" ? 1 : 0) - (b.status === "coming_soon" ? 1 : 0),
       );
-  }, [listings, area, beds, zip, priceRange, showSingle, showMulti]);
+  }, [listings, area, beds, baths, zip, priceRange, homeType]);
 
   // Free-text search from a `?q=` landing (Sitelinks Search Box → /?q={term}).
   // Layered on top of the faceted filters without touching them.
@@ -338,26 +493,45 @@ export default function RenterHome() {
 
   const availableCount = listings.filter((l) => l.status === "available").length;
 
+  const priceActive = priceRange[0] > PRICE_MIN || priceRange[1] < PRICE_MAX;
   const hasActiveFilters =
-    area !== "all" || beds !== "any" || zip !== "all" ||
-    priceRange[0] > PRICE_MIN || priceRange[1] < PRICE_MAX ||
-    !showSingle || !showMulti;
+    area !== "all" || beds !== "any" || baths !== "any" || zip !== "all" ||
+    priceActive || homeType !== "any";
 
   // Badge for the mobile "Filters" button — how many filters are active.
   const activeFilterCount =
     (area !== "all" ? 1 : 0) +
     (beds !== "any" ? 1 : 0) +
+    (baths !== "any" ? 1 : 0) +
     (zip !== "all" ? 1 : 0) +
-    (priceRange[0] > PRICE_MIN || priceRange[1] < PRICE_MAX ? 1 : 0) +
-    (!showSingle || !showMulti ? 1 : 0);
+    (priceActive ? 1 : 0) +
+    (homeType !== "any" ? 1 : 0);
 
-  // Mobile filters bottom-sheet visibility
+  // Live summaries shown on the popover trigger pills
+  const priceLabel = priceActive
+    ? `${money(priceRange[0])} – ${priceRange[1] >= PRICE_MAX ? `${money(PRICE_MAX)}+` : money(priceRange[1])}`
+    : "Any price";
+  const roomsLabel = beds === "any" && baths === "any"
+    ? "Any rooms"
+    : [
+        beds !== "any" ? (beds === "0" ? "Studio" : `${beds === "5" ? "5+" : beds} bd`) : null,
+        baths !== "any" ? `${baths === "5" ? "5+" : baths} ba` : null,
+      ].filter(Boolean).join(" · ");
+  const typeLabel = homeType === "single" ? "Single-family" : homeType === "multi" ? "Multi-family" : "All homes";
+
+  // Mobile filters bottom-sheet visibility + desktop popover panels
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [priceOpen, setPriceOpen] = useState(false);
+  const [roomsOpen, setRoomsOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+
+  // List ⇄ Map view (desktop: segmented toggle; mobile: floating button)
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
   const resetFilters = () => {
-    setArea("all"); setBeds("any"); setZip("all");
+    setArea("all"); setBeds("any"); setBaths("any"); setZip("all");
     setPriceRange([PRICE_MIN, PRICE_MAX]);
-    setShowSingle(true); setShowMulti(true);
+    setHomeType("any");
   };
 
   // Application dialog: the listing the visitor is applying for (null = closed)
@@ -410,7 +584,7 @@ export default function RenterHome() {
       {/* Sticky brand + filter bar — sits below the hero and pins to the top
           once you scroll past it. Desktop: full inline row. Mobile (<lg):
           compact bar (logo · live count · Filters button) + bottom sheet. */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border shadow-sm">
+      <div className="sticky top-0 z-40 bg-muted/85 backdrop-blur-xl border-b border-border/60">
         {/* ── Mobile compact bar ── */}
         <div className="flex lg:hidden items-center gap-3 px-4 py-2.5">
           <Link to="/" className="flex items-center gap-2 shrink-0">
@@ -446,7 +620,7 @@ export default function RenterHome() {
         {/* ── Desktop inline row ── */}
         <div className="w-full px-6 py-4 hidden lg:flex flex-wrap lg:flex-nowrap items-end gap-x-5 gap-y-3">
           {/* Brand */}
-          <Link to="/" className="flex items-center gap-2 shrink-0 h-11 self-end">
+          <Link to="/" className="flex items-center gap-2 shrink-0 h-12 self-end">
             <img
               src="/favicon-96.png"
               alt="Rent Finder Cleveland"
@@ -458,109 +632,137 @@ export default function RenterHome() {
           </Link>
 
           {/* Area */}
-          <div className="flex flex-col gap-1 min-w-0 flex-1 basis-[150px]">
+          <div className="flex flex-col gap-1 min-w-0 w-[180px] shrink-0">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Area</span>
             <Select value={area} onValueChange={setArea}>
-              <SelectTrigger className="h-11 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
-              <SelectContent className="min-w-[260px]">
-                <SelectItem value="all" className="text-[15px] py-2.5">All areas</SelectItem>
-                {areaOptions.map((a) => <SelectItem key={a} value={a} className="text-[15px] py-2.5">{a}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Beds */}
-          <div className="flex flex-col gap-1 min-w-0 flex-1 basis-[100px]">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Beds</span>
-            <Select value={beds} onValueChange={setBeds}>
-              <SelectTrigger className="h-11 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
-              <SelectContent className="min-w-[160px]">
-                <SelectItem value="any" className="text-[15px] py-2.5">Any</SelectItem>
-                {bedOptions.map((b) => (
-                  <SelectItem key={b} value={b} className="text-[15px] py-2.5">{b}+ beds</SelectItem>
-                ))}
+              <SelectTrigger className="h-12 w-full rounded-full border-transparent bg-card px-5 text-[15px] font-semibold shadow-sm transition-shadow hover:shadow-md"><SelectValue /></SelectTrigger>
+              <SelectContent className="min-w-[240px] rounded-2xl border-stone-200 p-1.5 shadow-xl">
+                <SelectItem value="all" className="rounded-lg text-[15px] py-2.5">All areas</SelectItem>
+                {areaOptions.map((a) => <SelectItem key={a} value={a} className="rounded-lg text-[15px] py-2.5">{a}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
 
           {/* ZIP */}
-          <div className="flex flex-col gap-1 min-w-0 flex-1 basis-[115px]">
+          <div className="flex flex-col gap-1 min-w-0 w-[140px] shrink-0">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">ZIP code</span>
             <Select value={zip} onValueChange={setZip}>
-              <SelectTrigger className="h-11 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
-              <SelectContent className="min-w-[180px]">
-                <SelectItem value="all" className="text-[15px] py-2.5">All ZIPs</SelectItem>
-                {zipOptions.map((z) => <SelectItem key={z} value={z} className="text-[15px] py-2.5">{z}</SelectItem>)}
+              <SelectTrigger className="h-12 w-full rounded-full border-transparent bg-card px-5 text-[15px] font-semibold shadow-sm transition-shadow hover:shadow-md"><SelectValue /></SelectTrigger>
+              <SelectContent className="min-w-[170px] rounded-2xl border-stone-200 p-1.5 shadow-xl">
+                <SelectItem value="all" className="rounded-lg text-[15px] py-2.5">All ZIPs</SelectItem>
+                {zipOptions.map((z) => <SelectItem key={z} value={z} className="rounded-lg text-[15px] py-2.5">{z}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Price range — dual-thumb slider; live values shown in the label */}
-          <div className="flex flex-col gap-1 min-w-0 flex-[1.6] basis-[230px]">
-            <span className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">
-              Price
-              <span className="text-[15px] font-bold normal-case tracking-normal text-primary tabular-nums">
-                {money(priceRange[0])} – {priceRange[1] >= PRICE_MAX ? `${money(PRICE_MAX)}+` : money(priceRange[1])}
-              </span>
-            </span>
-            <div className="h-11 flex items-center px-1.5">
-              <Slider
-                min={PRICE_MIN}
-                max={PRICE_MAX}
-                step={50}
-                value={priceRange}
-                onValueChange={(v) => setPriceRange(v as [number, number])}
-                className="flex-1"
-                aria-label="Price range"
-              />
-            </div>
+          {/* Price — popover panel (reference style: title + Done, no extras) */}
+          <div className="flex flex-col gap-1 shrink-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Price</span>
+            <Popover open={priceOpen} onOpenChange={setPriceOpen}>
+              <PopoverTrigger asChild>
+                <button type="button" className={FILTER_PILL}>
+                  <span className={priceActive ? "text-primary" : ""}>{priceLabel}</span>
+                  <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" sideOffset={10} className="w-[460px] max-w-[calc(100vw-2rem)] rounded-2xl border-stone-200 bg-white p-6 shadow-xl">
+                <FilterPanel title="Price" onDone={() => setPriceOpen(false)}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 rounded-xl border border-stone-300 px-4 py-2.5">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">Min</div>
+                      <div className="text-[17px] font-bold text-stone-900 tabular-nums">{money(priceRange[0])}</div>
+                    </div>
+                    <span className="text-stone-400 font-semibold">–</span>
+                    <div className="flex-1 rounded-xl border border-stone-300 px-4 py-2.5">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">Max</div>
+                      <div className="text-[17px] font-bold text-stone-900 tabular-nums">
+                        {priceRange[1] >= PRICE_MAX ? `${money(PRICE_MAX)}+` : money(priceRange[1])}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6 px-1 pb-1">
+                    <Slider
+                      min={PRICE_MIN}
+                      max={PRICE_MAX}
+                      step={25}
+                      value={priceRange}
+                      onValueChange={(v) => setPriceRange(v as [number, number])}
+                      aria-label="Price range"
+                    />
+                  </div>
+                </FilterPanel>
+              </PopoverContent>
+            </Popover>
           </div>
 
-          {/* Single / Multi-family toggles */}
+          {/* Rooms — Bedrooms + Bathrooms segmented rows (reference style) */}
+          <div className="flex flex-col gap-1 shrink-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Rooms</span>
+            <Popover open={roomsOpen} onOpenChange={setRoomsOpen}>
+              <PopoverTrigger asChild>
+                <button type="button" className={FILTER_PILL}>
+                  <span className={beds !== "any" || baths !== "any" ? "text-primary" : ""}>{roomsLabel}</span>
+                  <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" sideOffset={10} className="w-[470px] rounded-2xl border-stone-200 bg-white p-6 shadow-xl">
+                <FilterPanel title="Rooms" onDone={() => setRoomsOpen(false)}>
+                  <div className="mb-2 text-[17px] text-stone-800">Bedrooms</div>
+                  <SegmentedRow
+                    ariaLabel="Bedrooms"
+                    options={BED_OPTS.map((o) => ({ ...o, disabled: !bedEnabled.has(o.value) }))}
+                    value={beds}
+                    onChange={setBeds}
+                  />
+                  <div className="mb-2 mt-6 text-[17px] text-stone-800">Bathrooms</div>
+                  <SegmentedRow
+                    ariaLabel="Bathrooms"
+                    options={BATH_OPTS.map((o) => ({ ...o, disabled: !bathEnabled.has(o.value) }))}
+                    value={baths}
+                    onChange={setBaths}
+                  />
+                </FilterPanel>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Property type — segmented row (reference style) */}
           <div className="flex flex-col gap-1 shrink-0">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Home type</span>
-            <div className="flex gap-1.5">
-              <button
-                type="button"
-                onClick={() => setShowSingle((v) => !v)}
-                aria-pressed={showSingle}
-                className={`px-4 h-11 rounded-lg text-[15px] font-semibold border transition-colors whitespace-nowrap ${
-                  showSingle
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:border-primary/40"
-                }`}
-              >
-                Single-family
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowMulti((v) => !v)}
-                aria-pressed={showMulti}
-                className={`px-4 h-11 rounded-lg text-[15px] font-semibold border transition-colors whitespace-nowrap ${
-                  showMulti
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:border-primary/40"
-                }`}
-              >
-                Multi-family
-              </button>
-            </div>
+            <Popover open={typeOpen} onOpenChange={setTypeOpen}>
+              <PopoverTrigger asChild>
+                <button type="button" className={FILTER_PILL}>
+                  <span className={homeType !== "any" ? "text-primary" : ""}>{typeLabel}</span>
+                  <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" sideOffset={10} className="w-[440px] rounded-2xl border-stone-200 bg-white p-6 shadow-xl">
+                <FilterPanel title="Property type" onDone={() => setTypeOpen(false)}>
+                  <SegmentedRow
+                    ariaLabel="Property type"
+                    options={TYPE_OPTS.map((o) => ({ ...o, disabled: !typeEnabled.has(o.value) }))}
+                    value={homeType}
+                    onChange={setHomeType}
+                  />
+                </FilterPanel>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Live results + clear — Clear (✕) always reserves space so the
               bar never grows a second row when filters activate */}
-          <div className="flex flex-col gap-1 shrink-0 items-end ml-auto">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Results</span>
-            <div className="h-11 flex items-center gap-2">
+          <div className="flex flex-col gap-1 shrink-0 items-start ml-auto">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Results</span>
+            <div className="h-12 flex items-center gap-2">
               <span className="text-[15px] font-extrabold text-primary whitespace-nowrap tabular-nums">
                 {qFiltered.length} <span className="font-semibold text-foreground">home{qFiltered.length === 1 ? "" : "s"}</span>
               </span>
               <button
                 type="button"
                 onClick={resetFilters}
-                className={`h-11 px-4 rounded-xl border text-[15px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-all ${
+                className={`h-12 px-5 rounded-full border text-[15px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-all ${
                   hasActiveFilters
-                    ? "border-border bg-muted/60 text-foreground hover:bg-muted hover:border-foreground/30"
+                    ? "border-transparent bg-card text-foreground shadow-sm hover:shadow-md"
                     : "opacity-0 pointer-events-none"
                 }`}
               >
@@ -583,36 +785,22 @@ export default function RenterHome() {
           </SheetHeader>
 
           <div className="space-y-5 pt-2">
-            {/* Area */}
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Area</span>
-              <Select value={area} onValueChange={setArea}>
-                <SelectTrigger className="h-12 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-[15px] py-2.5">All areas</SelectItem>
-                  {areaOptions.map((a) => <SelectItem key={a} value={a} className="text-[15px] py-2.5">{a}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Beds + ZIP side by side (big touch targets) */}
+            {/* Area + ZIP side by side (big touch targets) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Beds</span>
-                <Select value={beds} onValueChange={setBeds}>
-                  <SelectTrigger className="h-12 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Area</span>
+                <Select value={area} onValueChange={setArea}>
+                  <SelectTrigger className="h-12 w-full rounded-full border-border/60 bg-card px-5 text-[15px] font-semibold shadow-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="any" className="text-[15px] py-2.5">Any</SelectItem>
-                    {bedOptions.map((b) => (
-                      <SelectItem key={b} value={b} className="text-[15px] py-2.5">{b}+ beds</SelectItem>
-                    ))}
+                    <SelectItem value="all" className="text-[15px] py-2.5">All areas</SelectItem>
+                    {areaOptions.map((a) => <SelectItem key={a} value={a} className="text-[15px] py-2.5">{a}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">ZIP code</span>
                 <Select value={zip} onValueChange={setZip}>
-                  <SelectTrigger className="h-12 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-12 w-full rounded-full border-border/60 bg-card px-5 text-[15px] font-semibold shadow-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all" className="text-[15px] py-2.5">All ZIPs</SelectItem>
                     {zipOptions.map((z) => <SelectItem key={z} value={z} className="text-[15px] py-2.5">{z}</SelectItem>)}
@@ -624,7 +812,7 @@ export default function RenterHome() {
             {/* Price */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Price</span>
+                <span className="text-[17px] text-stone-800">Price</span>
                 <span className="text-[15px] font-bold text-primary tabular-nums">
                   {money(priceRange[0])} – {priceRange[1] >= PRICE_MAX ? `${money(PRICE_MAX)}+` : money(priceRange[1])}
                 </span>
@@ -633,7 +821,7 @@ export default function RenterHome() {
                 <Slider
                   min={PRICE_MIN}
                   max={PRICE_MAX}
-                  step={50}
+                  step={25}
                   value={priceRange}
                   onValueChange={(v) => setPriceRange(v as [number, number])}
                   aria-label="Price range"
@@ -641,35 +829,35 @@ export default function RenterHome() {
               </div>
             </div>
 
-            {/* Home type */}
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Home type</span>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowSingle((v) => !v)}
-                  aria-pressed={showSingle}
-                  className={`h-12 rounded-xl border text-[15px] font-semibold transition-all ${
-                    showSingle
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-muted-foreground border-border"
-                  }`}
-                >
-                  Single-family
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowMulti((v) => !v)}
-                  aria-pressed={showMulti}
-                  className={`h-12 rounded-xl border text-[15px] font-semibold transition-all ${
-                    showMulti
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-muted-foreground border-border"
-                  }`}
-                >
-                  Multi-family
-                </button>
-              </div>
+            {/* Bedrooms / Bathrooms — segmented rows (reference style) */}
+            <div className="space-y-2">
+              <span className="text-[17px] text-stone-800">Bedrooms</span>
+              <SegmentedRow
+                ariaLabel="Bedrooms"
+                options={BED_OPTS.map((o) => ({ ...o, disabled: !bedEnabled.has(o.value) }))}
+                value={beds}
+                onChange={setBeds}
+              />
+            </div>
+            <div className="space-y-2">
+              <span className="text-[17px] text-stone-800">Bathrooms</span>
+              <SegmentedRow
+                ariaLabel="Bathrooms"
+                options={BATH_OPTS.map((o) => ({ ...o, disabled: !bathEnabled.has(o.value) }))}
+                value={baths}
+                onChange={setBaths}
+              />
+            </div>
+
+            {/* Property type — segmented row */}
+            <div className="space-y-2">
+              <span className="text-[17px] text-stone-800">Property type</span>
+              <SegmentedRow
+                ariaLabel="Property type"
+                options={TYPE_OPTS.map((o) => ({ ...o, disabled: !typeEnabled.has(o.value) }))}
+                value={homeType}
+                onChange={setHomeType}
+              />
             </div>
 
             {/* Actions */}
@@ -696,12 +884,47 @@ export default function RenterHome() {
               {isLoading ? "Loading homes…" : `${qFiltered.length} home${qFiltered.length === 1 ? "" : "s"} matching your search`}
             </p>
           </div>
-          {hasActiveFilters && (
-            <Button variant="outline" size="sm" onClick={resetFilters}>Clear filters</Button>
-          )}
+          <div className="flex items-center gap-3">
+            {hasActiveFilters && (
+              <Button variant="outline" size="sm" onClick={resetFilters}>Clear filters</Button>
+            )}
+            {/* Desktop List | Map segmented toggle */}
+            <div className="hidden lg:inline-flex rounded-full border border-border/60 bg-muted/70 p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                aria-pressed={viewMode === "list"}
+                className={`inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-[15px] font-semibold transition-colors ${
+                  viewMode === "list"
+                    ? "bg-card text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <List className="h-4 w-4" /> List
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("map")}
+                aria-pressed={viewMode === "map"}
+                className={`inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-[15px] font-semibold transition-colors ${
+                  viewMode === "map"
+                    ? "bg-card text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <MapIcon className="h-4 w-4" /> Map
+              </button>
+            </div>
+          </div>
         </div>
 
-        {isLoading ? (
+        {viewMode === "map" ? (
+          <ListingsMap
+            listings={qFiltered}
+            onApply={(l) => setApplyListing(l as Listing)}
+            className="h-[calc(100vh-230px)] min-h-[440px] overflow-hidden rounded-2xl border border-border shadow-sm"
+          />
+        ) : isLoading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className="overflow-hidden">
@@ -864,6 +1087,26 @@ export default function RenterHome() {
       <div ref={footerRef}>
         <SiteFooter />
       </div>
+
+      {/* Mobile view switcher — single floating button offering the OTHER view */}
+      <button
+        type="button"
+        onClick={() => {
+          setViewMode((v) => (v === "list" ? "map" : "list"));
+          document.getElementById("listings")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+        className="lg:hidden fixed bottom-28 left-1/2 z-40 -translate-x-1/2 inline-flex h-12 items-center gap-2 rounded-full bg-foreground px-6 text-[15px] font-bold text-background shadow-xl active:scale-95 transition-transform"
+      >
+        {viewMode === "list" ? (
+          <>
+            <MapIcon className="h-4.5 w-4.5" /> Map
+          </>
+        ) : (
+          <>
+            <List className="h-4.5 w-4.5" /> List
+          </>
+        )}
+      </button>
 
       {/* Voucher sticky banner — pinned to the bottom, hides at the footer */}
       <div

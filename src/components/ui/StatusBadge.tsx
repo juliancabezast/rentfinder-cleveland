@@ -28,6 +28,7 @@ const propertyStatusConfig: Record<string, { label: string; dotColor: string }> 
   coming_soon: { label: "Coming Soon", dotColor: "bg-amber-500" },
   in_leasing_process: { label: "In Leasing", dotColor: "bg-blue-500" },
   rented: { label: "Rented", dotColor: "bg-gray-400" },
+  inactive: { label: "Inactive", dotColor: "bg-slate-400" },
 };
 
 const showingStatusConfig: Record<string, { label: string; dotColor: string }> = {

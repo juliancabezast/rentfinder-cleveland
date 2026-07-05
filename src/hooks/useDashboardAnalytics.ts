@@ -281,12 +281,15 @@ export function useDashboardAnalytics() {
       const pp = (propPerf || []) as PropertyPerformanceRow[];
 
       // ── Hero KPIs ──────────────────────────────────────────────
-      const totalUnits = props.length;
+      // Inactive doors are out of service — they don't count as vacant,
+      // don't add to vacancy loss, and don't drag occupancy down.
+      const activeProps = props.filter((p) => p.status !== "inactive");
+      const totalUnits = activeProps.length;
       const rentedStatuses = ["rented", "occupied"];
-      const occupiedUnits = props.filter((p) => rentedStatuses.includes(p.status)).length;
+      const occupiedUnits = activeProps.filter((p) => rentedStatuses.includes(p.status)).length;
       const vacantUnits = totalUnits - occupiedUnits;
-      const portfolioValue = props.reduce((s, p) => s + (p.rent_price || 0), 0);
-      const vacancyLoss = props
+      const portfolioValue = activeProps.reduce((s, p) => s + (p.rent_price || 0), 0);
+      const vacancyLoss = activeProps
         .filter((p) => !rentedStatuses.includes(p.status))
         .reduce((s, p) => s + (p.rent_price || 0), 0);
       const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;

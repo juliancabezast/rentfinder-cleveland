@@ -179,10 +179,13 @@ serve(async (req) => {
         .order("created_at", { ascending: true }).limit(1).maybeSingle()).data?.id;
     if (!orgId) return json({ error: "org_not_found" }, 500);
 
-    // Load the org catalog once (small).
+    // Load the org catalog once (small). Inactive properties are hidden from
+    // EVERY public surface (listings, map, search, tracker, open agenda), so
+    // they are excluded here and every mode inherits the exclusion.
     const { data: allProps, error: propErr } = await supabase
       .from("properties").select(propCols)
-      .eq("organization_id", orgId).eq("is_demo", false);
+      .eq("organization_id", orgId).eq("is_demo", false)
+      .neq("status", "inactive");
     if (propErr) throw propErr;
     const catalog: Prop[] = allProps || [];
 

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Megaphone, Mail, ArrowRight, Send } from "lucide-react";
+import { Star, Megaphone, Mail, ArrowRight, Send, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CommModule {
@@ -17,13 +17,21 @@ interface CommModule {
 // review what went out. New modules get added here as the hub grows.
 const MODULES: CommModule[] = [
   {
+    title: "New Homepage Announcement",
+    description:
+      "Introduce the redesigned website to your leads with a branded 'we relaunched' email, sent to a consent-checked audience.",
+    href: "/communications/announcement",
+    icon: Rocket,
+    iconClass: "bg-indigo-100 text-indigo-600",
+    badge: "New",
+  },
+  {
     title: "Property Spotlight",
     description:
       "Curate up to 3 properties into a branded email and send it to a targeted, consent-checked audience of leads.",
     href: "/communications/spotlight",
     icon: Star,
     iconClass: "bg-amber-100 text-amber-600",
-    badge: "New",
   },
   {
     title: "Campaigns",

@@ -773,6 +773,7 @@ const ScheduleShowing: React.FC = () => {
           .from("properties")
           .select("*")
           .eq("id", featuredId)
+          .in("status", ["available", "coming_soon"])
           .maybeSingle();
         if (fp) setFeaturedProperty(fp as Property);
       }
@@ -910,7 +911,9 @@ const ScheduleShowing: React.FC = () => {
         .eq("id", effectivePropertyId)
         .single();
 
-      if (error || !data) {
+      // Inactive properties are hidden from every public surface — treat a
+      // direct link to one exactly like a property that no longer exists.
+      if (error || !data || data.status === "inactive") {
         setPropertyError("Property not found or no longer available.");
       } else {
         setProperty(data);

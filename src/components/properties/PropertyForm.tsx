@@ -753,8 +753,14 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
                       <SelectItem value="coming_soon">Coming Soon</SelectItem>
                       <SelectItem value="in_leasing_process">In Leasing Process</SelectItem>
                       <SelectItem value="rented">Rented</SelectItem>
+                      <SelectItem value="inactive">Inactive (hidden from public)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {field.value === 'inactive' && (
+                    <FormDescription>
+                      Inactive properties are hidden from the public website, map, search and showing scheduler.
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

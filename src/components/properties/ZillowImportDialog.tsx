@@ -653,7 +653,7 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
                       <SelectItem value="available">Available</SelectItem>
                       <SelectItem value="coming_soon">Coming Soon</SelectItem>
                       <SelectItem value="in_leasing_process">In Leasing</SelectItem>
-                      <SelectItem value="rented">Rented</SelectItem>
+                      <SelectItem value="rented">Rented</SelectItem><SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -749,7 +749,7 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
                               <SelectItem value="available">Available</SelectItem>
                               <SelectItem value="coming_soon">Coming Soon</SelectItem>
                               <SelectItem value="in_leasing_process">In Leasing</SelectItem>
-                              <SelectItem value="rented">Rented</SelectItem>
+                              <SelectItem value="rented">Rented</SelectItem><SelectItem value="inactive">Inactive</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

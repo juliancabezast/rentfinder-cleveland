@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -8,18 +8,18 @@ import {
   Globe,
   ClipboardCheck,
   Settings2,
-  Bed,
-  Bath,
   DoorOpen,
   DollarSign,
   Pencil,
-  Check,
-  X,
-  ChevronRight,
-  ChevronDown,
   ImageIcon,
   ImageOff,
   Users,
+  Eye,
+  EyeOff,
+  X,
+  ChevronRight,
+  ChevronDown,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PropertyForm } from "@/components/properties/PropertyForm";
@@ -53,74 +58,170 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Property = Tables<"properties">;
 
+/** Statuses that are visible on the public sites (marketplace, tracker,
+ *  showing scheduler). Everything else — including the manual "Inactive"
+ *  switch — is hidden from anonymous visitors. */
+const PUBLIC_STATUSES = new Set(["available", "coming_soon"]);
+
 const STATUS_OPTIONS = [
-  { value: "all", label: "All Statuses" },
   { value: "available", label: "Available" },
   { value: "coming_soon", label: "Coming Soon" },
   { value: "in_leasing_process", label: "In Leasing" },
   { value: "rented", label: "Rented" },
+  { value: "inactive", label: "Inactive" },
 ];
 
+const FILTER_OPTIONS = [
+  { value: "all", label: "All Statuses" },
+  { value: "public", label: "Public on site" },
+  ...STATUS_OPTIONS,
+];
+
+/** Shared column template so headers, property rows and unit rows all align. */
+const GRID_COLS =
+  "grid grid-cols-[minmax(0,1fr)_56px_56px_112px_48px_56px_48px_140px_36px] items-center gap-x-2 px-3";
+
 const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
-  available: { label: "Available", dot: "bg-green-500", badge: "bg-green-50 text-green-700 border-green-200" },
+  available: { label: "Available", dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   coming_soon: { label: "Coming Soon", dot: "bg-amber-500", badge: "bg-amber-50 text-amber-700 border-amber-200" },
   in_leasing_process: { label: "In Leasing", dot: "bg-blue-500", badge: "bg-blue-50 text-blue-700 border-blue-200" },
   rented: { label: "Rented", dot: "bg-gray-400", badge: "bg-gray-50 text-gray-500 border-gray-200" },
+  inactive: { label: "Inactive", dot: "bg-slate-400", badge: "bg-slate-100 text-slate-500 border-slate-300" },
 };
 
-// Inline editable cell for rent/beds/baths
-function EditableCell({
+/** Click-to-edit number cell: Enter/blur saves, Esc cancels. */
+function InlineNumber({
   value,
   onSave,
   prefix = "",
-  type = "number",
+  suffix = "",
+  step = 1,
+  widthClass = "w-20",
   canEdit,
+  format = (n: number) => n.toLocaleString(),
 }: {
   value: number;
   onSave: (v: number) => void;
   prefix?: string;
-  type?: string;
+  suffix?: string;
+  step?: number;
+  widthClass?: string;
   canEdit: boolean;
+  format?: (n: number) => string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
 
-  if (!canEdit) {
-    return <span>{prefix}{value.toLocaleString()}</span>;
-  }
+  const commit = () => {
+    setEditing(false);
+    const n = Number(draft);
+    if (!Number.isFinite(n) || n < 0 || n === value) return;
+    onSave(n);
+  };
+
+  if (!canEdit) return <span className="tabular-nums">{prefix}{format(value)}{suffix}</span>;
 
   if (!editing) {
     return (
       <button
+        type="button"
         onClick={() => { setDraft(String(value)); setEditing(true); }}
-        className="hover:bg-indigo-50 rounded px-1 -mx-1 transition-colors cursor-pointer"
+        className="tabular-nums rounded-md px-1.5 py-0.5 -mx-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-text"
         title="Click to edit"
       >
-        {prefix}{value.toLocaleString()}
+        {prefix}{format(value)}{suffix}
       </button>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1">
-      <input
-        type={type}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { onSave(Number(draft)); setEditing(false); }
-          if (e.key === "Escape") setEditing(false);
-        }}
-        className="w-16 px-1 py-0.5 text-sm border rounded focus:ring-1 focus:ring-indigo-300"
-        autoFocus
-      />
-      <button onClick={() => { onSave(Number(draft)); setEditing(false); }} className="text-green-600 hover:text-green-800">
-        <Check className="h-3.5 w-3.5" />
-      </button>
-      <button onClick={() => setEditing(false)} className="text-gray-400 hover:text-gray-600">
-        <X className="h-3.5 w-3.5" />
-      </button>
-    </span>
+    <input
+      type="number"
+      step={step}
+      value={draft}
+      autoFocus
+      onFocus={(e) => e.target.select()}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit();
+        if (e.key === "Escape") setEditing(false);
+      }}
+      className={cn(
+        "rounded-md border border-indigo-300 bg-white px-1.5 py-0.5 text-sm tabular-nums outline-none ring-2 ring-indigo-100",
+        widthClass,
+      )}
+    />
+  );
+}
+
+/** Colored status pill that is itself the select. */
+function StatusSelect({
+  status,
+  onChange,
+  canEdit,
+  size = "sm",
+}: {
+  status: string;
+  onChange: (v: string) => void;
+  canEdit: boolean;
+  size?: "sm" | "xs";
+}) {
+  const sc = STATUS_CONFIG[status] || STATUS_CONFIG.available;
+  if (!canEdit) {
+    return <Badge variant="outline" className={cn("px-2 font-medium", sc.badge)}>{sc.label}</Badge>;
+  }
+  return (
+    <Select value={status} onValueChange={onChange}>
+      <SelectTrigger
+        className={cn(
+          "rounded-full border font-medium shadow-none focus:ring-1 focus:ring-indigo-200",
+          size === "sm" ? "h-7 w-[132px] px-2.5 text-xs whitespace-nowrap [&>span]:truncate" : "h-6 w-[110px] px-2 text-[11px] whitespace-nowrap",
+          sc.badge,
+        )}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {STATUS_OPTIONS.map((o) => {
+          const c = STATUS_CONFIG[o.value];
+          return (
+            <SelectItem key={o.value} value={o.value}>
+              <span className="flex items-center gap-2">
+                <span className={cn("h-2 w-2 rounded-full", c.dot)} />
+                {o.label}
+                {o.value === "inactive" && <EyeOff className="h-3 w-3 text-slate-400" />}
+              </span>
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/** Eye/eye-off: is this door visible on the public sites right now? */
+function PublicEye({ status }: { status: string }) {
+  const isPublic = PUBLIC_STATUSES.has(status);
+  return (
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>
+        <span className="inline-flex cursor-default">
+          {isPublic ? (
+            <Eye className="h-4 w-4 text-emerald-500" />
+          ) : (
+            <EyeOff className="h-4 w-4 text-slate-300" />
+          )}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs">
+        {isPublic
+          ? "Live on the public site"
+          : status === "inactive"
+            ? "Inactive — hidden from all public sites"
+            : `Hidden from public (${STATUS_CONFIG[status]?.label || status})`}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -139,9 +240,26 @@ const PropertiesList: React.FC = () => {
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [checkOpen, setCheckOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [addingUnitTo, setAddingUnitTo] = useState<{ address: string; city: string; state: string; zip_code: string; property_group_id: string | null } | null>(null);
   const [leadCounts, setLeadCounts] = useState<Map<string, number>>(new Map());
+  const [live, setLive] = useState(false);
+  // Collapsible tree: every property collapsed by default (one compact row),
+  // cities expanded. Search/filter auto-expands so matches stay visible.
+  const [expandedBuildings, setExpandedBuildings] = useState<Set<string>>(new Set());
+  const [collapsedCities, setCollapsedCities] = useState<Set<string>>(new Set());
+  // Rows that just changed (own save or a remote realtime event) — flashed green
+  const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
+  const flashTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const flash = useCallback((id: string) => {
+    setFlashIds((prev) => new Set(prev).add(id));
+    const old = flashTimers.current.get(id);
+    if (old) clearTimeout(old);
+    flashTimers.current.set(id, setTimeout(() => {
+      setFlashIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+      flashTimers.current.delete(id);
+    }, 1600));
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!userRecord?.organization_id) return;
@@ -156,7 +274,6 @@ const PropertiesList: React.FC = () => {
       if (error) throw error;
       setProperties(data || []);
 
-      // Fetch lead counts per property
       const { data: leadData, error: leadError } = await supabase
         .from("leads")
         .select("interested_property_id")
@@ -180,30 +297,74 @@ const PropertiesList: React.FC = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Inline update
-  const updateProperty = async (id: string, field: string, value: number | string) => {
+  // ── Realtime: any change to this org's properties (from any device/user/
+  //    automation) merges straight into the grid, no refresh needed.
+  useEffect(() => {
+    const orgId = userRecord?.organization_id;
+    if (!orgId) return;
+    const channel = supabase
+      .channel("properties-grid")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "properties", filter: `organization_id=eq.${orgId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as Property;
+            setProperties((prev) => prev.some((p) => p.id === row.id)
+              ? prev.map((p) => (p.id === row.id ? row : p))
+              : [...prev, row].sort((a, b) =>
+                  a.address.localeCompare(b.address) || (a.unit_number || "").localeCompare(b.unit_number || "")));
+            flash(row.id);
+          } else if (payload.eventType === "UPDATE") {
+            const row = payload.new as Property;
+            setProperties((prev) => prev.map((p) => (p.id === row.id ? { ...p, ...row } : p)));
+            flash(row.id);
+          } else if (payload.eventType === "DELETE") {
+            const oldRow = payload.old as Partial<Property>;
+            if (oldRow.id) setProperties((prev) => prev.filter((p) => p.id !== oldRow.id));
+          }
+        },
+      )
+      .subscribe((s) => setLive(s === "SUBSCRIBED"));
+    return () => { supabase.removeChannel(channel); };
+  }, [userRecord?.organization_id, flash]);
+
+  useEffect(() => () => { flashTimers.current.forEach(clearTimeout); }, []);
+
+  // ── Optimistic inline update: grid changes instantly, reverts on error.
+  const updateProperty = async (id: string, patch: Partial<Property>) => {
+    const before = properties.find((p) => p.id === id);
+    setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     const { error } = await supabase
       .from("properties")
-      .update({ [field]: value, updated_at: new Date().toISOString() })
+      .update({ ...patch, updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) {
-      toast({ title: "Error", description: `Failed to update ${field}`, variant: "destructive" });
+      if (before) setProperties((prev) => prev.map((p) => (p.id === id ? before : p)));
+      toast({ title: "Error", description: "Change could not be saved — reverted.", variant: "destructive" });
     } else {
-      setProperties((prev) => prev.map((p) => p.id === id ? { ...p, [field]: value } : p));
+      flash(id);
     }
   };
 
   // Filter
   const filtered = useMemo(() => {
     return properties.filter((p) => {
-      if (statusFilter !== "all" && p.status !== statusFilter) return false;
+      if (statusFilter === "public" && !PUBLIC_STATUSES.has(p.status)) return false;
+      if (statusFilter !== "all" && statusFilter !== "public" && p.status !== statusFilter) return false;
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
-      return p.address.toLowerCase().includes(q) || p.city.toLowerCase().includes(q) || p.zip_code.includes(searchQuery);
+      return (
+        p.address.toLowerCase().includes(q) ||
+        p.city.toLowerCase().includes(q) ||
+        p.zip_code.includes(searchQuery) ||
+        (p.unit_number || "").toLowerCase().includes(q)
+      );
     });
   }, [properties, statusFilter, searchQuery]);
 
-  // Group by address for display
+  // Group by address — single-unit standalone homes render as one flat row;
+  // multi-unit buildings get a slim header row + one row per unit.
   const grouped = useMemo(() => {
     const map = new Map<string, Property[]>();
     for (const p of filtered) {
@@ -217,24 +378,49 @@ const PropertiesList: React.FC = () => {
       city: units[0].city,
       state: units[0].state,
       zip_code: units[0].zip_code,
+      groupId: units[0].property_group_id as string | null,
       units: units.sort((a, b) => (a.unit_number || "").localeCompare(b.unit_number || "")),
     }));
   }, [filtered]);
 
-  const toggleGroup = (key: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
+  // Collapsible city groups (alphabetical), buildings alphabetical inside.
+  const cityGroups = useMemo(() => {
+    const map = new Map<string, typeof grouped>();
+    for (const g of grouped) {
+      const key = `${g.city}, ${g.state}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(g);
+    }
+    return [...map.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([city, buildings]) => ({
+        city,
+        buildings,
+        doors: buildings.reduce((s, b) => s + b.units.length, 0),
+        available: buildings.reduce((s, b) => s + b.units.filter((u) => u.status === "available").length, 0),
+      }));
+  }, [grouped]);
+
+  const forceExpand = searchQuery.trim() !== "" || statusFilter !== "all";
+  const toggleBuilding = (key: string) =>
+    setExpandedBuildings((prev) => {
+      const n = new Set(prev);
+      if (n.has(key)) n.delete(key); else n.add(key);
+      return n;
     });
-  };
+  const toggleCity = (key: string) =>
+    setCollapsedCities((prev) => {
+      const n = new Set(prev);
+      if (n.has(key)) n.delete(key); else n.add(key);
+      return n;
+    });
 
   // Stats
   const stats = useMemo(() => {
-    const active = properties.filter((p) => p.status !== "rented");
     const available = properties.filter((p) => p.status === "available");
     const rented = properties.filter((p) => p.status === "rented");
+    const inactive = properties.filter((p) => p.status === "inactive");
+    const publicCount = properties.filter((p) => PUBLIC_STATUSES.has(p.status)).length;
     const addresses = new Set(properties.map((p) => p.address.trim().toLowerCase()));
     const potentialRent = available.reduce((sum, p) => sum + (p.rent_price || 0), 0);
     const currentRent = rented.reduce((sum, p) => sum + (p.rent_price || 0), 0);
@@ -243,8 +429,9 @@ const PropertiesList: React.FC = () => {
       totalDoors: properties.length,
       available: available.length,
       rented: rented.length,
+      inactive: inactive.length,
+      publicCount,
       potentialRent,
-      currentRent,
       totalPossible: potentialRent + currentRent,
     };
   }, [properties]);
@@ -281,17 +468,289 @@ const PropertiesList: React.FC = () => {
       }
     : null;
 
-  const formGroupId = addingUnitTo?.property_group_id || undefined;
+  const canEdit = permissions.canEditProperty;
+
+  const openEditor = (unit: Property) => {
+    const gid = unit.property_group_id as string | null;
+    navigate(gid ? `/properties/group/${gid}` : `/properties/${unit.id}`);
+  };
+
+  /** Expanded unit row — one single-line grid row per door. */
+  const renderUnitRow = (unit: Property, opts: { label: string; detail?: string }) => {
+    const hasPhotos = Array.isArray(unit.photos) && unit.photos.length > 0;
+    const photoCount = hasPhotos ? (unit.photos as unknown[]).length : 0;
+    const unitLeads = leadCounts.get(unit.id) || 0;
+    const isFlashing = flashIds.has(unit.id);
+
+    return (
+      <div
+        key={unit.id}
+        className={cn(
+          GRID_COLS,
+          "h-11 transition-colors",
+          unit.status === "inactive" && "opacity-60 hover:opacity-100",
+          isFlashing ? "bg-emerald-50" : "bg-muted/20 hover:bg-indigo-50/40",
+        )}
+      >
+        {/* Unit label + muted detail on ONE line. `h-auto` opts the link out
+            of the global 44px touch-target rule (index.css), which otherwise
+            stretches it and breaks vertical centering. */}
+        <div className="min-w-0 flex items-baseline gap-2 pl-9">
+          <Link
+            to={`/properties/${unit.id}`}
+            className="h-auto shrink-0 truncate max-w-full text-sm font-semibold leading-5 hover:text-indigo-600"
+          >
+            {opts.label}
+          </Link>
+          {opts.detail && (
+            <span className="hidden lg:inline truncate text-xs text-muted-foreground">{opts.detail}</span>
+          )}
+        </div>
+
+        {/* Beds */}
+        <div className="text-center text-sm">
+          <InlineNumber value={unit.bedrooms} canEdit={canEdit} widthClass="w-12"
+            onSave={(v) => updateProperty(unit.id, { bedrooms: v })} />
+        </div>
+        {/* Baths */}
+        <div className="text-center text-sm">
+          <InlineNumber value={Number(unit.bathrooms)} step={0.5} canEdit={canEdit} widthClass="w-14"
+            format={(n) => (n % 1 === 0 ? String(n) : n.toFixed(1))}
+            onSave={(v) => updateProperty(unit.id, { bathrooms: v })} />
+        </div>
+        {/* Rent */}
+        <div className="text-center text-sm font-semibold">
+          <InlineNumber value={unit.rent_price} prefix="$" canEdit={canEdit} widthClass="w-20"
+            onSave={(v) => updateProperty(unit.id, { rent_price: v })} />
+        </div>
+
+        {/* Leads */}
+        <div className="flex justify-center">
+          {unitLeads > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-600">
+              <Users className="h-3 w-3" />{unitLeads}
+            </span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground/40">—</span>
+          )}
+        </div>
+
+        {/* Photos */}
+        <div className="flex justify-center">
+          {hasPhotos ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+              <ImageIcon className="h-3.5 w-3.5" />{photoCount}
+            </span>
+          ) : (
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild><span><ImageOff className="h-3.5 w-3.5 text-red-400" /></span></TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">No photos</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* Public visibility */}
+        <div className="flex justify-center"><PublicEye status={unit.status} /></div>
+
+        {/* Status */}
+        <div className="flex justify-center">
+          <StatusSelect status={unit.status} canEdit={canEdit}
+            onChange={(v) => updateProperty(unit.id, { status: v })} />
+        </div>
+
+        {/* Edit */}
+        <div className="flex justify-center">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditor(unit)}>
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  /** Compact property row — SAME design for every property (single-family or
+   *  building). Click to expand its units. Single-unit properties edit
+   *  directly on the row; multi-unit rows show aggregated ranges. */
+  const renderBuildingRow = (group: (typeof grouped)[number], open: boolean) => {
+    const units = group.units;
+    const single = units.length === 1;
+    const u0 = units[0];
+    const flashing = units.some((u) => flashIds.has(u.id));
+    const allInactive = units.every((u) => u.status === "inactive");
+    const leads = units.reduce((s, u) => s + (leadCounts.get(u.id) || 0), 0);
+    const unitsWithPhotos = units.filter((u) => Array.isArray(u.photos) && (u.photos as unknown[]).length > 0).length;
+    const photoTotal = units.reduce((s, u) => s + (Array.isArray(u.photos) ? (u.photos as unknown[]).length : 0), 0);
+    const publicCount = units.filter((u) => PUBLIC_STATUSES.has(u.status)).length;
+
+    return (
+      <div
+        key={group.key}
+        role="button"
+        tabIndex={0}
+        onClick={() => toggleBuilding(group.key)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleBuilding(group.key); } }}
+        className={cn(
+          GRID_COLS,
+          "h-11 cursor-pointer select-none transition-colors",
+          allInactive && "opacity-60 hover:opacity-100",
+          flashing ? "bg-emerald-50" : "hover:bg-indigo-50/40",
+        )}
+      >
+        {/* Address + muted location on ONE line */}
+        <div className="min-w-0 flex items-baseline gap-2">
+          <ChevronRight
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 self-center text-muted-foreground/50 transition-transform",
+              open && "rotate-90",
+            )}
+          />
+          <span className="shrink-0 truncate max-w-full text-sm font-semibold leading-5">{group.address}</span>
+          <span className="hidden lg:inline truncate text-xs text-muted-foreground">
+            {group.city}, {group.state} {group.zip_code}
+            {single
+              ? u0.square_feet ? ` · ${u0.square_feet} sqft` : ""
+              : ` · ${units.length} units`}
+          </span>
+        </div>
+
+        {/* Beds / Baths / Rent — inline-editable when unambiguous (1 unit) */}
+        {single ? (
+          <>
+            <div className="text-center text-sm" onClick={(e) => e.stopPropagation()}>
+              <InlineNumber value={u0.bedrooms} canEdit={canEdit} widthClass="w-12"
+                onSave={(v) => updateProperty(u0.id, { bedrooms: v })} />
+            </div>
+            <div className="text-center text-sm" onClick={(e) => e.stopPropagation()}>
+              <InlineNumber value={Number(u0.bathrooms)} step={0.5} canEdit={canEdit} widthClass="w-14"
+                format={(n) => (n % 1 === 0 ? String(n) : n.toFixed(1))}
+                onSave={(v) => updateProperty(u0.id, { bathrooms: v })} />
+            </div>
+            <div className="text-center text-sm font-semibold" onClick={(e) => e.stopPropagation()}>
+              <InlineNumber value={u0.rent_price} prefix="$" canEdit={canEdit} widthClass="w-20"
+                onSave={(v) => updateProperty(u0.id, { rent_price: v })} />
+            </div>
+          </>
+        ) : (
+          /* Building totals: sum of beds, baths and rent across all units */
+          <>
+            <div className="text-center text-sm tabular-nums">
+              {units.reduce((s, u) => s + (u.bedrooms || 0), 0)}
+            </div>
+            <div className="text-center text-sm tabular-nums">
+              {(() => { const t = units.reduce((s, u) => s + Number(u.bathrooms || 0), 0); return t % 1 === 0 ? t : t.toFixed(1); })()}
+            </div>
+            <div className="text-center text-sm font-semibold tabular-nums whitespace-nowrap">
+              ${units.reduce((s, u) => s + (u.rent_price || 0), 0).toLocaleString()}
+            </div>
+          </>
+        )}
+
+        {/* Leads (sum) */}
+        <div className="flex justify-center">
+          {leads > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-600">
+              <Users className="h-3 w-3" />{leads}
+            </span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground/40">—</span>
+          )}
+        </div>
+
+        {/* Photos (all / some / none) */}
+        <div className="flex justify-center">
+          {unitsWithPhotos === units.length ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+              <ImageIcon className="h-3.5 w-3.5" />{photoTotal}
+            </span>
+          ) : unitsWithPhotos > 0 ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600">
+              <ImageIcon className="h-3.5 w-3.5" />{photoTotal}
+            </span>
+          ) : (
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild><span><ImageOff className="h-3.5 w-3.5 text-red-400" /></span></TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">No photos</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* Public visibility */}
+        <div className="flex justify-center">
+          {single ? (
+            <PublicEye status={u0.status} />
+          ) : (
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <span className="inline-flex cursor-default items-center gap-0.5">
+                  {publicCount > 0 ? (
+                    <Eye className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 text-slate-300" />
+                  )}
+                  {publicCount > 0 && (
+                    <span className="text-[10px] font-semibold text-emerald-600">{publicCount}</span>
+                  )}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {publicCount} of {units.length} units on the public site
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* Status — editable pill for 1 unit, per-unit dots for buildings */}
+        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+          {single ? (
+            <StatusSelect status={u0.status} canEdit={canEdit}
+              onChange={(v) => updateProperty(u0.id, { status: v })} />
+          ) : (
+            <div className="flex items-center gap-1">
+              {units.map((u) => {
+                const c = STATUS_CONFIG[u.status] || STATUS_CONFIG.available;
+                return (
+                  <span
+                    key={u.id}
+                    title={`${u.unit_number ? `Unit ${u.unit_number}` : "Unit"}: ${c.label}`}
+                    className={cn("h-2.5 w-2.5 rounded-full", c.dot)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Edit */}
+        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost" size="icon" className="h-7 w-7"
+            onClick={() => navigate(group.groupId ? `/properties/group/${group.groupId}` : `/properties/${u0.id}`)}
+          >
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Building2 className="h-6 w-6 text-indigo-600" />
             Properties
           </h1>
+          {live && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              Live
+            </span>
+          )}
         </div>
         <div className="flex gap-2 items-center">
           <Button variant="outline" onClick={() => setCheckOpen(true)} size="sm" disabled={properties.length === 0}>
@@ -319,104 +778,68 @@ const PropertiesList: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-        <Card className="bg-white/60 backdrop-blur-sm">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-indigo-500" />
-              <div>
-                <div className="text-lg font-bold">{stats.buildings}</div>
-                <div className="text-[11px] text-muted-foreground">Buildings</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/60 backdrop-blur-sm">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <DoorOpen className="h-4 w-4 text-indigo-500" />
-              <div>
-                <div className="text-lg font-bold">{stats.totalDoors}</div>
-                <div className="text-[11px] text-muted-foreground">Total Doors</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/60 backdrop-blur-sm">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-green-500" />
-              <div>
-                <div className="text-lg font-bold text-green-600">{stats.available}</div>
-                <div className="text-[11px] text-muted-foreground">Available</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/60 backdrop-blur-sm">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-gray-400" />
-              <div>
-                <div className="text-lg font-bold">{stats.rented}</div>
-                <div className="text-[11px] text-muted-foreground">Rented</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/60 backdrop-blur-sm">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-green-600" />
-              <div>
-                <div className="text-lg font-bold text-green-600">${stats.potentialRent.toLocaleString()}</div>
-                <div className="text-[11px] text-muted-foreground">Potential/mo</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/60 backdrop-blur-sm">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-indigo-500" />
-              <div>
-                <div className="text-lg font-bold">${stats.totalPossible.toLocaleString()}</div>
-                <div className="text-[11px] text-muted-foreground">Total if full</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Stats strip — one compact line */}
+      <Card className="bg-white/60 backdrop-blur-sm">
+        <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 text-sm">
+          <span className="inline-flex items-center gap-1.5"><Building2 className="h-4 w-4 text-indigo-500" /><b>{stats.buildings}</b><span className="text-muted-foreground">buildings</span></span>
+          <span className="inline-flex items-center gap-1.5"><DoorOpen className="h-4 w-4 text-indigo-500" /><b>{stats.totalDoors}</b><span className="text-muted-foreground">doors</span></span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /><b className="text-emerald-600">{stats.available}</b><span className="text-muted-foreground">available</span></span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-gray-400" /><b>{stats.rented}</b><span className="text-muted-foreground">rented</span></span>
+          <span className="inline-flex items-center gap-1.5"><Eye className="h-4 w-4 text-emerald-500" /><b>{stats.publicCount}</b><span className="text-muted-foreground">on public site</span></span>
+          {stats.inactive > 0 && (
+            <span className="inline-flex items-center gap-1.5"><EyeOff className="h-4 w-4 text-slate-400" /><b className="text-slate-500">{stats.inactive}</b><span className="text-muted-foreground">inactive</span></span>
+          )}
+          <span className="ml-auto inline-flex items-center gap-1.5"><DollarSign className="h-4 w-4 text-emerald-600" /><b className="text-emerald-600">${stats.potentialRent.toLocaleString()}</b><span className="text-muted-foreground">potential/mo</span></span>
+          <span className="inline-flex items-center gap-1.5"><DollarSign className="h-4 w-4 text-indigo-500" /><b>${stats.totalPossible.toLocaleString()}</b><span className="text-muted-foreground">if full</span></span>
+        </CardContent>
+      </Card>
 
-      {/* Filters */}
+      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search address, city, zip..."
+            placeholder="Search address, unit, city, zip..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-9"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:bg-muted"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-44 h-9">
+          <SelectTrigger className="w-full sm:w-48 h-9">
             <Filter className="h-3.5 w-3.5 mr-1.5" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {STATUS_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            {FILTER_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                <span className="flex items-center gap-2">
+                  {o.value === "public" ? (
+                    <Eye className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : STATUS_CONFIG[o.value] ? (
+                    <span className={cn("h-2 w-2 rounded-full", STATUS_CONFIG[o.value].dot)} />
+                  ) : null}
+                  {o.label}
+                </span>
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Properties List */}
+      {/* Grid */}
       {loading ? (
-        <div className="space-y-2">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
+        <div className="space-y-1.5">
+          {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}
         </div>
       ) : grouped.length === 0 ? (
         <Card className="bg-white/60 backdrop-blur-sm">
@@ -430,191 +853,63 @@ const PropertiesList: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-1.5">
-          {grouped.map((group) => {
-            const isExpanded = expandedGroups.has(group.key);
-            const totalLeads = group.units.reduce((sum, u) => sum + (leadCounts.get(u.id) || 0), 0);
-            const allHavePhotos = group.units.every((u) => Array.isArray(u.photos) && u.photos.length > 0);
-            const someHavePhotos = group.units.some((u) => Array.isArray(u.photos) && u.photos.length > 0);
-            const isSingleStandalone = group.units.length === 1 && !group.units[0].unit_number;
-            const rentRange = (() => {
-              const rents = group.units.map((u) => u.rent_price).filter((r) => r > 0);
-              if (rents.length === 0) return null;
-              const min = Math.min(...rents);
-              const max = Math.max(...rents);
-              return min === max ? `$${min.toLocaleString()}` : `$${min.toLocaleString()}–$${max.toLocaleString()}`;
-            })();
+        <div className="overflow-hidden rounded-xl border border-border/50 bg-white/80 divide-y divide-border/30">
+          {/* Column headers */}
+          <div className={cn(GRID_COLS, "hidden md:grid py-2 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground")}>
+            <span>Property</span>
+            <span className="text-center">Beds</span>
+            <span className="text-center">Baths</span>
+            <span className="text-center">Rent</span>
+            <span className="text-center">Leads</span>
+            <span className="text-center">Photos</span>
+            <span className="text-center">Public</span>
+            <span className="text-center">Status</span>
+            <span />
+          </div>
 
+          {cityGroups.map((cg) => {
+            const cityOpen = !collapsedCities.has(cg.city);
             return (
-              <div key={group.key}>
-                {/* Building row */}
+              <React.Fragment key={cg.city}>
+                {/* City group header — collapsible */}
                 <button
-                  onClick={() => toggleGroup(group.key)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors text-left",
-                    isExpanded
-                      ? "bg-indigo-50/80 border-indigo-200/60"
-                      : "bg-white/60 border-border/30 hover:bg-white/90"
-                  )}
+                  type="button"
+                  onClick={() => toggleCity(cg.city)}
+                  className="w-full h-auto flex items-center gap-2 bg-indigo-50/60 hover:bg-indigo-50 px-3 py-2 text-left transition-colors"
                 >
-                  {/* Chevron */}
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  )}
-
-                  {/* Photo indicator */}
-                  {allHavePhotos ? (
-                    <ImageIcon className="h-4 w-4 text-green-500 shrink-0" />
-                  ) : someHavePhotos ? (
-                    <ImageIcon className="h-4 w-4 text-amber-500 shrink-0" />
-                  ) : (
-                    <ImageOff className="h-4 w-4 text-red-400 shrink-0" />
-                  )}
-
-                  {/* Address & info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm truncate">{group.address}</span>
-                      <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">
-                        {group.city}, {group.state} {group.zip_code}
-                      </span>
-                    </div>
-                    {/* Subtitle line */}
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                      {isSingleStandalone ? (
-                        <>
-                          <span>{group.units[0].bedrooms}bd / {Number(group.units[0].bathrooms)}ba</span>
-                          <span>·</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{group.units.length} unit{group.units.length > 1 ? "s" : ""}</span>
-                          <span>·</span>
-                        </>
-                      )}
-                      {rentRange && <span className="font-medium text-foreground">{rentRange}/mo</span>}
-                      {!rentRange && <span>No rent set</span>}
-                    </div>
-                  </div>
-
-                  {/* Right side badges */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Leads */}
-                    {totalLeads > 0 && (
-                      <span className="flex items-center gap-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full px-2 py-0.5">
-                        <Users className="h-3 w-3" />
-                        {totalLeads}
-                      </span>
+                  <ChevronDown
+                    className={cn(
+                      "h-3.5 w-3.5 shrink-0 text-indigo-400 transition-transform",
+                      !cityOpen && "-rotate-90",
                     )}
-
-                    {/* Status */}
-                    {isSingleStandalone ? (
-                      (() => {
-                        const sc = STATUS_CONFIG[group.units[0].status] || STATUS_CONFIG.available;
-                        return <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 shrink-0", sc.badge)}>{sc.label}</Badge>;
-                      })()
-                    ) : (
-                      <div className="flex gap-1">
-                        {group.units.map((u) => {
-                          const sc = STATUS_CONFIG[u.status] || STATUS_CONFIG.available;
-                          return <span key={u.id} className={cn("h-2.5 w-2.5 rounded-full", sc.dot)} title={`${u.unit_number || "Unit"}: ${sc.label}`} />;
-                        })}
-                      </div>
-                    )}
-
-                    {/* Edit */}
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const groupId = group.units[0].property_group_id as string | null;
-                        navigate(groupId ? `/properties/group/${groupId}` : `/properties/${group.units[0].id}`);
-                      }}
-                      className="p-1 rounded-md hover:bg-black/5 transition-colors"
-                    >
-                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                    </div>
-                  </div>
+                  />
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                  <span className="truncate text-[13px] font-bold text-indigo-950">{cg.city}</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {cg.buildings.length} propert{cg.buildings.length === 1 ? "y" : "ies"} · {cg.doors} door{cg.doors === 1 ? "" : "s"}
+                  </span>
+                  {cg.available > 0 && (
+                    <span className="ml-auto shrink-0 text-xs font-semibold text-emerald-600">
+                      {cg.available} available
+                    </span>
+                  )}
                 </button>
 
-                {/* Expanded units */}
-                {isExpanded && (
-                  <div className="ml-9 mt-1 space-y-1">
-                    {group.units.map((unit) => {
-                      const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
-                      const hasPhotos = Array.isArray(unit.photos) && unit.photos.length > 0;
-                      const unitLabel = unit.unit_number ? `Unit ${unit.unit_number}` : group.address;
-                      const unitLeads = leadCounts.get(unit.id) || 0;
-
-                      return (
-                        <div
-                          key={unit.id}
-                          className={cn(
-                            "rounded-lg bg-white/50 hover:bg-white/80 border border-border/20 transition-colors border-l-[3px] px-3 py-2",
-                            unit.status === "available" && "border-l-green-500",
-                            unit.status === "coming_soon" && "border-l-amber-500",
-                            unit.status === "in_leasing_process" && "border-l-blue-500",
-                            unit.status === "rented" && "border-l-gray-400",
-                          )}
-                        >
-                          {/* Row 1: name + rent */}
-                          <div className="flex items-baseline justify-between">
-                            <Link to={`/properties/${unit.id}`} className="font-semibold text-sm hover:text-indigo-600">
-                              {unitLabel}
-                            </Link>
-                            <span className="text-sm font-semibold">${unit.rent_price.toLocaleString()}/mo</span>
-                          </div>
-                          {/* Row 2: details + badges */}
-                          <div className="flex items-center justify-between mt-0.5">
-                            <span className="text-xs text-muted-foreground">
-                              {unit.bedrooms}bd / {Number(unit.bathrooms)}ba
-                              {unit.square_feet ? ` · ${unit.square_feet} sqft` : ""}
-                              {!hasPhotos ? " · No photos" : ""}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              {unitLeads > 0 && (
-                                <span className="flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 rounded-full px-1.5 py-0">
-                                  <Users className="h-2.5 w-2.5" />
-                                  {unitLeads}
-                                </span>
-                              )}
-                              {permissions.canEditProperty ? (
-                                <Select value={unit.status} onValueChange={(v) => updateProperty(unit.id, "status", v)}>
-                                  <SelectTrigger className={cn("h-5 w-[85px] text-[10px] px-2 border rounded-full font-medium", s.badge)}>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {STATUS_OPTIONS.filter((o) => o.value !== "all").map((o) => {
-                                      const sc = STATUS_CONFIG[o.value];
-                                      return (
-                                        <SelectItem key={o.value} value={o.value}>
-                                          <span className="flex items-center gap-1.5">
-                                            <span className={cn("h-2 w-2 rounded-full", sc?.dot)} />
-                                            {o.label}
-                                          </span>
-                                        </SelectItem>
-                                      );
-                                    })}
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <Badge variant="outline" className={cn("text-[10px] px-2 py-0", s.badge)}>{s.label}</Badge>
-                              )}
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                                const gid = unit.property_group_id as string | null;
-                                navigate(gid ? `/properties/group/${gid}` : `/properties/${unit.id}`);
-                              }}>
-                                <Pencil className="h-3 w-3 text-muted-foreground" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                {cityOpen && cg.buildings.map((group) => {
+                  const open = forceExpand || expandedBuildings.has(group.key);
+                  return (
+                    <React.Fragment key={group.key}>
+                      {renderBuildingRow(group, open)}
+                      {open && group.units.map((unit) =>
+                        renderUnitRow(unit, {
+                          label: unit.unit_number ? `Unit ${unit.unit_number}` : group.address,
+                          detail: unit.square_feet ? `${unit.square_feet} sqft` : undefined,
+                        }),
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </React.Fragment>
             );
           })}
         </div>
@@ -640,7 +935,7 @@ const PropertiesList: React.FC = () => {
           </DialogHeader>
           <PropertyForm
             property={propertyForForm}
-            propertyGroupId={formGroupId}
+            propertyGroupId={addingUnitTo?.property_group_id || undefined}
             propertyGroupAddress={addingUnitTo?.address}
             propertyGroupCity={addingUnitTo?.city}
             propertyGroupState={addingUnitTo?.state}

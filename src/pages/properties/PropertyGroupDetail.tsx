@@ -72,6 +72,11 @@ const STATUS_CONFIG: Record<
     className: "bg-muted text-muted-foreground",
     dot: "bg-gray-400",
   },
+  inactive: {
+    label: "Inactive",
+    className: "bg-slate-200 text-slate-600",
+    dot: "bg-slate-400",
+  },
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -315,6 +320,7 @@ const PropertyGroupDetail: React.FC = () => {
                         unit.status === "coming_soon" && "border-l-amber-500",
                         unit.status === "in_leasing_process" && "border-l-blue-500",
                         unit.status === "rented" && "border-l-gray-400",
+                        unit.status === "inactive" && "border-l-slate-300 opacity-60",
                       )}
                     >
                       <div className="flex items-baseline justify-between">

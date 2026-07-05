@@ -224,12 +224,14 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
                               property.status === "available" && "bg-green-100 text-green-700",
                               property.status === "coming_soon" && "bg-amber-100 text-amber-700",
                               property.status === "rented" && "bg-gray-100 text-gray-600",
-                              property.status === "in_leasing_process" && "bg-purple-100 text-purple-700"
+                              property.status === "in_leasing_process" && "bg-purple-100 text-purple-700",
+                              property.status === "inactive" && "bg-slate-100 text-slate-500"
                             )}
                           >
                             {property.status === "in_leasing_process" ? "In Leasing" :
                              property.status === "coming_soon" ? "Coming Soon" :
-                             property.status === "rented" ? "Rented" : "Available"}
+                             property.status === "rented" ? "Rented" :
+                             property.status === "inactive" ? "Inactive" : "Available"}
                           </Badge>
                         </CommandItem>
                       ))}
