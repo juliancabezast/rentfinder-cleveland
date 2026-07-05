@@ -292,6 +292,13 @@ function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void
   // Whole card is clickable → opens the property page (which records the
   // detail-view). Footer buttons stopPropagation so they keep their own action.
   const openDetail = () => navigate(`/p/schedule-showing/${l.property_id}`);
+  const [expanded, setExpanded] = useState(false);
+  const units = l.unitDetails ?? [];
+  const collapsible = units.length > 3; // 4+ units collapse to the 2 cheapest
+  const displayUnits =
+    collapsible && !expanded
+      ? [...units].sort((a, b) => (a.rent_price ?? Infinity) - (b.rent_price ?? Infinity)).slice(0, 2)
+      : units;
   return (
     <Card
       onClick={openDetail}
@@ -348,10 +355,11 @@ function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void
           <MapPin className="h-3.5 w-3.5" />{l.neighborhood}, {l.city} {l.zip_code || ""}
         </div>
 
-        {l.unitDetails && l.unitDetails.length > 1 ? (
-          /* Multi-family: one row per unit — beds · baths · price */
+        {units.length > 1 ? (
+          /* Multi-family: one row per unit — beds · baths · price. 4+ units
+             collapse to the 2 cheapest with a "view all" toggle. */
           <div className="mt-3 space-y-1.5 border-t border-border pt-2.5">
-            {l.unitDetails.map((u, i) => (
+            {displayUnits.map((u, i) => (
               <div key={i} className="flex items-center justify-between gap-2 text-sm">
                 <span className="shrink-0 font-semibold text-foreground">
                   {u.unit_number ? `Unit ${u.unit_number}` : `Unit ${i + 1}`}
@@ -363,6 +371,16 @@ function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void
                 </span>
               </div>
             ))}
+            {collapsible && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+                className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline"
+              >
+                {expanded ? "Show less" : `View all ${units.length} units`}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+              </button>
+            )}
           </div>
         ) : (
           /* Single unit: one line — beds · baths · price */
@@ -1192,14 +1210,11 @@ export default function RenterHome() {
         }`}
       >
         <div className="bg-emerald-600 text-white shadow-[0_-4px_20px_rgba(0,0,0,0.18)]">
-          <div className="max-w-7xl mx-auto px-5 py-2.5 lg:py-3 flex flex-col lg:flex-row items-center justify-center gap-2 lg:gap-5 text-center">
-            <p className="text-sm md:text-base font-semibold leading-snug">
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4 shrink-0" />
-                Have a Section 8 voucher?
-              </span>
-              <br />
-              We handle everything for you.
+          <div className="max-w-7xl mx-auto px-3 sm:px-5 py-2.5 lg:py-3 flex flex-col lg:flex-row items-center justify-center gap-2 lg:gap-5 text-center">
+            <p className="flex items-center justify-center gap-1.5 whitespace-nowrap text-xs sm:text-sm md:text-base font-semibold leading-snug">
+              <ShieldCheck className="h-4 w-4 shrink-0" />
+              <span className="text-amber-200">Have a Section 8 voucher?</span>
+              <span>We handle everything for you.</span>
             </p>
             <div className="flex items-center gap-2">
               <Button asChild size="sm" className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold">
