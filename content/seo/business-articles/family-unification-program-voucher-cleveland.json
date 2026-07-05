@@ -1,0 +1,64 @@
+{
+  "slug": "family-unification-program-voucher-cleveland",
+  "section": "housing-partners",
+  "title": "Family Unification Program Vouchers in Cleveland: Partner Guide",
+  "metaTitle": "FUP Vouchers in Cleveland: A Guide for Caseworkers",
+  "metaDescription": "A partner guide for Cleveland caseworkers: turn a Family Unification Program voucher into a correctly sized, voucher-ready lease before deadlines pass.",
+  "primaryKeyword": "family unification program voucher cleveland",
+  "secondaryKeywords": ["fup voucher cleveland", "family unification program cmha", "reunification housing cleveland"],
+  "answerBox": "A Family Unification Program voucher helps a Cleveland family reunify only when it becomes a signed lease before the search window and court deadlines pass. The hard part is usually finding a correctly sized home whose owner accepts the voucher and passes a HUD inspection. Rent Finder Cleveland works with 90+ Section 8-ready homes — send a family's bedroom needs and timeline and we'll tell you what's open now.",
+  "sections": [
+    {
+      "h2": "Why FUP placements are a race against the clock",
+      "body": [
+        "The Family Unification Program (FUP) sets aside Housing Choice Vouchers for two groups: families where a lack of adequate housing is the primary reason a child is in — or at imminent risk of entering — out-of-home care, or the main thing delaying reunification; and young adults aging out of foster care. In Cuyahoga County, FUP referrals run between the public child-welfare agency and **CMHA**, which administers the voucher.",
+        "Once CMHA issues the voucher, the family has a limited search window — typically starting at 60 days and extendable at the housing authority's discretion — to find a unit, sign a lease, and pass a HUD inspection. On a reunification case that window often overlaps court and permanency deadlines. Every week spent chasing an owner who quietly won't accept the voucher is a week a child stays in care, so the fastest path is to start from homes that already say **yes**."
+      ]
+    },
+    {
+      "h2": "Start from homes that already welcome the voucher",
+      "body": [
+        "Many voucher denials never look like denials — an owner simply stops replying, or lists a rent just above the payment standard. Beginning with homes that already accept Housing Choice Vouchers removes that friction so the family's search starts from a real option instead of a rejection.",
+        "Every home we work with welcomes [Section 8 in Cleveland](/section-8-housing-cleveland-oh/) and is ready for a CMHA HQS inspection — often the step where placements stall. If the family is still early in the process, our plain-language walkthrough of [how to apply for Section 8 through CMHA](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) can help you set expectations."
+      ]
+    },
+    {
+      "h2": "Get the bedroom count right for reunification",
+      "body": [
+        "FUP cases are unusual because the household that will actually live in the home is often larger than the household on paper today. CMHA sets the voucher's bedroom size from family composition, so it's worth confirming the voucher reflects the **reunified** household — the children coming home — and not just the parent's current household, before anyone starts touring.",
+        "Both HUD's subsidy standards and the owner's occupancy limits apply, so the home has to have enough bedrooms for the children returning. Under-sizing a placement can stall the inspection or force a second move a few months later — exactly the instability a reunification plan is trying to avoid. It's easier to browse [correctly sized houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) once the voucher bedroom size is locked in."
+      ]
+    },
+    {
+      "h2": "What to send us to speed up a match",
+      "body": ["The more specific the request, the faster we can point you to real options that fit the case."],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Voucher bedroom size and the issuing authority (CMHA or another PHA)",
+          "Number and ages of children returning, plus total household size",
+          "Move-in timing and any court, permanency, or voucher-expiration deadlines",
+          "Must-be-near locations (the child's school, a clinic, a parent's job, a visitation site)",
+          "Accessibility or ground-floor needs",
+          "Whether this is a family reunification case or an aging-out youth case"
+        ]
+      }
+    },
+    {
+      "h2": "Honest caveats and local rules",
+      "body": [
+        "Cleveland itself does not yet have a source-of-income ordinance, but several inner-ring suburbs do — including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. We welcome vouchers everywhere we operate regardless, and we follow the Fair Housing Act in every interaction.",
+        "Two honest limits worth knowing up front. First, our current selection is concentrated on Cleveland's East and Southeast side plus some suburbs and Akron, Lorain, and Elyria — so if a family must stay in a specific western-side area, tell us early and we'll say honestly whether we have a fit. Second, we don't issue FUP vouchers or make eligibility determinations — that runs through the county child-welfare agency and CMHA. We're a local rental team that helps once a voucher is in hand: finding voucher-ready homes, touring, and applying. When you have a match in mind, you can [book a showing](/p/book-showing) directly."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Do you issue FUP vouchers or decide eligibility?", "a": "No. FUP referrals and eligibility run through the public child-welfare agency and CMHA. We're a local rental team that helps once the family has a voucher in hand — matching them to voucher-ready homes, arranging tours, and helping them apply." },
+    { "q": "Is there any cost to a caseworker or agency to work with you?", "a": "No. There is no fee to partner with us or refer a family. The renter completes standard tenant application steps once they choose a home." },
+    { "q": "Can you help a youth aging out of foster care, not just a family?", "a": "Yes. Whether it's a reunification case or a young adult using a voucher after foster care, send us the bedroom size and timeline and we'll tell you what's open right now." },
+    { "q": "How quickly can you tell me what's available?", "a": "Usually the same day. Because every home we work with already accepts Housing Choice Vouchers and is inspection-ready, we can match bedrooms, timing, and preferred areas to what's open now." },
+    { "q": "How do I reach your team about a specific case?", "a": "Call (440) 444-4737 or email support@rentfindercleveland.com with the voucher bedroom size, timeline, and any must-be-near locations, and we'll follow up with current options." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/program_offices/public_indian_housing/programs/hcv/family"],
+  "lastUpdated": "2026-07-05"
+}

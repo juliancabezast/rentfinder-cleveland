@@ -1,0 +1,77 @@
+{
+  "slug": "move-with-voucher-recertification-cleveland",
+  "section": "housing-partners",
+  "title": "Helping Clients Move With a Section 8 Voucher in Cleveland",
+  "metaTitle": "Move With a Section 8 Voucher in Cleveland | Partners",
+  "metaDescription": "A case manager's guide to helping a client move with a Section 8 voucher in Cleveland: the notice, RFTA packet, and HQS inspection steps around annual recertification.",
+  "primaryKeyword": "move with section 8 voucher cleveland",
+  "secondaryKeywords": ["housing choice voucher move cleveland", "cmha voucher transfer", "hcv portability cleveland"],
+  "answerBox": "To move with an active Housing Choice Voucher, a client gives written notice to their current landlord — usually 30 days, and after the initial 12-month lease term — tells CMHA in writing they intend to move, submits a Request for Tenancy Approval for the new unit, and passes an HQS inspection before signing. Timing matters most during the annual recertification.",
+  "sections": [
+    {
+      "h2": "When a client can actually move",
+      "body": [
+        "A Housing Choice Voucher does not lock a family in place, but it does have timing rules. During the **initial lease term** — almost always the first 12 months — a client generally can't move with continued assistance unless the landlord agrees to release them early or the lease is being terminated for cause. After that first year, once the lease has gone month-to-month or is up for renewal, the family can move to a new unit and take the voucher with them.",
+        "This is why the annual recertification window is a natural moment to relocate: the income reexamination, the lease anniversary, and the family's own plans often line up. Planning the move around that anniversary avoids a lease-break and keeps assistance uninterrupted."
+      ]
+    },
+    {
+      "h2": "Give notice in the right order",
+      "body": ["Two written notices have to happen, and the order matters more than people expect."],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Written notice to the current landlord — check the lease, but 30 days is typical. Keep a dated copy.",
+          "Written notice to CMHA (the Cuyahoga Metropolitan Housing Authority) that the family intends to move, on the authority's own move/transfer form.",
+          "Wait for CMHA to confirm the family is eligible to move and to reissue the voucher or moving packet before signing anything new."
+        ]
+      }
+    },
+    {
+      "h2": "The Request for Tenancy Approval and the inspection",
+      "body": [
+        "Once the family has chosen a home, the owner and tenant complete a **Request for Tenancy Approval (RFTA)** packet and submit it to CMHA. The packet covers the proposed rent, the lease start date, and owner details. CMHA then schedules a **Housing Quality Standards (HQS) inspection** — HUD is transitioning these to the newer NSPIRE standard — and reviews whether the rent is reasonable and within the payment standard.",
+        "Nothing is final until the unit passes inspection and the new lease and HAP contract are signed. A failed inspection or a rent above the payment standard is where transfers stall for weeks. Starting from homes that are already inspection-ready removes most of that delay — every home [our team works with](/section-8-housing-cleveland-oh/) welcomes Housing Choice Vouchers and is kept ready for a CMHA inspection.",
+        "Signing a new lease before CMHA authorizes the move is the single most common way a family loses a month of assistance: the agency will not pay for a unit it never approved."
+      ]
+    },
+    {
+      "h2": "Timing the move around annual recertification",
+      "body": [
+        "Recertification is CMHA's annual reexamination of income and household composition. Moving in the same window adds paperwork, so build in buffer. A rough sequence that keeps assistance continuous:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "60–90 days out: confirm the family is past the initial lease term and start the home search.",
+          "45–60 days out: serve the 30-day notice to the current landlord and file the move request with CMHA.",
+          "30 days out: submit the RFTA for the chosen unit so the inspection can be scheduled.",
+          "Before move-in: unit passes HQS inspection, new lease and HAP contract signed, keys released."
+        ]
+      }
+    },
+    {
+      "h2": "Moving outside CMHA's area (portability)",
+      "body": [
+        "If the family wants to relocate to another county or state, that's **portability** — the voucher travels, but a second housing authority in the receiving area gets involved and the timeline lengthens. Within Cuyahoga County the move stays with CMHA and is simpler.",
+        "One local note: Cleveland itself has no source-of-income law. Only a few inner-ring suburbs — Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale — do. We welcome vouchers across every area we operate regardless, and we follow the Fair Housing Act in every interaction. Case managers who want the [full CMHA application walkthrough](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) can share it with clients who are newer to the program."
+      ]
+    },
+    {
+      "h2": "Line up a home before the clock starts",
+      "body": [
+        "The part of a voucher move that case managers can't control is inspection and agency processing time. The part you can control is not losing days to a home search that starts from scratch. That's where a pool of homes that already say **yes** to Section 8 helps.",
+        "Our current selection runs about 90+ homes, concentrated on Cleveland's East and Southeast side plus some suburbs and the Akron, Lorain, and Elyria areas. Send us the family's bedroom size, move-in timing, and must-be-near locations, and we'll tell you what's open now. [Tell us the client's needs](/housing-partners/) or [book a tour](/p/book-showing) — there's no fee to work with us."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Can a client move before their lease is up?", "a": "Usually not with continued assistance. During the initial 12-month lease term the family generally needs the landlord's agreement to be released early; after that, they can move with proper notice and CMHA authorization." },
+    { "q": "Does the new home have to be inspected again?", "a": "Yes. Every unit a family moves into must pass a CMHA Housing Quality Standards inspection before the lease and HAP contract are signed, even if the family has held a voucher for years." },
+    { "q": "How long does a voucher move take in Cleveland?", "a": "Plan on several weeks from notice to move-in once the landlord notice, CMHA move request, RFTA, and inspection are stacked in order. Starting the home search early is the biggest thing that keeps it on schedule." },
+    { "q": "Is there a cost for case managers to work with you?", "a": "No. There's no fee to partner with us or refer a family. The renter completes the standard tenant application once they choose a home." },
+    { "q": "Do you handle the CMHA paperwork for us?", "a": "We're a local rental team, not a housing authority or property manager, so the RFTA and move forms go through CMHA and the owner. What we do is get your client in front of voucher-ready homes fast so the paperwork has somewhere to go." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/helping-americans/rental-assistance/housing-choice-voucher-program"],
+  "lastUpdated": "2026-07-05"
+}

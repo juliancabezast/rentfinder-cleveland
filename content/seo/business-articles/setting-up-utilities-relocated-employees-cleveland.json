@@ -1,0 +1,75 @@
+{
+  "slug": "setting-up-utilities-relocated-employees-cleveland",
+  "section": "corporate-leasing",
+  "title": "Set Up Utilities in Cleveland: An HR Relocation Checklist",
+  "metaTitle": "Set Up Utilities in Cleveland | HR Relocation Guide",
+  "metaDescription": "Need to set up utilities in Cleveland for relocated staff? An HR checklist for electric, gas, and water — Illuminating Company, Cleveland Public Power, and more.",
+  "primaryKeyword": "set up utilities cleveland",
+  "secondaryKeywords": ["cleveland public power vs illuminating company", "relocation utilities cleveland", "turn on utilities cleveland"],
+  "answerBox": "To set up utilities in Cleveland, confirm which provider serves the exact address, then open accounts about one to two weeks before move-in. Most of Greater Cleveland uses the Illuminating Company for electric, Enbridge Gas Ohio for gas, and Cleveland Water for water, with Cleveland Public Power serving parts of the city. Accounts go in the resident's name.",
+  "sections": [
+    {
+      "h2": "Who provides electric, gas, and water in Greater Cleveland",
+      "body": [
+        "Utility service around Cleveland is split across a handful of providers, and which one a relocated employee uses depends almost entirely on their street address. Sorting this out before the move keeps day one from turning into a scramble of hold music and deposit requests.",
+        "Here is how the map generally breaks down. Always confirm by the specific address, because a few suburbs and city blocks are exceptions."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Electric:** The Illuminating Company (a FirstEnergy company) serves most of the region. **Cleveland Public Power (CPP)** is the City of Cleveland's municipal electric utility and serves only the streets its lines reach.",
+          "**Natural gas:** Enbridge Gas Ohio (formerly Dominion East Ohio) is the local gas distributor for most of the area.",
+          "**Water:** Cleveland Water serves the city and dozens of suburbs, though some suburbs run their own water department.",
+          "**Sewer and stormwater:** the Northeast Ohio Regional Sewer District (NEORSD) handles wastewater and stormwater fees, often billed alongside water."
+        ]
+      }
+    },
+    {
+      "h2": "An HR checklist to turn on service before move-in",
+      "body": [
+        "Utility accounts open in the resident's name, not the employer's, so the employee needs to be the one on the phone or online form. HR's job is mostly to coordinate timing and make sure nothing gets missed. Share this short checklist with the relocating staff member."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Confirm the exact service address and the expected move-in date.",
+          "Have the account holder ready with a photo ID, Social Security number, and a contact phone number.",
+          "Call or set up service online one to two weeks ahead, and ask for the move-in date as the start date.",
+          "Ask each provider whether a deposit or credit check applies, and budget for it.",
+          "Confirm whether any account is already active at the address so service is not shut off on move-in day.",
+          "Save every account number and start-date confirmation in one place for the employee."
+        ]
+      }
+    },
+    {
+      "h2": "Cleveland Public Power vs. the Illuminating Company",
+      "body": [
+        "This is the question that trips up most newcomers. Cleveland Public Power is a city-owned electric utility, and it is generally cheaper for some customers — but you cannot simply pick it. CPP only serves addresses that its distribution lines already reach, and coverage is patchy even within Cleveland city limits.",
+        "For most homes in the region, the Illuminating Company is the electric provider by default. The practical move is to verify the electric provider by address before assuming either one, rather than promising an employee CPP rates that may not be available at their new place."
+      ]
+    },
+    {
+      "h2": "Ohio energy choice, without the pressure",
+      "body": [
+        "Ohio has a deregulated energy market, which means a household can shop for the company that *generates* their electricity or gas separately from the utility that *delivers* it over the wires and pipes. The delivery utility (the Illuminating Company, Enbridge Gas Ohio) stays the same and still handles outages and safety.",
+        "The state's Public Utilities Commission keeps neutral, apples-to-apples price comparisons online, which is the honest place to shop. Warn relocated staff about door-to-door and phone pitches that create urgency — nobody has to switch suppliers to keep the lights on, and the standard utility rate is always a valid option."
+      ]
+    },
+    {
+      "h2": "How our move-in coordination fits in",
+      "body": [
+        "Rent Finder Cleveland is a local rental team — not a national relocation vendor. We do not provide furnished units or turnkey relocation packages. What we do well is help renters find, tour, and apply for homes we work with, and then coordinate a smooth move-in, which includes pointing the employee to the correct utility providers for that exact address.",
+        "Our current selection is concentrated on Cleveland's East and Southeast side, plus some suburbs and the Akron, Lorain, and Elyria areas. Every home we work with welcomes Housing Choice Vouchers (Section 8) and is HUD-inspection-ready, so it can be a strong fit for staff using a voucher. If your company is placing one employee or several, [tell us your team's needs](/corporate-leasing/) and we will see how we can help. You can also [book a showing](/p/book-showing) or browse [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) to see what is open now. Reach us at (440) 444-4737 or support@rentfindercleveland.com."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Who turns on the utilities — the employer or the employee?", "a": "The employee. Utility accounts open in the resident's name and require the account holder's ID and Social Security number. HR can coordinate the timing, but the employee usually has to set up each account personally." },
+    { "q": "How far ahead should we start setting up utilities in Cleveland?", "a": "One to two weeks before move-in is a safe window. That leaves time to confirm the right provider for the address, schedule the start date, and handle any deposit or credit check without a same-day gap in service." },
+    { "q": "Can a relocated employee choose Cleveland Public Power to save money?", "a": "Only if CPP's lines already serve that address. Coverage is limited even within the city, so many homes are served by the Illuminating Company instead. Always verify the electric provider by the specific address before promising CPP rates." },
+    { "q": "Do you provide furnished corporate units or relocation packages?", "a": "No. We are a local rental team, not a national relocation vendor. We help staff find, tour, and apply for homes we work with and coordinate a smooth move-in. Tell us your needs and we will let you know how we can help." },
+    { "q": "Are utility deposits required in Cleveland?", "a": "Sometimes. Providers may ask for a deposit depending on the credit check when the account opens. It is worth asking each utility up front so the employee can budget for any deposit before move-in." }
+  ],
+  "sources": ["https://energychoice.ohio.gov/", "https://www.clevelandwater.com/"],
+  "lastUpdated": "2026-07-05"
+}

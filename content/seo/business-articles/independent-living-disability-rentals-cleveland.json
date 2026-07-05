@@ -1,0 +1,70 @@
+{
+  "slug": "independent-living-disability-rentals-cleveland",
+  "section": "housing-partners",
+  "title": "Independent Living Disability Housing in Cleveland: Match Guide",
+  "metaTitle": "Independent Living Disability Housing Cleveland | Guide",
+  "metaDescription": "For independent living coordinators: match clients' access needs to voucher-ready homes. Independent living disability housing Cleveland teams can trust.",
+  "primaryKeyword": "independent living disability housing cleveland",
+  "secondaryKeywords": ["accessible rentals cleveland", "voucher housing cleveland disability", "cmha reasonable accommodation"],
+  "answerBox": "Independent living coordinators can match a client with disabilities to the right rental faster by starting from homes that already welcome Housing Choice Vouchers and are HUD-inspection-ready. Share the client's specific access needs — step-free entry, doorway width, a ground-floor unit — and Rent Finder Cleveland's local team will tell you which homes we work with fit right now.",
+  "sections": [
+    {
+      "h2": "Start from the client's access needs, not a diagnosis",
+      "body": [
+        "The quickest matches come from a concrete list of what a home must physically do for your client — not a label. A step-free entry, a 32-inch clear doorway, a ground-floor unit, or a bathroom that can take grab bars are all things we can check against real homes. A diagnosis is not.",
+        "We do not screen homes or clients by disability, and we follow the **Fair Housing Act** in every interaction. What we do is take the access requirements you send and tell you which homes in [our current selection](/section-8-housing-cleveland-oh/) already meet them or could reasonably be adapted."
+      ]
+    },
+    {
+      "h2": "Work from homes that already welcome the voucher",
+      "body": [
+        "Every home we work with welcomes Housing Choice Vouchers and is ready for a CMHA inspection — the two points where accessible placements most often stall. Starting there means your client's search begins from **yes** on the voucher, so you can spend your time on the access details that actually matter.",
+        "Rent Finder Cleveland is a local rental team, not a landlord or property manager. We work with 90+ Section 8-friendly homes concentrated on Cleveland's East and Southeast side, with some in nearby suburbs and in Akron, Lorain, and Elyria. Inventory is real houses and apartments, so accessibility varies unit by unit — which is exactly why the specifics you send matter."
+      ]
+    },
+    {
+      "h2": "Access features worth specifying in your request",
+      "body": ["The more precisely you describe the requirement, the faster we can rule homes in or out."],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Step-free or no-threshold entry, or whether a ramp could be added",
+          "Ground-floor unit, or an elevator building if upper floors are unavoidable",
+          "Doorway and hallway clear width for a wheelchair or walker (32 inches or wider)",
+          "Bathroom layout — roll-in shower, space to transfer, walls that can hold grab bars",
+          "Off-street or close parking, and the distance from parking to the door",
+          "Proximity to a specific clinic, day program, transit line, or support worker",
+          "Voucher bedroom size and the issuing housing authority (CMHA for Cuyahoga County)"
+        ]
+      }
+    },
+    {
+      "h2": "Reasonable accommodations and CMHA exception payment standards",
+      "body": [
+        "Two tools can make an accessible home work financially. First, under the Fair Housing Act a tenant with a disability can request **reasonable modifications** to a unit — such as grab bars or a ramp — and the landlord must allow them (who pays depends on the situation). Second, CMHA can grant a **reasonable accommodation** on the voucher itself, including an exception payment standard above the normal Fair Market Rent, when a client's disability requires a specific or more expensive accessible unit.",
+        "These are the housing authority's decisions, not ours, and they require documentation of the disability-related need — so build the request into your timeline early. We can flag which homes we work with tend to fit these situations and point you to [how the CMHA application works](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/), but we cannot approve a voucher exception on CMHA's behalf."
+      ]
+    },
+    {
+      "h2": "Know the local source-of-income rules",
+      "body": [
+        "Cleveland itself does not yet have a source-of-income ordinance, but several inner-ring suburbs do — including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. Those local laws make it illegal to reject an applicant simply for using a voucher. We welcome Housing Choice Vouchers everywhere we operate regardless of local law, and we never steer clients toward or away from any area based on a protected characteristic."
+      ]
+    },
+    {
+      "h2": "How to send us a client",
+      "body": [
+        "Tell us the client's access requirements, bedroom size, voucher issuer, move-in timing, and any must-be-near locations, and we will tell you what fits from our current selection. There is no fee to work with us or to refer a client. When something matches, your client can [book a tour](/p/book-showing) and complete the standard tenant application for that home.",
+        "Reach the team at **(440) 444-4737** or **support@rentfindercleveland.com**, or see more on our [housing partners page](/housing-partners/). We are a local rental team helping renters find, tour, and apply for Section 8-friendly homes — send us the specifics and we will see how we can help."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Do you provide accessibility assessments or medical determinations?", "a": "No. We are a local rental team, not a clinical or occupational-therapy service. You bring the client's access requirements; we match them to homes we work with that already welcome vouchers." },
+    { "q": "Can a voucher cover a more expensive accessible home?", "a": "Sometimes. CMHA can approve a reasonable accommodation, including an exception payment standard above Fair Market Rent, when a disability-related need requires it. That decision and its documentation rest with CMHA, not us." },
+    { "q": "Are your homes already modified for accessibility?", "a": "It varies by home — these are real houses and apartments, so features differ unit by unit. Send the specific requirements and we will tell you which current homes already meet them or could reasonably be adapted." },
+    { "q": "Is there a cost to work with you as an IL coordinator?", "a": "No. There is no fee to partner with us or refer a client. The renter completes the standard tenant application once they choose a home." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/program_offices/fair_housing_equal_opp/reasonable_accommodations_and_modifications"],
+  "lastUpdated": "2026-07-05"
+}

@@ -1,0 +1,74 @@
+{
+  "slug": "cmha-hqs-inspection-checklist-cleveland",
+  "section": "housing-partners",
+  "title": "CMHA HQS Inspection Checklist for Cleveland Case Managers",
+  "metaTitle": "CMHA HQS Inspection Checklist for Cleveland Navigators",
+  "metaDescription": "A step-by-step CMHA HQS inspection checklist for Cleveland navigators — prep a voucher unit to pass on CMHA's first visit and avoid re-inspection delays.",
+  "primaryKeyword": "cmha hqs inspection checklist",
+  "secondaryKeywords": ["cmha inspection cleveland", "hqs nspire checklist", "section 8 inspection cleveland"],
+  "answerBox": "CMHA inspects every Housing Choice Voucher unit before signing a HAP contract, checking smoke and carbon-monoxide detectors, electrical outlets and covers, heat, hot water, working windows and locks, handrails, and peeling paint. To pass on the first visit, walk the unit against these items, confirm any pre-1978 home has Cleveland Lead Safe certification, and fix life-threatening items before you schedule.",
+  "sections": [
+    {
+      "h2": "What CMHA's inspector is actually looking for",
+      "body": [
+        "Before the Cuyahoga Metropolitan Housing Authority (CMHA) signs a Housing Assistance Payment (HAP) contract, the unit has to pass an initial physical inspection. The inspector isn't grading the home — they're confirming it meets HUD's minimum habitability standards for health and safety. Most first-visit failures come from small, fixable items, not major structural problems.",
+        "HUD is phasing in **NSPIRE** (National Standards for the Physical Inspection of Real Estate) to replace the older **HQS** (Housing Quality Standards) framework. The core habitability items overlap heavily — detectors, electrical, heat, hot water, and lead-based paint — but the scoring language differs. Confirm with CMHA which standard applies to your inspection date so you're prepping against the right list.",
+        "Every home we work with is already HUD-inspection-ready and welcomes Housing Choice Vouchers, which is where placements most often stall. If you're new to the process, our overview of [Section 8 housing in Cleveland](/section-8-housing-cleveland-oh/) walks through how the pieces fit together."
+      ]
+    },
+    {
+      "h2": "A room-by-room pre-inspection checklist",
+      "body": [
+        "Walk the unit with the client (or agent) before you request the inspection. Test everything the inspector will test — utilities must be on so the stove, heat, hot water, and outlets can be verified."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Kitchen: every stove burner and the oven light and heat, a GFCI outlet near the sink, and no leaks under the sink",
+          "Bathroom: a flushing toilet, hot and cold water, a GFCI outlet, and either a window that opens or working ventilation",
+          "Bedrooms: a window that opens and locks, plus a smoke detector on every level and near each sleeping area",
+          "Electrical: cover plates on every outlet, switch, and junction box; no exposed or frayed wiring",
+          "Stairs and porches: a secure handrail on any run of four or more steps and a guardrail on porches roughly 30 inches or higher",
+          "Heat and water: a permanent heat source in each room, and a water heater with a temperature-pressure relief valve and a downward discharge pipe"
+        ]
+      }
+    },
+    {
+      "h2": "The 'fail on sight' items to fix first",
+      "body": [
+        "Some deficiencies are classified as life-threatening and cause an immediate fail. Under NSPIRE these typically must be corrected within 24 hours, so catch them before the inspector ever arrives.",
+        "The usual culprits: a **missing or dead smoke detector**, a **missing carbon-monoxide detector** near sleeping areas in a home with gas or an attached garage, **exposed electrical wiring** or missing outlet covers, a **gas leak or no working heat**, and blocked egress. Test each detector, replace batteries, and confirm the heat actually fires. Fixing these five things resolves the majority of avoidable first-visit failures."
+      ]
+    },
+    {
+      "h2": "Cleveland's lead-safe rule adds a step",
+      "body": [
+        "For any home built before 1978, HUD prohibits peeling, chipping, or flaking paint inside and out — the risk rises sharply when a child under six will live there. On top of that, the **City of Cleveland's Lead Safe ordinance** requires most rental units built before 1978 to carry a valid **Lead Safe Certificate**.",
+        "That certification is separate from the CMHA inspection but often lands on the same critical path, so confirm it early. Ask whether the unit already has a current Lead Safe Certificate and whether any interior or exterior paint is flaking — repainting and re-clearance can add weeks if it's discovered late. Homes we work with are prepared for these requirements ahead of time."
+      ]
+    },
+    {
+      "h2": "If it fails: re-inspection timing and how to avoid the wait",
+      "body": [
+        "When a unit fails, CMHA issues a list of deficiencies and a correction window — commonly 24 hours for life-threatening items and up to about 30 days for the rest — then re-inspects. That second visit routinely adds one to several weeks to a move-in, during which your client's clock and your placement targets keep running.",
+        "The reliable way to skip that loop is to start from units that are already prepped and to send us the client's details early. See what to gather on our [housing partners](/housing-partners/) page, and if you want to walk a specific home before you commit, you can [book a showing](/p/book-showing) directly."
+      ]
+    },
+    {
+      "h2": "Start from homes that are already inspection-ready",
+      "body": [
+        "The fastest inspection is the one you don't have to redo. Rent Finder Cleveland is a local rental team that helps voucher holders find, tour, and apply for Section 8-friendly homes — around 90+ of them, concentrated on Cleveland's East and Southeast side with some suburbs plus Akron, Lorain, and Elyria. Every home we work with welcomes Housing Choice Vouchers and is kept HUD-inspection-ready.",
+        "Send a client's bedroom size, timing, issuing authority, and preferred areas and we'll tell you what's open now. If your client is still early in the process, point them to our guide on [how to apply for Section 8 with CMHA](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/). Reach the team at **(440) 444-4737** or **support@rentfindercleveland.com**."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Who schedules the CMHA HQS inspection?", "a": "After the tenant and owner submit the Request for Tenancy Approval (RFTA), CMHA schedules the initial inspection. The unit must pass before the HAP contract is signed and the client can move in." },
+    { "q": "Do the utilities need to be on for the inspection?", "a": "Yes. Water, gas, and electric must be on so the inspector can test the stove, heat, hot water, and outlets. A unit with utilities off is a common automatic fail." },
+    { "q": "What's the difference between HQS and NSPIRE?", "a": "NSPIRE is HUD's newer inspection standard that is replacing HQS. The habitability items overlap heavily, but confirm with CMHA which standard applies to your specific inspection date." },
+    { "q": "How much does a failed inspection delay a move-in?", "a": "CMHA gives the owner a correction window — often 24 hours for life-threatening items and up to about 30 days for others — then re-inspects. That second visit commonly adds one to several weeks." },
+    { "q": "Is there a fee for case managers to work with you?", "a": "No. There is no cost to partner with us or refer a client. The renter still completes standard tenant application steps once they choose a home." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/program_offices/public_indian_housing/reac/nspire"],
+  "lastUpdated": "2026-07-05"
+}

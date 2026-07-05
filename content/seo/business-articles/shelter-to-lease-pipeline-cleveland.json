@@ -1,0 +1,73 @@
+{
+  "slug": "shelter-to-lease-pipeline-cleveland",
+  "section": "housing-partners",
+  "title": "Shelter to Permanent Housing in Cleveland: A Staff Playbook",
+  "metaTitle": "Shelter to Permanent Housing Cleveland | For Staff",
+  "metaDescription": "A workflow for Cleveland shelter and transitional-housing staff to move guests from shelter to permanent housing in voucher-ready homes with no coverage gap.",
+  "primaryKeyword": "shelter to permanent housing cleveland",
+  "secondaryKeywords": ["transitional housing to permanent housing cleveland", "rapid re-housing cleveland", "cmha voucher placement"],
+  "answerBox": "Moving a guest from shelter to permanent housing in Cleveland goes fastest when the search starts before the exit date and targets homes that already accept Housing Choice Vouchers and are HUD-inspection-ready. That avoids a coverage gap between programs. Rent Finder Cleveland, a local rental team, works with 90+ voucher-friendly homes across Greater Cleveland and can share what is open now.",
+  "sections": [
+    {
+      "h2": "Why guests lose time between programs",
+      "body": [
+        "The handoff from an emergency shelter or transitional program to a permanent lease is where placements most often stall. A guest can be voucher-approved and motivated, yet still lose weeks because the search for a willing landlord only starts after the program clock is already running down.",
+        "Each of those weeks matters. Transitional-housing time limits, shelter bed turnover, and voucher expiration dates rarely line up, and a single delayed inspection can push move-in past the point where the guest still has a bed. The goal is a warm handoff — keys in hand before the current placement ends."
+      ]
+    },
+    {
+      "h2": "Start the housing search before the exit date",
+      "body": [
+        "Treat housing search as something that begins at intake, not at discharge. As soon as a guest is voucher-approved — or has a rapid re-housing or permanent supportive housing subsidy lined up — you can match them to real, available homes instead of waiting for the exit meeting.",
+        "The biggest single delay is finding a landlord who will accept the voucher at all. Many denials never look like denials — a landlord stops replying, or lists rent just above CMHA's payment standard. You skip that by working from homes that already welcome Housing Choice Vouchers. Browse [Section 8 homes for rent in Cleveland](/section-8-housing-cleveland-oh/) to see the kind of inventory that starts from **yes**."
+      ]
+    },
+    {
+      "h2": "Line up the paperwork before you tour",
+      "body": [
+        "A tour that ends in \"yes\" still stalls if the voucher packet isn't ready. Have these in hand so the guest can move from tour to signed lease to inspection without a pause:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Voucher issuance letter with bedroom size and expiration date",
+          "Issuing housing authority (CMHA, or a ported-in authority)",
+          "Request for Tenancy Approval (RFTA) packet, ready to submit",
+          "Income and identification documents the landlord will need",
+          "Move-in timing and any shelter or program exit deadline",
+          "Accessibility or ground-floor needs, and household size"
+        ]
+      }
+    },
+    {
+      "h2": "Match guests to homes that already welcome vouchers",
+      "body": [
+        "Rent Finder Cleveland is a local rental team — not a property manager or a housing authority. We help renters find, tour, and apply for homes that welcome Section 8. Every home we work with accepts Housing Choice Vouchers and is kept ready for a CMHA inspection, which are the two steps where shelter-to-lease placements most often break down.",
+        "Send a guest's bedrooms, timing, and preferred areas and we'll tell you what's open now. There's no fee to partner with us or refer a guest. You can [book a tour](/p/book-showing) directly once a home fits, or point guests to [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) to see current options. Our roughly 90 homes are concentrated on Cleveland's East and Southeast side, with some suburban options plus Akron, Lorain, and Elyria."
+      ]
+    },
+    {
+      "h2": "Time the CMHA inspection so there's no coverage gap",
+      "body": [
+        "The housing quality inspection is the classic gap-maker. CMHA schedules its inspection after the RFTA is submitted, and a failed or delayed inspection can push move-in past a guest's exit date. Starting with homes that are already inspection-ready shrinks that risk.",
+        "Work backward from the exit date: submit the RFTA early, confirm utilities are turned on in the name required by the lease, and keep the shelter or transitional bed reserved until the lease start and inspection clear. If timing is tight, use CoC case conferencing or ask the housing authority about bridge options so no one exits to the street while paperwork finishes."
+      ]
+    },
+    {
+      "h2": "Cuyahoga County resources to keep in the loop",
+      "body": [
+        "You don't have to run the handoff alone. Coordinate with the Cuyahoga County Office of Homeless Services and the local Continuum of Care for Coordinated Entry, rapid re-housing, and permanent supportive housing referrals, and with CMHA for voucher and inspection questions.",
+        "One honest caveat on source-of-income protections: the City of Cleveland does not have a source-of-income ordinance, though several inner-ring suburbs do — Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. We welcome vouchers everywhere we operate regardless, and we follow the Fair Housing Act in every interaction. See our [housing partners page](/housing-partners/) for how we work with case managers and program staff, or call (440) 444-4737."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Can we start a housing search before a guest formally exits our program?", "a": "Yes, and you should. Beginning the search once a guest is voucher-approved — well before the exit date — is the best way to avoid a coverage gap. Send us bedrooms, timing, and preferred areas and we'll share what's available now." },
+    { "q": "Is there a cost for shelter or transitional-housing staff to work with you?", "a": "No. There's no fee to partner with us or refer a guest. The renter completes the standard tenant application steps once they choose a home." },
+    { "q": "Do the homes you work with pass CMHA inspections?", "a": "Every home we work with accepts Housing Choice Vouchers and is kept ready for a CMHA inspection, which is one of the most common places shelter-to-lease placements stall." },
+    { "q": "What if the guest's voucher is about to expire?", "a": "Tell us the expiration date up front. We prioritize homes that are already voucher-ready so the guest can move from tour to RFTA to inspection quickly, and you can ask CMHA about extensions if the timeline is tight." },
+    { "q": "Are you a housing authority or property manager?", "a": "Neither. Rent Finder Cleveland is a local rental team that helps renters find, tour, and apply for Section 8-friendly homes. We work alongside CMHA and case managers, not in place of them. Reach us at support@rentfindercleveland.com." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/"],
+  "lastUpdated": "2026-07-05"
+}

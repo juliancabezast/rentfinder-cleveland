@@ -1,0 +1,82 @@
+{
+  "slug": "cmha-payment-standards-fair-market-rent-cleveland",
+  "section": "housing-partners",
+  "title": "CMHA Payment Standards and Fair Market Rent for Partners",
+  "metaTitle": "CMHA Payment Standards & Fair Market Rent 2026 Guide",
+  "metaDescription": "How CMHA payment standards 2026 and Fair Market Rent set what a voucher client can afford — a practical guide for Cleveland housing navigators and partners.",
+  "primaryKeyword": "cmha payment standards 2026",
+  "secondaryKeywords": ["cleveland fair market rent 2026", "housing choice voucher payment standard", "cmha voucher limits cleveland"],
+  "answerBox": "CMHA payment standards for 2026 are the maximum rent CMHA uses to calculate a Housing Choice Voucher subsidy, set between 90 and 110 percent of HUD's Fair Market Rent for each bedroom size. Together they shape what a client can afford. Navigators who target homes priced within those limits from the start place clients faster and avoid stalled lease-ups.",
+  "sections": [
+    {
+      "h2": "What CMHA payment standards and Fair Market Rent actually are",
+      "body": [
+        "**Fair Market Rent (FMR)** is a figure HUD publishes every year for each metro area and bedroom size. For most areas it represents roughly the 40th percentile of gross rents — what a modest, non-luxury unit rents for, including the cost of tenant-paid utilities. Greater Cleveland falls under the **Cleveland-Elyria, OH metro** FMR set, which spans Cuyahoga, Geauga, Lake, Lorain, and Medina counties.",
+        "A **payment standard** is the number CMHA actually uses to calculate a voucher subsidy. HUD lets a housing authority set its payment standards anywhere from **90% to 110% of FMR** (with HUD approval for exceptions above that), broken out by bedroom size. CMHA reviews and updates these figures on its own cycle, so the 'cmha payment standards 2026' a navigator quotes should always be the current program-year schedule, not last year's."
+      ]
+    },
+    {
+      "h2": "How the numbers decide what a client can afford",
+      "body": [
+        "The payment standard does not tell you what your client pays — it sets the ceiling CMHA uses for its share. A voucher household generally pays about **30% of its adjusted monthly income** toward rent and utilities, and the subsidy covers the gap up to the payment standard.",
+        "Two details quietly derail placements. First, CMHA compares the **gross rent** — contract rent plus a **utility allowance** for any utilities the tenant pays directly — against the payment standard, not the advertised rent alone. A home listed right at the standard can still exceed it once tenant-paid heat and electric are added. Second, at **initial lease-up** a family's share of gross rent generally cannot exceed **40% of adjusted monthly income**, which can rule out a unit that looked affordable on paper."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Adjusted monthly income, after allowable deductions",
+          "The unit's contract rent versus CMHA's payment standard for that bedroom size",
+          "The utility allowance for utilities the tenant pays directly",
+          "The 40% initial-lease-up cap on the family's share of gross rent"
+        ]
+      }
+    },
+    {
+      "h2": "The payment standard is a subsidy cap, not a hard rent ceiling",
+      "body": [
+        "A common misunderstanding is that a voucher client can only rent a home priced at or below the payment standard. That is not quite right. A family may lease a unit that rents above the payment standard — they simply pay the difference on top of their normal share, as long as the total stays within the 40% initial-lease-up limit.",
+        "For a navigator, the practical takeaway is that the payment standard is where affordability gets easy, not a wall. Homes at or a little under the standard leave the most room for utilities and keep the client's share low. That is why a shortlist priced within voucher limits from the start beats chasing homes that will fail the 40% test at lease-up."
+      ]
+    },
+    {
+      "h2": "Target homes priced within voucher limits from the start",
+      "body": [
+        "You can save a client weeks by screening on bedroom size and price before anyone tours a home. Match the unit to the client's **voucher bedroom size**, then check the gross rent — including utilities — against CMHA's current payment standard for that size.",
+        "Every home our team works with welcomes Housing Choice Vouchers and is ready for a CMHA HQS inspection — the two steps where placements most often stall. Our current selection runs about 90 homes concentrated on Cleveland's East and Southeast side, with additional options in some suburbs and in Akron, Lorain, and Elyria. Send us a client's voucher size, timing, and preferred areas and we'll tell you what fits. Browse [our Section 8 homes in Cleveland](/section-8-housing-cleveland-oh/), review the [CMHA application steps](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/), or [book a showing](/p/book-showing)."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Confirm the client's voucher bedroom size and CMHA's payment standard for it",
+          "Estimate gross rent by adding the utility allowance for tenant-paid utilities",
+          "Prioritize homes at or just under the payment standard to protect the 40% cap",
+          "Start from homes that already welcome Housing Choice Vouchers and are HUD-inspection-ready"
+        ]
+      }
+    },
+    {
+      "h2": "How to confirm the current 2026 figures",
+      "body": [
+        "FMRs change every year — the federal schedule takes effect at the start of HUD's fiscal year (October 1), and CMHA's payment standards follow on their own review cycle. Never quote a figure from memory. Pull the current bedroom-by-bedroom numbers directly and note the effective date before you rely on them.",
+        "We work with vouchers everywhere we operate and follow the Fair Housing Act in every interaction, but we are a local rental team, not a housing authority. CMHA sets and administers the payment standards, and their published schedule is always the final word. When in doubt, verify with CMHA or reach our team at (440) 444-4737 or support@rentfindercleveland.com."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "HUD's FMR lookup for the Cleveland-Elyria, OH metro (huduser.gov)",
+          "CMHA's published payment standard schedule for the current program year",
+          "The applicable utility allowance schedule for the unit's utility setup"
+        ]
+      }
+    }
+  ],
+  "faq": [
+    { "q": "Are CMHA payment standards the same as a rent cap?", "a": "No. The payment standard is the maximum CMHA uses to calculate its subsidy, not a limit on what a home can rent for. A client can lease a home above the standard and pay the difference, as long as their share stays within the 40% initial-lease-up limit." },
+    { "q": "How do Fair Market Rent and payment standards relate?", "a": "HUD publishes Fair Market Rent each year by metro and bedroom size; CMHA then sets its payment standards between 90% and 110% of that FMR. FMR is the input, and the payment standard is what CMHA actually applies." },
+    { "q": "How often do the 2026 numbers change?", "a": "HUD updates FMRs annually, effective October 1, and CMHA revises its payment standards on its own schedule. Always confirm the current figures with CMHA before relying on them." },
+    { "q": "Do I need to factor in utilities?", "a": "Yes. CMHA compares gross rent — contract rent plus a utility allowance for any utilities the tenant pays directly — against the payment standard, so add utilities in before assuming a home is within limits." },
+    { "q": "Can you tell me if a specific home fits a client's voucher?", "a": "Send us the voucher bedroom size, the client's timing, and preferred areas. Because every home we work with already welcomes Housing Choice Vouchers, we can quickly flag what fits within voucher limits. There's no fee to partner with us." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.huduser.gov/portal/datasets/fmr.html"],
+  "lastUpdated": "2026-07-05"
+}

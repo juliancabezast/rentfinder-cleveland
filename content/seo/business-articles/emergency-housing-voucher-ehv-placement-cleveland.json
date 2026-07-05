@@ -1,0 +1,65 @@
+{
+  "slug": "emergency-housing-voucher-ehv-placement-cleveland",
+  "section": "housing-partners",
+  "title": "Emergency Housing Voucher (EHV) Placement in Cleveland, OH",
+  "metaTitle": "Emergency Housing Voucher Placement in Cleveland, OH",
+  "metaDescription": "A guide for Cleveland CoC and coordinated-entry partners: place emergency housing voucher Cleveland holders into HUD-inspection-ready homes fast.",
+  "primaryKeyword": "emergency housing voucher cleveland",
+  "secondaryKeywords": ["ehv cleveland", "coordinated entry cleveland", "cmha emergency housing voucher"],
+  "answerBox": "Emergency Housing Vouchers reach renters through Cuyahoga County's coordinated entry system, and the search clock starts the moment CMHA issues one. The fastest placements begin from homes that already welcome vouchers and are ready for a CMHA HQS inspection. Rent Finder Cleveland is a local rental team working with 90+ such homes across Greater Cleveland — send an EHV holder's needs and we'll tell you what's open now.",
+  "sections": [
+    {
+      "h2": "How EHV placement works in Cuyahoga County",
+      "body": [
+        "Emergency Housing Vouchers (EHVs) came out of the 2021 American Rescue Plan Act as a one-time, HUD-funded allocation. Unlike the regular [Section 8 Housing Choice Voucher](/section-8-housing-cleveland-oh/) waitlist, an EHV is not something a renter applies for directly — holders are referred through the local **Continuum of Care (CoC) coordinated entry** system.",
+        "In Cuyahoga County, coordinated entry prioritizes households who are experiencing homelessness, at risk of homelessness, fleeing domestic violence, dating violence, sexual assault, stalking or human trafficking, or recently homeless. Once a household is matched and the **Cuyahoga Metropolitan Housing Authority (CMHA)** issues the voucher, the search window opens — and that is where your work as a coordinated-entry or CoC partner really begins."
+      ]
+    },
+    {
+      "h2": "Skip the two steps that stall EHV placements",
+      "body": [
+        "Two things eat up an EHV search window more than anything else: finding a landlord who will accept the voucher at all, and getting the unit through a **CMHA Housing Quality Standards (HQS) inspection**. Many voucher denials never even look like denials — a landlord simply stops replying, or lists a rent just above the payment standard. And a unit that a landlord is happy to lease can still cost your client weeks if it fails inspection.",
+        "Starting from homes that already welcome Housing Choice Vouchers **and** are HUD-inspection-ready removes both delays. Every home our team works with meets that bar, so an EHV holder's search starts from **yes** instead of a stack of unanswered calls."
+      ]
+    },
+    {
+      "h2": "What to send us to match an EHV holder fast",
+      "body": [
+        "The more specific the referral, the faster we can point you to real, open homes. The lease-up paperwork — the Request for Tenancy Approval, the HQS inspection, and the HAP contract — mirrors the [standard CMHA voucher process](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/), so anything you already gather for a regular voucher works here too."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Voucher bedroom size and household size",
+          "The search deadline (and whether an extension has been approved)",
+          "Preferred areas or must-be-near locations — work, school, clinic, treatment",
+          "Move-in timing and accessibility or ground-floor needs",
+          "Issuing authority (CMHA) and any EHV service supports already in place"
+        ]
+      }
+    },
+    {
+      "h2": "Beat the search deadline before it costs the voucher",
+      "body": [
+        "EHV search terms usually run at least 60 days, with extensions available at CMHA's discretion — and EHV's enhanced services can make moves and extensions smoother than a standard voucher. Depending on what CMHA has available, EHV funding can cover supports the regular program does not, such as security-deposit assistance, application fees, and landlord incentives. Confirm exactly what is offered for your client rather than assuming it applies.",
+        "Speed matters for another reason: EHV is a finite, time-limited program. HUD has signaled that vouchers freed up by turnover may not always be reissued as national funding draws down, so every placement made before a deadline passes counts. We keep our current selection inspection-ready and voucher-welcoming precisely so partners are not racing the clock during the search step — the moment a client picks a home, you can [book a showing](/p/book-showing) the same week."
+      ]
+    },
+    {
+      "h2": "Where our homes are — and the fair-housing basics",
+      "body": [
+        "Our current selection is concentrated on Cleveland's East and Southeast side, with additional homes in some suburbs and in Akron, Lorain, and Elyria. We can usually tell you the same day whether an EHV holder's bedroom size and preferred areas line up with what's open right now.",
+        "We follow the Fair Housing Act in every interaction — we never steer a household toward or away from any area, and we match on the things that actually matter for a placement: bedroom count, household size, accessibility needs, and timing. Cleveland itself does not have a source-of-income ordinance, though several inner-ring suburbs do (Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale). Every home we work with welcomes vouchers regardless.",
+        "Working a caseload? See how our [housing-partner referrals](/housing-partners/) work, then reach out at **(440) 444-4737** or **support@rentfindercleveland.com**. There is no cost to partner with us or to refer a client."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Can an EHV holder contact you directly, or does it have to come through us?", "a": "Either works once the voucher is issued. EHVs themselves are referral-only through Cuyahoga County coordinated entry, but after CMHA issues the voucher, a case manager or the holder can send us the household's needs and we'll match open homes right away." },
+    { "q": "How quickly can you tell me what's available?", "a": "Usually same day. Because every home we work with already welcomes Housing Choice Vouchers, we can quickly match an EHV holder's bedrooms, timing, and preferred areas against what's open now." },
+    { "q": "Are your homes ready to pass a CMHA HQS inspection?", "a": "Yes. Every home our team works with is HUD-inspection-ready, which is where placements most often stall. That does not skip the CMHA inspection, but it removes the guesswork about whether a unit will pass." },
+    { "q": "Is there any cost to partner with you or refer an EHV client?", "a": "No. There is no fee to partner with us or to refer. The renter still completes standard tenant application steps once they choose a home, and CMHA handles the voucher paperwork." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/program_offices/public_indian_housing/ehv"],
+  "lastUpdated": "2026-07-05"
+}

@@ -1,0 +1,45 @@
+{
+  "slug": "place-section-8-clients-cleveland-fast",
+  "section": "housing-partners",
+  "title": "How Case Managers Can Place Section 8 Clients in Cleveland Faster",
+  "metaTitle": "Place Section 8 Clients Faster in Cleveland | Housing Partners",
+  "metaDescription": "A practical guide for Cleveland case managers and housing navigators: how to place Housing Choice Voucher clients faster with landlords who already welcome Section 8.",
+  "primaryKeyword": "place section 8 clients cleveland",
+  "secondaryKeywords": ["housing navigator cleveland", "voucher placement cleveland"],
+  "answerBox": "The slowest part of placing a Housing Choice Voucher client is usually finding a landlord who will accept the voucher at all. You can skip that step by working from a pool of homes that already welcome Section 8 and are HUD-inspection-ready. Rent Finder Cleveland works with 90+ such homes across Greater Cleveland — send a client's needs and we'll tell you what's available now.",
+  "sections": [
+    {
+      "h2": "Start from landlords who already say yes",
+      "body": [
+        "Many voucher denials never show up as denials — a landlord simply stops replying, or lists a rent just above the payment standard. Beginning with homes that already accept Housing Choice Vouchers removes that friction so your client's search starts from **yes**.",
+        "Every home we work with welcomes Section 8 and is ready for a CMHA HQS inspection, which is often where placements stall."
+      ]
+    },
+    {
+      "h2": "What to send us to speed up a match",
+      "body": ["The more specific the request, the faster we can point you to real options."],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Bedrooms needed and household size",
+          "Preferred neighborhoods or must-be-near locations (work, school, clinic)",
+          "Move-in timing and any inspection deadlines",
+          "Accessibility or ground-floor needs",
+          "Voucher bedroom size and issuing housing authority (e.g. CMHA)"
+        ]
+      }
+    },
+    {
+      "h2": "Know the local source-of-income rules",
+      "body": [
+        "Cleveland itself does not yet have a source-of-income ordinance, but several inner-ring suburbs do — including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. We welcome vouchers everywhere we operate regardless, and we follow the Fair Housing Act in every interaction."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Is there any cost to work with you as a case manager?", "a": "No. There is no fee to partner with us or refer a client. The renter still completes standard tenant application steps once they choose a home." },
+    { "q": "How quickly can you tell me what's available?", "a": "Usually same day. Because every home we work with already accepts Housing Choice Vouchers, we can quickly match a client's bedrooms, timing, and preferred areas to what's open right now." }
+  ],
+  "sources": ["https://www.cmha.net/"],
+  "lastUpdated": "2026-07-05"
+}

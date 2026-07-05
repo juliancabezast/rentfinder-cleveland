@@ -1,0 +1,84 @@
+{
+  "slug": "cmha-vs-suburban-housing-authorities-cleveland",
+  "section": "housing-partners",
+  "title": "CMHA vs. Suburban Housing Authorities in Greater Cleveland",
+  "metaTitle": "CMHA vs. Suburban Housing Authorities | Cleveland Partners",
+  "metaDescription": "How CMHA and suburban housing authorities issue Housing Choice Vouchers, and how jurisdiction and portability shape where your client's voucher works across Greater Cleveland.",
+  "primaryKeyword": "cmha vs suburban housing authority cleveland",
+  "secondaryKeywords": ["voucher portability cleveland", "cmha jurisdiction", "housing choice voucher cuyahoga county"],
+  "answerBox": "A Housing Choice Voucher is issued by one housing authority but is not locked to that authority's home city. CMHA administers vouchers across Cuyahoga County, including Cleveland and most suburbs, so a CMHA client can usually lease in another Cuyahoga suburb without porting. Crossing into a different authority's jurisdiction — a separate county or a city-run agency — triggers portability, which adds time. Confirm the issuing authority before you plan a placement across city lines.",
+  "sections": [
+    {
+      "h2": "Who issues the voucher, and who administers it where you're placing",
+      "body": [
+        "The single most useful fact for a cross-jurisdiction placement is which housing authority issued your client's voucher. In Greater Cleveland that is usually the **Cuyahoga Metropolitan Housing Authority (CMHA)**, which administers the Housing Choice Voucher program across most of Cuyahoga County — Cleveland and the great majority of its suburbs sit inside CMHA's jurisdiction.",
+        "That matters because a voucher is not tied to the city where your client currently lives. It is tied to the **administering authority's jurisdiction**. If your CMHA client moves from Cleveland to a suburb CMHA also serves, that is a normal move within the same jurisdiction — no portability paperwork, same payment standards, same caseworker. If the destination sits under a *different* authority, the rules change.",
+        "So before planning a placement across city lines, confirm two things: which authority issued the voucher, and whether the destination address falls inside that same authority's service area."
+      ]
+    },
+    {
+      "h2": "When a move stays 'in jurisdiction' — and when portability kicks in",
+      "body": [
+        "Portability is the HUD process that lets a voucher holder use the voucher outside the issuing authority's jurisdiction. It works, and families use it constantly, but it adds steps, hand-offs between two agencies, and time — which is exactly the delay a navigator planning a placement wants to see coming.",
+        "In practice, here is how the Greater Cleveland moves tend to sort out:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Cleveland to another Cuyahoga County suburb, both under CMHA** — typically a straightforward move within the same jurisdiction, no port required.",
+          "**A voucher issued by a different county's authority moving into Cuyahoga County** — usually a port-in to CMHA as the receiving authority.",
+          "**A CMHA voucher moving out to Lake, Lorain, Summit, or another county** — a port-out to that county's authority.",
+          "**A city or agency that runs its own program separate from the county** — treat it as a distinct jurisdiction and confirm early, since payment standards and inspection scheduling will be that agency's, not CMHA's."
+        ]
+      }
+    },
+    {
+      "h2": "Why the administering authority changes the practical numbers",
+      "body": [
+        "Two things move with the administering authority and can quietly reshape a placement: the **payment standard** and the **inspection**. Each authority sets its own payment standards by bedroom size and ZIP-code area, so the same three-bedroom rent that clears in one jurisdiction may sit above the standard in another. When a client ports, the receiving authority's payment standard applies — not the one your client is used to.",
+        "The inspection follows the same logic. Every unit still has to pass a Housing Quality Standards (HQS) inspection before the lease starts, but the *scheduling* is handled by whichever authority administers the voucher at the destination. Building that inspection window into your timeline — instead of discovering it after a client has settled on a unit — is the difference between a smooth placement and a stalled one.",
+        "This is where starting from voucher-ready homes helps. Every home we work with already welcomes Housing Choice Vouchers and is kept HUD-inspection-ready, so the inspection is one less place a placement stalls. You can browse the kind of homes involved on our [Section 8 houses for rent in Cleveland](/cleveland-rentals/section-8/section-8-houses-for-rent-cleveland-ohio/) page."
+      ]
+    },
+    {
+      "h2": "Source-of-income rules are separate from the voucher's jurisdiction",
+      "body": [
+        "It is easy to conflate two different questions: *can the voucher be used here* (a housing-authority jurisdiction question) and *can a landlord decline the voucher here* (a local source-of-income question). They are not the same thing.",
+        "**Cleveland itself does not have a source-of-income ordinance.** A handful of inner-ring suburbs do — Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale — meaning landlords there generally cannot refuse an applicant simply for paying with a voucher. Everywhere else, acceptance is voluntary, which is why so many voucher denials never look like denials: a landlord just stops replying, or lists rent a notch above the payment standard.",
+        "That gap is the practical value of working from homes that already say yes. Regardless of which suburb or which authority is involved, the homes we work with welcome Section 8, and we follow the Fair Housing Act in every interaction. For the full local picture, see our [Section 8 housing in Cleveland, OH](/section-8-housing-cleveland-oh/) overview."
+      ]
+    },
+    {
+      "h2": "What to confirm before you plan a cross-line placement",
+      "body": [
+        "A short checklist keeps a cross-jurisdiction move from surprising you late. Gather these before you commit a client to a target area:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "The issuing housing authority and the voucher's bedroom size",
+          "Whether the destination address sits inside that authority's jurisdiction or requires a port",
+          "The receiving authority's payment standard for the destination ZIP and bedroom count",
+          "Who schedules the HQS inspection at the destination, and their current lead time",
+          "Any local source-of-income ordinance at the destination that affects landlord acceptance"
+        ]
+      }
+    },
+    {
+      "h2": "How our team fits your placement work",
+      "body": [
+        "We are a local rental team, not a housing authority and not a property manager — we help renters find, tour, and apply for Section 8-friendly homes. We can't set payment standards or approve a port; those stay with CMHA and the other authorities. What we can do is shorten the search: we work with 90+ homes that already welcome Housing Choice Vouchers, concentrated on Cleveland's East and Southeast side plus some suburbs and Akron, Lorain, and Elyria.",
+        "Send us a client's bedrooms, timing, target areas, and issuing authority, and we'll tell you what's open right now that fits — so the jurisdiction planning above turns into an actual short list. Start on our [housing partners](/housing-partners/) page, or book a tour at [our showing scheduler](/p/book-showing). Reach the team at (440) 444-4737 or support@rentfindercleveland.com."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Does CMHA cover the whole Cleveland area?", "a": "CMHA administers the Housing Choice Voucher program across Cuyahoga County, which includes Cleveland and most of its suburbs. A move between two Cuyahoga suburbs both served by CMHA is usually a same-jurisdiction move with no portability step." },
+    { "q": "What is voucher portability?", "a": "Portability is HUD's process for using a voucher outside the issuing authority's jurisdiction. The two authorities coordinate a port-out and port-in, the receiving authority's payment standards apply, and the extra hand-off adds time to plan around." },
+    { "q": "Will my client's rent limit change if they cross into another authority?", "a": "It can. Each housing authority sets its own payment standards by bedroom size and area, so the same rent may clear in one jurisdiction and exceed the standard in another. Check the receiving authority's standard for the destination ZIP before committing." },
+    { "q": "Can a landlord refuse a voucher in the suburb I'm targeting?", "a": "It depends on the city. Cleveland has no source-of-income ordinance, but Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale do. Every home we work with welcomes vouchers regardless of local rules." },
+    { "q": "Is there a cost to work with your team on a placement?", "a": "No. There's no fee to partner with us or refer a client. The renter completes standard tenant application steps once they choose a home." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/topics/housing_choice_voucher_program_section_8"],
+  "lastUpdated": "2026-07-05"
+}

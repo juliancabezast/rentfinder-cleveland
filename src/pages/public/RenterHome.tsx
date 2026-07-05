@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,17 +9,20 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
 import {
   Accordion, AccordionItem, AccordionTrigger, AccordionContent,
 } from "@/components/ui/accordion";
 import {
-  Building2, MapPin, BedDouble, Bath, Search, CheckCircle2, Home as HomeIcon,
-  Phone, CalendarCheck, ShieldCheck, Clock, KeyRound, ArrowRight,
+  MapPin, BedDouble, Bath, Search, CheckCircle2, Home as HomeIcon,
+  Phone, CalendarCheck, ShieldCheck, Clock, KeyRound, ArrowRight, FileSignature,
+  MessageSquare, X,
 } from "lucide-react";
+import { ApplicationDialog } from "@/components/public/ApplicationDialog";
+import { SiteFooter } from "@/components/public/SiteFooter";
 
-const PHONE_DISPLAY = "(216) 201-9201";
-const PHONE_E164 = "+12162019201";
-const EMAIL = "support@rentfindercleveland.com";
+const PHONE_DISPLAY = "(440) 444-4737";
+const PHONE_E164 = "+14404444737";
 
 interface Listing {
   key: string;
@@ -38,8 +41,18 @@ interface Listing {
   bathrooms_min: number | null;
   bathrooms_max: number | null;
   property_type: string | null;
+  coming_soon_date: string | null;
   photo: string | null;
   property_id: string;
+}
+
+/** Expected availability for a Coming Soon home: the date set in Properties,
+ *  or a rolling "today + 20 days" until one is set (recomputed on every visit). */
+function comingSoonAvailableLabel(l: Listing): string {
+  const d = l.coming_soon_date
+    ? new Date(`${l.coming_soon_date}T12:00:00`)
+    : new Date(Date.now() + 20 * 24 * 60 * 60 * 1000);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 async function fetchListings(): Promise<{ listings: Listing[]; areas: string[]; cities: string[] }> {
@@ -75,12 +88,28 @@ function titleCaseType(t: string | null): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
+// Price slider bounds — at full range the filter is off, so
+// "Contact for price" homes stay visible.
+const PRICE_MIN = 700;
+const PRICE_MAX = 2000;
+
+/** Same heuristic as ScheduleShowing: duplex/triplex/fourplex/apartment/multi-unit. */
+function isMultiFamilyType(t?: string | null): boolean {
+  if (!t) return false;
+  const s = t.toLowerCase();
+  return s.includes("plex") || s.includes("multi") || s.includes("apart") || s.includes("unit");
+}
+
 /** A single listing card. */
-function ListingCard({ l }: { l: Listing }) {
+function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void }) {
   const [imgOk, setImgOk] = useState(true);
   const coming = l.status === "coming_soon";
   return (
-    <Card className="overflow-hidden flex flex-col group hover:shadow-lg transition-shadow">
+    <Card
+      className={`overflow-hidden flex flex-col group hover:shadow-lg transition-all ${
+        coming ? "opacity-75 hover:opacity-100" : ""
+      }`}
+    >
       <div className="relative aspect-[4/3] bg-muted overflow-hidden">
         {l.photo && imgOk ? (
           <img
@@ -96,11 +125,17 @@ function ListingCard({ l }: { l: Listing }) {
             <span className="text-xs font-medium">{l.neighborhood}</span>
           </div>
         )}
-        <div className="absolute top-3 left-3 flex gap-2">
-          <Badge className={coming ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"}>
-            {coming ? "Coming Soon" : "Available"}
-          </Badge>
-        </div>
+        {coming ? (
+          /* Diagonal yellow ribbon — long enough that both ends bleed past
+             the container edges (no visible cut ends) */
+          <div className="absolute -left-14 top-10 z-10 w-64 -rotate-45 bg-amber-400 py-2 text-center text-sm font-extrabold uppercase tracking-widest text-amber-950 shadow-lg">
+            Coming Soon
+          </div>
+        ) : (
+          <div className="absolute top-3 left-3 flex gap-2">
+            <Badge className="bg-primary text-primary-foreground">Available</Badge>
+          </div>
+        )}
         {l.section_8_accepted && (
           <div className="absolute top-3 right-3">
             <Badge variant="secondary" className="bg-white/90 text-primary border border-primary/20">
@@ -120,12 +155,39 @@ function ListingCard({ l }: { l: Listing }) {
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <MapPin className="h-3.5 w-3.5" />{l.neighborhood}, {l.city} {l.zip_code || ""}
         </div>
-        <div className="mt-4 pt-3 border-t border-border flex-1 flex items-end">
-          <Button asChild className="w-full">
-            <Link to={`/p/schedule-showing/${l.property_id}`}>
-              <CalendarCheck className="h-4 w-4 mr-2" /> Schedule a Showing
-            </Link>
-          </Button>
+        {coming && (
+          <>
+            <div className="mt-1.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-amber-700">
+              <Clock className="h-3.5 w-3.5" />
+              Expected available ~ {comingSoonAvailableLabel(l)}
+            </div>
+            <div className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-emerald-700">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Have a Section 8 voucher? You can apply today.
+            </div>
+          </>
+        )}
+        <div className="mt-4 pt-3 border-t border-border flex-1 flex flex-col justify-end gap-2">
+          {coming ? (
+            /* Coming soon: no showings yet — voucher holders can apply early */
+            <Button
+              className="w-full bg-amber-400 text-amber-950 hover:bg-amber-300 font-bold"
+              onClick={() => onApply(l)}
+            >
+              <ShieldCheck className="h-4 w-4 mr-2" /> Apply with Section 8 Voucher
+            </Button>
+          ) : (
+            <>
+              <Button className="w-full" onClick={() => onApply(l)}>
+                <FileSignature className="h-4 w-4 mr-2" /> Start Application
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link to={`/p/schedule-showing/${l.property_id}`}>
+                  <CalendarCheck className="h-4 w-4 mr-2" /> Schedule a Showing
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </Card>
@@ -146,11 +208,11 @@ const NEIGHBORHOOD_GUIDES: { label: string; href: string }[] = [
 const FAQS: { q: string; a: string }[] = [
   {
     q: "Do you accept Section 8 / Housing Choice Vouchers?",
-    a: "Yes — every home we manage accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Voucher holders are welcome to tour and apply for any available home.",
+    a: "Yes — every home listed here accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Voucher holders are welcome to tour and apply for any available home.",
   },
   {
     q: "How much is rent for a house in Cleveland?",
-    a: "Our Cleveland rental homes generally run about $700 to $1,800 a month, with most 2- and 3-bedroom homes around $900–$1,300. Rent varies by size, neighborhood, and condition.",
+    a: "The Cleveland rental homes listed here generally run about $700 to $1,800 a month, with most 2- and 3-bedroom homes around $900–$1,300. Rent varies by size, neighborhood, and condition.",
   },
   {
     q: "How do I schedule a showing?",
@@ -158,13 +220,13 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What areas do you serve?",
-    a: "We manage rental homes across Cleveland's East and Southeast side — including Slavic Village, Collinwood, Glenville, Fairfax, Hough and Buckeye-Shaker — plus select West-side homes and homes in Akron, Lorain and Elyria.",
+    a: "You'll find rental homes across Cleveland's East and Southeast side — including Slavic Village, Collinwood, Glenville, Fairfax, Hough and Buckeye-Shaker — plus select West-side homes and homes in Akron, Lorain and Elyria.",
   },
 ];
 
 export default function RenterHome() {
   useEffect(() => {
-    document.title = "Houses for Rent in Cleveland, OH | Section 8 Friendly | Rent Finder Cleveland";
+    document.title = "Houses for Rent in Cleveland, OH | Section 8 Vouchers Welcome | Rent Finder Cleveland";
   }, []);
 
   const { data, isLoading, isError } = useQuery({
@@ -174,116 +236,297 @@ export default function RenterHome() {
   });
 
   const listings = data?.listings ?? [];
-  const areas = data?.areas ?? [];
 
   const [area, setArea] = useState("all");
   const [beds, setBeds] = useState("any");
-  const [maxRent, setMaxRent] = useState("any");
+  const [zip, setZip] = useState("all");
+  const [priceRange, setPriceRange] = useState<[number, number]>([PRICE_MIN, PRICE_MAX]);
+  const [showSingle, setShowSingle] = useState(true);
+  const [showMulti, setShowMulti] = useState(true);
 
-  const filtered = useMemo(
-    () =>
-      listings.filter(
-        (l) =>
-          (area === "all" || l.neighborhood === area) &&
-          (beds === "any" || (l.bedrooms_max ?? 0) >= Number(beds)) &&
-          (maxRent === "any" || (l.rent_min ?? 1e9) <= Number(maxRent)),
-      ),
-    [listings, area, beds, maxRent],
-  );
+  // Shared predicate. `skip` lets each dropdown compute its own options
+  // against the OTHER active filters (faceted search) — an option only shows
+  // if choosing it yields at least one home, so "0 homes" dead-ends are
+  // impossible to pick.
+  type FacetSkip = "area" | "beds" | "zip" | "price" | "type";
+  const passes = (l: Listing, skip?: FacetSkip): boolean => {
+    const [pMin, pMax] = priceRange;
+    const priceFilterOn = pMin > PRICE_MIN || pMax < PRICE_MAX;
+
+    if (skip !== "area" && area !== "all" && l.neighborhood !== area) return false;
+    if (skip !== "beds" && beds !== "any" && (l.bedrooms_max ?? 0) < Number(beds)) return false;
+    if (skip !== "zip" && zip !== "all" && l.zip_code !== zip) return false;
+
+    // Price: only filters when the slider moved off the full range, so
+    // "Contact for price" (null rent) homes stay visible by default.
+    if (skip !== "price" && priceFilterOn) {
+      if (l.rent_min == null) return false;
+      const hi = l.rent_max ?? l.rent_min;
+      const upper = pMax >= PRICE_MAX ? Infinity : pMax; // right thumb at end = no cap
+      if (hi < pMin || l.rent_min > upper) return false;
+    }
+
+    if (skip !== "type") {
+      const multi = isMultiFamilyType(l.property_type);
+      if (multi && !showMulti) return false;
+      if (!multi && !showSingle) return false;
+    }
+    return true;
+  };
+
+  // Faceted options: values with ≥1 matching home given the other filters.
+  // The currently-selected value is always kept so the control never blanks.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const areaOptions = useMemo(() => {
+    const opts = [...new Set(
+      listings.filter((l) => passes(l, "area")).map((l) => l.neighborhood).filter(Boolean),
+    )].sort();
+    if (area !== "all" && !opts.includes(area)) opts.push(area);
+    return opts;
+  }, [listings, area, beds, zip, priceRange, showSingle, showMulti]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const zipOptions = useMemo(() => {
+    const opts = [...new Set(
+      listings.filter((l) => passes(l, "zip")).map((l) => l.zip_code).filter(Boolean) as string[],
+    )].sort();
+    if (zip !== "all" && !opts.includes(zip)) opts.push(zip);
+    return opts;
+  }, [listings, area, beds, zip, priceRange, showSingle, showMulti]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const bedOptions = useMemo(() => {
+    const pool = listings.filter((l) => passes(l, "beds"));
+    const opts = ["1", "2", "3", "4"].filter((b) =>
+      pool.some((l) => (l.bedrooms_max ?? 0) >= Number(b)),
+    );
+    if (beds !== "any" && !opts.includes(beds)) opts.push(beds);
+    return opts;
+  }, [listings, area, beds, zip, priceRange, showSingle, showMulti]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const filtered = useMemo(() => {
+    return listings
+      .filter((l) => passes(l))
+      // Available homes first; every "Coming Soon" sinks to the end
+      // (sort is stable, so the original order is kept within each group).
+      .sort(
+        (a, b) =>
+          (a.status === "coming_soon" ? 1 : 0) - (b.status === "coming_soon" ? 1 : 0),
+      );
+  }, [listings, area, beds, zip, priceRange, showSingle, showMulti]);
+
+  // Free-text search from a `?q=` landing (Sitelinks Search Box → /?q={term}).
+  // Layered on top of the faceted filters without touching them.
+  const [q] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("q") || ""; } catch { return ""; }
+  });
+  const qFiltered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return filtered;
+    return filtered.filter((l) =>
+      `${l.address} ${l.neighborhood} ${l.city} ${l.zip_code || ""} ${l.property_type || ""}`
+        .toLowerCase().includes(s),
+    );
+  }, [filtered, q]);
+  useEffect(() => {
+    if (q.trim()) document.getElementById("listings")?.scrollIntoView({ behavior: "smooth" });
+  }, [q]);
 
   const availableCount = listings.filter((l) => l.status === "available").length;
 
-  const resetFilters = () => { setArea("all"); setBeds("any"); setMaxRent("any"); };
+  const hasActiveFilters =
+    area !== "all" || beds !== "any" || zip !== "all" ||
+    priceRange[0] > PRICE_MIN || priceRange[1] < PRICE_MAX ||
+    !showSingle || !showMulti;
+
+  const resetFilters = () => {
+    setArea("all"); setBeds("any"); setZip("all");
+    setPriceRange([PRICE_MIN, PRICE_MAX]);
+    setShowSingle(true); setShowMulti(true);
+  };
+
+  // Application dialog: the listing the visitor is applying for (null = closed)
+  const [applyListing, setApplyListing] = useState<Listing | null>(null);
+
+  // Voucher bottom banner: fixed to the viewport bottom, slides away once the
+  // real footer scrolls into view (so it never covers the footer).
+  const footerRef = useRef<HTMLDivElement | null>(null);
+  const [footerVisible, setFooterVisible] = useState(false);
+  useEffect(() => {
+    const el = footerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(([e]) => setFooterVisible(e.isIntersecting), { threshold: 0 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border">
-        <div className="max-w-7xl mx-auto px-5 py-3 flex items-center justify-between gap-3">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-foreground">Rent Finder Cleveland</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <a href={`tel:${PHONE_E164}`} className="hidden sm:inline text-sm font-semibold text-foreground hover:text-primary">
-              {PHONE_DISPLAY}
-            </a>
-            <Button asChild size="sm">
-              <a href="#listings"><Search className="h-4 w-4 mr-1.5" />Browse Rentals</a>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-primary to-[hsl(239,84%,60%)] text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-5 py-16 md:py-20 text-center">
-          <Badge className="bg-accent text-accent-foreground mb-4">Section 8 friendly · Local team</Badge>
+      {/* Hero — at the very top of the page */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary to-[hsl(239,84%,60%)] text-primary-foreground">
+        {/* Background video (muted, looping). The gradient overlay above it keeps
+            the brand tint + text contrast; if the video fails to load, the
+            section's own gradient background is the fallback. */}
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          src="/header-background.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-primary/85 to-[hsl(239,84%,60%)]/75"
+          aria-hidden="true"
+        />
+        <div className="relative max-w-7xl mx-auto px-5 py-20 md:py-28 text-center">
           <h1 className="text-3xl md:text-5xl font-extrabold leading-tight max-w-4xl mx-auto">
             Houses for Rent in Cleveland, OH
           </h1>
           <p className="mt-4 text-base md:text-lg opacity-95 max-w-2xl mx-auto">
-            Browse available rental homes from a local Cleveland property manager. Every home welcomes
-            Housing Choice Vouchers — tour in person and apply online.
+            Browse available rental homes across Cleveland with a local team that knows every house.
+            Every home welcomes Housing Choice Vouchers — tour in person and apply online.
           </p>
+        </div>
+      </section>
 
-          {/* Search bar */}
-          <div className="mt-8 bg-card text-foreground rounded-2xl shadow-xl p-4 max-w-3xl mx-auto">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Select value={area} onValueChange={setArea}>
-                <SelectTrigger><SelectValue placeholder="Any area" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any area</SelectItem>
-                  {areas.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={beds} onValueChange={setBeds}>
-                <SelectTrigger><SelectValue placeholder="Beds" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any beds</SelectItem>
-                  <SelectItem value="1">1+ beds</SelectItem>
-                  <SelectItem value="2">2+ beds</SelectItem>
-                  <SelectItem value="3">3+ beds</SelectItem>
-                  <SelectItem value="4">4+ beds</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={maxRent} onValueChange={setMaxRent}>
-                <SelectTrigger><SelectValue placeholder="Max rent" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any price</SelectItem>
-                  <SelectItem value="800">Up to $800</SelectItem>
-                  <SelectItem value="1000">Up to $1,000</SelectItem>
-                  <SelectItem value="1200">Up to $1,200</SelectItem>
-                  <SelectItem value="1500">Up to $1,500</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* Sticky brand + filter bar — sits below the hero and pins to the top
+          once you scroll past it. Every control is labeled, sized to breathe,
+          and the row stretches edge-to-edge (results counter fills the right). */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border shadow-sm">
+        {/* Single row on desktop (lg:flex-nowrap): selects shrink instead of
+            pushing Results to a new line; the Clear ✕ always reserves its
+            space so toggling filters never reflows the bar. */}
+        <div className="w-full px-6 py-4 flex flex-wrap lg:flex-nowrap items-end gap-x-5 gap-y-3">
+          {/* Brand */}
+          <Link to="/" className="flex items-center gap-2 shrink-0 h-11 self-end">
+            <img
+              src="/favicon-96.png"
+              alt="Rent Finder Cleveland"
+              className="w-10 h-10 rounded-full"
+              width={40}
+              height={40}
+            />
+            <span className="font-bold text-foreground hidden 2xl:inline whitespace-nowrap">Rent Finder Cleveland</span>
+          </Link>
+
+          {/* Area */}
+          <div className="flex flex-col gap-1 min-w-0 flex-1 basis-[150px]">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Area</span>
+            <Select value={area} onValueChange={setArea}>
+              <SelectTrigger className="h-11 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
+              <SelectContent className="min-w-[260px]">
+                <SelectItem value="all" className="text-[15px] py-2.5">All areas</SelectItem>
+                {areaOptions.map((a) => <SelectItem key={a} value={a} className="text-[15px] py-2.5">{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Beds */}
+          <div className="flex flex-col gap-1 min-w-0 flex-1 basis-[100px]">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Beds</span>
+            <Select value={beds} onValueChange={setBeds}>
+              <SelectTrigger className="h-11 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
+              <SelectContent className="min-w-[160px]">
+                <SelectItem value="any" className="text-[15px] py-2.5">Any</SelectItem>
+                {bedOptions.map((b) => (
+                  <SelectItem key={b} value={b} className="text-[15px] py-2.5">{b}+ beds</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* ZIP */}
+          <div className="flex flex-col gap-1 min-w-0 flex-1 basis-[115px]">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">ZIP code</span>
+            <Select value={zip} onValueChange={setZip}>
+              <SelectTrigger className="h-11 w-full text-[15px] font-medium"><SelectValue /></SelectTrigger>
+              <SelectContent className="min-w-[180px]">
+                <SelectItem value="all" className="text-[15px] py-2.5">All ZIPs</SelectItem>
+                {zipOptions.map((z) => <SelectItem key={z} value={z} className="text-[15px] py-2.5">{z}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Price range — dual-thumb slider; live values shown in the label */}
+          <div className="flex flex-col gap-1 min-w-0 flex-[1.6] basis-[230px]">
+            <span className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">
+              Price
+              <span className="text-[15px] font-bold normal-case tracking-normal text-primary tabular-nums">
+                {money(priceRange[0])} – {priceRange[1] >= PRICE_MAX ? `${money(PRICE_MAX)}+` : money(priceRange[1])}
+              </span>
+            </span>
+            <div className="h-11 flex items-center px-1.5">
+              <Slider
+                min={PRICE_MIN}
+                max={PRICE_MAX}
+                step={50}
+                value={priceRange}
+                onValueChange={(v) => setPriceRange(v as [number, number])}
+                className="flex-1"
+                aria-label="Price range"
+              />
             </div>
-            <Button asChild className="w-full mt-3">
-              <a href="#listings"><Search className="h-4 w-4 mr-2" />Search {availableCount ? `${availableCount} available homes` : "rentals"}</a>
-            </Button>
+          </div>
+
+          {/* Single / Multi-family toggles */}
+          <div className="flex flex-col gap-1 shrink-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Home type</span>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowSingle((v) => !v)}
+                aria-pressed={showSingle}
+                className={`px-4 h-11 rounded-lg text-[15px] font-semibold border transition-colors whitespace-nowrap ${
+                  showSingle
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:border-primary/40"
+                }`}
+              >
+                Single-family
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMulti((v) => !v)}
+                aria-pressed={showMulti}
+                className={`px-4 h-11 rounded-lg text-[15px] font-semibold border transition-colors whitespace-nowrap ${
+                  showMulti
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:border-primary/40"
+                }`}
+              >
+                Multi-family
+              </button>
+            </div>
+          </div>
+
+          {/* Live results + clear — Clear (✕) always reserves space so the
+              bar never grows a second row when filters activate */}
+          <div className="flex flex-col gap-1 shrink-0 items-end ml-auto">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Results</span>
+            <div className="h-11 flex items-center gap-2">
+              <span className="text-[15px] font-extrabold text-primary whitespace-nowrap tabular-nums">
+                {qFiltered.length} <span className="font-semibold text-foreground">home{qFiltered.length === 1 ? "" : "s"}</span>
+              </span>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className={`h-11 px-4 rounded-xl border text-[15px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-all ${
+                  hasActiveFilters
+                    ? "border-border bg-muted/60 text-foreground hover:bg-muted hover:border-foreground/30"
+                    : "opacity-0 pointer-events-none"
+                }`}
+              >
+                Clear filters
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* Trust strip */}
-      <section className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-5 py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          {[
-            { icon: HomeIcon, big: "90+", small: "Rental homes managed" },
-            { icon: ShieldCheck, big: "100%", small: "Accept Section 8 vouchers" },
-            { icon: MapPin, big: "Greater", small: "Cleveland & suburbs" },
-            { icon: Clock, big: "Fast", small: "Local team, quick replies" },
-          ].map((s, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <s.icon className="h-6 w-6 text-primary" />
-              <div className="text-xl font-extrabold text-foreground">{s.big}</div>
-              <div className="text-xs text-muted-foreground">{s.small}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+      </div>
 
       {/* Listings */}
       <section id="listings" className="max-w-7xl mx-auto px-5 py-12 scroll-mt-20">
@@ -291,10 +534,10 @@ export default function RenterHome() {
           <div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">Available Cleveland rentals</h2>
             <p className="text-muted-foreground text-sm mt-1">
-              {isLoading ? "Loading homes…" : `${filtered.length} home${filtered.length === 1 ? "" : "s"} matching your search`}
+              {isLoading ? "Loading homes…" : `${qFiltered.length} home${qFiltered.length === 1 ? "" : "s"} matching your search`}
             </p>
           </div>
-          {(area !== "all" || beds !== "any" || maxRent !== "any") && (
+          {hasActiveFilters && (
             <Button variant="outline" size="sm" onClick={resetFilters}>Clear filters</Button>
           )}
         </div>
@@ -315,12 +558,12 @@ export default function RenterHome() {
             <p className="text-muted-foreground">We couldn't load listings right now. Call us at{" "}
               <a href={`tel:${PHONE_E164}`} className="text-primary font-semibold">{PHONE_DISPLAY}</a> and we'll help you find a home.</p>
           </Card>
-        ) : filtered.length === 0 ? (
+        ) : qFiltered.length === 0 ? (
           <Card className="p-8 text-center">
             <HomeIcon className="h-10 w-10 text-primary/50 mx-auto mb-3" />
             <p className="font-semibold text-foreground">No homes match those filters right now.</p>
             <p className="text-muted-foreground text-sm mt-1 mb-4">
-              We add Section 8-friendly homes regularly. Tell us what you're looking for and we'll reach out when something fits.
+              We add homes that welcome vouchers regularly. Tell us what you're looking for and we'll reach out when something fits.
             </p>
             <div className="flex gap-2 justify-center flex-wrap">
               <Button variant="outline" onClick={resetFilters}>Clear filters</Button>
@@ -329,7 +572,7 @@ export default function RenterHome() {
           </Card>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((l) => <ListingCard key={l.key} l={l} />)}
+            {qFiltered.map((l) => <ListingCard key={l.key} l={l} onApply={setApplyListing} />)}
           </div>
         )}
 
@@ -340,14 +583,32 @@ export default function RenterHome() {
         </div>
       </section>
 
+      {/* Trust strip — moved below the listings so the hero flows straight into homes */}
+      <section className="border-y border-border bg-card">
+        <div className="max-w-7xl mx-auto px-5 py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          {[
+            { icon: HomeIcon, big: "90+", small: "Rental homes listed" },
+            { icon: ShieldCheck, big: "100%", small: "Accept Section 8 vouchers" },
+            { icon: MapPin, big: "Greater", small: "Cleveland & suburbs" },
+            { icon: Clock, big: "Fast", small: "Local team, quick replies" },
+          ].map((s, i) => (
+            <div key={i} className="flex flex-col items-center gap-1">
+              <s.icon className="h-6 w-6 text-primary" />
+              <div className="text-xl font-extrabold text-foreground">{s.big}</div>
+              <div className="text-xs text-muted-foreground">{s.small}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Why us */}
       <section className="bg-card border-y border-border">
         <div className="max-w-7xl mx-auto px-5 py-14">
           <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground">Why rent with Rent Finder Cleveland</h2>
           <div className="grid gap-6 md:grid-cols-3 mt-8">
             {[
-              { icon: CheckCircle2, title: "Every home takes Section 8", body: "All of our homes accept Housing Choice Vouchers and are HUD-inspection-ready, so voucher holders can rent with confidence." },
-              { icon: KeyRound, title: "Real local team", body: "We're a Cleveland property manager, not a national listing site. Reach a real person and tour homes in person." },
+              { icon: CheckCircle2, title: "Every home takes Section 8", body: "Every home on this site accepts Housing Choice Vouchers and is HUD-inspection-ready, so voucher holders can rent with confidence." },
+              { icon: KeyRound, title: "Real local team", body: "We're a real Cleveland team, not a faceless national site. Reach a real person and tour homes in person." },
               { icon: CalendarCheck, title: "Easy showings & online apply", body: "Book a free showing online in seconds, then apply through our secure application portal when you find the one." },
             ].map((c, i) => (
               <Card key={i} className="p-6">
@@ -428,55 +689,49 @@ export default function RenterHome() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-[hsl(222,47%,11%)] text-slate-300">
-        <div className="max-w-7xl mx-auto px-5 py-12">
-          <div className="grid gap-8 md:grid-cols-4">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                  <Building2 className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <span className="font-bold text-white">Rent Finder Cleveland</span>
-              </div>
-              <p className="text-sm text-slate-400">Section 8-friendly rental homes across Greater Cleveland.</p>
-              <p className="text-sm mt-2">
-                <a href={`tel:${PHONE_E164}`} className="text-accent">{PHONE_DISPLAY}</a><br />
-                <a href={`mailto:${EMAIL}`} className="text-accent">{EMAIL}</a>
-              </p>
+      {/* Footer — SEO-rich internal linking into the content hub */}
+      <div ref={footerRef}>
+        <SiteFooter />
+      </div>
+
+      {/* Voucher sticky banner — pinned to the bottom, hides at the footer */}
+      <div
+        className={`fixed bottom-0 inset-x-0 z-40 transition-all duration-300 ${
+          footerVisible ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+        }`}
+      >
+        <div className="bg-emerald-600 text-white shadow-[0_-4px_20px_rgba(0,0,0,0.18)]">
+          <div className="max-w-7xl mx-auto px-5 py-3 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-5 text-center">
+            <p className="text-sm md:text-base font-semibold flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 shrink-0" />
+              Have a Section 8 voucher? We handle everything for you.
+            </p>
+            <div className="flex items-center gap-2">
+              <Button asChild size="sm" className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold">
+                <a href={`sms:${PHONE_E164}`}>
+                  <MessageSquare className="h-4 w-4 mr-1.5" />
+                  Text us at {PHONE_DISPLAY}
+                </a>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="border-white/70 bg-transparent text-white hover:bg-white/15 hover:text-white font-semibold">
+                <a href={`tel:${PHONE_E164}`}>
+                  <Phone className="h-4 w-4 mr-1.5" />
+                  Call
+                </a>
+              </Button>
             </div>
-            <div>
-              <div className="font-semibold text-white mb-2">Find a Rental</div>
-              <ul className="space-y-1.5 text-sm">
-                <li><a href="/houses-for-rent-cleveland-oh/" className="hover:text-white">Houses for Rent in Cleveland</a></li>
-                <li><a href="/apartments-for-rent-cleveland-oh/" className="hover:text-white">Apartments for Rent</a></li>
-                <li><a href="/section-8-housing-cleveland-oh/" className="hover:text-white">Section 8 Housing</a></li>
-                <li><a href="/cleveland-rentals/" className="hover:text-white">Rental Guides & Neighborhoods</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-semibold text-white mb-2">Get Started</div>
-              <ul className="space-y-1.5 text-sm">
-                <li><Link to="/p/book-showing" className="hover:text-white">Schedule a Showing</Link></li>
-                <li><Link to="/apply" className="hover:text-white">Apply Now</Link></li>
-                <li><a href={`tel:${PHONE_E164}`} className="hover:text-white">Call Us</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-semibold text-white mb-2">Company</div>
-              <ul className="space-y-1.5 text-sm">
-                <li><Link to="/saas" className="hover:text-white">For Property Managers</Link></li>
-                <li><Link to="/p/privacy-policy" className="hover:text-white">Privacy Policy</Link></li>
-                <li><Link to="/p/terms-of-service" className="hover:text-white">Terms of Service</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-slate-700 mt-8 pt-6 text-xs text-slate-500 text-center leading-relaxed">
-            © {new Date().getFullYear()} Rent Finder Cleveland, LLC. All rights reserved. Rent Finder Cleveland is an
-            equal housing opportunity provider and does business in accordance with the Fair Housing Act. Cleveland, Ohio.
           </div>
         </div>
-      </footer>
+      </div>
+
+      {/* Rental application — 4-step, progressive save */}
+      <ApplicationDialog
+        open={!!applyListing}
+        onOpenChange={(o) => { if (!o) setApplyListing(null); }}
+        propertyId={applyListing?.property_id ?? ""}
+        propertyLabel={applyListing ? `${applyListing.address}, ${applyListing.city}` : undefined}
+        comingSoon={applyListing?.status === "coming_soon"}
+      />
     </div>
   );
 }

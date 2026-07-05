@@ -1,0 +1,76 @@
+{
+  "slug": "voucher-move-in-documents-checklist-cleveland",
+  "section": "housing-partners",
+  "title": "Section 8 Move-In Documents Checklist for Case Managers",
+  "metaTitle": "Section 8 Move-In Documents Checklist | Cleveland",
+  "metaDescription": "A section 8 move in documents checklist for Cleveland case managers: the RFTA packet, IDs, income verification, and forms to have ready before a client signs.",
+  "primaryKeyword": "section 8 move in documents checklist",
+  "secondaryKeywords": ["rfta packet cleveland", "cmha move-in paperwork", "voucher income verification"],
+  "answerBox": "Before a Housing Choice Voucher client can sign, have these ready: the Request for Tenancy Approval (RFTA) packet signed by the owner, government-issued photo ID and birth certificates or Social Security cards for the household, current income verification, the voucher and any extension letter, and the proposed lease. Assembling this early prevents the last-minute holdups that stall placements.",
+  "sections": [
+    {
+      "h2": "Build the packet before you tour, not after",
+      "body": [
+        "The paperwork that delays a Housing Choice Voucher move-in is rarely complicated — it is just gathered too late. A case manager who has the household's core documents assembled before a home is even chosen can move from **accepted application to signed lease** in days instead of weeks.",
+        "The single item that most often causes a scramble is the **Request for Tenancy Approval (RFTA)**. The owner completes and signs it, then it goes back to the housing authority so the unit can be scheduled for a Housing Quality Standards (HQS) inspection. When you start from [Section 8-friendly homes](/section-8-housing-cleveland-oh/) whose owners already know the RFTA process, that signature comes back fast."
+      ]
+    },
+    {
+      "h2": "The client-side documents to have on hand",
+      "body": [
+        "These are the items the household controls. Confirm they exist and are current before you commit to a specific home, because reissuing a lost Social Security card or birth certificate is what turns a two-day process into a two-week one."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Government-issued photo ID for each adult in the household",
+          "Birth certificates or Social Security cards for every household member, including children",
+          "The Housing Choice Voucher itself and any voucher extension letter (note the issue and expiration dates)",
+          "Current income verification — pay stubs, an award letter for SSI/SSDI, TANF or child-support documentation, or a signed zero-income statement",
+          "Verification of any deductions the client claims (childcare, medical for elderly/disabled households, dependents)",
+          "Proof of the assets the housing authority asks about, such as recent bank statements"
+        ]
+      }
+    },
+    {
+      "h2": "The owner and unit forms that ride alongside",
+      "body": [
+        "Even a perfectly prepared client stalls if the owner-side paperwork lags. These pieces come from the home's owner and the housing authority, and knowing what they are lets you follow up intelligently instead of just waiting."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "The signed **RFTA** with the proposed contract rent and utility responsibilities",
+          "The proposed lease (the housing authority's tenancy addendum attaches to it)",
+          "The owner's W-9 and direct-deposit form so the HAP portion pays on time",
+          "The HQS inspection result — the unit must pass before the lease can be effective",
+          "A rent-reasonableness figure the housing authority can approve against the payment standard"
+        ]
+      }
+    },
+    {
+      "h2": "Cleveland and CMHA specifics worth knowing",
+      "body": [
+        "In Greater Cleveland the issuing authority is usually the **Cuyahoga Metropolitan Housing Authority (CMHA)**, though clients may hold vouchers from other authorities such as Lorain or Akron — always record which one issued the voucher, because forms and inspection scheduling route through that office.",
+        "Watch the **voucher expiration date** closely. A client typically has a fixed window to find a unit and get the RFTA in, and an extension is not guaranteed. Getting the RFTA submitted early is the best hedge against losing the voucher to the clock.",
+        "Cleveland itself does not have a source-of-income ordinance, but several inner-ring suburbs do — including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. Regardless of local law, every home our team works with welcomes vouchers, so you are not fighting acceptance on top of paperwork."
+      ]
+    },
+    {
+      "h2": "How our team shortens the runway",
+      "body": [
+        "Rent Finder Cleveland is a local rental team that helps voucher holders find, tour, and apply for homes that already welcome Section 8. We do not manage or own these homes — we work with owners who keep their units HUD-inspection-ready, which removes the two biggest sources of move-in delay: a landlord who hesitates on the voucher, and a unit that fails HQS.",
+        "Send us a client's bedroom size, timing, and preferred areas and we will point you to what is open now from [our current Section 8 selection](/cleveland-rentals/section-8/section-8-houses-for-rent-cleveland-ohio/). When the client picks a home, you can [book a showing](/p/book-showing) and we will help keep the RFTA moving so the packet does not sit. If your agency places clients regularly, our [housing partners page](/housing-partners/) explains how we work with navigators. Call **(440) 444-4737** or email **support@rentfindercleveland.com**."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "What is the RFTA and who fills it out?", "a": "The Request for Tenancy Approval is the form that starts a voucher move-in. The home's owner completes and signs it with the proposed rent and utility split, then it goes to the housing authority (usually CMHA) to trigger the HQS inspection and rent-reasonableness review." },
+    { "q": "What income documents does CMHA typically want?", "a": "Current proof of all household income — recent pay stubs, benefit award letters for SSI, SSDI, TANF or child support, or a signed zero-income statement — plus any deductions the client claims. Requirements can vary, so confirm the exact list with the issuing authority." },
+    { "q": "How long is a Housing Choice Voucher valid before it must be used?", "a": "Clients get a set search window, often 60 days, with extensions possible but not guaranteed. Because timelines vary by authority, check the voucher's expiration date and submit the RFTA as early as you can." },
+    { "q": "Does a unit have to pass inspection before the client moves in?", "a": "Yes. The home must pass the Housing Quality Standards inspection before the lease and HAP contract can take effect. Starting from homes that are already HUD-inspection-ready is the fastest way to avoid a failed first inspection." },
+    { "q": "Is there any cost to work with your team as a case manager?", "a": "No. There is no fee to partner with us or refer a client. The renter still completes the standard tenant application steps once they choose a home." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/helping-americans/housing-choice-voucher-program"],
+  "lastUpdated": "2026-07-05"
+}

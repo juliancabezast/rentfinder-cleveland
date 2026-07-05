@@ -1,0 +1,72 @@
+{
+  "slug": "refugee-resettlement-first-apartment-cleveland",
+  "section": "housing-partners",
+  "title": "Refugee Resettlement Housing in Cleveland: Setting Up a First Apartment",
+  "metaTitle": "Refugee Resettlement Housing Cleveland | First Apartment",
+  "metaDescription": "A caseworker's guide to refugee resettlement housing in Cleveland: voucher-ready homes sized to the household, first-lease logistics, and realistic move-in timing.",
+  "primaryKeyword": "refugee resettlement housing cleveland",
+  "secondaryKeywords": ["refugee first apartment cleveland", "voucher ready homes cleveland", "housing choice voucher household size"],
+  "answerBox": "For a newly arrived refugee family, the fastest path to a first apartment in Cleveland is to start from homes that already welcome Housing Choice Vouchers and are sized to the household. Rent Finder Cleveland works with 90+ voucher-ready homes across Greater Cleveland. Send the household size, bedrooms needed, and target move-in date, and our team will tell you what's open now.",
+  "sections": [
+    {
+      "h2": "Start from homes that are already voucher-ready",
+      "body": [
+        "Resettlement timelines are tight: a family often arrives before a lease is signed, and the R&P period leaves little room for a landlord who stalls on paperwork or won't accept a Housing Choice Voucher. The slowest part of most first placements isn't the application — it's finding a home that accepts the voucher at all and can pass inspection without a long punch list.",
+        "You can skip that step. Every home our team works with welcomes Section 8 and is ready for a CMHA HQS inspection, which is often where a first lease stalls. Starting from a pool that already says **yes** means the search begins at the finish line instead of the negotiating table. Browse the [Section 8 houses for rent in Cleveland](/cleveland-rentals/section-8/section-8-houses-for-rent-cleveland-ohio/) to see the kinds of homes in our current selection."
+      ]
+    },
+    {
+      "h2": "Size the home to the household from day one",
+      "body": [
+        "Voucher bedroom size is set by the household composition, and a home that's too small can fail inspection or exceed occupancy limits — while one that's too large can push rent past the payment standard. Getting the bedroom count right on the first tour saves a family from moving twice. Send us the household roster so we can filter to homes that actually fit."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Number of adults and children, and their ages",
+          "Voucher bedroom size and the issuing housing authority (usually CMHA)",
+          "Any accessibility or ground-floor needs",
+          "Whether the family needs to be near a clinic, a school, or transit for work",
+          "Target R&P move-in date and any inspection deadline"
+        ]
+      }
+    },
+    {
+      "h2": "Where the voucher-ready homes are",
+      "body": [
+        "Our current selection of 90+ voucher-ready homes is concentrated on Cleveland's East and Southeast side, with some in nearby suburbs and in Akron, Lorain, and Elyria. That footprint matters for a first placement: proximity to bus lines, the resettlement office, ESL classes, and a family's first job is often more decisive than any single feature of the unit itself.",
+        "If a family has a location they need to be near — a mosque, a specific clinic, a relative already settled here — tell us and we'll point you to what's open in that area. You can also browse the full [houses for rent in Cleveland OH](/houses-for-rent-cleveland-oh/) or the broader [Cleveland rentals](/cleveland-rentals/) to orient a family before a tour."
+      ]
+    },
+    {
+      "h2": "Plan realistic move-in timing",
+      "body": [
+        "A first lease has more moving parts than a typical rental, so build the calendar backward from the day the family can actually take keys. Under the standard sequence, the voucher briefing and unit selection come first, then the Request for Tenancy Approval (RFTA) goes to CMHA, then the HQS inspection, then rent reasonableness, and only then the HAP contract and lease. Each step adds days.",
+        "Because every home our team works with is already inspection-ready and welcomes vouchers, we can compress the front of that timeline — no chasing a landlord who's on the fence. Realistically, plan on a couple of weeks from selecting a home to move-in once CMHA schedules the inspection; we'll flag anything that could move it faster or slower for a specific home.",
+        "Understanding the CMHA process end to end helps set a family's expectations. Our [how to apply for Section 8 with CMHA](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) walkthrough covers the steps in plain language."
+      ]
+    },
+    {
+      "h2": "Know the local source-of-income rules",
+      "body": [
+        "Cleveland itself does not yet have a source-of-income ordinance, but several inner-ring suburbs do — including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. Our team welcomes Housing Choice Vouchers everywhere we operate regardless of the local ordinance, and we follow the Fair Housing Act in every interaction. We don't screen or steer by national origin, religion, familial status, or any other protected characteristic."
+      ]
+    },
+    {
+      "h2": "How to get started with a family's search",
+      "body": [
+        "Send us the household size, the voucher bedroom size, target move-in date, and any must-be-near locations, and our team will tell you what's open right now — usually the same day. When a family is ready to see a home in person, you can [book a showing](/p/book-showing) directly, or reach us at **(440) 444-4737** or **support@rentfindercleveland.com**. There's no fee to partner with us or refer a family.",
+        "If your agency places multiple families, tell us your caseload's typical needs on our [housing partners](/housing-partners/) page and we'll keep an eye out for homes that fit as they open up."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Is there any cost to a resettlement agency to work with you?", "a": "No. There is no fee to partner with us or refer a family. The household still completes the standard tenant application and CMHA voucher steps once they choose a home." },
+    { "q": "How quickly can you tell me what's available for a family?", "a": "Usually the same day. Because every home our team works with already welcomes Housing Choice Vouchers and is inspection-ready, we can match a household's size, bedrooms, timing, and preferred area to what's open right now." },
+    { "q": "Can you size a home to a specific household composition?", "a": "Yes. Send the number of adults and children and the voucher bedroom size, and we'll filter to homes that fit the household without exceeding occupancy limits or the payment standard." },
+    { "q": "How long does move-in usually take under a voucher?", "a": "Plan on roughly a couple of weeks from selecting a home to move-in, once CMHA schedules the HQS inspection. Because our homes are already inspection-ready, the front of that timeline is often shorter than a typical placement." },
+    { "q": "Do the homes welcome vouchers even in Cleveland, which has no source-of-income law?", "a": "Yes. Every home our team works with welcomes Housing Choice Vouchers regardless of the local ordinance, and we follow the Fair Housing Act in every interaction." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/helping-americans/housing-choice-vouchers"],
+  "lastUpdated": "2026-07-05"
+}

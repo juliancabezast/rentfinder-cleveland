@@ -1,0 +1,91 @@
+{
+  "slug": "deposit-move-in-assistance-with-voucher-cleveland",
+  "section": "housing-partners",
+  "title": "Stacking Deposit and Move-In Assistance With a Voucher in Cleveland",
+  "metaTitle": "Security Deposit Assistance + Section 8 in Cleveland | Partners",
+  "metaDescription": "A navigator's overview of how security deposit assistance in Cleveland can pair with a Section 8 voucher placement, plus what to line up before move-in day.",
+  "primaryKeyword": "security deposit assistance section 8 cleveland",
+  "secondaryKeywords": ["move-in assistance cleveland", "voucher placement cleveland", "cmha voucher deposit help"],
+  "answerBox": "A Housing Choice Voucher covers a share of monthly rent, but it does not pay the security deposit or first-month costs a household needs to move in. In Cleveland, navigators often pair a voucher placement with a separate deposit or move-in assistance program run by a nonprofit or county agency. The two are stacked, not combined: the voucher handles ongoing rent while the assistance program covers the upfront deposit so the lease can start.",
+  "sections": [
+    {
+      "h2": "Why a voucher alone doesn't cover the deposit",
+      "body": [
+        "A Housing Choice Voucher (Section 8) subsidizes a portion of monthly rent based on the household's income and the payment standard. It does not pay the security deposit, and it generally does not cover prorated first-month rent or application costs. That gap is where a lot of otherwise-ready placements stall — the client has a voucher in hand and a home that welcomes it, but not the lump sum to walk in the door.",
+        "This is why deposit and move-in assistance is a **separate track** from the voucher itself. The voucher comes from CMHA (or the household's issuing housing authority); the deposit help usually comes from a different program entirely. As a navigator, you're effectively lining up two funding sources to meet on the same move-in date."
+      ]
+    },
+    {
+      "h2": "How the two pieces stack",
+      "body": [
+        "It helps to think of the move-in as a stack rather than one payment. Each layer has its own eligibility, its own paperwork, and its own timing — and they have to arrive together for the lease to start.",
+        "Rent Finder Cleveland is a local rental team, not a funder — we don't provide deposit money or run assistance programs. What we can do is point your client to homes that already welcome Housing Choice Vouchers and are HUD-inspection-ready, so the housing side is settled while you work the funding side."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "The voucher covers the subsidized share of ongoing monthly rent",
+          "The tenant covers their income-based portion of rent each month",
+          "A deposit or move-in assistance program covers the upfront security deposit",
+          "That same program may also cover first-month or prorated rent, if its rules allow"
+        ]
+      }
+    },
+    {
+      "h2": "Where deposit and move-in help comes from in Cuyahoga County",
+      "body": [
+        "Assistance is program-specific and the exact offerings change over time, so always confirm current availability and eligibility directly with each provider before you promise a client anything. As a starting map for Greater Cleveland, navigators commonly check a few types of sources.",
+        "None of these are affiliated with us, and we don't administer their funds — we're simply naming the categories navigators tend to work through so you know where to look."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Cuyahoga County's Office of Homeless Services and its funded partners for prevention and rapid-rehousing dollars",
+          "United Way of Greater Cleveland's 211 line, which can route a household to current deposit-assistance programs",
+          "EDEN, Inc. and other local nonprofits that administer housing assistance in Cuyahoga County",
+          "Emergency assistance through the county's Job and Family Services for households that qualify",
+          "The household's own CMHA caseworker, who may know which programs are actively funded this cycle"
+        ]
+      }
+    },
+    {
+      "h2": "Timing: line up the deposit before the inspection clears",
+      "body": [
+        "The most common breakdown isn't eligibility — it's timing. A voucher placement moves through a CMHA Request for Tenancy Approval and an HQS (Housing Quality Standards) inspection, and once that clears, the household is expected to sign and move in on a defined schedule. If the deposit funding is still in a queue when the inspection passes, the placement can slip.",
+        "Start the deposit-assistance application in parallel with the housing search, not after. Ask each program how long it takes from application to funds released, and whether it pays the landlord directly or reimburses. Confirm the assistance amount fits the deposit the home is asking, since a voucher-friendly landlord can only hold a unit so long.",
+        "Because every home we work with is already HUD-inspection-ready, the inspection step tends to move faster — which is helpful, but it also means your funding needs to be ready to keep pace."
+      ]
+    },
+    {
+      "h2": "What to send us so the housing side is ready",
+      "body": [
+        "While you work the assistance track, we can settle the home. The more specific the request, the faster we can point you to real options that welcome the voucher — see our [Section 8 housing overview](/section-8-housing-cleveland-oh/) or send us the details below and we'll tell you what's open now."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Bedrooms needed and household size",
+          "Voucher bedroom size and the issuing housing authority (e.g. CMHA)",
+          "Target move-in date and any inspection or funding deadlines",
+          "The deposit amount the assistance program will cover, if known",
+          "Must-be-near locations such as work, school, or a clinic"
+        ]
+      }
+    },
+    {
+      "h2": "A note on local source-of-income rules",
+      "body": [
+        "Cleveland itself does not yet have a source-of-income ordinance, though several inner-ring suburbs do — including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. Every home we work with welcomes Housing Choice Vouchers regardless of where it sits, and we follow the Fair Housing Act in every interaction. If you'd like to talk through a specific placement, [reach our team](/housing-partners/) or have your client [book a showing](/p/book-showing)."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Does a Section 8 voucher pay the security deposit?", "a": "No. A Housing Choice Voucher subsidizes ongoing monthly rent only. The security deposit and any upfront move-in costs are the tenant's responsibility, which is why navigators often pair the voucher with a separate deposit-assistance program." },
+    { "q": "Can deposit assistance and a voucher be used together?", "a": "Yes — they're used together but funded separately. The voucher handles monthly rent while the assistance program covers the upfront deposit, so both funding sources need to be ready by the same move-in date." },
+    { "q": "Do you provide the deposit assistance yourselves?", "a": "No. Rent Finder Cleveland is a local rental team that helps renters find, tour, and apply for voucher-friendly homes. We don't fund deposits or run assistance programs — we point navigators to homes that already welcome Section 8, and to the programs their clients may qualify for." },
+    { "q": "Where should a Cleveland navigator start looking for deposit help?", "a": "United Way's 211 line is a good first call to route a household to currently funded programs, alongside Cuyahoga County's Office of Homeless Services and local nonprofits like EDEN. Always confirm current eligibility and funding directly with each provider." },
+    { "q": "How fast can you tell me what voucher-friendly homes are available?", "a": "Usually same day. Because every home we work with already welcomes Housing Choice Vouchers and is HUD-inspection-ready, we can quickly match bedrooms, timing, and preferred areas to what's open right now." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/topics/housing_choice_voucher_program_section_8"],
+  "lastUpdated": "2026-07-05"
+}

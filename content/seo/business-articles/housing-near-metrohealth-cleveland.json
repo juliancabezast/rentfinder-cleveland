@@ -1,0 +1,63 @@
+{
+  "slug": "housing-near-metrohealth-cleveland",
+  "section": "corporate-leasing",
+  "title": "Housing Near MetroHealth in Cleveland for Healthcare Workers",
+  "metaTitle": "Housing Near MetroHealth Cleveland | Healthcare Staff",
+  "metaDescription": "Housing near MetroHealth Cleveland for new or traveling healthcare staff — our local rental team shares nearby, voucher-friendly homes by your start date.",
+  "primaryKeyword": "housing near metrohealth cleveland",
+  "secondaryKeywords": ["metrohealth cleveland housing", "rentals near metrohealth", "healthcare worker housing cleveland"],
+  "answerBox": "MetroHealth's main campus sits on Cleveland's near West Side at 2500 MetroHealth Drive, close to I-71, I-90, and the RTA Red Line. If you're a new hire or traveling clinician, tell us your start date, shift, and commute limit, and our local rental team will share nearby homes that are available now — every one welcomes Housing Choice Vouchers and is HUD-inspection-ready.",
+  "sections": [
+    {
+      "h2": "Where MetroHealth's main campus sits",
+      "body": [
+        "MetroHealth's main campus is at **2500 MetroHealth Drive, Cleveland, OH 44109**, on the city's near West Side in the Clark-Fulton area. It's a quick hop from I-71 and I-90, and the West 25th–MetroHealth RTA Red Line station is close by, which matters if you'd rather not park during rotating shifts.",
+        "For a new hire or a traveling clinician on a 13-week assignment, the practical question usually isn't a ZIP code — it's how long the drive runs at 6 a.m. and again after a night shift. That commute frame is what we work from when we point you to homes."
+      ]
+    },
+    {
+      "h2": "Tell us your shift and start date",
+      "body": ["The fastest way to get a useful list is to tell us how you actually commute, not just how many bedrooms you need."],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Your start date and how long the assignment runs",
+          "Shift pattern (days, nights, rotating) and the commute time you'll tolerate",
+          "Bedrooms needed and household size",
+          "Whether you need parking or want to be near a Red Line stop",
+          "Whether you'll use a Housing Choice Voucher, and the issuing housing authority (e.g. CMHA)"
+        ]
+      }
+    },
+    {
+      "h2": "An honest note on where our homes are",
+      "body": [
+        "We'll be straight with you: the homes we work with are concentrated on Cleveland's East and Southeast side, with some in nearby suburbs and in Akron, Lorain, and Elyria — not clustered right around the West Side campus. For many of our homes, a MetroHealth commute is a highway drive rather than a five-minute one.",
+        "We'd rather give you the real drive time up front than pretend everything is next door. If a short commute is your top priority, say so, and we'll tell you honestly whether our current selection fits. You can get a sense of what we carry on our [Cleveland rentals](/cleveland-rentals/) page or in our [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) listings."
+      ]
+    },
+    {
+      "h2": "Every home welcomes Housing Choice Vouchers",
+      "body": [
+        "If you receive a Housing Choice Voucher (Section 8), you don't have to screen out listings or guess who will say yes. Every home we work with welcomes vouchers and is ready for a CMHA Housing Quality Standards inspection — the step where placements often stall.",
+        "Cleveland itself doesn't have a source-of-income ordinance, though several inner-ring suburbs do, including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. We welcome vouchers everywhere we operate regardless, and we follow the Fair Housing Act in every interaction. New to the process? Start with our [Section 8 housing in Cleveland](/section-8-housing-cleveland-oh/) overview."
+      ]
+    },
+    {
+      "h2": "For coordinators and recruiters placing several hires",
+      "body": [
+        "If you coordinate housing for a cohort of nurses, techs, or residents, send us the group's needs in one message and we'll tell you what we can honestly cover. We're a local rental team, not a national relocation vendor — we don't run furnished-unit programs or relocation packages, so we won't promise services we don't provide.",
+        "What we can do is share nearby homes that are available now, matched to start dates and shift patterns, and help each person tour and apply. Reach us at **(440) 444-4737** or **support@rentfindercleveland.com**, or see how we work with employers on our [corporate leasing](/corporate-leasing/) page. When someone's ready to walk a place, they can [book a showing](/p/book-showing)."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "How far are your homes from the MetroHealth main campus?", "a": "Most of the homes we work with are on Cleveland's East and Southeast side or in nearby suburbs and in Akron, Lorain, and Elyria, so a MetroHealth commute is usually a highway drive rather than a short one. Tell us your maximum commute time and we'll be honest about what fits." },
+    { "q": "Do you offer furnished or short-term housing for travel assignments?", "a": "No. We're a local rental team and don't run furnished or short-term programs, so we won't promise that. We can share standard rentals that are available now and matched to your start date and assignment length." },
+    { "q": "Do you accept Housing Choice Vouchers?", "a": "Yes. Every home we work with welcomes Housing Choice Vouchers (Section 8) and is ready for a CMHA inspection." },
+    { "q": "I'm a staffing coordinator with several hires starting the same month — can you help?", "a": "Send us the group's start dates, shift patterns, and bedroom needs in one message. We'll tell you what we can honestly cover and help each person tour and apply." },
+    { "q": "Is there a fee to work with your team?", "a": "No. There's no fee to reach out or get a list of available homes. The renter completes standard tenant application steps once they choose a place." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/topics/housing_choice_voucher_program_section_8"],
+  "lastUpdated": "2026-07-05"
+}

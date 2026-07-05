@@ -1,0 +1,77 @@
+{
+  "slug": "hold-unit-during-hqs-inspection-cleveland",
+  "section": "housing-partners",
+  "title": "How to Hold a Section 8 Unit During the HQS Inspection in Cleveland",
+  "metaTitle": "Hold a Unit During the HQS Inspection | Cleveland Case Managers",
+  "metaDescription": "For Cleveland case managers: how to hold a unit section 8 inspection cleveland gap so a client doesn't lose the home while CMHA paperwork and the HQS inspection clear.",
+  "primaryKeyword": "hold unit section 8 inspection cleveland",
+  "secondaryKeywords": ["cmha hqs inspection timeline", "rfta approval cleveland", "voucher inspection delay cleveland"],
+  "answerBox": "The gap between a signed application and a passed HQS inspection is where Section 8 placements fall apart. Keep the unit held by submitting the CMHA Request for Tenancy Approval the same day, confirming the landlord will wait for inspection, and staying on top of scheduling and re-inspection dates. Rent Finder Cleveland works only with homes that already welcome vouchers and are inspection-ready, which shortens that gap.",
+  "sections": [
+    {
+      "h2": "Why the inspection gap is where placements die",
+      "body": [
+        "A voucher client can be approved, motivated, and matched to a home — and still lose it in the two or three weeks between application and move-in. The culprit is almost always the gap while CMHA processes the Request for Tenancy Approval (RFTA) and schedules the Housing Quality Standards (HQS) inspection. During that window the unit sits vacant, and a landlord fielding market-rate applicants may not wait.",
+        "For case managers, the job in this stretch is less about paperwork and more about **holding the room warm** — keeping the landlord confident the deal will close, and keeping CMHA moving so the inspection date lands before anyone's patience runs out.",
+        "Working from homes that already welcome Housing Choice Vouchers changes the math. When a landlord expects the voucher process and has passed HQS inspections before, they are far more willing to wait through it. Every home in [our current selection](/section-8-housing-cleveland-oh/) is inspection-ready for exactly this reason."
+      ]
+    },
+    {
+      "h2": "Submit the RFTA the same day",
+      "body": [
+        "The single biggest lever on the timeline is how fast the RFTA packet reaches CMHA. The inspection can't be scheduled until the packet is in and the proposed rent is logged, so a two-day delay in submission is a two-day delay in the whole chain.",
+        "Have the client and landlord complete the RFTA the day the unit is chosen. Check the packet before it goes in — a missing signature, a blank owner W-9, or an unlisted utility responsibility bounces it back and resets the clock."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "RFTA form signed by both the landlord and the tenant",
+          "Owner's completed W-9 and direct-deposit form",
+          "Proposed contract rent and who pays which utilities",
+          "Correct unit address, bedroom size, and voucher bedroom size",
+          "Lead-safe or lead certification if the building requires it"
+        ]
+      }
+    },
+    {
+      "h2": "Get the landlord's hold commitment in writing",
+      "body": [
+        "Ask the landlord directly, before the client commits, whether they will hold the unit through the inspection and any re-inspection. Most homes that regularly accept vouchers will — but the answer belongs in an email or text, not a hallway conversation, so everyone shares the same expectation.",
+        "A short written understanding usually covers the target inspection window, whether a holding deposit applies, and what happens if a re-inspection is needed. It is not a lease, but it gives the client something concrete and gives you a reference if the timeline slips. For the homes we work with, we can confirm this hold commitment up front so you aren't guessing whether a landlord will wait."
+      ]
+    },
+    {
+      "h2": "Stay on top of the CMHA inspection timeline",
+      "body": [
+        "Once the RFTA is in, CMHA schedules the HQS inspection. Timelines move around with inspector workload, so treat the scheduled date as something to confirm, not assume. Ask the client and landlord to report the moment they get a date, and note it where your team can see it.",
+        "The most common cause of a blown hold is a **failed first inspection** followed by a slow re-inspection. Small, fixable items — a missing smoke detector, a cracked window, a loose railing, a GFCI outlet near water — are typical fails. When you already work with inspection-ready homes, these are rare, but budget for the possibility so a re-inspection date doesn't catch the landlord off guard and cost you the unit."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Confirm the scheduled inspection date with both parties",
+          "Make sure someone can provide inspector access to the unit",
+          "If it fails, get the re-inspection scheduled the same week",
+          "Keep the landlord updated so the hold stays firm",
+          "Have the client ready to sign the lease the day it passes"
+        ]
+      }
+    },
+    {
+      "h2": "Know the local rules that affect a hold",
+      "body": [
+        "Cleveland itself does not have a source-of-income ordinance, so a landlord there is not legally required to accept a voucher — which is exactly why starting from homes that already say **yes** matters. Several inner-ring suburbs do have source-of-income protections, including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale.",
+        "Wherever the unit sits, we welcome Housing Choice Vouchers and follow the Fair Housing Act in every interaction. Most of the homes we work with are concentrated on Cleveland's East and Southeast side, with some suburbs and homes in Akron, Lorain, and Elyria. If you have a client with a live voucher, tell us the bedrooms, area, and inspection deadline and we'll point you to what's open — see [how to apply through CMHA](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) or browse [Section 8 houses for rent](/cleveland-rentals/section-8/section-8-houses-for-rent-cleveland-ohio/)."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "How long does the gap between application and move-in usually take?", "a": "It typically runs one to three weeks, driven mostly by how fast the RFTA is submitted and when CMHA can schedule the HQS inspection. Submitting the packet the same day the unit is chosen is the biggest thing you can control." },
+    { "q": "Can a landlord legally require a holding deposit during the inspection?", "a": "Practices vary and any deposit terms should be put in writing before the client commits. Ask the landlord directly, and confirm what happens to the deposit if the deal doesn't close, so your client isn't exposed." },
+    { "q": "What happens if the unit fails the first HQS inspection?", "a": "The landlord fixes the flagged items and CMHA schedules a re-inspection. The risk to your hold is the delay, so push to get the re-inspection booked the same week and keep the landlord informed." },
+    { "q": "Do you charge case managers a fee to hold or match a unit?", "a": "No. There's no fee to partner with us or refer a client, and we don't hold units for a fee. We help match your client to a voucher-friendly home and keep the landlord in the loop through inspection." },
+    { "q": "How fast can you tell me what's available right now?", "a": "Usually same day. Because every home we work with already welcomes Housing Choice Vouchers and is inspection-ready, we can match bedrooms, area, and your inspection deadline quickly. Call (440) 444-4737 or email support@rentfindercleveland.com." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/helping-americans-find-housing/hcv-inspections"],
+  "lastUpdated": "2026-07-05"
+}

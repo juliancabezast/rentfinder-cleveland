@@ -128,7 +128,7 @@ function redactPII(text: string): string {
 const propCols =
   "id, address, unit_number, city, state, zip_code, status, rent_price, " +
   "bedrooms, bathrooms, square_feet, property_type, section_8_accepted, " +
-  "listed_date, photos";
+  "listed_date, coming_soon_date, photos";
 
 type Prop = Record<string, any>;
 
@@ -298,6 +298,13 @@ serve(async (req) => {
             bathrooms_min: baMin,
             bathrooms_max: baMax,
             property_type: types[0] || null,
+            // Earliest known availability date among the building's
+            // coming-soon units (null when none is set — the frontend
+            // falls back to a rolling "today + 20 days").
+            coming_soon_date: units
+              .filter((u) => u.status === "coming_soon" && u.coming_soon_date)
+              .map((u) => String(u.coming_soon_date))
+              .sort()[0] || null,
             photo,
             property_id: availUnit.id,
           };

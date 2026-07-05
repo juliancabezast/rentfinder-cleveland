@@ -1,0 +1,48 @@
+{
+  "sections": [
+    {
+      "slug": "housing-partners",
+      "leadType": "housing_partner",
+      "eyebrow": "For voucher-assistance organizations",
+      "title": "Housing Partners & Case Managers",
+      "metaTitle": "Housing Partners & Case Managers | Cleveland Section 8 Rentals",
+      "metaDescription": "Case managers, housing navigators, shelters, and social-service agencies: place voucher clients faster in Cleveland homes that welcome Housing Choice Vouchers. Partner with our local team.",
+      "heroSub": "If you help people secure or use Housing Choice Vouchers, we help you place them. Every home we work with welcomes Section 8 and is HUD-inspection-ready.",
+      "answerBox": "Rent Finder Cleveland is a local rental team whose entire Cleveland-area selection welcomes Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Case managers, housing navigators, shelters, resettlement agencies, and other social-service partners can send us a client's needs and we'll match them to available voucher-friendly homes and coordinate showings — no source-of-income screening, no runaround.",
+      "intro": [
+        "Placing a client with a voucher shouldn't mean cold-calling dozens of landlords who quietly screen out vouchers. Every home in our current selection accepts Housing Choice Vouchers and is ready for a CMHA HQS inspection, so your clients start from 'yes.'",
+        "We work with case managers, housing navigators, shelter and transitional-housing staff, refugee and resettlement agencies, reentry programs, domestic-violence advocates, and Area Agency on Aging coordinators across Greater Cleveland. Tell us what a client needs — bedrooms, neighborhood, timing, accessibility — and we'll point you to what's available and set up a tour."
+      ],
+      "formTitle": "Partner with our team",
+      "formSub": "Send your details and we'll set up a partner contact. Fair-housing compliant; we never screen by source of income.",
+      "linkHeading": "Guides for housing partners",
+      "faq": [
+        { "q": "Do you charge case managers or agencies to work with you?", "a": "No. There's no cost to partner with us or to refer a client. Standard tenant application steps still apply to the renter once they choose a home." },
+        { "q": "How fast can you place a voucher client?", "a": "It depends on current availability and the client's needs, but because every home we work with already accepts Housing Choice Vouchers and is HUD-inspection-ready, you skip the hardest step — finding a landlord who says yes. Send us the details and we'll tell you what's available now." },
+        { "q": "Do you screen out Housing Choice Voucher holders?", "a": "Never. We welcome voucher holders on every available home, and we follow the Fair Housing Act. Where local source-of-income protections apply (e.g. Cleveland Heights, South Euclid, University Heights, Warrensville Heights, Linndale), we comply fully; we welcome vouchers everywhere we operate regardless." }
+      ]
+    },
+    {
+      "slug": "corporate-leasing",
+      "leadType": "corporate_leasing",
+      "eyebrow": "For employers & relocation teams",
+      "title": "Corporate & Relocation Leasing",
+      "metaTitle": "Corporate & Relocation Leasing in Cleveland, OH | Rent Finder Cleveland",
+      "metaDescription": "Housing employees or relocating staff in Greater Cleveland? Tell us your team's housing needs and our local rental team will see how we can help. Corporate leasing inquiries welcome.",
+      "heroSub": "Housing a team in Greater Cleveland? Tell us what your employees or relocating staff need and we'll see how we can help with local rental homes.",
+      "answerBox": "Rent Finder Cleveland is a local Cleveland-area rental team. If your company needs to house relocating employees, project staff, or new hires in Greater Cleveland, tell us the details — number of people, timing, neighborhoods, and budget — and we'll let you know how our available rental homes can help. Every home we work with welcomes Housing Choice Vouchers as well.",
+      "intro": [
+        "Relocating people to Cleveland — new hires, project crews, traveling staff, or transferring employees — is easier with a local contact who knows the market and the neighborhoods. Instead of piecing together listings, send us your team's requirements and we'll tell you what's realistic from our current selection of Greater Cleveland rental homes.",
+        "We're a local rental team, not a national relocation vendor, so we'll be straight with you about what we can and can't do. If we're a fit, we'll help with available homes and coordinate showings; if your needs are outside what we work with, we'll say so."
+      ],
+      "formTitle": "Tell us your team's needs",
+      "formSub": "Share a few details and our team will follow up to see how we can help.",
+      "linkHeading": "Corporate leasing guides",
+      "faq": [
+        { "q": "Do you provide furnished or short-term corporate housing?", "a": "We're a local rental team, and availability varies. Rather than over-promise, tell us exactly what you need — furnished vs. unfurnished, length of stay, number of people, and neighborhoods — and we'll tell you honestly what our current selection can and can't cover." },
+        { "q": "Can you house multiple employees at once?", "a": "Sometimes, depending on current availability. Send us the headcount, timing, and preferred areas and we'll let you know what's realistic from the homes we work with right now." },
+        { "q": "What areas of Greater Cleveland do you cover?", "a": "Our selection is concentrated on Cleveland's East and Southeast sides, with additional homes in nearby suburbs and cities like Akron, Lorain, and Elyria. Tell us where your team needs to be and we'll tell you what's available nearby." }
+      ]
+    }
+  ]
+}

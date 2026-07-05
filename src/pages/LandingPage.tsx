@@ -404,7 +404,7 @@ const LandingPage: React.FC = () => {
               <Link to="/p/terms-of-service" className="text-muted-foreground hover:text-foreground transition-colors">
                 Terms of Service
               </Link>
-              <a href="tel:+12162019201" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="tel:+14404444737" className="text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </a>
             </nav>

@@ -1,0 +1,77 @@
+{
+  "slug": "reentry-friendly-rentals-cleveland",
+  "section": "housing-partners",
+  "title": "Reentry-Friendly Rentals in Cleveland for Returning Citizens",
+  "metaTitle": "Reentry Housing in Cleveland | Record-Friendly Rentals",
+  "metaDescription": "Reentry housing in Cleveland: record-friendly, voucher-ready homes for returning citizens. How landlord record screening works and how case managers can help.",
+  "primaryKeyword": "reentry housing cleveland record friendly",
+  "secondaryKeywords": ["record friendly rentals cleveland", "housing for returning citizens cleveland", "reentry case manager housing cleveland"],
+  "answerBox": "Landlords who rent to Housing Choice Voucher holders screen applicants individually, and many will consider a client with a record once they see the full story — time since the offense, steps taken, and a case manager's support. Rent Finder Cleveland works with 90+ voucher-friendly, HUD-inspection-ready homes across Greater Cleveland; send a client's needs and we'll tell you what's open now.",
+  "sections": [
+    {
+      "h2": "How landlords screen for records in Cleveland",
+      "body": [
+        "Most private landlords in Greater Cleveland run a background check that includes a criminal-history search alongside credit and prior-eviction checks. For a client with a record, the criminal-history piece is usually the deciding factor — but it is rarely a simple pass/fail.",
+        "Federal fair-housing guidance matters here. HUD's 2016 guidance on the use of criminal records warns that a blanket refusal to rent to anyone with any record can violate the **Fair Housing Act** through disparate impact, and that arrest records without a conviction should not be the basis for a denial. Because of this, many landlords do an **individualized assessment** — weighing the nature and severity of the offense, how much time has passed, and evidence of rehabilitation.",
+        "In practice, two clients with similar records can get very different answers depending on how the situation is presented and which landlord is screening. That is where a case manager can move the needle."
+      ]
+    },
+    {
+      "h2": "Start from landlords who already welcome vouchers",
+      "body": [
+        "The fastest way to narrow the field is to skip landlords who will not consider a Housing Choice Voucher at all. Every home our team works with welcomes Section 8 and is ready for a CMHA HQS inspection, so your client's search starts from **yes** on the voucher question. You can see the kind of homes we work with on our [Section 8 homes in Cleveland](/section-8-housing-cleveland-oh/) page.",
+        "Voucher-friendly landlords tend to be more familiar with case managers and individualized review, which helps when a record is part of the file. Be honest with clients, though: welcoming a voucher is not the same as guaranteeing approval. Each landlord still screens the individual application, and we are a local rental team — not the landlord — so we cannot approve anyone ourselves."
+      ]
+    },
+    {
+      "h2": "Build a reentry packet that tells the full story",
+      "body": [
+        "The single biggest lever you control is how the client's history is presented. A landlord doing an individualized assessment is looking for context and reassurance — hand them that up front instead of leaving them to guess from a background-check line item."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "A short cover letter from the client explaining what happened and what has changed",
+          "A timeline showing how much time has passed since the offense",
+          "Proof of programming — treatment, classes, employment, or education completed during and since incarceration",
+          "A letter of support from you as the case manager or reentry program",
+          "Rental references and, where possible, an employment or income letter",
+          "Any Ohio Certificate of Qualification for Employment or record-sealing order (see below)"
+        ]
+      }
+    },
+    {
+      "h2": "Ohio tools that can help: CQE and record sealing",
+      "body": [
+        "Two Ohio mechanisms can materially improve a client's standing with a landlord. A **Certificate of Qualification for Employment (CQE)** under Ohio Revised Code 2953.25 lifts many collateral sanctions and — importantly for housing — gives a landlord good-faith protection from negligent-renting liability when they rely on it. For a hesitant landlord, that liability shield is often the reassurance that turns a maybe into a yes.",
+        "**Record sealing and expungement** under Ohio Revised Code 2953.32 can remove eligible offenses from what a standard background check surfaces. Ohio expanded eligibility in recent years, so it is worth checking whether a client qualifies before you start touring homes. These are legal processes, so point clients to a reentry legal-aid provider rather than giving legal advice yourself."
+      ]
+    },
+    {
+      "h2": "Know the local rules, then send us the details",
+      "body": [
+        "Cleveland does not have a source-of-income ordinance, so no city law forces a landlord to accept a voucher or to overlook a record. A handful of inner-ring suburbs — Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale — do have source-of-income protections. Having a record is not a protected class under fair-housing law anywhere, which is exactly why starting from voucher-friendly homes with a strong packet matters so much.",
+        "When you are ready, send us the client's needs and we will tell you what is open now — the more specific the request, the faster we can point you to real options. You can [partner with our team](/housing-partners/) or [book a showing](/p/book-showing) once a home fits, and clients who are new to the program can read [how CMHA voucher applications work](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/)."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Bedrooms needed and household size",
+          "Voucher bedroom size and issuing authority (usually CMHA)",
+          "Move-in timing and any inspection or program deadlines",
+          "Preferred areas or must-be-near locations (work, treatment, reporting)",
+          "Whether the client has a CQE or sealed record, so we can flag it for the landlord"
+        ]
+      }
+    }
+  ],
+  "faq": [
+    { "q": "Does a criminal record disqualify someone from a Housing Choice Voucher?", "a": "Not automatically. CMHA determines voucher eligibility, and only a few federal bars are lifetime — such as lifetime sex-offender registration and methamphetamine production in federally assisted housing. Most records are reviewed case by case, so confirm specifics with CMHA." },
+    { "q": "Can you guarantee a landlord will approve a client with a record?", "a": "No. We are a local rental team, not the landlord. Every home we work with welcomes vouchers, but each landlord still screens the individual application — a strong reentry packet is what improves the odds." },
+    { "q": "Is there a cost to work with you as a reentry case manager?", "a": "No. There is no fee to partner with us or refer a client. The renter still completes standard tenant application steps once they choose a home." },
+    { "q": "What is a Certificate of Qualification for Employment (CQE)?", "a": "It is an Ohio court order under Revised Code 2953.25 that lifts many collateral sanctions and gives landlords good-faith liability protection when they rely on it. That protection can make a record-friendly landlord more comfortable saying yes." },
+    { "q": "Does any Cleveland law force landlords to accept vouchers or ignore records?", "a": "No. Cleveland has no source-of-income ordinance, and no Ohio law requires a landlord to overlook a record. A few inner-ring suburbs have source-of-income protections, which is why starting from voucher-friendly homes matters." }
+  ],
+  "sources": ["https://www.hud.gov/", "https://codes.ohio.gov/ohio-revised-code/section-2953.25"],
+  "lastUpdated": "2026-07-05"
+}

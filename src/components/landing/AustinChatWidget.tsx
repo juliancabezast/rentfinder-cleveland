@@ -45,12 +45,12 @@ const RESPONSES: Record<string, { text: string; quickReplies?: string[]; showFor
     showForm: true,
   },
   "Talk to a human": {
-    text: "Sure thing! Call us at (216) 201-9201 or leave your info and we'll call you.",
+    text: "Sure thing! Call us at (440) 444-4737 or leave your info and we'll call you.",
     quickReplies: ["Call now"],
     showForm: true,
   },
   "Talk to someone": {
-    text: "Sure thing! Call us at (216) 201-9201 or leave your info and we'll call you.",
+    text: "Sure thing! Call us at (440) 444-4737 or leave your info and we'll call you.",
     quickReplies: ["Call now"],
     showForm: true,
   },
@@ -59,13 +59,13 @@ const RESPONSES: Record<string, { text: string; quickReplies?: string[]; showFor
     showForm: true,
   },
   "Call now": {
-    text: "Ring us at (216) 201-9201 — we're here Mon-Fri, 9am-6pm EST!",
+    text: "Ring us at (440) 444-4737 — we're here Mon-Fri, 9am-6pm EST!",
     quickReplies: ["Leave my info", "What does Rent Finder do?"],
   },
 };
 
 const FALLBACK_RESPONSE = {
-  text: "Hmm, let me connect you with a human! Leave your info or call (216) 201-9201.",
+  text: "Hmm, let me connect you with a human! Leave your info or call (440) 444-4737.",
   quickReplies: ["Leave my info", "Call now"],
   showForm: false,
 };
@@ -164,7 +164,7 @@ export const AustinChatWidget: React.FC = () => {
  
   const handleQuickReply = (reply: string) => {
     if (reply === "Call now") {
-      window.location.href = "tel:+12162019201";
+      window.location.href = "tel:+14404444737";
       return;
     }
     addUserMessage(reply);

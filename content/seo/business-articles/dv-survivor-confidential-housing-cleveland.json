@@ -1,0 +1,66 @@
+{
+  "slug": "dv-survivor-confidential-housing-cleveland",
+  "section": "housing-partners",
+  "title": "Confidential Domestic Violence Safe Housing in Cleveland",
+  "metaTitle": "Domestic Violence Safe Housing Cleveland | Advocates",
+  "metaDescription": "For DV advocates: use VAWA emergency transfers and Ohio's Safe at Home to move survivors into domestic violence safe housing in Cleveland—voucher-ready homes.",
+  "primaryKeyword": "domestic violence safe housing cleveland",
+  "secondaryKeywords": ["vawa emergency transfer cleveland", "confidential housing for domestic violence survivors", "safe at home ohio address confidentiality"],
+  "answerBox": "When a domestic violence survivor must relocate quickly and privately, the fastest route to safe housing in Cleveland is a home that already welcomes their Housing Choice Voucher and is HUD-inspection-ready. VAWA lets voucher holders request an emergency transfer, and Ohio's Safe at Home program can shield the survivor's new address. Send us the client's needs and we'll show what's open now.",
+  "sections": [
+    {
+      "h2": "Confidential housing when a survivor must move now",
+      "body": [
+        "When a domestic violence survivor has to leave, two clocks run at once: the home has to come together in days, and the new address has to stay out of the wrong hands. Both are solvable, but they pull in different directions — speed usually means paperwork and showings, privacy usually means slowing everything down. This guide is written for the advocates, victim-services case managers, and housing navigators who have to manage both.",
+        "Rent Finder Cleveland is a local rental team, not a shelter, a management company, or a confidentiality program. What we do well is the part that normally stalls a fast move: pointing you to homes that already welcome a Housing Choice Voucher and are ready for a CMHA HQS inspection. Every home we work with says yes to Section 8 before you ever call — about 90 of them, concentrated on Cleveland's East and Southeast side with more in nearby suburbs and Akron, Lorain, and Elyria. See our current approach on the [housing partners page](/housing-partners/)."
+      ]
+    },
+    {
+      "h2": "VAWA protections that move with the voucher",
+      "body": [
+        "The Violence Against Women Act (VAWA) covers the Housing Choice Voucher program, so its protections follow your client's voucher — not a specific unit. A survivor cannot be denied assistance or terminated **because** they are a victim of domestic violence, dating violence, sexual assault, or stalking, and a housing authority cannot treat incidents of abuse as lease violations against the victim.",
+        "Two HUD forms do most of the work. **Form HUD-5382** is the Notice of Occupancy Rights every applicant and tenant should receive, and **Form HUD-5383** is the Emergency Transfer Request a survivor files when they need to move for safety. The Cuyahoga Metropolitan Housing Authority (CMHA) administers vouchers for the county and maintains a VAWA emergency transfer plan, so a survivor already holding a CMHA voucher can request an emergency transfer rather than starting over on a waitlist.",
+        "If the safest move is out of CMHA's jurisdiction, **voucher portability** lets your client take the voucher to another housing authority. Line up the receiving-side details early — portability adds days, and a survivor on a deadline can't absorb surprises. Once a voucher is in hand, our role is simply to have a HUD-ready home waiting; see [how the CMHA Section 8 process works](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) if the client is still mid-application."
+      ]
+    },
+    {
+      "h2": "Ohio's Safe at Home address confidentiality program",
+      "body": [
+        "Ohio runs an address confidentiality program called **Safe at Home**, administered by the Ohio Secretary of State. It gives an enrolled survivor a substitute mailing address they can use with schools, courts, the BMV, and — importantly here — housing and utility paperwork, while their real address is kept out of public records. Mail sent to the substitute address is forwarded to the survivor's actual home.",
+        "A few honest specifics advocates should plan around: enrollment isn't self-serve. A survivor applies through a trained **application assistant** at a participating victim-services or domestic-violence agency, and the program is grounded in Ohio Revised Code Chapter 111. Safe at Home protects the address on records that accept it — it is not a force field, and a landlord or inspector who needs physical access to the unit will still know where it is. Pairing Safe at Home enrollment with a careful lease and utility setup is what actually keeps a new address quiet."
+      ]
+    },
+    {
+      "h2": "Line up a voucher-ready home fast",
+      "body": [
+        "The more specific the request, the faster we can point you to real options — and the less back-and-forth that leaves a paper trail. You never have to send us the survivor's name to see what's open."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Bedrooms needed and household size (and the voucher bedroom size)",
+          "Move-in timing and any inspection or transfer deadline",
+          "General areas that work for the client — near work, a clinic, or transit",
+          "Accessibility, ground-floor, or parking needs",
+          "Issuing housing authority (e.g., CMHA) and whether portability is involved"
+        ]
+      }
+    },
+    {
+      "h2": "What we can — and can't — keep private",
+      "body": [
+        "Being straight about this matters. We can keep a search low-profile: we don't publish a client's name, we can coordinate a private showing at a set time instead of an open house, and we hold the details you share for matching only. Book a tour when you're ready on our [showing page](/p/book-showing).",
+        "What we can't do is replace the legal tools built for this. We're a rental team — not attorneys, a housing authority, or the Safe at Home program. Standard tenant screening and the HQS inspection still involve the survivor's information and access to the unit, and every home is subject to the same Fair Housing Act rules we follow in every interaction. The strongest setup is layered: our voucher-ready homes for speed, VAWA for the transfer, Safe at Home for the address, and an advocate coordinating the timeline. Browse [Section 8-friendly homes in Cleveland](/section-8-housing-cleveland-oh/) to see the kind of inventory we keep."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Do I have to share the survivor's name to see what's available?", "a": "No. Send the bedrooms, timing, and general areas that work, and we'll tell you what's open. Names and identifying details only come into play during the client's own application and screening." },
+    { "q": "Does a VAWA emergency transfer let a client move anywhere?", "a": "It lets a voucher holder move for safety without going back to a waitlist. To leave CMHA's jurisdiction, the voucher uses portability to a receiving housing authority, which can add a few days — plan that timeline early." },
+    { "q": "Can you enroll a client in Ohio's Safe at Home program?", "a": "No. Enrollment happens through a trained application assistant at a participating victim-services agency under the Ohio Secretary of State. We coordinate showings and paperwork around a client's substitute address once they're enrolled." },
+    { "q": "Is there any cost to advocates or agencies?", "a": "No. There's no fee to partner with us or refer a survivor. The renter completes standard tenant application steps once they choose a home." },
+    { "q": "How fast can you tell me what's available?", "a": "Usually the same day. Because every home we work with already accepts Housing Choice Vouchers, we can match bedrooms, timing, and preferred areas to what's open right now." }
+  ],
+  "sources": ["https://www.hud.gov/program_offices/fair_housing_equal_opp/VAWA", "https://www.ohiosos.gov/secretary-office/safe-at-home/"],
+  "lastUpdated": "2026-07-05"
+}

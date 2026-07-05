@@ -1,0 +1,77 @@
+{
+  "slug": "resettlement-lease-signing-language-access-cleveland",
+  "section": "housing-partners",
+  "title": "Refugee Tenant Lease Signing Help for Cleveland Agencies",
+  "metaTitle": "Refugee Tenant Lease Signing Help Cleveland | Partners",
+  "metaDescription": "Refugee tenant lease signing help in Cleveland: a practical guide for resettlement agencies on lease terms, deposits, and move-in with language access in mind.",
+  "primaryKeyword": "refugee tenant lease signing help cleveland",
+  "secondaryKeywords": ["resettlement housing cleveland", "language access lease signing cleveland", "section 8 refugee housing cleveland"],
+  "answerBox": "Supporting a resettlement client through lease signing goes smoothest when an interpreter or case manager is present, the key lease terms are reviewed in the client's language before signing, and deposit and move-in costs are confirmed in writing. Rent Finder Cleveland works with Section 8-friendly homes across Greater Cleveland and can share plain lease and home details ahead of time so your team can prepare a client.",
+  "sections": [
+    {
+      "h2": "Where language access matters most at signing",
+      "body": [
+        "For most resettlement clients, three moments in the lease process carry the highest stakes: understanding what the lease actually commits them to, confirming exactly what money is due before keys change hands, and documenting the home's condition at move-in. Each goes far smoother when an interpreter or case manager works through it in the client's first language **before** anything is signed, not afterward.",
+        "A [Housing Choice Voucher](/section-8-housing-cleveland-oh/) adds a second layer: the client signs a lease, and CMHA also holds a Housing Assistance Payment (HAP) contract with the landlord. Spelling out which portion of rent the household pays versus what the voucher covers up front prevents a common and stressful misunderstanding in the first month."
+      ]
+    },
+    {
+      "h2": "Review these lease terms in the client's language first",
+      "body": [
+        "Prioritize the clauses that most often surprise a new tenant. Reading these aloud with the client, in their language, is worth the extra time before a signature:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Monthly rent, the tenant's share versus the voucher's share, and the exact due date",
+          "Lease length, renewal terms, and what happens if the household needs to move",
+          "Security deposit amount and the conditions for getting it back",
+          "Who pays which utilities — gas, electric, water, and trash",
+          "Late fees, guest and occupancy limits, and any pet rules",
+          "How and where to submit a repair request when something breaks"
+        ]
+      }
+    },
+    {
+      "h2": "Deposits, first month, and Ohio's deposit rules",
+      "body": [
+        "Confirm every dollar due before move-in in writing — typically a security deposit plus the first month's tenant share. Ohio law (Ohio Revised Code Chapter 5321) gives tenants specific deposit protections that are worth explaining to a client so expectations are clear from the start.",
+        "Under **ORC 5321.16**, a landlord must return the deposit, or an itemized list of deductions, within 30 days after the tenant moves out and provides a forwarding address. If a deposit greater than one month's rent (or more than $50, whichever is larger) is held for six months or longer, the excess must earn 5% annual interest. Knowing this helps a client budget and reduces disputes later.",
+        "For voucher households, remember CMHA inspects the unit against HUD Housing Quality Standards before the tenancy starts — part of the [CMHA voucher process](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) — so a move-in-ready home keeps the timeline on track."
+      ]
+    },
+    {
+      "h2": "Move-in day: condition, keys, and utilities",
+      "body": [
+        "Move-in day is easier with a short checklist your team can walk through with the client:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Complete a written move-in condition report with photos, so pre-existing wear isn't charged to the client later",
+          "For any home built before 1978, collect the federal lead-based paint disclosure and the EPA pamphlet",
+          "Set up gas, electric, and water accounts in the tenant's name where the lease requires it",
+          "Save the repair-request phone number and method in the client's contacts",
+          "Confirm keys, mailbox access, parking, and the weekly trash pickup day"
+        ]
+      }
+    },
+    {
+      "h2": "How our team fits in — logistics, not steering",
+      "body": [
+        "Rent Finder Cleveland is a local rental team that helps renters find, tour, and apply for Section 8-friendly homes — we are not a property manager, landlord, or relocation vendor. For your resettlement clients, that means we can share plain-language details about the homes we work with ahead of a showing, so your interpreters and case managers can prepare a client well before they sign anything.",
+        "We do not pick neighborhoods for a client or steer based on national origin, household makeup, or any other protected class — your team and the client decide where to look, and we show what's available that welcomes their voucher. Every home we work with accepts Housing Choice Vouchers and is HUD-inspection-ready, with the current selection concentrated on Cleveland's East and Southeast side plus some suburbs and the Akron, Lorain, and Elyria areas.",
+        "Tell us a client's bedroom size, move-in timing, and must-be-near locations, and we'll tell you what's open now. Agencies can start on our [housing partners page](/housing-partners/) or [book a showing](/p/book-showing). Reach the team at (440) 444-4737 or support@rentfindercleveland.com."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Do you provide interpreters for lease signings?", "a": "No — we're a local rental team, not a language-services provider. Your agency's interpreters or case managers handle the client's language needs; we help by sharing lease and home details in plain language ahead of time so preparation is easier." },
+    { "q": "Can you hold a home while our client's paperwork clears?", "a": "Availability depends on the individual homeowner, so we can't promise a hold. Tell us your timing early and we'll flag homes whose move-in windows fit your client's schedule." },
+    { "q": "Is there a cost to work with you as an agency?", "a": "No. There is no fee to partner with us or refer a client. The renter completes standard tenant application steps once they choose a home." },
+    { "q": "What deposit protections does Ohio give our client?", "a": "Under ORC 5321.16, the landlord must return the deposit or an itemized list of deductions within 30 days after move-out and a forwarding address, and interest is owed on larger deposits held six months or longer." },
+    { "q": "Which areas do you cover?", "a": "Every home we work with welcomes Housing Choice Vouchers, with the current selection on Cleveland's East and Southeast side plus some suburbs and the Akron, Lorain, and Elyria areas." }
+  ],
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/section-5321.16", "https://www.cmha.net/"],
+  "lastUpdated": "2026-07-05"
+}

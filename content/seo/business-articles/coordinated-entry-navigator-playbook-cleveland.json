@@ -1,0 +1,84 @@
+{
+  "slug": "coordinated-entry-navigator-playbook-cleveland",
+  "section": "housing-partners",
+  "title": "A Housing Navigator's Playbook for Coordinated Entry in Cleveland",
+  "metaTitle": "Coordinated Entry Housing Navigator Cleveland Playbook",
+  "metaDescription": "A step-by-step playbook for the coordinated entry housing navigator in Cleveland: turn a matched referral into a signed lease using homes that already welcome vouchers.",
+  "primaryKeyword": "coordinated entry housing navigator cleveland",
+  "secondaryKeywords": ["cleveland coordinated entry housing", "voucher housing navigator cleveland", "cuyahoga county coordinated entry"],
+  "answerBox": "The hardest part of coordinated entry in Cleveland is not the match — it is finding a unit whose owner will actually take the voucher and pass inspection before the referral expires. Start from inventory that already welcomes Housing Choice Vouchers and is HUD-inspection-ready, and you cut weeks off placement. Rent Finder Cleveland works with 90+ such homes across Greater Cleveland and can tell you what is open now.",
+  "sections": [
+    {
+      "h2": "The real bottleneck comes after the match",
+      "body": [
+        "By the time a client reaches you through Cuyahoga County's coordinated entry system, the assessment and prioritization work is done — the household is matched to rapid re-housing, permanent supportive housing, or a voucher resource. The clock that matters now is the one on the referral and, for voucher holders, the search window before the voucher expires.",
+        "That window rarely fails because of paperwork. It fails because too many owners quietly opt out of the voucher — they stop replying, list a rent above CMHA's payment standard, or balk at the Housing Quality Standards (HQS) inspection. Every hour a navigator spends re-recruiting owners is an hour not spent stabilizing the household.",
+        "The fix is to begin from homes that already say **yes**. Every home we work with welcomes Housing Choice Vouchers and is kept HUD-inspection-ready, so the match you were handed can move straight toward a signed lease. See our current [Section 8-friendly homes in Cleveland](/section-8-housing-cleveland-oh/)."
+      ]
+    },
+    {
+      "h2": "The step-by-step placement playbook",
+      "body": [
+        "Here is the sequence we see work most reliably once a client is matched. It assumes the household already has a voucher or subsidy attached to the referral."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Confirm the voucher bedroom size and issuing authority (usually CMHA) so you only tour units that fit the household composition — no Fair Housing steering, just bedroom math.",
+          "Pull the client's non-negotiables: proximity to a job, clinic, school, or transit line, plus any ground-floor or accessibility needs.",
+          "Send us those specifics and get a same-day shortlist of homes that are open now and already accept the voucher.",
+          "Book tours before the search window tightens — clients can [request a showing here](/p/book-showing) and a navigator can join.",
+          "Submit the CMHA Request for Tenancy Approval (RFTA) the moment the client picks a home, so the HQS inspection can be scheduled without a gap.",
+          "Track the inspection-to-lease handoff and keep the client's documents ready so signing is a formality, not a scramble."
+        ]
+      }
+    },
+    {
+      "h2": "Beat the CMHA inspection and RFTA timeline",
+      "body": [
+        "The RFTA and the HQS inspection are where placements most often stall. An owner who has never leased to a voucher holder may not have the unit ready, may not understand the rent-reasonableness review, or may drag on scheduling — and the referral clock keeps running.",
+        "Because the homes we work with are kept HUD-inspection-ready, the inspection step is far less likely to bounce for deferred maintenance. That does not remove CMHA's process — the authority still runs its own inspection and rent-reasonableness determination on its own timeline — but it removes the most common reason a first inspection fails.",
+        "Set expectations with the client early: the lease cannot start until CMHA approves the unit and the HAP contract is in place. Framing that up front prevents the disappointment that sometimes pushes a household back into the queue."
+      ]
+    },
+    {
+      "h2": "Where our inventory concentrates",
+      "body": [
+        "We are a local rental team, not a countywide listing service, so it helps to know where the homes we work with actually are. Our roughly 90-plus voucher-friendly homes concentrate on Cleveland's East and Southeast side, with additional homes in some suburbs and in the Akron, Lorain, and Elyria areas.",
+        "If your matched client needs a specific school, employer, or clinic within reach, tell us the anchor point and we will be honest about whether we have something nearby right now. When we do not, we will say so rather than send you on tours that waste the search window. Browse the broader pool of [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) to see the range."
+      ]
+    },
+    {
+      "h2": "Know the local source-of-income rules",
+      "body": [
+        "Cleveland itself does not yet have a source-of-income ordinance, so citywide there is no legal requirement that an owner accept a voucher. That is exactly why starting from homes that already welcome Section 8 matters — you are not relying on a mandate that does not exist.",
+        "Several inner-ring suburbs do prohibit source-of-income discrimination, including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. We welcome vouchers everywhere we operate regardless of local law, and we follow the Fair Housing Act in every interaction — matches are made on bedroom fit and the client's stated needs, never on protected characteristics.",
+        "If you want a refresher to share with a client, our guide on [how to apply for Section 8 with CMHA](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) walks through the basics."
+      ]
+    },
+    {
+      "h2": "What to send us to speed up a placement",
+      "body": [
+        "The more specific your request, the faster we can turn a coordinated entry match into a tour and a signed lease. Reach our team at **(440) 444-4737** or **support@rentfindercleveland.com**, or start from the [housing partners page](/housing-partners/)."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Bedrooms needed and household size",
+          "Voucher bedroom size and issuing housing authority (e.g. CMHA)",
+          "Anchor locations the home must be near — work, school, clinic, transit",
+          "Move-in timing, the search-window expiration, and any inspection deadlines",
+          "Accessibility, ground-floor, or unit-configuration needs"
+        ]
+      }
+    }
+  ],
+  "faq": [
+    { "q": "Is there any cost to work with you as a coordinated entry navigator?", "a": "No. There is no fee to partner with us or to refer a matched client. The household still completes the standard tenant application steps once they choose a home." },
+    { "q": "Do you partner with CMHA or the county's coordinated entry system?", "a": "No — we are an independent local rental team, not an arm of CMHA or the CoC. We simply work with homes that already welcome Housing Choice Vouchers, which makes your placement easier." },
+    { "q": "How fast can you tell me what is available for a matched client?", "a": "Usually the same day. Because every home we work with already accepts vouchers, we can quickly match bedrooms, timing, and anchor locations to what is open right now." },
+    { "q": "Can a navigator join the showing?", "a": "Yes. Clients can book a tour and navigators are welcome to attend in person or coordinate remotely so you can support the household through the decision." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/helping-americans-find-housing/housing-choice-voucher-program"],
+  "lastUpdated": "2026-07-05"
+}

@@ -1,0 +1,81 @@
+{
+  "slug": "zero-income-client-voucher-placement-cleveland",
+  "section": "housing-partners",
+  "title": "Zero Income Section 8 Housing in Cleveland: A Placement Guide",
+  "metaTitle": "Zero Income Section 8 Housing in Cleveland | Placement",
+  "metaDescription": "How zero income Section 8 housing in Cleveland works: CMHA payment standards cover the rent, so case managers can place voucher clients with little or no income.",
+  "primaryKeyword": "zero income section 8 housing cleveland",
+  "secondaryKeywords": ["cmha payment standards", "housing voucher zero income", "place voucher clients cleveland"],
+  "answerBox": "A Housing Choice Voucher client with zero reported income can still be placed, because the housing authority pays the landlord directly. At zero income the family's rent share is often $0, subject to CMHA minimum-rent rules, and the payment standard covers rent up to the bedroom-size cap. Rent Finder Cleveland works with 90+ voucher-ready homes across Greater Cleveland — tell us a client's needs and we'll say what's open now.",
+  "sections": [
+    {
+      "h2": "Why zero income doesn't disqualify a voucher client",
+      "body": [
+        "Case managers often assume a client with no job and no earned income is unplaceable. With a Housing Choice Voucher, the opposite is closer to the truth. The **Housing Assistance Payment (HAP)** goes from the housing authority straight to the landlord every month, so the rent is covered whether or not the client earns a paycheck.",
+        "That is the core reason [zero income Section 8 housing](/section-8-housing-cleveland-oh/) works at all: the program is built so income sets the *tenant's* share of the rent, not whether the rent gets paid. A client on disability, waiting on benefits, between jobs, or reporting $0 can still sign a lease the same week their voucher clears."
+      ]
+    },
+    {
+      "h2": "How the tenant's rent share is calculated at zero income",
+      "body": [
+        "A voucher family's share is its **Total Tenant Payment** — the highest of several figures, most notably 30% of adjusted monthly income and 10% of gross monthly income. At $0 reported income, both of those come out to $0.",
+        "What can remain is the housing authority's **minimum rent**, which HUD allows a public housing authority to set anywhere from $0 to $50 per month. A federally required hardship exemption lets a family request a waiver when even that amount is unaffordable. Confirm CMHA's current minimum-rent figure and its hardship process directly, since these can change.",
+        "In some zero-income cases the math tips the other way: when the home's utility allowance is larger than the family's share, the family receives a small **utility reimbursement** instead of paying anything toward rent."
+      ]
+    },
+    {
+      "h2": "Payment standards, not the client's paycheck, set the ceiling",
+      "body": [
+        "The number that actually decides which homes are in reach is the **payment standard** — the maximum subsidy CMHA will pay by bedroom size, based on HUD Fair Market Rents for the area. A home is within reach when its rent falls at or under the payment standard for the client's voucher size and passes CMHA's rent-reasonableness check.",
+        "This is why a zero-income client is not limited to the cheapest listings. As long as the rent sits inside the payment standard, the subsidy scales to fill the gap. Matching the **voucher bedroom size** to the home's bedroom count is usually the single biggest factor in whether a placement pencils out."
+      ]
+    },
+    {
+      "h2": "Start from homes that already welcome the voucher",
+      "body": [
+        "The slowest part of any voucher placement is rarely the paperwork — it is finding a home whose owner will take the voucher and is ready for the HUD inspection. Starting from homes that already say **yes** removes that friction.",
+        "Every home our team works with welcomes Housing Choice Vouchers and is kept HUD-inspection-ready, which is often exactly where a placement stalls. Our current selection runs about **90+ homes**, concentrated on Cleveland's East and Southeast side with more in nearby suburbs and around Akron, Lorain, and Elyria. Browse [houses for rent](/houses-for-rent-cleveland-oh/) or send us a client and we'll point you to what's open."
+      ]
+    },
+    {
+      "h2": "Honest caveats for zero-income placements",
+      "body": [
+        "Zero income keeps the subsidy math simple, but a few real-world steps still apply. It helps to prep clients for them up front:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "The housing authority will ask the client to complete a **zero-income affidavit** and may recertify more often to confirm income is still $0.",
+          "Owners can still screen on factors unrelated to income — rental history, prior eviction filings, and background checks — so gather those documents early.",
+          "Cleveland has **no source-of-income ordinance**; only a handful of nearby cities do (Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale). We welcome vouchers everywhere we operate regardless, and follow the Fair Housing Act in every interaction.",
+          "A new voucher usually comes with a search deadline (often 60–120 days, extendable). Starting from voucher-ready homes protects that clock."
+        ]
+      }
+    },
+    {
+      "h2": "What to send us for a faster match",
+      "body": [
+        "The more specific the request, the faster we can point a zero-income client to real options. Case managers and [housing partners](/housing-partners/) can send:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Voucher bedroom size and issuing authority (e.g. CMHA)",
+          "Household size and any accessibility or ground-floor needs",
+          "Must-be-near locations — work, clinic, school, or transit line",
+          "Move-in timing and the voucher's search deadline",
+          "Whether the client needs utilities included in the unit"
+        ]
+      }
+    }
+  ],
+  "faq": [
+    { "q": "Can a client with zero income really qualify for a Section 8 home?", "a": "Yes. The voucher's Housing Assistance Payment goes to the landlord regardless of the client's income, and at $0 income the tenant's share is typically just the housing authority's minimum rent — often $0, with a hardship exemption available." },
+    { "q": "What will a zero-income client pay each month?", "a": "Usually the housing authority's minimum rent, which HUD lets a PHA set between $0 and $50. In some cases a large utility allowance means the family receives a small reimbursement instead. Confirm CMHA's current figure directly." },
+    { "q": "Does the landlord still get paid if the tenant reports no income?", "a": "Yes. CMHA sends the Housing Assistance Payment straight to the owner each month, which is exactly why homes that welcome vouchers make zero-income placements possible." },
+    { "q": "Is there a cost for case managers to work with your team?", "a": "No. There is no fee to partner with us or refer a client. The renter completes standard tenant application steps once they choose a home. Reach us at (440) 444-4737 or support@rentfindercleveland.com." },
+    { "q": "How fast can you tell me what's available for a zero-income client?", "a": "Usually same day. Because every home we work with already accepts Housing Choice Vouchers, we can match bedrooms, timing, and preferred areas to what's open right now." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/topics/housing_choice_voucher_program_section_8"],
+  "lastUpdated": "2026-07-05"
+}

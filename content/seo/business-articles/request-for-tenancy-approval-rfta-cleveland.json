@@ -1,0 +1,77 @@
+{
+  "slug": "request-for-tenancy-approval-rfta-cleveland",
+  "section": "housing-partners",
+  "title": "The RFTA Process in Cleveland: A Step-by-Step for Navigators",
+  "metaTitle": "RFTA Process in Cleveland: Section 8 Tenancy Approval",
+  "metaDescription": "A step-by-step request for tenancy approval Section 8 guide for Cleveland navigators: CMHA forms, the HQS inspection, timelines, and the delays to avoid.",
+  "primaryKeyword": "request for tenancy approval section 8",
+  "secondaryKeywords": ["cmha rfta process", "housing choice voucher inspection cleveland", "section 8 lease up cleveland"],
+  "answerBox": "After your client picks a home, the landlord and tenant submit a Request for Tenancy Approval (HUD-52517) to CMHA. CMHA then checks rent reasonableness and affordability, schedules an inspection, and — if it passes — signs the HAP contract so the lease can start. Most RFTAs clear in two to four weeks when the packet is complete.",
+  "sections": [
+    {
+      "h2": "Where the RFTA fits: from \"I want this home\" to \"approved\"",
+      "body": [
+        "An RFTA — Request for Tenancy Approval, HUD form 52517 — is the document that starts the approval phase of a Housing Choice Voucher. Your client has toured a home, decided they want it, and now the housing authority has to sign off before anyone moves in. The RFTA is that handoff.",
+        "In Cuyahoga County that authority is **CMHA (the Cuyahoga Metropolitan Housing Authority)**. The tenant and the property owner complete the RFTA together and submit it with the proposed lease. CMHA reviews it, inspects the unit, and — if everything clears — signs a Housing Assistance Payments (HAP) contract so the tenancy can begin. Everything on our [Section 8 housing](/section-8-housing-cleveland-oh/) side is built to get to that signature with fewer detours."
+      ]
+    },
+    {
+      "h2": "What goes in the RFTA packet",
+      "body": [
+        "CMHA can't start the clock until the packet is complete. Most stalls at this stage are missing paperwork, not real problems with the home."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "The signed Request for Tenancy Approval (HUD-52517) with the requested rent and who pays which utilities",
+          "The proposed lease the owner intends to use, matching the RFTA terms",
+          "Proof of ownership for the unit (deed, tax record, or management agreement)",
+          "A completed W-9 and direct-deposit form so CMHA can pay the owner's share",
+          "The lead-based paint disclosure for any building built before 1978"
+        ]
+      }
+    },
+    {
+      "h2": "What CMHA checks — and how long it takes",
+      "body": [
+        "Once the packet is in, CMHA runs three reviews, roughly in parallel.",
+        "**Rent reasonableness.** CMHA compares the requested rent to similar unassisted units nearby. If the asking rent sits above what comparable homes rent for — or above the payment standard for that bedroom size — CMHA will ask the owner to adjust. This is one of the most common negotiation points.",
+        "**Affordability.** At initial lease-up, a tenant's share of rent and utilities generally can't exceed 40% of their adjusted monthly income. If the numbers don't fit, the rent or the unit has to change.",
+        "**The inspection.** CMHA schedules an inspection against HUD's housing quality standards (now moving to the NSPIRE standard). The unit has to pass before the HAP contract is signed. On a complete packet with a home that's already inspection-ready, the full sequence commonly runs two to four weeks; a failed inspection or a rent disagreement adds a cycle. Our [how-to-apply walkthrough](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) covers the client-side steps that run alongside this."
+      ]
+    },
+    {
+      "h2": "The delays that stall an RFTA most often",
+      "body": [
+        "If you place voucher clients regularly, the same handful of issues cause most of the lost weeks. Watching for them up front is the single biggest thing a navigator can do to keep an RFTA moving."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Incomplete packets** — a missing W-9, ownership proof, or unsigned page sends the file back to the bottom of the queue.",
+          "**Rent above the payment standard or comps** — build in time to negotiate, or start with homes already priced to clear rent reasonableness.",
+          "**Failed inspection items** — small fixes (a smoke detector, a handrail, a cracked window) trigger a reinspection and another scheduling wait.",
+          "**Utility responsibility mismatches** — the RFTA and the lease must agree on who pays gas, electric, and water, and it has to line up with the utility allowance.",
+          "**Voucher expiration** — CMHA vouchers carry a deadline; if the RFTA and inspection won't finish in time, request an extension before it lapses, not after."
+        ]
+      }
+    },
+    {
+      "h2": "Cleveland and CMHA specifics to keep on your radar",
+      "body": [
+        "A few local details shape how RFTAs move in and around Cleveland. Payment standards are set by bedroom size and updated by CMHA, so check the current standard for the voucher's bedroom size before locking in a rent. If your client holds a voucher from another authority and is porting into Cuyahoga County, build in extra time for the paperwork that moves between authorities.",
+        "One more that catches navigators off guard: **Cleveland itself has no source-of-income law**, so a landlord inside the city can legally decline a voucher. Only Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale currently protect source of income. Starting from voucher-welcoming homes sidesteps that entirely — and we follow the Fair Housing Act in every interaction.",
+        "Our team works with 90+ Section 8-friendly homes concentrated on Cleveland's East and Southeast side, plus more in nearby suburbs and around Akron, Lorain, and Elyria — all HUD-inspection-ready. Tell us a client's bedrooms, timing, and must-be-near locations and we'll point you to what's open, or read more about how we [partner with navigators](/housing-partners/). You can also [book a tour](/p/book-showing) for a client directly."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "What exactly is a Request for Tenancy Approval?", "a": "It's HUD form 52517 — the document a voucher holder and the property owner submit to the housing authority (CMHA in Cuyahoga County) after the client chooses a home. It kicks off the rent review, affordability check, and inspection before a lease can start." },
+    { "q": "How long does the RFTA process take in Cleveland?", "a": "With a complete packet and a home that's already inspection-ready, it commonly runs about two to four weeks from submission to a signed HAP contract. A failed inspection or a rent disagreement adds a cycle." },
+    { "q": "What's the most common reason an RFTA gets delayed?", "a": "Incomplete paperwork and rent that lands above the payment standard or comparable rents. Both are avoidable by submitting a full packet and starting from homes priced to clear CMHA's rent reasonableness review." },
+    { "q": "Do you submit the RFTA for my client?", "a": "No — the RFTA is completed by the tenant and the property owner and submitted to CMHA. As a local rental team, we help your client find and tour a Section 8-friendly, inspection-ready home and coordinate with the owner so the packet goes in complete." },
+    { "q": "Is there a fee to work with your team?", "a": "No. There's no cost to partner with us or refer a client. Reach us at (440) 444-4737 or support@rentfindercleveland.com." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/"],
+  "lastUpdated": "2026-07-05"
+}

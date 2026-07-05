@@ -1,0 +1,69 @@
+{
+  "slug": "transitional-housing-exit-plan-cleveland",
+  "section": "housing-partners",
+  "title": "A Transitional Housing Exit Plan in Cleveland That Ends in a Lease",
+  "metaTitle": "Transitional Housing Exit Plan Cleveland | Housing Partners",
+  "metaDescription": "A transitional housing exit plan for Cleveland program staff: time a resident's move into a permanent, voucher-ready home before the program clock runs out.",
+  "primaryKeyword": "transitional housing exit plan cleveland",
+  "secondaryKeywords": ["voucher-ready housing cleveland", "cmha hqs inspection timeline", "transitional program housing placement"],
+  "answerBox": "Build the exit plan backward from the program's discharge date. Confirm the resident's Housing Choice Voucher status early, start touring voucher-ready homes weeks before move-out, and schedule the CMHA HQS inspection the moment a home is chosen — that inspection is where most timelines slip. Rent Finder Cleveland works with 90+ Section 8-friendly, inspection-ready homes across Greater Cleveland.",
+  "sections": [
+    {
+      "h2": "Work backward from the program clock",
+      "body": [
+        "Most transitional-housing exits miss their deadline not because a resident isn't ready, but because the housing search starts too late. Set the target lease date first — usually a few weeks before the program's discharge deadline — then plan every step in reverse from there.",
+        "A workable timeline leaves room for touring, the application, the CMHA HQS inspection, and lease signing without a scramble in the final week. Starting six to eight weeks out is far more comfortable than starting with two weeks left on the clock."
+      ]
+    },
+    {
+      "h2": "Confirm the voucher before you tour",
+      "body": [
+        "Before a resident tours a single home, confirm exactly where their Housing Choice Voucher stands. A voucher that hasn't been issued yet, or one nearing expiration, changes the entire timeline.",
+        "Write down the voucher's bedroom size, the issuing housing authority (CMHA for most of Cuyahoga County), and any expiration or extension date. Those three facts decide which of the [Section 8-friendly homes](/section-8-housing-cleveland-oh/) we work with will actually fit — every one of them welcomes Housing Choice Vouchers and is ready for an HQS inspection. If the resident is still early in the process, our plain-language walkthrough of [how the CMHA application works](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) can help you spot gaps before they cost time."
+      ]
+    },
+    {
+      "h2": "The HQS inspection is where timelines slip",
+      "body": [
+        "The single most common place a placement stalls is the HQS (Housing Quality Standards) inspection. Even a willing landlord and a ready renter can lose a week or two waiting on a scheduling slot, or on a re-inspection after one small repair.",
+        "Because every home we work with is already HUD-inspection-ready, that step is far less likely to send you back to square one. Still, build in a buffer: schedule the inspection the moment a home is chosen, and don't assume a same-week slot will be available. Treat the inspection date, not the tour date, as the real gate on your timeline."
+      ]
+    },
+    {
+      "h2": "Line up the paperwork in parallel",
+      "body": [
+        "Don't run the steps one at a time. While a resident is touring, gather what the application will need — photo ID, income or benefit documentation, references, and the voucher paperwork — so nothing waits on a missing document in the final week.",
+        "When the resident chooses a home, they complete the standard tenant application steps and our team helps move it forward. Having documents ready in advance is often the difference between signing on time and asking the program for an extension."
+      ]
+    },
+    {
+      "h2": "What to send us to line up a home in time",
+      "body": ["The more specific the request, the faster we can point you to homes that are open and voucher-ready right now."],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Bedrooms needed and household size",
+          "Voucher bedroom size, issuing authority (e.g. CMHA), and any expiration date",
+          "Target lease date and the program's discharge deadline",
+          "Preferred areas or must-be-near locations (work, school, clinic, treatment)",
+          "Accessibility or ground-floor needs"
+        ]
+      }
+    },
+    {
+      "h2": "Know the local rules before you narrow the search",
+      "body": [
+        "Cleveland itself does not yet have a source-of-income ordinance, though several inner-ring suburbs do — including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. We welcome vouchers everywhere we operate regardless, and we follow the Fair Housing Act in every interaction.",
+        "Most of the homes we work with are concentrated on Cleveland's East and Southeast side, with some in nearby suburbs and in Akron, Lorain, and Elyria. Sharing a resident's location needs early lets us tell you honestly whether we have something that fits before the clock gets tight. When you're ready, you can [book a tour](/p/book-showing) or reach our team at (440) 444-4737 or support@rentfindercleveland.com. Program staff can also learn more on our [housing partners](/housing-partners/) page."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "How early should we start a resident's housing search?", "a": "Six to eight weeks before the target move-out is comfortable; two weeks is a scramble. The earlier you share the resident's bedrooms, voucher details, and deadline, the more room there is for touring and the HQS inspection." },
+    { "q": "Is there any cost to work with you as a transitional program?", "a": "No. There is no fee to partner with us or refer a resident. The renter completes standard tenant application steps once they choose a home." },
+    { "q": "What if the resident's voucher is close to expiring?", "a": "Tell us the expiration date up front. Because every home we work with already welcomes Housing Choice Vouchers and is inspection-ready, we can prioritize options that fit the remaining window. CMHA can sometimes grant an extension — confirm that directly with the housing authority." },
+    { "q": "Can you tell us same day what's available?", "a": "Usually yes. Send the resident's bedrooms, voucher bedroom size, target lease date, and preferred areas, and we'll tell you what's open and voucher-ready right now." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/program_offices/public_indian_housing/programs/hcv"],
+  "lastUpdated": "2026-07-05"
+}

@@ -1,0 +1,77 @@
+{
+  "slug": "accessible-rentals-older-adults-cleveland",
+  "section": "housing-partners",
+  "title": "Accessible Section 8 Senior Rentals in Greater Cleveland",
+  "metaTitle": "Accessible Senior Rentals in Cleveland | Section 8",
+  "metaDescription": "Accessible senior rentals in Cleveland that welcome Section 8: how Area Agency on Aging staff can find ground-floor, step-free, voucher-ready homes fast.",
+  "primaryKeyword": "accessible senior rentals cleveland section 8",
+  "secondaryKeywords": ["ground floor rentals cleveland section 8", "step-free voucher homes cleveland", "housing choice voucher accessible homes cleveland"],
+  "answerBox": "For older adults, the fastest path to an accessible, voucher-ready home is to search by the features that matter — a ground-floor or step-free layout and the right bedroom count — rather than by age-restricted communities. Rent Finder Cleveland works with 90+ homes across Greater Cleveland that welcome Housing Choice Vouchers and are HUD-inspection-ready. Send a client's needs and we'll share what fits now.",
+  "sections": [
+    {
+      "h2": "Search by home features, not an age label",
+      "body": [
+        "Area Agency on Aging coordinators and senior-services staff often spend weeks looking for 'senior housing' when what a client actually needs is a specific set of physical features: a ground-floor or single-story layout, a step-free entry, and enough bedrooms for the household. Searching by those features — plus voucher acceptance — is usually faster than waiting on an age-restricted waitlist.",
+        "Every home we work with welcomes Housing Choice Vouchers (Section 8) and is ready for a CMHA Housing Quality Standards inspection, which is often where a placement stalls. That lets you start from **yes** on the voucher and spend your time confirming the accessibility details that matter for your client. You can see the kind of homes we work with on our [Section 8 houses in Cleveland](/cleveland-rentals/section-8/section-8-houses-for-rent-cleveland-ohio/) page."
+      ]
+    },
+    {
+      "h2": "Accessibility features worth confirming before a tour",
+      "body": [
+        "No two homes are alike, so it helps to name the specific features a client needs up front. We can tell you what a given home actually has before anyone drives across town."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Ground-floor unit or single-story home with no interior stairs",
+          "Step-free or low-threshold entry, and how many steps lead to the door",
+          "A full bathroom on the main living level",
+          "Doorways and hallways wide enough for a walker or wheelchair",
+          "Walls suitable for grab bars — a modification a tenant can request",
+          "Laundry on the same floor as the living space",
+          "Close, off-street parking or a short, even path from the curb"
+        ]
+      }
+    },
+    {
+      "h2": "Match the voucher's bedroom size to the household",
+      "body": [
+        "Bedroom count drives both comfort and the numbers on the voucher. CMHA issues each household a voucher bedroom size, and that size — combined with the payment standard — determines what a family can afford. Confirm the client's authorized bedroom size early so we only show homes that work financially.",
+        "Under HUD Housing Choice Voucher rules, a household that needs a **live-in aide** is generally entitled to an additional bedroom, and the aide's income isn't counted toward the family's. This matters for many older adults, so flag it if there's a live-in aide or a pending reasonable-accommodation request. For the voucher process itself, CMHA's steps are summarized in our [how to apply for Section 8 with CMHA](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) guide."
+      ]
+    },
+    {
+      "h2": "What to send us for a faster match",
+      "body": [
+        "The more specific the request, the faster we can point you to real options."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Bedrooms needed and household size, including any live-in aide",
+          "Ground-floor or step-free requirements and any mobility equipment used",
+          "Places the home must be near — clinic, dialysis center, pharmacy, or family",
+          "Move-in timing and any inspection or lease deadlines",
+          "Voucher bedroom size and issuing authority (usually CMHA)",
+          "Any reasonable-accommodation request already on file"
+        ]
+      }
+    },
+    {
+      "h2": "Where our homes are, and a few honest caveats",
+      "body": [
+        "Our current selection of roughly 90 homes is concentrated on Cleveland's East and Southeast side, with additional homes in some suburbs and in Akron, Lorain, and Elyria. Not every home is single-story or step-free, so accessibility is always confirmed home by home rather than assumed. When something looks like a fit, we recommend an in-person tour before a client commits.",
+        "One local detail worth knowing: Cleveland itself does not have a source-of-income ordinance, though several inner-ring suburbs do — Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. We welcome vouchers everywhere we operate regardless, and we follow the Fair Housing Act in every interaction, including a household's right to request reasonable accommodations and modifications. Browse more on our [Section 8 housing in Cleveland](/section-8-housing-cleveland-oh/) page or reach the team directly at (440) 444-4737."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Do you only work with age-restricted senior communities?", "a": "No. We focus on standard homes that happen to have the accessibility features an older adult needs — ground-floor layouts, step-free entries, and the right bedroom count — all welcoming Housing Choice Vouchers. That usually opens up more options than an age-restricted waitlist." },
+    { "q": "Can a client add a bedroom for a live-in aide?", "a": "Generally yes. HUD's Housing Choice Voucher rules entitle a household that needs a live-in aide to an additional bedroom, and the aide's income isn't counted. Confirm the specifics with CMHA and note it when you send us the client's needs." },
+    { "q": "Is there any cost to work with you as a coordinator?", "a": "No. There's no fee to partner with us or refer a client. The renter still completes standard tenant application steps once they choose a home." },
+    { "q": "Are all of your homes ground-floor or step-free?", "a": "No. Accessibility varies home to home, so we confirm the specific features — entry steps, bathroom location, doorway widths — for each home before a tour rather than assuming." },
+    { "q": "How do we reach your team with a client's needs?", "a": "Call (440) 444-4737 or email support@rentfindercleveland.com with the client's bedroom needs, accessibility requirements, and timing, and we'll share what fits now." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/program_offices/fair_housing_equal_opp/reasonable_accommodations_and_modifications"],
+  "lastUpdated": "2026-07-05"
+}

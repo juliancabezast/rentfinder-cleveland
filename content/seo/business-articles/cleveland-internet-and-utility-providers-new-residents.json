@@ -1,0 +1,71 @@
+{
+  "slug": "cleveland-internet-and-utility-providers-new-residents",
+  "section": "corporate-leasing",
+  "title": "Cleveland Internet Providers and Utility Setup for New Residents",
+  "metaTitle": "Cleveland Internet Providers & Utility Setup Guide",
+  "metaDescription": "A relocation reference to Cleveland internet providers plus electric, gas, and water setup — who serves each address and how to switch it on before week one.",
+  "primaryKeyword": "cleveland internet providers",
+  "secondaryKeywords": ["cleveland utility setup", "the illuminating company cleveland", "enbridge gas ohio", "spectrum cleveland internet"],
+  "answerBox": "Most Greater Cleveland addresses get internet from Spectrum, with AT&T Fiber, WOW!, and fixed-wireless from T-Mobile or Verizon in some areas. Electricity comes from The Illuminating Company, or Cleveland Public Power inside parts of the city; gas from Enbridge Gas Ohio; and water from Cleveland Water. Confirm the exact address first, since availability changes block to block.",
+  "sections": [
+    {
+      "h2": "Internet and cable: who serves Greater Cleveland",
+      "body": [
+        "Cleveland has more home-internet choice than it did a few years ago, but the provider you can actually order still depends on the exact street address. The safest move is to check availability by address on each provider's site before you commit to a home or a plan. Here are the residential options most new residents will see across Greater Cleveland."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Spectrum** (Charter) — cable internet available at most Cleveland-area addresses; usually the default and the widest footprint.",
+          "**AT&T Fiber** — fast fiber in select neighborhoods where AT&T has built out; check the specific block, since coverage is uneven.",
+          "**WOW!** (WideOpenWest) — cable and fiber in several Cleveland-area suburbs.",
+          "**T-Mobile Home Internet** and **Verizon 5G Home Internet** — fixed-wireless plans that work well where 5G is strong and can be a quick, no-installer option for week one."
+        ]
+      }
+    },
+    {
+      "h2": "Order early — and keep a same-day backup",
+      "body": [
+        "Cable and fiber installs can take several days to a couple of weeks to schedule, especially around the first of the month when a lot of leases turn over. Fixed-wireless gateways, by contrast, ship in a box and self-install in about fifteen minutes.",
+        "If a relocating employee has to be online the day they arrive — for remote work or just to run the move — a fixed-wireless plan makes a reliable bridge while a wired install gets scheduled. You can always cancel it once the faster connection is live."
+      ]
+    },
+    {
+      "h2": "Electricity: The Illuminating Company or Cleveland Public Power",
+      "body": [
+        "For most of Greater Cleveland, the electric utility is **The Illuminating Company**, a FirstEnergy company formerly known as the Cleveland Electric Illuminating Company. Inside parts of the City of Cleveland, service may instead come from **Cleveland Public Power (CPP)**, the city-owned municipal utility.",
+        "Which one serves a home is tied to the address, not a choice you make, so confirm the meter's provider when you sign the lease. Open the account a few business days before move-in so the power is already on and in the resident's name from day one."
+      ]
+    },
+    {
+      "h2": "Gas and water: Enbridge Gas Ohio and Cleveland Water",
+      "body": [
+        "Natural gas across the Cleveland area is delivered by **Enbridge Gas Ohio** — the utility many residents still recognize as Dominion Energy Ohio, which was renamed after Enbridge acquired it. Water for the city and much of the region comes from **Cleveland Water** (the Cleveland Division of Water), and sewer and stormwater are handled by the **Northeast Ohio Regional Sewer District**, which usually appears as a line item on the same water bill.",
+        "One local quirk worth flagging: in many rentals the owner keeps water in their own name and bills it back to the tenant, rather than having the resident open a separate account. Ask before move-in so nobody sets up an account they don't need."
+      ]
+    },
+    {
+      "h2": "Ohio energy choice: you can pick your supplier",
+      "body": [
+        "Ohio lets you shop for the *generation* portion of your electric and gas bills even though the utility that delivers the energy and fixes outages stays the same. The state's Energy Choice program and the PUCO 'Apples to Apples' comparison charts let you compare supplier rates side by side.",
+        "Many Cleveland-area communities also enroll residents in a group 'governmental aggregation' rate by default; you can opt out or switch suppliers at any time. Watch for variable rates and cancellation fees, and remember that The Illuminating Company, CPP, or Enbridge Gas Ohio remains your delivery utility no matter which supplier you choose."
+      ]
+    },
+    {
+      "h2": "How our team fits in (and what we don't do)",
+      "body": [
+        "**Rent Finder Cleveland** is a local rental team — not a national relocation vendor. We don't transfer utilities or run corporate housing programs, and we won't pretend to. What we can do is help a relocating employee find, tour, and apply for a home, and point them toward areas that line up with the internet and utility service they need.",
+        "If your company is moving people to Northeast Ohio, [tell us your team's needs](/corporate-leasing/) and we'll see how we can help. You can browse [our current selection of Cleveland homes](/houses-for-rent-cleveland-oh/) or [book a showing](/p/book-showing) whenever someone is ready. Every home we work with also welcomes Housing Choice Vouchers and is HUD-inspection-ready, so voucher-holding hires are covered too. Reach our team at **(440) 444-4737** or **support@rentfindercleveland.com**."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Which internet provider covers the most of Cleveland?", "a": "Spectrum has the widest cable footprint across Greater Cleveland and is available at most addresses. AT&T Fiber and WOW! are faster in the pockets where they've built out, so it's worth checking availability by your exact address before choosing." },
+    { "q": "How do I know which electric company serves my address?", "a": "It depends on the address, not on your preference. Most of the region is served by The Illuminating Company, but parts of the City of Cleveland are on Cleveland Public Power — confirm which meter the home uses when you sign the lease." },
+    { "q": "Who provides gas in Cleveland now that Dominion changed names?", "a": "Natural gas is delivered by Enbridge Gas Ohio, which is the same utility formerly branded as Dominion Energy Ohio. Your old Dominion account and gas lines are unchanged; only the name is different." },
+    { "q": "Can I set up utilities before I move in?", "a": "Yes, and you should. Open electric, gas, and water accounts three to five business days ahead so everything is on in your name from day one. For internet, book the install early or use a fixed-wireless gateway as a same-day backup." },
+    { "q": "Do renters in Cleveland pay for trash pickup separately?", "a": "Usually not inside the City of Cleveland, where residential waste collection is handled by the city. In some suburbs trash is billed separately or through a private hauler, so confirm the arrangement with the home's owner." }
+  ],
+  "sources": ["https://energychoice.ohio.gov/", "https://www.puco.ohio.gov/"],
+  "lastUpdated": "2026-07-05"
+}

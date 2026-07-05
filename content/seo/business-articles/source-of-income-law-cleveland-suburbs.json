@@ -1,0 +1,74 @@
+{
+  "slug": "source-of-income-law-cleveland-suburbs",
+  "section": "housing-partners",
+  "title": "Source-of-Income Discrimination Law by Cleveland Suburb",
+  "metaTitle": "Source-of-Income Law by Cleveland Suburb | Partners",
+  "metaDescription": "Which Greater Cleveland suburbs ban source-of-income discrimination? A map of Ohio's source of income discrimination law for advocates and case managers.",
+  "primaryKeyword": "source of income discrimination law ohio cleveland",
+  "secondaryKeywords": ["cleveland heights source of income ordinance", "voucher discrimination cleveland suburbs", "section 8 protected cities ohio"],
+  "answerBox": "In Greater Cleveland, five municipalities ban source-of-income discrimination: Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. The city of Cleveland and Ohio statewide do not. So a Housing Choice Voucher holder is legally protected in those five suburbs, but elsewhere protection depends on landlords who already welcome vouchers voluntarily.",
+  "sections": [
+    {
+      "h2": "Which Greater Cleveland suburbs ban source-of-income discrimination",
+      "body": [
+        "Ohio has no statewide law protecting renters from source-of-income discrimination, and neither does the federal Fair Housing Act. That means a landlord in most of the state can legally refuse an applicant simply because part of the rent is paid with a Housing Choice Voucher. A handful of Greater Cleveland municipalities have closed that gap with their own local ordinances.",
+        "As of this writing, the following inner-ring communities have passed local source-of-income protections. Local law changes, so confirm the current ordinance directly with the municipality or a fair housing attorney before relying on it."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Cleveland Heights",
+          "South Euclid",
+          "University Heights",
+          "Warrensville Heights",
+          "Linndale"
+        ]
+      }
+    },
+    {
+      "h2": "What a source-of-income ordinance actually does",
+      "body": [
+        "Where these ordinances apply, a landlord generally cannot refuse to rent, quote a different price, or advertise **\"no vouchers\"** based on the fact that an applicant's income includes a Housing Choice Voucher, Social Security, child support, or another lawful source. The protection is about the **source** of the money, not the amount — a landlord can still apply consistent, non-discriminatory income and screening standards to every applicant.",
+        "What these laws do not do is force a landlord to accept someone who fails the same criteria everyone else must meet, and they do not override a unit passing a CMHA Housing Quality Standards (HQS) inspection. They simply remove \"we don't take Section 8\" as a lawful reason to say no."
+      ]
+    },
+    {
+      "h2": "Where the protection stops: Cleveland and most of the region",
+      "body": [
+        "The city of Cleveland itself does not currently have a source-of-income ordinance, and neither do most outer suburbs or the Akron, Lorain, and Elyria areas. In those places, voucher acceptance is voluntary — a landlord can legally decline a voucher, which is why many holders spend months searching even after CMHA issues the voucher.",
+        "This is the reality advocates run into: a client can be legally protected on one side of a street and not the other. Knowing the exact municipality a listing sits in matters, especially along borders like the Cleveland / Cleveland Heights or Cleveland / Warrensville Heights lines, where a mailing address doesn't always match the legal city."
+      ]
+    },
+    {
+      "h2": "How to advise a client on where the law backs them up",
+      "body": [
+        "A quick decision path when helping a client choose where to focus a search:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Confirm the legal municipality of each listing — not just the mailing address, which can differ from the taxing/legal city.",
+          "In the five protected suburbs, a blanket \"no Section 8\" response is likely unlawful; document it (date, listing, exact wording) and refer the client to a fair housing organization.",
+          "Outside those suburbs, prioritize homes that already welcome vouchers so the client isn't relying on a protection that doesn't exist there.",
+          "Either way, confirm the client's voucher bedroom size and the unit's rent fit CMHA's payment standard before scheduling a tour."
+        ]
+      }
+    },
+    {
+      "h2": "Where our team fits in",
+      "body": [
+        "Rent Finder Cleveland is a local rental team — not a law firm or a housing authority — so we can't give legal advice and we don't decide who qualifies for a voucher. What we can do is shorten the search. Every home we work with welcomes Housing Choice Vouchers and is kept HUD-inspection-ready, so your client starts from **yes** whether or not the local ordinance requires it.",
+        "Our current selection is concentrated on Cleveland's East and Southeast side, several suburbs, and the Akron, Lorain, and Elyria areas — roughly 90-plus homes at any given time. If you're a case manager or housing navigator, tell us a client's bedrooms, timing, and preferred areas and we'll tell you what's open now. See [how partners work with us](/housing-partners/), browse [Section 8 housing in Cleveland](/section-8-housing-cleveland-oh/), or [book a showing](/p/book-showing) once a client picks a home. Reach the team at (440) 444-4737 or support@rentfindercleveland.com."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Is Section 8 discrimination illegal in Ohio?", "a": "Not statewide. Ohio and federal law don't list source of income as a protected class, so voucher discrimination is only illegal in cities that passed their own ordinance — in Greater Cleveland that's Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale." },
+    { "q": "Does the city of Cleveland ban source-of-income discrimination?", "a": "No. As of this writing the city of Cleveland has no source-of-income ordinance, so voucher acceptance there is voluntary. That's why starting from homes that already welcome vouchers saves the most time." },
+    { "q": "What should a client do if a landlord in a protected suburb refuses their voucher?", "a": "Document the refusal — the date, the listing, and the exact wording — and refer them to a fair housing organization or a fair housing attorney. A blanket \"no Section 8\" in those five suburbs is likely unlawful." },
+    { "q": "Does a source-of-income law guarantee my client gets the unit?", "a": "No. The landlord can still apply the same screening standards to everyone, and the unit still has to pass a CMHA HQS inspection. The law only removes \"we don't take vouchers\" as a legal reason to reject an applicant. See [how to apply for Section 8 with CMHA](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/)." },
+    { "q": "Is there a cost for advocates to work with your team?", "a": "No. There's no fee to partner with us or refer a client. The renter completes standard tenant application steps once they choose a home." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/program_offices/fair_housing_equal_opp/fair_housing_act_overview"],
+  "lastUpdated": "2026-07-05"
+}

@@ -1,0 +1,75 @@
+{
+  "slug": "voucher-bedroom-size-standards-cleveland",
+  "section": "housing-partners",
+  "title": "Section 8 Bedroom Size Voucher Standards in Cleveland (CMHA)",
+  "metaTitle": "Section 8 Bedroom Size Voucher Standards | Cleveland CMHA",
+  "metaDescription": "How CMHA sets Section 8 bedroom size voucher standards by household composition in Cleveland, and how to match a client to a correctly sized, voucher-ready home.",
+  "primaryKeyword": "section 8 bedroom size voucher standards",
+  "secondaryKeywords": ["cmha voucher size", "household size to bedroom count", "hcv occupancy standards cleveland"],
+  "answerBox": "CMHA sets Section 8 bedroom size voucher standards using subsidy standards tied to household composition, generally about two people per bedroom, with heads of household and adults of different sexes assigned separate rooms. The bedroom number printed on the voucher caps how many bedrooms CMHA will subsidize. Match each client to a correctly sized, voucher-ready home to avoid overcrowding or paying above the payment standard.",
+  "sections": [
+    {
+      "h2": "How CMHA sets a voucher bedroom size",
+      "body": [
+        "A voucher's bedroom size is not a rule about where a family may live. It is the number of bedrooms the Cuyahoga Metropolitan Housing Authority (CMHA) will pay a subsidy for, decided by **subsidy standards** that look at who is in the household rather than at a family's preferences.",
+        "The baseline most housing authorities use is roughly two people per bedroom, adjusted for household composition. CMHA prints the assigned size directly on the Housing Choice Voucher, so the very first step in any search is to read that number off the voucher itself."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "The head of household, with a spouse or partner, shares one bedroom",
+          "About two household members are counted per bedroom",
+          "Adults of different sexes who are not partners are usually assigned separate bedrooms",
+          "Children may be assigned to share a bedroom, subject to age and the authority's standards",
+          "A documented live-in aide is counted for an additional bedroom"
+        ]
+      }
+    },
+    {
+      "h2": "Voucher size vs. the home's actual bedrooms",
+      "body": [
+        "The bedroom size on the voucher and the number of bedrooms in a home are two separate things. CMHA calculates the subsidy using the **payment standard for the smaller of the two** — the voucher bedroom size or the unit's real bedroom count.",
+        "That distinction matters for out-of-pocket cost. A family can rent a home with more or fewer bedrooms than their voucher size, within occupancy limits, but if they choose a larger and pricier home, CMHA still bases the subsidy on the smaller number, so the tenant absorbs the difference. Renting a home that is too small carries the opposite risk: it can be flagged for overcrowding at inspection and delay the whole placement."
+      ]
+    },
+    {
+      "h2": "Household size to bedroom count: a quick reference",
+      "body": [
+        "The table below is a planning guide only. CMHA determines the official bedroom size and prints it on the voucher, and the exact result can differ once ages and relationships in the household are counted."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "1 person, efficiency or 1 bedroom",
+          "2 people, 1 bedroom",
+          "3 to 4 people, 2 bedrooms",
+          "5 to 6 people, 3 bedrooms",
+          "7 to 8 people, 4 bedrooms"
+        ]
+      }
+    },
+    {
+      "h2": "Match a client to a correctly sized, voucher-ready home",
+      "body": [
+        "Once the voucher bedroom size is confirmed, the search narrows fast. Rent Finder Cleveland is a local rental team that helps renters find, tour, and apply for [Section 8-friendly homes](/section-8-housing-cleveland-oh/). Every home we work with welcomes Housing Choice Vouchers and is ready for a CMHA HQS inspection, so a case manager is matching to homes that already say yes.",
+        "Our current selection runs about 90+ homes concentrated on Cleveland's East and Southeast side, plus some suburbs and Akron, Lorain, and Elyria. Send us the client's confirmed bedroom size, household size, move-in timing, and any must-be-near locations, and we'll tell you what fits right now. Reach the team at **(440) 444-4737** or **support@rentfindercleveland.com**, or [book a showing](/p/book-showing) once a home looks right. Learn more about how we [work with housing partners](/housing-partners/)."
+      ]
+    },
+    {
+      "h2": "Bedroom-size mistakes that stall a placement",
+      "body": [
+        "Most bedroom-size delays are avoidable. Touring before confirming the voucher size wastes trips on homes that will not pencil out. Choosing a home that is too small for the household can fail the HQS inspection for overcrowding, sending everyone back to the search.",
+        "Going too large is the quieter trap. When a home rents above the payment standard for the voucher size, the tenant covers the gap, and at initial lease-up HUD limits the family's share to 40% of adjusted monthly income, so an oversized home can push a client out of eligibility on a place they love. Confirming the bedroom size first and matching to a correctly sized, voucher-ready home keeps the placement moving. You can browse [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) to see the kind of homes we work with."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Can a family rent a home with more bedrooms than their voucher size?", "a": "Yes, within CMHA's occupancy limits. But CMHA calculates the subsidy on the smaller voucher bedroom size, so the tenant usually pays more out of pocket for the extra space." },
+    { "q": "Does the voucher bedroom size force a family into a specific home?", "a": "No. It only sets how many bedrooms CMHA will subsidize. The family can choose any voucher-ready home that fits the occupancy rules, larger or smaller." },
+    { "q": "What happens if a home is too small for the household?", "a": "It can be flagged for overcrowding during CMHA's HQS inspection, which delays or blocks the placement. Matching to a correctly sized home up front avoids that." },
+    { "q": "How do I confirm a client's exact bedroom size?", "a": "Read the number printed on the Housing Choice Voucher, or confirm directly with CMHA. General rules of thumb are only a planning guide, not the official assignment." },
+    { "q": "Is there a fee to have you help match a client to the right-sized home?", "a": "No. There is no cost to work with our team or refer a client. The renter still completes the standard tenant application steps once they choose a home." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/topics/housing_choice_voucher_program_section_8"],
+  "lastUpdated": "2026-07-05"
+}

@@ -20,9 +20,11 @@ import {
   Sparkles,
   UserCheck,
   Send,
+  Briefcase,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface NavItem {
   title: string;
@@ -39,6 +41,7 @@ const pipelineNavItems: NavItem[] = [
   { title: 'Nurturing Leads', href: '/leads/nurturing', icon: Sparkles, permission: 'canEditLeadInfo' },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'Applicants', href: '/applicants', icon: UserCheck },
+  { title: 'Business', href: '/business', icon: Briefcase, permission: 'canEditLeadInfo' },
 ];
 
 // PROPERTIES — inventory
@@ -94,22 +97,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   const filteredSystemItems = filterItems(systemNavItems);
   const showKnowledgeHub = !knowledgeHubItem.permission || permissions[knowledgeHubItem.permission];
 
-  const renderNavItem = (item: NavItem) => (
-    <NavLink
-      key={item.href}
-      to={item.href}
-      end={item.end}
-      className={cn(
-        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-semibold transition-all duration-200',
-        'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
-        collapsed && 'justify-center px-2'
-      )}
-      activeClassName="!bg-primary/10 !text-primary !font-bold"
-    >
-      <item.icon className="h-[18px] w-[18px] shrink-0" />
-      {!collapsed && <span>{item.title}</span>}
-    </NavLink>
-  );
+  // Glass tooltip shown next to icons while the sidebar is collapsed —
+  // fades/zooms in from the icon and vanishes on mouse-out (shadcn animations).
+  const collapsedTipClass =
+    'bg-white/90 backdrop-blur-xl border-slate-200/70 text-slate-800 text-[13px] font-semibold rounded-xl px-3 py-1.5 shadow-lg';
+
+  const renderNavItem = (item: NavItem) => {
+    const link = (
+      <NavLink
+        to={item.href}
+        end={item.end}
+        className={cn(
+          'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-semibold transition-all duration-200',
+          'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+          collapsed && 'justify-center px-2'
+        )}
+        activeClassName="!bg-primary/10 !text-primary !font-bold"
+      >
+        <item.icon className="h-[18px] w-[18px] shrink-0" />
+        {!collapsed && <span>{item.title}</span>}
+      </NavLink>
+    );
+
+    if (!collapsed) {
+      return <div key={item.href}>{link}</div>;
+    }
+
+    return (
+      <Tooltip key={item.href} delayDuration={150}>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right" sideOffset={10} className={collapsedTipClass}>
+          {item.title}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
 
   const renderSection = (label: string, items: NavItem[], showSeparator: boolean = true) => {
     if (items.length === 0) return null;
@@ -192,44 +214,66 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
       <div className="flex-shrink-0 border-t border-slate-100">
         {showKnowledgeHub && (
           <div className="px-2 pt-3">
-            <NavLink
-              to={knowledgeHubItem.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-semibold transition-all duration-200',
-                'bg-primary/10 text-primary hover:bg-primary/15',
-                collapsed && 'justify-center px-2'
-              )}
-              activeClassName="!bg-primary/15 !text-primary !font-bold"
-            >
-              <span className="relative flex shrink-0">
-                <knowledgeHubItem.icon className="h-[18px] w-[18px]" />
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary animate-ping opacity-75" />
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
-              </span>
-              {!collapsed && <span>{knowledgeHubItem.title}</span>}
-            </NavLink>
+            {(() => {
+              const hubLink = (
+                <NavLink
+                  to={knowledgeHubItem.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-semibold transition-all duration-200',
+                    'bg-primary/10 text-primary hover:bg-primary/15',
+                    collapsed && 'justify-center px-2'
+                  )}
+                  activeClassName="!bg-primary/15 !text-primary !font-bold"
+                >
+                  <span className="relative flex shrink-0">
+                    <knowledgeHubItem.icon className="h-[18px] w-[18px]" />
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary animate-ping opacity-75" />
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+                  </span>
+                  {!collapsed && <span>{knowledgeHubItem.title}</span>}
+                </NavLink>
+              );
+              if (!collapsed) return hubLink;
+              return (
+                <Tooltip delayDuration={150}>
+                  <TooltipTrigger asChild>{hubLink}</TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={10} className={collapsedTipClass}>
+                    {knowledgeHubItem.title}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })()}
           </div>
         )}
         {/* Collapse Button */}
         <div className="p-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onCollapse(!collapsed)}
-            className={cn(
-              'w-full text-slate-400 hover:bg-slate-50 hover:text-slate-600',
-              collapsed && 'px-2'
-            )}
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <>
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Collapse
-              </>
-            )}
-          </Button>
+          {collapsed ? (
+            <Tooltip delayDuration={150}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onCollapse(false)}
+                  className="w-full px-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={10} className={collapsedTipClass}>
+                Expand
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onCollapse(true)}
+              className="w-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Collapse
+            </Button>
+          )}
         </div>
       </div>
     </aside>

@@ -1,0 +1,74 @@
+{
+  "slug": "partner-onboarding-agencies-cleveland",
+  "section": "housing-partners",
+  "title": "How Our Team Works With Cleveland Social-Service Agencies",
+  "metaTitle": "Work With Our Rental Team on Voucher Placements | Cleveland",
+  "metaDescription": "How Cleveland social-service agencies work with our rental team to place voucher clients: no cost to refer, no source-of-income screening, fast matches to voucher-ready homes.",
+  "primaryKeyword": "work with rental team place voucher clients cleveland",
+  "secondaryKeywords": ["cleveland housing agency partner", "voucher client referral cleveland", "section 8 housing partner cleveland"],
+  "answerBox": "Cleveland social-service agencies can refer Housing Choice Voucher clients to our local rental team at no cost. We do not screen for source of income, so a voucher is never a reason we turn a client away. Every home we work with already welcomes Section 8 and is HUD-inspection-ready, so we can match a referred client to what is open now.",
+  "sections": [
+    {
+      "h2": "Who we are and who we are not",
+      "body": [
+        "Rent Finder Cleveland is a **local rental team** that helps renters find, tour, and apply for homes that welcome Housing Choice Vouchers. We are not a property manager, a landlord, or a broker. We work with a pool of Section 8-friendly homes, and we help your clients move from a voucher in hand to a signed lease with far less back-and-forth.",
+        "For agency leadership deciding where to send clients, that distinction matters: our whole job is matching, touring, and application support. Every home in [our Section 8 selection](/section-8-housing-cleveland-oh/) already accepts vouchers and is ready for a CMHA Housing Quality Standards inspection, so your caseworkers spend less time chasing landlords who quietly say no."
+      ]
+    },
+    {
+      "h2": "No cost to refer, no source-of-income screening",
+      "body": [
+        "There is no fee for your agency to partner with us and no fee to refer a client. We do not take a cut of the client's voucher, and we do not charge caseworkers, navigators, or the households they serve.",
+        "We also do not screen for source of income. A Housing Choice Voucher, SSI, SSDI, child support, or any other lawful income is never a reason we turn a referral away. This matters because most of Greater Cleveland has no source-of-income protection law — only Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale have local ordinances. We welcome vouchers everywhere we operate regardless of local law, and we follow the Fair Housing Act in every interaction."
+      ]
+    },
+    {
+      "h2": "How the referral relationship works",
+      "body": [
+        "Onboarding an agency is intentionally light. There is no contract to negotiate, no portal to learn, and no minimum volume. A caseworker sends us a client's basic housing needs, and we reply with what is actually available."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Reach out by phone at (440) 444-4737 or email support@rentfindercleveland.com to introduce your agency",
+          "Send a referred client's bedroom size, household size, and move-in timing",
+          "We match against homes that already welcome Section 8 and share current options",
+          "We coordinate a tour directly with the client — a caseworker can join or [book a showing](/p/book-showing) on the client's behalf",
+          "The client completes standard tenant application steps once they choose a home"
+        ]
+      }
+    },
+    {
+      "h2": "What to send us to speed up a match",
+      "body": [
+        "The more specific the referral, the faster we can point a client to real options instead of a maybe. A short intake note is usually all we need."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Voucher bedroom size and issuing housing authority (for example, CMHA)",
+          "Household size and any occupancy or bedroom-count requirements",
+          "Move-in timing and any voucher or inspection deadlines",
+          "Must-be-near locations such as work, a school, a clinic, or transit",
+          "Accessibility or ground-floor needs"
+        ]
+      }
+    },
+    {
+      "h2": "Where our homes are and honest caveats",
+      "body": [
+        "Our current selection is roughly 90-plus homes, concentrated on Cleveland's East and Southeast side, with additional homes in some suburbs and in the Akron, Lorain, and Elyria areas. If a client needs a specific street or a part of town where we do not currently work with a home, we will tell you plainly rather than send them on a dead-end tour.",
+        "We are honest about our limits: we are a local rental team, not a citywide listing service, and inventory changes week to week. What we can promise is that anything we show a voucher client already welcomes Section 8 and is inspection-ready. You can browse the broader picture on our [Cleveland houses for rent](/houses-for-rent-cleveland-oh/) page or the [Section 8 housing overview](/section-8-housing-cleveland-oh/), and reach us directly at (440) 444-4737."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Is there any cost for our agency to refer clients?", "a": "No. There is no fee to partner with us or to refer a client, and we do not take any portion of the client's voucher. The renter completes standard tenant application steps once they choose a home." },
+    { "q": "Will a client be denied because they use a Housing Choice Voucher?", "a": "No. We do not screen for source of income. Every home we work with already welcomes Section 8, so a voucher is never a reason a referred client is turned away." },
+    { "q": "Do you have a formal partnership with CMHA?", "a": "No. We are an independent local rental team, not affiliated with or endorsed by CMHA. We work with homes that are ready for CMHA's HQS inspection and welcome Housing Choice Vouchers issued by CMHA and other authorities." },
+    { "q": "How quickly can you tell a caseworker what's available?", "a": "Usually the same day. Because every home already accepts vouchers, we can match a client's bedroom size, timing, and preferred areas to what is open right now." },
+    { "q": "What areas do you cover?", "a": "Our roughly 90-plus homes are concentrated on Cleveland's East and Southeast side, with some suburbs and homes in the Akron, Lorain, and Elyria areas. We will say plainly if we don't currently work with a home in a specific area." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/helping-americans/housing-choice-voucher-program"],
+  "lastUpdated": "2026-07-05"
+}

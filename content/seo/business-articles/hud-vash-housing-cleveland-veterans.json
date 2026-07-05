@@ -1,0 +1,81 @@
+{
+  "slug": "hud-vash-housing-cleveland-veterans",
+  "section": "housing-partners",
+  "title": "HUD-VASH Housing in Cleveland: A Guide for Case Managers",
+  "metaTitle": "HUD-VASH Housing Cleveland | Guide for Case Managers",
+  "metaDescription": "A practical guide to HUD-VASH housing in Cleveland for VA and SSVF case managers: how to place voucher-holding veterans in inspection-ready Cleveland homes.",
+  "primaryKeyword": "hud-vash housing cleveland",
+  "secondaryKeywords": ["hud-vash cleveland", "veteran housing cleveland", "cmha hud-vash voucher"],
+  "answerBox": "HUD-VASH pairs a HUD-funded Housing Choice Voucher, administered locally by CMHA, with case management from the Cleveland VA. The hardest step is usually finding a home whose owner accepts the voucher and passes inspection. Rent Finder Cleveland works with 90+ voucher-friendly, inspection-ready homes across Greater Cleveland, so case managers can go straight to available options.",
+  "sections": [
+    {
+      "h2": "How HUD-VASH works in Greater Cleveland",
+      "body": [
+        "HUD-VASH combines a Housing Choice Voucher funded by HUD with wraparound case management and clinical care from the VA. In Cuyahoga County the voucher side is administered by the **Cuyahoga Metropolitan Housing Authority (CMHA)**, while a veteran's VA or SSVF case manager handles the referral, supportive services, and ongoing case management out of the Louis Stokes Cleveland VA Medical Center.",
+        "Because HUD-VASH runs on Housing Choice Voucher rules, the same payment standards, rent-reasonableness checks, and unit inspections apply. In practice that means the veteran needs a home whose owner accepts the voucher **and** whose unit can pass a CMHA inspection — the two points where placements most often stall."
+      ]
+    },
+    {
+      "h2": "Who does what: VA, CMHA, and the rental search",
+      "body": [
+        "Coordinating three moving parts is what makes a HUD-VASH lease-up slower than a standard rental. Keeping the roles clear helps you spot where a case is actually stuck."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "VA / SSVF case manager: referral into HUD-VASH, clinical and supportive services, ongoing case management",
+          "CMHA: issues and administers the voucher, sets the payment standard, runs the inspection, and approves the lease",
+          "The veteran (with your support): chooses a home, tours it, and completes the tenant application",
+          "Rent Finder Cleveland: a local rental team that points you to homes already open to vouchers and ready for inspection"
+        ]
+      }
+    },
+    {
+      "h2": "Start from homes that already welcome the voucher",
+      "body": [
+        "Many HUD-VASH delays are not clinical — they are search delays. A voucher can sit unused for weeks while a veteran contacts owners who quietly screen out Section 8 or list a rent above the payment standard. Beginning from homes that already say **yes** removes that friction so the search starts from a real option instead of a cold call.",
+        "Every home we work with welcomes Housing Choice Vouchers, including HUD-VASH, and is ready for a CMHA inspection. Our current selection runs about **90+ homes** concentrated on Cleveland's East and Southeast side, with additional homes in nearby suburbs and in Akron, Lorain, and Elyria. You can browse what that looks like on our [Section 8 housing in Cleveland](/section-8-housing-cleveland-oh/) page.",
+        "To be clear about what we are: we're a **local rental team**, not a property manager, a housing authority, or a CMHA partner. We simply help your veteran find, tour, and apply for a home that fits the voucher."
+      ]
+    },
+    {
+      "h2": "What to send us to speed up a veteran's match",
+      "body": [
+        "The more specific the request, the faster we can point you to real options for a HUD-VASH client instead of a generic list."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Voucher bedroom size and household size",
+          "Move-in timing and any voucher-expiration or inspection deadlines",
+          "Must-be-near locations (VA clinic or treatment, work, transit)",
+          "Accessibility, ground-floor, or first-floor needs",
+          "Whether the veteran is coming from the street, a shelter, or transitional housing, so we can prioritize timing"
+        ]
+      }
+    },
+    {
+      "h2": "Plan for inspection and rent-reasonableness",
+      "body": [
+        "Two HUD-VASH steps catch case managers off guard. First, the unit must pass a CMHA inspection before the lease is approved; starting with inspection-ready homes avoids a failed first inspection and a re-schedule that can cost a week or more. Second, the contract rent has to fall at or under CMHA's payment standard and clear a rent-reasonableness review, so a home listed slightly high may need a rent conversation with the owner before it works.",
+        "We flag both up front. Because the homes we work with are already priced and prepared for the voucher program, there are fewer surprises between application and move-in. When a veteran is ready to see a place, they can [book a showing](/p/book-showing) directly, and you're welcome to attend."
+      ]
+    },
+    {
+      "h2": "Local rules, and how to reach us",
+      "body": [
+        "Cleveland itself does not have a source-of-income ordinance, though several inner-ring suburbs do — including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. We welcome vouchers everywhere we operate regardless, and we follow the Fair Housing Act in every interaction — we don't steer veterans toward or away from any area based on protected characteristics.",
+        "If your veteran still needs to finish the CMHA voucher steps, our plain-language walkthrough of [how to apply for Section 8 with CMHA](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) is a useful handout. Case managers can reach our team at **(440) 444-4737** or **support@rentfindercleveland.com**, or start from the [housing partners](/housing-partners/) page — tell us the voucher size, timing, and area, and we'll tell you what's open now."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Do you accept HUD-VASH vouchers, or only regular Section 8?", "a": "Both. HUD-VASH runs on the same Housing Choice Voucher rules as standard Section 8, so every home we work with that welcomes a voucher welcomes a HUD-VASH voucher." },
+    { "q": "Is there a cost for case managers to work with you?", "a": "No. There's no fee to partner with us or refer a veteran. The veteran completes standard tenant application steps once they choose a home." },
+    { "q": "Are you affiliated with the VA or CMHA?", "a": "No. We're an independent local rental team. We don't administer vouchers or provide case management — we help your veteran find, tour, and apply for a voucher-friendly, inspection-ready home." },
+    { "q": "How fast can you tell me what's available for a veteran?", "a": "Usually same day. Because every home we work with already accepts Housing Choice Vouchers and is inspection-ready, we can quickly match voucher bedroom size, timing, and preferred areas to what's open now." },
+    { "q": "What if a home rents above CMHA's payment standard?", "a": "We flag pricing up front. The homes we work with are prepared for the voucher program, and where a rent conversation is needed to meet the payment standard, we can raise it with the owner before the application moves forward." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://www.hud.gov/program_offices/public_indian_housing/programs/hcv/vash"],
+  "lastUpdated": "2026-07-05"
+}

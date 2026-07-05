@@ -1,0 +1,73 @@
+{
+  "slug": "supportive-housing-behavioral-health-cleveland",
+  "section": "housing-partners",
+  "title": "Supportive Housing for Behavioral-Health Clients in Cleveland",
+  "metaTitle": "Supportive Housing for Behavioral Health | Cleveland",
+  "metaDescription": "For ADAMHS-linked case managers: supportive housing for behavioral health in Cleveland, pairing wraparound services with voucher-ready, inspection-ready homes.",
+  "primaryKeyword": "supportive housing behavioral health cleveland",
+  "secondaryKeywords": ["adamhs housing cleveland", "voucher-ready housing behavioral health", "case manager housing cleveland"],
+  "answerBox": "Lasting placements for behavioral-health clients depend on two things lining up: a home that welcomes the client's Housing Choice Voucher, and wraparound services that keep the tenancy stable. Rent Finder Cleveland is a local rental team with 90+ voucher-ready, HUD-inspection-ready homes across Greater Cleveland. Send a client's needs and we'll tell you what fits right now.",
+  "sections": [
+    {
+      "h2": "Two things every lasting placement needs",
+      "body": [
+        "For a client managing a behavioral-health condition, a rental placement holds when two pieces line up: a home that will actually accept the Housing Choice Voucher, and the wraparound supports — case management, medication, transportation, peer support — that keep the tenancy from unraveling by month three. When either piece is missing, the placement is fragile.",
+        "You and your ADAMHS-linked team already coordinate the services. The part that stalls is finding a landlord who welcomes the voucher and whose unit is ready to pass inspection. That is the gap **Rent Finder Cleveland** — a local rental team, not a property manager — is built to close."
+      ]
+    },
+    {
+      "h2": "Start from homes that already say yes to the voucher",
+      "body": [
+        "Many voucher denials never look like denials. A landlord stops answering texts, or lists a rent just above CMHA's payment standard, and the search quietly dies with the clock still running on the voucher. Beginning from homes that already welcome Section 8 removes that friction so the placement starts from **yes**.",
+        "Every home we work with welcomes Housing Choice Vouchers and is kept ready for a **CMHA HQS inspection** — the step where placements most often stall. We do not run a CMHA partnership and we do not issue vouchers; we simply keep a current selection of [Section 8-friendly homes](/section-8-housing-cleveland-oh/) that are inspection-ready and voucher-friendly."
+      ]
+    },
+    {
+      "h2": "What to send us for a behavioral-health client",
+      "body": [
+        "The more specific the referral, the faster we can point you to real options. Share what you can without disclosing anything protected that the client hasn't authorized you to share:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Bedrooms needed and household size",
+          "Voucher bedroom size and issuing authority (usually CMHA)",
+          "Move-in timing and any voucher expiration or inspection deadline",
+          "Ground-floor, single-level, or step-free access needs",
+          "Proximity that matters — clinic, ADAMHS provider, pharmacy, transit line, or job",
+          "Any reasonable-accommodation request the client plans to make"
+        ]
+      }
+    },
+    {
+      "h2": "Reasonable accommodations you can request under fair housing",
+      "body": [
+        "The Fair Housing Act lets a client — or you on their behalf, with authorization — request a reasonable accommodation tied to a disability, and behavioral-health conditions qualify. Common requests for the clients you serve include an assistance animal in a no-pet home, a ground-floor unit, adding a payee or representative to correspondence, or a slightly adjusted move-in date around a hospital discharge.",
+        "We follow the Fair Housing Act in every interaction and never sort clients by any protected characteristic. When you send an accommodation request early, we can flag which homes in our current selection can meet it before you schedule a tour, so nobody tours a home that can't work."
+      ]
+    },
+    {
+      "h2": "Sequence the voucher, inspection, and service start",
+      "body": [
+        "Behavioral-health placements are easier to hold when the housing timeline and the service timeline move together. Once a client picks a home, the standard path is to submit the CMHA Request for Tenancy Approval, pass the HQS inspection, sign the lease, and confirm the first month's supports are in place before the move. Getting the [CMHA application steps](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) lined up early keeps a voucher from expiring mid-search.",
+        "When you're ready to look at specific units, you can [book a showing](/p/book-showing) or send the referral through our [housing partners](/housing-partners/) page and we'll tell you what's open right now."
+      ]
+    },
+    {
+      "h2": "Where our homes are, and honest caveats",
+      "body": [
+        "Our current selection runs about 90+ homes concentrated on Cleveland's East and Southeast side, with some in nearby suburbs and in Akron, Lorain, and Elyria. If a client needs to stay near a specific provider or transit line, tell us the intersection and we'll tell you honestly whether we have something close.",
+        "One caveat worth knowing: Cleveland itself has no source-of-income ordinance, so most landlords citywide are not required to accept vouchers. A few inner-ring communities — Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale — do. The homes we work with welcome Housing Choice Vouchers everywhere we operate regardless of that patchwork."
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Do you provide case management or behavioral-health services?", "a": "No. We're a local rental team that helps clients find, tour, and apply for voucher-friendly homes. You keep providing the wraparound services; we handle matching the client to an inspection-ready home that welcomes the voucher." },
+    { "q": "Is there a cost to refer a client?", "a": "No. There's no fee to partner with us or refer a client. The renter completes the standard tenant application steps once they choose a home." },
+    { "q": "Can a client request an assistance animal or a ground-floor unit?", "a": "Yes. Under the Fair Housing Act these are reasonable accommodations tied to a disability. Send the request with the referral and we'll flag homes in our current selection that can meet it." },
+    { "q": "Does Cleveland require landlords to accept vouchers?", "a": "Cleveland itself has no source-of-income ordinance, though Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale do. Every home we work with welcomes Housing Choice Vouchers regardless." },
+    { "q": "Where are the homes you work with?", "a": "About 90+ homes concentrated on Cleveland's East and Southeast side, plus some in nearby suburbs and in Akron, Lorain, and Elyria. Tell us where the client needs to be and we'll tell you what fits." }
+  ],
+  "sources": ["https://www.cmha.net/", "https://adamhscc.org/"],
+  "lastUpdated": "2026-07-05"
+}

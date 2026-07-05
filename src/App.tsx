@@ -36,6 +36,7 @@ const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
 
 const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
 const ApplicantsPage = lazy(() => import("./pages/applicants/ApplicantsPage"));
+const BusinessPage = lazy(() => import("./pages/business/BusinessPage"));
 const EmailsPage = lazy(() => import("./pages/emails/EmailsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
@@ -52,6 +53,7 @@ const TermsOfService = lazy(() => import("./pages/public/TermsOfService"));
 const SmsSignup = lazy(() => import("./pages/public/SmsSignup"));
 const ScheduleShowing = lazy(() => import("./pages/public/ScheduleShowing"));
 const ApplyRedirect = lazy(() => import("./pages/public/ApplyRedirect"));
+const ApplicationStarted = lazy(() => import("./pages/public/ApplicationStarted"));
 const LeasingTracker = lazy(() => import("./pages/public/LeasingTracker"));
 
 // Page loading skeleton
@@ -101,6 +103,7 @@ const App = () => (
                 <Route path="/p/schedule-showing/:propertyId" element={<ScheduleShowing />} />
                 <Route path="/p/apply" element={<ApplyRedirect />} />
                 <Route path="/apply" element={<ApplyRedirect />} />
+                <Route path="/apply/started" element={<ApplicationStarted />} />
                 <Route path="/leasingtracker" element={<LeasingTracker />} />
 
                 {/* Public auth routes */}
@@ -214,6 +217,17 @@ const App = () => (
                 <ProtectedRoute>
                   <MainLayout>
                     <ApplicantsPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/business"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
+                  <MainLayout>
+                    <BusinessPage />
                   </MainLayout>
                 </ProtectedRoute>
               }
