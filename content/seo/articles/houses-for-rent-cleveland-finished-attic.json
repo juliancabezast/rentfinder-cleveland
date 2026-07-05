@@ -7,7 +7,7 @@
   "primaryKeyword": "houses for rent cleveland finished attic",
   "secondaryKeywords": ["cleveland houses with third floor bedroom", "finished attic rental homes cleveland ohio", "houses with bonus room cleveland"],
   "lawTopic": false,
-  "answerBox": "Many of Cleveland's early-1900s houses were built with a full attic story, and a portion of those have since been finished into a bedroom or bonus room. Whether a specific rental's attic is finished varies by property, so ask when you book a showing — every home we manage also accepts Housing Choice Vouchers.",
+  "answerBox": "Many of Cleveland's early-1900s houses were built with a full attic story, and a portion of those have since been finished into a bedroom or bonus room. Whether a specific rental's attic is finished varies by property, so ask when you book a showing — every home we work with also accepts Housing Choice Vouchers.",
   "sections": [
     {
       "h2": "Are there houses for rent in Cleveland with a finished attic?",
@@ -42,10 +42,10 @@
       "h2": "How a finished attic affects rent",
       "body": [
         "In our current Cleveland listings, three-bedroom houses — the size most likely to include a finished attic as the third bedroom — generally run from about $1,000 to $1,400 a month, while larger four-bedroom homes with a finished third floor run higher. A finished attic tends to push a home toward the upper end of its size bracket rather than create an entirely separate price category.",
-        "For broader context, Zumper's report dated July 4, 2026 placed Cleveland's median rent for a 3-bedroom at $1,350, and RentCafe's report dated July 2, 2026 found 3-bedroom professionally managed apartments averaging $2,716 — a figure driven by larger new-construction complexes rather than the older houses that make up most of our portfolio."
+        "For broader context, Zumper's report dated July 4, 2026 placed Cleveland's median rent for a 3-bedroom at $1,350, and RentCafe's report dated July 2, 2026 found 3-bedroom professionally managed apartments averaging $2,716 — a figure driven by larger new-construction complexes rather than the older houses that make up most of our available homes."
       ],
       "table": {
-        "headers": ["Home size", "Typical monthly rent (our portfolio)", "Attic notes"],
+        "headers": ["Home size", "Typical monthly rent (our available homes)", "Attic notes"],
         "rows": [
           ["2-bedroom house", "$750 – $1,100", "Attic more often unfinished storage"],
           ["3-bedroom house", "$1,000 – $1,400", "Attic sometimes finished as the third bedroom"],
@@ -56,7 +56,7 @@
     {
       "h2": "Section 8 and finished-attic homes",
       "body": [
-        "Every home we manage — attic finished or not — accepts Housing Choice Vouchers and is kept HUD-inspection-ready. A finished attic bedroom still needs to meet the same inspection standards as any other bedroom before a voucher can be used there, so we'll confirm that a specific listing's attic space is inspection-ready when you ask. See our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for how the local voucher and inspection process works, or browse [houses with a basement](/cleveland-rentals/houses/houses-for-rent-cleveland-with-basement/) if you need more space at the other end of the house.",
+        "Every home we work with — attic finished or not — accepts Housing Choice Vouchers and is kept HUD-inspection-ready. A finished attic bedroom still needs to meet the same inspection standards as any other bedroom before a voucher can be used there, so we'll confirm that a specific listing's attic space is inspection-ready when you ask. See our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for how the local voucher and inspection process works, or browse [houses with a basement](/cleveland-rentals/houses/houses-for-rent-cleveland-with-basement/) if you need more space at the other end of the house.",
         "For the full current list, visit [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/), or see [newly renovated houses](/cleveland-rentals/houses/newly-renovated-houses-for-rent-cleveland/) if an updated third floor matters to you."
       ]
     }
@@ -64,7 +64,7 @@
   "faq": [
     {
       "q": "Do all your Cleveland rental houses have a finished attic?",
-      "a": "No — attic finish varies by property. Some three- and four-bedroom houses in our portfolio have a finished third-floor bedroom or bonus room, while others have an unfinished attic used for storage. Ask about a specific address when you book a showing."
+      "a": "No — attic finish varies by property. Some three- and four-bedroom houses in our available homes have a finished third-floor bedroom or bonus room, while others have an unfinished attic used for storage. Ask about a specific address when you book a showing."
     },
     {
       "q": "Is a finished attic counted as a bedroom?",
@@ -76,7 +76,7 @@
     },
     {
       "q": "Can I use a Section 8 voucher on a house with a finished attic bedroom?",
-      "a": "Yes. Every home we manage accepts Housing Choice Vouchers and is kept HUD-inspection-ready, including any finished attic space used as a bedroom, which must meet the same inspection standards as the home's other rooms before a voucher can be applied to that unit."
+      "a": "Yes. Every home we work with accepts Housing Choice Vouchers and is kept HUD-inspection-ready, including any finished attic space used as a bedroom, which must meet the same inspection standards as the home's other rooms before a voucher can be applied to that unit."
     },
     {
       "q": "How do I find out if a specific listing has a finished attic?",

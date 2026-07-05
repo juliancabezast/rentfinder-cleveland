@@ -6,22 +6,22 @@
   "metaDescription": "Looking for houses for rent in Brooklyn, Ohio? See its location southwest of Cleveland, rent benchmarks, and how to tell us what you need in the area.",
   "primaryKeyword": "houses for rent Brooklyn ohio",
   "secondaryKeywords": ["Brooklyn ohio rentals", "renting in Brooklyn ohio", "houses near Old Brooklyn Cleveland"],
-  "answerBox": "Brooklyn, Ohio is a small Cuyahoga County suburb immediately southwest of Cleveland — distinct from Cleveland's own Old Brooklyn and Brooklyn Centre neighborhoods. Rent Finder Cleveland doesn't currently manage homes in the suburb of Brooklyn itself, but we do manage voucher-friendly homes nearby in Cleveland's 44109 area. Tell us what you need and we'll match you to what's available.",
+  "answerBox": "Brooklyn, Ohio is a small Cuyahoga County suburb immediately southwest of Cleveland — distinct from Cleveland's own Old Brooklyn and Brooklyn Centre neighborhoods. Rent Finder Cleveland doesn't currently work with homes in the suburb of Brooklyn itself, but we do work with voucher-friendly homes nearby in Cleveland's 44109 area. Tell us what you need and we'll match you to what's available.",
   "sections": [
     {
       "h2": "Renting a house in Brooklyn, Ohio",
       "body": [
         "The City of Brooklyn is a Cuyahoga County suburb directly southwest of Cleveland, bordering the city rather than sitting inside it. It's easy to confuse with Cleveland's own **Old Brooklyn** and **Brooklyn Centre** neighborhoods, which are separate city SPAs (Statistical Planning Areas) a short distance away — Brooklyn the suburb is its own municipality with its own local government, distinct from those Cleveland neighborhood names.",
-        "**Rent Finder Cleveland manages 90+ voucher-friendly rental homes concentrated in Cleveland's east and southeast side, plus a smaller presence on the city's west/southwest side — the suburb of Brooklyn itself isn't part of our current portfolio.** If a Brooklyn address specifically is what you need, a suburb-focused property manager will have more direct listings there. If you're flexible on the exact city line, [tell us what you're looking for](/p/book-showing) and we can point you toward homes we manage in neighboring Cleveland areas, including Old Brooklyn and Brooklyn Centre just across the border."
+        "**Rent Finder Cleveland works with 90+ voucher-friendly rental homes concentrated in Cleveland's east and southeast side, plus a smaller presence on the city's west/southwest side — the suburb of Brooklyn itself isn't part of our current selection.** If a Brooklyn address specifically is what you need, a suburb-focused property manager will have more direct listings there. If you're flexible on the exact city line, [tell us what you're looking for](/p/book-showing) and we can point you toward homes we work with in neighboring Cleveland areas, including Old Brooklyn and Brooklyn Centre just across the border."
       ]
     },
     {
       "h2": "What does it cost to rent a house near Brooklyn, Ohio?",
       "body": [
-        "Rents in the immediate Brooklyn/southwest Cleveland corridor vary by house size and condition, but as a Greater Cleveland-area benchmark, Zumper's July 4, 2026 report shows a metro median of about **$1,100** for a 2-bedroom and **$1,350** for a 3-bedroom home, while RentCafe's July 2, 2026 report — which weights toward larger managed buildings — shows higher averages across the board. Within our own portfolio, 2-bedroom rental homes typically run **$750–$1,100** a month and 3-bedroom homes typically run **$1,000–$1,500**, based on our real current Cleveland-area listings."
+        "Rents in the immediate Brooklyn/southwest Cleveland corridor vary by house size and condition, but as a Greater Cleveland-area benchmark, Zumper's July 4, 2026 report shows a metro median of about **$1,100** for a 2-bedroom and **$1,350** for a 3-bedroom home, while RentCafe's July 2, 2026 report — which weights toward larger managed buildings — shows higher averages across the board. Within our own selection, 2-bedroom rental homes typically run **$750–$1,100** a month and 3-bedroom homes typically run **$1,000–$1,500**, based on our real current Cleveland-area listings."
       ],
       "table": {
-        "headers": ["Home size", "Typical rent (our Cleveland-area portfolio)", "Zumper metro median (Jul 2026)"],
+        "headers": ["Home size", "Typical rent (our Cleveland-area selection)", "Zumper metro median (Jul 2026)"],
         "rows": [
           ["2-bedroom", "$750 – $1,100", "$1,100"],
           ["3-bedroom", "$1,000 – $1,500", "$1,350"]
@@ -46,20 +46,20 @@
     {
       "h2": "Section 8 vouchers near Brooklyn",
       "body": [
-        "Ohio has no statewide law requiring landlords to accept Housing Choice Vouchers, so acceptance in the suburb of Brooklyn depends on the individual owner rather than a blanket local rule. **Every home Rent Finder Cleveland manages accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready**, including our homes in Cleveland's nearby 44109 area (Old Brooklyn/Brooklyn Centre). The [Cuyahoga Metropolitan Housing Authority (CMHA)](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) administers the Housing Choice Voucher program countywide, including both Cleveland and its suburbs, and accepts preliminary applications year-round. See our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for more on the local process."
+        "Ohio has no statewide law requiring landlords to accept Housing Choice Vouchers, so acceptance in the suburb of Brooklyn depends on the individual owner rather than a blanket local rule. **Every home Rent Finder Cleveland works with accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready**, including our homes in Cleveland's nearby 44109 area (Old Brooklyn/Brooklyn Centre). The [Cuyahoga Metropolitan Housing Authority (CMHA)](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) administers the Housing Choice Voucher program countywide, including both Cleveland and its suburbs, and accepts preliminary applications year-round. See our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for more on the local process."
       ]
     },
     {
       "h2": "Looking beyond the suburb of Brooklyn",
       "body": [
-        "If your search includes Cleveland proper, our [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) pillar page covers the neighborhoods where we manage inventory, including [Old Brooklyn](/cleveland-rentals/neighborhoods/houses-for-rent-old-brooklyn-cleveland/) just across the city line from the suburb of Brooklyn. You can also browse our full [suburb-by-suburb guide](/cleveland-rentals/suburbs/) to compare nearby communities."
+        "If your search includes Cleveland proper, our [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) pillar page covers the neighborhoods where we work with inventory, including [Old Brooklyn](/cleveland-rentals/neighborhoods/houses-for-rent-old-brooklyn-cleveland/) just across the city line from the suburb of Brooklyn. You can also browse our full [suburb-by-suburb guide](/cleveland-rentals/suburbs/) to compare nearby communities."
       ]
     }
   ],
   "faq": [
     {
-      "q": "Does Rent Finder Cleveland manage houses in Brooklyn, Ohio?",
-      "a": "Not in the suburb of Brooklyn itself. Our 90+ voucher-friendly rental homes are concentrated in Cleveland's east and southeast side, with a smaller presence in the city's southwest, including the nearby Old Brooklyn and Brooklyn Centre neighborhoods. Tell us what you're looking for and we'll point you to comparable homes we do manage."
+      "q": "Does Rent Finder Cleveland works with houses in Brooklyn, Ohio?",
+      "a": "Not in the suburb of Brooklyn itself. Our 90+ voucher-friendly rental homes are concentrated in Cleveland's east and southeast side, with a smaller presence in the city's southwest, including the nearby Old Brooklyn and Brooklyn Centre neighborhoods. Tell us what you're looking for and we'll point you to comparable homes we do work with."
     },
     {
       "q": "Is Brooklyn, Ohio the same as Cleveland's Old Brooklyn neighborhood?",
@@ -67,11 +67,11 @@
     },
     {
       "q": "How much does it cost to rent a house near Brooklyn, Ohio?",
-      "a": "In our own nearby Cleveland-area portfolio, 2-bedroom rental homes typically run $750–$1,100 a month and 3-bedroom homes run $1,000–$1,500. As a broader metro benchmark, Zumper's July 2026 report shows a median of about $1,100 for 2-bedroom and $1,350 for 3-bedroom units."
+      "a": "In our own nearby Cleveland-area selection, 2-bedroom rental homes typically run $750–$1,100 a month and 3-bedroom homes run $1,000–$1,500. As a broader metro benchmark, Zumper's July 2026 report shows a median of about $1,100 for 2-bedroom and $1,350 for 3-bedroom units."
     },
     {
       "q": "Do landlords near Brooklyn, Ohio accept Section 8 vouchers?",
-      "a": "It depends on the individual landlord — Ohio has no statewide law requiring voucher acceptance. Every home Rent Finder Cleveland manages, including those in the nearby Old Brooklyn/Brooklyn Centre area, accepts Housing Choice Vouchers and is HUD-inspection-ready. CMHA administers the voucher program for all of Cuyahoga County."
+      "a": "It depends on the individual landlord — Ohio has no statewide law requiring voucher acceptance. Every home Rent Finder Cleveland works with, including those in the nearby Old Brooklyn/Brooklyn Centre area, accepts Housing Choice Vouchers and is HUD-inspection-ready. CMHA administers the voucher program for all of Cuyahoga County."
     }
   ],
   "cta": "contact",

@@ -3,8 +3,8 @@
     "domain": "https://rentfindercleveland.com",
     "brandName": "Rent Finder Cleveland",
     "legalName": "Rent Finder Cleveland, LLC",
-    "phoneDisplay": "(216) 201-9201",
-    "phoneE164": "+12162019201",
+    "phoneDisplay": "(440) 444-4737",
+    "phoneE164": "+14404444737",
     "email": "support@rentfindercleveland.com",
     "logo": "https://storage.googleapis.com/gpt-engineer-file-uploads/jsXsoAQvR4VUmghLAayF9urSzXF2/uploads/1770090739139-Rentfinder.png",
     "ogImage": "https://storage.googleapis.com/gpt-engineer-file-uploads/jsXsoAQvR4VUmghLAayF9urSzXF2/social-images/social-1770090754992-Rentfinder.png",
@@ -12,7 +12,7 @@
     "hubBase": "/cleveland-rentals",
     "launchDate": "2026-07-04",
     "footerTagline": "Section 8-friendly rental homes across Greater Cleveland.",
-    "llmsSummary": "Rent Finder Cleveland is a residential property-management and leasing company in Cleveland, Ohio. We manage 90+ rental homes — every one accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready — concentrated on Cleveland's East and Southeast sides. This site helps renters find houses and apartments for rent in Cleveland OH, understand Section 8 vouchers, and book showings.",
+    "llmsSummary": "Rent Finder Cleveland is a local residential rental service in Cleveland, Ohio. We work with 90+ rental homes — every one accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready — concentrated on Cleveland's East and Southeast sides. This site helps renters find houses and apartments for rent in Cleveland OH, understand Section 8 vouchers, and book showings.",
     "geo": {
       "region": "US-OH",
       "placename": "Cleveland, Ohio",
@@ -43,7 +43,7 @@
         "pitch": "Ready to see a Section 8-friendly Cleveland home in person?",
         "sub": "Pick a time that works for you — no cost, no obligation.",
         "blockTitle": "See a Cleveland rental in person",
-        "blockBody": "Book a free showing with our local leasing team. Every home we manage welcomes Housing Choice Vouchers and is HUD-inspection-ready."
+        "blockBody": "Book a free showing with our local leasing team. Every home we work with welcomes Housing Choice Vouchers and is HUD-inspection-ready."
       },
       "contact": {
         "href": "/p/book-showing",
@@ -51,7 +51,7 @@
         "pitch": "Tell our local team what you're looking for.",
         "sub": "We add Section 8-ready homes regularly across Greater Cleveland.",
         "blockTitle": "Looking for a rental in this area?",
-        "blockBody": "Tell us what you need and we'll show you what's available now. We manage 90+ voucher-friendly homes across the Cleveland area and add more regularly."
+        "blockBody": "Tell us what you need and we'll show you what's available now. We work with 90+ voucher-friendly homes across the Cleveland area and add more regularly."
       },
       "apply": {
         "href": "/apply",
@@ -84,7 +84,7 @@
       "cluster": "houses",
       "title": "Houses for Rent in Cleveland, OH",
       "metaTitle": "Houses for Rent in Cleveland OH | Section 8 Friendly",
-      "metaDescription": "Houses for rent in Cleveland, OH from a local property manager. 2–3 bedroom homes, ~$700–$1,800/mo, and every home accepts Section 8. Book a free showing.",
+      "metaDescription": "Houses for rent in Cleveland, OH from a local rental team. 2–3 bedroom homes, ~$700–$1,800/mo, and every home accepts Section 8. Book a free showing.",
       "heroSub": "Local, Section 8-friendly rental homes across Cleveland's East, Southeast, and West sides — with a real leasing team you can actually reach.",
       "cta": "book-showing",
       "featuredClusters": [
@@ -118,8 +118,8 @@
       "cluster": "section-8",
       "title": "Section 8 Housing in Cleveland, OH",
       "metaTitle": "Section 8 Housing in Cleveland OH | Voucher-Friendly Homes",
-      "metaDescription": "Section 8 housing in Cleveland, OH — how CMHA vouchers work, applying, payment standards, and finding homes that accept them. Every home we manage is voucher-friendly.",
-      "heroSub": "The complete Cleveland renter's guide to Housing Choice Vouchers — and a property manager whose entire portfolio welcomes them.",
+      "metaDescription": "Section 8 housing in Cleveland, OH — how CMHA vouchers work, applying, payment standards, and finding homes that accept them. Every home we work with is voucher-friendly.",
+      "heroSub": "The complete Cleveland renter's guide to Housing Choice Vouchers — and a local team whose homes all welcome them.",
       "cta": "book-showing",
       "featuredClusters": [
         "section-8",
@@ -178,7 +178,7 @@
       "hubTitle": "Section 8 Housing & Vouchers in Cleveland",
       "metaTitle": "Section 8 Housing & Vouchers in Cleveland OH",
       "metaDescription": "How Section 8 and Housing Choice Vouchers work in Cleveland (CMHA) — applying, waitlists, payment standards, inspections, and finding voucher-friendly homes.",
-      "heroSub": "Everything Cleveland renters need to know about Housing Choice Vouchers and CMHA — and how to find homes that welcome them. Every home we manage accepts Section 8.",
+      "heroSub": "Everything Cleveland renters need to know about Housing Choice Vouchers and CMHA — and how to find homes that welcome them. Every home we work with accepts Section 8.",
       "cardDesc": "CMHA vouchers, applying, and voucher-friendly homes.",
       "cta": "book-showing",
       "lastUpdated": "2026-07-04"

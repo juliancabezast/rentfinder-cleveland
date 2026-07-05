@@ -12,7 +12,7 @@
     {
       "h2": "Are short-term house rentals available in Cleveland?",
       "body": [
-        "Short-term is a spectrum: some renters mean a few weeks, others mean a 6-to-9-month lease instead of a full year. In practice, most Cleveland landlords — including Rent Finder Cleveland — write **standard 12-month leases** for houses and duplexes, since that's what covers turnover costs and gives both sides predictability. We manage 90+ rental homes across Greater Cleveland, concentrated on the East and Southeast side, and every one accepts Section 8 Housing Choice Vouchers and is HUD-inspection-ready.",
+        "Short-term is a spectrum: some renters mean a few weeks, others mean a 6-to-9-month lease instead of a full year. In practice, most Cleveland landlords — including Rent Finder Cleveland — write **standard 12-month leases** for houses and duplexes, since that's what covers turnover costs and gives both sides predictability. We work with 90+ rental homes across Greater Cleveland, concentrated on the East and Southeast side, and every one accepts Section 8 Housing Choice Vouchers and is HUD-inspection-ready.",
         "That said, timelines do shift unit by unit — a home coming off a lease, a listing sitting longer than expected, or a landlord open to a shorter first term. The only reliable way to find out is to [book a showing](/p/book-showing) and tell our team your exact timeframe."
       ]
     },
@@ -33,12 +33,12 @@
     {
       "h2": "What does a Cleveland house rental cost, short-term or standard?",
       "body": [
-        "Standard-lease houses in our Cleveland portfolio typically run $750–$1,100 a month for two bedrooms and $1,000–$1,500 for three bedrooms. Short-term and corporate arrangements are priced individually by the provider and generally cost more per month than an equivalent standard lease, since the rate has to cover vacancy risk between short stays. For citywide context, Zumper's rent report dated July 4, 2026 put Cleveland's overall median asking rent at $1,250/mo, and RentCafe's report dated July 2, 2026 put the professionally-managed average at $1,564/mo."
+        "Standard-lease houses in our Cleveland selection typically run $750–$1,100 a month for two bedrooms and $1,000–$1,500 for three bedrooms. Short-term and corporate arrangements are priced individually by the provider and generally cost more per month than an equivalent standard lease, since the rate has to cover vacancy risk between short stays. For citywide context, Zumper's rent report dated July 4, 2026 put Cleveland's overall median asking rent at $1,250/mo, and RentCafe's report dated July 2, 2026 put the professionally-managed average at $1,564/mo."
       ],
       "table": {
         "headers": ["Lease type", "Typical monthly cost", "Notes"],
         "rows": [
-          ["Standard 12-month house lease", "$750 – $1,500", "Rent Finder Cleveland portfolio range, by bedroom count"],
+          ["Standard 12-month house lease", "$750 – $1,500", "Rent Finder Cleveland selection range, by bedroom count"],
           ["Month-to-month", "Similar to standard, sometimes higher", "Availability varies by unit and landlord"],
           ["Short-term / corporate (weeks–months)", "Premium over standard rate", "Priced individually by provider"]
         ]
@@ -53,14 +53,14 @@
     {
       "h2": "Section 8 and short-term leases",
       "body": [
-        "Voucher holders working with the Cuyahoga Metropolitan Housing Authority (CMHA) should plan around a standard lease term rather than a short-term stay, since a voucher unit still has to pass CMHA's housing quality inspection and get set up in the program before assistance starts. Every home Rent Finder Cleveland manages accepts Section 8 and is HUD-inspection-ready under [HUD's Housing Choice Voucher program](https://www.hud.gov/helping-americans/housing-choice-vouchers) standards. Our [Section 8 housing guide](/section-8-housing-cleveland-oh/) covers what to expect from application through move-in."
+        "Voucher holders working with the Cuyahoga Metropolitan Housing Authority (CMHA) should plan around a standard lease term rather than a short-term stay, since a voucher unit still has to pass CMHA's housing quality inspection and get set up in the program before assistance starts. Every home Rent Finder Cleveland works with accepts Section 8 and is HUD-inspection-ready under [HUD's Housing Choice Voucher program](https://www.hud.gov/helping-americans/housing-choice-vouchers) standards. Our [Section 8 housing guide](/section-8-housing-cleveland-oh/) covers what to expect from application through move-in."
       ]
     }
   ],
   "faq": [
     {
       "q": "Can I rent a house in Cleveland for less than a year?",
-      "a": "It's possible but limited — most houses in our portfolio and across the Cleveland market are leased on standard 12-month terms. Some landlords will consider a shorter first term depending on the unit and timing. The fastest way to find out is to book a showing and share your exact timeframe."
+      "a": "It's possible but limited — most houses in our available homes and across the Cleveland market are leased on standard 12-month terms. Some landlords will consider a shorter first term depending on the unit and timing. The fastest way to find out is to book a showing and share your exact timeframe."
     },
     {
       "q": "Is a month-to-month lease the same as a short-term rental?",
@@ -72,7 +72,7 @@
     },
     {
       "q": "Can I use a Section 8 voucher for a short-term rental?",
-      "a": "Voucher assistance is built around a standard lease term and CMHA's inspection process, so it fits a standard lease better than a short-term stay. Every home we manage accepts Section 8 and is HUD-inspection-ready, and our leasing team can walk through timing if you hold a voucher."
+      "a": "Voucher assistance is built around a standard lease term and CMHA's inspection process, so it fits a standard lease better than a short-term stay. Every home we work with accepts Section 8 and is HUD-inspection-ready, and our leasing team can walk through timing if you hold a voucher."
     },
     {
       "q": "Who typically needs short-term housing in Cleveland?",

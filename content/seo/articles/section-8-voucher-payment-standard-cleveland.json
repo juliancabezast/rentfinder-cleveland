@@ -28,7 +28,7 @@
         "To help you plan realistically, here is what asking rents look like across Cleveland right now, per Zumper's July 4, 2026 median-rent report. These are market rents, not CMHA payment standards — but they show why 2- and 3-bedroom units are usually the most attainable sizes for voucher holders in this market."
       ],
       "table": {
-        "headers": ["Bedroom size", "Zumper median asking rent (Jul 2026)", "Typical rent range in our voucher-friendly portfolio"],
+        "headers": ["Bedroom size", "Zumper median asking rent (Jul 2026)", "Typical rent range in our voucher-friendly selection"],
         "rows": [
           ["Studio", "$1,060", "Not commonly available"],
           ["1-bedroom", "$1,195", "$700 – $900"],
@@ -40,7 +40,7 @@
     {
       "h2": "Finding a home that fits your payment standard",
       "body": [
-        "Once you know your household's payment standard and estimated rent portion from CMHA, the next step is finding a unit whose rent is reasonable and whose landlord accepts vouchers. Every home we manage accepts Section 8 and is HUD-inspection-ready, which removes one common obstacle voucher holders run into — a landlord who won't participate at all. We manage rental homes concentrated in Cleveland's east and southeast side neighborhoods, including Slavic Village, Collinwood, Glenville, Fairfax, Hough, and Buckeye-Shaker, along with a smaller number on the west side.",
+        "Once you know your household's payment standard and estimated rent portion from CMHA, the next step is finding a unit whose rent is reasonable and whose landlord accepts vouchers. Every home we work with accepts Section 8 and is HUD-inspection-ready, which removes one common obstacle voucher holders run into — a landlord who won't participate at all. We work with rental homes concentrated in Cleveland's east and southeast side neighborhoods, including Slavic Village, Collinwood, Glenville, Fairfax, Hough, and Buckeye-Shaker, along with a smaller number on the west side.",
         "Keep in mind that Ohio has no statewide law requiring landlords to accept vouchers, and the City of Cleveland itself does not have a source-of-income protection ordinance — only a handful of suburbs do (see our [source-of-income discrimination guide](/cleveland-rentals/section-8/source-of-income-discrimination-cleveland-ohio/)). That makes finding a genuinely voucher-friendly landlord even more valuable.",
         "[Book a free showing](/p/book-showing) and tell our team your voucher's bedroom size and payment standard, and we'll help you see what's currently available that fits."
       ]
@@ -61,7 +61,7 @@
     },
     {
       "q": "Do all landlords in Cleveland accept Section 8?",
-      "a": "No. Ohio has no statewide law requiring it, and Cleveland itself has no source-of-income protection ordinance, so acceptance varies landlord by landlord. Every home Rent Finder Cleveland manages accepts Housing Choice Vouchers, which is one of the reasons voucher holders work with us."
+      "a": "No. Ohio has no statewide law requiring it, and Cleveland itself has no source-of-income protection ordinance, so acceptance varies landlord by landlord. Every home Rent Finder Cleveland works with accepts Housing Choice Vouchers, which is one of the reasons voucher holders work with us."
     },
     {
       "q": "Do utilities affect my payment standard math?",

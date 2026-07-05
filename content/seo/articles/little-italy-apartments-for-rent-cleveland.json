@@ -13,7 +13,7 @@
       "h2": "Renting an apartment near Little Italy",
       "body": [
         "Little Italy is a compact residential and commercial pocket along **Mayfield Road**, bordered by the Murray Hill area, sitting directly against Case Western Reserve University and Cleveland's University statistical planning area on the east side. It is one of the smallest named districts in the city, known locally for its concentration of art galleries and Italian restaurants along Mayfield Road and Murray Hill Road.",
-        "Most apartments in and immediately around Little Italy are older low-rise buildings and converted duplexes on the residential side streets off Mayfield, a short walk from Murray Hill and the CWRU campus edge. Rent Finder Cleveland does not currently manage units inside Little Italy itself — our nearest inventory sits a short drive northeast, in **Hough (44103)** and **Glenville (44108)**. [Book a free showing](/p/book-showing) and tell our team what you're looking for, and we can point you toward the closest voucher-friendly home we manage."
+        "Most apartments in and immediately around Little Italy are older low-rise buildings and converted duplexes on the residential side streets off Mayfield, a short walk from Murray Hill and the CWRU campus edge. Rent Finder Cleveland does not currently work with units inside Little Italy itself — our nearest inventory sits a short drive northeast, in **Hough (44103)** and **Glenville (44108)**. [Book a free showing](/p/book-showing) and tell our team what you're looking for, and we can point you toward the closest voucher-friendly home we work with."
       ]
     },
     {
@@ -50,15 +50,15 @@
     {
       "h2": "Are there Section 8 apartments near Little Italy?",
       "body": [
-        "We don't currently manage units directly inside Little Italy, but every one of the 90+ rental homes we manage across Greater Cleveland — including our closest homes in Hough and Glenville — accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Ohio has no statewide law requiring a landlord to accept a voucher, and Cleveland does not currently have a citywide source-of-income protection ordinance, so voucher acceptance for any specific building near Little Italy should be confirmed directly with that building's owner.",
-        "Read our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for how CMHA's application and inspection process works, or see the full [apartments for rent in Cleveland, OH](/apartments-for-rent-cleveland-oh/) pillar page for what we currently manage across the city."
+        "We don't currently work with units directly inside Little Italy, but every one of the 90+ rental homes we work with across Greater Cleveland — including our closest homes in Hough and Glenville — accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Ohio has no statewide law requiring a landlord to accept a voucher, and Cleveland does not currently have a citywide source-of-income protection ordinance, so voucher acceptance for any specific building near Little Italy should be confirmed directly with that building's owner.",
+        "Read our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for how CMHA's application and inspection process works, or see the full [apartments for rent in Cleveland, OH](/apartments-for-rent-cleveland-oh/) pillar page for what we currently work with across the city."
       ]
     }
   ],
   "faq": [
     {
-      "q": "Does Rent Finder Cleveland manage apartments in Little Italy?",
-      "a": "Not directly — our current portfolio doesn't include units inside Little Italy itself. Our nearest managed homes sit a short distance away in Hough (44103) and Glenville (44108). Book a free showing and tell our team what you need, and we'll point you toward the closest voucher-friendly option we manage."
+      "q": "Does Rent Finder Cleveland works with apartments in Little Italy?",
+      "a": "Not directly — our current selection doesn't include units inside Little Italy itself. Our nearest managed homes sit a short distance away in Hough (44103) and Glenville (44108). Book a free showing and tell our team what you need, and we'll point you toward the closest voucher-friendly option we work with."
     },
     {
       "q": "How much does an apartment cost near Little Italy?",
@@ -74,7 +74,7 @@
     },
     {
       "q": "Are Section 8 vouchers accepted near Little Italy?",
-      "a": "We don't manage units inside Little Italy currently, but every home in our broader Cleveland portfolio, including our nearest homes in Hough and Glenville, accepts Housing Choice Vouchers and is HUD-inspection-ready. Acceptance at any specific Little Italy building should be confirmed with that building's owner, since Ohio has no statewide law requiring it."
+      "a": "we don't work with units inside Little Italy currently, but every home in our broader Cleveland selection, including our nearest homes in Hough and Glenville, accepts Housing Choice Vouchers and is HUD-inspection-ready. Acceptance at any specific Little Italy building should be confirmed with that building's owner, since Ohio has no statewide law requiring it."
     }
   ],
   "cta": "book-showing",

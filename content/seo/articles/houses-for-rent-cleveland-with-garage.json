@@ -6,13 +6,13 @@
   "metaDescription": "Find houses for rent in Cleveland with a garage. See typical rent ranges, why garages are common on Cleveland lots, and how to book a showing.",
   "primaryKeyword": "houses for rent cleveland with garage",
   "secondaryKeywords": ["cleveland house rentals with garage", "detached garage rental cleveland ohio", "cleveland houses off-street parking"],
-  "answerBox": "A detached garage is a common feature on Cleveland's older single-family and duplex lots, typically set off a rear alley. Rent Finder Cleveland manages 90+ rental homes across Greater Cleveland, some with a garage, and every home accepts Section 8 vouchers — book a showing to ask about a specific property's parking.",
+  "answerBox": "A detached garage is a common feature on Cleveland's older single-family and duplex lots, typically set off a rear alley. Rent Finder Cleveland works with 90+ rental homes across Greater Cleveland, some with a garage, and every home accepts Section 8 vouchers — book a showing to ask about a specific property's parking.",
   "sections": [
     {
       "h2": "Can you find a house for rent with a garage in Cleveland?",
       "body": [
         "Yes — a detached garage is a common feature of Cleveland's early-to-mid-20th-century housing stock, where standard city lots were laid out with a rear alley and a garage separate from the house rather than an attached one. Garage condition, size (single vs. two-car), and whether it's included in the rental all vary by property, so it's a feature to confirm on any specific listing.",
-        "We manage **90+ rental homes** across Greater Cleveland, and a number of them include a garage or dedicated off-street parking. [Book a showing](/p/book-showing) and let us know a garage matters to you, or [start an application](/apply) once you've found the right home."
+        "We work with **90+ rental homes** across Greater Cleveland, and a number of them include a garage or dedicated off-street parking. [Book a showing](/p/book-showing) and let us know a garage matters to you, or [start an application](/apply) once you've found the right home."
       ]
     },
     {
@@ -54,7 +54,7 @@
     {
       "h2": "Do garage homes accept Section 8 vouchers?",
       "body": [
-        "Every home Rent Finder Cleveland manages — with or without a garage — **accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready**. Voucher holders should know that Ohio has no statewide source-of-income protection law and the City of Cleveland does not require landlords to accept vouchers; only a handful of suburbs (Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale) have local ordinances protecting voucher holders. Learn more on the [CMHA Housing Choice Voucher page](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) or our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/)."
+        "Every home Rent Finder Cleveland works with — with or without a garage — **accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready**. Voucher holders should know that Ohio has no statewide source-of-income protection law and the City of Cleveland does not require landlords to accept vouchers; only a handful of suburbs (Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale) have local ordinances protecting voucher holders. Learn more on the [CMHA Housing Choice Voucher page](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) or our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/)."
       ]
     },
     {
@@ -83,7 +83,7 @@
     },
     {
       "q": "Do garage houses accept Section 8 vouchers?",
-      "a": "Yes. Every home Rent Finder Cleveland manages accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of parking type. Voucher holders should confirm current CMHA rules and know that source-of-income protections only apply in a few Cuyahoga County suburbs, not the City of Cleveland itself."
+      "a": "Yes. Every home Rent Finder Cleveland works with accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of parking type. Voucher holders should confirm current CMHA rules and know that source-of-income protections only apply in a few Cuyahoga County suburbs, not the City of Cleveland itself."
     }
   ],
   "cta": "book-showing",

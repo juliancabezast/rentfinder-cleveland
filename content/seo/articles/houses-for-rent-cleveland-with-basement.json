@@ -3,7 +3,7 @@
   "cluster": "houses",
   "title": "Houses for rent in Cleveland with a basement",
   "metaTitle": "Houses for Rent in Cleveland with a Basement",
-  "metaDescription": "Browse houses for rent in Cleveland with a basement for storage or laundry. See typical rent ranges and book a free showing with a local property manager.",
+  "metaDescription": "Browse houses for rent in Cleveland with a basement for storage or laundry. See typical rent ranges and book a free showing with a local rental team.",
   "primaryKeyword": "houses for rent cleveland with basement",
   "secondaryKeywords": ["cleveland house with basement rental", "cleveland rental with basement storage", "section 8 house with basement cleveland"],
   "answerBox": "Full basements are common in Cleveland's older rental housing stock, built mostly in the early-to-mid 1900s. They typically provide storage, laundry hookups, and utility space. Two- and three-bedroom houses with a basement in the Cleveland area generally rent from about $750 to $1,500 a month, and many welcome Section 8 Housing Choice Vouchers.",
@@ -19,20 +19,20 @@
       "h2": "What's usually down there",
       "body": [
         "In a typical Cleveland rental house, a basement is unfinished or partially finished and used for the mechanicals (furnace, water heater, electrical panel) plus laundry and general storage. Some basements have an additional finished room, but that varies unit by unit and is never guaranteed — always confirm basement condition and use directly with the leasing team before counting on it for a specific purpose.",
-        "We manage **90-plus rental homes** across the Cleveland area — a mix of single-family houses, duplexes, triplexes, and fourplexes — and every one accepts Section 8 Housing Choice Vouchers and is HUD-inspection-ready. Basement availability and condition differ from home to home, so the fastest way to confirm one is to [book a free showing](/p/book-showing) on a specific listing."
+        "We work with **90-plus rental homes** across the Cleveland area — a mix of single-family houses, duplexes, triplexes, and fourplexes — and every one accepts Section 8 Housing Choice Vouchers and is HUD-inspection-ready. Basement availability and condition differ from home to home, so the fastest way to confirm one is to [book a free showing](/p/book-showing) on a specific listing."
       ]
     },
     {
       "h2": "What houses with a basement typically rent for",
       "body": [
-        "Rent depends far more on bedroom count, condition, and neighborhood than on the basement alone, but here is a general range for Cleveland houses, based on our own current portfolio (roughly $700 to $1,800 a month, typical around $1,000) alongside Zumper's citywide median asking-rent report dated July 4, 2026."
+        "Rent depends far more on bedroom count, condition, and neighborhood than on the basement alone, but here is a general range for Cleveland houses, based on our own current selection (roughly $700 to $1,800 a month, typical around $1,000) alongside Zumper's citywide median asking-rent report dated July 4, 2026."
       ],
       "table": {
         "headers": ["Home size", "Typical Cleveland rent range", "Notes"],
         "rows": [
           ["2-bedroom house", "$750 – $1,100", "Zumper citywide 2BR median: $1,100 (Jul 2026)"],
           ["3-bedroom house", "$1,000 – $1,500", "Zumper citywide 3BR median: $1,350 (Jul 2026)"],
-          ["4-bedroom house", "$1,200 – $1,800", "Based on current portfolio range"]
+          ["4-bedroom house", "$1,200 – $1,800", "Based on current selection range"]
         ]
       }
     },
@@ -46,7 +46,7 @@
     {
       "h2": "Section 8 and basement rental houses",
       "body": [
-        "Every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of whether it has a basement. Keep in mind that Ohio has no statewide law requiring landlords to accept vouchers, and the City of Cleveland itself does not currently have a source-of-income protection ordinance — a handful of nearby suburbs (Cleveland Heights, South Euclid, University Heights, and Warrensville Heights among them) do. Read our full [Section 8 housing guide](/section-8-housing-cleveland-oh/) for how that affects your search."
+        "Every home we work with accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of whether it has a basement. Keep in mind that Ohio has no statewide law requiring landlords to accept vouchers, and the City of Cleveland itself does not currently have a source-of-income protection ordinance — a handful of nearby suburbs (Cleveland Heights, South Euclid, University Heights, and Warrensville Heights among them) do. Read our full [Section 8 housing guide](/section-8-housing-cleveland-oh/) for how that affects your search."
       ]
     }
   ],
@@ -61,11 +61,11 @@
     },
     {
       "q": "How much does a Cleveland house with a basement cost to rent?",
-      "a": "Rent is driven mainly by bedroom count and condition rather than the basement alone. Expect roughly $750–$1,100 for a 2-bedroom house and $1,000–$1,500 for a 3-bedroom house, based on current portfolio ranges and Zumper's July 2026 citywide rent report."
+      "a": "Rent is driven mainly by bedroom count and condition rather than the basement alone. Expect roughly $750–$1,100 for a 2-bedroom house and $1,000–$1,500 for a 3-bedroom house, based on current selection ranges and Zumper's July 2026 citywide rent report."
     },
     {
       "q": "Do Cleveland houses with basements accept Section 8?",
-      "a": "Every home in our portfolio accepts Housing Choice Vouchers and is HUD-inspection-ready, basement or not. Ohio has no statewide law requiring landlords to accept vouchers, and Cleveland itself lacks a source-of-income ordinance, so voucher acceptance still varies by individual landlord across the city."
+      "a": "Every home in our current selection accepts Housing Choice Vouchers and is HUD-inspection-ready, basement or not. Ohio has no statewide law requiring landlords to accept vouchers, and Cleveland itself lacks a source-of-income ordinance, so voucher acceptance still varies by individual landlord across the city."
     },
     {
       "q": "How do I find out if a specific rental has a working basement?",

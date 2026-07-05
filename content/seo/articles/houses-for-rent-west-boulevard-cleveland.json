@@ -19,7 +19,7 @@
       "h2": "How much does it cost to rent a house in West Boulevard?",
       "body": [
         "There's no West Boulevard-specific rent index, so the closest grounded benchmark is citywide Cleveland data. Per Zumper's July 4, 2026 report, Cleveland's overall median asking rent is $1,250/month, with 2-bedroom units averaging around $1,100 and 3-bedroom units around $1,350. RentCafe's July 2, 2026 report on professionally-managed apartments citywide puts the average considerably higher, at $1,564/month for 787 square feet, reflecting a different mix of newer buildings rather than this corridor's older housing stock.",
-        "For comparison, Rent Finder Cleveland's own portfolio of rental homes across the city runs from about $700 to $1,800 a month, typically around $1,000, spanning single-family houses, duplexes, triplexes, and fourplexes."
+        "For comparison, Rent Finder Cleveland's own selection of rental homes across the city runs from about $700 to $1,800 a month, typically around $1,000, spanning single-family houses, duplexes, triplexes, and fourplexes."
       ],
       "table": {
         "headers": ["Home size", "Cleveland citywide median (Zumper, Jul 2026)", "Cleveland citywide average (RentCafe, Jul 2026)"],
@@ -55,7 +55,7 @@
     {
       "h2": "Section 8 and voucher-friendly rentals near West Boulevard",
       "body": [
-        "Every home Rent Finder Cleveland manages accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready, no matter which Cleveland neighborhood it's in. Our current portfolio is concentrated on Cleveland's east and southeast sides, with a smaller number of homes on the west side, including nearby [Cudell](/cleveland-rentals/neighborhoods/houses-for-rent-cudell-cleveland/), so availability specifically on West Boulevard varies over time.",
+        "Every home Rent Finder Cleveland works with accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready, no matter which Cleveland neighborhood it's in. Our current selection is concentrated on Cleveland's east and southeast sides, with a smaller number of homes on the west side, including nearby [Cudell](/cleveland-rentals/neighborhoods/houses-for-rent-cudell-cleveland/), so availability specifically on West Boulevard varies over time.",
         "Cuyahoga Metropolitan Housing Authority (CMHA) runs the local voucher program and accepts preliminary applications year-round through its [online applicant portal](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php). Keep in mind Ohio has no statewide law requiring landlords to accept vouchers, and Cleveland does not currently have a source-of-income protection ordinance, so acceptance depends on the individual landlord. [Tell our leasing team what you're looking for](/p/book-showing) and we'll point you to current voucher-friendly options across the areas we serve."
       ]
     }
@@ -70,8 +70,8 @@
       "a": "There's no West Boulevard-specific rent index, but citywide Cleveland data from Zumper (July 2026) shows 2-bedroom homes averaging around $1,100/month and 3-bedrooms around $1,350/month. Actual listings vary by condition and size, so check current listings for exact pricing."
     },
     {
-      "q": "Does Rent Finder Cleveland manage homes on West Boulevard?",
-      "a": "Our portfolio is concentrated in Cleveland's east and southeast neighborhoods, with a smaller presence on the west side, including nearby Cudell. Availability specifically on West Boulevard varies over time — tell our team what you're looking for and we'll point you to current options across the areas we serve."
+      "q": "Does Rent Finder Cleveland works with homes on West Boulevard?",
+      "a": "Our current selection is concentrated in Cleveland's east and southeast neighborhoods, with a smaller presence on the west side, including nearby Cudell. Availability specifically on West Boulevard varies over time — tell our team what you're looking for and we'll point you to current options across the areas we serve."
     },
     {
       "q": "How do I get downtown from West Boulevard?",
@@ -79,7 +79,7 @@
     },
     {
       "q": "Do West Boulevard rentals accept Section 8 vouchers?",
-      "a": "Acceptance depends on the individual landlord — Ohio has no statewide law requiring landlords to accept vouchers, and Cleveland does not currently have a source-of-income protection ordinance. Every home Rent Finder Cleveland manages accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of neighborhood."
+      "a": "Acceptance depends on the individual landlord — Ohio has no statewide law requiring landlords to accept vouchers, and Cleveland does not currently have a source-of-income protection ordinance. Every home Rent Finder Cleveland works with accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of neighborhood."
     }
   ],
   "cta": "contact",

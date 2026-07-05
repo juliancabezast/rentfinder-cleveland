@@ -6,7 +6,7 @@
   "metaDescription": "Public housing vs Section 8 in Cleveland: how CMHA's programs differ, who administers each, and how a voucher works at a private rental. Book a showing.",
   "primaryKeyword": "public housing vs section 8 cleveland",
   "secondaryKeywords": ["difference between public housing and section 8", "cmha housing choice voucher vs public housing", "housing choice voucher explained cleveland"],
-  "answerBox": "Public housing is a government-owned unit that a housing authority operates directly, while a Section 8 Housing Choice Voucher is a portable rent subsidy a household uses to rent from a private landlord — like the homes Rent Finder Cleveland manages. CMHA, the Cuyahoga Metropolitan Housing Authority, administers both programs, but they work very differently for a renter.",
+  "answerBox": "Public housing is a government-owned unit that a housing authority operates directly, while a Section 8 Housing Choice Voucher is a portable rent subsidy a household uses to rent from a private landlord — like the homes Rent Finder Cleveland works with. CMHA, the Cuyahoga Metropolitan Housing Authority, administers both programs, but they work very differently for a renter.",
   "sections": [
     {
       "h2": "What is public housing?",
@@ -52,7 +52,7 @@
     {
       "h2": "Renting one of our homes with a Housing Choice Voucher",
       "body": [
-        "Rent Finder Cleveland is a private property manager, not a housing authority — we don't operate public housing developments. What we do manage is 90+ rental homes across the greater Cleveland area, and every single one accepts Housing Choice Vouchers and is kept HUD-inspection-ready. Our inventory is concentrated in Cleveland's Slavic Village, Collinwood, Glenville, Fairfax/Central, Hough, and Buckeye-Shaker neighborhoods, with additional homes on the west side and in Akron, Lorain, and Elyria. If you already hold a Housing Choice Voucher, that's exactly the kind of private-market rental it's designed to work with. Read our full [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for the local application process, or [book a free showing](/p/book-showing) to see current availability."
+        "Rent Finder Cleveland is a local rental team, not a housing authority — we don't operate public housing developments. What we do work with is 90+ rental homes across the greater Cleveland area, and every single one accepts Housing Choice Vouchers and is kept HUD-inspection-ready. Our inventory is concentrated in Cleveland's Slavic Village, Collinwood, Glenville, Fairfax/Central, Hough, and Buckeye-Shaker neighborhoods, with additional homes on the west side and in Akron, Lorain, and Elyria. If you already hold a Housing Choice Voucher, that's exactly the kind of private-market rental it's designed to work with. Read our full [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for the local application process, or [book a free showing](/p/book-showing) to see current availability."
       ]
     }
   ],
@@ -74,8 +74,8 @@
       "a": "A project-based voucher is attached to a specific building rather than portable to any landlord you choose, which makes it function more like public housing even though HUD and the local housing authority still administer it as a voucher program."
     },
     {
-      "q": "Does Rent Finder Cleveland manage public housing units?",
-      "a": "No. We're a private property manager, not a housing authority, so we don't operate public housing developments. Every one of our 90+ managed homes is a private-market rental that accepts Housing Choice Vouchers and is HUD-inspection-ready."
+      "q": "Does Rent Finder Cleveland works with public housing units?",
+      "a": "No. We're a local rental team, not a housing authority, so we don't operate public housing developments. Every one of the 90+ homes we work with is a private-market rental that accepts Housing Choice Vouchers and is HUD-inspection-ready."
     }
   ],
   "cta": "book-showing",

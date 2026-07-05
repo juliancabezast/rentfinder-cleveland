@@ -12,7 +12,7 @@
       "h2": "Are there Section 8 apartments for rent in Garfield Heights?",
       "body": [
         "Some landlords there do accept Housing Choice Vouchers, but acceptance comes down to each landlord's own policy rather than a legal requirement. Garfield Heights is a Cuyahoga County suburb directly south of Cleveland's Slavic Village and Union-Miles neighborhoods, and — unlike a handful of other county suburbs — it is not reported to have its own ordinance barring landlords from refusing an applicant for using a voucher.",
-        "Rent Finder Cleveland does not currently manage units inside Garfield Heights, but our closest managed homes sit just across the city line in **Slavic Village** (ZIP 44105), our single largest concentration of Section 8-ready rental homes, and **Buckeye-Shaker** (ZIP 44120) a bit farther east. [Book a showing](/p/book-showing) to see current availability in those neighborhoods, or tell our team if a Garfield Heights address specifically matters to your search."
+        "Rent Finder Cleveland does not currently work with units inside Garfield Heights, but our closest managed homes sit just across the city line in **Slavic Village** (ZIP 44105), our single largest concentration of Section 8-ready rental homes, and **Buckeye-Shaker** (ZIP 44120) a bit farther east. [Book a showing](/p/book-showing) to see current availability in those neighborhoods, or tell our team if a Garfield Heights address specifically matters to your search."
       ]
     },
     {
@@ -32,27 +32,27 @@
     {
       "h2": "Rent ranges near Garfield Heights",
       "body": [
-        "Since we don't yet manage homes inside Garfield Heights itself, here's what similar homes rent for across our current Cleveland portfolio, concentrated in the neighboring Slavic Village and Buckeye-Shaker areas just to the north. Two-bedroom homes are our most common size and average around $961 a month; three-bedroom homes average around $1,250, with both figures reflecting a mix of duplexes, single-family houses, and small multi-family buildings."
+        "Since we don't yet manage homes inside Garfield Heights itself, here's what similar homes rent for across our current Cleveland selection, concentrated in the neighboring Slavic Village and Buckeye-Shaker areas just to the north. Two-bedroom homes are our most common size and average around $961 a month; three-bedroom homes average around $1,250, with both figures reflecting a mix of duplexes, single-family houses, and small multi-family buildings."
       ],
       "table": {
         "headers": ["Bedrooms", "Typical monthly rent", "Notes"],
         "rows": [
-          ["2-bedroom", "$750 – $1,100", "Most common size in our current Cleveland portfolio"],
+          ["2-bedroom", "$750 – $1,100", "Most common size in our current Cleveland selection"],
           ["3-bedroom", "$1,100 – $1,500", "Often with a basement and yard"],
-          ["4-bedroom", "$1,200 – $1,800", "Less common in our current portfolio"]
+          ["4-bedroom", "$1,200 – $1,800", "Less common in our current selection"]
         ]
       }
     },
     {
       "h2": "Getting around Garfield Heights",
       "body": [
-        "Garfield Heights sits along Cleveland's southeast border, and [RTA's bus network](https://www.riderta.com/routes) connects it to Tower City and the rest of the rail system, since the suburb has no rail station of its own. The nearest neighborhoods where we manage homes, Slavic Village and Buckeye-Shaker, are both served by RTA bus routes and sit closer to the Blue and Green light-rail corridor that runs through neighboring Shaker Heights."
+        "Garfield Heights sits along Cleveland's southeast border, and [RTA's bus network](https://www.riderta.com/routes) connects it to Tower City and the rest of the rail system, since the suburb has no rail station of its own. The nearest neighborhoods where we work with homes, Slavic Village and Buckeye-Shaker, are both served by RTA bus routes and sit closer to the Blue and Green light-rail corridor that runs through neighboring Shaker Heights."
       ]
     }
   ],
   "faq": [
     {
-      "q": "Does Rent Finder Cleveland manage Section 8 apartments in Garfield Heights?",
+      "q": "Does Rent Finder Cleveland works with Section 8 apartments in Garfield Heights?",
       "a": "Not currently. Our closest voucher-friendly rental homes sit just north in Slavic Village (44105) and Buckeye-Shaker (44120), both accepting Housing Choice Vouchers and kept HUD-inspection-ready. Tell our leasing team if a Garfield Heights address matters and we'll point you to the nearest fit."
     },
     {
@@ -69,7 +69,7 @@
     },
     {
       "q": "How much does a 2-bedroom rent near Garfield Heights?",
-      "a": "Across our current Cleveland portfolio near Garfield Heights, two-bedroom homes average roughly $961 a month, typically ranging from about $750 to $1,100 depending on the neighborhood and the condition of the unit."
+      "a": "Across our current Cleveland selection near Garfield Heights, two-bedroom homes average roughly $961 a month, typically ranging from about $750 to $1,100 depending on the neighborhood and the condition of the unit."
     }
   ],
   "cta": "book-showing",

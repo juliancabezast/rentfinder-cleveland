@@ -19,7 +19,7 @@
       "h2": "Does my security deposit earn interest in Ohio?",
       "body": [
         "Ohio law generally requires 5% annual interest on a security deposit only when two conditions are both met: the deposit exceeds $50 or one month's rent, whichever amount is greater, and the tenant has occupied the unit for six months or more. Interest is computed and paid annually, not just at move-out.",
-        "So a deposit equal to one month's rent on a typical Cleveland home — commonly in the $700 to $1,800 range per our portfolio data — would generally need to exceed that one-month figure before interest kicks in. Many standard one-month deposits fall right at that threshold, which is why interest doesn't apply to every Ohio lease."
+        "So a deposit equal to one month's rent on a typical Cleveland home — commonly in the $700 to $1,800 range per our available homes data — would generally need to exceed that one-month figure before interest kicks in. Many standard one-month deposits fall right at that threshold, which is why interest doesn't apply to every Ohio lease."
       ],
       "table": {
         "headers": ["Rule", "What ORC 5321.16 generally requires", "Applies when"],

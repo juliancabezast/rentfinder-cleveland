@@ -6,12 +6,12 @@
   "metaDescription": "Find 3 bedroom houses for rent on Cleveland's east side — Slavic Village, Buckeye-Shaker, Fairfax and more. Rent ranges, transit, Section 8-friendly homes.",
   "primaryKeyword": "3 bedroom houses for rent cleveland east side",
   "secondaryKeywords": ["cleveland east side 3 bedroom house", "3 bedroom rental east side cleveland", "section 8 3 bedroom house east side cleveland"],
-  "answerBox": "3-bedroom houses on Cleveland's east side — including Slavic Village, Buckeye-Shaker, Fairfax, and Mount Pleasant — typically rent from about $1,100 to $1,500 a month. The east side is where we manage the largest share of our 90+ rental homes, and every one accepts Section 8 Housing Choice Vouchers.",
+  "answerBox": "3-bedroom houses on Cleveland's east side — including Slavic Village, Buckeye-Shaker, Fairfax, and Mount Pleasant — typically rent from about $1,100 to $1,500 a month. The east side is where we work with the largest share of our 90+ rental homes, and every one accepts Section 8 Housing Choice Vouchers.",
   "sections": [
     {
       "h2": "3-bedroom houses for rent on Cleveland's east side",
       "body": [
-        "Cleveland's east side covers a wide swath of the city, from Hough and Fairfax near University Circle, north into Glenville and Collinwood, and southeast through Buckeye-Shaker, Mount Pleasant, Lee-Harvard, and Slavic Village. It's the part of Cleveland where we manage the largest concentration of our rental homes, and 3-bedroom houses are our second most common size behind 2-bedrooms.",
+        "Cleveland's east side covers a wide swath of the city, from Hough and Fairfax near University Circle, north into Glenville and Collinwood, and southeast through Buckeye-Shaker, Mount Pleasant, Lee-Harvard, and Slavic Village. It's the part of Cleveland where we work with the largest concentration of our rental homes, and 3-bedroom houses are our second most common size behind 2-bedrooms.",
         "Our east-side inventory runs heaviest in **ZIP codes 44105 (Slavic Village/Union-Miles), 44110 (Collinwood), 44108 (Glenville), 44104 (Central/Fairfax), 44103 (Hough), and 44120 (Buckeye-Shaker)**. If you need a 3-bedroom specifically, [book a showing](/p/book-showing) and share your target ZIP or neighborhood so we can check what's currently open."
       ]
     },
@@ -23,7 +23,7 @@
       "table": {
         "headers": ["Source", "3-bedroom figure", "Basis"],
         "rows": [
-          ["Our east side portfolio (current availability)", "$1,100 – $1,500/mo, avg ~$1,250", "Rent Finder Cleveland units, accessed 2026-07-04"],
+          ["Our east side selection (current availability)", "$1,100 – $1,500/mo, avg ~$1,250", "Rent Finder Cleveland units, accessed 2026-07-04"],
           ["Zumper, citywide median (July 4, 2026)", "$1,350/mo", "Median asking rent, all Cleveland listings"],
           ["RentCafe, citywide average (July 2, 2026)", "$2,716/mo", "Average of professionally-managed apartment complexes, 1,483 sq ft"]
         ]
@@ -48,7 +48,7 @@
     {
       "h2": "Section 8 vouchers for 3-bedroom east-side homes",
       "body": [
-        "Every home we manage on the east side accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. CMHA, the Cuyahoga Metropolitan Housing Authority, accepts [preliminary voucher applications online](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) year-round, with placement made through a random mini-lottery process rather than strict first-come, first-served — so timelines vary from a few days to several months.",
+        "Every home we work with on the east side accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. CMHA, the Cuyahoga Metropolitan Housing Authority, accepts [preliminary voucher applications online](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) year-round, with placement made through a random mini-lottery process rather than strict first-come, first-served — so timelines vary from a few days to several months.",
         "It's worth knowing that **Cleveland proper does not have a source-of-income ordinance** requiring landlords to accept vouchers; that protection currently applies only in Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. Our voucher acceptance across every unit is a company policy, not a citywide mandate. More detail is in our [Section 8 housing guide](/section-8-housing-cleveland-oh/)."
       ]
     },
@@ -70,7 +70,7 @@
     },
     {
       "q": "Do east-side 3-bedroom rentals accept Section 8 vouchers?",
-      "a": "Yes. Every home we manage on the east side accepts Housing Choice Vouchers and is HUD-inspection-ready. Cleveland itself has no ordinance requiring voucher acceptance citywide, so this is a standing policy on our part, not a universal local requirement."
+      "a": "Yes. Every home we work with on the east side accepts Housing Choice Vouchers and is HUD-inspection-ready. Cleveland itself has no ordinance requiring voucher acceptance citywide, so this is a standing policy on our part, not a universal local requirement."
     },
     {
       "q": "What transit options serve east-side 3-bedroom rentals?",

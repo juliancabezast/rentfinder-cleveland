@@ -128,7 +128,7 @@ function redactPII(text: string): string {
 const propCols =
   "id, address, unit_number, city, state, zip_code, status, rent_price, " +
   "bedrooms, bathrooms, square_feet, property_type, section_8_accepted, " +
-  "listed_date, coming_soon_date, photos";
+  "listed_date, coming_soon_date, photos, latitude, longitude";
 
 type Prop = Record<string, any>;
 
@@ -305,6 +305,8 @@ serve(async (req) => {
               .filter((u) => u.status === "coming_soon" && u.coming_soon_date)
               .map((u) => String(u.coming_soon_date))
               .sort()[0] || null,
+            latitude: first.latitude ?? null,
+            longitude: first.longitude ?? null,
             photo,
             property_id: availUnit.id,
           };

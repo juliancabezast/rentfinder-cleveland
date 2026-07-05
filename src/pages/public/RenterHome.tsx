@@ -16,7 +16,7 @@ import {
 import {
   MapPin, BedDouble, Bath, Search, CheckCircle2, Home as HomeIcon,
   Phone, CalendarCheck, ShieldCheck, Clock, KeyRound, ArrowRight, FileSignature,
-  MessageSquare, X, SlidersHorizontal,
+  MessageSquare, X, SlidersHorizontal, Plus,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -821,15 +821,27 @@ export default function RenterHome() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="bg-card border-y border-border">
-        <div className="max-w-3xl mx-auto px-5 py-14">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-8">Frequently asked questions</h2>
-          <Accordion type="single" collapsible className="w-full">
+      {/* FAQ — separated white cards on soft gray, circled "+" that rotates
+          to "×" when open (reference: classic marketplace FAQ style) */}
+      <section className="bg-muted/70 border-y border-border">
+        <div className="max-w-4xl mx-auto px-5 py-14">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-10">Frequently asked questions</h2>
+          <Accordion type="single" collapsible className="w-full space-y-4">
             {FAQS.map((f, i) => (
-              <AccordionItem key={i} value={`faq-${i}`}>
-                <AccordionTrigger className="text-left font-semibold">{f.q}</AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">{f.a}</AccordionContent>
+              <AccordionItem
+                key={i}
+                value={`faq-${i}`}
+                className="rounded-2xl border border-border/70 bg-card px-5 md:px-7 shadow-sm transition-shadow data-[state=open]:shadow-md"
+              >
+                <AccordionTrigger className="py-5 md:py-6 text-left text-base md:text-xl font-bold gap-4 hover:no-underline [&>svg]:hidden [&[data-state=open]_.faq-plus]:rotate-45">
+                  <span className="faq-plus flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full border-2 border-sky-400 text-sky-500 transition-transform duration-300">
+                    <Plus className="h-5 w-5" />
+                  </span>
+                  <span className="flex-1">{f.q}</span>
+                </AccordionTrigger>
+                <AccordionContent className="pb-6 pl-[52px] md:pl-14 pr-2 text-[15px] leading-relaxed text-muted-foreground">
+                  {f.a}
+                </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>

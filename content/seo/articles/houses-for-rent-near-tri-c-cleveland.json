@@ -12,7 +12,7 @@
     {
       "h2": "Are there houses for rent near Tri-C in Cleveland?",
       "body": [
-        "It depends on which Tri-C campus you mean. Cuyahoga Community College operates four separate campuses across the region rather than one central location, so a house that's a short trip to one campus could be a long drive from another. We manage rental homes across Greater Cleveland; the best next step is telling us which campus you attend (or work at) and roughly how far you're willing to commute, so we can point you toward current listings that actually make sense for your schedule.",
+        "It depends on which Tri-C campus you mean. Cuyahoga Community College operates four separate campuses across the region rather than one central location, so a house that's a short trip to one campus could be a long drive from another. We work with rental homes across Greater Cleveland; the best next step is telling us which campus you attend (or work at) and roughly how far you're willing to commute, so we can point you toward current listings that actually make sense for your schedule.",
         "[Book a free showing](/p/book-showing) and let us know your target campus, and we'll walk through which of our current homes puts you within a reasonable commute."
       ]
     },
@@ -34,11 +34,11 @@
     {
       "h2": "How much does it cost to rent a house near Tri-C?",
       "body": [
-        "Across our current Cleveland-area portfolio, rent generally runs from about $700 to $1,800 a month, with most homes landing near $1,000 — a range that fits a lot of student and staff budgets whether you're commuting to Metro, Western, Eastern, or Westshore. Two- and three-bedroom homes are the most common sizes we manage, which also works well for students splitting rent with roommates.",
+        "Across our current Cleveland-area selection, rent generally runs from about $700 to $1,800 a month, with most homes landing near $1,000 — a range that fits a lot of student and staff budgets whether you're commuting to Metro, Western, Eastern, or Westshore. Two- and three-bedroom homes are the most common sizes we work with, which also works well for students splitting rent with roommates.",
         "For broader market context, Zumper's report dated July 4, 2026 put Cleveland's median asking rent at $1,250 a month, and noted Cleveland runs about 35.9% below the $1,950 national median — a meaningful affordability edge if you're commuting to any of Tri-C's campuses on a student or staff budget."
       ],
       "table": {
-        "headers": ["Home size", "Typical monthly rent (our portfolio)", "Notes"],
+        "headers": ["Home size", "Typical monthly rent (our available homes)", "Notes"],
         "rows": [
           ["2-bedroom house or duplex", "$750 – $1,100", "Common for two roommates splitting rent"],
           ["3-bedroom house", "$1,000 – $1,400", "Fits three roommates or a small family"],
@@ -56,7 +56,7 @@
     {
       "h2": "Section 8 vouchers for Tri-C students and staff",
       "body": [
-        "Every home we manage accepts Housing Choice Vouchers (Section 8) and is kept HUD-inspection-ready, whether you're a student, staff member, or unrelated to Tri-C entirely. Voucher eligibility itself is set by the Cuyahoga Metropolitan Housing Authority (CMHA), not by us, so if you don't already have a voucher, our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) explains how the local application and waitlist process works.",
+        "Every home we work with accepts Housing Choice Vouchers (Section 8) and is kept HUD-inspection-ready, whether you're a student, staff member, or unrelated to Tri-C entirely. Voucher eligibility itself is set by the Cuyahoga Metropolitan Housing Authority (CMHA), not by us, so if you don't already have a voucher, our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) explains how the local application and waitlist process works.",
         "See our full current list of [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/), or if you're weighing a shorter lease while you finish a semester, check our [month-to-month house rental options](/cleveland-rentals/houses/month-to-month-house-rentals-cleveland/)."
       ]
     }
@@ -68,7 +68,7 @@
     },
     {
       "q": "Do you have houses near every Tri-C campus?",
-      "a": "We manage rental homes across Greater Cleveland, concentrated on the city's East and Southeast side, so how close a listing is to a specific Tri-C campus depends on which campus and which home. Tell us your campus and commute needs when you book a showing so we can point you to the closest current fit."
+      "a": "We work with rental homes across Greater Cleveland, concentrated on the city's East and Southeast side, so how close a listing is to a specific Tri-C campus depends on which campus and which home. Tell us your campus and commute needs when you book a showing so we can point you to the closest current fit."
     },
     {
       "q": "Can I split rent with roommates while attending Tri-C?",
@@ -80,7 +80,7 @@
     },
     {
       "q": "Can I use a Section 8 voucher while attending Tri-C?",
-      "a": "Yes — every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready. Voucher eligibility and issuance are handled by CMHA, not by Tri-C or by us, so check our Section 8 guide if you don't already have a voucher and want to understand the local process."
+      "a": "Yes — every home we work with accepts Housing Choice Vouchers and is HUD-inspection-ready. Voucher eligibility and issuance are handled by CMHA, not by Tri-C or by us, so check our Section 8 guide if you don't already have a voucher and want to understand the local process."
     }
   ],
   "cta": "book-showing",

@@ -70,7 +70,7 @@
     { "q": "Do the homes you work with accept clients with a criminal record?", "a": "Every home we work with welcomes Housing Choice Vouchers, but each landlord still applies their own tenant screening, which may include background checks. A record is not a protected class under fair housing law, so approval depends on the individual landlord's criteria." },
     { "q": "Is there a cost for a reentry team or case manager to work with you?", "a": "No. There is no fee to partner with us or refer a client. The client completes standard tenant application steps once they choose a home." },
     { "q": "How fast can you share available addresses for an officer to review?", "a": "Usually same day. Because every home in our selection already accepts vouchers, we can quickly match a client's bedrooms, timing, and any supervision conditions to what is open right now." },
-    { "q": "Do you provide transitional or halfway housing?", "a": "No. We are a local rental team that helps clients find, tour, and apply for their own Section 8-friendly rental homes. We do not operate transitional housing or reentry programs ourselves." }
+    { "q": "Do you provide temporary or halfway housing?", "a": "No. We are a local rental team that helps clients find, tour, and apply for their own Section 8-friendly rental homes. We do not operate temporary housing, halfway housing, or reentry programs ourselves." }
   ],
   "sources": ["https://www.cmha.net/", "https://drc.ohio.gov/"],
   "lastUpdated": "2026-07-05"

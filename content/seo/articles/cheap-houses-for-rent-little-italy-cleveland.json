@@ -26,7 +26,7 @@
         "rows": [
           ["Citywide median rent (all sizes)", "$1,250/mo", "Zumper, July 4, 2026"],
           ["Citywide apartment average", "$1,564/mo (787 sq ft)", "RentCafe, July 2, 2026"],
-          ["Rent Finder Cleveland portfolio-wide range", "$700 – $1,800/mo", "current portfolio"]
+          ["Rent Finder Cleveland selection-wide range", "$700 – $1,800/mo", "current selection"]
         ]
       }
     },
@@ -55,7 +55,7 @@
       "h2": "Section 8 vouchers as a way to lower monthly cost",
       "body": [
         "Housing Choice Voucher (Section 8) applicants can apply year-round through the [Cuyahoga Metropolitan Housing Authority's online portal](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php); selection runs through periodic mini-lotteries rather than a simple waitlist line, and CMHA's published income limit for a single-person household, effective April 3, 2025, is **$34,800**.",
-        "Our current rental homes are concentrated in Cleveland's east and southeast-side neighborhoods rather than directly in Little Italy, so we can't promise a specific voucher-friendly home in this exact district today. Every home we manage accepts Section 8 and is HUD-inspection-ready — see our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for the full process, or [tell us your budget](/p/book-showing) so we can point you to comparable current availability."
+        "Our current rental homes are concentrated in Cleveland's east and southeast-side neighborhoods rather than directly in Little Italy, so we can't promise a specific voucher-friendly home in this exact district today. Every home we work with accepts Section 8 and is HUD-inspection-ready — see our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for the full process, or [tell us your budget](/p/book-showing) so we can point you to comparable current availability."
       ]
     }
   ],
@@ -66,7 +66,7 @@
     },
     {
       "q": "What's a typical cheap rent in Cleveland right now?",
-      "a": "Citywide, Zumper's July 2026 report puts Cleveland's overall median rent at $1,250 a month, while RentCafe's professionally managed apartment average runs higher at $1,564. Rent Finder Cleveland's own portfolio of rental homes typically runs from about $700 to $1,800, with most around $1,000."
+      "a": "Citywide, Zumper's July 2026 report puts Cleveland's overall median rent at $1,250 a month, while RentCafe's professionally managed apartment average runs higher at $1,564. Rent Finder Cleveland's own selection of rental homes typically runs from about $700 to $1,800, with most around $1,000."
     },
     {
       "q": "Which neighborhoods near Little Italy have cheaper houses?",
@@ -74,7 +74,7 @@
     },
     {
       "q": "Does Rent Finder Cleveland have cheap houses in Little Italy?",
-      "a": "Our rental homes are concentrated in nearby east-side neighborhoods rather than Little Italy specifically. Every home we manage accepts Section 8 vouchers, so tell our team your budget and we'll point you toward comparable current availability."
+      "a": "Our rental homes are concentrated in nearby east-side neighborhoods rather than Little Italy specifically. Every home we work with accepts Section 8 vouchers, so tell our team your budget and we'll point you toward comparable current availability."
     },
     {
       "q": "Can I save money by not owning a car near Little Italy?",

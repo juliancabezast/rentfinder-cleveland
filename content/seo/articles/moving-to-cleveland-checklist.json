@@ -19,12 +19,12 @@
       "h2": "Budget for rent and move-in costs",
       "body": [
         "Per Zumper's report dated July 4, 2026, Cleveland's median asking rent is about **$1,250/month** overall (up 4.2% year-over-year), with 2-bedrooms around $1,100 and 3-bedrooms around $1,350. RentCafe's July 2, 2026 report on professionally-managed apartments shows higher averages — **$1,818** for a 2-bedroom — because it reflects larger managed complexes rather than the full range of listings. Both figures are legitimate; they measure different slices of the market.",
-        "Beyond rent, plan for a security deposit (commonly one month's rent, governed by Ohio's deposit law under **ORC 5321.16**), utility deposits, and moving costs. Our own portfolio of rental homes runs from about $700 to $1,800/month, typically near $1,000, across 2- and 3-bedroom homes."
+        "Beyond rent, plan for a security deposit (commonly one month's rent, governed by Ohio's deposit law under **ORC 5321.16**), utility deposits, and moving costs. Our own selection of rental homes runs from about $700 to $1,800/month, typically near $1,000, across 2- and 3-bedroom homes."
       ],
       "table": {
         "headers": ["Move-in cost", "Typical range", "Notes"],
         "rows": [
-          ["First month's rent", "$700 - $1,800", "Based on our Cleveland-area portfolio range"],
+          ["First month's rent", "$700 - $1,800", "Based on our Cleveland-area selection range"],
           ["Security deposit", "Often 1 month's rent", "Governed by ORC 5321.16; interest applies if over $50/1 month and tenant stays 6+ months"],
           ["Utility setup deposits", "Varies by provider", "Ask each utility whether a deposit applies for new accounts"]
         ]
@@ -51,7 +51,7 @@
     {
       "h2": "Check the lease and paperwork basics",
       "body": [
-        "If the home you're considering was built before 1978, federal law requires the landlord to disclose known lead-based paint hazards and provide the EPA's lead pamphlet; in the City of Cleveland specifically, older rental units also need a **Lead-Safe Certification** under a 2019 city ordinance (Codified Ordinances §365.04). Ask whether the property has current certification. Review our [first-time renter guide](/cleveland-rentals/guides/first-time-renter-guide-cleveland/) for a broader rundown of applications and deposits, and if you have a Housing Choice Voucher, see our [Section 8 housing guide](/section-8-housing-cleveland-oh/) — every home we manage accepts vouchers and is HUD-inspection-ready. [Contact our team](/p/book-showing) once you're ready to start touring."
+        "If the home you're considering was built before 1978, federal law requires the landlord to disclose known lead-based paint hazards and provide the EPA's lead pamphlet; in the City of Cleveland specifically, older rental units also need a **Lead-Safe Certification** under a 2019 city ordinance (Codified Ordinances §365.04). Ask whether the property has current certification. Review our [first-time renter guide](/cleveland-rentals/guides/first-time-renter-guide-cleveland/) for a broader rundown of applications and deposits, and if you have a Housing Choice Voucher, see our [Section 8 housing guide](/section-8-housing-cleveland-oh/) — every home we work with accepts vouchers and is HUD-inspection-ready. [Contact our team](/p/book-showing) once you're ready to start touring."
       ]
     }
   ],
@@ -74,7 +74,7 @@
     },
     {
       "q": "Are there Section 8-friendly rental homes available when moving to Cleveland?",
-      "a": "Yes. Every rental home we manage across Greater Cleveland accepts Housing Choice Vouchers and is HUD-inspection-ready. Note that Ohio has no statewide law requiring landlords to accept vouchers, and the City of Cleveland itself doesn't currently protect voucher holders by ordinance, so confirm acceptance with any other landlord you consider."
+      "a": "Yes. Every rental home we work with across Greater Cleveland accepts Housing Choice Vouchers and is HUD-inspection-ready. Note that Ohio has no statewide law requiring landlords to accept vouchers, and the City of Cleveland itself doesn't currently protect voucher holders by ordinance, so confirm acceptance with any other landlord you consider."
     }
   ],
   "cta": "contact",

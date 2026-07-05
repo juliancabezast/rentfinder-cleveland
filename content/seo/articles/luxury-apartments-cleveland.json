@@ -6,7 +6,7 @@
   "metaDescription": "Searching for luxury apartments in Cleveland? See what the higher-end market costs, where it's concentrated, and an honest, affordable alternative.",
   "primaryKeyword": "luxury apartments cleveland",
   "secondaryKeywords": ["high end apartments cleveland ohio", "luxury apartments downtown cleveland", "affordable alternative to luxury rent cleveland"],
-  "answerBox": "Cleveland's higher-end apartment segment — larger, professionally managed buildings downtown, in University Circle, and in east-side suburbs — averages $1,564/month citywide (RentCafe, July 2026), with 3-bedroom units averaging $2,716. Rent Finder Cleveland doesn't manage that segment; we focus on affordable, voucher-friendly rental homes typically priced $700–$1,800/month.",
+  "answerBox": "Cleveland's higher-end apartment segment — larger, professionally managed buildings downtown, in University Circle, and in east-side suburbs — averages $1,564/month citywide (RentCafe, July 2026), with 3-bedroom units averaging $2,716. Rent Finder Cleveland doesn't work with that segment; we focus on affordable, voucher-friendly rental homes typically priced $700–$1,800/month.",
   "sections": [
     {
       "h2": "What does the higher-end apartment market look like in Cleveland?",
@@ -16,10 +16,10 @@
       ]
     },
     {
-      "h2": "Does Rent Finder Cleveland manage luxury apartments?",
+      "h2": "Does Rent Finder Cleveland works with luxury apartments?",
       "body": [
-        "Honestly, no. We manage 90+ rental homes across Greater Cleveland — a mix of single-family houses, duplexes, triplexes, and fourplexes concentrated on the city's east and southeast side, with a smaller west-side presence — and our rents typically run **$700 to $1,800 a month, averaging around $1,000**. That's below the higher-end segment described above, and it's by design: our focus is affordable, Section 8-friendly housing with a real local leasing team, not high-rise luxury living.",
-        "If a luxury high-rise is specifically what you're after, this isn't the right fit. If you're comparing luxury pricing to something more affordable, [book a free showing](/p/book-showing) and we'll show you what's currently available in our portfolio."
+        "Honestly, no. We work with 90+ rental homes across Greater Cleveland — a mix of single-family houses, duplexes, triplexes, and fourplexes concentrated on the city's east and southeast side, with a smaller west-side presence — and our rents typically run **$700 to $1,800 a month, averaging around $1,000**. That's below the higher-end segment described above, and it's by design: our focus is affordable, Section 8-friendly housing with a real local leasing team, not high-rise luxury living.",
+        "If a luxury high-rise is specifically what you're after, this isn't the right fit. If you're comparing luxury pricing to something more affordable, [book a free showing](/p/book-showing) and we'll show you what's currently available in our available homes."
       ]
     },
     {
@@ -41,13 +41,13 @@
       "h2": "Luxury building vs. affordable rental home: what actually differs",
       "body": [
         "The practical differences are mostly about building type and price, not about the objective quality of a home. A larger managed complex typically offers on-site amenities and a professional management office; a smaller duplex or single-family rental home typically costs less per month and comes with a direct, local point of contact rather than a corporate leasing office. Neither is inherently better — it depends on budget and what a renter is prioritizing.",
-        "Square footage is another real difference: RentCafe's July 2026 data shows managed buildings averaging 787 sq. ft. citywide, with larger footprints as unit size increases, while our own portfolio's square footage varies unit by unit and isn't tracked as a single citywide average. Lease terms can also differ — larger managed buildings more often run standard 12-month leases with published fee schedules, while a smaller landlord-managed rental home may have more flexibility to discuss terms directly. See our guide on [renting in Cleveland vs. the suburbs](/cleveland-rentals/guides/cleveland-vs-suburbs-renting/) and our [average Cleveland rent breakdown for 2026](/cleveland-rentals/guides/average-rent-house-cleveland-2026/) for more on how these price segments compare."
+        "Square footage is another real difference: RentCafe's July 2026 data shows managed buildings averaging 787 sq. ft. citywide, with larger footprints as unit size increases, while our own selection's square footage varies unit by unit and isn't tracked as a single citywide average. Lease terms can also differ — larger managed buildings more often run standard 12-month leases with published fee schedules, while a smaller landlord-managed rental home may have more flexibility to discuss terms directly. See our guide on [renting in Cleveland vs. the suburbs](/cleveland-rentals/guides/cleveland-vs-suburbs-renting/) and our [average Cleveland rent breakdown for 2026](/cleveland-rentals/guides/average-rent-house-cleveland-2026/) for more on how these price segments compare."
       ]
     },
     {
       "h2": "An affordable, voucher-friendly alternative",
       "body": [
-        "If the higher-end segment is more than your budget allows, our own portfolio may fit better. Every home we manage accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready, something the luxury segment doesn't consistently offer. Browse [apartments for rent across Cleveland by area and budget](/apartments-for-rent-cleveland-oh/) or [apply online](/apply) once you've found a home through a showing."
+        "If the higher-end segment is more than your budget allows, our own selection may fit better. Every home we work with accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready, something the luxury segment doesn't consistently offer. Browse [apartments for rent across Cleveland by area and budget](/apartments-for-rent-cleveland-oh/) or [apply online](/apply) once you've found a home through a showing."
       ]
     }
   ],
@@ -57,8 +57,8 @@
       "a": "Yes — Cleveland's higher-end apartment segment includes professionally managed buildings downtown, around University Circle, and in east-side suburbs like Beachwood. RentCafe's July 2026 report puts that segment's citywide average at $1,564/month, well above the broader $1,250 citywide median from Zumper."
     },
     {
-      "q": "Does Rent Finder Cleveland manage luxury apartments?",
-      "a": "No. We manage 90+ affordable, voucher-friendly rental homes across Greater Cleveland, typically priced $700 to $1,800 a month. Our focus is affordability and Section 8 acceptance rather than the higher-end, amenity-heavy segment of the market."
+      "q": "Does Rent Finder Cleveland works with luxury apartments?",
+      "a": "No. We work with 90+ affordable, voucher-friendly rental homes across Greater Cleveland, typically priced $700 to $1,800 a month. Our focus is affordability and Section 8 acceptance rather than the higher-end, amenity-heavy segment of the market."
     },
     {
       "q": "How much more expensive are luxury apartments than average Cleveland rentals?",
@@ -70,7 +70,7 @@
     },
     {
       "q": "What's an affordable alternative if luxury rent is out of budget?",
-      "a": "Rent Finder Cleveland's portfolio of 90+ rental homes, typically $700 to $1,800 a month, is one option — every home accepts Housing Choice Vouchers and is HUD-inspection-ready. Book a free showing to see current availability across our Cleveland-area neighborhoods."
+      "a": "Rent Finder Cleveland's selection of 90+ rental homes, typically $700 to $1,800 a month, is one option — every home accepts Housing Choice Vouchers and is HUD-inspection-ready. Book a free showing to see current availability across our Cleveland-area neighborhoods."
     }
   ],
   "cta": "book-showing",

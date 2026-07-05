@@ -25,12 +25,12 @@
     {
       "h2": "How much do Section 8 houses rent for in the Cleveland area?",
       "body": [
-        "Rent depends heavily on bedroom count and specific location. Across Rent Finder Cleveland's own Cleveland-area portfolio, rents range roughly from **$700 to $1,800 a month**, with a typical rent around **$1,000**. For broader countywide and citywide context, Zumper's July 2026 report placed Cleveland's overall median asking rent at **$1,250/mo** (up 4.2% year-over-year), while RentCafe's July 2026 report on professionally-managed apartments showed a higher average of **$1,564/mo** — the difference reflects that RentCafe's figure leans toward larger managed complexes, while Zumper's median reflects a broader mix of listings."
+        "Rent depends heavily on bedroom count and specific location. Across Rent Finder Cleveland's own Cleveland-area selection, rents range roughly from **$700 to $1,800 a month**, with a typical rent around **$1,000**. For broader countywide and citywide context, Zumper's July 2026 report placed Cleveland's overall median asking rent at **$1,250/mo** (up 4.2% year-over-year), while RentCafe's July 2026 report on professionally-managed apartments showed a higher average of **$1,564/mo** — the difference reflects that RentCafe's figure leans toward larger managed complexes, while Zumper's median reflects a broader mix of listings."
       ],
       "table": {
         "headers": ["Bedrooms", "Rent Finder Cleveland typical range", "Notes"],
         "rows": [
-          ["2 bedroom", "$750 – $1,100", "Most common size in our portfolio"],
+          ["2 bedroom", "$750 – $1,100", "Most common size in our available homes"],
           ["3 bedroom", "$1,100 – $1,500", "Often includes a basement and yard"],
           ["4+ bedroom", "$1,200 – $1,800", "Larger households; fewer units available"]
         ]

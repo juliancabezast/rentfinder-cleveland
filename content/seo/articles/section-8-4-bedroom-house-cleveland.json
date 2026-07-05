@@ -11,7 +11,7 @@
     {
       "h2": "Are there 4-bedroom Section 8 houses in Cleveland?",
       "body": [
-        "Yes, though they make up a smaller share of the rental market than smaller units. Across our own managed portfolio of 90+ rental homes, most units are 2- and 3-bedroom, with 4-bedroom homes representing a meaningfully smaller slice of available inventory at any given time. Every home we manage — regardless of size — accepts Housing Choice Vouchers and is HUD-inspection-ready.",
+        "Yes, though they make up a smaller share of the rental market than smaller units. Across our current selection of 90+ rental homes, most units are 2- and 3-bedroom, with 4-bedroom homes representing a meaningfully smaller slice of available inventory at any given time. Every home we work with — regardless of size — accepts Housing Choice Vouchers and is HUD-inspection-ready.",
         "Because larger voucher-friendly homes turn over less often, it helps to move quickly once you find one and to widen your search across multiple Cleveland neighborhoods rather than one specific area. [Book a free showing](/p/book-showing) and tell us your household size — we'll flag current 4-bedroom availability."
       ]
     },
@@ -24,7 +24,7 @@
       "table": {
         "headers": ["Home size", "Typical Cleveland rent range", "Notes"],
         "rows": [
-          ["2-bedroom house", "$750 – $1,100", "Most common size in our portfolio"],
+          ["2-bedroom house", "$750 – $1,100", "Most common size in our available homes"],
           ["3-bedroom house", "$1,100 – $1,500", "Often includes a basement and yard"],
           ["4-bedroom house", "$1,200 – $1,800", "Fewer units; move quickly when found"]
         ]
@@ -33,7 +33,7 @@
     {
       "h2": "Where are Cleveland's 4-bedroom voucher-friendly homes?",
       "body": [
-        "Larger homes in our portfolio tend to be spread across the same east and southeast Cleveland neighborhoods where most of our inventory sits — Slavic Village (ZIP 44105), Collinwood (44110), Glenville (44108), Fairfax/Central (44104), Hough (44103), and Buckeye-Shaker (44120) — with a smaller number on the west side around Cudell/Detroit-Shoreway (44102) and Old Brooklyn (44109). Specific year-built and construction details vary by property; ask about a given listing directly.",
+        "Larger homes in our available homes tend to be spread across the same east and southeast Cleveland neighborhoods where most of our inventory sits — Slavic Village (ZIP 44105), Collinwood (44110), Glenville (44108), Fairfax/Central (44104), Hough (44103), and Buckeye-Shaker (44120) — with a smaller number on the west side around Cudell/Detroit-Shoreway (44102) and Old Brooklyn (44109). Specific year-built and construction details vary by property; ask about a given listing directly.",
         "If a 4-bedroom home isn't currently listed in your preferred area, [tell our team what you need](/p/book-showing) so we can flag it as inventory turns over, or browse our broader [Section 8 housing guide](/section-8-housing-cleveland-oh/)."
       ]
     },
@@ -41,7 +41,7 @@
       "h2": "What should a large household know before applying?",
       "body": [
         "CMHA sets payment standards by bedroom size based on household composition — larger households generally qualify for a larger bedroom-size voucher, but the exact rules depend on your family size and CMHA's occupancy standards. Confirm your approved bedroom size with your CMHA caseworker before searching, so you don't spend time touring homes that don't match your voucher.",
-        "Once you find a 4-bedroom home you like, the same process applies as any voucher rental: the landlord submits a Request for Tenancy Approval, CMHA reviews the rent against the payment standard, the unit must pass a HUD inspection, and then you sign the lease. Every home we manage is already HUD-inspection-ready, which can shorten this last step."
+        "Once you find a 4-bedroom home you like, the same process applies as any voucher rental: the landlord submits a Request for Tenancy Approval, CMHA reviews the rent against the payment standard, the unit must pass a HUD inspection, and then you sign the lease. Every home we work with is already HUD-inspection-ready, which can shorten this last step."
       ]
     },
     {
@@ -54,11 +54,11 @@
   "faq": [
     {
       "q": "How much does a 4-bedroom Section 8 house cost in Cleveland?",
-      "a": "Across our managed portfolio, 4-bedroom homes have generally run about $1,200 to $1,800 a month. Your specific out-of-pocket cost with a voucher depends on your household income and CMHA's payment standard for a 4-bedroom unit — confirm the current figure directly with CMHA."
+      "a": "Across our selection, 4-bedroom homes have generally run about $1,200 to $1,800 a month. Your specific out-of-pocket cost with a voucher depends on your household income and CMHA's payment standard for a 4-bedroom unit — confirm the current figure directly with CMHA."
     },
     {
       "q": "Are 4-bedroom voucher-friendly houses common in Cleveland?",
-      "a": "They're available but less common than 2- and 3-bedroom homes, which make up the bulk of the rental market including our own portfolio. Because larger homes turn over less frequently, it helps to search across multiple neighborhoods and move quickly once you find a match."
+      "a": "They're available but less common than 2- and 3-bedroom homes, which make up the bulk of the rental market including our own selection. Because larger homes turn over less frequently, it helps to search across multiple neighborhoods and move quickly once you find a match."
     },
     {
       "q": "Does my household qualify for a 4-bedroom voucher?",
@@ -66,7 +66,7 @@
     },
     {
       "q": "Do all of Rent Finder Cleveland's homes accept Section 8, including larger ones?",
-      "a": "Yes. Every rental home we manage, regardless of bedroom count, accepts Housing Choice Vouchers and is HUD-inspection-ready. Availability of specific sizes changes regularly, so book a showing or contact us to check current 4-bedroom options."
+      "a": "Yes. Every rental home we work with, regardless of bedroom count, accepts Housing Choice Vouchers and is HUD-inspection-ready. Availability of specific sizes changes regularly, so book a showing or contact us to check current 4-bedroom options."
     }
   ],
   "cta": "book-showing",

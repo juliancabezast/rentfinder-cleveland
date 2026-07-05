@@ -6,25 +6,25 @@
   "metaDescription": "Find houses for rent in Lee-Harvard, Cleveland (ZIP 44128). Rent ranges, bus routes, and Section 8-friendly rental homes. Book a showing with our team.",
   "primaryKeyword": "houses for rent Lee-Harvard cleveland",
   "secondaryKeywords": ["lee harvard rentals", "44128 houses for rent", "section 8 houses lee harvard"],
-  "answerBox": "Lee-Harvard is a residential neighborhood on Cleveland's far southeast side, primarily in ZIP code 44128, near the city's border with Warrensville Heights and Maple Heights. Rental homes in this part of our portfolio typically run $700-$1,500 a month, and every home we manage accepts Housing Choice Vouchers.",
+  "answerBox": "Lee-Harvard is a residential neighborhood on Cleveland's far southeast side, primarily in ZIP code 44128, near the city's border with Warrensville Heights and Maple Heights. Rental homes in this part of our available homes typically run $700-$1,500 a month, and every home we work with accepts Housing Choice Vouchers.",
   "sections": [
     {
       "h2": "Renting a house in Lee-Harvard",
       "body": [
         "Lee-Harvard is a residential district on Cleveland's far southeast side, largely within **ZIP code 44128**, bordering the suburbs of Warrensville Heights and Maple Heights. The neighborhood is named for the intersection of Lee Road and Harvard Avenue, its main commercial crossroads, and consists mostly of single-family and two-family homes on residential side streets branching off those two corridors.",
         "Lee-Harvard is one of the more suburban-feeling sections of Cleveland proper, with wider residential lots and later-era housing stock than the denser near-east-side neighborhoods closer to Downtown. Its location at the far southeast edge of the city also puts several Cuyahoga County suburbs within a short drive, which matters for renters weighing city-versus-suburb voucher rules (see below).",
-        "We manage a small number of voucher-friendly rental homes in and around the 44128 area as part of our broader East and Southeast Cleveland portfolio. Because our Lee-Harvard footprint is smaller than in neighborhoods like Slavic Village or Collinwood, availability here can be limited at any given time — [book a showing](/p/book-showing) and tell us what you're looking for, and we'll match you against current and upcoming listings across the area."
+        "We work with a small number of voucher-friendly rental homes in and around the 44128 area as part of our broader East and Southeast Cleveland selection. Because our Lee-Harvard footprint is smaller than in neighborhoods like Slavic Village or Collinwood, availability here can be limited at any given time — [book a showing](/p/book-showing) and tell us what you're looking for, and we'll match you against current and upcoming listings across the area."
       ]
     },
     {
       "h2": "How much does it cost to rent a house in Lee-Harvard?",
       "body": [
-        "Across our Cleveland portfolio, monthly rents range from about **$700 to $1,800**, with a typical rent near **$1,000**, concentrated in 2- and 3-bedroom homes. Citywide, Zumper's July 4, 2026 report placed Cleveland's median asking rent at **$1,250/mo** (2-bedroom median $1,100, 3-bedroom median $1,350), and RentCafe's July 2, 2026 report — which covers larger professionally-managed apartment buildings — put the citywide average at **$1,564/mo**. Both are citywide figures rather than Lee-Harvard-specific, since neighborhood-level rent data isn't separately published by either source."
+        "Across our Cleveland selection, monthly rents range from about **$700 to $1,800**, with a typical rent near **$1,000**, concentrated in 2- and 3-bedroom homes. Citywide, Zumper's July 4, 2026 report placed Cleveland's median asking rent at **$1,250/mo** (2-bedroom median $1,100, 3-bedroom median $1,350), and RentCafe's July 2, 2026 report — which covers larger professionally-managed apartment buildings — put the citywide average at **$1,564/mo**. Both are citywide figures rather than Lee-Harvard-specific, since neighborhood-level rent data isn't separately published by either source."
       ],
       "table": {
-        "headers": ["Home size", "Typical monthly rent (our portfolio, Cleveland-wide)", "Notes"],
+        "headers": ["Home size", "Typical monthly rent (our available homes, Cleveland-wide)", "Notes"],
         "rows": [
-          ["2-bedroom", "$750 – $1,100", "Most common size we manage"],
+          ["2-bedroom", "$750 – $1,100", "Most common size we work with"],
           ["3-bedroom", "$1,100 – $1,500", "Often with a basement"],
           ["4-bedroom", "$1,200 – $1,800", "Fewer available at a given time"]
         ]
@@ -49,13 +49,13 @@
     {
       "h2": "Section 8 and vouchers in Lee-Harvard",
       "body": [
-        "Every rental home we manage, including those in the Lee-Harvard area, accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Renters should know that neither Ohio nor the City of Cleveland has a source-of-income law requiring landlords to accept vouchers; that protection currently exists only in a handful of Cuyahoga County suburbs, including neighboring **Warrensville Heights**, but not in Cleveland proper. Applicants can apply for a Housing Choice Voucher year-round through [CMHA's online portal](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php); selection runs on a lottery basis rather than strict first-come-first-served. For more on the local voucher process, see our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/)."
+        "Every rental home we work with, including those in the Lee-Harvard area, accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Renters should know that neither Ohio nor the City of Cleveland has a source-of-income law requiring landlords to accept vouchers; that protection currently exists only in a handful of Cuyahoga County suburbs, including neighboring **Warrensville Heights**, but not in Cleveland proper. Applicants can apply for a Housing Choice Voucher year-round through [CMHA's online portal](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php); selection runs on a lottery basis rather than strict first-come-first-served. For more on the local voucher process, see our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/)."
       ]
     },
     {
       "h2": "Comparing Lee-Harvard to other Cleveland options",
       "body": [
-        "If Lee-Harvard doesn't have current availability that fits your household size, our East-side portfolio also includes homes in [Mount Pleasant](/cleveland-rentals/neighborhoods/houses-for-rent-mount-pleasant-cleveland/) and [Union-Miles](/cleveland-rentals/neighborhoods/houses-for-rent-union-miles-cleveland/), both a short drive away. You can also browse the full [Houses for Rent in Cleveland OH](/houses-for-rent-cleveland-oh/) pillar page or start an application any time through [our apply portal](/apply).",
+        "If Lee-Harvard doesn't have current availability that fits your household size, our East-side selection also includes homes in [Mount Pleasant](/cleveland-rentals/neighborhoods/houses-for-rent-mount-pleasant-cleveland/) and [Union-Miles](/cleveland-rentals/neighborhoods/houses-for-rent-union-miles-cleveland/), both a short drive away. You can also browse the full [Houses for Rent in Cleveland OH](/houses-for-rent-cleveland-oh/) pillar page or start an application any time through [our apply portal](/apply).",
         "Renters focused specifically on voucher-friendly housing across the city can also see our dedicated [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for a full breakdown of neighborhoods, income limits, and the CMHA application process."
       ]
     }
@@ -63,11 +63,11 @@
   "faq": [
     {
       "q": "Are there Section 8 houses for rent in Lee-Harvard?",
-      "a": "Yes, every home Rent Finder Cleveland manages, including any homes in the Lee-Harvard (44128) area, accepts Housing Choice Vouchers and is HUD-inspection-ready. Our footprint in this specific neighborhood is smaller than in areas like Slavic Village, so book a showing to check current availability."
+      "a": "Yes, every home Rent Finder Cleveland works with, including any homes in the Lee-Harvard (44128) area, accepts Housing Choice Vouchers and is HUD-inspection-ready. Our footprint in this specific neighborhood is smaller than in areas like Slavic Village, so book a showing to check current availability."
     },
     {
       "q": "How much does it cost to rent a house in Lee-Harvard?",
-      "a": "Across our Cleveland portfolio, rents typically run $750-$1,100 for a 2-bedroom and $1,100-$1,500 for a 3-bedroom, with an overall range of $700-$1,800. Citywide, Zumper's July 2026 report set the median asking rent at $1,250/mo."
+      "a": "Across our Cleveland selection, rents typically run $750-$1,100 for a 2-bedroom and $1,100-$1,500 for a 3-bedroom, with an overall range of $700-$1,800. Citywide, Zumper's July 2026 report set the median asking rent at $1,250/mo."
     },
     {
       "q": "What ZIP code is Lee-Harvard in?",

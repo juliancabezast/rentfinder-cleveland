@@ -19,7 +19,7 @@
     {
       "h2": "What size house fits under $1,000, by bedroom count",
       "body": [
-        "Here's a realistic breakdown based on rents across our own Cleveland-wide rental portfolio, which typically range from about $700 to $1,800 a month with a median near $1,000. Treat the top two rows as the more reliable bets for a firm $1,000 ceiling."
+        "Here's a realistic breakdown based on rents across our own Cleveland-wide rental selection, which typically range from about $700 to $1,800 a month with a median near $1,000. Treat the top two rows as the more reliable bets for a firm $1,000 ceiling."
       ],
       "table": {
         "headers": ["Bedrooms", "Typical monthly rent", "Realistic under $1,000?"],
@@ -57,8 +57,8 @@
     {
       "h2": "Section 8 vouchers and under-$1,000 rentals",
       "body": [
-        "We manage 90-plus rental homes across Greater Cleveland, and every one accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready — regardless of the sticker rent. If you hold a voucher, [CMHA](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php), the Cuyahoga County housing authority, pays a subsidy up to a set payment standard for your bedroom size, which can bring your out-of-pocket cost below $1,000 even on a slightly higher-priced home; check CMHA's current payment-standard chart rather than assuming a fixed number.",
-        "Keep in mind Ohio has no statewide source-of-income protection law, and the City of Cleveland itself does not require landlords to accept vouchers, though every home we manage does. A handful of nearby suburbs, including Cleveland Heights, South Euclid, University Heights, and Warrensville Heights, do have their own local voucher-protection ordinances — but those rules apply only within those specific municipalities, not citywide in Cleveland. [Book a free showing](/p/book-showing) and tell us your budget and preferred west-side area, or read our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for how the local voucher program works."
+        "We work with 90-plus rental homes across Greater Cleveland, and every one accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready — regardless of the sticker rent. If you hold a voucher, [CMHA](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php), the Cuyahoga County housing authority, pays a subsidy up to a set payment standard for your bedroom size, which can bring your out-of-pocket cost below $1,000 even on a slightly higher-priced home; check CMHA's current payment-standard chart rather than assuming a fixed number.",
+        "Keep in mind Ohio has no statewide source-of-income protection law, and the City of Cleveland itself does not require landlords to accept vouchers, though every home we work with does. A handful of nearby suburbs, including Cleveland Heights, South Euclid, University Heights, and Warrensville Heights, do have their own local voucher-protection ordinances — but those rules apply only within those specific municipalities, not citywide in Cleveland. [Book a free showing](/p/book-showing) and tell us your budget and preferred west-side area, or read our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for how the local voucher program works."
       ]
     }
   ],
@@ -72,12 +72,12 @@
       "a": "Ohio City, Tremont, Detroit-Shoreway, Cudell, Old Brooklyn, and Clark-Fulton are the main west-side rental neighborhoods, spanning ZIP codes 44113, 44102, and 44109. Availability and price depend on the specific home's size, age, and condition rather than the neighborhood alone, so it's worth checking listings across several of these areas rather than one."
     },
     {
-      "q": "Do you manage rental houses on Cleveland's west side?",
-      "a": "We manage 90-plus rental homes across Greater Cleveland, with some inventory on the west side alongside our larger East and Southeast side portfolio. Book a free showing and tell us your target neighborhood, bedroom count, and budget, and we'll let you know what's currently open in that range."
+      "q": "Do you work with rental houses on Cleveland's west side?",
+      "a": "We work with 90-plus rental homes across Greater Cleveland, with some inventory on the west side alongside our larger East and Southeast side selection. Book a free showing and tell us your target neighborhood, bedroom count, and budget, and we'll let you know what's currently open in that range."
     },
     {
       "q": "Does an under-$1,000 west-side rental accept Section 8 vouchers?",
-      "a": "Every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of the listed rent. With a voucher, CMHA's payment standard may cover part of the cost based on your household income, which can lower what you pay out of pocket well below the sticker price of the home."
+      "a": "Every home we work with accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of the listed rent. With a voucher, CMHA's payment standard may cover part of the cost based on your household income, which can lower what you pay out of pocket well below the sticker price of the home."
     },
     {
       "q": "What transit serves Cleveland's west side?",
