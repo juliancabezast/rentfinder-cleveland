@@ -1,0 +1,89 @@
+{
+  "slug": "subletting-rules-ohio",
+  "cluster": "guides",
+  "title": "Subletting in Ohio — is it allowed and how",
+  "metaTitle": "Subletting Rules in Ohio: Is It Allowed & How",
+  "metaDescription": "Is subletting legal in Ohio? Learn how state law and your lease interact, who stays responsible for rent, and how to sublet the right way. Contact us with questions.",
+  "primaryKeyword": "subletting rules ohio",
+  "secondaryKeywords": ["is subletting legal in ohio", "sublease vs assignment ohio", "can i sublet my apartment in ohio"],
+  "answerBox": "Ohio law doesn't ban subletting outright, but it also doesn't guarantee tenants a right to sublet — your lease controls. Most Cleveland-area leases require written landlord consent before you can sublet, and the original tenant typically stays responsible for the rent even after someone else moves in.",
+  "sections": [
+    {
+      "h2": "Is subletting legal in Ohio?",
+      "body": [
+        "There's no blanket state ban on subletting. **Ohio Revised Code Chapter 5321**, the state's landlord-tenant law, doesn't prohibit subleasing, but it also doesn't create an automatic tenant right to sublet without permission. Whether you can sublet comes down to what your specific lease says.",
+        "Most written leases in the Cleveland area include a clause addressing subletting or assignment, and many require the landlord's written consent before you can hand your unit — or part of it — over to someone else. Read that clause carefully before you make any arrangement; this is general information, not legal advice, and lease terms vary."
+      ]
+    },
+    {
+      "h2": "What's the difference between subletting and assigning a lease?",
+      "body": [
+        "These two terms get used loosely, but they mean different things for who's on the hook for rent. A **sublease** means you rent out your unit (or a room in it) to someone else while you remain the tenant of record on the original lease. An **assignment** transfers the entire lease to a new tenant, and you exit it — but only if the landlord agrees to accept the new tenant in your place."
+      ],
+      "table": {
+        "headers": ["Arrangement", "What it means", "Who stays responsible for rent"],
+        "rows": [
+          ["Sublease", "You rent your unit, or part of it, to someone else while staying on the original lease", "You (the original tenant) generally remain fully responsible to the landlord"],
+          ["Assignment", "Your entire lease transfers to a new tenant, with landlord approval", "The new tenant becomes responsible, if the landlord formally accepts the assignment"],
+          ["Early termination", "Ending the lease altogether before the term is up", "Depends on your lease's terms — see our guide on breaking a lease in Ohio"]
+        ]
+      }
+    },
+    {
+      "h2": "What happens if you sublet without permission?",
+      "body": [
+        "Subletting in violation of a lease's no-sublet clause is generally treated as a lease violation, which can put your tenancy at risk even if you're current on rent. If a landlord moves to evict over an unauthorized sublease, an Ohio eviction case still has to follow the standard notice and court process described in **Ohio Revised Code Chapter 1923** — see our [Ohio eviction process timeline](/cleveland-rentals/guides/ohio-eviction-process-timeline/) for how that generally works.",
+        "The more secure path is always to ask first. Getting written consent before you sublet protects you, your subtenant, and your relationship with the landlord — and avoids putting your original lease in jeopardy over an arrangement the landlord was never told about."
+      ]
+    },
+    {
+      "h2": "How to sublet the right way",
+      "body": [
+        "If your lease allows subletting with consent, get everything in writing before your subtenant moves in. A written sublease agreement protects both you and the person moving in, and it gives you something to point to if a disagreement comes up later."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Get your landlord's consent in writing, not just a verbal okay",
+          "Put the sublease terms in writing: rent amount, dates, and each person's responsibilities",
+          "Clarify who handles the security deposit and how it's split if you move out first",
+          "Confirm who's responsible for utilities and renters insurance during the sublease",
+          "Consider whether a roommate arrangement, covered in our [renting with roommates guide](/cleveland-rentals/guides/renting-house-with-roommates-cleveland/), fits your situation better than a formal sublease"
+        ]
+      }
+    },
+    {
+      "h2": "Subletting a Rent Finder Cleveland home",
+      "body": [
+        "If you're renting one of our 90+ Cleveland-area homes and you're considering having someone else move in or take over your lease, talk to our leasing team before making any arrangement. Every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready, and our team can walk you through what your specific lease allows.",
+        "[Contact us](/p/book-showing) to discuss your situation, or if you're looking for your own place instead, [see current Cleveland-area availability](/houses-for-rent-cleveland-oh/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I sublet my apartment in Ohio without my landlord's permission?",
+      "a": "It depends on your lease. Ohio law doesn't ban subletting, but it doesn't guarantee tenants the right to do it either. Most leases require written landlord consent before subletting, and violating a no-sublet clause can be treated as a lease violation even if your rent is current."
+    },
+    {
+      "q": "If I sublet, am I still responsible for the rent?",
+      "a": "Usually, yes. In a standard sublease, you remain the tenant of record on the original lease, which means the landlord can still hold you responsible for the full rent even if your subtenant is the one actually paying you. A formal lease assignment, if your landlord accepts one, is what actually removes you from that responsibility."
+    },
+    {
+      "q": "What's the difference between subletting and lease assignment?",
+      "a": "Subletting means you rent your unit to someone else while staying on the original lease yourself. Assignment transfers the whole lease to a new tenant, ending your responsibility for rent — but only if the landlord agrees to accept the new tenant in your place."
+    },
+    {
+      "q": "Can a landlord evict me for subletting without permission?",
+      "a": "A landlord can generally treat an unauthorized sublease as a lease violation, which can lead to eviction proceedings. Any Ohio eviction still has to follow the state's standard notice and court process, but getting consent before subletting is the more reliable approach, rather than risking your tenancy over it."
+    },
+    {
+      "q": "Does Rent Finder Cleveland allow subletting?",
+      "a": "Sublease policies depend on the specific lease for each home. If you're renting one of our Cleveland-area homes and want to explore having someone else move in, contact our leasing team first so we can walk you through what your lease allows before you make any arrangement."
+    }
+  ],
+  "cta": "contact",
+  "lawTopic": true,
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/chapter-5321", "https://codes.ohio.gov/ohio-revised-code/chapter-1923"],
+  "lastUpdated": "2026-07-04"
+}

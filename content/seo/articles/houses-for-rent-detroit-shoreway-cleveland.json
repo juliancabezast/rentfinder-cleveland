@@ -1,0 +1,91 @@
+{
+  "slug": "houses-for-rent-detroit-shoreway-cleveland",
+  "cluster": "neighborhoods",
+  "title": "Houses for Rent in Detroit-Shoreway, Cleveland",
+  "metaTitle": "Houses for Rent in Detroit-Shoreway, Cleveland OH",
+  "metaDescription": "Houses for rent in Detroit-Shoreway (44102), Cleveland. Rent ranges, RTA access, and Section 8-friendly homes from a local property manager. Book a showing.",
+  "primaryKeyword": "houses for rent Detroit-Shoreway cleveland",
+  "secondaryKeywords": ["detroit shoreway rentals cleveland", "44102 houses for rent", "near west side cleveland houses"],
+  "answerBox": "Detroit-Shoreway is a near-west-side Cleveland neighborhood in ZIP 44102, home to the Gordon Square Arts District and the Detroit Avenue business corridor. We manage Section 8-friendly rental homes in and around Detroit-Shoreway; homes in our portfolio there typically rent from about $700 to $1,800 a month, with most closer to $1,000.",
+  "sections": [
+    {
+      "h2": "Renting a house in Detroit-Shoreway",
+      "body": [
+        "Detroit-Shoreway is a near-west-side Cleveland neighborhood in **ZIP code 44102**, running roughly along the **Detroit Avenue** corridor between Cudell and Ohio City, about three miles west of Downtown. The neighborhood contains the **Gordon Square Arts District** and sits a short drive from the West Shoreway (Route 2) along Lake Erie.",
+        "Housing stock is a mix of early-1900s two-family duplexes and single-family houses on blocks around W. 58th, W. 65th, and W. 76th Streets, with front porches and small yards typical of Cleveland's near-west side. We manage Section 8-friendly rental homes in and around Detroit-Shoreway as part of our broader West Side inventory — [book a showing](/p/book-showing) to see what's currently available."
+      ]
+    },
+    {
+      "h2": "How much does it cost to rent a house in Detroit-Shoreway?",
+      "body": [
+        "Citywide, a 2-bedroom home runs a median of about $1,100 a month and a 3-bedroom about $1,350, per Zumper's rent report dated July 2026 — a reasonable starting point for Detroit-Shoreway. Homes in our own portfolio in this part of Cleveland typically run from about $700 to $1,800 a month depending on size and condition, with most renting closer to $1,000.",
+        "RentCafe's report dated July 2026 on professionally managed Cleveland apartments shows a citywide average of $1,564 a month; that figure leans toward newer managed buildings rather than the individually owned houses and duplexes more typical of Detroit-Shoreway's residential streets."
+      ],
+      "table": {
+        "headers": ["Home type", "Typical monthly rent", "Source"],
+        "rows": [
+          ["Citywide 2-bedroom (any type)", "~$1,100", "Zumper, July 2026"],
+          ["Citywide 3-bedroom (any type)", "~$1,350", "Zumper, July 2026"],
+          ["Our Cleveland portfolio (2–3BR homes)", "~$700 – $1,800, most near $1,000", "Rent Finder Cleveland current portfolio"]
+        ]
+      }
+    },
+    {
+      "h2": "Getting around Detroit-Shoreway",
+      "body": [
+        "Detroit-Shoreway is served by GCRTA bus routes running along Detroit Avenue connecting to Downtown and Lakewood, and sits close to Red Line rail service a short drive or bus ride south near Ohio City. The West Shoreway (Route 2) gives quick highway access west toward Lakewood and Westlake or east into Downtown."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**ZIP code:** 44102",
+          "**Transit:** Detroit Avenue bus routes to Downtown; Red Line access nearby via Ohio City",
+          "**Nearby:** Gordon Square Arts District, Battery Park green space",
+          "**Highway access:** West Shoreway (Route 2) to Downtown and western suburbs"
+        ]
+      }
+    },
+    {
+      "h2": "Section 8 and vouchers in Detroit-Shoreway",
+      "body": [
+        "Detroit-Shoreway (44102) is one of the ZIP codes where we currently manage rental homes, and every one of them accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Ohio has no statewide law requiring landlords to accept vouchers, and the City of Cleveland does not currently have its own source-of-income protection ordinance — but our policy welcomes vouchers on every home we manage, no exceptions.",
+        "If you have a CMHA voucher and want to see what's available in or near Detroit-Shoreway, [book a free showing](/p/book-showing), or read our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for details on applying, waitlists, and inspections. CMHA's own [Housing Choice Voucher application page](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) has current program details."
+      ]
+    },
+    {
+      "h2": "Nearby: Gordon Square and Edgewater",
+      "body": [
+        "Detroit-Shoreway borders the [Gordon Square Arts District](/cleveland-rentals/neighborhoods/houses-for-rent-gordon-square-cleveland/) to its east along Detroit Avenue and the [Edgewater lakefront](/cleveland-rentals/neighborhoods/houses-for-rent-edgewater-cleveland/) to its north, so renters comparing nearby West Side options may want to review both."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Are there Section 8 houses for rent in Detroit-Shoreway?",
+      "a": "Yes. Detroit-Shoreway (44102) is one of the neighborhoods where we currently manage rental homes, and every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready. Book a showing to see what's available now."
+    },
+    {
+      "q": "How much does it cost to rent a house in Detroit-Shoreway?",
+      "a": "Citywide, comparable 2-bedroom homes run about $1,100 a month and 3-bedrooms about $1,350, per Zumper's July 2026 data. Homes in our own Detroit-Shoreway-area portfolio typically rent from about $700 to $1,800, with most closer to $1,000."
+    },
+    {
+      "q": "What ZIP code is Detroit-Shoreway in?",
+      "a": "Detroit-Shoreway is in ZIP code 44102 on Cleveland's near-west side, running along the Detroit Avenue corridor between Cudell and Ohio City."
+    },
+    {
+      "q": "Is Detroit-Shoreway close to Downtown Cleveland?",
+      "a": "Yes, Detroit-Shoreway is about three miles west of Downtown, with bus routes along Detroit Avenue and highway access via the West Shoreway (Route 2)."
+    },
+    {
+      "q": "What is the Gordon Square Arts District?",
+      "a": "Gordon Square is an arts and entertainment district within Detroit-Shoreway, along Detroit Avenue, with several theaters and restaurants. It's a walkable subsection of the broader Detroit-Shoreway neighborhood, also in ZIP 44102."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.zumper.com/rent-research/cleveland-oh",
+    "https://www.rentcafe.com/average-rent-market-trends/us/oh/cleveland/",
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"
+  ],
+  "lastUpdated": "2026-07-04"
+}

@@ -1,0 +1,89 @@
+{
+  "slug": "houses-for-rent-old-brooklyn-cleveland",
+  "cluster": "neighborhoods",
+  "title": "Houses for Rent in Old Brooklyn, Cleveland",
+  "metaTitle": "Houses for Rent in Old Brooklyn, Cleveland OH",
+  "metaDescription": "Houses for rent in Old Brooklyn (44109), Cleveland — rent ranges, transit, and Section 8-friendly homes from a local property manager. Book a free showing.",
+  "primaryKeyword": "houses for rent Old Brooklyn cleveland",
+  "secondaryKeywords": ["Old Brooklyn cleveland rentals", "44109 houses for rent", "section 8 houses Old Brooklyn cleveland"],
+  "answerBox": "Old Brooklyn is a southwest-side Cleveland neighborhood in ZIP code 44109, near the Cleveland Metroparks Zoo. Rental houses are mostly early-to-mid-1900s single-family homes and duplexes, with citywide 2-bedroom rents around $1,100/month per Zumper's July 2026 report, and we manage voucher-friendly rental homes in the area.",
+  "sections": [
+    {
+      "h2": "Renting a house in Old Brooklyn",
+      "body": [
+        "Old Brooklyn sits on Cleveland's southwest side, south of the Cuyahoga Valley, primarily within **ZIP code 44109**. The neighborhood is best known for hosting the Cleveland Metroparks Zoo and the Big Creek corridor that runs through it, and its housing stock reflects an early-to-mid 20th century build-out — single-family homes, bungalows, and a number of duplexes on modest lots.",
+        "We manage voucher-friendly rental homes in and around Old Brooklyn as part of our broader Cleveland portfolio. [See what's currently available](/p/book-showing) or reach out to tell our leasing team what you're looking for."
+      ]
+    },
+    {
+      "h2": "How much does it cost to rent a house in Old Brooklyn?",
+      "body": [
+        "Old Brooklyn doesn't have its own published rent index, so citywide Cleveland figures are the closest grounded benchmark. Per Zumper's July 4, 2026 report, Cleveland's median asking rent is $1,250/month overall, with 2-bedroom units around $1,100 and 3-bedroom units around $1,350. RentCafe's July 2, 2026 report on professionally-managed apartments shows a higher citywide average of $1,564/month, which reflects newer complexes rather than the older single-family and duplex stock common in Old Brooklyn.",
+        "Within our own managed portfolio, Cleveland rental homes run roughly $700 to $1,800/month, typically around $1,000, spanning single-family houses, duplexes, triplexes, and fourplexes."
+      ],
+      "table": {
+        "headers": ["Home size", "Cleveland citywide median (Zumper, Jul 2026)", "Cleveland citywide average (RentCafe, Jul 2026)"],
+        "rows": [
+          ["Studio", "$1,060", "$1,195"],
+          ["1-bedroom", "$1,195", "$1,451"],
+          ["2-bedroom", "$1,100", "$1,818"],
+          ["3-bedroom", "$1,350", "$2,716"]
+        ]
+      }
+    },
+    {
+      "h2": "Getting around and what's nearby",
+      "body": [
+        "Old Brooklyn is served by GCRTA bus routes along Broadview Road, Pearl Road, and State Road, with connections toward downtown and southwest suburbs like Parma and Brooklyn, per RTA's published route network. Interstate 71 runs along part of the neighborhood's edge, and Interstate 480 is a short drive to the south, giving commuters two highway options toward downtown or the western suburbs. The Cleveland Metroparks Zoo and the Big Creek Reservation both sit within the neighborhood, and the Pearl Road and Broadview Road commercial strips cover everyday shopping, from grocery stores to local restaurants."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**ZIP code:** 44109, Cleveland's southwest side",
+          "**Transit:** GCRTA buses along Broadview Rd, Pearl Rd, and State Rd; near I-71",
+          "**Landmarks:** Cleveland Metroparks Zoo, Big Creek Reservation",
+          "**Everyday needs:** Shopping along Pearl Road and Broadview Road"
+        ]
+      }
+    },
+    {
+      "h2": "What kind of housing is available in Old Brooklyn?",
+      "body": [
+        "Housing in Old Brooklyn is a mix of early-to-mid-1900s single-family homes and duplexes, generally with front porches, basements, and small- to mid-size yards. Because most of this housing stock was built before 1978, it's a good area to be aware of Cleveland's lead-safe rules. For a wider comparison of Cleveland neighborhoods and price points, see our [houses-for-rent-in-Cleveland guide](/houses-for-rent-cleveland-oh/) or browse [homes by budget and bedroom count](/cleveland-rentals/houses/)."
+      ]
+    },
+    {
+      "h2": "Older housing stock and lead-safe certification",
+      "body": [
+        "Under City of Cleveland ordinance (Codified Ordinances §365.04), rental units in the city originally built before January 1, 1978 are presumed to contain lead-based paint and must obtain Lead-Safe Certification, which involves a dust-wipe and visual clearance from an independent certified inspector and is valid for two years. Because much of Old Brooklyn's housing predates that cutoff, renters considering an older home here can reasonably ask a landlord whether the unit has current Lead-Safe Certification. This is general information about a City of Cleveland requirement, not legal advice — confirm current status directly with the [City of Cleveland](https://www.clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification) before signing a lease."
+      ]
+    },
+    {
+      "h2": "Section 8 and vouchers in Old Brooklyn",
+      "body": [
+        "Every home we manage — including our Old Brooklyn-area rentals — accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. That said, Ohio law doesn't require every landlord to accept vouchers, and the City of Cleveland does not currently have a source-of-income protection ordinance, so acceptance can vary by property outside our portfolio. Learn how CMHA vouchers work locally in our [Section 8 housing guide](/section-8-housing-cleveland-oh/), and [book a free showing](/p/book-showing) to see current Old Brooklyn-area availability."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Are there Section 8 houses for rent in Old Brooklyn?",
+      "a": "Yes. We manage voucher-friendly rental homes in and around Old Brooklyn (44109), and every home in our portfolio accepts Housing Choice Vouchers and is HUD-inspection-ready. Book a showing to see what's currently available in this area."
+    },
+    {
+      "q": "How much does it cost to rent a house in Old Brooklyn?",
+      "a": "There's no neighborhood-specific rent index, but citywide Cleveland data from Zumper (July 2026) shows 2-bedroom homes averaging around $1,100/month and 3-bedroom homes around $1,350/month. Our own managed homes typically run from about $700 to $1,800/month, most near $1,000."
+    },
+    {
+      "q": "What ZIP code is Old Brooklyn in?",
+      "a": "Old Brooklyn is primarily in ZIP code 44109, on Cleveland's southwest side, home to the Cleveland Metroparks Zoo and the Big Creek Reservation."
+    },
+    {
+      "q": "What's the housing stock like in Old Brooklyn?",
+      "a": "Most homes date from the early-to-mid 1900s and include single-family houses and duplexes, typically with front porches, basements, and modest yards — consistent with much of southwest Cleveland's residential character."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.riderta.com/routes", "https://codes.ohio.gov/ohio-revised-code/section-5321.16", "https://www.clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification"],
+  "lastUpdated": "2026-07-04"
+}

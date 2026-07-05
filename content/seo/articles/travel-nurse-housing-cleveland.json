@@ -1,0 +1,78 @@
+{
+  "slug": "travel-nurse-housing-cleveland",
+  "cluster": "more",
+  "title": "Travel Nurse Housing Near Cleveland Clinic and University Hospitals",
+  "metaTitle": "Travel Nurse Housing in Cleveland, OH",
+  "metaDescription": "Travel nurse housing near Cleveland Clinic and University Hospitals: lease lengths, furnished options, and nearby ZIPs. Contact us about your assignment.",
+  "primaryKeyword": "travel nurse housing cleveland",
+  "secondaryKeywords": ["housing near cleveland clinic", "housing near university hospitals cleveland", "13 week assignment housing cleveland"],
+  "answerBox": "Travel nurse housing near Cleveland's hospital systems usually means a furnished, short-term rental matched to a 13-week (or similar) assignment length. Cleveland Clinic's main campus sits in the Fairfax neighborhood (ZIP 44104) and University Hospitals and University Circle sit just north of it — both reachable from several of our rental homes on the near-east side, though our standard leases are unfurnished and longer-term by default.",
+  "sections": [
+    {
+      "h2": "What does housing for a travel nurse assignment in Cleveland typically look like?",
+      "body": [
+        "Most travel nursing agencies either provide a housing stipend for the nurse to arrange their own rental or book a furnished short-term unit directly. Assignments commonly run 13 weeks, sometimes extended, which is shorter than a standard 12-month residential lease and usually requires furniture, utilities, and a flexible move-in/move-out date bundled into the arrangement.",
+        "Cleveland Clinic (the region's largest employer) and University Hospitals (the region's second-largest employer) both draw a steady stream of traveling clinical staff, which is why 'housing near the Clinic' or 'near UH' is a common search for nurses on assignment here."
+      ]
+    },
+    {
+      "h2": "Where are Cleveland Clinic and University Hospitals relative to our rental homes?",
+      "body": [
+        "Cleveland Clinic's main campus sits in the Fairfax neighborhood, ZIP code 44104, on Cleveland's east side — one of the ZIPs where we manage rental homes. University Hospitals' main campus and the broader University Circle institutions (Case Western Reserve University, the Cleveland Museum of Art, Severance Music Center) sit just north and east of Fairfax, along the RTA Red Line and HealthLine corridors. Our Hough neighborhood homes (ZIP 44103) sit between Downtown and University Circle, putting them within a reasonable commute of both hospital systems.",
+        "The HealthLine bus rapid transit route runs along Euclid Avenue connecting Public Square, Downtown, and University Circle in a dedicated median busway, and the RTA Red Line also serves the University Circle area — both useful for a nurse working shifts without a car nearby."
+      ]
+    },
+    {
+      "h2": "Does Rent Finder Cleveland offer furnished, short-term leases for travel nurses?",
+      "body": [
+        "Our default product is an unfurnished, longer-term residential lease — not a purpose-built furnished short-stay rental. Because we manage 90+ homes across Greater Cleveland with varying owners and turnover schedules, a shorter-term or move-in-ready arrangement is sometimes available depending on the specific property, but we won't promise a 13-week furnished unit sight-unseen in an article.",
+        "The most direct path is to [contact our team](/p/book-showing) with your assignment start date, length, and hospital location, and we'll tell you plainly whether anything currently in our inventory fits, or point you toward better-suited housing options if it doesn't."
+      ]
+    },
+    {
+      "h2": "What does rent run near the east-side hospital corridor?",
+      "body": [
+        "Rent varies by neighborhood, size, and whether a unit is furnished. For a general baseline, here is how Cleveland's broader rental market compares by bedroom count, alongside the typical range in our own east-side portfolio (unfurnished, standard lease)."
+      ],
+      "table": {
+        "headers": ["Home size", "RentCafe average rent, Cleveland metro (July 2026)", "Our east-side portfolio (unfurnished)"],
+        "rows": [
+          ["Studio/1-bedroom", "$1,195 – $1,451/mo", "Limited availability"],
+          ["2-bedroom", "$1,818/mo", "~$750 – $1,100/mo"],
+          ["3-bedroom", "$2,716/mo", "~$1,100 – $1,500/mo"]
+        ]
+      }
+    },
+    {
+      "h2": "Other options if a full lease doesn't fit your assignment length",
+      "body": [
+        "If your assignment is short and you don't need a full house, a room rental or a shared arrangement may be more practical — see our [rooms for rent in Cleveland](/cleveland-rentals/more/rooms-for-rent-cleveland-ohio/) page, or our broader [furnished rentals for medical residents](/cleveland-rentals/more/furnished-rental-medical-resident-cleveland/) page, which covers a closely related use case. For a standard longer lease instead, our [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) pillar page has current rent ranges and neighborhood detail."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is there furnished housing available for travel nurses near Cleveland Clinic?",
+      "a": "Our standard homes are unfurnished, longer-term rentals rather than a dedicated furnished short-stay product, but availability varies by property. Fairfax (ZIP 44104), where Cleveland Clinic's main campus sits, is one of the neighborhoods where we manage rental homes. Contact us with your assignment dates and we'll tell you what's realistic."
+    },
+    {
+      "q": "How far is University Hospitals from Cleveland Clinic?",
+      "a": "University Hospitals' main campus and the University Circle institutions sit just north and east of Cleveland Clinic's Fairfax campus, within the same general east-side corridor served by the RTA Red Line and the HealthLine bus rapid transit route on Euclid Avenue."
+    },
+    {
+      "q": "How long are typical travel nurse assignments, and does that affect lease options?",
+      "a": "Travel nurse assignments commonly run around 13 weeks, sometimes extended. That's shorter than a standard 12-month residential lease, so nurses often need either a furnished short-term rental, a room rental, or a landlord willing to negotiate a shorter minimum term."
+    },
+    {
+      "q": "Can I use a housing stipend toward one of your rental homes?",
+      "a": "Possibly, depending on the specific property, lease term, and your assignment length. Reach out with your stipend amount and dates and we'll let you know honestly whether it's a fit rather than guessing in advance."
+    },
+    {
+      "q": "What transit options connect east-side Cleveland rentals to the hospitals?",
+      "a": "The RTA Red Line and the HealthLine bus rapid transit corridor on Euclid Avenue both connect Downtown, the near-east side, and University Circle, where University Hospitals and Case Western Reserve University are located, making car-free commuting realistic from several east-side neighborhoods."
+    }
+  ],
+  "cta": "contact",
+  "sources": ["https://www.rentcafe.com/average-rent-market-trends/us/oh/cleveland/", "https://en.wikipedia.org/wiki/Greater_Cleveland_Regional_Transit_Authority"],
+  "lastUpdated": "2026-07-04"
+}

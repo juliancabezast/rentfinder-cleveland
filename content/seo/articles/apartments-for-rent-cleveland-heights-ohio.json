@@ -1,0 +1,91 @@
+{
+  "slug": "apartments-for-rent-cleveland-heights-ohio",
+  "cluster": "suburbs",
+  "title": "Apartments for Rent in Cleveland Heights, OH",
+  "metaTitle": "Apartments for Rent in Cleveland Heights, OH",
+  "metaDescription": "Apartments for rent in Cleveland Heights, OH near University Circle. See rent ranges, RTA bus routes, and voucher protections. Contact our leasing team today.",
+  "primaryKeyword": "apartments for rent Cleveland Heights ohio",
+  "secondaryKeywords": ["cleveland heights apartments", "section 8 cleveland heights", "cleveland heights ohio rentals"],
+  "answerBox": "Cleveland Heights, Ohio is an East Side Cuyahoga County suburb bordering Cleveland's University Circle, served by RTA buses connecting to the Red Line and downtown Tower City. Metro-area rents run roughly $1,060–$1,350 by bedroom size (Zumper, July 2026), and Cleveland Heights is one of the few local suburbs with a voucher-discrimination ordinance.",
+  "sections": [
+    {
+      "h2": "Renting an apartment in Cleveland Heights, Ohio",
+      "body": [
+        "Cleveland Heights is a Cuyahoga County suburb directly east of Cleveland, bordering the city's University Circle area, home to Case Western Reserve University, the Cleveland Museum of Art, and Severance Music Center. The suburb's housing stock ranges from early-1900s duplexes and courtyard apartment buildings near Coventry Village and the Cedar-Lee business district to newer construction farther east toward Cain Park.",
+        "We don't currently manage rental units inside Cleveland Heights itself — our Cleveland-area portfolio of 90+ voucher-friendly rental homes is concentrated in the City of Cleveland's east and southeast side neighborhoods, including Glenville and Hough, both of which border University Circle just west of Cleveland Heights. [Tell our leasing team what you're looking for](/p/book-showing) and we can point you to nearby availability or keep you in mind as new homes come up."
+      ]
+    },
+    {
+      "h2": "How much does it cost to rent an apartment near Cleveland Heights?",
+      "body": [
+        "Across Greater Cleveland, one-bedroom apartments generally ask around $1,195 a month and two-bedrooms range from about $1,100 to $1,818, depending on whether you're looking at Zumper's median-asking-rent report or RentCafe's average for larger, professionally managed buildings (both dated July 2026). Cleveland Heights, with its mix of early-1900s walk-ups and newer apartment construction, tends to price within or above these metro-wide ranges rather than at the low end."
+      ],
+      "table": {
+        "headers": ["Apartment size", "Zumper median, Jul 2026", "RentCafe average, Jul 2026"],
+        "rows": [
+          ["Studio", "$1,060", "$1,195"],
+          ["1-bedroom", "$1,195", "$1,451"],
+          ["2-bedroom", "$1,100", "$1,818"],
+          ["3-bedroom", "$1,350", "$2,716"]
+        ]
+      }
+    },
+    {
+      "h2": "Getting around Cleveland Heights",
+      "body": [
+        "Cleveland Heights has no rail station of its own, but it sits between two RTA rail options: the Blue and Green light-rail lines through neighboring Shaker Heights, and the Red Line's Windermere terminus in adjacent East Cleveland. Multiple RTA bus routes run along Cedar Road, Mayfield Road, and Euclid Heights Boulevard, connecting Cleveland Heights to University Circle, downtown Tower City, and the [HealthLine](https://www.riderta.com/routes) bus-rapid-transit corridor on Euclid Avenue."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**County:** Cuyahoga County, directly east of Cleveland",
+          "**Borders:** University Circle, and Cleveland's Glenville and Hough neighborhoods to the west",
+          "**Transit:** RTA bus routes to the Red Line (Windermere) and the Blue/Green light-rail lines via Shaker Heights",
+          "**Nearby institutions:** Case Western Reserve University and the University Circle museum district"
+        ]
+      }
+    },
+    {
+      "h2": "Does Cleveland Heights accept Section 8 housing vouchers?",
+      "body": [
+        "Yes — Cleveland Heights is one of a small number of Cuyahoga County suburbs with a local ordinance protecting Housing Choice Voucher holders from source-of-income discrimination, adopted in 2021. That matters because Ohio has no statewide source-of-income law, and the City of Cleveland itself does not currently have one either, so a landlord inside Cleveland can generally decline a voucher applicant while a landlord in Cleveland Heights generally cannot refuse a tenant solely for using one. Renters should still confirm current protections directly with the city; see our [guide to source-of-income rules across Greater Cleveland](/cleveland-rentals/section-8/source-of-income-discrimination-cleveland-ohio/) for the full picture. Housing Choice Vouchers themselves are administered countywide through [CMHA](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php), regardless of which city or suburb a voucher holder ultimately rents in."
+      ]
+    },
+    {
+      "h2": "Finding a voucher-friendly rental near Cleveland Heights",
+      "body": [
+        "If a Cleveland Heights address isn't available or doesn't fit your budget, our nearby Cleveland listings may. We manage 90+ rental homes across Greater Cleveland, and every one accepts Housing Choice Vouchers and is HUD-inspection-ready, including homes in neighborhoods bordering Cleveland Heights. Read our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/), or compare [renting in the city versus the suburbs](/cleveland-rentals/guides/cleveland-vs-suburbs-renting/) before you narrow your search."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does Rent Finder Cleveland manage apartments in Cleveland Heights?",
+      "a": "Not directly. Our current portfolio of 90+ voucher-friendly rental homes is concentrated in the City of Cleveland, with the closest availability typically in neighborhoods bordering Cleveland Heights such as Glenville and Hough. Tell our team what you're looking for and we'll point you to current availability nearby."
+    },
+    {
+      "q": "How much is rent near Cleveland Heights?",
+      "a": "Greater Cleveland one-bedroom apartments generally ask around $1,195 a month and two-bedrooms range from about $1,100 to $1,818, depending on whether you're comparing Zumper's median-asking-rent data or RentCafe's average for larger managed buildings (both July 2026). Cleveland Heights pricing tends to fall within or above these metro ranges."
+    },
+    {
+      "q": "Does Cleveland Heights accept Section 8 vouchers?",
+      "a": "Cleveland Heights adopted a source-of-income protection ordinance in 2021, meaning landlords there generally cannot refuse a tenant solely for using a Housing Choice Voucher, unlike the City of Cleveland, which currently has no such protection. Voucher administration itself runs through CMHA regardless of which city a unit is in."
+    },
+    {
+      "q": "What transit connects Cleveland Heights to Cleveland?",
+      "a": "Cleveland Heights has no rail station of its own but is served by RTA bus routes linking to the Red Line at Windermere station in East Cleveland and to the Blue/Green light-rail lines that run through neighboring Shaker Heights, plus the HealthLine bus-rapid-transit corridor on Euclid Avenue."
+    },
+    {
+      "q": "Is Cleveland Heights part of the City of Cleveland?",
+      "a": "No. Cleveland Heights is an independent Cuyahoga County suburb, not a City of Cleveland neighborhood. It borders Cleveland directly, sharing a line with the University Circle, Glenville, and Hough areas."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://www.zumper.com/rent-research/cleveland-oh",
+    "https://www.rentcafe.com/average-rent-market-trends/us/oh/cleveland/",
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://www.riderta.com/routes"
+  ],
+  "lastUpdated": "2026-07-04"
+}

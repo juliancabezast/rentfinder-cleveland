@@ -1,0 +1,86 @@
+{
+  "slug": "break-a-lease-ohio",
+  "cluster": "guides",
+  "title": "How to break a lease in Ohio (and what it costs)",
+  "metaTitle": "How to Break a Lease in Ohio (What It Costs)",
+  "metaDescription": "Break a lease in Ohio the right way: what the law says about deposits, notice, and costs, plus lower-risk options like re-renting or a lease clause.",
+  "primaryKeyword": "break a lease ohio",
+  "secondaryKeywords": [
+    "breaking a lease early ohio",
+    "lease termination fee ohio",
+    "cleveland lease break cost"
+  ],
+  "lawTopic": true,
+  "answerBox": "Ohio law doesn't set a fixed penalty for breaking a lease early — a fixed-term lease is a contract, so a tenant who leaves before it ends generally stays responsible for the rent it specifies, minus certain deposit protections under ORC 5321.16. Costs and options vary by lease, so read the termination clause before you sign or before you leave.",
+  "sections": [
+    {
+      "h2": "What happens if you break a lease early in Ohio?",
+      "body": [
+        "A signed, fixed-term lease is a contract for the full term, so leaving early doesn't automatically end your obligation to pay rent for the remaining months. Ohio law generally doesn't cap or set a standard \"lease-break fee\" the way it caps some deposit practices — what you owe, and under what conditions, comes from the specific language in your lease (an early-termination clause, a military/relocation clause, or a flat lease-break fee some landlords include).",
+        "Before assuming the worst case, read your lease's termination section first. Many leases spell out an exact cost (for example, a set number of months' rent) for ending early, which can be cheaper than paying out the full remaining term. If nonpayment or an eviction filing is already part of the picture, our [Ohio eviction process timeline](/cleveland-rentals/guides/ohio-eviction-process-timeline/) explains what happens next."
+      ]
+    },
+    {
+      "h2": "Do I still get my security deposit back if I leave early?",
+      "body": [
+        "Ohio's security deposit statute, **ORC 5321.16**, still applies even if you leave before the lease ends. Within 30 days after the lease terminates and you've moved out and given a forwarding address, the landlord must return your deposit and provide an itemized written statement of any deductions. Permitted deductions are unpaid rent and damages tied to your noncompliance with the lease or with ORC 5321.05 (tenant obligations) — not a blanket penalty for leaving early.",
+        "If a landlord wrongfully withholds your deposit, ORC 5321.16(C) lets you recover the wrongfully withheld amount **plus an equal amount in damages (effectively double)**, plus reasonable attorney's fees. Deposits over $50 or one month's rent (whichever is greater) also earn 5% annual interest if you stayed 6 months or more."
+      ]
+    },
+    {
+      "h2": "What actually determines the cost of breaking a lease?",
+      "body": [
+        "In practice, three things drive the cost: (1) how many months are left on the lease, (2) whether your lease has a specific early-termination clause with a set fee, and (3) how quickly the landlord re-rents the home. Because a landlord can't simply collect rent twice for the same unit, once a new tenant is in place and paying, your remaining liability for that period generally ends — so a home that re-rents quickly can cost you far less than the full remaining term."
+      ]
+    },
+    {
+      "h2": "Ways to break a lease with less cost or risk",
+      "body": [
+        "None of these guarantee a specific outcome, but they're the standard lower-risk paths: talk to your landlord directly about a mutual early termination or a fixed lease-break fee in writing; check your lease for a military-clause or documented-hardship clause; offer to help find a qualified replacement tenant (a re-rent or lease-assignment arrangement, subject to your landlord's approval); or, if the reason is a landlord's failure to make required repairs, look into your rights under ORC 5321.07 (rent escrow and repair remedies) rather than simply walking away. If you're weighing whether to leave at all versus finding a different rental first, [browse current Cleveland houses for rent](/houses-for-rent-cleveland-oh/) or [book a showing](/p/book-showing) before you give notice."
+      ]
+    },
+    {
+      "h2": "Lease-break costs at a glance",
+      "body": [
+        "There's no single statewide number — costs depend entirely on your specific lease and situation. The table below shows the general categories renters run into. Renters using a Housing Choice Voucher should also check our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) before breaking a lease, since porting a voucher to a new unit takes its own lead time."
+      ],
+      "table": {
+        "headers": ["Situation", "What Ohio law says", "What it usually means for cost"],
+        "rows": [
+          ["Lease has a written early-termination clause", "Ohio law lets landlords and tenants set contract terms", "Cost is whatever the clause states (often a set number of months' rent)"],
+          ["No termination clause, tenant leaves early", "No statutory lease-break fee; contract law generally applies", "Tenant may remain liable for rent until the term ends or the unit re-rents"],
+          ["Landlord re-rents the home quickly", "Not itemized in ORC 5321, but reduces the tenant's remaining exposure", "Liability for rent typically stops once a new tenant is paying"],
+          ["Security deposit after early move-out", "ORC 5321.16 — 30-day return + itemized deductions", "Same rules as any move-out; deposit isn't automatically forfeited for leaving early"]
+        ]
+      }
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can a landlord in Ohio charge any fee they want for breaking a lease?",
+      "a": "Not exactly — the fee has to come from what your lease actually says. Ohio law doesn't set a standard statewide lease-break fee, so a landlord can't invent a new charge that isn't in your lease or otherwise tied to unpaid rent or documented damages under ORC 5321.16."
+    },
+    {
+      "q": "Do I lose my whole security deposit if I break my lease?",
+      "a": "Not automatically. ORC 5321.16 still requires your landlord to return your deposit within 30 days of move-out (with a forwarding address given) and to itemize any deductions for unpaid rent or lease-related damages — not simply keep it as a penalty for leaving early."
+    },
+    {
+      "q": "What if my landlord won't make repairs and I want to leave?",
+      "a": "If a landlord fails required duties and doesn't fix the issue within a reasonable time (or 30 days, whichever is sooner), a tenant current on rent may use the rent-escrow process under ORC 5321.07 — depositing rent with the court and asking it to order repairs or address the lease — rather than simply breaking the lease unilaterally."
+    },
+    {
+      "q": "Does finding a replacement tenant end my lease liability?",
+      "a": "It can significantly reduce it, since a landlord generally can't collect rent from two tenants for the same period. Whether a specific replacement tenant is accepted is still up to your landlord, so get any re-renting or lease-assignment agreement in writing before you rely on it."
+    },
+    {
+      "q": "Is this legal advice?",
+      "a": "No. This is general information about Ohio landlord-tenant law as of July 2026, not legal advice for your specific lease. Ohio Revised Code Chapter 5321 and your written lease control your actual rights and obligations — a local tenant-rights organization or attorney can review your specific situation."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.07"
+  ],
+  "lastUpdated": "2026-07-04"
+}

@@ -1,0 +1,90 @@
+{
+  "slug": "houses-for-rent-cedar-lee-cleveland",
+  "cluster": "neighborhoods",
+  "title": "Houses for rent in Cedar-Lee",
+  "metaTitle": "Houses for Rent Near Cedar-Lee, Cleveland Heights OH",
+  "metaDescription": "Houses for rent in the Cedar-Lee area of Cleveland Heights, OH — housing stock, transit, and rent trends, plus how to reach our local leasing team.",
+  "primaryKeyword": "houses for rent Cedar-Lee cleveland",
+  "secondaryKeywords": ["cedar lee cleveland heights rentals", "cedar road lee road houses for rent", "cleveland heights section 8"],
+  "answerBox": "Cedar-Lee is the commercial district around Cedar Road and Lee Road in Cleveland Heights, a suburb just east of Cleveland's University Circle. It is not one of Cleveland's official city neighborhoods. Our rental portfolio is concentrated elsewhere in Greater Cleveland, but Cleveland Heights has its own Section 8 source-of-income protections and RTA bus access to University Circle and downtown.",
+  "sections": [
+    {
+      "h2": "Renting a house near Cedar-Lee, Cleveland Heights",
+      "body": [
+        "Cedar-Lee is the name locals use for the commercial district at the intersection of Cedar Road and Lee Road in Cleveland Heights, Ohio — a separate municipality directly east of the City of Cleveland's University Circle area. It is not one of the City of Cleveland's 34 official Statistical Planning Area neighborhoods; renters searching for it are really looking at Cleveland Heights housing stock, which is dominated by early-20th-century single-family and two-family homes on side streets branching off Cedar and Lee roads.",
+        "Rent Finder Cleveland's current portfolio is concentrated in Cleveland's east and southeast side city neighborhoods rather than in Cleveland Heights itself, so we can't promise a specific listing on this page today. [Tell our leasing team what you're looking for](/p/book-showing) near Cedar-Lee and we'll follow up with relevant options across Greater Cleveland, including nearby city neighborhoods we do serve."
+      ]
+    },
+    {
+      "h2": "What's around the Cedar-Lee business district?",
+      "body": [
+        "The Cedar-Lee district is a commercial strip anchored by the Cedar Lee Theatre, a single-screen movie house on Lee Road, along with independent restaurants and retail storefronts. Cain Park, a Cleveland Heights municipal park with an outdoor amphitheater, sits a short distance south along Lee Road. The district borders Cleveland's University area and University Circle — home to Case Western Reserve University, the Cleveland Museum of Art, and the Cleveland Clinic's main campus — a few minutes to the west by car or bus.",
+        "Cleveland Heights carries its own municipal ZIP code, typically 44118, distinct from any City of Cleveland ZIP. That distinction matters for renters comparing listings, since Cleveland Heights sets its own local ordinances — including the source-of-income protection covered below — separately from the City of Cleveland."
+      ]
+    },
+    {
+      "h2": "Rent trends in the greater Cleveland area",
+      "body": [
+        "Cedar-Lee itself sits in Cleveland Heights, not the City of Cleveland, so neighborhood-specific rent data isn't published for this district. As a regional benchmark, Zumper's report dated July 4, 2026 puts the City of Cleveland's overall median asking rent at $1,250 a month, up 4.2% year-over-year, with 3-bedroom homes around $1,350. RentCafe's report dated July 2, 2026 puts the average rent across professionally managed Cleveland apartments at $1,564 for about 787 square feet, with 3-bedroom units averaging $2,716. Both sources show the wider Cleveland region running well below the roughly $1,950 national median Zumper reports — a gap of nearly 36%."
+      ],
+      "table": {
+        "headers": ["Home size", "Zumper median (City of Cleveland, Jul 2026)", "RentCafe average (City of Cleveland, Jul 2026)"],
+        "rows": [
+          ["Studio", "$1,060", "$1,195"],
+          ["1 bedroom", "$1,195", "$1,451"],
+          ["2 bedroom", "$1,100", "$1,818"],
+          ["3 bedroom", "$1,350", "$2,716"]
+        ]
+      }
+    },
+    {
+      "h2": "Section 8 vouchers near Cedar-Lee (Cleveland Heights)",
+      "body": [
+        "Ohio has no statewide law requiring landlords to accept Housing Choice Vouchers (Section 8) as a source of income, and the City of Cleveland has not enacted a local protection either. Cleveland Heights is different: it adopted a local source-of-income ordinance in 2021 that bars landlords from refusing an applicant solely for using a housing voucher, according to reporting by Signal Cleveland. That protection applies specifically within Cleveland Heights and a handful of other Cuyahoga County suburbs — it does not extend citywide into Cleveland. Renters should confirm current rules with the specific municipality before assuming any landlord must accept a voucher.",
+        "Every home Rent Finder Cleveland manages accepts Section 8 and is HUD-inspection-ready, though our current portfolio sits primarily in Cleveland's city neighborhoods rather than Cleveland Heights. Read our full [Section 8 guide for Cleveland](/section-8-housing-cleveland-oh/) for how CMHA vouchers work, or see our guide to [houses for rent in Cleveland Heights](/cleveland-rentals/suburbs/houses-for-rent-cleveland-heights-ohio/) for the suburb overall."
+      ],
+      "table": {
+        "headers": ["Jurisdiction", "Local source-of-income (voucher) protection?"],
+        "rows": [
+          ["City of Cleveland", "No local ordinance as of 2026-07-04"],
+          ["Cleveland Heights", "Yes — adopted 2021, per news reporting"],
+          ["South Euclid, University Heights, Warrensville Heights, Linndale", "Reported to have similar protections"],
+          ["Most other Cuyahoga County suburbs", "No — Ohio has no statewide protection"]
+        ]
+      }
+    },
+    {
+      "h2": "Getting around: transit and commute",
+      "body": [
+        "Greater Cleveland RTA operates an extensive bus network through Cleveland Heights, connecting the Cedar-Lee area to University Circle and to Downtown Cleveland's Tower City hub, where the Red Line (heavy rail to Cleveland Hopkins Airport and East Cleveland's Windermere station), the Blue and Green light-rail lines (running through neighboring Shaker Heights), and the Waterfront Line all converge. The HealthLine bus-rapid-transit route runs along Euclid Avenue between Public Square and University Circle, a short bus or car ride west of Cedar-Lee."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is Cedar-Lee part of the City of Cleveland?",
+      "a": "No. Cedar-Lee is a commercial district centered on Cedar Road and Lee Road in Cleveland Heights, a separate suburb directly east of Cleveland, adjacent to University Circle. It is not one of the City of Cleveland's 34 official planning-area neighborhoods."
+    },
+    {
+      "q": "Does Rent Finder Cleveland manage homes near Cedar-Lee?",
+      "a": "Our portfolio is currently concentrated in Cleveland's east and southeast side city neighborhoods rather than in Cleveland Heights. Tell our team what you're looking for near Cedar-Lee and we'll let you know about relevant options across Greater Cleveland."
+    },
+    {
+      "q": "Are Section 8 vouchers protected in Cleveland Heights?",
+      "a": "Cleveland Heights adopted a local source-of-income ordinance in 2021 that bars landlords from refusing an applicant solely for using a housing voucher, according to news reporting. Ohio has no statewide protection, and the City of Cleveland has not enacted one, so confirm current rules with the specific municipality."
+    },
+    {
+      "q": "What is rent like near Cedar-Lee?",
+      "a": "Cedar-Lee-specific rent data isn't published since it's part of Cleveland Heights, not the City of Cleveland. As a regional benchmark, Zumper's July 2026 report puts the City of Cleveland's median rent at $1,250/month; RentCafe's July 2026 report puts the average at $1,564 for professionally managed apartments."
+    },
+    {
+      "q": "How do I get from Cedar-Lee to Downtown Cleveland?",
+      "a": "Greater Cleveland RTA buses connect Cleveland Heights to Downtown's Tower City hub, where the Red, Blue, Green, and Waterfront rail lines converge, and to University Circle, a few minutes west, where the HealthLine bus-rapid-transit route runs along Euclid Avenue."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://www.riderta.com/routes"
+  ],
+  "lastUpdated": "2026-07-04"
+}

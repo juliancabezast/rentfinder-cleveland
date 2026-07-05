@@ -1,0 +1,87 @@
+{
+  "slug": "public-housing-vs-section-8-cleveland",
+  "cluster": "section-8",
+  "title": "Public Housing vs. Section 8 (Housing Choice Voucher) in Cleveland",
+  "metaTitle": "Public Housing vs Section 8 in Cleveland, Explained",
+  "metaDescription": "Public housing vs Section 8 in Cleveland: how CMHA's programs differ, who administers each, and how a voucher works at a private rental. Book a showing.",
+  "primaryKeyword": "public housing vs section 8 cleveland",
+  "secondaryKeywords": ["difference between public housing and section 8", "cmha housing choice voucher vs public housing", "housing choice voucher explained cleveland"],
+  "answerBox": "Public housing is a government-owned unit that a housing authority operates directly, while a Section 8 Housing Choice Voucher is a portable rent subsidy a household uses to rent from a private landlord — like the homes Rent Finder Cleveland manages. CMHA, the Cuyahoga Metropolitan Housing Authority, administers both programs, but they work very differently for a renter.",
+  "sections": [
+    {
+      "h2": "What is public housing?",
+      "body": [
+        "Public housing refers to rental units that a local public housing authority — in Cuyahoga County, that's CMHA — owns and operates directly, with HUD funding the program. A household applies to the housing authority itself, and if selected, rents a specific unit that the authority (not a private landlord) manages. Public housing developments are a fixed, limited supply tied to specific buildings and addresses that the authority controls."
+      ]
+    },
+    {
+      "h2": "What is a Housing Choice Voucher (Section 8)?",
+      "body": [
+        "A Housing Choice Voucher works differently: instead of living in a unit the housing authority owns, a voucher holder finds and rents a unit on the open private market — from any landlord willing to accept the voucher — and the housing authority pays a portion of the rent directly to that landlord each month. CMHA accepts preliminary Housing Choice Voucher applications online year-round with no closing date, and selects applicants through periodic random \"mini-lotteries\" rather than strict first-come, first-served order. Before a voucher can be used on a given unit, that unit must pass a HUD housing-quality inspection — a standard HUD is currently transitioning from the older HQS framework to NSPIRE, with a final deadline of February 1, 2027 for the [Housing Choice Voucher program](https://www.hud.gov/helping-americans/housing-choice-vouchers)."
+      ]
+    },
+    {
+      "h2": "How the two programs compare",
+      "body": [
+        "The practical difference for a renter comes down to who owns the unit and how much choice you have over where you live."
+      ],
+      "table": {
+        "headers": ["", "Public housing", "Housing Choice Voucher (Section 8)"],
+        "rows": [
+          ["Who owns the unit", "The housing authority (CMHA)", "A private landlord"],
+          ["Where you can live", "A specific authority-owned building", "Any participating private rental you choose"],
+          ["Who you apply to", "The housing authority directly", "The housing authority, then a private landlord"],
+          ["Portability", "Tied to that development", "Can generally be used across jurisdictions (\"porting\")"],
+          ["Who administers it locally", "CMHA", "CMHA"]
+        ]
+      }
+    },
+    {
+      "h2": "Income limits apply to either program",
+      "body": [
+        "Whether a household is applying for public housing or a Housing Choice Voucher, HUD income limits determine eligibility, and CMHA uses the same underlying limits to screen applicants for both programs. As of CMHA's 2025 figures, a one-person household generally must earn no more than about $34,800 a year, rising to roughly $39,800 for two people, $49,700 for four, and $65,650 for eight — these limits are updated periodically, so always check CMHA's current chart before applying rather than relying on last year's numbers.",
+        "Application timelines can also differ in practice: because public housing units are limited to whatever a given development has available, and vouchers can be used at any of the many private rentals willing to accept one, a voucher holder often has a wider immediate pool of potential homes to search once selected from the waitlist, even though both programs draw from the same overall preliminary application and lottery process at CMHA."
+      ]
+    },
+    {
+      "h2": "A third option: project-based vouchers",
+      "body": [
+        "There's also a middle category worth knowing about: a project-based voucher is attached to a specific building rather than portable to any landlord a household chooses, which makes it behave more like public housing in that sense, even though it's still a HUD voucher program administered by the housing authority. See our [project-based voucher vs. Housing Choice Voucher guide](/cleveland-rentals/section-8/project-based-voucher-vs-housing-choice-voucher/) for how that distinction plays out for renters."
+      ]
+    },
+    {
+      "h2": "Renting one of our homes with a Housing Choice Voucher",
+      "body": [
+        "Rent Finder Cleveland is a private property manager, not a housing authority — we don't operate public housing developments. What we do manage is 90+ rental homes across the greater Cleveland area, and every single one accepts Housing Choice Vouchers and is kept HUD-inspection-ready. Our inventory is concentrated in Cleveland's Slavic Village, Collinwood, Glenville, Fairfax/Central, Hough, and Buckeye-Shaker neighborhoods, with additional homes on the west side and in Akron, Lorain, and Elyria. If you already hold a Housing Choice Voucher, that's exactly the kind of private-market rental it's designed to work with. Read our full [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for the local application process, or [book a free showing](/p/book-showing) to see current availability."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What's the main difference between public housing and Section 8?",
+      "a": "Public housing is a government-owned unit operated directly by a housing authority, while a Section 8 Housing Choice Voucher is a subsidy a household uses to rent from a private landlord of their choosing. Public housing ties you to a specific authority-owned building; a voucher lets you search the private rental market."
+    },
+    {
+      "q": "Does CMHA run both public housing and Housing Choice Vouchers in Cuyahoga County?",
+      "a": "Yes. CMHA, the Cuyahoga Metropolitan Housing Authority, administers both types of federally funded housing assistance for the county, though they work differently: public housing units it owns directly, versus vouchers that subsidize rent at private-market rentals."
+    },
+    {
+      "q": "Can I use a Housing Choice Voucher at a private landlord's rental home?",
+      "a": "Yes — that's exactly how the program is designed to work. A Housing Choice Voucher lets a household rent from any private landlord willing to accept it, as long as the unit passes a HUD housing-quality inspection first."
+    },
+    {
+      "q": "What is a project-based voucher and how is it different?",
+      "a": "A project-based voucher is attached to a specific building rather than portable to any landlord you choose, which makes it function more like public housing even though HUD and the local housing authority still administer it as a voucher program."
+    },
+    {
+      "q": "Does Rent Finder Cleveland manage public housing units?",
+      "a": "No. We're a private property manager, not a housing authority, so we don't operate public housing developments. Every one of our 90+ managed homes is a private-market rental that accepts Housing Choice Vouchers and is HUD-inspection-ready."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers"
+  ],
+  "lastUpdated": "2026-07-04"
+}

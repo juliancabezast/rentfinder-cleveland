@@ -1,0 +1,92 @@
+{
+  "slug": "houses-for-rent-mount-pleasant-cleveland",
+  "cluster": "neighborhoods",
+  "title": "Houses for Rent in Mount Pleasant, Cleveland",
+  "metaTitle": "Houses for Rent in Mount Pleasant, Cleveland OH",
+  "metaDescription": "Houses for rent in Mount Pleasant, Cleveland — rent ranges, transit, and nearby areas from a local property manager. Tell us what you're looking for.",
+  "primaryKeyword": "houses for rent Mount Pleasant cleveland",
+  "secondaryKeywords": ["Mount Pleasant Cleveland rentals", "southeast side Cleveland houses", "Kinsman Road area rentals"],
+  "answerBox": "Mount Pleasant is a Statistical Planning Area on Cleveland's southeast side, near Kinsman Road and the Buckeye-Woodhill area. Citywide, three-bedroom houses typically rent around $1,350 a month (Zumper, July 2026), and Rent Finder Cleveland's Section 8-friendly homes are concentrated nearby in Buckeye-Shaker and Slavic Village.",
+  "sections": [
+    {
+      "h2": "Renting a house in Mount Pleasant",
+      "body": [
+        "Mount Pleasant is one of Cleveland's Statistical Planning Areas, located on the city's southeast side near Kinsman Road, not far from the Buckeye-Woodhill and Fairfax neighborhoods. Like much of southeast Cleveland, the area is primarily residential, with housing stock that includes single-family homes and smaller multi-family buildings.",
+        "We don't currently have a concentrated portfolio of rental homes specifically in Mount Pleasant — our Southeast Cleveland inventory is centered in neighboring areas like Buckeye-Shaker, Slavic Village, and Fairfax. [Tell our leasing team what you're looking for](/p/book-showing) and we'll let you know about options nearby, or browse our [Cleveland houses for rent](/houses-for-rent-cleveland-oh/) hub to see where we currently manage homes."
+      ]
+    },
+    {
+      "h2": "What do houses rent for in this part of Cleveland?",
+      "body": [
+        "Citywide rent data from RentCafe (Yardi), dated July 2, 2026, shows average rents for professionally managed apartments running higher than the smaller, older rental homes typical of southeast Cleveland neighborhoods like Mount Pleasant. The table below gives the RentCafe figures for reference alongside a citywide comparison.",
+        "These RentCafe averages skew toward larger, professionally managed complexes; Zumper's July 2026 median for all Cleveland rentals, including smaller older homes, is lower at about $1,250 a month. Older single-family homes and duplexes in neighborhoods like Mount Pleasant typically rent closer to the Zumper figure than the RentCafe average."
+      ],
+      "table": {
+        "headers": ["Home size", "RentCafe average (July 2026)", "Notes"],
+        "rows": [
+          ["Studio", "$1,195/mo", "461 sq ft average"],
+          ["1-bedroom", "$1,451/mo", "690 sq ft average"],
+          ["2-bedroom", "$1,818/mo", "1,027 sq ft average"],
+          ["3-bedroom", "$2,716/mo", "1,483 sq ft average"]
+        ]
+      }
+    },
+    {
+      "h2": "Transit and getting around Mount Pleasant",
+      "body": [
+        "The neighborhood is served by RTA bus routes connecting to downtown Cleveland and to nearby Shaker Square, and it sits within a few miles of the Cleveland Clinic main campus in neighboring Fairfax. Kinsman Road is a main east-west corridor through the area."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Side of city:** Southeast",
+          "**Nearby institution:** Cleveland Clinic main campus (Fairfax)",
+          "**Transit:** RTA bus routes to downtown and Shaker Square",
+          "**Main corridor:** Kinsman Road"
+        ]
+      }
+    },
+    {
+      "h2": "Section 8 and vouchers in southeast Cleveland",
+      "body": [
+        "Southeast Cleveland, including the area around Mount Pleasant, is served by the **Cuyahoga Metropolitan Housing Authority (CMHA)**, the local Housing Choice Voucher administrator. CMHA accepts preliminary applications year-round, though placement is by lottery and can take months.",
+        "While we don't currently manage homes specifically in Mount Pleasant, every home Rent Finder Cleveland manages nearby — in Buckeye-Shaker, Fairfax, and Slavic Village — accepts Section 8 and is HUD-inspection-ready. Read our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for the full application process."
+      ]
+    },
+    {
+      "h2": "Neighborhoods nearby where we manage homes",
+      "body": [
+        "If you're flexible on the exact neighborhood, we manage Section 8-friendly rental homes nearby in [Buckeye-Shaker Square](/cleveland-rentals/neighborhoods/houses-for-rent-buckeye-shaker-square-cleveland/), [Fairfax](/cleveland-rentals/neighborhoods/houses-for-rent-fairfax-cleveland/), and [Slavic Village](/cleveland-rentals/neighborhoods/houses-for-rent-slavic-village-cleveland/). See our full [Cleveland houses for rent](/houses-for-rent-cleveland-oh/) hub to compare all areas we serve."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does Rent Finder Cleveland manage houses in Mount Pleasant?",
+      "a": "Not currently as a concentrated area — our Southeast Cleveland portfolio is centered in neighboring Buckeye-Shaker, Fairfax, and Slavic Village. Availability changes, so tell our team what you're looking for and we'll point you toward current options nearby, including areas just a few miles away."
+    },
+    {
+      "q": "How much does it cost to rent a house near Mount Pleasant?",
+      "a": "Citywide, Zumper's July 2026 report puts median Cleveland rent at about $1,250 a month. RentCafe's July 2026 data shows higher averages for larger, professionally managed complexes, but older single-family homes and duplexes typical of southeast Cleveland usually rent closer to the Zumper figure."
+    },
+    {
+      "q": "What is Mount Pleasant close to?",
+      "a": "Mount Pleasant is on Cleveland's southeast side near Kinsman Road, within a few miles of the Cleveland Clinic main campus in neighboring Fairfax and not far from Shaker Square and the Buckeye-Shaker area. It's served by RTA bus routes connecting to downtown."
+    },
+    {
+      "q": "Are there Section 8 rentals near Mount Pleasant?",
+      "a": "Yes. While we don't currently manage homes specifically in Mount Pleasant, we do manage Section 8-friendly, HUD-inspection-ready homes nearby in Buckeye-Shaker, Fairfax, and Slavic Village. CMHA, Cuyahoga County's housing authority, administers Housing Choice Vouchers and accepts preliminary applications year-round."
+    },
+    {
+      "q": "Does Ohio or Cleveland protect Section 8 voucher holders?",
+      "a": "Ohio has no statewide source-of-income protection law, and the City of Cleveland has not enacted a voucher-nondiscrimination ordinance as of July 2026. A handful of Cuyahoga County suburbs, including Cleveland Heights and South Euclid, do have local protections. Always confirm a landlord's policy directly."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://www.rentcafe.com/average-rent-market-trends/us/oh/cleveland/",
+    "https://www.zumper.com/rent-research/cleveland-oh",
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"
+  ],
+  "lastUpdated": "2026-07-04"
+}

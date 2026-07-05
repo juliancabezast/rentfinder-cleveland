@@ -1,0 +1,83 @@
+{
+  "slug": "houses-for-rent-downtown-cleveland",
+  "cluster": "neighborhoods",
+  "title": "Houses for Rent in Downtown Cleveland",
+  "metaTitle": "Houses for Rent in Downtown Cleveland OH",
+  "metaDescription": "Searching for houses for rent in Downtown Cleveland? See how the market breaks down near Public Square and Tower City, and tell us what you need.",
+  "primaryKeyword": "houses for rent Downtown cleveland",
+  "secondaryKeywords": ["downtown cleveland rentals", "warehouse district rentals cleveland", "downtown cleveland apartments vs houses"],
+  "answerBox": "Downtown Cleveland is the city's central business district, anchored by Public Square, Tower City, and the Warehouse District. Housing here runs mostly to apartments and lofts rather than standalone houses; renters who want a full house typically look to nearby neighborhoods, while Rent Finder Cleveland can help match renters with available homes elsewhere in the area.",
+  "sections": [
+    {
+      "h2": "Renting near Downtown Cleveland",
+      "body": [
+        "Downtown Cleveland is the city's central business district, built around **Public Square** and the **Terminal Tower/Tower City complex**, with the **Warehouse District** and **Gateway** sports district nearby. It's Cleveland's employment and entertainment core, and its residential stock skews heavily toward apartments and converted lofts rather than detached houses.",
+        "Because Downtown itself has very little standalone-house inventory, renters specifically searching for **[houses for rent in Cleveland](/houses-for-rent-cleveland-oh/)** near Downtown are often better served by nearby, more residential neighborhoods. Rent Finder Cleveland manages 90+ rental homes across Greater Cleveland, concentrated on the city's east and southeast sides — [tell our team what you're looking for](/p/book-showing) and we'll point you toward homes that fit, whether that's near Downtown or in a nearby neighborhood."
+      ]
+    },
+    {
+      "h2": "How much does it cost to rent Downtown?",
+      "body": [
+        "Downtown's housing mix (apartments and lofts) tends to run at or above Cleveland's citywide averages. Per RentCafe (Yardi), reporting July 2, 2026, the citywide average rent across professionally managed apartments — the category most Downtown units fall into — is **$1,564/month** for 787 sq. ft. (up 1.66% year-over-year), with 2-bedroom units averaging **$1,818** and 3-bedroom units averaging **$2,716**. Zumper's July 4, 2026 report, which reflects a broader median across all listing types citywide, puts the overall median lower, at **$1,250/month**.",
+        "For comparison, Rent Finder Cleveland's own portfolio of Section 8-ready rental homes across Greater Cleveland — mostly houses, duplexes, and small multi-family buildings outside the immediate Downtown core — typically rents from **$700 to $1,800 a month**, with most homes around **$1,000**."
+      ],
+      "table": {
+        "headers": ["Metric", "Zumper (citywide median, Jul 2026)", "RentCafe (citywide apartment average, Jul 2026)"],
+        "rows": [
+          ["Overall", "$1,250", "$1,564"],
+          ["2-bedroom", "$1,100", "$1,818"],
+          ["3-bedroom", "$1,350", "$2,716"]
+        ]
+      }
+    },
+    {
+      "h2": "Getting around Downtown",
+      "body": [
+        "Downtown Cleveland is the region's transit hub. **Tower City** is where all four GCRTA rail lines converge: the **Red Line** (heavy rail to Cleveland Hopkins Airport and the East Side, including University Circle and Windermere), the **Blue** and **Green Lines** (light rail to Shaker Heights), and the **Waterfront Line** (light rail to the Flats and North Coast lakefront attractions). The **HealthLine** bus rapid transit route also starts near Public Square and runs the length of Euclid Avenue to University Circle and East Cleveland."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Landmarks:** Public Square, Terminal Tower/Tower City, Warehouse District, Gateway",
+          "**Transit hub:** Tower City — Red, Blue, Green, and Waterfront rail lines all converge here",
+          "**Bus rapid transit:** HealthLine along Euclid Avenue to University Circle",
+          "**Housing type:** Mostly apartments and lofts; standalone rental houses are limited"
+        ]
+      }
+    },
+    {
+      "h2": "Section 8 and voucher-friendly rentals near Downtown",
+      "body": [
+        "Renters using a Housing Choice Voucher (Section 8) apply through the **Cuyahoga Metropolitan Housing Authority (CMHA)**, which administers the program countywide via a year-round preliminary application and a mini-lottery selection process — see [CMHA's voucher portal](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) for details. Note that Ohio has no statewide source-of-income law, and the City of Cleveland (Downtown included) has not enacted a local ordinance requiring landlords to accept vouchers as of this writing; a handful of Cuyahoga County suburbs have their own protections instead.",
+        "Rent Finder Cleveland's portfolio of 90+ rental homes is concentrated on Cleveland's east and southeast sides rather than in the immediate Downtown core, but every home we manage accepts Section 8 vouchers and is HUD-inspection-ready. [See our Section 8 guide](/section-8-housing-cleveland-oh/) for more on how the program works locally, or tell us what area you're considering."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Are there many houses for rent in Downtown Cleveland?",
+      "a": "Not many — Downtown's housing stock is dominated by apartments and converted lofts rather than standalone houses. Renters specifically wanting a house typically have more options in Cleveland's residential neighborhoods just outside the Downtown core."
+    },
+    {
+      "q": "How much does it cost to rent Downtown?",
+      "a": "Downtown rents track close to Cleveland's citywide apartment averages: RentCafe (July 2026) reports a citywide average of $1,564/month for professionally managed apartments, while Zumper's broader citywide median (July 2026) is $1,250/month. Actual Downtown units, being mostly apartments, tend toward the higher end."
+    },
+    {
+      "q": "What's the transit hub for Downtown Cleveland?",
+      "a": "Tower City, adjacent to Public Square, is where all four GCRTA rail lines — Red, Blue, Green, and Waterfront — converge. The HealthLine bus rapid transit route also connects Downtown to University Circle along Euclid Avenue."
+    },
+    {
+      "q": "Does Rent Finder Cleveland manage homes Downtown?",
+      "a": "Our 90+ rental homes are concentrated on Cleveland's east and southeast sides rather than the immediate Downtown core. Tell us what you're looking for and we'll point you toward available homes that fit, whether that's near Downtown or in a nearby neighborhood."
+    },
+    {
+      "q": "Can Section 8 voucher holders rent in Downtown Cleveland?",
+      "a": "Ohio has no statewide law requiring landlords to accept vouchers, and Cleveland has not passed its own source-of-income ordinance as of mid-2026, so acceptance varies by landlord. CMHA administers the voucher program countywide; renters should apply through CMHA and confirm each landlord's policy directly."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"
+  ],
+  "lastUpdated": "2026-07-04"
+}

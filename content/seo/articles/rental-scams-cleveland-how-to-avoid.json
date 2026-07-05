@@ -1,0 +1,89 @@
+{
+  "slug": "rental-scams-cleveland-how-to-avoid",
+  "cluster": "guides",
+  "title": "How to Spot Rental Scams in Cleveland",
+  "metaTitle": "Rental Scams in Cleveland: How to Spot & Avoid Them",
+  "metaDescription": "Rental scams in Cleveland: how to spot fake listings, verify a landlord, and avoid losing money before you ever sign a lease. Practical, local red flags.",
+  "primaryKeyword": "rental scams cleveland how to avoid",
+  "secondaryKeywords": ["cleveland rental scam red flags", "verify landlord before renting cleveland", "fake rental listing cleveland"],
+  "answerBox": "Rental scams in Cleveland typically involve a listing copied from a real property, a \"landlord\" who is out of town or unreachable by phone, and pressure to wire money, send gift cards, or pay a deposit before you've toured the unit or verified who actually owns it. Never pay anyone you haven't confirmed is the real landlord or a licensed agent.",
+  "sections": [
+    {
+      "h2": "How do rental scams actually work in Cleveland?",
+      "body": [
+        "Most rental scams follow the same basic pattern: a scammer copies photos and details from a real Cleveland listing (or invents one entirely for an address that isn't even for rent), posts it at a below-market price to generate interest, and then avoids meeting in person. They'll claim to be out of state, deployed, or between properties, and ask for a deposit or first month's rent before you've toured the home or verified they have any right to rent it out. By the time a renter realizes the \"landlord\" never had the keys, the money is gone and the unit was never actually available.",
+        "Cleveland's mix of individually owned single-family homes, duplexes, and smaller multi-family buildings makes it an easy target for these scams, since many real listings genuinely come from small private landlords rather than large corporate offices — which scammers use as cover to seem plausible."
+      ]
+    },
+    {
+      "h2": "Red flags that signal a rental scam",
+      "body": [
+        "Watch for these patterns together — one alone isn't proof of a scam, but several at once is a strong warning sign."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Price is well below comparable Cleveland rentals** for the size, bedroom count, and neighborhood, with no clear explanation",
+          "**The \"landlord\" is always unavailable to meet or show the unit in person**, claiming to be traveling, overseas, or a missionary/military member",
+          "**Pressure to pay before touring**, especially by wire transfer, gift cards, cryptocurrency, or a payment app to a personal account",
+          "**No lease, or a lease that doesn't name a real, verifiable property management company or owner**",
+          "**Photos that look staged for a different climate or region**, or that appear elsewhere online for a different city or price",
+          "**They ask for a large deposit or 'holding fee' with no receipt** and no written terms for what happens if you don't move in"
+        ]
+      }
+    },
+    {
+      "h2": "How to verify a listing and a landlord before you apply",
+      "body": [
+        "Before you fill out an application or send any money, take a few concrete steps. Reverse-image-search the listing photos to see if they appear on other sites under a different address or price. Ask to tour the specific unit in person, or on a live video call where you can see the actual address and interior, not just recycled photos. Ask for the name of the property management company or owner and confirm it independently — a legitimate manager will have a real phone number, an office or public web presence, and won't object to you verifying who they are before you pay anything.",
+        "Per apartments.com's July 2026 rental-safety guidance, renters should also confirm they're dealing with the actual property owner or an authorized agent before submitting any payment or personal financial information, and should be especially cautious of listings that seem to move faster or ask for more upfront money than is typical for the area."
+      ]
+    },
+    {
+      "h2": "Never wire money, and know what a real deposit looks like",
+      "body": [
+        "A wire transfer, gift card, or cryptocurrency payment cannot be reversed or traced the way a check, money order, or card payment through a verified property-management portal can. Treat any request to pay that way as a serious red flag, no matter how convincing the listing looks.",
+        "It also helps to know what Ohio law actually requires of a legitimate deposit, so you can spot a scam by what it's missing. Under [ORC 5321.16](https://codes.ohio.gov/ohio-revised-code/section-5321.16), a real landlord who collects a security deposit must eventually return it (with an itemized statement of any deductions) within 30 days after you move out and provide your forwarding address, and deposits over $50 or one month's rent generally earn 5% annual interest if you stay six months or more. A scammer collecting money before you've even signed a lease or seen the unit is bypassing every one of these protections — because there's no real landlord-tenant relationship to enforce them."
+      ],
+      "table": {
+        "headers": ["Signal", "Legitimate landlord", "Likely scam"],
+        "rows": [
+          ["Touring the unit", "Will show it in person or on a verifiable live video call", "Always unavailable; \"trust the photos\""],
+          ["Payment method", "Check, money order, or a named property-management portal", "Wire transfer, gift cards, cryptocurrency, personal payment apps"],
+          ["Paperwork", "Written lease naming a real company or owner", "No lease, or a vague/generic template"],
+          ["Deposit handling", "Itemized, returned within 30 days per Ohio law (ORC 5321.16)", "No receipt, no terms, paid before any lease exists"]
+        ]
+      }
+    },
+    {
+      "h2": "How Rent Finder Cleveland keeps listings verifiable",
+      "body": [
+        "Rent Finder Cleveland manages 90+ real rental homes across Greater Cleveland, and every home accepts Housing Choice Vouchers and is HUD-inspection-ready. You can always [book a free showing](/p/book-showing) in person before applying, and applications run through our verified [tenant application portal](/apply) rather than a personal payment link. If you've come across a listing that claims to be one of our properties and something feels off, contact our team directly to confirm it before paying anyone."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How can I tell if a Cleveland rental listing is fake?",
+      "a": "Look for a below-market price, a landlord who won't meet in person or show the unit, pressure to pay by wire transfer or gift card before touring, and photos that show up elsewhere online. Verify the landlord's identity and the property's ownership independently before applying or paying anything."
+    },
+    {
+      "q": "Should I ever wire money for a rental deposit in Cleveland?",
+      "a": "No. Wire transfers, gift cards, and cryptocurrency payments can't be reversed or traced, which is why scammers prefer them. Pay only by check, money order, or through a verified property-management application portal, and only after you've toured the actual unit and confirmed who owns or manages it."
+    },
+    {
+      "q": "What does Ohio law require for a legitimate security deposit?",
+      "a": "Under ORC 5321.16, a landlord must return a security deposit within 30 days of move-out with an itemized statement of any deductions, and deposits above $50 or one month's rent generally earn 5% annual interest after six months of tenancy. A listing that collects money with no lease and no such terms is a red flag."
+    },
+    {
+      "q": "Is it safe to apply for a rental without seeing it in person?",
+      "a": "It's safer to tour in person or via a verified live video call before applying, especially for a listing you found online rather than through a known local property manager. If a landlord refuses any form of live verification and only sends photos, treat that as a serious warning sign."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16"
+  ],
+  "lastUpdated": "2026-07-04",
+  "lawTopic": true
+}

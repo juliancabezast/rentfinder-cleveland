@@ -1,39 +1,65 @@
-# Rent Finder Cleveland - robots.txt
-# https://rentfindercleveland.com
+# rentfindercleveland.com — renters welcome, AI answer engines welcome.
+# Public content (homepage, rental guides under /cleveland-rentals/, pillars,
+# booking/apply funnels) is open; private app + auth surfaces are blocked.
 
 User-agent: *
 Allow: /
-Allow: /p/privacy-policy
- Allow: /p/terms-of-service
+Disallow: /auth/
 Disallow: /dashboard
-Disallow: /dashboard/*
+Disallow: /dashboard/
 Disallow: /leads
-Disallow: /leads/*
+Disallow: /leads/
 Disallow: /showings
-Disallow: /showings/*
-Disallow: /calls
-Disallow: /calls/*
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
 Disallow: /settings
 Disallow: /users
-Disallow: /users/*
-Disallow: /reports
+Disallow: /users/
+Disallow: /agents
 Disallow: /costs
+Disallow: /demo-requests
 Disallow: /analytics
-Disallow: /analytics/*
-Disallow: /referrals
-Disallow: /documents
-Disallow: /insights
-Disallow: /logs
-Disallow: /auth
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
 
-# Specific bots
+# Explicit allow for AI search / retrieval crawlers — we want citation.
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: GPTBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-Web
+Allow: /
+User-agent: anthropic-ai
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Perplexity-User
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+User-agent: CCBot
+Allow: /
+
+# Never slow the two indexes that also feed AI Overviews and Copilot.
 User-agent: Googlebot
 Allow: /
-Crawl-delay: 1
 
 User-agent: Bingbot
 Allow: /
-Crawl-delay: 2
 
 User-agent: Twitterbot
 Allow: /
@@ -41,5 +67,4 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-# Sitemap
 Sitemap: https://rentfindercleveland.com/sitemap.xml

@@ -1,0 +1,88 @@
+{
+  "slug": "houses-for-rent-union-miles-cleveland",
+  "cluster": "neighborhoods",
+  "title": "Houses for Rent in Union-Miles, Cleveland",
+  "metaTitle": "Houses for Rent in Union-Miles, Cleveland OH",
+  "metaDescription": "Houses for rent in Union-Miles, Cleveland (44105) — rent ranges, transit, and Section 8-friendly homes from a local property manager. Book a showing.",
+  "primaryKeyword": "houses for rent Union-Miles cleveland",
+  "secondaryKeywords": ["Union-Miles Park rentals", "44105 Cleveland houses", "southeast Cleveland Section 8 homes"],
+  "answerBox": "Union-Miles Park sits on Cleveland's southeast side in ZIP code 44105, alongside neighboring Slavic Village. Rent Finder Cleveland manages voucher-friendly rental homes in and around this area, and every home we manage accepts Section 8 and is HUD-inspection-ready, with typical Cleveland rents from about $700 to $1,800 a month.",
+  "sections": [
+    {
+      "h2": "Renting a house in Union-Miles",
+      "body": [
+        "Union-Miles Park is a Statistical Planning Area on Cleveland's southeast side, named for the intersection of Union and Miles avenues that runs through the neighborhood. It sits alongside Slavic Village and shares ZIP code **44105** with that neighborhood, and borders the suburb of Garfield Heights to the south.",
+        "Rent Finder Cleveland manages voucher-friendly rental homes in and around Union-Miles as part of our broader Southeast Cleveland portfolio. Every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready. [Book a free showing](/p/book-showing) to see current availability, or [apply online](/apply) if you've already found a home you like."
+      ]
+    },
+    {
+      "h2": "Typical rent for a house in this area",
+      "body": [
+        "Across our entire Cleveland portfolio, rent runs from about $700 to $1,800 a month, with a typical rent near $1,000 — and ZIP 44105, which includes Union-Miles, tends to sit toward the more affordable end of that range. Citywide, Zumper's July 2026 report puts the median rent for all Cleveland rentals at $1,250 a month."
+      ],
+      "table": {
+        "headers": ["Rent range", "Min", "Typical", "Max"],
+        "rows": [
+          ["Rent Finder Cleveland portfolio (all sizes)", "$700/mo", "~$1,000/mo", "$1,800/mo"],
+          ["Zumper citywide median (July 2026)", "—", "$1,250/mo", "—"]
+        ]
+      }
+    },
+    {
+      "h2": "Transit and getting around Union-Miles",
+      "body": [
+        "Union-Miles is served by RTA bus routes connecting to downtown Cleveland and to the southeast suburbs, and Interstate 77 runs along the area's western edge for drivers heading downtown or toward Garfield Heights and points south. The neighborhood is also a short drive from the Slavic Village business district along Broadway Avenue."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**ZIP code:** 44105 (shared with Slavic Village)",
+          "**Side of city:** Southeast",
+          "**Highway access:** Interstate 77",
+          "**Bordering suburb:** Garfield Heights"
+        ]
+      }
+    },
+    {
+      "h2": "Section 8 vouchers in Union-Miles",
+      "body": [
+        "Every home Rent Finder Cleveland manages — including in Union-Miles — accepts Section 8 and is HUD-inspection-ready. Vouchers are administered locally by the **Cuyahoga Metropolitan Housing Authority (CMHA)**, which accepts preliminary applications year-round; read our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for the full process.",
+        "Keep in mind Ohio has no statewide source-of-income protection law, and the City of Cleveland has not enacted a voucher-nondiscrimination ordinance as of July 2026."
+      ]
+    },
+    {
+      "h2": "Nearby neighborhoods",
+      "body": [
+        "If you're comparing options nearby, see our guides to [houses for rent in Slavic Village](/cleveland-rentals/neighborhoods/houses-for-rent-slavic-village-cleveland/), [houses for rent in Broadway-Slavic Village](/cleveland-rentals/neighborhoods/houses-for-rent-broadway-slavic-village-cleveland/), and [houses for rent in Mount Pleasant](/cleveland-rentals/neighborhoods/houses-for-rent-mount-pleasant-cleveland/), or browse the full [Cleveland houses for rent](/houses-for-rent-cleveland-oh/) hub."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does Rent Finder Cleveland manage rental homes in Union-Miles?",
+      "a": "Yes. Union-Miles is part of our broader Southeast Cleveland portfolio, and every home we manage there accepts Section 8 vouchers and is HUD-inspection-ready. Availability changes regularly — book a free showing or tell us what you're looking for and we'll point you to current options."
+    },
+    {
+      "q": "What ZIP code is Union-Miles in?",
+      "a": "Union-Miles Park is in ZIP code 44105 on Cleveland's southeast side, the same ZIP that covers neighboring Slavic Village. The neighborhood borders the suburb of Garfield Heights to the south and sits along Interstate 77, a short drive from the Broadway Avenue business district."
+    },
+    {
+      "q": "How much does it cost to rent a house near Union-Miles?",
+      "a": "Our Cleveland portfolio overall ranges from about $700 to $1,800 a month, with a typical rent near $1,000; ZIP 44105 tends to be on the more affordable side. Citywide, Zumper's July 2026 report puts the median Cleveland rent at $1,250 a month for comparison."
+    },
+    {
+      "q": "Are there Section 8 houses for rent in Union-Miles?",
+      "a": "Yes. Every home Rent Finder Cleveland manages, including in Union-Miles, accepts Housing Choice Vouchers and is HUD-inspection-ready. Vouchers here are administered by CMHA, Cuyahoga County's public housing authority; see our Section 8 guide for the application, waitlist, and inspection process."
+    },
+    {
+      "q": "What does the name 'Union-Miles' come from?",
+      "a": "The neighborhood's name comes from Union Avenue and Miles Avenue, two of its main streets. It's an official Statistical Planning Area on Cleveland's southeast side, bordered by Slavic Village to the north and Garfield Heights to the south, near Interstate 77."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.zumper.com/rent-research/cleveland-oh",
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"
+  ],
+  "lastUpdated": "2026-07-04"
+}

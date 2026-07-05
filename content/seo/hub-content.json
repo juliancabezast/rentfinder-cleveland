@@ -1,0 +1,936 @@
+{
+  "masterHub": {
+    "answerBox": "The Cleveland Rental Resource Center is a free guide to renting in Cleveland, Ohio. It organizes houses and apartments by neighborhood, suburb, size, and budget, explains how Section 8 vouchers work with CMHA, and covers Ohio tenant rights. Every rental home we manage accepts Housing Choice Vouchers.",
+    "intro": [
+      {
+        "h2": "Start here: your guide to renting in Cleveland",
+        "body": [
+          "Cleveland is one of the most affordable big-city rental markets in the country. Per Zumper's July 2026 report, the median asking rent across Cleveland was about **$1,250 a month** — roughly 36% below the national median of $1,950. That affordability, plus a housing stock full of early-1900s houses, duplexes, and converted units, makes the city a practical place to rent a full home rather than a small apartment.",
+          "This resource center pulls together everything a Cleveland renter needs in one place: rent ranges and transit for every major neighborhood, suburb-by-suburb guides, houses and apartments sorted by bedrooms and budget, a plain-English walkthrough of Section 8 and CMHA vouchers, and Ohio tenant-rights basics. We are **Rent Finder Cleveland**, a local property manager, and **every one of the 90+ rental homes we manage accepts Housing Choice Vouchers and is HUD-inspection-ready** — so voucher holders and market renters alike can use these guides and then [book a free showing](/p/book-showing)."
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "h2": "How this resource center is organized",
+        "body": [
+          "The guides are grouped so you can start from whatever matters most to you — a place, a price, or a program. If you already know the neighborhood you want, start with the neighborhood or suburb guides. If your budget or bedroom count drives the search, start with the houses or apartments categories. If you hold or are applying for a Housing Choice Voucher, start with the Section 8 section."
+        ],
+        "list": {
+          "type": "ul",
+          "items": [
+            "**By neighborhood** — rent ranges, RTA lines, and housing stock for Cleveland areas like Slavic Village, Collinwood, Glenville, Ohio City, and Tremont.",
+            "**By suburb** — what to expect renting in Lakewood, Parma, Euclid, Cleveland Heights, Shaker Heights, and more.",
+            "**Houses by type and budget** — 2- and 3-bedroom homes, under $1,000, single-family, duplex, pet-friendly, and other filters.",
+            "**Apartments** — studios, 1- and 2-bedrooms, downtown, and affordable options.",
+            "**Section 8 and vouchers** — how CMHA works, applying, payment standards, inspections, and finding voucher-friendly homes.",
+            "**Renter guides** — deposits, applications, credit, utilities, and Ohio tenant rights."
+          ]
+        }
+      },
+      {
+        "h2": "What makes renting in Cleveland different",
+        "body": [
+          "Cleveland's rental market is defined by older, low-rise housing and a wide split between neighborhoods and property types. Much of the city's rental stock is single-family houses, duplexes, and small multi-unit buildings from the early 1900s, so renting a whole house with a yard and basement is realistic at prices that would only cover a small apartment in many metros.",
+          "Jurisdiction matters more here than in most places. Rules that apply in the City of Cleveland — like the city's Lead-Safe Certification requirement for pre-1978 rentals — do not automatically apply in the suburbs, and voucher protections differ from town to town. Our [Cleveland renter guides](/cleveland-rentals/guides/) break down the details, and our [houses pillar](/houses-for-rent-cleveland-oh/) and [apartments pillar](/apartments-for-rent-cleveland-oh/) cover pricing and process."
+        ]
+      },
+      {
+        "h2": "How Rent Finder Cleveland fits in",
+        "body": [
+          "Beyond the guides, we are a working Cleveland-area property manager. We manage 90+ rental homes across roughly a dozen Cleveland ZIP codes — concentrated on the East and Southeast sides (Slavic Village 44105, Collinwood 44110, Glenville 44108, Fairfax/Central 44104, Hough 44103, Buckeye-Shaker 44120) with additional homes on the West side and in Akron, Lorain, and Elyria, Ohio.",
+          "Our rents typically run from about **$700 to $1,800 a month** (most around $1,000), and most homes are 2- or 3-bedroom. If you'd rather skip the research and just tell us what you need, you can [book a free showing](/p/book-showing) or [start an application](/apply) any time. Reach our local team at **(216) 201-9201** or **support@rentfindercleveland.com**."
+        ]
+      }
+    ],
+    "faq": [
+      {
+        "q": "Is renting in Cleveland cheaper than other big cities?",
+        "a": "Generally, yes. Per Zumper's July 2026 report, Cleveland's median asking rent was about $1,250 a month, roughly 36% below the U.S. national median of $1,950. Prices vary widely by neighborhood, size, and property age, so use the neighborhood and budget guides here to find realistic ranges for the specific area you're targeting."
+      },
+      {
+        "q": "Do I have to have a Section 8 voucher to rent from Rent Finder Cleveland?",
+        "a": "No. We rent to both voucher holders and market renters. What's true for everyone is that every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready. If you hold a CMHA voucher, that's welcome here; if you don't, you can still apply and rent normally."
+      },
+      {
+        "q": "Where in Cleveland do you manage homes?",
+        "a": "Our homes are concentrated on Cleveland's East and Southeast sides — including Slavic Village (44105), Collinwood (44110), Glenville (44108), Fairfax/Central (44104), Hough (44103), and Buckeye-Shaker (44120) — with additional homes on the West side and in Akron, Lorain, and Elyria, Ohio. Availability changes constantly, so book a showing to see current homes."
+      },
+      {
+        "q": "How do I actually see a home or apply?",
+        "a": "You can book a free, no-obligation showing through our site and pick a time that works for you, or start an application online through our secure portal. If you're not sure which home fits, tell our local team your budget, bedroom count, and preferred areas and we'll point you to what's available. Call (216) 201-9201 or email support@rentfindercleveland.com."
+      }
+    ]
+  },
+  "pillars": {
+    "houses-for-rent-cleveland-oh": {
+      "answerBox": "You can find houses for rent in Cleveland, OH across neighborhoods like Slavic Village, Collinwood, Glenville, Ohio City, and Old Brooklyn, plus nearby suburbs. Two- and three-bedroom houses typically rent for about $750 to $1,500 a month. Rent Finder Cleveland manages 90+ rental homes, and every one accepts Section 8.",
+      "intro": [
+        {
+          "h2": "Finding houses for rent in Cleveland, OH",
+          "body": [
+            "Cleveland is a city built for renting a whole house. Its neighborhoods are full of early-1900s single-family homes, duplexes, and small multi-unit buildings with front porches, full basements, and yards — the kind of space that stays affordable here even as rents climb nationally. Per Zumper's July 2026 report, Cleveland's median asking rent was about **$1,250 a month**, roughly 36% below the U.S. median of $1,950.",
+            "**Rent Finder Cleveland** is a local property manager with **90+ rental homes across the greater Cleveland area**, and our single biggest differentiator is simple: **every home we manage accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready.** Our homes are a mix of single-family houses, duplexes, triplexes, and fourplexes, mostly 2- and 3-bedroom, renting from about **$700 to $1,800 a month** (typically near $1,000). This guide covers where to look, what rent costs, and how to tour and apply — or you can [book a free showing](/p/book-showing) right now.",
+            "A few facts frame the whole search. Cleveland's housing stock is older and low-rise, so the trade-off is space over newness: you'll find character features like hardwood floors, built-ins, and deep lots more often than elevators or in-building gyms. Rents also move slower here than in coastal metros — Zumper measured Cleveland's median up about 4.2% year-over-year in its July 2026 report, a modest pace that gives renters more room to compare and negotiate. Below we walk through cost, neighborhoods, home types, Section 8, suburbs, requirements, transit, and how to tour."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "How much does it cost to rent a house in Cleveland?",
+          "body": [
+            "Rent depends on size, condition, neighborhood, and whether utilities are included. As a market benchmark, Zumper's July 2026 report put Cleveland's median asking rents at about $1,195 for a 1-bedroom, $1,100 for a 2-bedroom, and $1,350 for a 3-bedroom (the 2-bedroom figure reflects the mix of current listings). Professionally-managed apartment complexes tracked by RentCafe run higher, averaging $1,564 across all sizes in its July 2026 report — one reason renting an older house often costs less than a new-build apartment.",
+            "Across our own Cleveland portfolio, houses and units generally rent in the ranges below. These are typical bands, not a specific available unit — [check current availability](/p/book-showing) for exact prices.",
+            "Four things move a house's rent the most: bedroom count, condition and updates, neighborhood, and whether utilities are bundled. A renovated 3-bedroom with a new furnace and included water will sit near the top of its range; an as-is 2-bedroom where you pay all utilities will sit near the bottom. Season matters too — listings and competition tend to peak in late spring and summer, so patient renters sometimes find better value in late fall and winter."
+          ],
+          "table": {
+            "headers": [
+              "Home size",
+              "Zumper median asking rent (Jul 2026)",
+              "Typical Rent Finder Cleveland range"
+            ],
+            "rows": [
+              [
+                "1-bedroom",
+                "$1,195",
+                "from about $700"
+              ],
+              [
+                "2-bedroom",
+                "$1,100",
+                "about $750 – $1,100"
+              ],
+              [
+                "3-bedroom",
+                "$1,350",
+                "about $1,100 – $1,500"
+              ],
+              [
+                "4-bedroom",
+                "not separately listed",
+                "about $1,200 – $1,800"
+              ]
+            ]
+          }
+        },
+        {
+          "h2": "Which Cleveland neighborhoods have houses for rent?",
+          "body": [
+            "Cleveland's 34 official neighborhoods split roughly along the Cuyahoga River into West Side and East Side. House rentals are common across both, but our own homes are concentrated on the **East and Southeast sides**. On the West Side, areas like Ohio City, Tremont, Detroit-Shoreway (Gordon Square), and Old Brooklyn are known for their older housing stock and access to the RTA Red Line and Metroparks.",
+            "The table below shows the areas where we most often manage homes. For rent ranges, transit, and housing detail specific to each, browse the [Cleveland neighborhood guides](/cleveland-rentals/neighborhoods/) — for example, our [Slavic Village house guide](/cleveland-rentals/neighborhoods/houses-for-rent-slavic-village-cleveland/) or [Ohio City guide](/cleveland-rentals/neighborhoods/houses-for-rent-ohio-city-cleveland/)."
+          ],
+          "table": {
+            "headers": [
+              "Area",
+              "ZIP",
+              "Side"
+            ],
+            "rows": [
+              [
+                "Slavic Village / Union-Miles",
+                "44105",
+                "Southeast"
+              ],
+              [
+                "Collinwood / Nottingham",
+                "44110",
+                "Northeast"
+              ],
+              [
+                "Glenville",
+                "44108",
+                "East"
+              ],
+              [
+                "Fairfax / Central",
+                "44104",
+                "East"
+              ],
+              [
+                "Hough / St. Clair-Superior",
+                "44103",
+                "East"
+              ],
+              [
+                "Buckeye-Shaker",
+                "44120",
+                "Southeast"
+              ],
+              [
+                "Cudell / Detroit-Shoreway",
+                "44102",
+                "West"
+              ],
+              [
+                "Old Brooklyn / Brooklyn Centre",
+                "44109",
+                "West / Southwest"
+              ]
+            ]
+          }
+        },
+        {
+          "h2": "What kinds of rental homes are available?",
+          "body": [
+            "\"House for rent\" in Cleveland can mean several things. A large share of the city's rental stock is **duplexes and small multi-unit buildings** — a two-story house divided into an upstairs and downstairs unit, each with its own entrance — alongside true detached single-family houses. Our portfolio reflects that mix: mostly duplexes, plus single-family houses, triplexes, and fourplexes.",
+            "For renters, the practical difference is that a duplex unit gives you house-style space (a full floor, often a basement, sometimes a yard) with a neighbor on the other level, while a detached single-family house is fully independent. If you specifically want a stand-alone house, our [single-family homes guide](/cleveland-rentals/houses/single-family-homes-for-rent-cleveland-ohio/) explains what to expect; if a duplex works, you'll usually have more options at a lower rent.",
+            "Because Cleveland's stock is old, condition varies more than size or price suggests. Two homes at the same rent can differ sharply in updates, insulation, and mechanicals, which affects both comfort and utility bills. When you tour, look past the listing price to the windows, furnace age, and whether the basement is dry — those details often matter more than square footage on a monthly budget."
+          ]
+        },
+        {
+          "h2": "Section 8 houses for rent in Cleveland",
+          "body": [
+            "This is where we stand out. **Every home we manage accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready**, so voucher holders don't have to guess whether a landlord will work with their voucher. The local voucher program is run by **CMHA (Cuyahoga Metropolitan Housing Authority)**; you can read how applying, payment standards, and inspections work on the [Section 8 housing pillar](/section-8-housing-cleveland-oh/) or in our [Cleveland Section 8 guides](/cleveland-rentals/section-8/).",
+            "One honest caveat: accepting vouchers is not the same as guaranteeing any specific home qualifies for your voucher size or passes inspection on a given day — that depends on the unit and CMHA's payment standard. What we can promise is that a voucher is welcome and the home is maintained to inspection-ready condition. To see voucher-friendly houses in person, [book a showing](/p/book-showing)."
+          ]
+        },
+        {
+          "h2": "Renting a house in the Cleveland suburbs",
+          "body": [
+            "Plenty of renters want a house outside the city limits — in Lakewood, Parma, Euclid, Cleveland Heights, Shaker Heights, or farther out. Suburban rents and rules differ from the city's, and some outer-ring communities are outside our core service area, so we describe them factually and invite you to tell us what you're after.",
+            "Our [Cleveland suburbs guides](/cleveland-rentals/suburbs/) cover rent ranges, commute times to downtown, and local details community by community. A note that matters for voucher holders: source-of-income protections are a patchwork in Greater Cleveland — a few suburbs protect voucher holders while the City of Cleveland does not — which our [Section 8 pillar](/section-8-housing-cleveland-oh/) explains in detail."
+          ]
+        },
+        {
+          "h2": "What you need to rent a house in Cleveland",
+          "body": [
+            "Like nearly all Cleveland landlords, we screen applicants — there is no such thing as guaranteed approval or \"no screening\" here. Typical requirements include proof of income (many landlords look for household income around three times the rent), identification, rental history or references, and a credit or background check. Voucher holders are screened on the same non-income factors, since the voucher covers a portion of rent.",
+            "On deposits, **Ohio law generally** requires that a security deposit be returned within **30 days** of move-out with an itemized statement of any deductions, and any deposit above $50 or one month's rent must earn 5% annual interest if you stay six months or more, under [Ohio Revised Code 5321.16](https://codes.ohio.gov/ohio-revised-code/section-5321.16). If your credit is thin or you've had past rental trouble, honest paths that actually help include a co-signer, strong references, or a larger lawful deposit — our [credit and bad-credit guide](/cleveland-rentals/guides/rent-house-bad-credit-cleveland/) walks through the options.",
+            "It helps to have your paperwork ready before you tour: recent pay stubs or proof of income, a photo ID, contact information for prior landlords, and — if you hold one — your CMHA voucher details. Having these on hand lets you apply the same day you find a home you like, which matters in a market where good homes lease quickly. Our [rental application guide](/cleveland-rentals/guides/rental-application-process-cleveland/) lays out the full checklist."
+          ]
+        },
+        {
+          "h2": "Getting around and setting up a Cleveland house",
+          "body": [
+            "Most of Cleveland is served by the Greater Cleveland RTA. The **Red Line** heavy-rail connects Cleveland Hopkins Airport to Downtown (Tower City) and out to East Cleveland; the **Blue** and **Green** light-rail lines run to Shaker Heights; and the **HealthLine** bus rapid transit runs along Euclid Avenue between Downtown and University Circle. Many East and Southeast Side neighborhoods rely on RTA bus routes plus quick access to I-77, I-90, and I-490.",
+            "Utilities depend on the exact address: electricity comes from either **Cleveland Public Power** or **The Illuminating Company**, natural gas from **Enbridge Gas Ohio** (formerly Dominion East Ohio) or Columbia Gas, and water from **Cleveland Water**. Confirm your providers before move-in — our [utility setup guide](/cleveland-rentals/guides/set-up-utilities-cleveland-renters/) explains how."
+          ]
+        },
+        {
+          "h2": "How to tour and apply for a Cleveland house",
+          "body": [
+            "When you find homes you like, the fastest path is to see them in person and apply. You can [book a free showing](/p/book-showing) and choose a time, or [start your application](/apply) online through our secure portal. If you'd rather have us match homes to your needs, tell our local team your budget, bedroom count, preferred neighborhoods, and whether you hold a voucher.",
+            "We add Section 8-ready homes across Greater Cleveland regularly, and live availability changes daily, so the best snapshot is always a current showing. Reach us at **(216) 201-9201** or **support@rentfindercleveland.com**."
+          ]
+        },
+        {
+          "h2": "Is now a good time to rent a house in Cleveland?",
+          "body": [
+            "Cleveland remains one of the more renter-friendly big markets in the country. Per Zumper's July 2026 report, the citywide median asking rent was about $1,250 — roughly 36% below the national median of $1,950 — and rents rose a modest 4.2% year-over-year. RentCafe's July 2026 report showed professionally-managed complexes up just 1.66%, another sign of a market that isn't spiking.",
+            "For renters, that relative stability means less pressure to sign the first thing you see and more room to weigh condition, utilities, and location. It also means a whole house — not just an apartment — stays within reach on a typical Cleveland budget. When you're ready, compare options in our [neighborhood guides](/cleveland-rentals/neighborhoods/) and [book a showing](/p/book-showing) to lock in a home."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "Where can I find houses for rent in Cleveland, OH?",
+          "a": "Houses for rent are spread across Cleveland's neighborhoods and suburbs. Rent Finder Cleveland manages 90+ homes concentrated on the East and Southeast sides — Slavic Village, Collinwood, Glenville, Fairfax/Central, Hough, and Buckeye-Shaker — plus West-side areas like Old Brooklyn and Detroit-Shoreway, and Akron, Lorain, and Elyria. Book a showing to see current homes."
+        },
+        {
+          "q": "How much is rent for a house in Cleveland?",
+          "a": "Per Zumper's July 2026 report, Cleveland's median asking rents were about $1,100 for a 2-bedroom and $1,350 for a 3-bedroom. Across our own portfolio, 2-bedroom homes typically run about $750 to $1,100 and 3-bedrooms about $1,100 to $1,500, depending on condition, size, and whether utilities are included."
+        },
+        {
+          "q": "Are all your Cleveland houses actually single-family?",
+          "a": "No, and we won't imply that. Our portfolio is a mix of single-family houses, duplexes, triplexes, and fourplexes, with duplex units being the most common. A duplex unit gives you house-style space — often a full floor with a basement — with a neighbor on the other level. If you specifically need a detached house, tell us and we'll focus your search."
+        },
+        {
+          "q": "Do you accept Section 8 vouchers on houses?",
+          "a": "Yes. Every home we manage accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. The local program is run by CMHA. Accepting vouchers isn't the same as guaranteeing a specific home fits your voucher size or passes inspection on a given day, but a voucher is always welcome and our homes are kept inspection-ready."
+        },
+        {
+          "q": "Can I rent a house in Cleveland with bad credit?",
+          "a": "We and virtually all Cleveland landlords screen applicants, so there's no guaranteed approval or true 'no credit check' rental. But past credit trouble isn't automatically disqualifying. A co-signer, solid references, proof of steady income, or a larger lawful deposit can all strengthen an application. See our Cleveland bad-credit renting guide for realistic options."
+        },
+        {
+          "q": "How do I book a showing or apply?",
+          "a": "Book a free, no-obligation showing through our site and pick a time, or start an application online through our secure portal. If you're unsure which home fits, share your budget, bedroom count, and preferred areas and our local team will match you. Call (216) 201-9201 or email support@rentfindercleveland.com."
+        }
+      ]
+    },
+    "apartments-for-rent-cleveland-oh": {
+      "answerBox": "Apartments for rent in Cleveland, OH range from downtown lofts to affordable neighborhood units. Per Zumper's July 2026 report, studios averaged about $1,060, 1-bedrooms $1,195, and 2-bedrooms $1,100. Many older Cleveland houses are split into apartment-style units, and Rent Finder Cleveland's voucher-friendly homes include such units.",
+      "intro": [
+        {
+          "h2": "Finding apartments for rent in Cleveland, OH",
+          "body": [
+            "Cleveland's apartment market spans a wide range — restored downtown lofts and warehouse-district conversions on one end, and affordable neighborhood units in older houses and small buildings on the other. Because so much of the city's housing stock is early-1900s duplexes and multi-unit homes, many \"apartments\" here are actually a full floor of a house, which often means more space than a purpose-built complex at a similar price.",
+            "Per Zumper's July 2026 report, Cleveland's median asking rents were about **$1,060 for a studio, $1,195 for a 1-bedroom, and $1,100 for a 2-bedroom** — well below the national median of $1,950. **Rent Finder Cleveland** manages 90+ rental homes, including apartment-style units within duplexes and small multi-unit buildings, and **every one accepts Section 8 and is HUD-inspection-ready.** This guide covers pricing, where to look, and how to apply — or [book a free showing](/p/book-showing).",
+            "One thing to know up front: because Cleveland has relatively few large new complexes compared with its huge stock of older houses, the word \"apartment\" here often means a unit inside a subdivided house or a small walk-up building rather than a mid-rise. That's good news for space and price, and it's exactly the kind of unit we manage. This guide covers pricing across sources, how to search by size and budget, where apartments cluster, affordable and voucher options, requirements, and costs."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "How much are apartments in Cleveland?",
+          "body": [
+            "Two well-known trackers measure Cleveland rent differently, and both are worth knowing. **Zumper** reports the median asking rent across all listings (including smaller, older units), while **RentCafe** reports the average rent for professionally-managed apartment complexes, which skews higher because those buildings tend to be larger and newer. Citing both gives you the real spread.",
+            "The table below compares the two sources by apartment size. Use Zumper as the broad-market midpoint and RentCafe as the upper end for newer complexes.",
+            "Why do the two sources differ so much on 2- and 3-bedrooms? RentCafe's figures reflect larger, newer, professionally-managed units — its average 2-bedroom was 1,027 square feet at $1,818 — while Zumper's median captures the broader pool including smaller, older units. Neither is \"wrong\"; they measure different slices. For an older neighborhood apartment, expect to land closer to the Zumper end, and treat the RentCafe numbers as the ceiling for newer complexes."
+          ],
+          "table": {
+            "headers": [
+              "Apartment size",
+              "Zumper median (Jul 2026)",
+              "RentCafe average (Jul 2026)"
+            ],
+            "rows": [
+              [
+                "Studio",
+                "$1,060",
+                "$1,195"
+              ],
+              [
+                "1-bedroom",
+                "$1,195",
+                "$1,451"
+              ],
+              [
+                "2-bedroom",
+                "$1,100",
+                "$1,818"
+              ],
+              [
+                "3-bedroom",
+                "$1,350",
+                "$2,716"
+              ]
+            ]
+          }
+        },
+        {
+          "h2": "Cleveland apartments by size and budget",
+          "body": [
+            "Your budget and household size usually decide the search. Studios and 1-bedrooms are most common downtown and in denser near-west and east neighborhoods, while 2- and 3-bedroom units are easier to find in the city's house-heavy residential areas. If you're targeting a monthly number rather than a size, start from budget.",
+            "Our apartment guides sort listings the way renters actually search — by size and by price ceiling.",
+            "A practical rule for Cleveland: a unit inside an older house often gives you a bedroom more for the same money than a purpose-built apartment. If you're choosing between a compact 1-bedroom in a complex and the lower floor of a duplex at a similar rent, the duplex unit frequently wins on space, storage, and a basement for laundry. That's the trade Cleveland's housing stock makes easy."
+          ],
+          "list": {
+            "type": "ul",
+            "items": [
+              "[Studio apartments in Cleveland](/cleveland-rentals/apartments/studio-apartments-for-rent-cleveland-ohio/) — smallest footprint, common downtown and near universities.",
+              "[1-bedroom apartments](/cleveland-rentals/apartments/1-bedroom-apartments-for-rent-cleveland-ohio/) and [2-bedroom apartments](/cleveland-rentals/apartments/2-bedroom-apartments-for-rent-cleveland-ohio/) — the bulk of the market.",
+              "[Cheap apartments in Cleveland](/cleveland-rentals/apartments/cheap-apartments-for-rent-cleveland/) and units [under $1,000](/cleveland-rentals/apartments/apartments-for-rent-cleveland-under-1000/) — budget-first searching.",
+              "[Downtown Cleveland apartments](/cleveland-rentals/apartments/downtown-cleveland-apartments-for-rent/) — lofts and higher-rise living near Public Square and Tower City."
+            ]
+          },
+          "table": {
+            "headers": [
+              "Monthly budget",
+              "What it typically rents in Cleveland"
+            ],
+            "rows": [
+              [
+                "Under $700",
+                "Smaller studios and some 1-bedrooms in older buildings or house units"
+              ],
+              [
+                "$700 – $1,000",
+                "Many 1-bedrooms and older 2-bedroom units, including duplex floors"
+              ],
+              [
+                "$1,000 – $1,300",
+                "Most 2-bedrooms; near the citywide median (Zumper, Jul 2026)"
+              ],
+              [
+                "$1,300 and up",
+                "Larger 2- to 3-bedrooms and newer or downtown complexes"
+              ]
+            ]
+          }
+        },
+        {
+          "h2": "Where to find apartments in Cleveland",
+          "body": [
+            "Downtown and the Warehouse District offer loft-style apartments near Public Square, the RTA rail hub at Tower City, and the lakefront Waterfront Line. On the near-west side, Ohio City and Tremont — both close to the Red Line and West Side Market — have apartments in older buildings and converted houses. On the east side, University Circle sits near Case Western Reserve University, the Cleveland Museum of Art, and the HealthLine bus rapid transit on Euclid Avenue.",
+            "Our own apartment-style units are concentrated in the East and Southeast neighborhoods where we manage homes, plus some West-side areas. Browse the full set on the [Cleveland apartments hub](/cleveland-rentals/apartments/), or look at specific [neighborhood guides](/cleveland-rentals/neighborhoods/) for transit and housing detail.",
+            "Access to jobs and schools shapes a lot of apartment demand. University Circle concentrates Case Western Reserve University, the Cleveland Clinic's main campus, and major cultural institutions, all reachable by the Red Line and the Euclid Avenue HealthLine. Downtown anchors office employment and sits at the Tower City rail hub. If a short commute to those anchors matters, prioritize neighborhoods and units along those transit lines."
+          ]
+        },
+        {
+          "h2": "Affordable and voucher-friendly apartments",
+          "body": [
+            "\"Affordable\" can mean two different things in Cleveland: simply low-priced market apartments, or units tied to income-based or voucher programs. Both exist here. For low-market-rate options, our [cheap apartments guide](/cleveland-rentals/apartments/cheap-apartments-for-rent-cleveland/) and [low-income apartments guide](/cleveland-rentals/apartments/low-income-apartments-cleveland-ohio/) are the place to start.",
+            "For voucher-based options, the advantage of renting from us is straightforward: **every home and unit we manage accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready.** Many of these are apartment-style units within duplexes and small multi-unit homes, mostly 2- and 3-bedroom, renting from about $700 to $1,800 a month. See how vouchers work on the [Section 8 pillar](/section-8-housing-cleveland-oh/).",
+            "Keep the two \"affordable\" paths distinct as you search. Market-rate low-rent units require no program and no waitlist — you simply apply and qualify like any renter. Income-based and voucher units involve eligibility rules and, for CMHA vouchers, a lottery-based waitlist, but they cap what you pay relative to income. Knowing which path you're on saves time and sets the right expectations."
+          ]
+        },
+        {
+          "h2": "What you need to rent an apartment in Cleveland",
+          "body": [
+            "Expect screening. We and nearly all Cleveland landlords review income, identification, rental history, and credit or background before approving an application; many look for household income near three times the rent. There is no guaranteed-approval or true 'no credit check' apartment — but a co-signer, references, or a larger lawful deposit can help a thin file.",
+            "On money up front, **Ohio law generally** governs deposits under [ORC 5321.16](https://codes.ohio.gov/ohio-revised-code/section-5321.16): the deposit must be returned within 30 days of move-out with an itemized statement, and interest accrues on larger deposits for tenancies of six months or more. Our [renter guides](/cleveland-rentals/guides/) cover applications, credit, and deposits in plain English.",
+            "If your credit or rental history is thin, don't assume you're locked out. Honest, workable paths include adding a co-signer or guarantor, offering strong references from past landlords or employers, showing steady income, or agreeing to a larger lawful deposit. What won't help is chasing a 'guaranteed approval' or 'no credit check' listing — those promises are red flags, not features. Our [bad-credit renting guide](/cleveland-rentals/guides/rent-house-bad-credit-cleveland/) covers the realistic options."
+          ]
+        },
+        {
+          "h2": "Renter costs: utilities and transit",
+          "body": [
+            "Whether utilities are included changes the real cost of an apartment significantly. Some Cleveland units bundle water or heat; many don't. Electricity is provided by either Cleveland Public Power or The Illuminating Company, natural gas by Enbridge Gas Ohio (formerly Dominion East Ohio) or Columbia Gas, and water by Cleveland Water — all depending on the specific address. Cleveland winters bring roughly 60–70 inches of snow a season, so heating cost is worth asking about.",
+            "For transit-oriented renters, apartments near the RTA Red Line, the Blue/Green light-rail, or the Euclid Avenue HealthLine make a car optional. Confirm your providers and commute before signing, and [book a showing](/p/book-showing) to see a unit in person.",
+            "Budget for the all-in monthly cost, not just rent. In an older Cleveland apartment you may pay some or all of the electric, gas, and water yourself, and winter heating is the single biggest swing — the region averages roughly 60–70 inches of snow a season. Ask each landlord exactly which utilities are included, whether the unit has its own meters, and how the space is heated, before you compare two rents head to head."
+          ]
+        },
+        {
+          "h2": "Apartments near Cleveland's job and school anchors",
+          "body": [
+            "Many renters search around where they work or study. The largest anchors in Greater Cleveland are the healthcare and higher-education institutions — the Cleveland Clinic (the region's biggest employer), University Hospitals, and Case Western Reserve University, most clustered in and around University Circle on the east side. Downtown adds office employment and government, and MetroHealth's main campus sits on the near-west side along the Clark-Fulton corridor.",
+            "Renting near these anchors usually means paying for proximity, but transit can widen your options: the Red Line and HealthLine put University Circle within reach of homes miles away, and the light-rail lines connect Shaker Heights to downtown. If you'd rather trade a slightly longer commute for lower rent, our [neighborhood guides](/cleveland-rentals/neighborhoods/) show which areas balance the two."
+          ]
+        },
+        {
+          "h2": "Leases, tours, and applying for a Cleveland apartment",
+          "body": [
+            "Most Cleveland apartments lease on a standard 12-month term, though some landlords offer month-to-month or shorter arrangements at a premium. Before signing, read how the lease handles utilities, maintenance requests, guest and pet policies, and renewal — and confirm any move-in specials in writing. Ohio law generally sets baseline tenant protections around deposits, notices, and repairs, so you're not negotiating from scratch, but the lease itself governs day-to-day terms.",
+            "When a unit looks right, tour it in person if you can, or ask for a video walkthrough, and apply promptly with your documents ready. You can [book a free showing](/p/book-showing) through our site and pick a time, or [start an application](/apply) online. If you'd like help matching, tell our local team your size, budget, and preferred areas, and note if you hold a voucher — every unit we manage accepts Section 8. Reach us at (216) 201-9201 or support@rentfindercleveland.com."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "How much is an apartment in Cleveland, OH?",
+          "a": "Per Zumper's July 2026 report, Cleveland median asking rents were about $1,060 for a studio, $1,195 for a 1-bedroom, and $1,100 for a 2-bedroom. RentCafe's July 2026 report, which tracks professionally-managed complexes, averaged higher — $1,195 studio, $1,451 1-bedroom, and $1,818 2-bedroom. Older neighborhood units usually cost less than new complexes."
+        },
+        {
+          "q": "Do you have apartments, or only houses?",
+          "a": "We manage rental homes, and many are apartment-style units within duplexes, triplexes, and fourplexes — a full floor of a house with its own entrance. So if you're looking for an apartment-sized unit, especially a 2- or 3-bedroom, we likely have options. Every unit accepts Section 8 and is HUD-inspection-ready. Book a showing to see current availability."
+        },
+        {
+          "q": "Where are the cheapest apartments in Cleveland?",
+          "a": "The lowest market rents are generally in the city's older, house-heavy neighborhoods rather than downtown or newer complexes. Our cheap apartments and under-$1,000 guides sort listings by price. Keep in mind that whether utilities are included changes the real cost, so compare all-in monthly figures, not just the base rent."
+        },
+        {
+          "q": "Can I rent a Cleveland apartment with a Section 8 voucher?",
+          "a": "Yes. Every home and unit we manage accepts Housing Choice Vouchers and is HUD-inspection-ready. The local program is run by CMHA. Whether a specific unit fits your voucher's bedroom size and payment standard depends on the unit, but a voucher is always welcome here. See our Section 8 pillar for how applying and payment standards work."
+        },
+        {
+          "q": "Are utilities included in Cleveland apartments?",
+          "a": "It varies by unit — some include water or heat, many don't. Providers depend on the address: electricity from Cleveland Public Power or The Illuminating Company, gas from Enbridge Gas Ohio or Columbia Gas, and water from Cleveland Water. Because Cleveland winters are cold, always ask what's included and estimate heating cost before signing."
+        },
+        {
+          "q": "How do I tour an apartment?",
+          "a": "Book a free showing through our site and choose a time that works for you, or start an application online if you already know the unit you want. If you'd like help matching, tell our local team your budget, size, and preferred areas. Call (216) 201-9201 or email support@rentfindercleveland.com."
+        }
+      ]
+    },
+    "section-8-housing-cleveland-oh": {
+      "answerBox": "Section 8 in Cleveland is the Housing Choice Voucher program run by CMHA (Cuyahoga Metropolitan Housing Authority). You apply through CMHA's year-round online list, and selection is by random lottery. A voucher covers part of your rent at homes that accept it. Every home Rent Finder Cleveland manages accepts Section 8 and is HUD-inspection-ready.",
+      "intro": [
+        {
+          "h2": "Section 8 housing in Cleveland, OH: the full picture",
+          "body": [
+            "Section 8 — officially the **Housing Choice Voucher (HCV) program** — helps eligible households afford private-market rentals by paying a portion of the rent directly to the landlord. In Cleveland and the rest of Cuyahoga County, the program is administered by **CMHA (Cuyahoga Metropolitan Housing Authority)**, HUD housing-authority code OH003. This guide explains how it works, how to apply, what a voucher covers, and — honestly — where voucher holders are and aren't protected in Greater Cleveland.",
+            "It also explains where we fit in. **Rent Finder Cleveland manages 90+ rental homes, and every single one accepts Housing Choice Vouchers and is HUD-inspection-ready.** That's our strongest, fully-honest claim: voucher holders never have to wonder whether we'll work with a voucher. When you're ready to see one, [book a free showing](/p/book-showing). This page is informational only and not legal advice — verify current rules with CMHA and the relevant city.",
+            "Two honest framing points before the details. First, having a voucher and finding a home that takes it are two different challenges — the second is often harder in Cleveland, which is exactly the gap we close. Second, the program's rules (income limits, payment standards, inspection standards, and local protections) change over time, so treat the figures here as \"as of mid-2026\" and confirm current numbers with CMHA before you rely on them."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "How does Section 8 work in Cleveland?",
+          "body": [
+            "A voucher covers the gap between what your household can afford (generally about 30% of adjusted monthly income) and a capped rent amount set by CMHA's payment standard for your bedroom size. You find a private rental that accepts the voucher, CMHA inspects it and approves the rent, and the housing authority pays its share directly to the landlord each month while you pay the rest.",
+            "The program is federally funded by HUD and locally run by CMHA, so national rules (like income eligibility and inspection standards) apply, but the day-to-day process, waitlist, and payment standards are handled by CMHA. You can read HUD's overview of the [Housing Choice Voucher program](https://www.hud.gov/helping-americans/housing-choice-vouchers) and CMHA's own [voucher pages](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php)."
+          ]
+        },
+        {
+          "h2": "How do I apply for a Housing Choice Voucher?",
+          "body": [
+            "CMHA accepts **preliminary applications year-round with no closing date**, so the list is effectively always open. You apply online through CMHA's SecureCafe portal, and to apply you'll need an active email address, Social Security numbers, names and dates of birth for everyone in the household, and household income information. CMHA also offers kiosks at its Main Campus for applicants without internet access.",
+            "Critically, being on the list is not first-come, first-served — CMHA selects applicants through **random \"mini-lotteries,\"** so a name might be reached in days or take months. Eligibility is income-based; CMHA's income limits (effective April 2025) are shown below and are re-verified by HUD each spring. Our [how-to-apply guide](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) and [waitlist guide](/cleveland-rentals/section-8/cmha-voucher-waitlist-cleveland/) go deeper.",
+            "You do not need to have a specific home picked out to apply — you apply to the program first, and only search for a unit once you're selected and issued a voucher. Keep your contact information current with CMHA after you apply, because selection notices go to the email and address on file, and a missed notice can cost you a spot. Watch out for anyone who charges a fee to \"get you on the list\" faster; the CMHA application itself is free."
+          ],
+          "table": {
+            "headers": [
+              "Household size",
+              "CMHA income limit (effective April 2025)"
+            ],
+            "rows": [
+              [
+                "1 person",
+                "$34,800"
+              ],
+              [
+                "2 persons",
+                "$39,800"
+              ],
+              [
+                "4 persons",
+                "$49,700"
+              ],
+              [
+                "8 persons",
+                "$65,650"
+              ]
+            ]
+          }
+        },
+        {
+          "h2": "How much rent does a voucher cover? (Payment standards)",
+          "body": [
+            "A **payment standard** is the maximum monthly amount CMHA uses as the basis for its subsidy for a given bedroom size — set as a percentage of HUD's Fair Market Rent for the metro. It is not the amount CMHA pays and not a rent cap on the unit; your actual share depends on your income and the unit's rent and utilities. If a unit's rent plus utilities exceeds the payment standard, you may pay the difference (within limits).",
+            "Payment standards change periodically and by bedroom size, so we don't publish a fixed dollar figure here — pull the **current chart directly from CMHA** at [cmha.net](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php). Our [payment standard guide](/cleveland-rentals/section-8/section-8-voucher-payment-standard-cleveland/) explains how to read it."
+          ]
+        },
+        {
+          "h2": "What about the inspection?",
+          "body": [
+            "Before CMHA pays any subsidy, the unit must pass a housing-quality inspection. HUD is transitioning the inspection framework from the older **HQS (Housing Quality Standards)** to the newer **NSPIRE (National Standards for the Physical Inspection of Real Estate)**, with the final transition deadline for the voucher program set for **February 1, 2027**. In practice, the unit must be in decent, sanitary condition and free of health and code hazards to pass.",
+            "This is exactly why our \"HUD-inspection-ready\" claim matters: every home we manage is maintained to pass that inspection, which can shorten the time between voucher approval and move-in. See our [inspection checklist](/cleveland-rentals/section-8/section-8-inspection-checklist-cleveland/) for what inspectors look for."
+          ]
+        },
+        {
+          "h2": "Does Cleveland protect voucher holders? (Source-of-income law)",
+          "body": [
+            "This is the part renters most often get wrong, so here's the honest version. **Ohio has no statewide source-of-income law**, which means that under state law a landlord may generally decline to accept a housing voucher. Whether voucher holders are protected depends entirely on **local** ordinances — and it's a patchwork.",
+            "As of July 2026, the **City of Cleveland does NOT have a source-of-income ordinance** protecting voucher holders, while several Cuyahoga County suburbs do. That does not affect renting from us — we accept vouchers everywhere we operate by choice — but it matters when you're searching other landlords' listings. Our [source-of-income discrimination guide](/cleveland-rentals/section-8/source-of-income-discrimination-cleveland-ohio/) covers your options; always verify current law with the specific city.",
+            "Practically, this shapes how you search. In the City of Cleveland, a private landlord can lawfully decline a voucher, so you'll want to filter for landlords who explicitly welcome them — which is why services like ours, and the suburbs that do protect source of income, are worth prioritizing. If you believe you faced unlawful discrimination in a suburb that does protect voucher holders, a local Fair Housing center can help you understand your options."
+          ],
+          "table": {
+            "headers": [
+              "Jurisdiction",
+              "Source-of-income protection for voucher holders? (as of Jul 2026)"
+            ],
+            "rows": [
+              [
+                "City of Cleveland",
+                "No"
+              ],
+              [
+                "Cleveland Heights",
+                "Yes"
+              ],
+              [
+                "South Euclid",
+                "Yes"
+              ],
+              [
+                "University Heights",
+                "Yes"
+              ],
+              [
+                "Warrensville Heights",
+                "Yes"
+              ],
+              [
+                "Linndale",
+                "Yes"
+              ]
+            ]
+          }
+        },
+        {
+          "h2": "Finding homes that accept Section 8 in Cleveland",
+          "body": [
+            "Because Cleveland itself doesn't require landlords to accept vouchers, finding voucher-friendly homes is the practical challenge for most voucher holders. That's the core of what we offer: **every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready**, mostly 2- and 3-bedroom homes across the East and Southeast sides (Slavic Village, Collinwood, Glenville, Fairfax/Central, Hough, Buckeye-Shaker) plus some West-side areas, renting from about $700 to $1,800 a month.",
+            "You can browse voucher-focused topics on the [Section 8 hub](/cleveland-rentals/section-8/) — including [Section 8 houses for rent](/cleveland-rentals/section-8/section-8-houses-for-rent-cleveland-ohio/) and [landlords that accept Section 8](/cleveland-rentals/section-8/landlords-that-accept-section-8-cleveland/) — or just [book a showing](/p/book-showing) and tell us your voucher's bedroom size."
+          ]
+        },
+        {
+          "h2": "Moving or porting your voucher",
+          "body": [
+            "If you already hold a voucher from another housing authority, **portability** lets you transfer (\"port\") it to Cuyahoga County, and vice-versa. The port process generally takes a few weeks depending on how quickly paperwork moves between authorities. If you're moving within the area, you'll typically give proper notice, get the new unit inspected, and have CMHA approve the rent before the subsidy follows you.",
+            "Special programs also exist, including VASH vouchers for veterans and (in wind-down) Emergency Housing Vouchers. Because these change, verify specifics with CMHA. Our guides on [moving with a voucher](/cleveland-rentals/section-8/moving-with-section-8-voucher-cleveland/) and [porting into Cleveland](/cleveland-rentals/section-8/port-section-8-voucher-to-cleveland/) walk through the steps.",
+            "Once you're housed, you'll go through annual recertification, where CMHA re-checks your income and household to keep the subsidy accurate, and periodic reinspections of the unit. Report income and household changes to CMHA promptly rather than waiting for recertification, since large changes can affect your rent share. If you plan to move at lease-end, give proper written notice and coordinate the timing so the new unit's inspection and rent approval are complete before your subsidy transfers."
+          ]
+        },
+        {
+          "h2": "What documents will I need?",
+          "body": [
+            "When you apply and again when you're selected, CMHA verifies household and income information, so it helps to gather documents early. Typically that means Social Security numbers and birthdates for everyone in the household, government-issued ID for adults, and proof of income such as recent pay stubs, benefit award letters, or an employer statement. If your income is zero or irregular, CMHA has a process for documenting that too.",
+            "Having these ready speeds both the application and the later voucher-issuance and unit-approval steps. Our [application documents guide](/cleveland-rentals/section-8/section-8-application-documents-cleveland/) lists what to collect, and once you're voucher-ready, every home we manage is set up to move quickly through inspection. To line up homes, [book a showing](/p/book-showing) and share your voucher's bedroom size."
+          ]
+        },
+        {
+          "h2": "Common Section 8 questions, answered honestly",
+          "body": [
+            "A few myths are worth clearing up. A voucher does not mean free rent — you still pay a share, generally around 30% of adjusted income. It does not guarantee any specific unit, because the home must pass inspection and its rent must fit CMHA's payment standard. And it does not override screening — landlords may still check credit, background, and rental history on the non-income factors.",
+            "What a voucher does give you is real, ongoing help affording a private-market home, and portability to move where you need to. The practical key is finding landlords who welcome it. That's our role: every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready. Browse [Section 8 houses for rent](/cleveland-rentals/section-8/section-8-houses-for-rent-cleveland-ohio/) or [book a showing](/p/book-showing) to start."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "How do I apply for Section 8 in Cleveland?",
+          "a": "Apply through CMHA's online SecureCafe portal, which accepts preliminary applications year-round with no closing date. You'll need an email address, Social Security numbers, and names, birthdates, and income for everyone in the household. Selection is by random lottery, not first-come-first-served, so a name may be reached in days or take months. Kiosks are available at CMHA's Main Campus."
+        },
+        {
+          "q": "Does the City of Cleveland require landlords to accept Section 8?",
+          "a": "No. As of July 2026, Ohio has no statewide source-of-income law and the City of Cleveland has no ordinance requiring landlords to accept vouchers. A few Cuyahoga County suburbs do protect voucher holders, including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. This is legally sensitive and changes, so verify with the specific city."
+        },
+        {
+          "q": "How much rent will my voucher cover?",
+          "a": "Your share is generally about 30% of adjusted monthly income, and the voucher covers the rest up to CMHA's payment standard for your bedroom size. The payment standard is a subsidy basis, not a rent cap or the amount CMHA pays. Because standards change, get the current chart directly from CMHA at cmha.net rather than relying on an old figure."
+        },
+        {
+          "q": "What are the income limits for a CMHA voucher?",
+          "a": "CMHA's income limits effective April 2025 were about $34,800 for one person, $39,800 for two, $49,700 for four, and $65,650 for eight. These are HUD very-low-income limits for the metro and are updated each spring, so re-verify the current figures with CMHA before applying."
+        },
+        {
+          "q": "Which homes accept Section 8 vouchers?",
+          "a": "Every home Rent Finder Cleveland manages accepts Housing Choice Vouchers and is HUD-inspection-ready — mostly 2- and 3-bedroom homes on Cleveland's East and Southeast sides plus some West-side areas. Whether a specific home fits your voucher's bedroom size and payment standard depends on the unit, but a voucher is always welcome. Book a showing to see current homes."
+        },
+        {
+          "q": "Can I move my voucher to Cleveland from another city?",
+          "a": "Yes, through portability. You can port a voucher issued by another housing authority to CMHA, and the process generally takes a few weeks depending on paperwork between authorities. The new unit must pass inspection and have its rent approved before the subsidy follows you. Verify the current steps with both housing authorities, since procedures vary."
+        }
+      ]
+    }
+  },
+  "clusters": {
+    "neighborhoods": {
+      "answerBox": "Cleveland has 34 official neighborhoods split by the Cuyahoga River into West Side and East Side. Rent, transit, and housing stock vary widely — from near-west Ohio City and Tremont to southeast Slavic Village and northeast Collinwood. These guides give rent ranges, RTA routes, and Section 8-friendly options for each area.",
+      "intro": [
+        {
+          "h2": "Renting by Cleveland neighborhood",
+          "body": [
+            "Cleveland is organized into 34 official neighborhoods, generally divided by the Cuyahoga River into the West Side and East Side, with Downtown and the Cuyahoga Valley in between. Each has its own rent range, housing stock, and transit access, so the neighborhood you choose shapes both cost and daily commute more than almost any other decision.",
+            "These guides cover each area with objective detail — ZIP codes, RTA lines and bus routes, parks, business districts, and typical rent by bedroom — so you can compare on facts. Every home we manage accepts Section 8 and is HUD-inspection-ready."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "How to choose a Cleveland neighborhood",
+          "body": [
+            "Start from what constrains you most: commute, budget, or bedroom count. If you rely on transit, favor neighborhoods along the RTA Red Line, the Blue/Green light-rail, or the Euclid Avenue HealthLine. If budget leads, the city's older, house-heavy neighborhoods generally offer the lowest market rents. If you need a 3- or 4-bedroom, the residential East and Southeast sides tend to have more of that stock."
+          ]
+        },
+        {
+          "h2": "West Side vs. East Side",
+          "body": [
+            "The Cuyahoga River splits Cleveland into two broad sides. The **West Side** includes near-west neighborhoods like Ohio City, Tremont, Detroit-Shoreway (Gordon Square), and Old Brooklyn, plus far-west West Park. The **East Side** includes University Circle and residential areas like Glenville, Hough, Fairfax, Buckeye-Shaker, and the Collinwood neighborhoods to the northeast.",
+            "One practical, non-judgmental fact: the East Side and its higher-elevation suburbs sit in Cleveland's lake-effect snow belt and typically get more snow than the West Side. Our [West Side vs. East Side renting guide](/cleveland-rentals/guides/cleveland-west-side-vs-east-side-renting/) compares the two on objective factors."
+          ]
+        },
+        {
+          "h2": "Where we manage homes",
+          "body": [
+            "Our own rental homes are concentrated on the **East and Southeast sides** — Slavic Village (44105), Collinwood (44110), Glenville (44108), Fairfax/Central (44104), Hough (44103), and Buckeye-Shaker (44120) — with additional homes on the West side in areas like Detroit-Shoreway and Old Brooklyn. For deep dives, see the [Slavic Village](/cleveland-rentals/neighborhoods/houses-for-rent-slavic-village-cleveland/), [Glenville](/cleveland-rentals/neighborhoods/houses-for-rent-glenville-cleveland/), or [Ohio City](/cleveland-rentals/neighborhoods/houses-for-rent-ohio-city-cleveland/) guides, or the broader [houses pillar](/houses-for-rent-cleveland-oh/)."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "How many neighborhoods does Cleveland have?",
+          "a": "The City of Cleveland recognizes 34 official neighborhoods (Statistical Planning Areas), generally split by the Cuyahoga River into West Side and East Side, plus Downtown and the Cuyahoga Valley. Each has distinct rent ranges, housing stock, and transit, which is why it helps to compare them area by area before choosing where to rent."
+        },
+        {
+          "q": "Which Cleveland neighborhoods are most affordable to rent?",
+          "a": "The lowest market rents are generally in the city's older, house-heavy neighborhoods rather than downtown or newer complexes. Rent varies by size, condition, and utilities, so use each neighborhood guide's rent table for realistic ranges. We won't rank neighborhoods by anything other than objective factors like price, housing stock, and transit."
+        },
+        {
+          "q": "Do you manage homes in every Cleveland neighborhood?",
+          "a": "No. Our 90+ homes are concentrated on the East and Southeast sides — Slavic Village, Collinwood, Glenville, Fairfax/Central, Hough, and Buckeye-Shaker — with some West-side homes. For neighborhoods where we don't currently have homes, the guide still gives factual detail, and you can tell us what you're looking for so we can help."
+        },
+        {
+          "q": "How do I compare neighborhoods on transit?",
+          "a": "Look at each guide's transit section. The RTA Red Line heavy-rail runs from the airport through downtown to the east side; the Blue and Green light-rail lines serve Shaker Heights; and the HealthLine bus rapid transit runs on Euclid Avenue between downtown and University Circle. Many residential neighborhoods also rely on RTA bus routes plus highway access."
+        }
+      ]
+    },
+    "suburbs": {
+      "answerBox": "Greater Cleveland's suburbs range from lakefront Lakewood and Rocky River to Parma, Euclid, Cleveland Heights, and Shaker Heights. Rents, commute times, and voucher protections differ by community — and unlike the City of Cleveland, several suburbs protect Section 8 holders. These guides give the facts for each suburb.",
+      "intro": [
+        {
+          "h2": "Renting in the Cleveland suburbs",
+          "body": [
+            "Cuyahoga County has 59 municipalities, and Greater Cleveland extends into neighboring Lake and Lorain counties. Suburban renting differs from the city in rent levels, commute, local ordinances, and — importantly for voucher holders — source-of-income protections that vary town by town.",
+            "These guides cover each suburb factually: rough direction and distance from downtown, RTA access where it exists, housing stock, and typical rent ranges. Some outer-ring communities are outside our core service area, so we describe them honestly and invite you to tell us what you need."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "How to choose a Cleveland suburb",
+          "body": [
+            "Weigh three things: commute, cost, and rules. West and southwest suburbs like Lakewood, Rocky River, Westlake, Parma, and Berea sit off I-90 and I-71; east and southeast suburbs like Cleveland Heights, Shaker Heights, Euclid, and the Heights communities connect via the Blue/Green rail and major arterials. Rent generally tracks proximity, housing age, and unit size."
+          ]
+        },
+        {
+          "h2": "Suburbs and Section 8 protections",
+          "body": [
+            "A detail that matters for voucher holders: the City of Cleveland does not protect source of income, but several Cuyahoga County suburbs do — reported to include **Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale** as of July 2026. That patchwork can make certain suburbs more voucher-accessible. Verify current law with the specific city, and see the [Section 8 pillar](/section-8-housing-cleveland-oh/) for detail."
+          ]
+        },
+        {
+          "h2": "Where we manage suburban homes",
+          "body": [
+            "Most of our portfolio is inside Cleveland's city limits, but we also manage homes in **Akron, Lorain, and Elyria, Ohio**. For suburbs where we don't currently hold property, these guides still give you the factual lay of the land, and you can [tell our team what you're looking for](/p/book-showing). To compare city vs. suburb costs, see our [Cleveland vs. suburbs renting guide](/cleveland-rentals/guides/cleveland-vs-suburbs-renting/)."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "Are the Cleveland suburbs more expensive than the city?",
+          "a": "It depends on the suburb and the unit. Some inner-ring suburbs rent close to city prices, while lakefront and newer-build communities run higher. Distance from downtown, housing age, and unit size drive cost more than the city-vs-suburb line itself. Use each suburb guide's rent range and compare all-in costs including utilities."
+        },
+        {
+          "q": "Which Cleveland suburbs protect Section 8 voucher holders?",
+          "a": "As of July 2026, reporting indicates Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale have source-of-income protections, while the City of Cleveland does not. Ohio has no statewide law, so protection is a local patchwork. This is legally sensitive and changes, so confirm current rules with the specific municipality before relying on them."
+        },
+        {
+          "q": "Do you manage rentals in the suburbs?",
+          "a": "Most of our homes are within Cleveland, but we also manage homes in Akron, Lorain, and Elyria, Ohio. For suburbs where we don't currently have inventory, the guide gives factual detail and you can tell us your criteria so we can help point you in the right direction. Every home we manage accepts Section 8."
+        },
+        {
+          "q": "How far are the suburbs from downtown Cleveland?",
+          "a": "It varies. Inner-ring suburbs like Lakewood, Cleveland Heights, and Euclid are minutes from the city, while outer communities like Mentor (~25 miles northeast) or Lorain (~30 miles west) are a longer drive. Each suburb guide notes rough direction and distance from downtown plus transit or highway access to help you estimate commute."
+        }
+      ]
+    },
+    "houses": {
+      "answerBox": "Search Cleveland houses for rent the way you actually shop — by bedrooms, budget, and features. These guides cover 2- and 3-bedroom homes, houses under $1,000, single-family and duplex options, pet-friendly rentals, and more. Rent Finder Cleveland manages 90+ homes, and every one accepts Section 8.",
+      "intro": [
+        {
+          "h2": "Cleveland houses for rent by type and budget",
+          "body": [
+            "Most renters don't search by neighborhood first — they search by how many bedrooms they need and what they can pay. These guides organize Cleveland rental homes exactly that way: by bedroom count, by price ceiling, and by the features that matter, from a fenced yard to utilities included.",
+            "Our own homes are a mix of single-family houses, duplexes, triplexes, and fourplexes — mostly 2- and 3-bedroom — renting from about $700 to $1,800 a month, typically near $1,000. Every one accepts Section 8 and is HUD-inspection-ready."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "Search by bedrooms",
+          "body": [
+            "Bedroom count is the usual starting point. The bulk of Cleveland's rental-house stock — and of our portfolio — is 2- and 3-bedroom, so those searches have the most options. Larger 4- and 5-bedroom homes exist but are less common and rent higher.",
+            "Start with [2-bedroom houses](/cleveland-rentals/houses/2-bedroom-houses-for-rent-cleveland-ohio/) or [3-bedroom houses](/cleveland-rentals/houses/3-bedroom-houses-for-rent-cleveland-ohio/), the two most-searched sizes."
+          ]
+        },
+        {
+          "h2": "Search by budget",
+          "body": [
+            "If a monthly number drives your search, filter by price ceiling. Cleveland's affordability means whole houses under $1,000 are realistic in many neighborhoods, especially 2-bedrooms. Remember to compare all-in cost — a slightly higher rent with utilities included can beat a cheaper base rent.",
+            "See [houses under $1,000](/cleveland-rentals/houses/houses-for-rent-cleveland-ohio-under-1000/), [cheap houses for rent](/cleveland-rentals/houses/cheap-houses-for-rent-cleveland-ohio/), or [affordable houses](/cleveland-rentals/houses/affordable-houses-for-rent-cleveland/)."
+          ]
+        },
+        {
+          "h2": "Search by type and features",
+          "body": [
+            "\"House\" covers detached single-family homes and duplex units alike, and the right choice affects both price and privacy. Feature filters — pet-friendly, fenced yard, garage, basement, utilities included — narrow things further.",
+            "Browse [single-family homes](/cleveland-rentals/houses/single-family-homes-for-rent-cleveland-ohio/), [duplexes](/cleveland-rentals/houses/duplex-for-rent-cleveland-ohio/), or [pet-friendly houses](/cleveland-rentals/houses/houses-for-rent-cleveland-pet-friendly/). One honest note on searches like [no-credit-check houses](/cleveland-rentals/houses/no-credit-check-houses-for-rent-cleveland/): we and nearly all Cleveland landlords do screen, so that guide debunks the myth and focuses on what actually helps a thin credit file."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "What size houses are easiest to find in Cleveland?",
+          "a": "Two- and three-bedroom homes are the most common in Cleveland's rental market and in our own portfolio, so those searches yield the most options. Four- and five-bedroom homes exist but are less common and rent higher. If you need a larger home, tell us early so we can focus your search on current availability."
+        },
+        {
+          "q": "Can I really rent a whole house under $1,000 in Cleveland?",
+          "a": "Yes, it's realistic — especially for 2-bedroom homes in the city's older, house-heavy neighborhoods. Prices depend on size, condition, and whether utilities are included, so compare all-in monthly cost. Our under-$1,000 and cheap houses guides sort listings by price ceiling to make budget-first searching easier."
+        },
+        {
+          "q": "Is a 'no credit check' house rental real?",
+          "a": "Be cautious. We and virtually all Cleveland landlords screen applicants, so a true 'no credit check' guaranteed rental generally isn't real and can signal a scam. Past credit trouble isn't automatically disqualifying, though — a co-signer, references, steady income, or a larger lawful deposit can strengthen your application. Our guides explain honest options."
+        },
+        {
+          "q": "What's the difference between a house and a duplex here?",
+          "a": "A detached single-family house is fully independent; a duplex is a house divided into two units — usually an upstairs and downstairs, each with its own entrance. Duplex units give you house-style space, often a full floor with a basement, typically at a lower rent, with a neighbor on the other level. Both count as 'houses' in most Cleveland searches."
+        }
+      ]
+    },
+    "apartments": {
+      "answerBox": "Find Cleveland apartments by neighborhood, size, and budget — studios, 1- and 2-bedrooms, downtown lofts, and cheap units under $1,000. Per Zumper's July 2026 report, studios averaged about $1,060 and 1-bedrooms $1,195. Many Cleveland apartments are units within older houses, and ours accept Section 8.",
+      "intro": [
+        {
+          "h2": "Cleveland apartments for rent",
+          "body": [
+            "Cleveland apartment-hunting runs from downtown lofts to affordable units in older neighborhood buildings and converted houses. Because so much of the city's stock is early-1900s duplexes and small multi-unit homes, many \"apartments\" here are a full floor of a house — often more space than a purpose-built complex at a similar price.",
+            "These guides sort apartments by neighborhood, size, and budget. Per Zumper's July 2026 report, Cleveland median asking rents were about $1,060 for a studio, $1,195 for a 1-bedroom, and $1,100 for a 2-bedroom — well below the national median of $1,950."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "Choose by size",
+          "body": [
+            "Size usually drives the apartment search. Studios and 1-bedrooms are most common downtown and in denser near-west and east neighborhoods; 2- and 3-bedroom units appear more in house-heavy residential areas. Start with [studio apartments](/cleveland-rentals/apartments/studio-apartments-for-rent-cleveland-ohio/), [1-bedrooms](/cleveland-rentals/apartments/1-bedroom-apartments-for-rent-cleveland-ohio/), or [2-bedrooms](/cleveland-rentals/apartments/2-bedroom-apartments-for-rent-cleveland-ohio/)."
+          ]
+        },
+        {
+          "h2": "Choose by budget or location",
+          "body": [
+            "If price leads, filter by ceiling — see [cheap apartments](/cleveland-rentals/apartments/cheap-apartments-for-rent-cleveland/) or units [under $1,000](/cleveland-rentals/apartments/apartments-for-rent-cleveland-under-1000/). If location leads, [downtown Cleveland apartments](/cleveland-rentals/apartments/downtown-cleveland-apartments-for-rent/) put you near Tower City and the RTA rail hub, while neighborhood guides cover near-west and east options."
+          ]
+        },
+        {
+          "h2": "Affordable and voucher-friendly apartments",
+          "body": [
+            "\"Affordable\" can mean low market rent or income-/voucher-based housing. For voucher options, our advantage is simple: every unit we manage accepts Section 8 and is HUD-inspection-ready, and many are apartment-style units within duplexes and small buildings. See [low-income apartments](/cleveland-rentals/apartments/low-income-apartments-cleveland-ohio/) or the [Section 8 pillar](/section-8-housing-cleveland-oh/) for how vouchers work."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "How much is a Cleveland apartment?",
+          "a": "Per Zumper's July 2026 report, median asking rents were about $1,060 for a studio, $1,195 for a 1-bedroom, and $1,100 for a 2-bedroom. RentCafe's July 2026 report, which tracks professionally-managed complexes, ran higher — $1,195 studio, $1,451 1-bedroom, $1,818 2-bedroom. Older neighborhood units typically cost less than newer complexes."
+        },
+        {
+          "q": "Do you rent apartments or only houses?",
+          "a": "We manage rental homes, many of which are apartment-style units within duplexes, triplexes, and fourplexes — a full floor of a house with its own entrance. So if you want an apartment-sized unit, especially a 2- or 3-bedroom, we likely have options. Every unit accepts Section 8 and is HUD-inspection-ready."
+        },
+        {
+          "q": "Where are the cheapest apartments in Cleveland?",
+          "a": "The lowest market rents are generally in the city's older, house-heavy neighborhoods rather than downtown or newer complexes. Our cheap and under-$1,000 apartment guides sort by price. Compare all-in cost, since whether utilities are included changes the real monthly figure significantly, especially given Cleveland winters."
+        },
+        {
+          "q": "Are downtown Cleveland apartments expensive?",
+          "a": "Downtown and Warehouse District lofts tend to sit at the higher end of the market compared with older neighborhood units, though they offer proximity to Public Square, Tower City, and the lakefront Waterfront Line. If budget is tight, neighborhood apartments usually cost less. Our downtown apartments guide covers what to expect."
+        }
+      ]
+    },
+    "section-8": {
+      "answerBox": "This section explains Housing Choice Vouchers (Section 8) in Cleveland — how CMHA works, applying, waitlists, payment standards, inspections, porting, and source-of-income rules — and how to find homes that accept them. Every home Rent Finder Cleveland manages accepts Section 8 and is HUD-inspection-ready.",
+      "intro": [
+        {
+          "h2": "Section 8 and Housing Choice Vouchers in Cleveland",
+          "body": [
+            "Section 8 — the Housing Choice Voucher program — helps eligible households afford private-market rentals, with the local program run by **CMHA (Cuyahoga Metropolitan Housing Authority)**. These guides break the program into plain-English pieces: applying and waitlists, income limits, payment standards, inspections, porting, and the honest question of where voucher holders are protected.",
+            "They also connect you to homes that welcome vouchers. **Every home we manage accepts Section 8 and is HUD-inspection-ready**, which is exactly the hurdle most voucher holders struggle with in a city that doesn't require landlords to accept vouchers."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "Start with how vouchers work",
+          "body": [
+            "If you're new to the program, begin with the basics: how a voucher covers part of your rent, how CMHA sets payment standards, and how inspections work. Our [housing choice voucher explainer](/cleveland-rentals/section-8/housing-choice-voucher-program-explained/) and [how to apply guide](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/) are the natural entry points, and the [Section 8 pillar](/section-8-housing-cleveland-oh/) ties it all together."
+          ]
+        },
+        {
+          "h2": "Applying, waitlists, and income limits",
+          "body": [
+            "CMHA accepts preliminary applications year-round, but selection is by random lottery, so timing is unpredictable. Eligibility is income-based — CMHA's limits effective April 2025 were about $34,800 for one person and $49,700 for four. See our [waitlist guide](/cleveland-rentals/section-8/cmha-voucher-waitlist-cleveland/) and [income limits guide](/cleveland-rentals/section-8/section-8-income-limits-cuyahoga-county/) for detail, and always re-verify current figures with CMHA."
+          ]
+        },
+        {
+          "h2": "Know your rights and find a home",
+          "body": [
+            "Crucially, Ohio has no statewide source-of-income law and the City of Cleveland does not protect voucher holders, though several suburbs do. Understanding that patchwork helps you search smart — see our [source-of-income guide](/cleveland-rentals/section-8/source-of-income-discrimination-cleveland-ohio/). When you're ready to see voucher-friendly homes, browse [Section 8 houses for rent](/cleveland-rentals/section-8/section-8-houses-for-rent-cleveland-ohio/) or [book a showing](/p/book-showing)."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "Is the CMHA voucher waitlist open?",
+          "a": "CMHA accepts preliminary applications year-round with no closing date, so the list is effectively always open. However, selection is by random 'mini-lottery,' not first-come-first-served, so being on the list doesn't mean a voucher is immediately available — a name may be reached in days or take months. Verify the current status directly with CMHA."
+        },
+        {
+          "q": "Who runs Section 8 in Cleveland?",
+          "a": "The Cuyahoga Metropolitan Housing Authority (CMHA), HUD code OH003, administers the Housing Choice Voucher program for Cleveland and Cuyahoga County. The program is federally funded by HUD, but CMHA handles applications, the waitlist, payment standards, and inspections locally. Apply through CMHA's online SecureCafe portal at cmha.net."
+        },
+        {
+          "q": "Does Cleveland protect Section 8 voucher holders?",
+          "a": "Not at the city level. As of July 2026, Ohio has no statewide source-of-income law and the City of Cleveland has no ordinance requiring landlords to accept vouchers. A few Cuyahoga County suburbs do, including Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale. This changes, so verify with the specific city."
+        },
+        {
+          "q": "How do I find homes that accept my voucher?",
+          "a": "Because Cleveland doesn't require landlords to accept vouchers, finding voucher-friendly homes is the main challenge. Every home Rent Finder Cleveland manages accepts Housing Choice Vouchers and is HUD-inspection-ready — mostly 2- and 3-bedroom homes across the East and Southeast sides. Book a showing and tell us your voucher's bedroom size to see current options."
+        }
+      ]
+    },
+    "guides": {
+      "answerBox": "These renter guides answer the practical questions of renting in Cleveland and Ohio — security deposits, applications, credit, renters insurance, utilities, tenant rights, and how to avoid scams. They cite Ohio law where it applies and are informational only, not legal advice.",
+      "intro": [
+        {
+          "h2": "Cleveland and Ohio renter guides",
+          "body": [
+            "Beyond finding a home, renting well means understanding the process and your rights. These guides give straight answers to the questions Cleveland renters actually ask — how much credit you need, how deposits work under Ohio law, what utilities cost, and how to spot a rental scam.",
+            "Where a guide covers law, it cites the relevant Ohio Revised Code section and is written carefully as general information, not legal advice — always verify current statute and consult a professional for your situation."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "Applications, credit, and deposits",
+          "body": [
+            "Most renter questions cluster around getting approved and paying up front. Start with the [rental application process](/cleveland-rentals/guides/rental-application-process-cleveland/), [credit score to rent](/cleveland-rentals/guides/credit-score-to-rent-house-cleveland/), and Ohio deposit rules. **Ohio law generally** requires deposits to be returned within 30 days with itemized deductions under [ORC 5321.16](https://codes.ohio.gov/ohio-revised-code/section-5321.16) — see our [Ohio security deposit law guide](/cleveland-rentals/guides/ohio-security-deposit-law/)."
+          ]
+        },
+        {
+          "h2": "Tenant rights in Ohio",
+          "body": [
+            "Ohio's landlord-tenant law (ORC Chapter 5321) covers repairs, notices, and evictions. Notably, Ohio provides a court-based **rent escrow** remedy for unaddressed repairs under [ORC 5321.07](https://codes.ohio.gov/ohio-revised-code/section-5321.07) rather than a general \"repair-and-deduct\" right, and evictions for nonpayment require a 3-day notice under [ORC 1923.04](https://codes.ohio.gov/ohio-revised-code/section-1923.04). See our [tenant rights and repairs guide](/cleveland-rentals/guides/ohio-tenant-rights-repairs/)."
+          ]
+        },
+        {
+          "h2": "Utilities, insurance, and avoiding scams",
+          "body": [
+            "Cleveland utility providers depend on your address — electricity from Cleveland Public Power or The Illuminating Company, gas from Enbridge Gas Ohio or Columbia Gas, water from Cleveland Water. Our [utility setup guide](/cleveland-rentals/guides/set-up-utilities-cleveland-renters/) explains how to connect them. And because rental scams are common, our [scam-avoidance guide](/cleveland-rentals/guides/rental-scams-cleveland-how-to-avoid/) shows the red flags — starting with anyone promising guaranteed approval or asking for money before you've seen a lease."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "What credit score do I need to rent in Cleveland?",
+          "a": "There's no single required score — landlords set their own criteria and weigh income, rental history, and background alongside credit. Many look for household income near three times the rent. A lower score isn't automatically disqualifying; a co-signer, references, or a larger lawful deposit can help. Our credit and bad-credit guides explain realistic options."
+        },
+        {
+          "q": "How long does a landlord have to return my deposit in Ohio?",
+          "a": "Ohio law generally requires the landlord to return the deposit within 30 days after the lease ends and you deliver possession and a forwarding address, along with an itemized statement of any deductions, under ORC 5321.16. Wrongfully withheld amounts can carry additional damages and attorney fees. This is general information, not legal advice."
+        },
+        {
+          "q": "Can I withhold rent for repairs in Ohio?",
+          "a": "Not by simply deducting it. Ohio provides a court-based rent escrow remedy under ORC 5321.07 — a tenant who is current on rent can deposit rent with the court clerk and ask the court to order repairs — rather than a general repair-and-deduct right. Follow the statutory process; this is general information, not legal advice."
+        },
+        {
+          "q": "How do I avoid rental scams in Cleveland?",
+          "a": "Be wary of anyone who promises guaranteed approval or 'no credit check,' asks for a deposit before you've seen the unit or a lease, won't meet in person, or pressures you to wire money. Legitimate landlords screen applicants and let you tour first. Our Cleveland rental scams guide details the common red flags and how to verify a listing."
+        }
+      ]
+    },
+    "more": {
+      "answerBox": "This section covers Cleveland housing needs beyond standard rental homes — rooms for rent, short-term and corporate housing, senior and student housing, and emergency housing help. We focus on residential rental homes, so these guides give honest guidance and point you to the right starting place.",
+      "intro": [
+        {
+          "h2": "Other Cleveland rentals and housing needs",
+          "body": [
+            "Not every housing need is a standard house or apartment. Some renters want a single room, a short-term or furnished stay, senior or student housing, or emergency help. We focus on residential rental homes across Greater Cleveland, so for these topics our aim is honest guidance and a realistic starting point rather than an overpromise.",
+            "Each guide explains what's realistic in Cleveland and where to begin. If your need overlaps with what we do — a longer-term rental home, including for students, seniors, or households using a voucher — tell us and we'll help."
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "h2": "Rooms, short-term, and furnished stays",
+          "body": [
+            "Rooms for rent, sublets, and furnished or corporate housing serve shorter or lighter-footprint needs. These aren't our core offering, but the guides — like [rooms for rent in Cleveland](/cleveland-rentals/more/rooms-for-rent-cleveland-ohio/) — explain how these markets work locally and what to watch for, including the same scam red flags that apply to any rental."
+          ]
+        },
+        {
+          "h2": "Senior and student housing",
+          "body": [
+            "Cleveland's universities and medical institutions drive demand for [student housing](/cleveland-rentals/more/student-housing-cleveland-off-campus/) near University Circle and downtown, while [senior housing](/cleveland-rentals/more/senior-housing-cleveland-ohio/) spans independent, income-based, and assisted options. Where your need is simply a longer-term rental home, our standard [houses](/houses-for-rent-cleveland-oh/) and [apartments](/apartments-for-rent-cleveland-oh/) guides may be the better fit."
+          ]
+        },
+        {
+          "h2": "When you need help fast",
+          "body": [
+            "For urgent situations, some renters search for emergency or same-day housing. These guides point toward local resources honestly — we can't promise same-day placement, but we can help you understand options and, if a longer-term voucher-friendly home fits, [tell us what you need](/p/book-showing). For voucher-based help, the [Section 8 pillar](/section-8-housing-cleveland-oh/) explains the program."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "Do you rent rooms or short-term stays?",
+          "a": "Our focus is longer-term residential rental homes, not single rooms or short-term stays. These guides explain how those markets work in Cleveland and where to start. If your need overlaps with a longer-term rental home — including furnished or family-sized options — tell us your criteria and we'll help point you in the right direction."
+        },
+        {
+          "q": "Where do students find housing near Cleveland universities?",
+          "a": "Off-campus rentals near University Circle (Case Western Reserve) and downtown (Cleveland State) are common, along with rooms and shared houses. Our student housing guide covers the basics. If you want a longer-term house or apartment near campus, our standard neighborhood and houses guides may fit better, and every home we manage accepts vouchers."
+        },
+        {
+          "q": "Can you help with senior housing?",
+          "a": "Senior housing ranges from independent living to income-based and assisted options, and much of it runs through specialized providers. Our senior housing guide points you toward the right resources. Where your need is simply a long-term, ground-floor or accessible rental home, we may be able to help — tell us your requirements."
+        },
+        {
+          "q": "I need housing urgently — can you help same day?",
+          "a": "We can't promise same-day placement; live availability changes constantly and every rental involves screening and, for vouchers, inspection. What we can do is help you understand your options and match you to a longer-term voucher-friendly home if one fits. Our emergency and low-income housing guides point toward local resources for urgent needs."
+        }
+      ]
+    }
+  }
+}

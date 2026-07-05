@@ -1,0 +1,82 @@
+{
+  "slug": "section-8-houses-for-rent-cuyahoga-county",
+  "cluster": "section-8",
+  "title": "Section 8 Houses for Rent in Cuyahoga County",
+  "metaTitle": "Section 8 Houses for Rent in Cuyahoga County, Ohio",
+  "metaDescription": "Section 8 houses for rent in Cuyahoga County: how CMHA vouchers work countywide, and where Rent Finder Cleveland's own voucher-friendly homes are located.",
+  "primaryKeyword": "section 8 houses for rent cuyahoga county",
+  "secondaryKeywords": ["cmha cuyahoga county voucher", "section 8 rentals cuyahoga county ohio", "housing choice voucher cuyahoga county"],
+  "answerBox": "Cuyahoga County's Housing Choice Voucher program is run countywide by CMHA (Cuyahoga Metropolitan Housing Authority). Rent Finder Cleveland's own Section 8-friendly rental homes are concentrated inside the City of Cleveland — mainly East and Southeast neighborhoods like Slavic Village, Collinwood, and Glenville — rather than spread across all 59 county municipalities.",
+  "sections": [
+    {
+      "h2": "Does CMHA cover all of Cuyahoga County?",
+      "body": [
+        "Yes. The **Cuyahoga Metropolitan Housing Authority (CMHA)**, HUD public housing authority code OH003, administers the Housing Choice Voucher (Section 8) program for the entire county — all 59 municipalities within Cuyahoga County, not just the City of Cleveland. CMHA's main office is at **8120 Kinsman Road, Cleveland, OH 44104**, and its main line is **(216) 348-5000**.",
+        "CMHA accepts preliminary applications year-round with no closing date, though households are selected through periodic random \"mini-lotteries\" from that list rather than strict first-come, first-served — reaching your name can take anywhere from a few days to several months. Apply online through [CMHA's Housing Choice Voucher portal](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php)."
+      ]
+    },
+    {
+      "h2": "Where in Cuyahoga County does Rent Finder Cleveland have homes?",
+      "body": [
+        "This is worth being precise about: while CMHA's voucher program covers the whole county, **our own rental homes are concentrated inside the City of Cleveland**, not spread evenly across the county's suburbs. Our current inventory sits mainly in East and Southeast Cleveland ZIP codes — **Slavic Village (44105), Collinwood (44110), Glenville (44108), Fairfax/Central (44104), Hough (44103), and Buckeye-Shaker (44120)** — with a smaller number of homes on Cleveland's west side and additional properties in Akron, Lorain, and Elyria, Ohio.",
+        "We do not currently list homes in every Cuyahoga County suburb (for example, we have no inventory in Parma, Lakewood, or Beachwood as of this writing). If you're searching countywide, [book a showing](/p/book-showing) and tell us the area you want — we can point you to current availability or let you know honestly if we don't yet have anything there."
+      ]
+    },
+    {
+      "h2": "How much do Section 8 houses rent for in the Cleveland area?",
+      "body": [
+        "Rent depends heavily on bedroom count and specific location. Across Rent Finder Cleveland's own Cleveland-area portfolio, rents range roughly from **$700 to $1,800 a month**, with a typical rent around **$1,000**. For broader countywide and citywide context, Zumper's July 2026 report placed Cleveland's overall median asking rent at **$1,250/mo** (up 4.2% year-over-year), while RentCafe's July 2026 report on professionally-managed apartments showed a higher average of **$1,564/mo** — the difference reflects that RentCafe's figure leans toward larger managed complexes, while Zumper's median reflects a broader mix of listings."
+      ],
+      "table": {
+        "headers": ["Bedrooms", "Rent Finder Cleveland typical range", "Notes"],
+        "rows": [
+          ["2 bedroom", "$750 – $1,100", "Most common size in our portfolio"],
+          ["3 bedroom", "$1,100 – $1,500", "Often includes a basement and yard"],
+          ["4+ bedroom", "$1,200 – $1,800", "Larger households; fewer units available"]
+        ]
+      }
+    },
+    {
+      "h2": "Applying for a voucher through CMHA",
+      "body": [
+        "To apply for a Housing Choice Voucher anywhere in Cuyahoga County, you'll need an active email address, Social Security numbers and birth dates for all household members, and household income information. CMHA's current income limits (effective April 3, 2025) run from **$34,800** for a single person up to **$49,700** for a household of four; these limits are updated annually by HUD, so re-verify current figures on [CMHA's site](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) before applying. Once issued a voucher, a unit must pass a housing quality inspection before assistance begins — see our [Section 8 inspection checklist](/cleveland-rentals/section-8/section-8-inspection-checklist-cleveland/) for what that involves."
+      ]
+    },
+    {
+      "h2": "Source-of-income protection varies by city within the county",
+      "body": [
+        "Ohio has no statewide law requiring landlords to accept vouchers, and that patchwork continues within Cuyahoga County itself: **Cleveland Heights, South Euclid, University Heights, and Warrensville Heights** have local ordinances banning refusal of tenants based on voucher use, but the **City of Cleveland does not** have such an ordinance as of 2026-07-04. See our full breakdown in [does Cleveland have a source-of-income law?](/cleveland-rentals/section-8/source-of-income-discrimination-cleveland-ohio/) for details on which cities protect voucher holders."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does CMHA serve the whole county or just the City of Cleveland?",
+      "a": "CMHA administers the Housing Choice Voucher program for all of Cuyahoga County, including its 59 municipalities, not only Cleveland. Where you can actually use the voucher, though, depends on finding a landlord in your target city willing to accept it."
+    },
+    {
+      "q": "Does Rent Finder Cleveland have Section 8 homes in every Cuyahoga County suburb?",
+      "a": "No. Our current inventory is concentrated inside the City of Cleveland, mainly on the East and Southeast side, with smaller West-side and outer-Ohio holdings. We do not currently have homes in every county suburb — book a showing and we'll tell you honestly what's available where."
+    },
+    {
+      "q": "How much income do you need to qualify for a Section 8 voucher in Cuyahoga County?",
+      "a": "CMHA's income limits (effective April 3, 2025) start at $34,800 for one person and rise to $49,700 for a household of four, with higher limits for larger households. These figures are updated annually by HUD, so confirm current limits directly with CMHA before applying."
+    },
+    {
+      "q": "Are Section 8 voucher holders protected from discrimination everywhere in Cuyahoga County?",
+      "a": "No. Only Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale currently have local ordinances protecting voucher holders. The City of Cleveland and most other county municipalities have no such protection as of 2026-07-04."
+    },
+    {
+      "q": "How do I apply for a Section 8 voucher in Cuyahoga County?",
+      "a": "Apply online through CMHA's Housing Choice Voucher portal with an active email, Social Security numbers and birth dates for your household, and income information. Selection happens through periodic random mini-lotteries, so reaching your name can take days to several months."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://www.zumper.com/rent-research/cleveland-oh",
+    "https://www.rentcafe.com/average-rent-market-trends/us/oh/cleveland/",
+    "https://signalcleveland.org/source-of-income-discrimination-section-8-housing-vouchers-cuyahoga-county/"
+  ],
+  "lastUpdated": "2026-07-04"
+}

@@ -1,0 +1,81 @@
+{
+  "slug": "emergency-housing-voucher-cleveland",
+  "cluster": "section-8",
+  "title": "EHV (Emergency Housing Voucher) — Cleveland/CMHA",
+  "metaTitle": "Emergency Housing Voucher (EHV) in Cleveland",
+  "metaDescription": "What an Emergency Housing Voucher (EHV) is, who can get one in Cleveland, and how the referral process through CMHA and local homeless services actually works.",
+  "primaryKeyword": "emergency housing voucher cleveland",
+  "secondaryKeywords": ["ehv cmha cleveland", "emergency housing voucher ohio", "how to get an emergency housing voucher"],
+  "answerBox": "An Emergency Housing Voucher (EHV) is a HUD rental-assistance voucher created under the 2021 American Rescue Plan Act for people experiencing or at risk of homelessness, fleeing domestic violence, or recently homeless. EHVs are referral-based through a local Continuum of Care, not a direct application, and the federal program has been winding down — confirm current status with CMHA.",
+  "sections": [
+    {
+      "h2": "What is an Emergency Housing Voucher (EHV)?",
+      "body": [
+        "An Emergency Housing Voucher (EHV) is a type of federal rental-assistance voucher that HUD created under the **2021 American Rescue Plan Act** to help people move out of homelessness quickly. EHVs function like a Housing Choice Voucher once issued — a household pays a portion of income toward rent and the local public housing authority pays the rest directly to a participating landlord — but eligibility and referral work differently from the general Section 8 waitlist.",
+        "EHVs were targeted at four groups: people experiencing homelessness, people at risk of homelessness, people fleeing or attempting to flee domestic violence, dating violence, sexual assault, stalking, or human trafficking, and people recently homeless who would otherwise remain in unstable housing.",
+        "The program was designed as a faster, more targeted alternative to the general Housing Choice Voucher waitlist — instead of waiting through a standard preliminary-application lottery, an eligible household could be connected to housing more quickly through the homeless-services system already working with them."
+      ]
+    },
+    {
+      "h2": "Why EHV eligibility works differently from a regular voucher",
+      "body": [
+        "A standard Housing Choice Voucher is available to any household that meets CMHA's income limits and comes up through the preliminary-application lottery. EHV eligibility is narrower by design — it exists specifically for people already engaged with the homeless-services or victim-services system, which is also why there's no public online EHV application the way there is for the general voucher list. If your circumstances don't currently involve homelessness, a documented risk of homelessness, or fleeing violence, you would apply for a standard Housing Choice Voucher instead, not an EHV."
+      ]
+    },
+    {
+      "h2": "Is EHV still available in Cleveland right now?",
+      "body": [
+        "This is the honest, important caveat: HUD has issued **closeout and cash-management guidance** signaling the EHV program is in a wind-down phase nationally, since the ARPA funding behind it was a one-time allocation rather than an ongoing annual program. Whether **CMHA** still has active EHV allocations to issue in Cuyahoga County right now changes over time and is not something we can verify from our own records.",
+        "If EHV is relevant to your situation, the reliable move is to contact **CMHA directly** (or your local homeless-services Continuum of Care) and ask about current EHV availability rather than relying on any general web page — including this one — for a real-time answer."
+      ]
+    },
+    {
+      "h2": "How do you actually get referred for an EHV?",
+      "body": [
+        "Unlike the standard Housing Choice Voucher preliminary application, which anyone can submit online, EHVs are **not a self-service application**. They are issued through referrals from a local **Continuum of Care (CoC)** — the coordinated network of homeless-services and housing agencies in a region — often in partnership with the public housing authority and sometimes the VA for veteran households. In practice this usually means connecting with a homelessness services provider, shelter, or domestic-violence agency first, and being referred into the coordinated-entry system rather than applying to CMHA directly for this specific voucher type."
+      ]
+    },
+    {
+      "h2": "EHV vs. a standard Housing Choice Voucher",
+      "body": [
+        "The underlying rental subsidy mechanics are similar once a voucher is in hand, but how someone gets one — and who qualifies — is very different."
+      ],
+      "table": {
+        "headers": ["Feature", "Emergency Housing Voucher (EHV)", "Standard Housing Choice Voucher"],
+        "rows": [
+          ["How you apply", "Referral through a Continuum of Care / homeless-services network", "Direct preliminary application to CMHA, open year-round"],
+          ["Who it targets", "Homeless, at-risk, fleeing violence, or recently homeless households", "General low-income households meeting income limits"],
+          ["Funding source", "One-time 2021 American Rescue Plan Act allocation", "Ongoing annual HUD appropriation"],
+          ["Current status", "Program in HUD-directed wind-down; local availability changes", "Ongoing; CMHA's preliminary list is open year-round"]
+        ]
+      }
+    },
+    {
+      "h2": "Renting with any Section 8 voucher, including EHV",
+      "body": [
+        "If you're issued an EHV or a standard Housing Choice Voucher, our approach as a landlord is the same: every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready. Learn how the broader voucher process works in our [Housing Choice Voucher explainer](/cleveland-rentals/section-8/housing-choice-voucher-program-explained/), or [book a free showing](/p/book-showing) once you have a voucher in hand and are ready to look at homes."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is an Emergency Housing Voucher (EHV)?",
+      "a": "An EHV is a federal rental-assistance voucher, created under the 2021 American Rescue Plan Act, for people experiencing homelessness, at risk of homelessness, fleeing domestic or sexual violence, or recently homeless. Once issued, it works much like a standard Housing Choice Voucher for rent payment purposes."
+    },
+    {
+      "q": "Can I apply for an EHV directly through CMHA's website?",
+      "a": "No. EHVs are referral-based, typically through a local Continuum of Care or homeless-services provider, not a direct online application like the standard Housing Choice Voucher preliminary application. Contact a local homeless-services agency or CMHA to ask about the current referral pathway."
+    },
+    {
+      "q": "Is the EHV program still active in Cuyahoga County?",
+      "a": "HUD has issued guidance moving the nationwide EHV program toward closeout since it was funded by a one-time 2021 allocation, not an ongoing budget line. Whether CMHA currently has EHVs to issue changes over time — confirm directly with CMHA rather than relying on any general article."
+    },
+    {
+      "q": "Do landlords have to treat an EHV differently than a regular voucher?",
+      "a": "For rent payment and inspection purposes, an EHV functions like a standard Housing Choice Voucher. Every home we manage accepts Housing Choice Vouchers, including EHVs, and must pass the same HUD inspection standards before a tenant moves in."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.hud.gov/helping-americans/housing-choice-vouchers", "https://www.cmha.net"],
+  "lastUpdated": "2026-07-04"
+}

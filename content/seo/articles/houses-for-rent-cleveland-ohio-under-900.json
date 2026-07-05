@@ -1,0 +1,80 @@
+{
+  "slug": "houses-for-rent-cleveland-ohio-under-900",
+  "cluster": "houses",
+  "title": "Houses for Rent in Cleveland Under $900",
+  "metaTitle": "Houses for Rent in Cleveland Under $900/mo",
+  "metaDescription": "Find houses for rent in Cleveland under $900 a month. See realistic rent ranges by bedroom size, neighborhoods, and Section 8-friendly options. Book a showing.",
+  "primaryKeyword": "houses for rent cleveland ohio under 900",
+  "secondaryKeywords": ["cheap houses cleveland under 900", "900 dollar rent house cleveland", "affordable 2 bedroom house cleveland"],
+  "answerBox": "Under $900 a month in Cleveland typically covers 1-bedroom units and many 2-bedroom houses and duplexes, especially on the east and southeast side. Citywide rents in our portfolio run about $700 to $1,800, with 2-bedroom homes averaging just under $1,000, so $900 is a realistic ceiling for that size.",
+  "sections": [
+    {
+      "h2": "What can $900 a month rent in Cleveland?",
+      "body": [
+        "A $900 budget is a realistic fit for a 2-bedroom house or duplex unit in Cleveland, and comfortable for most 1-bedroom units. In our own Cleveland portfolio, 2-bedroom rents currently available range roughly $750 to $1,100 with an average near $960, meaning a meaningful share of 2-bedroom inventory clears the $900 mark. 3-bedroom houses are a stretch at this price and less common under $900.",
+        "We manage rental homes across Cleveland, concentrated on the east and southeast side, and every one accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready. [Book a showing](/p/book-showing) with your target budget and bedroom count and we'll match you to current availability."
+      ]
+    },
+    {
+      "h2": "Rent by bedroom size near the $900 mark",
+      "body": [
+        "Zumper's July 2026 report shows Cleveland's citywide 1-bedroom median at $1,195 and 2-bedroom median at $1,100 — those figures blend in newer apartment inventory, which runs higher than many independent rental houses. Our own house and duplex rents tend to sit below those citywide medians, which is where a sub-$900 budget has the best odds."
+      ],
+      "table": {
+        "headers": ["Home size", "Realistic rent range", "Fits under $900?"],
+        "rows": [
+          ["1-bedroom unit", "$700 – $900", "Usually, yes"],
+          ["2-bedroom house/duplex", "$750 – $1,100", "Often, at the lower end"],
+          ["3-bedroom house", "$1,000 – $1,500", "Rarely"]
+        ]
+      }
+    },
+    {
+      "h2": "Where to look for houses under $900",
+      "body": [
+        "Our lower-cost 2-bedroom inventory concentrates in east and southeast Cleveland neighborhoods — **Slavic Village (44105)**, **Collinwood (44110)**, **Glenville (44108)**, and **Fairfax/Central (44104)** — where duplex and small single-family housing stock from the early 1900s is common. A smaller share of our homes sit on the west side (Cudell/Detroit-Shoreway, Old Brooklyn) and in Akron, Lorain, and Elyria."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**East/Southeast Cleveland:** largest share of lower-cost 2-bedroom inventory",
+          "**West side (Cudell, Old Brooklyn):** smaller but present inventory",
+          "**Akron, Lorain, Elyria, OH:** occasional homes outside Cleveland proper"
+        ]
+      }
+    },
+    {
+      "h2": "Comparing this price band to nearby budgets",
+      "body": [
+        "If $900 is close but not quite enough, our [under-$1,000 page](/cleveland-rentals/houses/houses-for-rent-cleveland-ohio-under-1000/) and [under-$1,200 page](/cleveland-rentals/houses/houses-for-rent-cleveland-ohio-under-1200/) cover the next price bands up, where 3-bedroom options open up considerably. If $900 is a firm ceiling, our [2-bedroom houses page](/cleveland-rentals/houses/2-bedroom-houses-for-rent-cleveland-ohio/) is the best starting point since that's the size most likely to fit."
+      ]
+    },
+    {
+      "h2": "Using a Section 8 voucher at this price point",
+      "body": [
+        "Every home we manage accepts Section 8 / Housing Choice Vouchers regardless of rent level, and is HUD-inspection-ready. If you're budgeting around $900 because of a voucher's payment standard, confirm the current standard for your household size directly with Cuyahoga Metropolitan Housing Authority (CMHA) at [cmha.net](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) — your actual out-of-pocket portion depends on income and the unit's rent and utilities, not the payment standard alone."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I find a house for rent in Cleveland for under $900?",
+      "a": "Yes. A $900 budget realistically covers most 1-bedroom units and a good share of 2-bedroom houses and duplexes in our Cleveland portfolio, where 2-bedroom rents average just under $1,000. 3-bedroom houses are less common at this price. Book a showing to see current options in your range."
+    },
+    {
+      "q": "What size house can I rent under $900 in Cleveland?",
+      "a": "A 2-bedroom house or duplex unit is the most realistic fit under $900, especially on Cleveland's east and southeast side. 1-bedroom units usually fit comfortably; 3-bedroom houses generally start above $1,000 in our portfolio."
+    },
+    {
+      "q": "Which Cleveland neighborhoods have houses under $900?",
+      "a": "Our lower-cost 2-bedroom inventory is concentrated in east and southeast Cleveland — Slavic Village, Collinwood, Glenville, and Fairfax/Central — plus a smaller share on the west side and in Akron, Lorain, and Elyria, Ohio."
+    },
+    {
+      "q": "Do these houses accept Section 8 vouchers?",
+      "a": "Yes, every home we manage accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready, regardless of the rent level. Confirm your voucher's current payment standard with CMHA before finalizing a budget target."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.zumper.com/rent-research/cleveland-oh", "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"],
+  "lastUpdated": "2026-07-04"
+}

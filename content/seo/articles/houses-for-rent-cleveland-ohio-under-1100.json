@@ -1,0 +1,80 @@
+{
+  "slug": "houses-for-rent-cleveland-ohio-under-1100",
+  "cluster": "houses",
+  "title": "Houses for Rent in Cleveland Under $1,100",
+  "metaTitle": "Houses for Rent in Cleveland Under $1,100/mo",
+  "metaDescription": "Browse houses for rent in Cleveland under $1,100 a month. See what fits by bedroom size, where inventory is, and Section 8-friendly homes. Book a showing.",
+  "primaryKeyword": "houses for rent cleveland ohio under 1100",
+  "secondaryKeywords": ["cheap 3 bedroom house cleveland", "houses under 1100 cleveland ohio", "affordable rental houses cleveland"],
+  "answerBox": "Under $1,100 a month is a comfortable budget for most 2-bedroom houses in Cleveland and opens up some 3-bedroom homes as well. Citywide rents in our portfolio run about $700 to $1,800, with a typical rent near $1,000 — meaning $1,100 sits right around the middle of the local market.",
+  "sections": [
+    {
+      "h2": "What does $1,100 rent in Cleveland?",
+      "body": [
+        "A $1,100 budget covers the majority of 2-bedroom houses and duplexes in Cleveland and reaches into the lower end of the 3-bedroom market too. Our own Cleveland portfolio has a typical (median) rent near $1,000, so $1,100 sits close to the citywide middle — enough to open real options without competing for the most expensive listings.",
+        "We manage rental homes across Cleveland, concentrated on the east and southeast side, and every one accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready. [Book a showing](/p/book-showing) and tell us $1,100 is your ceiling — we'll show you what's realistically available now."
+      ]
+    },
+    {
+      "h2": "Rent by bedroom size around the $1,100 mark",
+      "body": [
+        "Zumper's July 2026 report put Cleveland's citywide median rent at $1,250 overall and $1,100 for 2-bedroom units specifically — meaning $1,100 lines up almost exactly with the market-wide 2-bedroom median. Our currently-available 2-bedroom inventory ranges $750–$1,100 (average around $960), and 3-bedroom inventory starts around $1,100 at the low end, so this budget captures both sizes at their entry points."
+      ],
+      "table": {
+        "headers": ["Home size", "Realistic rent range", "Fits under $1,100?"],
+        "rows": [
+          ["1-bedroom unit", "$700 – $900", "Comfortably"],
+          ["2-bedroom house/duplex", "$750 – $1,100", "Almost always"],
+          ["3-bedroom house", "$1,000 – $1,500", "At the lower end"]
+        ]
+      }
+    },
+    {
+      "h2": "Where this budget goes furthest",
+      "body": [
+        "Our inventory is concentrated in east and southeast Cleveland — **Slavic Village (44105)**, **Collinwood (44110)**, **Glenville (44108)**, **Fairfax/Central (44104)**, **Hough (44103)**, and **Buckeye-Shaker (44120)** — where a mix of early-1900s single-family homes, duplexes, triplexes, and fourplexes make up the rental stock. We also manage a smaller number of west-side homes (Cudell/Detroit-Shoreway, Old Brooklyn) and homes in Akron, Lorain, and Elyria, Ohio."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**East/Southeast Cleveland:** widest selection at this price point",
+          "**West side (Cudell, Old Brooklyn):** smaller but present inventory",
+          "**Outside Cleveland proper:** Akron, Lorain, Elyria — occasional homes"
+        ]
+      }
+    },
+    {
+      "h2": "Comparing nearby price bands and sizes",
+      "body": [
+        "If a 3-bedroom home with more room is the priority, our [under-$1,200](/cleveland-rentals/houses/houses-for-rent-cleveland-ohio-under-1200/) and [under-$1,500](/cleveland-rentals/houses/houses-for-rent-cleveland-ohio-under-1500/) pages open up more of that inventory. For a strictly 2-bedroom search, see our [2-bedroom houses page](/cleveland-rentals/houses/2-bedroom-houses-for-rent-cleveland-ohio/), and for households needing more space without going above this budget, our [duplex page](/cleveland-rentals/houses/duplex-for-rent-cleveland-ohio/) explains how duplex living compares to a standalone house."
+      ]
+    },
+    {
+      "h2": "Section 8 vouchers in this price range",
+      "body": [
+        "Every home we manage accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready, at any rent level in our portfolio. If you're using a voucher, your actual rent responsibility depends on your household's income and the current CMHA payment standard for your bedroom size — verify the current figures directly at [cmha.net](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) before settling on a target rent."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What kind of house can I rent in Cleveland for under $1,100?",
+      "a": "A $1,100 budget comfortably covers most 2-bedroom houses and duplexes and reaches the lower end of the 3-bedroom market in Cleveland. It lines up closely with Zumper's July 2026 citywide 2-bedroom median of $1,100, making it a realistic, middle-of-the-market target."
+    },
+    {
+      "q": "Can I get a 3-bedroom house for under $1,100 in Cleveland?",
+      "a": "It's possible but not guaranteed — our currently-available 3-bedroom inventory starts around $1,100 at the low end, so a home at that price point exists but competes with a smaller pool of listings. Book a showing to check what's currently open in that range."
+    },
+    {
+      "q": "Where in Cleveland has the most houses under $1,100?",
+      "a": "East and southeast Cleveland neighborhoods — Slavic Village, Collinwood, Glenville, Fairfax/Central, Hough, and Buckeye-Shaker — carry the largest share of our inventory in this price range, with a smaller number of homes on the west side and in Akron, Lorain, and Elyria."
+    },
+    {
+      "q": "Do houses in this price range accept Section 8 vouchers?",
+      "a": "Yes. Every home we manage, at any rent level including under $1,100, accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready. Confirm your voucher's current payment standard with CMHA to know your actual budget."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.zumper.com/rent-research/cleveland-oh", "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"],
+  "lastUpdated": "2026-07-04"
+}

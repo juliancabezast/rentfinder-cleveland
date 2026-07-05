@@ -1,0 +1,95 @@
+{
+  "slug": "ohio-eviction-process-timeline",
+  "cluster": "guides",
+  "title": "Ohio eviction process timeline — a renter's view",
+  "metaTitle": "Ohio Eviction Process Timeline for Renters",
+  "metaDescription": "Ohio eviction process timeline explained step by step: the 3-day notice, filing in court, the hearing, and what happens if a judge orders you out.",
+  "primaryKeyword": "ohio eviction process timeline",
+  "secondaryKeywords": [
+    "3-day notice to vacate ohio",
+    "forcible entry and detainer ohio",
+    "cleveland eviction steps"
+  ],
+  "lawTopic": true,
+  "answerBox": "An Ohio eviction generally starts with a written 3-day notice to leave the premises (ORC 1923.04), followed by a forcible entry and detainer lawsuit filed in municipal or county court if the tenant doesn't move out. The court schedules a hearing, and only a judge — never the landlord directly — can order a tenant removed.",
+  "sections": [
+    {
+      "h2": "What are the steps in an Ohio eviction?",
+      "body": [
+        "Ohio evictions follow a set legal sequence under Ohio Revised Code Chapter 1923 (forcible entry and detainer): first a written notice, then a court filing, then a hearing, and — only if the landlord wins and the tenant still hasn't left — a court-ordered move-out carried out by a bailiff, never by the landlord personally changing locks or removing belongings.",
+        "The steps below describe the general legal sequence. Ohio law is the same statewide, but the specific court (for example, Cleveland Municipal Court) sets its own hearing calendar and local filing procedures. If you're trying to avoid this process altogether, our guide on [how to break a lease in Ohio](/cleveland-rentals/guides/break-a-lease-ohio/) covers ways to end a tenancy before it gets to this point."
+      ]
+    },
+    {
+      "h2": "Step 1: the 3-day notice to leave the premises",
+      "body": [
+        "Before filing an eviction case, a landlord must serve a **3-day notice to leave the premises**, required by ORC 1923.04. Ohio law requires the notice to use this exact statutory language: \"You are being asked to leave the premises. If you do not leave, an eviction action may be initiated against you. If you are in doubt regarding your legal rights and obligations as a tenant, it is recommended that you seek legal assistance.\"",
+        "This is a notice to vacate, not strictly a \"pay-or-quit\" notice — Ohio law doesn't require the landlord to accept late rent after serving it. Notice can be delivered in person, left at the residence, or served by another method allowed under the statute."
+      ]
+    },
+    {
+      "h2": "Step 2: filing the forcible entry and detainer complaint",
+      "body": [
+        "If the tenant hasn't moved out once the 3-day notice period ends, the landlord may file a **forcible entry and detainer** complaint in the municipal or county court that covers the property's location. This is the formal eviction lawsuit — it asks the court for a **writ of restitution** (an order returning possession of the unit to the landlord), and it can separately ask for unpaid rent."
+      ]
+    },
+    {
+      "h2": "Step 3: the court hearing",
+      "body": [
+        "Once the case is filed, the court schedules a hearing where both sides can appear. Ohio law does not set one universal statewide number of days before that hearing must occur — each municipal or county court manages its own docket — so tenants should check the summons and any court paperwork for the specific date and should not assume a fixed timeline. Tenants who believe they have a defense (for example, a landlord's own violation of repair duties, or a notice that doesn't match the statutory language) should raise it at this hearing.",
+        "If a tenant is current on rent and the eviction stems from a landlord's failure to make required repairs, the tenant's remedy is generally the **rent-escrow process under ORC 5321.07** — depositing rent with the court clerk — not withholding rent unilaterally. Housing Choice Voucher holders facing this situation can also review our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for how voucher rules interact with a tenancy in trouble."
+      ]
+    },
+    {
+      "h2": "Step 4: writ of restitution and move-out",
+      "body": [
+        "If the court rules for the landlord, it issues a writ of restitution. Only a court-authorized official (a bailiff) can carry out a court-ordered move-out — a landlord cannot lock a tenant out, shut off utilities, or remove belongings without going through this court process. If a tenant leaves voluntarily after the 3-day notice or after filing, the case may end before it reaches this stage. If you're searching for a new place to land, [browse current Cleveland houses for rent](/houses-for-rent-cleveland-oh/) or [book a showing](/p/book-showing) with our leasing team."
+      ]
+    },
+    {
+      "h2": "Ohio eviction timeline at a glance",
+      "body": [
+        "Here's the same sequence in table form, with the statute that governs each step."
+      ],
+      "table": {
+        "headers": ["Step", "What happens", "Ohio law"],
+        "rows": [
+          ["1. Written notice", "Landlord serves a 3-day notice to leave the premises, using the exact statutory language", "ORC 1923.04"],
+          ["2. Court filing", "Landlord files a forcible entry and detainer complaint if the tenant hasn't left", "ORC Chapter 1923"],
+          ["3. Hearing", "Court schedules and holds a hearing; timeline varies by court", "ORC Chapter 1923"],
+          ["4. Writ of restitution", "If the landlord wins, only a bailiff can carry out the move-out", "ORC Chapter 1923"],
+          ["Repair-related disputes", "Tenant current on rent may use rent escrow instead of withholding rent", "ORC 5321.07"]
+        ]
+      }
+    }
+  ],
+  "faq": [
+    {
+      "q": "How much notice does a landlord have to give before an eviction in Ohio?",
+      "a": "Ohio law (ORC 1923.04) requires a written 3-day notice to leave the premises before a landlord can file an eviction lawsuit. The notice must contain specific statutory language telling the tenant that an eviction action may follow and recommending they seek legal advice if unsure of their rights."
+    },
+    {
+      "q": "Can a landlord change my locks without going to court?",
+      "a": "No. Ohio's eviction process requires a court order (a writ of restitution) before a tenant can be removed, and only a court-authorized official carries that out. A landlord changing locks, removing belongings, or shutting off utilities without a court order is not the lawful process under Ohio law."
+    },
+    {
+      "q": "How long does an Ohio eviction take from notice to move-out?",
+      "a": "There's no single statewide number — it depends on the 3-day notice period, how quickly the case is filed, and each municipal or county court's own hearing calendar. Tenants should check their specific court summons for hearing dates rather than assume a fixed timeline."
+    },
+    {
+      "q": "What if I disagree with the eviction?",
+      "a": "You can raise defenses at the scheduled court hearing — for example, that the notice didn't use the required statutory language, or that the eviction relates to a landlord's own failure to make required repairs. If repairs are the issue and you're current on rent, ORC 5321.07's rent-escrow process may apply."
+    },
+    {
+      "q": "Is this legal advice?",
+      "a": "No. This is general information about Ohio Revised Code Chapter 1923 and related statutes as of July 2026, not legal advice for your specific case. Court procedures vary by jurisdiction — a tenant-rights organization or attorney can advise on your specific eviction notice or filing."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://codes.ohio.gov/ohio-revised-code/section-1923.04",
+    "https://codes.ohio.gov/ohio-revised-code/chapter-1923",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.07"
+  ],
+  "lastUpdated": "2026-07-04"
+}

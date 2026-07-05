@@ -1,0 +1,91 @@
+{
+  "slug": "what-to-bring-to-apartment-showing",
+  "cluster": "guides",
+  "title": "What to Bring to a House Showing in Cleveland",
+  "metaTitle": "What to Bring to an Apartment Showing in Cleveland",
+  "metaDescription": "Know what to bring to an apartment or house showing in Cleveland — ID, income proof, and smart questions to ask. Contact us to schedule a tour.",
+  "primaryKeyword": "what to bring to apartment showing",
+  "secondaryKeywords": ["house showing checklist cleveland", "what to bring to a rental showing", "questions to ask at a house showing"],
+  "answerBox": "Bring photo ID, recent pay stubs or other proof of income, and a list of questions to a Cleveland house or apartment showing. If you plan to apply the same day, also bring rental references and, for a Housing Choice Voucher, your CMHA paperwork. A phone or notepad helps you compare properties and record details afterward.",
+  "sections": [
+    {
+      "h2": "What should I bring to a house showing in Cleveland?",
+      "body": [
+        "Bring a government-issued photo ID, proof of current income (recent pay stubs, an offer letter, or a benefits/award letter), and a short list of questions before you walk into any Cleveland house or apartment showing. Landlords and property managers use the visit to gauge interest as much as renters use it to size up the home, so arriving prepared moves the process along faster for everyone involved.",
+        "It also helps to bring your phone for photos and measurements and a notepad for details you'll otherwise forget by the next showing. Every rental and every landlord is a little different, so having your basic paperwork ready in advance means you're never scrambling if the home turns out to be the right fit."
+      ]
+    },
+    {
+      "h2": "What documents should I bring if I want to apply the same day?",
+      "body": [
+        "If you're ready to apply immediately after a showing, bring the documents most Cleveland landlords ask for: photo ID, your two most recent pay stubs or an equivalent income document, and contact information for a current or previous landlord as a reference. Having these ready can shave real time off the wait between touring a home and getting a decision.",
+        "The table below compares what a standard renter typically brings against what's helpful for a renter using a Housing Choice Voucher, since the two application paths overlap but aren't identical."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Government-issued photo ID",
+          "Two most recent pay stubs, an offer letter, or a benefits/award letter",
+          "Landlord or property manager reference contact information",
+          "Pet information (breed, weight, vaccination records) if you have a pet",
+          "Voucher paperwork, if you hold a Housing Choice Voucher"
+        ]
+      },
+      "table": {
+        "headers": ["Documents to bring", "Standard renter", "Voucher holder (Section 8)"],
+        "rows": [
+          ["Photo ID", "Required", "Required"],
+          ["Proof of income", "Recent pay stubs or an offer letter", "Voucher approval letter plus income documents"],
+          ["Landlord reference", "Recommended", "Recommended"],
+          ["CMHA briefing packet", "Not applicable", "Recommended to bring along"]
+        ]
+      }
+    },
+    {
+      "h2": "What questions should I ask during the showing?",
+      "body": [
+        "Ask about the total move-in cost (first month's rent, security deposit, and any additional fees), which utilities are included versus billed separately, and the lease length before you leave the showing. Cleveland has two separate electric providers — Cleveland Public Power and The Illuminating Company — and coverage depends on the specific address, so it's worth asking which one serves the home you're touring, per the [City of Cleveland's Department of Public Utilities](https://www.clevelandohio.gov/city-hall/departments/public-utilities).",
+        "It's also reasonable to ask directly whether the home accepts Housing Choice Vouchers (Section 8), whether it's HUD-inspection-ready, and what the pet policy and parking situation look like. None of these are unusual questions — a property manager used to working with a range of renters should be able to answer all of them on the spot."
+      ]
+    },
+    {
+      "h2": "Should I bring anything different if I use a Housing Choice Voucher (Section 8)?",
+      "body": [
+        "If you're using a Housing Choice Voucher, bring your CMHA voucher paperwork — the briefing packet and your current voucher amount — along with the same income documents any renter would bring. Every home we manage accepts Section 8 and is HUD-inspection-ready, so voucher holders tour and apply the same way as any other renter; see our [Section 8 housing guide for Cleveland](/section-8-housing-cleveland-oh/) for the full application path through CMHA.",
+        "Keep in mind Ohio has no statewide law requiring landlords to accept vouchers, and the City of Cleveland itself does not have a source-of-income protection ordinance — only a handful of suburbs do. That makes it worth confirming voucher acceptance directly with each landlord you tour, even though every property in our own portfolio already accepts vouchers."
+      ]
+    },
+    {
+      "h2": "What happens after the showing?",
+      "body": [
+        "After the showing, most renters either submit an application right away or take a day or two to compare it against other options — both are normal. When you're ready to move forward, you can [start an application through our online portal](/apply) or [reach out to our leasing team with questions](/p/book-showing) about a specific property before committing.",
+        "If you're still early in your search, browsing our [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) listings before scheduling a showing can help you narrow down bedroom count, price range, and neighborhood so the in-person visit is more decisive."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to bring money to a house showing in Cleveland?",
+      "a": "Not usually. Most showings don't require payment on the spot, but it's smart to bring a way to pay an application fee or holding deposit in case you decide to apply immediately. Ask the property manager ahead of time whether same-day payment is expected so you're not caught without a way to pay."
+    },
+    {
+      "q": "What if I don't have my most recent pay stubs yet?",
+      "a": "Bring whatever income documentation you do have — an offer letter, a benefits award letter, or a bank statement showing regular deposits can sometimes substitute temporarily. Every landlord's requirements differ, so ask what's acceptable before the showing if you're missing standard pay stubs."
+    },
+    {
+      "q": "Can I bring someone else with me to a showing?",
+      "a": "Yes, most property managers allow you to bring a roommate, family member, or anyone who will be on the lease. It's a good idea for every adult who plans to live in the home to see it in person before signing, since all named tenants typically share responsibility for the lease."
+    },
+    {
+      "q": "Do I need special paperwork if I have a Housing Choice Voucher?",
+      "a": "Bring your CMHA voucher paperwork and briefing packet along with standard income documents. Every home we manage accepts Section 8 and is HUD-inspection-ready, so voucher holders go through the same touring and application steps as any other renter, just with an extra document or two in hand."
+    },
+    {
+      "q": "How long does a typical house showing take?",
+      "a": "Most single-family or small multi-family showings in Cleveland run about 15 to 30 minutes — enough time to walk through each room, check appliances, and ask questions. Larger homes or properties with several units may take a bit longer, especially if you're touring with other members of your household."
+    }
+  ],
+  "cta": "contact",
+  "sources": ["https://www.clevelandohio.gov/city-hall/departments/public-utilities", "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"],
+  "lastUpdated": "2026-07-04"
+}

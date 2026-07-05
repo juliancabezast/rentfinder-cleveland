@@ -1,0 +1,91 @@
+{
+  "slug": "section-8-inspection-checklist-cleveland",
+  "cluster": "section-8",
+  "title": "How the CMHA Section 8 Inspection Works (What Gets Checked)",
+  "metaTitle": "Section 8 Inspection Checklist Cleveland | CMHA HQS",
+  "metaDescription": "What CMHA checks in a Section 8 inspection in Cleveland, how HQS is becoming NSPIRE, and what tends to fail. Book a showing on voucher-ready homes.",
+  "primaryKeyword": "section 8 inspection checklist cleveland",
+  "secondaryKeywords": ["cmha inspection", "hqs inspection cleveland", "nspire inspection", "section 8 unit inspection"],
+  "answerBox": "Before CMHA will pay a Housing Choice Voucher subsidy on a Cleveland-area unit, the home must pass a housing-quality inspection covering safety, structure, and working systems. HUD is transitioning the inspection standard from HQS to NSPIRE, with a final HCV deadline of February 1, 2027. Every home we manage is already HUD-inspection-ready.",
+  "sections": [
+    {
+      "h2": "What is a Section 8 inspection, and who does it?",
+      "body": [
+        "A Section 8 (Housing Choice Voucher) inspection is a housing-quality review that a unit must pass before the Cuyahoga Metropolitan Housing Authority (CMHA) will start paying its share of the rent on it. CMHA conducts these inspections as a standard part of the HCV leasing process for units in Cuyahoga County, including Cleveland ([CMHA landlord inspections page](https://www.cmha.net/housing/landlords/inspections.php)).",
+        "The inspection is not optional and it is not a one-time formality — a unit generally has to keep meeting the standard for the life of the tenancy, since CMHA can reinspect during the lease term. Landlords who list with a housing manager that already tracks HUD-readiness, rather than scrambling to prep a random unit, tend to move through this step faster."
+      ]
+    },
+    {
+      "h2": "HQS vs. NSPIRE: which standard applies right now?",
+      "body": [
+        "As of 2026, HUD is in the middle of switching its inspection standard from the older **HQS (Housing Quality Standards)** to the newer **NSPIRE (National Standards for the Physical Inspection of Real Estate)**. HUD has set a final transition deadline of **February 1, 2027** for the Housing Choice Voucher program ([HUD, Housing Choice Voucher Program](https://www.hud.gov/helping-americans/housing-choice-vouchers)). Until a PHA fully cuts over, a Cleveland-area unit may still be inspected under HQS or under NSPIRE depending on where CMHA is in its own rollout."
+      ],
+      "table": {
+        "headers": ["Standard", "What it is", "Status as of July 2026"],
+        "rows": [
+          ["HQS", "Legacy HUD inspection standard used by PHAs for decades", "Being phased out"],
+          ["NSPIRE", "Newer, more uniform national HUD physical-inspection standard", "Rolling out; HCV deadline Feb 1, 2027"],
+          ["Reinspection", "Follow-up check after initial pass or after a failed item", "Ongoing throughout the voucher tenancy"]
+        ]
+      }
+    },
+    {
+      "h2": "What does an inspector generally look at?",
+      "body": [
+        "Both HQS and NSPIRE-style inspections focus on the same broad idea: is the unit safe, structurally sound, and does everything work the way it should. Inspectors are not grading finishes or décor — they're checking whether the basics of a livable home are in place."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Safety devices** — working smoke alarms and, where required, carbon monoxide detectors",
+          "**Electrical** — no exposed wiring, functioning outlets, a working main panel",
+          "**Structure** — sound floors, walls, ceilings, and roof with no major hazards",
+          "**Systems** — working heat, hot water, and a functioning kitchen and bathroom",
+          "**Egress** — usable doors and windows for entry/exit, especially in bedrooms",
+          "**Exterior** — reasonably maintained yard, steps, and railings where present"
+        ]
+      }
+    },
+    {
+      "h2": "What tends to cause a unit to fail, and how is that fixed?",
+      "body": [
+        "The most common reasons a unit doesn't pass on the first try are missing or non-working smoke detectors, peeling paint in a pre-1978 home, exposed wiring, broken windows, or a non-functioning heat source. Most of these are quick landlord fixes, not major renovations, and CMHA will typically note the specific items and allow a reinspection once they're corrected.",
+        "This is exactly why we build HUD-readiness into how we manage homes rather than treating it as a one-time hurdle before move-in — see our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for how we approach voucher-friendly homes across our Cleveland portfolio."
+      ]
+    },
+    {
+      "h2": "Does the tenant need to do anything for the inspection?",
+      "body": [
+        "Generally, the unit itself is what's being inspected, not the tenant's belongings or housekeeping habits, though CMHA does need access to the unit at the scheduled time. Tenants who already have a voucher and are searching for a place should ask whether a specific home has been inspection-ready before, since a home with a track record of passing tends to move to lease-signing faster. If you're still early in the process, our [guide to using a voucher for the first time](/cleveland-rentals/section-8/how-to-use-section-8-voucher-first-time/) covers what happens before inspection day."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is a Section 8 HQS inspection?",
+      "a": "It's a housing-quality inspection CMHA performs on a unit before it will pay a Housing Choice Voucher subsidy toward the rent. Inspectors check safety devices, electrical, structure, heating, and working systems. HUD is transitioning this standard to NSPIRE, with a Housing Choice Voucher deadline of February 1, 2027."
+    },
+    {
+      "q": "What usually fails a Section 8 inspection in Cleveland?",
+      "a": "Common issues include missing smoke detectors, exposed electrical wiring, broken windows, non-working heat, or peeling paint in older homes. Most are straightforward repairs, and CMHA generally allows a reinspection once the landlord fixes the noted items."
+    },
+    {
+      "q": "Is HQS the same as NSPIRE?",
+      "a": "No. HQS is HUD's older inspection standard; NSPIRE is the newer, more uniform standard replacing it nationwide. HUD set February 1, 2027 as the final deadline for PHAs to move Housing Choice Voucher inspections to NSPIRE, so during 2026 some units may still be inspected under either standard."
+    },
+    {
+      "q": "Are Rent Finder Cleveland's homes already inspection-ready?",
+      "a": "Yes. Every home we manage across our Cleveland-area portfolio accepts Section 8 and is maintained as HUD-inspection-ready, which is a core part of how we operate rather than a one-time prep step. Book a showing to see current availability."
+    },
+    {
+      "q": "Who do I contact about scheduling a CMHA inspection?",
+      "a": "Inspections are coordinated through CMHA as part of the HCV leasing process; landlords and tenants can find inspection information on CMHA's landlord page at cmha.net. For homes we manage, our team handles this coordination directly."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers"
+  ],
+  "lastUpdated": "2026-07-04"
+}

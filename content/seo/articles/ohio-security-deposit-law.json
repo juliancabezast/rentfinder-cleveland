@@ -1,0 +1,78 @@
+{
+  "slug": "ohio-security-deposit-law",
+  "cluster": "guides",
+  "title": "Ohio security deposit law explained (30-day return, interest)",
+  "metaTitle": "Ohio Security Deposit Law: 30-Day Return & Interest",
+  "metaDescription": "Ohio security deposit law explained: the 30-day return rule, itemized deductions, and 5% annual interest under ORC 5321.16. What Cleveland renters should know.",
+  "primaryKeyword": "ohio security deposit law",
+  "secondaryKeywords": ["orc 5321.16", "security deposit interest ohio", "security deposit return ohio"],
+  "answerBox": "Under Ohio Revised Code 5321.16, a landlord must return a tenant's security deposit within 30 days of lease termination and delivery of possession, with an itemized list of any deductions. If the deposit exceeds $50 or one month's rent (whichever is greater) and the tenant stayed 6+ months, the landlord owes 5% annual interest on the excess.",
+  "sections": [
+    {
+      "h2": "What does Ohio law require for security deposits?",
+      "body": [
+        "Ohio law generally requires landlords to return a tenant's security deposit, minus any lawful deductions, within a set window after the lease ends. This rule comes from **Ohio Revised Code (ORC) 5321.16**, the statute that governs security deposits statewide — it applies the same way in Cleveland as it does anywhere else in Ohio.",
+        "The statute covers three main things renters should understand before they even move in: how much interest, if any, accrues on a deposit; how long a landlord has to send it back; and what a landlord is and isn't allowed to deduct. We cover the move-out side of this process in more detail in [how to get your security deposit back in Ohio](/cleveland-rentals/guides/get-security-deposit-back-ohio/)."
+      ]
+    },
+    {
+      "h2": "Does my security deposit earn interest in Ohio?",
+      "body": [
+        "Ohio law generally requires 5% annual interest on a security deposit only when two conditions are both met: the deposit exceeds $50 or one month's rent, whichever amount is greater, and the tenant has occupied the unit for six months or more. Interest is computed and paid annually, not just at move-out.",
+        "So a deposit equal to one month's rent on a typical Cleveland home — commonly in the $700 to $1,800 range per our portfolio data — would generally need to exceed that one-month figure before interest kicks in. Many standard one-month deposits fall right at that threshold, which is why interest doesn't apply to every Ohio lease."
+      ],
+      "table": {
+        "headers": ["Rule", "What ORC 5321.16 generally requires", "Applies when"],
+        "rows": [
+          ["Interest on deposit", "5% per year on the amount over $50 or one month's rent (whichever is greater)", "Tenant has occupied the unit 6+ months"],
+          ["Return timeline", "Deposit returned within 30 days of lease end + delivering possession", "Every residential tenancy in Ohio"],
+          ["Itemized statement", "Written, itemized list of any deductions", "Whenever any amount is withheld"],
+          ["Wrongful withholding", "Tenant may recover the withheld amount plus an equal amount in damages, plus attorney's fees", "Landlord withholds in bad faith"]
+        ]
+      }
+    },
+    {
+      "h2": "How long does a landlord have to return my deposit?",
+      "body": [
+        "Ohio law generally gives a landlord 30 days from the date the lease terminates and the tenant delivers possession of the unit to return the deposit, or to send a written, itemized statement explaining any deductions. \"Delivering possession\" typically means returning keys and vacating — the clock doesn't start early just because a tenant gave notice.",
+        "This 30-day window is the same across Cleveland and every Ohio municipality, since ORC 5321.16 is state law, not a local ordinance. If a landlord misses the deadline entirely with no itemization, that failure itself can support a claim under the statute."
+      ]
+    },
+    {
+      "h2": "What can a landlord legally deduct from my deposit?",
+      "body": [
+        "Ohio law generally allows deductions only for unpaid rent and for damages caused by the tenant's noncompliance with their statutory duties (ORC 5321.05) or the lease terms — not for ordinary wear and tear from normal living. A worn carpet after years of tenancy is different from a carpet damaged by a pet accident that was never cleaned up.",
+        "For a closer look at what typically counts as tenant damage versus normal wear and tear, see our related guide on [Ohio tenant rights for repairs and habitability](/cleveland-rentals/guides/ohio-tenant-rights-repairs/)."
+      ]
+    },
+    {
+      "h2": "What happens if my landlord doesn't follow the law?",
+      "body": [
+        "Ohio law generally treats a landlord's bad-faith failure to return a deposit or provide an itemized statement as a serious violation: under ORC 5321.16(C), a tenant can recover the wrongfully withheld amount plus an equal amount in damages — effectively double — along with reasonable attorney's fees. This is one of the stronger tenant remedies in Ohio's landlord-tenant code.",
+        "Renters who are searching for [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) or comparing [apartments for rent in Cleveland](/apartments-for-rent-cleveland-oh/) should factor deposit terms into every lease they sign, since the deposit amount and any move-in inspection documentation directly affect how smoothly this process goes at move-out."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How much can a landlord charge for a security deposit in Ohio?",
+      "a": "Ohio law does not generally cap the deposit amount itself — landlords can set the amount in the lease. What the law does regulate is what happens after: whether interest accrues (only above $50 or one month's rent, whichever is greater, after 6+ months of tenancy) and the 30-day return-and-itemization requirement."
+    },
+    {
+      "q": "Do I get interest on my Ohio security deposit?",
+      "a": "Only if two things are both true: your deposit is more than $50 or one month's rent (whichever is greater), and you've lived in the unit for six months or longer. If both apply, Ohio law generally requires 5% annual interest on the amount above that threshold, computed and paid yearly."
+    },
+    {
+      "q": "What if my landlord keeps my deposit without an explanation?",
+      "a": "Ohio law generally requires an itemized written statement for any deductions within 30 days of move-out. If a landlord withholds funds in bad faith without proper itemization, a tenant may be able to recover the wrongfully held amount plus an equal amount in damages and attorney's fees under ORC 5321.16(C)."
+    },
+    {
+      "q": "Does Cleveland have its own security deposit rules?",
+      "a": "No. Security deposit rules come from Ohio Revised Code 5321.16, which is state law and applies the same way across Cleveland and every other Ohio municipality. Cleveland does have separate local rules in other areas, like lead-safe certification for pre-1978 rentals, but deposits are governed statewide."
+    }
+  ],
+  "cta": "contact",
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/section-5321.16"],
+  "lawTopic": true,
+  "lastUpdated": "2026-07-04"
+}

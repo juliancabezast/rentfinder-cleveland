@@ -1,0 +1,72 @@
+{
+  "slug": "port-section-8-voucher-out-of-cuyahoga-county",
+  "cluster": "section-8",
+  "title": "Porting Your CMHA Section 8 Voucher Out of Cuyahoga County",
+  "metaTitle": "Port Section 8 Voucher Out of Cuyahoga County",
+  "metaDescription": "How to port a CMHA Housing Choice Voucher out of Cuyahoga County to move elsewhere: the steps, rough timeline, and what to confirm before you go.",
+  "primaryKeyword": "port section 8 voucher out of cuyahoga county",
+  "secondaryKeywords": ["cmha portability", "move section 8 voucher out of cleveland", "transfer cmha voucher"],
+  "answerBox": "Porting a voucher out of Cuyahoga County means transferring your CMHA Housing Choice Voucher to a housing authority in the area you're moving to. You start the request with CMHA before you move, and the transfer generally takes about 2 to 6 weeks depending on paperwork completeness at both agencies.",
+  "sections": [
+    {
+      "h2": "What happens when you port a CMHA voucher out?",
+      "body": [
+        "If you currently hold a Housing Choice Voucher through the Cuyahoga Metropolitan Housing Authority (CMHA) and want to move outside Cuyahoga County — to another Ohio county or another state — federal **portability** rules let you transfer that voucher to the housing authority serving your new location. CMHA remains your issuing agency until the transfer is complete, at which point the receiving PHA takes over administering your voucher under HUD's Housing Choice Voucher program rules ([HUD, Housing Choice Vouchers](https://www.hud.gov/helping-americans/housing-choice-vouchers)).",
+        "Portability exists specifically so a voucher holder isn't locked into the jurisdiction that originally issued their voucher. Households port out of Cuyahoga County for all kinds of reasons — a new job, family needs, or simply a different housing market — and the subsidy travels with the household rather than being lost and requiring a brand-new application somewhere else."
+      ]
+    },
+    {
+      "h2": "Steps to port your voucher out of Cuyahoga County",
+      "body": [
+        "The process starts with CMHA, not the new area's housing authority — you need to notify CMHA of your intent to move before you can transfer the paperwork. Trying to line up a new-city apartment before this step is started is one of the most common ways renters lose time.",
+        "Once CMHA has your port-out request, they package your file — your voucher details, income documentation, and household composition — and send it to the receiving housing authority. From there, the receiving agency runs its own briefing and, once you've selected a unit, its own inspection, following the same general HUD Housing Choice Voucher framework CMHA already uses."
+      ],
+      "table": {
+        "headers": ["Step", "What happens", "Typical timing"],
+        "rows": [
+          ["1. Notify CMHA", "Tell CMHA you plan to move outside Cuyahoga County and request a port-out", "Before you sign any new lease"],
+          ["2. File transfer", "CMHA sends your voucher file to the receiving housing authority", "A few days to a few weeks"],
+          ["3. New PHA briefing", "The receiving agency processes your voucher under its own local rules and payment standard", "Varies by that agency's current volume"],
+          ["4. Unit search + inspection", "You find a unit in the new area and it passes that PHA's inspection", "Depends on local availability"]
+        ]
+      }
+    },
+    {
+      "h2": "What should I confirm before I port out?",
+      "body": [
+        "Every housing authority sets its own local payment standard, which is the maximum monthly subsidy basis used for a given bedroom size — it is not the same everywhere, so a voucher that covers a certain rent range in Cuyahoga County may cover a different range once it's administered elsewhere. Confirm the receiving PHA's current payment standard and any local waitlist or briefing requirements directly with that agency before committing to a move.",
+        "It's also worth confirming whether your destination has its own source-of-income protections. Ohio has no statewide law requiring landlords to accept vouchers, and protections vary city by city and state by state — our [source-of-income discrimination guide](/cleveland-rentals/section-8/source-of-income-discrimination-cleveland-ohio/) walks through how this patchwork works even within Greater Cleveland, as a reference point for how much it can vary."
+      ]
+    },
+    {
+      "h2": "If you're staying in Cleveland instead",
+      "body": [
+        "Not every voucher holder who looks into porting out ends up moving — sometimes the better fit is simply a different Cleveland-area unit. If that's you, every home we manage across our Cleveland-area portfolio accepts Housing Choice Vouchers and is maintained as HUD-inspection-ready. [Book a showing](/p/book-showing) to see current availability, or read our broader [Section 8 housing guide](/section-8-housing-cleveland-oh/) for more on how vouchers work locally before you decide."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I move my CMHA voucher to a different state?",
+      "a": "Yes. Federal portability rules let you transfer a Housing Choice Voucher issued by CMHA to a housing authority in another state, as long as you notify CMHA before you move and the receiving agency accepts port-ins. The transfer generally takes about 2 to 6 weeks."
+    },
+    {
+      "q": "Do I need to tell CMHA before I move out of Cuyahoga County?",
+      "a": "Yes. You should request the port-out from CMHA before signing a new lease elsewhere, since CMHA has to transfer your file to the receiving housing authority first. Trying to arrange a new apartment before starting this step often causes delays."
+    },
+    {
+      "q": "Will my voucher cover the same rent in a new city?",
+      "a": "Not necessarily. Each housing authority sets its own local payment standard by bedroom size, so the amount your voucher covers can change once a different agency takes over administering it. Confirm the receiving PHA's current payment standard before committing to a specific unit."
+    },
+    {
+      "q": "What if I decide to stay in Cleveland instead of porting out?",
+      "a": "You can simply search for a different unit within Cuyahoga County using your existing CMHA voucher — no port is needed. Every home we manage accepts Section 8 and is HUD-inspection-ready, so it's worth booking a showing before deciding to move out of the area."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers",
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"
+  ],
+  "lastUpdated": "2026-07-04"
+}

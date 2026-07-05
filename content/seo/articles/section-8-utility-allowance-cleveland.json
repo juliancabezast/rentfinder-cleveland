@@ -1,0 +1,75 @@
+{
+  "slug": "section-8-utility-allowance-cleveland",
+  "cluster": "section-8",
+  "title": "Section 8 utility allowance in Cleveland — how it works",
+  "metaTitle": "Section 8 Utility Allowance in Cleveland, OH",
+  "metaDescription": "How the Section 8 utility allowance works in Cleveland: what it covers, how it changes your rent portion, and where CMHA voucher holders find the current schedule.",
+  "primaryKeyword": "section 8 utility allowance cleveland",
+  "secondaryKeywords": ["cmha utility allowance", "housing choice voucher utility allowance", "section 8 rent portion cleveland"],
+  "answerBox": "A Section 8 utility allowance is a credit CMHA adds to your voucher when you pay for your own utilities, so your rent portion is calculated fairly. It varies by unit size and which utilities you cover. CMHA publishes the current dollar amounts; renters should always check the latest schedule before signing a lease.",
+  "sections": [
+    {
+      "h2": "What is a Section 8 utility allowance?",
+      "body": [
+        "A utility allowance is a dollar credit that the **Cuyahoga Metropolitan Housing Authority (CMHA)** builds into a Housing Choice Voucher when the tenant, not the landlord, pays for one or more utilities directly. Because a voucher's payment standard is meant to reflect the full cost of housing a family — rent plus essential utilities — CMHA has to account for utility costs the tenant is paying separately from rent.",
+        "In HUD's framework, the payment standard is the **maximum monthly subsidy basis** a housing authority uses for a given bedroom size. When a tenant pays their own gas or electric, CMHA adds a utility allowance on top of the contract rent to estimate the unit's true monthly housing cost, then uses that combined figure — not just the rent line — to calculate the tenant's share and the voucher subsidy."
+      ]
+    },
+    {
+      "h2": "How the utility allowance changes your rent portion",
+      "body": [
+        "In the Housing Choice Voucher program, a family generally pays roughly 30% of adjusted monthly income toward **gross rent**, which is contract rent plus the utility allowance for any utilities billed separately to the tenant. If a voucher holder pays their own gas heat and electric, the utility allowance is added to the rent CMHA reviews — which can actually lower the tenant's out-of-pocket rent payment compared with an identical unit where the landlord covers utilities and charges more rent to cover it.",
+        "This is why two homes with the same advertised rent can produce different numbers for a voucher household: one where the landlord pays water and sewer, and one where the tenant pays them, are not treated identically once the utility allowance is applied."
+      ]
+    },
+    {
+      "h2": "Which Cleveland utilities typically factor in",
+      "body": [
+        "Utility allowances are broken out by utility type because Cleveland has more than one provider for the same service, and which one serves a given address depends on the exact location. Renters should confirm with CMHA and the current utility company which provider applies to a specific unit before budgeting."
+      ],
+      "table": {
+        "headers": ["Utility", "Typical Cleveland-area provider", "Who commonly pays"],
+        "rows": [
+          ["Electric", "Cleveland Public Power (city-owned) or [The Illuminating Company](https://firstenergycorp.com)", "Landlord or tenant — varies by lease"],
+          ["Natural gas / heat", "Enbridge Gas Ohio (formerly Dominion East Ohio) or Columbia Gas in some suburbs", "Often tenant-paid in single-family rentals"],
+          ["Water", "[Cleveland Water](https://clevelandwater.com)", "Often landlord-paid or split"],
+          ["Sewer / stormwater", "Northeast Ohio Regional Sewer District (NEORSD), billed locally", "Varies by lease"]
+        ]
+      }
+    },
+    {
+      "h2": "Where to find the current CMHA utility allowance schedule",
+      "body": [
+        "CMHA updates its utility allowance schedule periodically, and the dollar amounts differ by bedroom size, heating type, and which specific utilities the tenant pays. Because these figures change, we don't publish specific dollar amounts here — voucher holders and landlords should pull the current schedule directly from [CMHA](https://www.cmha.net) or ask their CMHA caseworker before finalizing a lease, so the rent portion calculation matches what CMHA will actually approve.",
+        "It's also worth asking a prospective landlord in writing which utilities are included in rent and which are billed to the tenant — that single detail is often the difference between two listings that otherwise look similar."
+      ]
+    },
+    {
+      "h2": "Renting a voucher-friendly home in Cleveland",
+      "body": [
+        "Every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready, so whether a unit is landlord-paid or tenant-paid on utilities, our team can walk you through exactly what's covered before you apply. Browse our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for the bigger picture on vouchers in Cleveland, or [book a free showing](/p/book-showing) to ask about a specific address's utility setup."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What exactly does a Section 8 utility allowance cover?",
+      "a": "It's a dollar credit CMHA adds for utilities the tenant pays directly, such as heat, electric, water, or sewer, rather than the landlord. The credit is added to contract rent to estimate the unit's true housing cost, which affects both the tenant's rent portion and the voucher subsidy amount."
+    },
+    {
+      "q": "Does the utility allowance change what I pay in rent?",
+      "a": "Yes. Your rent portion is generally based on gross rent (contract rent plus any utility allowance for utilities you pay), not contract rent alone. A unit where you pay your own gas and electric can result in a different net cost than an otherwise similar unit where the landlord covers those utilities."
+    },
+    {
+      "q": "Where do I find the current CMHA utility allowance amounts?",
+      "a": "CMHA publishes and periodically updates its utility allowance schedule by bedroom size and utility type. Ask your CMHA caseworker or check directly with CMHA before signing a lease, since amounts change and we don't reproduce a frozen dollar figure here."
+    },
+    {
+      "q": "Does Rent Finder Cleveland cover utilities on its rental homes?",
+      "a": "It varies by property — some of our homes include certain utilities in rent and others are tenant-paid. Every home accepts Section 8 vouchers regardless of utility setup. Ask our team which utilities apply to a specific address before you tour or apply."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.cmha.net", "https://clevelandwater.com", "https://firstenergycorp.com"],
+  "lastUpdated": "2026-07-04"
+}

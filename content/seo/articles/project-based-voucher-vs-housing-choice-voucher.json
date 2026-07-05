@@ -1,0 +1,74 @@
+{
+  "slug": "project-based-voucher-vs-housing-choice-voucher",
+  "cluster": "section-8",
+  "title": "PBV vs HCV — project-based vs tenant-based vouchers",
+  "metaTitle": "Project Based Voucher vs Housing Choice Voucher",
+  "metaDescription": "Project-based voucher vs Housing Choice Voucher, explained: how PBV ties assistance to a specific unit, how HCV moves with the tenant, and what it means for renters.",
+  "primaryKeyword": "project based voucher vs housing choice voucher",
+  "secondaryKeywords": ["pbv vs hcv", "project based section 8 cleveland", "tenant based voucher explained"],
+  "answerBox": "A Housing Choice Voucher (HCV) is tenant-based — it moves with the family to almost any private-market rental that accepts it and passes inspection. A Project-Based Voucher (PBV) is attached to a specific unit at a specific property, so a tenant who moves generally leaves that subsidy behind. Both are administered locally by CMHA.",
+  "sections": [
+    {
+      "h2": "What's the basic difference between PBV and HCV?",
+      "body": [
+        "Both are funded through HUD's Housing Choice Voucher program and administered locally by the **Cuyahoga Metropolitan Housing Authority (CMHA)**, but they attach the subsidy in opposite ways. A **tenant-based Housing Choice Voucher (HCV)** — what most people mean by \"Section 8\" — belongs to the household. The family finds a private-market rental willing to accept the voucher, and the subsidy moves with them if they relocate (subject to portability rules). A **Project-Based Voucher (PBV)** is attached to a specific unit within a specific development that the PHA has contracted with an owner to set aside for voucher tenants. The subsidy stays with the building, not the household.",
+        "Renters searching online sometimes assume \"project-based\" and \"tenant-based\" are two names for the same voucher, or that one is simply a newer version of the other. They're actually two separate structures within the same federal program, and knowing which one applies to a listing changes how you search, how you apply, and what happens if your housing situation changes down the road."
+      ]
+    },
+    {
+      "h2": "How a tenant-based Housing Choice Voucher works",
+      "body": [
+        "With an HCV, a household that's been issued a voucher searches the open rental market — houses, duplexes, apartments — for a unit within the applicable payment standard, and asks the landlord to accept the voucher. The unit must pass a HUD housing-quality inspection and the rent must be found reasonable compared to similar unassisted units. This is the model behind renting one of our homes: we accept the voucher on the unit you choose, rather than the voucher being tied to one specific address in advance."
+      ]
+    },
+    {
+      "h2": "How a Project-Based Voucher works",
+      "body": [
+        "A PBV is different: CMHA contracts directly with a property owner to designate a set number of units at a specific building as voucher-assisted. A household applies for or is referred to that particular development, and the subsidy is tied to that unit rather than following the tenant elsewhere. If a PBV tenant later moves out of the unit, they generally do not take that specific subsidy with them to a different address — though after living in a PBV unit for a period (commonly around one year), a tenant may become eligible to request a tenant-based voucher instead, subject to HUD and PHA rules and voucher availability at the time.",
+        "Because a PBV is tied to a contract between the housing authority and a specific owner, the number of PBV units at any one development is fixed by that contract. Waitlists for a specific PBV property are often separate from CMHA's general Housing Choice Voucher preliminary application, so a renter interested in a PBV building typically needs to apply to that property or program directly rather than assuming the general Section 8 waitlist covers it."
+      ]
+    },
+    {
+      "h2": "PBV vs. HCV, side by side",
+      "body": [
+        "The practical differences matter most when you're deciding where to apply and what happens if your housing needs change."
+      ],
+      "table": {
+        "headers": ["Feature", "Housing Choice Voucher (HCV)", "Project-Based Voucher (PBV)"],
+        "rows": [
+          ["Where it's used", "Almost any private-market rental that accepts it", "A specific unit at a specific contracted property"],
+          ["Portability", "Moves with the household (subject to portability rules)", "Stays with the unit, not the household"],
+          ["How you get it", "General CMHA preliminary application, open year-round", "Apply to or get referred to a specific PBV development"],
+          ["Choosing the home", "Tenant chooses the rental, landlord agrees to accept voucher", "Unit is pre-designated; tenant doesn't choose a market-rate rental"]
+        ]
+      }
+    },
+    {
+      "h2": "Which one applies if you're renting from us?",
+      "body": [
+        "Our homes work with the **tenant-based Housing Choice Voucher** model: every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready, so a voucher holder can choose from our current availability the same way any renter would, rather than being limited to one designated address. For the fundamentals of applying for a voucher in the first place, see our [Housing Choice Voucher explainer](/cleveland-rentals/section-8/housing-choice-voucher-program-explained/), or [book a free showing](/p/book-showing) once you have a voucher in hand."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What does PBV stand for?",
+      "a": "PBV stands for Project-Based Voucher — a form of Section 8 assistance where the subsidy is attached to a specific unit within a development the housing authority has contracted with an owner, rather than moving with the tenant."
+    },
+    {
+      "q": "What does HCV stand for?",
+      "a": "HCV stands for Housing Choice Voucher, the tenant-based form of Section 8 assistance. The voucher belongs to the household and can generally be used at any private-market rental that accepts it and passes inspection, not just one pre-set unit."
+    },
+    {
+      "q": "Can a PBV tenant switch to a tenant-based voucher later?",
+      "a": "Often, yes, after living in the PBV unit for a period commonly around one year, a tenant may become eligible to request a tenant-based voucher, subject to HUD and local PHA rules and voucher availability at that time. Confirm current rules with CMHA before counting on this option."
+    },
+    {
+      "q": "Does Rent Finder Cleveland participate in PBV or HCV?",
+      "a": "Our rental homes work with tenant-based Housing Choice Vouchers — a voucher holder can apply the way any renter would to our currently available homes. We are not a designated Project-Based Voucher development."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.hud.gov/helping-americans/housing-choice-vouchers", "https://www.cmha.net"],
+  "lastUpdated": "2026-07-04"
+}

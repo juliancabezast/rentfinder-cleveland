@@ -1,0 +1,78 @@
+{
+  "slug": "month-to-month-lease-ohio",
+  "cluster": "guides",
+  "title": "Month-to-month vs 12-month lease in Ohio — pros/cons",
+  "metaTitle": "Month to Month vs 12-Month Lease in Ohio: Pros/Cons",
+  "metaDescription": "Comparing a month-to-month lease vs a 12-month lease in Ohio? See the notice rules, flexibility, and rent-stability tradeoffs before you sign in Cleveland.",
+  "primaryKeyword": "month to month lease ohio",
+  "secondaryKeywords": ["month to month lease pros and cons", "12 month lease vs month to month cleveland", "how to end a month to month lease ohio"],
+  "answerBox": "A month-to-month lease in Ohio renews automatically each rental period until either side gives proper written notice, while a 12-month lease locks in the rent and terms for a full year. Month-to-month offers more flexibility but often costs more and can end with shorter notice; a 12-month lease trades flexibility for a fixed rent and a set timeline.",
+  "sections": [
+    {
+      "h2": "What's the difference between a month-to-month and a 12-month lease?",
+      "body": [
+        "A **12-month lease** sets a fixed rent and fixed terms for a full year — neither side can generally change the rent or end the tenancy early without cause or a mutual agreement. A **month-to-month lease** is a periodic tenancy that simply renews every month until you or the landlord gives proper notice to end it.",
+        "Some Cleveland-area renters start on a 12-month lease and move to month-to-month afterward, either because their lease says it converts automatically (a holdover clause) or because they and the landlord agree to a new month-to-month arrangement once the original term ends."
+      ]
+    },
+    {
+      "h2": "Pros and cons of each lease type",
+      "body": [
+        "The core tradeoff is flexibility versus stability. Month-to-month gives you the freedom to move without waiting out a full year, but landlords often price that flexibility in, and either side can end the arrangement with less overall commitment. A 12-month lease locks in your rent for a full year and gives you a predictable timeline, but you generally can't leave early without cost, covered in our [guide to breaking a lease in Ohio](/cleveland-rentals/guides/break-a-lease-ohio/)."
+      ],
+      "table": {
+        "headers": ["Lease type", "Flexibility", "Rent stability", "Ending the lease"],
+        "rows": [
+          ["Month-to-month", "High — leave with proper notice", "Landlord can adjust rent more often, typically with notice", "Either side gives written notice, commonly around 30 days per the lease terms"],
+          ["12-month", "Low — you're committed for the term", "Rent is fixed for the full year", "Lease ends on its stated date, or renews/converts as the lease specifies"]
+        ]
+      }
+    },
+    {
+      "h2": "How much notice does Ohio require to end a month-to-month lease?",
+      "body": [
+        "Ohio law generally requires written notice before ending a periodic tenancy like a month-to-month lease, and 30 days is the period most Cleveland-area landlords and tenants use in practice. The exact notice period can depend on how rent is paid and what your specific lease says, so confirm the requirement in your written lease and verify current Ohio law before you act — this is general information, not legal advice.",
+        "If you're ending a tenancy for nonpayment of rent rather than a routine move-out, Ohio has a separate statutory notice process described in our [Ohio eviction process timeline](/cleveland-rentals/guides/ohio-eviction-process-timeline/)."
+      ]
+    },
+    {
+      "h2": "Does a lease automatically become month-to-month after it ends?",
+      "body": [
+        "Many Ohio leases include a holdover or renewal clause that converts an expired fixed-term lease into a month-to-month tenancy if the tenant stays with the landlord's consent and keeps paying rent. This isn't a blanket statutory rule that applies to every lease automatically — it depends on the specific language in your written agreement, so check your lease's renewal section rather than assuming it applies."
+      ]
+    },
+    {
+      "h2": "Which lease term makes sense for your situation?",
+      "body": [
+        "If your plans are uncertain — a new job, a possible move, or a short-term need — a month-to-month lease can be worth the added flexibility, even at a premium. If you want a predictable rent and a set timeline, a 12-month lease is generally the more stable option.",
+        "We offer both lease-term options across many of our 90+ Cleveland-area rental homes, all of which accept Housing Choice Vouchers and are HUD-inspection-ready. [Book a free showing](/p/book-showing) to discuss lease-term options for a specific home, or [see available Cleveland houses for rent](/houses-for-rent-cleveland-oh/) to start browsing."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is a month-to-month lease more expensive than a 12-month lease in Ohio?",
+      "a": "It can be. Landlords often price month-to-month leases higher than a comparable 12-month lease because they're taking on more uncertainty about how long the unit will stay rented. Whether that premium applies, and how much it is, varies by landlord and by specific listing."
+    },
+    {
+      "q": "How much notice do I need to give to end a month-to-month lease in Ohio?",
+      "a": "Ohio law generally requires written notice to end a periodic tenancy, and 30 days is the period most leases in the Cleveland area use. The exact requirement can depend on your specific lease and how rent is paid, so check your written lease and confirm current requirements before giving notice."
+    },
+    {
+      "q": "Can a landlord raise the rent on a month-to-month lease whenever they want?",
+      "a": "No — a landlord generally still has to give proper written notice before changing the rent on a month-to-month tenancy, similar to ending it. The exact notice period should be specified in your lease; if it isn't clear, ask your landlord or property manager directly."
+    },
+    {
+      "q": "Does my 12-month lease automatically turn into month-to-month when it ends?",
+      "a": "Only if your lease says so. Many leases include a holdover clause that converts to month-to-month if you stay with the landlord's consent after the term ends, but this depends on your specific lease language — read the renewal section rather than assuming it applies automatically."
+    },
+    {
+      "q": "Does Rent Finder Cleveland offer month-to-month leases?",
+      "a": "Lease-term options can vary by home. We manage 90+ Section 8-friendly rental homes across Greater Cleveland, and our leasing team can tell you which lease terms are available for a specific listing — book a free showing to ask about a home you're interested in."
+    }
+  ],
+  "cta": "contact",
+  "lawTopic": true,
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/chapter-5321"],
+  "lastUpdated": "2026-07-04"
+}

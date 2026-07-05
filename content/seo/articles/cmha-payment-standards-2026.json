@@ -1,0 +1,85 @@
+{
+  "slug": "cmha-payment-standards-2026",
+  "cluster": "section-8",
+  "title": "CMHA Payment Standards by Bedroom Size (2026)",
+  "metaTitle": "CMHA Payment Standards by Bedroom Size (2026)",
+  "metaDescription": "How CMHA sets 2026 payment standards by bedroom size for Section 8 vouchers in Cuyahoga County, and where to find the current chart. Book a showing.",
+  "primaryKeyword": "cmha payment standards 2026",
+  "secondaryKeywords": ["cmha voucher payment standard chart", "section 8 fair market rent cleveland", "cuyahoga county payment standard by bedroom"],
+  "answerBox": "CMHA sets a payment standard for each bedroom size (studio through 5+ bedrooms) based on HUD Fair Market Rent data for the Cleveland metro, and reviews these annually. Because the exact 2026 dollar figures change, get the current chart directly from CMHA's rent-determination tool rather than a third-party estimate.",
+  "sections": [
+    {
+      "h2": "What determines a CMHA payment standard by bedroom size?",
+      "body": [
+        "The Cuyahoga Metropolitan Housing Authority sets a separate payment standard for each bedroom size in its Housing Choice Voucher program — typically ranging from studio/efficiency up through five-or-more bedrooms. Each figure is built from HUD's Fair Market Rent (FMR) data for the Cleveland-Elyria metro area, which HUD recalculates annually based on regional rent survey data.",
+        "CMHA is allowed to set its payment standard somewhere within a HUD-approved range around the FMR (generally 90%–110%, with exceptions CMHA can request from HUD in some cases). That means the exact dollar figure for a 2-bedroom voucher in 2026 is a CMHA-specific number, not simply the raw HUD FMR — always pull it from CMHA directly."
+      ]
+    },
+    {
+      "h2": "Where to get the current 2026 dollar figures",
+      "body": [
+        "We intentionally do not publish specific CMHA payment-standard dollar amounts on this page, because these figures are reviewed and can change, and an outdated number could send a renter house-hunting with the wrong budget. Instead, use CMHA's own resources:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**CMHA Housing Choice Voucher page:** [cmha.net/housing/applicants/housing_choice_vouchers.php](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) — current program info and links",
+          "**CMHA Applications Team:** (216) 431-1471, option 6 — ask for your bedroom size's current payment standard",
+          "**CMHA Main Campus:** 8120 Kinsman Road, Cleveland, OH 44104 — in-person help and applicant kiosks",
+          "**HUD Fair Market Rent tool:** hud.gov — the underlying FMR data CMHA's standards are based on"
+        ]
+      }
+    },
+    {
+      "h2": "How bedroom size maps to the search for a home",
+      "body": [
+        "Your voucher's authorized bedroom size (based on family composition, not preference) is what determines which payment standard applies to your search — not the size of home you'd like to rent. A single renter is typically authorized for a smaller bedroom size than a family of five, for example. Once CMHA confirms your bedroom size and payment standard, you can shop with a realistic ceiling in mind.",
+        "For general context (not a payment standard), here's how Cleveland's overall rental market breaks out by bedroom size, per Zumper's July 4, 2026 median-rent report:"
+      ],
+      "table": {
+        "headers": ["Bedroom size", "Zumper Cleveland median (Jul 2026)", "RentCafe Cleveland average (Jul 2026)"],
+        "rows": [
+          ["Studio", "$1,060", "$1,195"],
+          ["1-bedroom", "$1,195", "$1,451"],
+          ["2-bedroom", "$1,100", "$1,818"],
+          ["3-bedroom", "$1,350", "$2,716"]
+        ]
+      }
+    },
+    {
+      "h2": "Voucher-friendly homes across Cleveland's bedroom sizes",
+      "body": [
+        "We manage 90+ rental homes across Greater Cleveland, and every single one accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready — no exceptions. Our portfolio runs mostly 2- and 3-bedroom units, with a mix of single-family houses, duplexes, triplexes, and fourplexes concentrated in east and southeast Cleveland neighborhoods like Slavic Village, Collinwood, Glenville, Fairfax, and Buckeye-Shaker, plus a smaller presence on the west side.",
+        "Whatever bedroom size CMHA authorizes for your household, [book a free showing](/p/book-showing) and our leasing team will help you see what fits your voucher and your payment standard. Learn more about the whole voucher process in our [Housing Choice Voucher program explainer](/cleveland-rentals/section-8/housing-choice-voucher-program-explained/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does CMHA use HUD's Fair Market Rent directly as its payment standard?",
+      "a": "Not exactly. CMHA sets its own payment standard within a HUD-approved range around the Fair Market Rent for the Cleveland-Elyria metro area, and can request exceptions in some cases. Get CMHA's specific current figure rather than assuming it equals the raw HUD FMR number."
+    },
+    {
+      "q": "How often does CMHA update its payment standards?",
+      "a": "Payment standards are generally reviewed on a recurring basis tied to HUD's annual Fair Market Rent updates. Because the exact 2026 schedule can shift, confirm directly with CMHA before relying on any specific figure for your household."
+    },
+    {
+      "q": "Who decides what bedroom size my voucher covers?",
+      "a": "CMHA assigns your voucher's bedroom size based on household composition using its occupancy standards — not your personal preference for a larger home. Ask CMHA to confirm your authorized bedroom size before you start touring homes."
+    },
+    {
+      "q": "Can I rent a home above the payment standard for my bedroom size?",
+      "a": "Sometimes, but you may have to pay more out of pocket, and HUD sets limits on how much above the standard is allowed. Confirm the math with CMHA for the specific unit's rent before signing a lease."
+    },
+    {
+      "q": "Are Rent Finder Cleveland's homes all Section 8 approved?",
+      "a": "Yes. Every home we manage — 90+ rental homes across Greater Cleveland — accepts Housing Choice Vouchers and is HUD-inspection-ready. That's true regardless of bedroom size, though availability by size changes, so book a showing to see current options."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers"
+  ],
+  "lastUpdated": "2026-07-04"
+}

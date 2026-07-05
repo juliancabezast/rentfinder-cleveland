@@ -1,0 +1,74 @@
+{
+  "slug": "lease-takeover-cleveland",
+  "cluster": "more",
+  "title": "Take over my lease / lease takeover in Cleveland",
+  "metaTitle": "Lease Takeover in Cleveland, OH — What Renters Should Know",
+  "metaDescription": "Looking for a lease takeover in Cleveland? Learn how sublease and lease-assignment transfers actually work under Ohio law, then see available homes.",
+  "primaryKeyword": "lease takeover cleveland",
+  "secondaryKeywords": ["take over my lease cleveland", "sublease cleveland ohio", "lease assignment cleveland"],
+  "answerBox": "A \"lease takeover\" (also called lease assignment) means a new renter formally replaces the current tenant on an existing lease, usually because the original tenant is relocating before the term ends. In Cleveland it requires the landlord's written consent — it isn't automatic — and terms vary property by property.",
+  "sections": [
+    {
+      "h2": "What does a lease takeover actually mean?",
+      "body": [
+        "A lease takeover, more precisely called a **lease assignment**, is when a new tenant steps into an existing lease in place of the original tenant — same lease, same rent, same end date, but a new name on the paperwork. It differs from a **sublease**, where the original tenant stays legally responsible and simply lets someone else occupy the unit and pay rent for a period.",
+        "Both arrangements depend entirely on what the lease itself allows and whether the landlord agrees in writing. Ohio does not have a statute that creates a general right to assign or sublet a residential lease — that right (or restriction) comes from the lease contract itself, so the first step for anyone searching \"take over my lease\" is reading their current lease's assignment/sublease clause, not assuming it's allowed."
+      ]
+    },
+    {
+      "h2": "How does a lease takeover work in Cleveland?",
+      "body": [
+        "In practice, a takeover usually starts with the outgoing tenant asking their landlord for permission, then the landlord screening the incoming tenant the same way they would screen any new applicant — income verification, references, sometimes a credit check. If the landlord agrees, the old lease is typically terminated and a new lease is signed with the new tenant, or a formal assignment addendum is added to the existing lease.",
+        "Security deposits complicate a takeover: under **Ohio Revised Code 5321.16**, a landlord must return a departing tenant's deposit (with any 5% annual interest owed on amounts over $50 or one month's rent, if the tenant stayed 6+ months) within 30 days of move-out and provide an itemized statement of deductions — this is Ohio law generally, not something a private lease-takeover agreement between two tenants can override. Renters shouldn't assume the incoming tenant can just \"buy out\" the deposit informally without the landlord's involvement. (Informational only, not legal advice; verify current law with an attorney or the Ohio Revised Code directly.)"
+      ]
+    },
+    {
+      "h2": "Lease takeover vs. renting a new place",
+      "body": [
+        "Because takeovers depend on a landlord saying yes, and because terms (rent, length, deposit handling) are locked into whatever the original tenant signed, many renters searching for a lease takeover in Cleveland find it faster to simply look for a new rental home directly — with a lease that starts fresh, on terms they negotiate themselves."
+      ],
+      "table": {
+        "headers": ["Option", "Who's responsible", "Typical timeline"],
+        "rows": [
+          ["Lease assignment (takeover)", "New tenant only, once landlord approves", "Depends on landlord response — no fixed timeline"],
+          ["Sublease", "Original tenant stays liable to landlord", "For the agreed sublease period only"],
+          ["New lease with a different landlord", "New tenant, from day one", "As fast as an application + showing"]
+        ]
+      }
+    },
+    {
+      "h2": "Section 8 and lease takeovers",
+      "body": [
+        "If you hold a Housing Choice Voucher through **CMHA (Cuyahoga Metropolitan Housing Authority)**, a lease takeover on someone else's unit generally isn't how a voucher move works — a voucher holder typically needs to apply directly for a unit and go through CMHA's own leasing and inspection process rather than being added to another tenant's lease. See our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for how that process works.",
+        "We manage 90+ rental homes across Greater Cleveland, and every one accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready. If a takeover falls through or you'd rather start a lease directly with a local property manager, [tell us what you're looking for](/p/book-showing) and we'll show you current availability."
+      ]
+    },
+    {
+      "h2": "Where lease-takeover searches usually lead",
+      "body": [
+        "Most Cleveland lease-takeover searches come from renters who need to move before their term ends, or renters looking for a shortcut into a home someone else already has. Since a takeover always needs the landlord's sign-off and can't be guaranteed, it's worth comparing it to browsing [houses for rent across Cleveland](/houses-for-rent-cleveland-oh/) or [apartments for rent in Cleveland](/apartments-for-rent-cleveland-oh/), where you control the lease terms from the start."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I legally take over someone else's apartment lease in Cleveland?",
+      "a": "Only if the current lease allows assignment or subleasing and the landlord agrees in writing. Ohio law doesn't create an automatic right to assign a residential lease — it depends on the lease contract and the landlord's consent. Always get any takeover agreement in writing and confirm the landlord has approved it before paying anyone."
+    },
+    {
+      "q": "Do I still have to pass a credit or background check for a lease takeover?",
+      "a": "Almost always, yes. Landlords typically screen an incoming tenant the same way they'd screen any new applicant, since the takeover only works if the landlord approves the new name on the lease. There is no way to guarantee approval or skip screening."
+    },
+    {
+      "q": "What happens to the security deposit in a lease takeover?",
+      "a": "That depends on the landlord's process — sometimes the outgoing tenant's deposit is returned per Ohio Revised Code 5321.16 (within 30 days, itemized) and the new tenant pays a fresh deposit; other times the landlord transfers it with written agreement from both tenants. Get any deposit arrangement in writing."
+    },
+    {
+      "q": "Is a lease takeover the same as a sublease?",
+      "a": "No. In a takeover (assignment), the new tenant replaces the original tenant on the lease. In a sublease, the original tenant keeps legal responsibility to the landlord while someone else occupies and pays for a period. The two have very different liability implications."
+    }
+  ],
+  "cta": "contact",
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/section-5321.16"],
+  "lastUpdated": "2026-07-04"
+}

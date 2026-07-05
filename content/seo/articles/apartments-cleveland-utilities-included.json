@@ -1,0 +1,79 @@
+{
+  "slug": "apartments-cleveland-utilities-included",
+  "cluster": "apartments",
+  "title": "Utilities-Included Apartments in Cleveland",
+  "metaTitle": "Apartments Cleveland: Utilities Included Rentals",
+  "metaDescription": "Looking for apartments in Cleveland with utilities included? See which utilities are typically covered, local providers, and Section 8-friendly options.",
+  "primaryKeyword": "apartments cleveland utilities included",
+  "secondaryKeywords": ["cleveland apartments all utilities paid", "what utilities are included in cleveland rent", "cleveland electric gas water providers"],
+  "lawTopic": false,
+  "answerBox": "Some Cleveland apartments include water and sewer in rent, since landlords are often billed directly by Cleveland Water and the regional sewer district. Electric and gas are more commonly paid by the tenant, through either Cleveland Public Power or The Illuminating Company, and Enbridge Gas Ohio or Columbia Gas. Always confirm what's included before signing a lease.",
+  "sections": [
+    {
+      "h2": "Are there apartments in Cleveland with utilities included?",
+      "body": [
+        "Some are, but a fully \"all utilities included\" apartment is the exception rather than the rule in Cleveland — it depends on the specific building and lease, not the neighborhood. Water and sewer are the utilities most often bundled into rent, because those bills frequently go to the property owner rather than each individual unit; electric and natural gas are more commonly metered and billed directly to the tenant.",
+        "Every home we manage clarifies which utilities are the tenant's responsibility before you sign, and every one of our 90+ rental homes across Greater Cleveland accepts Section 8 / Housing Choice Vouchers. [Book a free showing](/p/book-showing) and ask specifically what's included at any listing you're considering."
+      ]
+    },
+    {
+      "h2": "Who provides utilities in Cleveland?",
+      "body": [
+        "Cleveland's utility providers vary by address, so always confirm which company serves a specific unit rather than assuming. Electric service comes from either the municipally-owned [Cleveland Public Power](https://www.cpp.org/) or the investor-owned Illuminating Company, depending on location. Natural gas comes from Enbridge Gas Ohio, which completed its purchase of the former Dominion East Ohio Gas in March 2024, or, in some suburbs, Columbia Gas of Ohio. Water comes from [Cleveland Water](https://www.clevelandwater.com/), with sewer and stormwater handled by the Northeast Ohio Regional Sewer District."
+      ],
+      "table": {
+        "headers": ["Utility", "Possible provider(s)"],
+        "rows": [
+          ["Electric", "Cleveland Public Power (CPP) or The Illuminating Company, depending on address"],
+          ["Natural gas", "Enbridge Gas Ohio (formerly Dominion East Ohio) or Columbia Gas of Ohio, depending on address"],
+          ["Water", "Cleveland Water"],
+          ["Sewer/stormwater", "Northeast Ohio Regional Sewer District, often billed through the city"]
+        ]
+      }
+    },
+    {
+      "h2": "What's typically included vs. tenant-paid in Cleveland rentals",
+      "body": [
+        "In the older duplexes, triplexes, and small apartment buildings that make up most of Cleveland's rental stock, water is the utility most likely to be included in rent, since it's frequently billed to the building as a whole rather than metered per unit. Electric and gas are usually separately metered and paid directly by the tenant, especially in buildings with individual furnaces or water heaters. Larger, newer apartment communities are more likely to bundle some utilities into a flat monthly fee — always ask, since terms vary building to building."
+      ]
+    },
+    {
+      "h2": "Questions to ask about utilities before signing a lease",
+      "body": [
+        "Before touring or applying, it's worth asking directly: which utilities, if any, are included in the monthly rent; who the electric and gas providers are for that specific address; whether the unit is separately metered or shares a meter with other units in the building; and roughly what a past tenant's average monthly utility bill has run. Getting clear answers in writing avoids surprises on your first bill after move-in.",
+        "Because Cleveland's rental stock ranges from single-family houses to individual units inside older duplexes, triplexes, and fourplexes, metering setups vary widely even within the same block — a shared water meter across a duplex's two units is common, for example, which can affect how a landlord splits or bundles that cost into rent."
+      ]
+    },
+    {
+      "h2": "Budgeting for utilities on a Cleveland rental",
+      "body": [
+        "Cleveland winters bring meaningful heating costs — the city sits in a lake-effect snow belt, with roughly 60 to 70 inches of snow per season, and the heaviest lake-effect snow falls on the eastern half of Cuyahoga County between November and January. Renters paying their own gas or electric heat should budget accordingly for winter months, regardless of neighborhood. Our [Section 8 housing guide](/section-8-housing-cleveland-oh/) covers how voucher payment standards can factor in a utility allowance, and our [Cleveland houses for rent](/houses-for-rent-cleveland-oh/) pillar covers rent ranges across the portfolio."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do any Cleveland apartments include all utilities?",
+      "a": "Some do, but it's the exception rather than the rule and depends on the specific building, not the neighborhood. Water is the utility most often included in rent; electric and gas are usually billed directly to the tenant. Always confirm what's included before signing a lease."
+    },
+    {
+      "q": "Who provides electricity in Cleveland?",
+      "a": "Either Cleveland Public Power (CPP), the city's municipally-owned utility, or The Illuminating Company, an investor-owned utility — which one serves a given address depends on location. Confirm the provider for a specific unit before moving in."
+    },
+    {
+      "q": "Who provides natural gas in Cleveland?",
+      "a": "Most of the city is served by Enbridge Gas Ohio, formerly Dominion East Ohio Gas, which completed its sale to Enbridge in March 2024. Some suburbs are served by Columbia Gas of Ohio instead. Confirm the provider for a specific address before signing a lease."
+    },
+    {
+      "q": "Is water usually included in Cleveland apartment rent?",
+      "a": "It's more likely to be included than electric or gas, since Cleveland Water often bills the property owner directly rather than metering each unit. It's still not guaranteed — confirm with the specific listing before you sign."
+    },
+    {
+      "q": "Does a Section 8 voucher help cover utility costs in Cleveland?",
+      "a": "Housing Choice Voucher payment standards can factor in a utility allowance when the tenant pays utilities directly. See our Section 8 housing guide for how CMHA payment standards generally work, and confirm the current allowance with CMHA directly."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.cpp.org/", "https://www.clevelandwater.com/"],
+  "lastUpdated": "2026-07-04"
+}

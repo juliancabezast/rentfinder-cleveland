@@ -1,0 +1,79 @@
+{
+  "slug": "duplex-for-rent-cleveland-ohio",
+  "cluster": "houses",
+  "title": "Duplexes for Rent in Cleveland, Ohio",
+  "metaTitle": "Duplex for Rent in Cleveland, Ohio",
+  "metaDescription": "Looking for a duplex for rent in Cleveland, Ohio? See typical rents, neighborhoods, and Section 8-friendly duplex homes. Book a free showing today.",
+  "primaryKeyword": "duplex for rent cleveland ohio",
+  "secondaryKeywords": ["cleveland duplex rentals", "double for rent cleveland", "2 unit house for rent cleveland"],
+  "answerBox": "A duplex (or \"double\") is a two-unit rental building common throughout Cleveland's older neighborhoods, with rents typically running $750–$1,250 a month depending on bedrooms and location. Rent Finder Cleveland manages dozens of duplexes across the city's East and Southeast side, and every one accepts Section 8 Housing Choice Vouchers.",
+  "sections": [
+    {
+      "h2": "What is a duplex, or \"double,\" in Cleveland?",
+      "body": [
+        "A duplex — what many longtime Cleveland renters call a \"double\" — is a single building split into two separate rental units, usually stacked one on top of the other or divided side by side. It's one of the most common rental formats in the city's older neighborhoods, built mostly in the early-to-mid 1900s alongside the surrounding single-family housing stock.",
+        "Because a duplex shares one structure — and often one yard or driveway — between two households, rent typically runs lower than a comparable detached house of the same size, while each unit still gets its own private entrance, address, kitchen, and bedrooms."
+      ]
+    },
+    {
+      "h2": "Renting a duplex with Rent Finder Cleveland",
+      "body": [
+        "Most of our Cleveland rental portfolio is multi-family housing, and duplexes make up the largest share of the 90+ rental homes we manage across the city. Our duplex inventory is concentrated on Cleveland's East and Southeast side, in neighborhoods including Slavic Village (44105), Collinwood (44110), Glenville (44108), Hough (44103), and Buckeye-Shaker (44120), with additional units on the West side around Cudell/Detroit-Shoreway (44102) and Old Brooklyn (44109).",
+        "Every duplex unit we manage accepts Section 8 Housing Choice Vouchers and is HUD-inspection-ready — see our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for how that works. If you're weighing a duplex against a full single-family home, our [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) hub covers the whole range of what's typically available."
+      ]
+    },
+    {
+      "h2": "How much does it cost to rent a duplex in Cleveland?",
+      "body": [
+        "Duplex rents in Cleveland generally track the same ranges as other 2- and 3-bedroom rentals citywide. Across our own currently available Cleveland inventory, 2-bedroom units average around $961 a month and 3-bedroom units average around $1,250 a month. Citywide, Zumper's July 2026 report puts the median asking rent at $1,100 for a 2-bedroom and $1,350 for a 3-bedroom, so duplex units — which tend to be older and smaller than newer apartment construction — often land at or below that median."
+      ],
+      "table": {
+        "headers": ["Unit size", "Typical Cleveland rent", "Source"],
+        "rows": [
+          ["1-bedroom duplex unit", "$700 – $900/mo", "Portfolio range"],
+          ["2-bedroom duplex unit", "$750 – $1,100/mo", "Portfolio range + Zumper, Jul 2026"],
+          ["3-bedroom duplex unit", "$1,000 – $1,350/mo", "Portfolio range + Zumper, Jul 2026"]
+        ]
+      }
+    },
+    {
+      "h2": "Duplex vs. single-family house: what renters should know",
+      "body": [
+        "A duplex unit usually costs less to rent than a detached house of the same size, because a duplex splits land, roof, and often yard or driveway space between two households. What you may give up in total privacy, you typically gain in lower rent and a smaller space to heat during Cleveland winters.",
+        "Utilities are usually metered and billed separately for each duplex unit, but this varies by property, so always confirm before signing a lease. Cleveland electric service comes from either Cleveland Public Power or The Illuminating Company depending on the address, natural gas is generally supplied by Enbridge Gas Ohio (formerly Dominion East Ohio, with some suburbs on Columbia Gas of Ohio instead), and Cleveland Water handles the water system."
+      ]
+    },
+    {
+      "h2": "Getting around from a Cleveland duplex",
+      "body": [
+        "Because our duplex inventory is concentrated in East and Southeast Cleveland, many of our units sit along GCRTA bus routes into downtown, with the Blue and Green light-rail lines serving the Buckeye-Shaker corridor and the Red Line plus the HealthLine bus rapid transit connecting University Circle, downtown, and East Cleveland. If transit access matters most to your search, see our guide to [homes near the RTA Red Line](/cleveland-rentals/houses/houses-for-rent-near-rta-red-line-cleveland/).",
+        "Ready to see what's available? [Book a free showing](/p/book-showing) with our local leasing team and tell us your bedroom count and neighborhood preference, and we'll match you with current duplex openings."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Are duplexes cheaper to rent than houses in Cleveland?",
+      "a": "Usually, yes. Because a duplex splits the building and lot between two rental units, monthly rent is typically lower than a comparable detached single-family house. Across our own Cleveland inventory, duplex units commonly rent from about $750 to $1,250 a month depending on bedroom count and neighborhood."
+    },
+    {
+      "q": "Do Cleveland duplexes accept Section 8 vouchers?",
+      "a": "Every duplex unit Rent Finder Cleveland manages accepts Section 8 Housing Choice Vouchers and is HUD-inspection-ready. That said, Ohio has no statewide source-of-income law, so acceptance still varies by individual landlord citywide — always confirm directly with the property manager."
+    },
+    {
+      "q": "Are utilities separate in a Cleveland duplex?",
+      "a": "Most duplex units have separately metered electric and gas, billed directly to the tenant, though this varies by building. Water is sometimes shared or included depending on the property's plumbing setup. Always ask which utilities are included before signing a lease."
+    },
+    {
+      "q": "What Cleveland neighborhoods have the most duplexes for rent?",
+      "a": "Duplexes are common throughout Cleveland's older East and Southeast side neighborhoods, including Slavic Village (44105), Collinwood (44110), Glenville (44108), Hough (44103), and Buckeye-Shaker (44120), which is also where most of our own duplex inventory is concentrated."
+    },
+    {
+      "q": "How do I see current duplex availability in Cleveland?",
+      "a": "Availability changes regularly, so the fastest way to see what's currently open is to book a free showing with our local leasing team. Tell us your bedroom count, budget, and preferred area, and we'll point you to duplex units that match."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.zumper.com/rent-research/cleveland-oh"],
+  "lastUpdated": "2026-07-04"
+}

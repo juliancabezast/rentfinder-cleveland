@@ -1,0 +1,75 @@
+{
+  "slug": "cleveland-lead-safe-certification-renters",
+  "cluster": "guides",
+  "title": "Cleveland Lead Safe Certification — what renters should know",
+  "metaTitle": "Cleveland Lead Safe Certification for Renters",
+  "metaDescription": "Cleveland Lead Safe Certification explained for renters: which rentals need it, how the inspection works, and how to ask a landlord about current status.",
+  "primaryKeyword": "cleveland lead safe certification renters",
+  "secondaryKeywords": ["cleveland lead safe ordinance", "lead safe certification cleveland rental", "365.04 lead safe cleveland"],
+  "lawTopic": true,
+  "answerBox": "Cleveland's Lead-Safe Certification ordinance requires most rental units built before January 1, 1978 within city limits to pass a lead-safe inspection and hold a valid certification, renewed every two years. The ordinance passed in 2019 with compliance phased in through March 1, 2023; renters should confirm a specific unit's current certification status directly with the landlord or the city, since requirements and enforcement can change over time.",
+  "sections": [
+    {
+      "h2": "What is Cleveland's Lead-Safe Certification requirement?",
+      "body": [
+        "Cleveland Codified Ordinances Chapter 365, §365.04 generally requires that residential rental units in the City of Cleveland originally constructed before January 1, 1978 — which are presumed to contain lead-based paint — obtain a **Lead-Safe Certification**. The ordinance passed in 2019, with compliance phased in through a **March 1, 2023** deadline, and a valid certification is generally good for **two years** before the unit needs to be re-inspected and recertified.",
+        "This is informational only, not legal advice, and requirements can be updated by the city — renters and landlords should verify current status directly with the [City of Cleveland's Lead-Safe Certification program](https://www.clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification) before relying on any specific detail here."
+      ]
+    },
+    {
+      "h2": "Which Cleveland rentals need Lead-Safe Certification?",
+      "body": [
+        "The ordinance is generally aimed at rental units built before January 1, 1978 within Cleveland city limits — the same construction-date threshold used in federal lead disclosure law, because lead-based paint for residential use was banned nationwide that year. This covers a large share of the city's rental stock: single-family houses, duplexes, triplexes, and fourplexes alike, not just one type of home. A property can generally qualify for an exemption from the inspection requirement if it already has a **20-year lead-abatement risk-assessment report** on file showing the lead hazard has been permanently addressed."
+      ]
+    },
+    {
+      "h2": "How does a Cleveland rental actually get certified lead-safe?",
+      "body": [
+        "A unit is evaluated by an independent certified **Lead Risk Assessor or Clearance Technician**, who conducts a visual inspection plus a dust-wipe clearance test to check for lead dust and deteriorated lead paint. If the unit passes, it receives a Lead-Safe Certification that is generally valid for two years, after which the property must be re-inspected to keep the certification current. This is a real, in-person inspection and clearance test — it is a different, additional step beyond the federal lead disclosure paperwork every pre-1978 landlord must also provide; see our companion guide on [Ohio lead paint disclosure for rentals](/cleveland-rentals/guides/lead-paint-disclosure-ohio-rental/) for that separate requirement."
+      ],
+      "table": {
+        "headers": ["", "Cleveland Lead-Safe Certification (city ordinance)", "Federal lead disclosure (all pre-1978 U.S. rentals)"],
+        "rows": [
+          ["What it requires", "Passed inspection: visual check + dust-wipe clearance by a certified assessor", "Disclosure of known hazards, EPA pamphlet, and lease warning language"],
+          ["Where it applies", "City of Cleveland rental units built before 1978", "Every U.S. state, including all of Ohio"],
+          ["Validity / renewal", "Certification generally valid 2 years, then re-inspection", "One-time disclosure per lease signing or renewal"],
+          ["Possible exemption", "20-year lead-abatement risk-assessment report on file", "Housing certified lead-free by a qualified inspector"]
+        ]
+      }
+    },
+    {
+      "h2": "How can a renter check a specific unit's certification status?",
+      "body": [
+        "Ask the landlord or property manager directly whether the unit currently holds a valid Lead-Safe Certification, and when it was last inspected. Because certification requirements, deadlines, and enforcement have changed since the ordinance passed in 2019, renters should treat any information here as a starting point and verify a specific address's current status with the [City of Cleveland's Lead-Safe Certification program](https://www.clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification) directly rather than relying on general guidance alone.",
+        "If you're touring one of the 90+ rental homes we manage across Greater Cleveland, our team can tell you what's on file for that specific address — [reach out with questions](/p/book-showing) before you sign a lease. For renter protections beyond lead safety, see our guide to [Ohio tenant rights and repair remedies](/cleveland-rentals/guides/ohio-tenant-rights-repairs/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is Cleveland's Lead-Safe Certification ordinance?",
+      "a": "It's a City of Cleveland requirement (Codified Ordinances Chapter 365, §365.04) that most rental units built before January 1, 1978 pass a lead-safe inspection and hold a valid certification, generally renewed every two years. It passed in 2019 with compliance phased in through a March 1, 2023 deadline."
+    },
+    {
+      "q": "How is Cleveland's Lead-Safe Certification different from federal lead disclosure?",
+      "a": "Federal disclosure is paperwork — a landlord tells tenants what's known and provides an EPA pamphlet before signing. Cleveland's certification is an actual passed inspection with a dust-wipe clearance test by a certified assessor, required specifically for city rental units built before 1978, and renewed every two years."
+    },
+    {
+      "q": "Does every old Cleveland rental need Lead-Safe Certification?",
+      "a": "Generally, units built before January 1, 1978 within city limits are covered, unless the property already has a 20-year lead-abatement risk-assessment report on file showing the hazard was permanently addressed. Rules and exemptions can change, so verify a specific address's status directly with the city."
+    },
+    {
+      "q": "How do I know if my Cleveland rental currently has a valid Lead-Safe Certification?",
+      "a": "Ask your landlord or property manager directly, or check with the City of Cleveland's Lead-Safe Certification program for that specific address. Certification is generally valid for two years, so also ask when the unit was last inspected rather than assuming an older certification is still current."
+    },
+    {
+      "q": "Who inspects a unit for Cleveland Lead-Safe Certification?",
+      "a": "An independent certified Lead Risk Assessor or Clearance Technician performs the inspection, which includes a visual check and a dust-wipe clearance test for lead dust and deteriorated paint. This is separate from, and in addition to, the federal disclosure paperwork required for any pre-1978 rental nationwide."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://www.clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification"
+  ],
+  "lastUpdated": "2026-07-04"
+}

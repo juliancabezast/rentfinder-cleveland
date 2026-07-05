@@ -1,0 +1,91 @@
+{
+  "slug": "section-8-application-documents-cleveland",
+  "cluster": "section-8",
+  "title": "What Documents Do I Need to Apply for Section 8 in Cleveland?",
+  "metaTitle": "Section 8 Application Documents Needed in Cleveland",
+  "metaDescription": "Here's the full document checklist to apply for Section 8 (CMHA) in Cleveland, OH — ID, income proof, household info, and what to gather before you apply.",
+  "primaryKeyword": "section 8 application documents cleveland",
+  "secondaryKeywords": ["cmha application documents", "section 8 checklist cleveland", "what do i need to apply for section 8"],
+  "answerBox": "To apply for Section 8 through CMHA in Cleveland, you'll need an active email address, Social Security numbers and dates of birth for every household member, and household income information. Having these ready before you start the online preliminary application speeds up the process.",
+  "sections": [
+    {
+      "h2": "What do I need before I start the CMHA application?",
+      "body": [
+        "The Cuyahoga Metropolitan Housing Authority (CMHA) accepts preliminary Housing Choice Voucher applications year-round with no closing date, through its online SecureCafe portal. Before you sit down to apply, gather an **active private email address** (CMHA communicates by email), the **Social Security number and date of birth for every household member**, and basic **household income information**. Having all of this ready in one sitting prevents an incomplete application.",
+        "If you don't have internet access, CMHA provides kiosks and computers at its Main Campus (8120 Kinsman Road, Cleveland, OH 44104) where you can complete the application in person."
+      ]
+    },
+    {
+      "h2": "Full document and information checklist",
+      "body": [
+        "Beyond the basics above, it helps to have supporting paperwork on hand in case CMHA requests it during processing or at your eventual briefing. None of this needs to be uploaded at the preliminary application stage, but having it organized early saves time later in the process."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Active email address** — required to create and manage your application",
+          "**Social Security numbers** for every household member",
+          "**Dates of birth** for every household member",
+          "**Household income information** — pay stubs, benefit award letters, or other income proof",
+          "**Photo ID** for the head of household (useful for in-person verification steps)",
+          "**Current address / mailing address** where CMHA can reach you"
+        ]
+      }
+    },
+    {
+      "h2": "How does the CMHA selection process work after I apply?",
+      "body": [
+        "Once submitted, your application enters CMHA's preliminary applicant database. Selection happens through **random mini-lotteries**, not strict first-come-first-served order — CMHA describes wait times as ranging from a few days to several months. When selected, you'll be invited to a briefing where CMHA verifies your documents in full and issues your actual voucher.",
+        "Income eligibility is checked against HUD's very-low-income limits for the Cleveland metro (effective April 2025): $34,800 for a 1-person household, $39,800 for 2 persons, $49,700 for 4 persons, and $65,650 for 8 persons. These limits are updated by HUD, typically each spring, so confirm the current figures directly with [CMHA](https://www.cmha.net) when you apply."
+      ],
+      "table": {
+        "headers": ["Document / info", "When it's needed", "Notes"],
+        "rows": [
+          ["Email address", "At preliminary application", "CMHA communicates primarily by email"],
+          ["SSNs + DOBs, all household members", "At preliminary application", "Required for every person in the household"],
+          ["Household income info", "At preliminary application + briefing", "Checked against HUD income limits"],
+          ["Photo ID", "At briefing / verification", "Head of household at minimum"],
+          ["Proof of income (pay stubs, benefits)", "At briefing", "Supports the income figures you submitted"]
+        ]
+      }
+    },
+    {
+      "h2": "What happens after I have my documents ready and I'm approved?",
+      "body": [
+        "Once you're issued a voucher at your briefing, you move into the search phase — finding a unit, having the landlord submit a Request for Tenancy Approval, passing a HUD housing quality inspection, and signing the lease. This is a good time to start touring, since your voucher search window is time-limited.",
+        "**Every rental home we manage across Cleveland accepts Housing Choice Vouchers and is HUD-inspection-ready**, which can help your move-in process go faster once your voucher is active. [Book a free showing](/p/book-showing) to see what's currently available, or read our [step-by-step guide to using a voucher for the first time](/cleveland-rentals/section-8/how-to-use-section-8-voucher-first-time/)."
+      ]
+    },
+    {
+      "h2": "Where can I get help if I'm missing a document?",
+      "body": [
+        "If you're missing a Social Security card, birth certificate, or income documentation, contact CMHA's Applications Team directly at **216-431-1471, option 6** for guidance on acceptable alternatives — don't let a single missing document stop you from starting the preliminary application, since CMHA can advise on what's required at each stage. You can also review our broader [Section 8 housing guide for Cleveland](/section-8-housing-cleveland-oh/) or [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) while you wait on your application."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need Social Security numbers for my kids to apply for Section 8?",
+      "a": "Yes. CMHA requires Social Security numbers and dates of birth for every member of your household on the preliminary application, not just the head of household. Gather this information for everyone who will live in the unit before you start applying."
+    },
+    {
+      "q": "Can I apply for Section 8 in Cleveland without an email address?",
+      "a": "CMHA's preliminary application is submitted online and communicates primarily by email, so you'll need an active address. If you don't have one or lack internet access, CMHA provides kiosks and computers at its Main Campus at 8120 Kinsman Road, Cleveland, where staff can help."
+    },
+    {
+      "q": "What income documents does CMHA ask for?",
+      "a": "At the preliminary application stage, you generally provide household income information; more detailed proof — pay stubs, benefit award letters, or similar documentation — is typically verified at your briefing once you're selected. Confirm exact requirements with CMHA directly."
+    },
+    {
+      "q": "How long does it take to hear back after applying?",
+      "a": "CMHA selects applicants through random mini-lotteries from the preliminary application list, and wait times can range from a few days to several months. There's no fixed timeline, so it helps to keep your contact information current with CMHA while you wait."
+    },
+    {
+      "q": "What should I do once I have my voucher and documents ready?",
+      "a": "Start touring voucher-friendly homes right away, since your search window is time-limited. Every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready, so you can move from tour to Request for Tenancy Approval without wondering whether the landlord will accept your voucher."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.cmha.net"],
+  "lastUpdated": "2026-07-04"
+}

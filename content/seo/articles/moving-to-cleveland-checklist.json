@@ -1,0 +1,87 @@
+{
+  "slug": "moving-to-cleveland-checklist",
+  "cluster": "guides",
+  "title": "Moving to Cleveland checklist for renters",
+  "metaTitle": "Moving to Cleveland Checklist for Renters",
+  "metaDescription": "Planning a move to Cleveland? This renter's checklist covers neighborhoods, utilities, transit, and paperwork. Contact us for help finding a home.",
+  "primaryKeyword": "moving to cleveland checklist",
+  "secondaryKeywords": ["relocating to cleveland ohio", "cleveland move checklist", "moving to cleveland renter tips", "new to cleveland ohio"],
+  "answerBox": "A Cleveland moving checklist should cover picking a side of the city or a suburb, budgeting rent against Zumper's $1,250 July 2026 median, setting up electric, gas, and water before move-in day, and learning GCRTA's Red Line and bus network. Give yourself 4-6 weeks to line up housing and utilities before your move date.",
+  "sections": [
+    {
+      "h2": "Start with where: Cleveland's east side, west side, or a suburb",
+      "body": [
+        "Cleveland's 34 official neighborhoods (Statistical Planning Areas, per the City Planning Commission) are generally split by the Cuyahoga River into an East Side and a West Side, with Downtown and the Cuyahoga Valley in the center. East Side neighborhoods include Slavic Village, Collinwood, Glenville, Fairfax, Hough, and Buckeye-Shaker; West Side neighborhoods include Ohio City, Tremont, Detroit-Shoreway, and Old Brooklyn. Beyond city limits, Cuyahoga County has 59 municipalities, from lakefront Lakewood and Westlake on the west to Cleveland Heights and Shaker Heights on the east.",
+        "Our rental homes are concentrated in East and Southeast Cleveland — Slavic Village (44105), Collinwood (44110), Glenville (44108), Fairfax/Central (44104), Hough (44103), and Buckeye-Shaker (44120) — with additional homes on the West side around Cudell/Detroit-Shoreway (44102) and Old Brooklyn (44109). For a side-by-side look, see our [east side vs. west side renting guide](/cleveland-rentals/guides/cleveland-west-side-vs-east-side-renting/)."
+      ]
+    },
+    {
+      "h2": "Budget for rent and move-in costs",
+      "body": [
+        "Per Zumper's report dated July 4, 2026, Cleveland's median asking rent is about **$1,250/month** overall (up 4.2% year-over-year), with 2-bedrooms around $1,100 and 3-bedrooms around $1,350. RentCafe's July 2, 2026 report on professionally-managed apartments shows higher averages — **$1,818** for a 2-bedroom — because it reflects larger managed complexes rather than the full range of listings. Both figures are legitimate; they measure different slices of the market.",
+        "Beyond rent, plan for a security deposit (commonly one month's rent, governed by Ohio's deposit law under **ORC 5321.16**), utility deposits, and moving costs. Our own portfolio of rental homes runs from about $700 to $1,800/month, typically near $1,000, across 2- and 3-bedroom homes."
+      ],
+      "table": {
+        "headers": ["Move-in cost", "Typical range", "Notes"],
+        "rows": [
+          ["First month's rent", "$700 - $1,800", "Based on our Cleveland-area portfolio range"],
+          ["Security deposit", "Often 1 month's rent", "Governed by ORC 5321.16; interest applies if over $50/1 month and tenant stays 6+ months"],
+          ["Utility setup deposits", "Varies by provider", "Ask each utility whether a deposit applies for new accounts"]
+        ]
+      }
+    },
+    {
+      "h2": "Set up utilities before move-in day",
+      "body": [
+        "Cleveland has two electric providers — **Cleveland Public Power (CPP)**, the city's municipally-owned utility, and **The Illuminating Company** (FirstEnergy) — and which one serves a given address depends on location, so confirm before your move date. Natural gas in the city is mostly provided by **Enbridge Gas Ohio** (formerly Dominion East Ohio, sold to Enbridge in March 2024), while some suburbs use Columbia Gas of Ohio instead. **Cleveland Water** handles drinking water, and the **Northeast Ohio Regional Sewer District (NEORSD)** handles regional wastewater treatment. For the full setup process, see our [utilities setup guide](/cleveland-rentals/guides/set-up-utilities-cleveland-renters/)."
+      ]
+    },
+    {
+      "h2": "Learn the transit map even if you'll have a car",
+      "body": [
+        "Greater Cleveland RTA (GCRTA) runs the Red Line (heavy rail, connecting Cleveland Hopkins Airport, Downtown/Tower City, and the East Side to Windermere in East Cleveland), the Blue and Green light-rail lines to Shaker Heights, the Waterfront Line along the lakefront near the Rock & Roll Hall of Fame and Great Lakes Science Center, and the HealthLine bus-rapid-transit route on Euclid Avenue between Public Square and University Circle. Tower City downtown is the hub where all rail lines connect, useful for estimating commute times between neighborhoods regardless of which line you'd use."
+      ]
+    },
+    {
+      "h2": "Know the winter before you sign a lease",
+      "body": [
+        "Cleveland typically gets **60-70 inches of snow per season**, with the heaviest lake-effect snow falling east and south of Lake Erie — the eastern half of Cuyahoga County and areas further east like Geauga County see notably more snow than West Side and lakeshore areas. Lake-effect season generally runs November through January, before Lake Erie freezes over. This affects practical things like whether a rental has off-street parking or a garage, and how long an on-foot commute takes in winter conditions — worth asking about on any showing."
+      ]
+    },
+    {
+      "h2": "Check the lease and paperwork basics",
+      "body": [
+        "If the home you're considering was built before 1978, federal law requires the landlord to disclose known lead-based paint hazards and provide the EPA's lead pamphlet; in the City of Cleveland specifically, older rental units also need a **Lead-Safe Certification** under a 2019 city ordinance (Codified Ordinances §365.04). Ask whether the property has current certification. Review our [first-time renter guide](/cleveland-rentals/guides/first-time-renter-guide-cleveland/) for a broader rundown of applications and deposits, and if you have a Housing Choice Voucher, see our [Section 8 housing guide](/section-8-housing-cleveland-oh/) — every home we manage accepts vouchers and is HUD-inspection-ready. [Contact our team](/p/book-showing) once you're ready to start touring."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How far in advance should I start planning a move to Cleveland?",
+      "a": "Give yourself 4-6 weeks if possible: time to research neighborhoods, tour homes, submit applications, and set up utility accounts before your move-in date. Popular, well-priced rental homes can go quickly, so having your budget and paperwork ready in advance helps you move fast when you find the right fit."
+    },
+    {
+      "q": "What's the biggest difference between Cleveland's east side and west side?",
+      "a": "The primary difference is geography and housing stock rather than any single defining trait. The East Side includes neighborhoods like Slavic Village, Collinwood, Glenville, and University Circle; the West Side includes Ohio City, Tremont, Detroit-Shoreway, and Old Brooklyn. Our compare guide breaks down transit, ZIP codes, and typical housing types on each side."
+    },
+    {
+      "q": "Do I need a car to live in Cleveland?",
+      "a": "Not necessarily, depending on where you live and work. GCRTA's Red Line rail connects the airport, downtown, and the East Side, and the HealthLine BRT runs along Euclid Avenue to University Circle. Many neighborhoods also have regular bus routes. That said, many suburbs and some city neighborhoods have limited transit, so check specific routes for your commute."
+    },
+    {
+      "q": "When should I set up my utilities before moving to Cleveland?",
+      "a": "Start the process about 1-2 weeks before your move-in date, since some providers need time to open a new account or transfer service. Confirm which electric provider (Cleveland Public Power or The Illuminating Company) and gas provider (Enbridge Gas Ohio or Columbia Gas) serve your specific address before assuming."
+    },
+    {
+      "q": "Are there Section 8-friendly rental homes available when moving to Cleveland?",
+      "a": "Yes. Every rental home we manage across Greater Cleveland accepts Housing Choice Vouchers and is HUD-inspection-ready. Note that Ohio has no statewide law requiring landlords to accept vouchers, and the City of Cleveland itself doesn't currently protect voucher holders by ordinance, so confirm acceptance with any other landlord you consider."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://www.cpp.org/",
+    "https://www.clevelandwater.com/",
+    "https://www.riderta.com/routes"
+  ],
+  "lastUpdated": "2026-07-04"
+}

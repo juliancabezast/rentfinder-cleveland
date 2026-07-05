@@ -1,0 +1,80 @@
+{
+  "slug": "rent-with-eviction-on-record-ohio",
+  "cluster": "guides",
+  "title": "Renting with an eviction on your record in Ohio — options",
+  "metaTitle": "Rent With an Eviction on Your Record in Ohio",
+  "metaDescription": "Have an eviction on your Ohio record? Learn how screening actually works, what helps your application, and honest next steps. Contact our team today.",
+  "primaryKeyword": "rent with eviction on record ohio",
+  "secondaryKeywords": ["eviction on record ohio renting", "second chance rental ohio", "eviction sealing ohio", "how to rent with a past eviction"],
+  "answerBox": "An eviction on your record makes renting harder in Ohio but not impossible. Most landlords screen through court records and will ask about it directly. Being upfront, offering a co-signer or larger lawful deposit, and gathering references and proof of income are the factors that most often make a landlord say yes.",
+  "sections": [
+    {
+      "h2": "Does an eviction on your record stop you from renting in Ohio?",
+      "body": [
+        "An eviction on your record does not automatically disqualify you, but it does make screening harder. Eviction (forcible entry and detainer) cases filed in Ohio municipal and county courts are public record, and most landlords or their screening companies check court dockets as part of an application. A past eviction is a red flag many landlords weigh alongside your income, references, and how long ago the case happened.",
+        "We are honest about this: virtually every landlord in Cuyahoga County, including us, screens applicants. We do not offer a way around screening, and no legitimate landlord should promise otherwise. What we can tell you is which factors actually move the needle when a record shows up on a report."
+      ]
+    },
+    {
+      "h2": "How Ohio's eviction process works, and what shows up later",
+      "body": [
+        "Ohio evictions are governed by Revised Code Chapter 1923 (forcible entry and detainer). For nonpayment of rent, a landlord must first serve a written **3-day notice to leave the premises** before filing in court, and Ohio law requires that notice to include specific statutory language under **ORC 1923.04(A)**, including the line \"if you are in doubt regarding your legal rights and obligations as a tenant, it is recommended that you seek legal assistance.\" Not every 3-day notice ends in a filed case, and not every filed case ends in a judgment against the tenant — some are dismissed, settled, or withdrawn.",
+        "That distinction matters for renters: a court case being *filed* is not the same as losing the case. When you talk to a prospective landlord, it helps to know exactly what your own record shows — whether it was a judgment, a dismissal, or a case that was resolved before a hearing — because that context changes how a landlord is likely to read it."
+      ]
+    },
+    {
+      "h2": "What actually helps your application after an eviction",
+      "body": [
+        "There is no way to make an eviction disappear from a court's public docket, and we won't pretend otherwise. What can help is building an application that gives a landlord other reasons to say yes. In practice, the factors below are what most Cleveland-area landlords weigh most heavily."
+      ],
+      "table": {
+        "headers": ["What helps", "Why it matters", "How to use it"],
+        "rows": [
+          ["A co-signer or guarantor", "Adds a second, stronger income and credit profile to the application", "Ask a family member or use a paid guarantor service; see our [co-signer guide](/cleveland-rentals/guides/cosigner-to-rent-apartment-ohio/)"],
+          ["A larger lawful security deposit", "Gives the landlord more cushion against risk (still governed by ORC 5321.16)", "Offer what you can reasonably afford up front, in writing"],
+          ["Recent, positive landlord or employer references", "Shows current stability even with a past incident", "Line up 2-3 references before you apply, not after"],
+          ["A clear, upfront explanation", "Landlords often respond better to honesty than a surprise on a background check", "Briefly explain the circumstances (job loss, medical bill, etc.) in your application"],
+          ["A Housing Choice Voucher (Section 8)", "Verified rental assistance can offset income concerns", "See our [Section 8 guide](/section-8-housing-cleveland-oh/) for how vouchers work locally"]
+        ]
+      }
+    },
+    {
+      "h2": "Can an eviction case be sealed in Ohio?",
+      "body": [
+        "In some situations, Ohio courts allow a party to petition to have an eviction case record sealed, which can limit who is able to view it going forward. Eligibility depends on the specific outcome of the case, how much time has passed, and the county where the case was filed — the rules are not the same for every case type and are not something we can generalize here. If you believe your case might qualify, the Legal Aid Society of Cleveland or your county's municipal or common pleas court clerk can tell you what applies to your situation. This is general information, not legal advice; always verify current procedure with a licensed attorney or the court."
+      ]
+    },
+    {
+      "h2": "Where a property manager fits into this",
+      "body": [
+        "We manage rental homes across Greater Cleveland, and every one of them accepts Housing Choice Vouchers and is HUD-inspection-ready — one option worth exploring if you have a voucher or are eligible for one. We still screen every applicant, including checking rental history, and we can't promise a specific outcome for any application. What we can do is look at your full picture — income, references, deposit, and any voucher — rather than a single line item. If you want to talk through your situation before you apply anywhere, [contact our leasing team](/p/book-showing) or read our [first-time renter guide](/cleveland-rentals/guides/first-time-renter-guide-cleveland/) for a broader look at the Cleveland application process."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Will every landlord in Cleveland automatically reject me for a past eviction?",
+      "a": "Not necessarily. Screening practices vary by landlord. Some weigh how long ago the eviction happened, whether it was a judgment or a dismissal, and what your current income and references look like. A single past case is often considered alongside the rest of your application rather than as an automatic disqualifier, though policies differ by owner."
+    },
+    {
+      "q": "Does Ohio law require landlords to disclose why they denied an application?",
+      "a": "Ohio does not have a general state law requiring landlords to give a specific reason for denying a rental application, though federal fair housing law prohibits denials based on protected classes. If you believe a denial was based on a protected characteristic rather than legitimate screening criteria, you can contact a fair housing agency."
+    },
+    {
+      "q": "Can I get an eviction removed from my record before it's resolved in court?",
+      "a": "Generally no — an active or pending case is part of the public court docket while it is open. Some resolved cases may later be eligible for sealing depending on the outcome and Ohio's applicable rules. A county court clerk or Legal Aid Society of Cleveland can explain what's possible for your specific case."
+    },
+    {
+      "q": "Does a housing voucher help if I have a past eviction?",
+      "a": "A Housing Choice Voucher does not erase a past eviction from your record, but it does verify a portion of your rent as reliable income to a landlord, which can strengthen an otherwise weaker application. Every home we manage accepts Section 8; see our Section 8 guide for how to apply through CMHA."
+    },
+    {
+      "q": "Should I mention my eviction before a landlord finds it on a background check?",
+      "a": "Being upfront is generally a stronger approach than letting a landlord discover it unexplained. A brief, honest explanation of the circumstances, paired with current references and proof of income, gives the landlord real context instead of just a red flag on a report."
+    }
+  ],
+  "cta": "contact",
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/section-1923.04", "https://codes.ohio.gov/ohio-revised-code/chapter-1923", "https://codes.ohio.gov/ohio-revised-code/section-5321.16"],
+  "lastUpdated": "2026-07-04",
+  "lawTopic": true
+}

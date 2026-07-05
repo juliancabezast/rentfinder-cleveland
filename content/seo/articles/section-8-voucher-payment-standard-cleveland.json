@@ -1,0 +1,77 @@
+{
+  "slug": "section-8-voucher-payment-standard-cleveland",
+  "cluster": "section-8",
+  "title": "How Much Rent Will My Section 8 Voucher Cover in Cleveland?",
+  "metaTitle": "Section 8 Voucher Payment Standard in Cleveland",
+  "metaDescription": "How CMHA's Section 8 payment standard works in Cleveland, what portion of rent you'll pay, and how to find voucher-friendly homes. Book a free showing.",
+  "primaryKeyword": "section 8 voucher payment standard cleveland",
+  "secondaryKeywords": ["how much does section 8 pay for rent", "cmha payment standard", "voucher rent portion cleveland"],
+  "answerBox": "Your Housing Choice Voucher generally covers the difference between your payment standard (a cap CMHA sets by bedroom size) and roughly 30% of your monthly adjusted income, as long as the unit's rent is reasonable. Get your household's exact figure from CMHA (cmha.net), since it depends on income, unit size, and utilities.",
+  "sections": [
+    {
+      "h2": "What is a Section 8 payment standard?",
+      "body": [
+        "A payment standard is the maximum monthly subsidy amount the Cuyahoga Metropolitan Housing Authority (CMHA) will use toward a voucher household's rent for a given bedroom size, based on HUD's Fair Market Rent data for the Cleveland metro area. It is **not** the rent CMHA will pay for a specific unit, and it is not automatically the full rent on any given home — it's a ceiling used in the math that determines your subsidy.",
+        "Because payment standards are set by bedroom count and adjusted periodically, the exact current dollar figures change year to year. Rather than publish a number that could be outdated by the time you read this, we point every renter to [CMHA's own housing choice voucher page](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) for the current chart before budgeting a search."
+      ]
+    },
+    {
+      "h2": "How your rent portion is actually calculated",
+      "body": [
+        "In general terms, a voucher household typically pays around 30% of monthly adjusted income toward rent and utilities, and the voucher covers the rest — up to the payment standard for your bedroom size. If you choose a unit with rent above the payment standard, you may pay more than 30% of your income out of pocket to cover the difference (within HUD limits); if you choose a lower-rent unit, your share can be lower.",
+        "CMHA verifies your household income, family size, and the specific unit's rent and utility responsibilities before finalizing your subsidy amount. Utility allowances (see our [utility allowance guide](/cleveland-rentals/section-8/section-8-utility-allowance-cleveland/)) also factor into the math if the tenant pays for gas, electric, or water directly."
+      ]
+    },
+    {
+      "h2": "Typical Cleveland rents by bedroom size (context, not a payment standard)",
+      "body": [
+        "To help you plan realistically, here is what asking rents look like across Cleveland right now, per Zumper's July 4, 2026 median-rent report. These are market rents, not CMHA payment standards — but they show why 2- and 3-bedroom units are usually the most attainable sizes for voucher holders in this market."
+      ],
+      "table": {
+        "headers": ["Bedroom size", "Zumper median asking rent (Jul 2026)", "Typical rent range in our voucher-friendly portfolio"],
+        "rows": [
+          ["Studio", "$1,060", "Not commonly available"],
+          ["1-bedroom", "$1,195", "$700 – $900"],
+          ["2-bedroom", "$1,100", "$750 – $1,100"],
+          ["3-bedroom", "$1,350", "$1,000 – $1,500"]
+        ]
+      }
+    },
+    {
+      "h2": "Finding a home that fits your payment standard",
+      "body": [
+        "Once you know your household's payment standard and estimated rent portion from CMHA, the next step is finding a unit whose rent is reasonable and whose landlord accepts vouchers. Every home we manage accepts Section 8 and is HUD-inspection-ready, which removes one common obstacle voucher holders run into — a landlord who won't participate at all. We manage rental homes concentrated in Cleveland's east and southeast side neighborhoods, including Slavic Village, Collinwood, Glenville, Fairfax, Hough, and Buckeye-Shaker, along with a smaller number on the west side.",
+        "Keep in mind that Ohio has no statewide law requiring landlords to accept vouchers, and the City of Cleveland itself does not have a source-of-income protection ordinance — only a handful of suburbs do (see our [source-of-income discrimination guide](/cleveland-rentals/section-8/source-of-income-discrimination-cleveland-ohio/)). That makes finding a genuinely voucher-friendly landlord even more valuable.",
+        "[Book a free showing](/p/book-showing) and tell our team your voucher's bedroom size and payment standard, and we'll help you see what's currently available that fits."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Where do I find my exact CMHA payment standard?",
+      "a": "CMHA publishes current payment standards by bedroom size and updates them periodically based on HUD Fair Market Rent data. Contact CMHA's Applications Team at (216) 431-1471, option 6, or check cmha.net directly — we intentionally don't publish a specific dollar figure here since it can change year to year."
+    },
+    {
+      "q": "Does the payment standard mean CMHA will pay that full amount?",
+      "a": "No. The payment standard is a cap used in the subsidy calculation, not a guaranteed payment. Your actual subsidy depends on your household income, the unit's actual rent, and utility responsibilities. Most households still pay roughly 30% of adjusted income toward rent and utilities."
+    },
+    {
+      "q": "What if a home's rent is higher than my payment standard?",
+      "a": "You can still consider it, but you may need to pay more out of pocket to make up the difference, subject to HUD affordability rules that CMHA enforces. Ask CMHA whether a specific rent amount would work for your voucher before signing a lease."
+    },
+    {
+      "q": "Do all landlords in Cleveland accept Section 8?",
+      "a": "No. Ohio has no statewide law requiring it, and Cleveland itself has no source-of-income protection ordinance, so acceptance varies landlord by landlord. Every home Rent Finder Cleveland manages accepts Housing Choice Vouchers, which is one of the reasons voucher holders work with us."
+    },
+    {
+      "q": "Do utilities affect my payment standard math?",
+      "a": "Yes. If you're responsible for gas, electric, or water directly, CMHA applies a utility allowance that affects your calculated rent portion. Ask CMHA for the utility allowance schedule for your unit type before budgeting."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers"
+  ],
+  "lastUpdated": "2026-07-04"
+}

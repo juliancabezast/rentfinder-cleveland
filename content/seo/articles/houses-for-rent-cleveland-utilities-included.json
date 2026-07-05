@@ -1,0 +1,80 @@
+{
+  "slug": "houses-for-rent-cleveland-utilities-included",
+  "cluster": "houses",
+  "title": "Houses for Rent in Cleveland with Utilities Included",
+  "metaTitle": "Houses for Rent in Cleveland Utilities Included",
+  "metaDescription": "Searching for houses for rent in Cleveland with utilities included? Here's what's typically covered, who supplies each utility, and how to search smart.",
+  "primaryKeyword": "houses for rent cleveland utilities included",
+  "secondaryKeywords": ["cleveland rentals utilities included", "all bills paid houses cleveland", "cleveland house rent with water included"],
+  "answerBox": "Most Cleveland house rentals bill utilities separately, since each unit is usually individually metered for electric and gas, but a smaller share of listings — especially some duplex and multi-unit buildings — bundle water, or occasionally heat, into the monthly rent. Always confirm exactly which utilities, if any, are included before applying.",
+  "sections": [
+    {
+      "h2": "Are utilities included in Cleveland house rentals?",
+      "body": [
+        "Usually not fully, but it depends on the property. Across Cleveland, the norm for single-family houses and most duplex units is separate metering for electric and gas, which the tenant pays directly to the utility provider. Water is the utility most likely to be included in rent, particularly in older multi-unit buildings where a single water line serves the whole structure and splitting the bill isn't practical.",
+        "Because this varies listing by listing, the most reliable approach is to ask directly which utilities a specific home includes before you apply — don't assume based on the neighborhood or building type."
+      ]
+    },
+    {
+      "h2": "Who supplies each utility in Cleveland",
+      "body": [
+        "Even when you're responsible for your own utility accounts, it helps to know who you'll be setting service up with. Electric service in Cleveland comes from one of two providers depending on the address: Cleveland Public Power, the city's municipally owned utility, or The Illuminating Company, an investor-owned utility that's part of FirstEnergy. Natural gas is generally supplied by Enbridge Gas Ohio (formerly Dominion East Ohio, renamed after Dominion's sale closed in March 2024), though some suburbs are served by Columbia Gas of Ohio instead.",
+        "Water comes from Cleveland Water, one of the largest municipal water systems in the country, while sewer and stormwater service for the city and much of the metro runs through the Northeast Ohio Regional Sewer District. For a step-by-step walkthrough of setting all of this up as a new renter, see our [utilities setup guide](/cleveland-rentals/guides/set-up-utilities-cleveland-renters/)."
+      ]
+    },
+    {
+      "h2": "Typical utility responsibility by type",
+      "body": [
+        "Here's the general pattern across Cleveland rental homes, though every listing should confirm its own specifics in the lease."
+      ],
+      "table": {
+        "headers": ["Utility", "Who typically pays", "Provider"],
+        "rows": [
+          ["Electric", "Renter, unless the listing states otherwise", "Cleveland Public Power or The Illuminating Company, by address"],
+          ["Natural gas / heat", "Renter, unless the listing states otherwise", "Enbridge Gas Ohio (some suburbs: Columbia Gas of Ohio)"],
+          ["Water", "Sometimes included in rent, especially in multi-unit buildings", "Cleveland Water"],
+          ["Sewer / stormwater", "Often billed alongside water", "Northeast Ohio Regional Sewer District"]
+        ]
+      }
+    },
+    {
+      "h2": "Why utilities-included listings are less common for houses",
+      "body": [
+        "Single-family houses are almost always individually metered from the start, since only one household draws power, gas, and water through the property. That makes it straightforward — and typical — for landlords to leave those bills to the tenant, who can then also shop for their own service and usage habits.",
+        "Duplex and multi-unit buildings are more likely to have shared water lines or, in some older buildings, a single gas meter feeding both units, which is when a landlord may fold that utility into rent rather than try to split a shared bill. If a bundled-utility setup matters to your search, duplexes are generally a better place to look than detached houses — see our [duplex rentals guide](/cleveland-rentals/houses/duplex-for-rent-cleveland-ohio/) for more on how those units work."
+      ]
+    },
+    {
+      "h2": "Finding a Cleveland rental with utilities included",
+      "body": [
+        "We manage 90+ rental homes across Greater Cleveland, and utility responsibility varies by property just as it does across the rest of the city — some of our multi-unit buildings include water in rent, while most units bill electric and gas separately to the tenant. Every home we manage accepts Section 8 Housing Choice Vouchers and is HUD-inspection-ready, regardless of how utilities are structured.",
+        "[Book a free showing](/p/book-showing) and ask our local leasing team directly which utilities are included on any home you're interested in — it's one of the fastest ways to compare your true monthly cost across listings. You can also browse our full range of [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) by bedroom count and budget."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do Cleveland house rentals usually include utilities?",
+      "a": "Not usually in full. Most single-family houses have separately metered electric and gas billed to the tenant. Water is the utility most likely to be included, especially in multi-unit or duplex buildings with a shared water line. Always confirm the specifics for a given listing before applying."
+    },
+    {
+      "q": "Which utility company serves my Cleveland rental?",
+      "a": "It depends on your address. Electric comes from either Cleveland Public Power or The Illuminating Company, natural gas is generally supplied by Enbridge Gas Ohio (some suburbs use Columbia Gas of Ohio), and water comes from Cleveland Water. Confirm the exact providers for your address before signing a lease."
+    },
+    {
+      "q": "Are duplexes more likely to include utilities than houses?",
+      "a": "Sometimes. Duplex and multi-unit buildings occasionally have a shared water line or single gas meter serving both units, which can lead a landlord to include that utility in rent rather than split the bill. Single-family houses are almost always individually metered and billed separately."
+    },
+    {
+      "q": "How can I find out if a specific Cleveland listing includes utilities?",
+      "a": "Ask the property manager or landlord directly which utilities, if any, are covered in the rent before you apply. Don't assume based on the neighborhood or building type — coverage varies property by property, even within the same building."
+    },
+    {
+      "q": "Does Rent Finder Cleveland include utilities in any of its homes?",
+      "a": "It varies by property. Some of our multi-unit buildings include water in rent, while most units bill electric and gas separately to the tenant. Book a showing and ask our leasing team about the specific utility setup for any home you're considering."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [],
+  "lastUpdated": "2026-07-04"
+}

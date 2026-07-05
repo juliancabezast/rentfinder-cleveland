@@ -1,0 +1,91 @@
+{
+  "slug": "houses-for-rent-gordon-square-cleveland",
+  "cluster": "neighborhoods",
+  "title": "Houses for Rent in Gordon Square, Cleveland",
+  "metaTitle": "Houses for Rent in Gordon Square, Cleveland OH",
+  "metaDescription": "Houses for rent near Gordon Square, Cleveland's arts district in Detroit-Shoreway (44102). Rent ranges, transit, and Section 8-friendly homes. Book a showing.",
+  "primaryKeyword": "houses for rent Gordon Square cleveland",
+  "secondaryKeywords": ["gordon square arts district rentals", "detroit avenue cleveland houses", "44102 rentals near gordon square"],
+  "answerBox": "Gordon Square is the arts and entertainment district along Detroit Avenue within Cleveland's Detroit-Shoreway neighborhood (ZIP 44102). We manage Section 8-friendly rental homes in and around Gordon Square; homes in our portfolio there typically rent from about $700 to $1,800 a month, with most closer to $1,000.",
+  "sections": [
+    {
+      "h2": "Renting a house near Gordon Square",
+      "body": [
+        "Gordon Square is the walkable arts and entertainment district centered on **Detroit Avenue** between roughly **W. 58th and W. 65th Streets**, inside the larger Detroit-Shoreway neighborhood on Cleveland's near-west side (**ZIP 44102**). The district takes its name from the Gordon Square Arts District and is home to the Capitol Theatre, Near West Theatre, and Cleveland Public Theatre, along with restaurants and small shops along Detroit Avenue.",
+        "Houses for rent near Gordon Square are mostly early-1900s duplexes and single-family homes on the residential side streets just off Detroit Avenue, a short walk to the theaters and business strip. We manage Section 8-friendly rental homes in this part of Cleveland — [book a showing](/p/book-showing) to see current availability near Gordon Square."
+      ]
+    },
+    {
+      "h2": "How much does it cost to rent a house near Gordon Square?",
+      "body": [
+        "Citywide, a 2-bedroom home has a median rent of about $1,100 a month and a 3-bedroom about $1,350, per Zumper's rent report dated July 2026. Homes in our own portfolio around Gordon Square and the wider Detroit-Shoreway area typically run from about $700 to $1,800 a month, with most closer to $1,000, depending on size and condition.",
+        "RentCafe's report dated July 2026 puts the citywide average for professionally managed Cleveland apartments at $1,564 a month for a unit averaging 787 square feet — useful as an upper-end comparison against the older individually owned houses more typical of the streets around Gordon Square."
+      ],
+      "table": {
+        "headers": ["Home type", "Typical monthly rent", "Source"],
+        "rows": [
+          ["Citywide 2-bedroom (any type)", "~$1,100", "Zumper, July 2026"],
+          ["Citywide 3-bedroom (any type)", "~$1,350", "Zumper, July 2026"],
+          ["Our portfolio near Gordon Square", "~$700 – $1,800, most near $1,000", "Rent Finder Cleveland current portfolio"]
+        ]
+      }
+    },
+    {
+      "h2": "Getting around Gordon Square",
+      "body": [
+        "Gordon Square sits directly on GCRTA's Detroit Avenue bus corridor, with frequent service east into Downtown and west toward Lakewood. The West Shoreway (Route 2) is a short drive north, giving quick highway access along the Lake Erie shoreline, and Edgewater Park is about a mile north for outdoor recreation."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**ZIP code:** 44102 (part of the Detroit-Shoreway neighborhood)",
+          "**Transit:** Detroit Avenue bus routes; West Shoreway (Route 2) nearby",
+          "**Arts district:** Capitol Theatre, Near West Theatre, Cleveland Public Theatre",
+          "**Green space:** Edgewater Park about a mile north"
+        ]
+      }
+    },
+    {
+      "h2": "Section 8 and vouchers near Gordon Square",
+      "body": [
+        "Gordon Square falls within ZIP 44102, one of the areas where we currently manage rental homes, and every home we manage accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Ohio has no statewide law requiring landlords to accept vouchers, and Cleveland does not currently have a citywide source-of-income protection ordinance, so it's worth confirming voucher acceptance with any landlord you contact — ours accept them on every unit.",
+        "[Start an application](/apply) if you've already found a home you like, or read our [Section 8 guide](/section-8-housing-cleveland-oh/) for how CMHA's voucher process, waitlist, and inspections work locally. CMHA's own [Housing Choice Voucher page](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) has current program details."
+      ]
+    },
+    {
+      "h2": "Nearby: Detroit-Shoreway and Edgewater",
+      "body": [
+        "Gordon Square is the commercial heart of the broader [Detroit-Shoreway](/cleveland-rentals/neighborhoods/houses-for-rent-detroit-shoreway-cleveland/) neighborhood, and the [Edgewater](/cleveland-rentals/neighborhoods/houses-for-rent-edgewater-cleveland/) lakefront area is a short walk or drive north — both worth comparing if you're house-hunting on Cleveland's near-west side."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Are there Section 8 houses for rent near Gordon Square?",
+      "a": "Yes. Gordon Square is within ZIP 44102, where we currently manage rental homes, and every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready. Book a showing to see current availability near Gordon Square."
+    },
+    {
+      "q": "How much does it cost to rent a house near Gordon Square?",
+      "a": "Citywide, comparable 2-bedroom homes run about $1,100 a month and 3-bedrooms about $1,350, per Zumper's July 2026 data. Homes in our own portfolio near Gordon Square typically rent from about $700 to $1,800, with most closer to $1,000."
+    },
+    {
+      "q": "What neighborhood is Gordon Square in?",
+      "a": "Gordon Square is the arts and entertainment district along Detroit Avenue within the larger Detroit-Shoreway neighborhood, in ZIP code 44102 on Cleveland's near-west side."
+    },
+    {
+      "q": "What's in the Gordon Square Arts District?",
+      "a": "The district includes the Capitol Theatre, Near West Theatre, and Cleveland Public Theatre, plus restaurants and shops along Detroit Avenue. It's a walkable commercial strip within Detroit-Shoreway rather than a separate residential neighborhood."
+    },
+    {
+      "q": "Is Gordon Square close to Edgewater Park?",
+      "a": "Yes, Edgewater Park is about a mile north of Gordon Square along Cleveland's Lake Erie shoreline, accessible by a short drive or bike ride."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.zumper.com/rent-research/cleveland-oh",
+    "https://www.rentcafe.com/average-rent-market-trends/us/oh/cleveland/",
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"
+  ],
+  "lastUpdated": "2026-07-04"
+}

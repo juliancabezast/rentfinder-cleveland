@@ -1,0 +1,91 @@
+{
+  "slug": "what-utilities-included-cleveland-rent",
+  "cluster": "guides",
+  "title": "What Utilities Are Usually Included in Cleveland Rentals?",
+  "metaTitle": "What Utilities Are Included in Cleveland Rentals?",
+  "metaDescription": "What utilities are usually included in a Cleveland rental? Learn who pays for water, electric, and gas, and how to confirm it before you sign a lease.",
+  "primaryKeyword": "what utilities included cleveland rent",
+  "secondaryKeywords": ["utilities included cleveland apartment", "who pays water cleveland rental", "cleveland electric provider rental"],
+  "answerBox": "In most Cleveland rentals, water is the utility most likely to be included by the landlord, especially in duplexes and multi-unit buildings with a single shared meter. Electric and natural gas are typically the tenant's responsibility and are billed by whichever provider serves that address — which varies block by block in Cleveland.",
+  "sections": [
+    {
+      "h2": "Are utilities included when you rent in Cleveland?",
+      "body": [
+        "It depends on the listing, but there's a common pattern: water is the utility most often included in the rent, while electric and natural gas are typically paid separately by the tenant. This is especially true in Cleveland's many duplexes and multi-unit rental homes, where one water meter often serves an entire building and can't easily be split between tenants.",
+        "There's no citywide rule requiring any utility to be included — it's a lease-by-lease decision made by each landlord, so the only way to know for certain on a specific home is to check the lease or ask directly before signing.",
+        "This matters most when comparing listings side by side. A home advertised at a slightly higher monthly rent with water included can end up costing less overall than a cheaper-looking listing where the tenant also covers water on top of electric and gas — so it's worth asking about utilities before comparing prices, not after."
+      ]
+    },
+    {
+      "h2": "Who actually provides electric, gas, and water in Cleveland?",
+      "body": [
+        "Cleveland is unusual in that two separate companies provide electricity depending on the exact address: **Cleveland Public Power (CPP)**, the city's own municipally-owned utility, and **The Illuminating Company**, an investor-owned utility that's part of FirstEnergy. Which one serves a given rental depends on location, not on the landlord's preference, so tenants need to confirm the provider for their specific address rather than assume.",
+        "Natural gas in most of the city comes from **Enbridge Gas Ohio** — the company formerly known as Dominion East Ohio / The East Ohio Gas Company, which changed hands when Dominion closed the sale of its Ohio gas distribution business to Enbridge on March 7, 2024. Some Cleveland-area suburbs are instead served by Columbia Gas of Ohio. Water comes from **Cleveland Water**, the city's Division of Water, which also serves many surrounding suburbs, while wastewater treatment across most of the metro runs through the **Northeast Ohio Regional Sewer District (NEORSD)**.",
+        "Because CPP and The Illuminating Company serve different, specific address ranges rather than splitting the city evenly, two rental homes on nearby streets can end up with different electric providers and different rate structures. Our [Cleveland Public Power vs. Illuminating Company guide](/cleveland-rentals/guides/cleveland-public-power-vs-illuminating-company/) goes into more detail on how to check which one serves a given address."
+      ]
+    },
+    {
+      "h2": "Cleveland utility providers at a glance",
+      "body": [
+        "The table below summarizes who typically provides each utility and who usually pays for it in a Cleveland rental — but always confirm the exact provider and lease terms for a specific address, since electric provider especially varies by block."
+      ],
+      "table": {
+        "headers": ["Utility", "Typical provider(s)", "Who usually pays"],
+        "rows": [
+          ["Water", "Cleveland Water (Division of Water)", "Sometimes included by landlord, especially in multi-unit buildings"],
+          ["Electric", "Cleveland Public Power (CPP) or The Illuminating Company, depending on address", "Tenant, in most leases"],
+          ["Natural gas", "Enbridge Gas Ohio (some suburbs: Columbia Gas of Ohio)", "Tenant, in most leases"],
+          ["Sewer / stormwater", "Northeast Ohio Regional Sewer District (NEORSD), often billed with water", "Sometimes included with water when landlord covers water"]
+        ]
+      }
+    },
+    {
+      "h2": "Why is water included more often than electric or gas?",
+      "body": [
+        "It usually comes down to metering. Many of Cleveland's rental homes are duplexes, triplexes, and fourplexes, and older multi-unit buildings frequently share a single water meter for the whole property, which makes it impractical to bill each unit separately — so the landlord pays the water bill and folds the cost into the rent. Electric and gas meters, by contrast, are far more commonly split per unit even in older multi-family buildings, which is why tenants usually set those up in their own name.",
+        "Sewer charges typically follow the same pattern as water for this reason — since NEORSD billing is often combined with the water bill on a single statement, a landlord who covers water in a multi-unit building is frequently covering sewer too, even if the listing only mentions \"water included.\""
+      ]
+    },
+    {
+      "h2": "How to confirm utility responsibility before you sign",
+      "body": [
+        "Ask the property manager directly which utilities are included in the rent, and get the answer in writing in the lease's utilities clause rather than relying on a verbal answer. For anything not included, ask which specific provider serves that address — CPP or Illuminating for electric, Enbridge or Columbia Gas for natural gas — so you can set up the account before move-in day. Our [guide to setting up utilities as a Cleveland renter](/cleveland-rentals/guides/set-up-utilities-cleveland-renters/) walks through that setup process step by step, and if you're budgeting for a cold-weather lease, see [what winter heating typically costs in a Cleveland rental](/cleveland-rentals/guides/cleveland-rental-winter-heating-cost/)."
+      ]
+    },
+    {
+      "h2": "Utilities across our Cleveland rental homes",
+      "body": [
+        "Utility responsibility is set per lease across our portfolio of 90+ rental homes in Greater Cleveland — some include water, most require tenants to set up their own electric and gas accounts. When you book a showing, ask which utilities are included for that specific home so there are no surprises before move-in. Every home we manage also accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is water usually included in Cleveland rentals?",
+      "a": "Often, yes, especially in duplexes and multi-unit buildings where one meter serves the whole property, making it impractical to bill tenants separately. It's not guaranteed on every lease, though — always check the specific listing or lease before assuming water is covered."
+    },
+    {
+      "q": "Who provides electricity for a Cleveland rental?",
+      "a": "It depends on the address: either Cleveland Public Power (CPP), the city's municipally-owned utility, or The Illuminating Company, part of FirstEnergy. There's no single citywide electric provider, so confirm which one serves a specific rental before signing a lease."
+    },
+    {
+      "q": "What company provides natural gas in Cleveland?",
+      "a": "Most of Cleveland is served by Enbridge Gas Ohio, formerly Dominion East Ohio, which changed ownership when Dominion closed the sale of its Ohio gas business to Enbridge on March 7, 2024. Some suburbs use Columbia Gas of Ohio instead."
+    },
+    {
+      "q": "Are electric and gas usually included in the rent?",
+      "a": "Typically not. Most Cleveland leases have the tenant set up and pay their own electric and natural gas accounts directly with the provider, while water is more often the utility a landlord chooses to include in the monthly rent."
+    },
+    {
+      "q": "How do I find out which utilities are included before I apply?",
+      "a": "Ask the property manager directly and confirm it in writing in the lease's utilities section rather than relying on the listing description alone. Booking a showing is also a good time to ask, since the answer can vary from one rental home to the next."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://www.cpp.org/",
+    "https://www.clevelandwater.com/",
+    "https://www.enbridge.com/media-center/news/details?id=123807&lang=en"
+  ],
+  "lastUpdated": "2026-07-04"
+}

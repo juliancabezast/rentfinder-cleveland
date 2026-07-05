@@ -1,0 +1,104 @@
+{
+  "slug": "moving-with-section-8-voucher-cleveland",
+  "cluster": "section-8",
+  "title": "Moving With a Section 8 Voucher: The Transfer & Move Packet",
+  "metaTitle": "Moving With a Section 8 Voucher in Cleveland",
+  "metaDescription": "Moving with a Section 8 voucher in Cleveland: how CMHA portability works, your landlord move-out duties, and inspection steps. Book a voucher-friendly showing.",
+  "primaryKeyword": "moving with section 8 voucher cleveland",
+  "secondaryKeywords": ["section 8 voucher portability cleveland", "CMHA move packet", "port section 8 voucher"],
+  "answerBox": "Moving with a Housing Choice Voucher means porting your CMHA subsidy to a new home, in or out of Cuyahoga County. You typically notify CMHA in writing, complete a move/portability briefing, find a voucher-friendly unit that passes inspection, and wait roughly two to six weeks for the transfer to process.",
+  "sections": [
+    {
+      "h2": "What does it mean to move with a Section 8 voucher?",
+      "body": [
+        "Moving with a Housing Choice Voucher means using your CMHA subsidy at a different unit — either elsewhere in Cuyahoga County or, through a process called portability, in a different housing authority's jurisdiction entirely. Portability is a federal HCV feature that lets voucher holders transfer their subsidy when they move outside the area of the public housing authority that issued it.",
+        "The process generally takes about two to six weeks, depending on how quickly your paperwork and the new unit's inspection come together. It is not automatic — you have to initiate it with CMHA before you sign a new lease anywhere else.",
+        "This matters for both short local moves and longer-distance ones: a voucher holder relocating a few miles within Cuyahoga County still typically needs to coordinate the change through CMHA, while a household moving to a different state works through portability between two separate housing authorities. Either way, the subsidy itself doesn't automatically follow you to a new address without paperwork."
+      ]
+    },
+    {
+      "h2": "Step-by-step: porting your CMHA voucher",
+      "body": [
+        "If you're porting a voucher into Cuyahoga County from elsewhere, see our [porting into Cleveland guide](/cleveland-rentals/section-8/port-section-8-voucher-to-cleveland/); if you're leaving Cuyahoga County, see [porting out of Cuyahoga County](/cleveland-rentals/section-8/port-section-8-voucher-out-of-cuyahoga-county/). Either way, the basic sequence looks the same:",
+        "Timing your notice matters more than most renters expect. Starting the move packet too close to your current lease's end date can leave a gap between move-out and move-in, since the receiving housing authority still has to process paperwork and schedule an inspection before your new lease can begin."
+      ],
+      "list": {
+        "type": "ol",
+        "items": [
+          "Notify CMHA in writing that you intend to move, well before your current lease ends.",
+          "Request your move/portability packet and attend any required briefing on the transfer process.",
+          "Find a new voucher-friendly, HUD-inspection-ready unit — in Cuyahoga County or elsewhere.",
+          "Submit the new unit and landlord information to CMHA (or the receiving housing authority, if you're porting out of the county) for approval.",
+          "Wait for the new unit's inspection and lease paperwork to clear before move-in."
+        ]
+      },
+      "table": {
+        "headers": ["Step", "Typical timing"],
+        "rows": [
+          ["Notify CMHA + request move packet", "Before you give notice on your current lease"],
+          ["Move/portability briefing", "Scheduled after CMHA receives your request"],
+          ["Find + submit new unit for approval", "Varies — until you locate a voucher-friendly unit"],
+          ["Inspection + paperwork transfer", "Roughly 2–6 weeks once a unit is submitted"]
+        ]
+      }
+    },
+    {
+      "h2": "Your responsibilities to your current landlord when you move",
+      "body": [
+        "Ohio law generally requires landlords to return a tenant's security deposit within 30 days after the lease ends and the tenant moves out and provides a forwarding address, along with an itemized written statement of any deductions for unpaid rent or damage (Ohio Revised Code §5321.16). If your deposit exceeded $50 or one month's rent and you lived in the unit six months or more, Ohio law generally required the landlord to pay 5% annual interest on the excess amount.",
+        "This is general information, not legal advice — always check your specific lease terms and current Ohio law before you give notice, since notice periods and any early-termination provisions are set by your lease as well as state law.",
+        "Getting your deposit back on schedule can matter for the move itself, since many voucher holders use it to help cover moving costs or a deposit on the new unit. If a landlord withholds a deposit without the itemized statement Ohio law generally requires, a tenant may be able to recover the wrongfully withheld amount plus an equal additional amount and reasonable attorney's fees under ORC 5321.16 — again, general information, not a substitute for legal advice on your specific situation."
+      ]
+    },
+    {
+      "h2": "New unit inspection: what to expect before you can move in",
+      "body": [
+        "Before a subsidy can start at a new address, the unit has to pass a physical inspection. HUD is transitioning the inspection standard used nationwide from the older Housing Quality Standards (HQS) to the newer NSPIRE standard, with a final [HCV transition deadline](https://www.hud.gov/helping-americans/housing-choice-vouchers) of February 1, 2027. Whichever standard applies when you move, the landlord's unit has to pass before CMHA (or the receiving housing authority) will start paying the subsidy.",
+        "This is exactly where a lot of moves stall — a unit that looks fine to a renter can still fail inspection over things like missing smoke detectors or peeling paint. Every home Rent Finder Cleveland manages is already HUD-inspection-ready, which removes a common source of move-in delay.",
+        "It's worth building inspection timing into your move plan rather than treating it as a formality. If a prospective new unit fails on the first pass, the landlord has to make repairs and schedule a re-inspection, which can push your move-in date back — something to factor in if you're also coordinating a move-out date and deposit return with your current landlord."
+      ]
+    },
+    {
+      "h2": "Moving to a Rent Finder Cleveland home with your voucher",
+      "body": [
+        "We manage 90-plus rental homes across Greater Cleveland, and every one of them accepts Housing Choice Vouchers and is HUD-inspection-ready — concentrated in East and Southeast Cleveland neighborhoods (Slavic Village, Collinwood, Glenville, Fairfax/Central, Hough, Buckeye-Shaker), with additional homes on the west side and in Akron, Lorain, and Elyria. If you're mid-port and need a voucher-friendly home lined up, [book a showing](/p/book-showing) and tell us your voucher size and target move date."
+      ]
+    },
+    {
+      "h2": "Where Section 8 protections do (and don't) apply once you move",
+      "body": [
+        "Keep in mind that Ohio has no statewide law requiring a landlord to accept your voucher, and the City of Cleveland itself has not enacted source-of-income protection — so a landlord inside Cleveland can generally decline a voucher as a payment source. A handful of Cuyahoga County suburbs, reported to include Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale, have adopted local protections instead. Read the details in our [source-of-income discrimination guide](/cleveland-rentals/section-8/source-of-income-discrimination-cleveland-ohio/) before you commit to a specific address."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How long does it take to move with a Section 8 voucher?",
+      "a": "Portability generally takes about two to six weeks once you've submitted a new unit for approval, though the exact timing depends on how quickly the inspection and paperwork clear. Start the process with CMHA well before your current lease ends to avoid a gap."
+    },
+    {
+      "q": "Can I move with my voucher outside Cuyahoga County?",
+      "a": "Yes. Portability lets Housing Choice Voucher holders transfer their subsidy to a different public housing authority's jurisdiction, not just to a new address within Cuyahoga County. You still have to notify CMHA and complete the transfer process before signing a new lease elsewhere."
+    },
+    {
+      "q": "Do I get my security deposit back before I move?",
+      "a": "Ohio law generally requires your current landlord to return your security deposit, with an itemized statement of any deductions, within 30 days after you move out and provide a forwarding address (ORC 5321.16). This is general information, not legal advice — confirm your lease terms and current law before you give notice."
+    },
+    {
+      "q": "Will my new unit need to pass inspection again?",
+      "a": "Yes. Any new address you move a Housing Choice Voucher to must pass a physical inspection under HUD's HQS or NSPIRE standard before your subsidy can start there. Homes that are already HUD-inspection-ready, like every home Rent Finder Cleveland manages, tend to clear this step faster."
+    },
+    {
+      "q": "Will every Cleveland landlord accept my voucher when I move?",
+      "a": "Not necessarily — Ohio has no statewide law requiring it, and the City of Cleveland has not enacted source-of-income protection, though several Cuyahoga County suburbs have. Every home Rent Finder Cleveland manages accepts vouchers regardless, so book a showing to line up your next address."
+    }
+  ],
+  "cta": "book-showing",
+  "lawTopic": true,
+  "sources": [
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers",
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"
+  ],
+  "lastUpdated": "2026-07-04"
+}

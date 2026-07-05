@@ -1,0 +1,90 @@
+{
+  "slug": "section-8-recertification-cleveland",
+  "cluster": "section-8",
+  "title": "Section 8 Recertification: Your Annual CMHA Reexamination",
+  "metaTitle": "Section 8 Recertification Cleveland | CMHA Annual Review",
+  "metaDescription": "How Section 8 recertification works with CMHA in Cleveland: what the annual reexamination checks, what to bring, and what happens if you miss it.",
+  "primaryKeyword": "section 8 recertification cleveland",
+  "secondaryKeywords": ["cmha annual reexamination", "section 8 renewal cleveland", "voucher recertification"],
+  "answerBox": "Section 8 recertification, also called an annual reexamination, is CMHA's yearly review of a Housing Choice Voucher household's income and family composition to reset the tenant's rent portion and subsidy amount. It's a routine, expected part of keeping a voucher active, not a re-application, and missing it can put your voucher at risk.",
+  "sections": [
+    {
+      "h2": "What is Section 8 recertification?",
+      "body": [
+        "**Recertification** (sometimes called an **annual reexamination**) is the yearly process CMHA uses to review a Housing Choice Voucher household's current income and family composition. The results determine how much of the rent the household pays versus how much CMHA subsidizes for the coming year. It applies to every active voucher household, not just ones that had a problem — it's a standard, expected part of keeping a voucher in good standing ([CMHA, Housing Choice Vouchers](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php)).",
+        "Think of recertification as the ongoing counterpart to the original application: the initial application got you onto the program, and each annual review keeps your file current so the subsidy amount still matches your household's actual circumstances. Renters sometimes assume recertification only matters if their income went up, but it also captures decreases, household changes, and address updates — all of which affect the numbers CMHA uses going forward."
+      ]
+    },
+    {
+      "h2": "What information does CMHA typically ask for?",
+      "body": [
+        "Recertification is essentially the same kind of information gathered at initial application, updated to reflect your current household: current income for all household members, any changes in who lives in the unit, and updated identifying information as needed. Because this mirrors the original application, it helps to keep the same categories of documents on hand year-round rather than scrambling right before your reexamination date."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Income verification** — current pay stubs, benefit statements, or other income documentation for everyone in the household",
+          "**Household composition** — any additions or removals of household members since your last certification",
+          "**Identification** — updated ID or Social Security documentation if anything has changed",
+          "**Unit information** — confirmation of your current address and landlord details"
+        ]
+      }
+    },
+    {
+      "h2": "How does recertification affect my rent?",
+      "body": [
+        "Because your rent portion is based on your household's income relative to the unit's rent, a change in income between certifications — a raise, a new job, or a household member losing income — can shift how much you pay and how much CMHA covers. This is normal and is exactly what the annual review is designed to capture; it is not a penalty."
+      ],
+      "table": {
+        "headers": ["Recertification outcome", "What it generally means"],
+        "rows": [
+          ["Income increased", "Tenant portion of rent may go up; subsidy may go down"],
+          ["Income decreased", "Tenant portion may go down; subsidy may go up"],
+          ["Household composition changed", "May affect voucher size (bedroom count) at your next move"],
+          ["No major changes", "Rent split typically stays about the same"]
+        ]
+      }
+    },
+    {
+      "h2": "What happens if I miss my recertification date?",
+      "body": [
+        "Missing a recertification deadline can put your voucher at risk of termination, since CMHA needs current information to keep administering your subsidy correctly. If you've missed a notice or aren't sure when yours is due, contact CMHA directly rather than wait — voucher terminations for a missed paperwork step are generally avoidable if you respond quickly.",
+        "It also helps to mark your recertification month on a calendar as soon as you get your notice, since CMHA typically sends the request well ahead of the actual deadline. Renters who reply promptly with complete documentation tend to avoid the back-and-forth that causes the longest delays.",
+        "If your recertification affects your bedroom-size eligibility or you're weighing a move, our [guide to moving with a voucher](/cleveland-rentals/section-8/moving-with-section-8-voucher-cleveland/) covers what changes when your household size or unit needs shift."
+      ]
+    },
+    {
+      "h2": "Renting a voucher-friendly home in Cleveland",
+      "body": [
+        "Recertification is between you and CMHA, but it directly affects what you can afford and where you can look. Every home we manage across our Cleveland-area portfolio accepts Housing Choice Vouchers and is maintained as HUD-inspection-ready, so once your recertification is squared away, [book a showing](/p/book-showing) to see what's currently available, or read our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for the fuller picture of how vouchers work here."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How often does Section 8 recertification happen?",
+      "a": "Recertification, or annual reexamination, happens once a year for every active Housing Choice Voucher household. CMHA reviews your current income and household composition to reset your rent portion and subsidy amount for the coming year."
+    },
+    {
+      "q": "What documents do I need for recertification?",
+      "a": "Generally the same categories of documents used at initial application: current income verification for all household members, updated identification, and confirmation of who currently lives in the unit. Keeping these organized year-round makes the annual review faster."
+    },
+    {
+      "q": "Will my rent go up after recertification?",
+      "a": "It depends on whether your household's income changed. If income increased, your rent portion may go up and CMHA's subsidy may go down; if income decreased, the opposite generally happens. No major income change usually means little to no change in your rent split."
+    },
+    {
+      "q": "What if I miss my CMHA recertification appointment?",
+      "a": "Missing your recertification date can put your voucher at risk, since CMHA needs current information to keep your subsidy accurate. Contact CMHA as soon as possible if you've missed a notice — responding quickly is generally the best way to avoid losing your voucher."
+    },
+    {
+      "q": "Does recertification affect where I can rent?",
+      "a": "It can. A change in household size at recertification may change the bedroom count your voucher supports, which affects which units you qualify for. Every home we manage accepts vouchers, so it's worth checking current availability once your recertification is settled."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php"
+  ],
+  "lastUpdated": "2026-07-04"
+}

@@ -1,0 +1,90 @@
+{
+  "slug": "rental-move-in-inspection-checklist",
+  "cluster": "guides",
+  "title": "What to check on a rental walkthrough / move-in inspection",
+  "metaTitle": "Rental Move-In Inspection Checklist: What to Check",
+  "metaDescription": "Use this rental move-in inspection checklist to document your Cleveland home's condition room by room and protect your security deposit before you unpack.",
+  "primaryKeyword": "rental move in inspection checklist",
+  "secondaryKeywords": ["move in condition form", "apartment walkthrough checklist", "rental inspection checklist ohio"],
+  "answerBox": "A move-in inspection checklist documents the condition of every room, appliance, and fixture in a rental before you start living there, with photos and a signed form that both you and the landlord keep. It matters because Ohio's security-deposit law lets a landlord deduct for damage beyond normal wear — a dated record proves what was already there.",
+  "sections": [
+    {
+      "h2": "Why do a move-in inspection before you unpack?",
+      "body": [
+        "A move-in inspection creates a dated, signed record of your rental's condition on day one — before any of your own wear and tear could be blamed on you. Under [Ohio Revised Code 5321.16](/cleveland-rentals/guides/ohio-security-deposit-law/), a landlord must return your security deposit within 30 days after you move out and provide an itemized list of any deductions for unpaid rent or damage beyond normal wear.",
+        "Without a move-in record, it's your word against the landlord's about what was already scuffed, stained, or broken. A signed checklist and time-stamped photos are the strongest evidence you can have if a deposit dispute comes up later — see our guide on [getting your security deposit back](/cleveland-rentals/guides/get-security-deposit-back-ohio/) for what happens at move-out."
+      ]
+    },
+    {
+      "h2": "Room-by-room checklist: what to check",
+      "body": [
+        "Walk through slowly, room by room, and test things rather than just looking at them — open every drawer, run every faucet, and flip every switch. Note anything that isn't working, and take a photo of anything with existing damage, no matter how minor."
+      ],
+      "table": {
+        "headers": ["Area", "What to check"],
+        "rows": [
+          ["Kitchen", "Stove burners and oven heat, refrigerator seal and temperature, sink for leaks and drainage, cabinet doors and drawer slides"],
+          ["Bathroom(s)", "Toilet flush and base seal, tub or shower caulk and drainage, exhaust fan operation, water pressure and hot water"],
+          ["Bedrooms & living areas", "Windows open, close, and lock; outlets and light switches; flooring or carpet stains; wall and ceiling condition"],
+          ["Building systems", "Furnace or heat pump operation, water heater, smoke detectors and carbon monoxide detectors (test the button)"],
+          ["Exterior (house/duplex units)", "Door locks and number of keys provided, porch and step condition, yard drainage, trash/recycling setup"]
+        ]
+      }
+    },
+    {
+      "h2": "What to do with the completed checklist",
+      "body": [
+        "Fill out the checklist together with your landlord or property manager whenever possible, and both parties should sign and date it. If a joint walkthrough isn't offered, complete your own checklist on move-in day, photograph every issue with your phone's default camera (which time-stamps the file), and send a copy to your landlord in writing so there's a dated record on file."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Complete the checklist the same day you get keys — not weeks later",
+          "Photograph or video every room, including inside cabinets, closets, and appliances",
+          "Note the reading on any utility meters that transfer to your name",
+          "Keep a copy for yourself and confirm the property manager has one on file",
+          "Ask what the process is for submitting a move-out checklist later"
+        ]
+      }
+    },
+    {
+      "h2": "What if you find a problem during the walkthrough?",
+      "body": [
+        "Report it in writing before you move your belongings in, so it's clear the issue existed on day one rather than being something you caused. Minor cosmetic items are usually just noted on the checklist, while anything affecting habitability — no heat, a major leak, a broken lock — should be flagged for repair immediately.",
+        "If a repair isn't addressed within a reasonable time, Ohio tenants have options under state law, including the rent-escrow process described in our guide to [Ohio tenant rights on repairs](/cleveland-rentals/guides/ohio-tenant-rights-repairs/). Ohio does not give tenants a general right to simply deduct repair costs from rent on their own — the statutory remedy runs through the local court, as covered in our [rent escrow explainer](/cleveland-rentals/guides/ohio-rent-escrow-repairs/)."
+      ]
+    },
+    {
+      "h2": "Move-in inspections on Rent Finder Cleveland homes",
+      "body": [
+        "We manage 90+ rental homes across Greater Cleveland — houses, duplexes, triplexes, and fourplexes — and every one accepts Housing Choice Vouchers and is HUD-inspection-ready. If you're renting one of our homes, our leasing team can walk you through the move-in documentation process before you get keys.",
+        "Have questions about a specific home's condition before you apply? [Book a free showing](/p/book-showing) so you can walk through in person, or [see current availability](/cleveland-rentals/guides/) across our Cleveland-area listings."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why does a move-in inspection checklist matter for my security deposit?",
+      "a": "It creates dated proof of your rental's condition before you moved in. Ohio law lets a landlord deduct from your deposit for damage beyond normal wear when you move out, so a signed, photographed move-in record is your best evidence that pre-existing issues weren't caused by you."
+    },
+    {
+      "q": "Should the landlord be present for the move-in walkthrough?",
+      "a": "It's best if they are, so you can sign a shared document together. If your landlord doesn't offer a joint walkthrough, complete your own checklist and photos on move-in day and send a copy in writing so there's still a dated record on file with the property manager."
+    },
+    {
+      "q": "What should I photograph during a move-in inspection?",
+      "a": "Every room from multiple angles, plus close-ups of any existing damage, stains, or wear — including inside cabinets, closets, and appliances. Your phone's camera automatically time-stamps photos, which helps establish exactly when the condition was documented."
+    },
+    {
+      "q": "What if I find something broken after I've already moved in?",
+      "a": "Report it to your landlord or property manager in writing as soon as you notice it, even if it's after move-in day. The sooner you document an issue, the clearer it is that it existed before you caused any wear of your own, and it starts the clock on the landlord's obligation to repair it."
+    },
+    {
+      "q": "Does Rent Finder Cleveland provide a move-in checklist?",
+      "a": "Our leasing team can walk you through documenting a home's condition when you move in. Book a free showing to see a home in person before you apply, or contact our team with questions about the move-in process for a specific listing."
+    }
+  ],
+  "cta": "contact",
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/section-5321.16"],
+  "lastUpdated": "2026-07-04"
+}

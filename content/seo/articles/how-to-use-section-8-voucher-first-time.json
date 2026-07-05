@@ -1,0 +1,93 @@
+{
+  "slug": "how-to-use-section-8-voucher-first-time",
+  "cluster": "section-8",
+  "title": "First Apartment with a Section 8 Voucher: Step by Step",
+  "metaTitle": "How to Use a Section 8 Voucher for the First Time",
+  "metaDescription": "New Housing Choice Voucher in hand? Here's how to use a Section 8 voucher for the first time in Cleveland, OH — from briefing to move-in. Book a showing.",
+  "primaryKeyword": "how to use section 8 voucher first time",
+  "secondaryKeywords": ["first time section 8 voucher", "using housing choice voucher cleveland", "section 8 voucher move in steps"],
+  "answerBox": "After CMHA issues your Housing Choice Voucher, you have a search window (set at your briefing) to find a unit, get the landlord to complete a Request for Tenancy Approval, pass a HUD inspection, and sign a lease with CMHA and the landlord both approving the rent before move-in.",
+  "sections": [
+    {
+      "h2": "What happens right after CMHA issues my voucher?",
+      "body": [
+        "Once the Cuyahoga Metropolitan Housing Authority (CMHA) selects your name from the preliminary application list (selection is by random mini-lottery, not strict first-come-first-served) and confirms eligibility, you're invited to a **voucher briefing**. That briefing is where CMHA hands you the actual voucher, explains your search timeframe, and reviews the rules for using it. From that point, the clock starts on finding a unit — so it helps to already know what neighborhoods and rent ranges you're targeting before the briefing.",
+        "This is also a good time to start touring. **We manage rental homes across Cleveland's east and southeast side — including Slavic Village, Collinwood, Glenville, Fairfax, Hough, and Buckeye-Shaker — and every one accepts Housing Choice Vouchers and is HUD-inspection-ready.** [Book a free showing](/p/book-showing) so you have a unit lined up as soon as your voucher is active."
+      ]
+    },
+    {
+      "h2": "How do I actually find a unit that takes my voucher?",
+      "body": [
+        "You search the same way any renter does — by neighborhood, bedroom count, and rent — except every listing you consider has to fall within CMHA's payment standard for that bedroom size, and the landlord has to be willing to accept the voucher. Ohio has no statewide law requiring landlords to accept vouchers, so it pays to confirm acceptance before you fall in love with a place.",
+        "Once you find a unit and the landlord agrees to rent to you, the landlord submits a **Request for Tenancy Approval (RTA)** to CMHA along with the proposed lease terms. CMHA then reviews the rent against its payment standard and schedules a **Housing Quality Standards (HQS)** inspection — the program HUD is transitioning to a newer standard called NSPIRE, with a final deadline of February 1, 2027 for the Housing Choice Voucher program. Only after the unit passes inspection and CMHA approves the rent can you sign the lease."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**1. Briefing** — CMHA issues the voucher and sets your search window",
+          "**2. Search & tour** — find a unit within the payment standard for your bedroom size",
+          "**3. Request for Tenancy Approval (RTA)** — landlord submits the unit and proposed rent",
+          "**4. Inspection** — the unit must pass CMHA's housing quality inspection",
+          "**5. Lease-up** — CMHA approves rent, you and the landlord sign, move-in day is set"
+        ]
+      }
+    },
+    {
+      "h2": "How much rent can I afford with my voucher?",
+      "body": [
+        "Your **payment standard** is the maximum monthly subsidy CMHA will contribute for your bedroom size — it is not automatically the full rent, and it is not the same as your out-of-pocket portion, which is generally based on your household income. CMHA publishes its current payment standard chart directly; always confirm the exact dollar figure for your bedroom size with [CMHA](https://www.cmha.net) before signing an RTA, since figures are updated periodically.",
+        "For general context, Cleveland asking rents (not voucher-specific) ran a median of $1,250/mo across all unit sizes per Zumper's July 2026 report, with 2-bedroom units around $1,100 and 3-bedroom units around $1,350. Our own managed rentals run **$700–$1,800/mo, typically around $1,000**, mostly 2- and 3-bedroom homes."
+      ],
+      "table": {
+        "headers": ["Step", "Who's responsible", "Typical outcome"],
+        "rows": [
+          ["Voucher briefing", "CMHA", "You receive your voucher and search window"],
+          ["Unit search & tour", "You (the voucher holder)", "Find a home within your payment standard"],
+          ["Request for Tenancy Approval", "Landlord + you", "Submitted to CMHA for rent approval"],
+          ["HQS/NSPIRE inspection", "CMHA inspector", "Unit must pass before lease-up"],
+          ["Lease signing", "You + landlord + CMHA", "Move-in date confirmed"]
+        ]
+      }
+    },
+    {
+      "h2": "What should I bring to my first showing?",
+      "body": [
+        "Bring photo ID, your voucher paperwork, proof of income, and a list of questions about utilities and lease terms. Landlords who work with vouchers regularly will already know the RTA and inspection process, which can speed things along. Ask directly whether the property has passed a voucher inspection before or if this would be its first — either is fine, but it helps you plan your timeline.",
+        "Every home we manage is already HUD-inspection-ready, which means the RTA-to-move-in process tends to move faster than at a property where the inspection is a first-time experience for the landlord. [See what's currently available](/section-8-housing-cleveland-oh/) or [schedule a showing](/p/book-showing) to get started."
+      ]
+    },
+    {
+      "h2": "Where can voucher holders rent in the Cleveland area?",
+      "body": [
+        "Ohio has no statewide law protecting voucher holders from source-of-income discrimination, and the City of Cleveland itself does not currently have such protection — a 2024 Cleveland ordinance addressing tenant issues left source-of-income protections out. A handful of Cuyahoga County suburbs — Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale — do prohibit refusing a voucher as of this writing. Outside those communities, acceptance is up to the individual landlord, which is exactly why confirming voucher-friendliness upfront matters.",
+        "That's the gap we fill: **every rental home we manage across Cleveland's neighborhoods accepts Housing Choice Vouchers**, so you don't have to screen landlords one by one. See our [Cleveland Section 8 housing guide](/section-8-housing-cleveland-oh/) for the full picture, or browse [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How long do I have to find an apartment after getting my voucher?",
+      "a": "CMHA sets your search window at the voucher briefing, and the exact number of days can vary by household situation. Extensions are sometimes available if you're actively searching but need more time. Ask your CMHA caseworker for your specific deadline at your briefing, and start touring units as soon as possible."
+    },
+    {
+      "q": "Do I need a co-signer to use a Section 8 voucher?",
+      "a": "Not because of the voucher itself — a co-signer requirement, if any, comes from the individual landlord's screening criteria (credit, income, or rental history), not from CMHA. Some landlords who work with newer renters may ask for a co-signer or additional references; ask directly what a specific property requires."
+    },
+    {
+      "q": "Can a landlord refuse my Section 8 voucher in Cleveland?",
+      "a": "In most of Cleveland, yes — Ohio has no statewide source-of-income protection and the city itself hasn't enacted one. Only Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale currently prohibit refusing a voucher. Every home we manage accepts vouchers, so acceptance isn't something you need to negotiate with us."
+    },
+    {
+      "q": "What if the unit I want fails the HUD inspection?",
+      "a": "The landlord has a window to make repairs and request a re-inspection; if the unit doesn't pass in time, you'll need to keep searching within your remaining voucher window. This is one reason inspection-ready properties move faster — every home we manage is already HUD-inspection-ready."
+    },
+    {
+      "q": "Is my rent portion the same everywhere I move?",
+      "a": "No. Your tenant portion generally depends on your income and the specific unit's rent and utilities relative to CMHA's payment standard for that bedroom size, so it can shift from one unit to another. Confirm the exact numbers for a specific address with CMHA before signing."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.cmha.net", "https://www.hud.gov/helping-americans/housing-choice-vouchers"],
+  "lawTopic": true,
+  "lastUpdated": "2026-07-04"
+}

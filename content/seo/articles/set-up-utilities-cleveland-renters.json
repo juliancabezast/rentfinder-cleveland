@@ -1,0 +1,86 @@
+{
+  "slug": "set-up-utilities-cleveland-renters",
+  "cluster": "guides",
+  "title": "How to set up utilities in Cleveland (electric, gas, water)",
+  "metaTitle": "How to Set Up Utilities in Cleveland: Electric, Gas, Water",
+  "metaDescription": "Setting up utilities as a Cleveland renter? Here's who provides electric, gas, and water in the city, and how to start service. Contact us with questions.",
+  "primaryKeyword": "set up utilities cleveland renters",
+  "secondaryKeywords": ["cleveland utilities setup", "electric gas water cleveland renters", "cleveland public power vs illuminating company", "start utility service cleveland"],
+  "answerBox": "Cleveland renters typically set up three utility accounts: electric (Cleveland Public Power or The Illuminating Company, depending on address), natural gas (mostly Enbridge Gas Ohio, formerly Dominion East Ohio), and water (Cleveland Water). Confirm which electric and gas provider serves your specific address, and start new accounts 1-2 weeks before move-in.",
+  "sections": [
+    {
+      "h2": "Which utilities does a Cleveland renter need to set up?",
+      "body": [
+        "Most Cleveland rentals require three separate utility accounts: electricity, natural gas (for heat, hot water, and cooking in many homes), and water. A fourth charge, sewer/stormwater through the **Northeast Ohio Regional Sewer District (NEORSD)**, is regional wastewater treatment and may appear on your water bill or be billed separately depending on the property; ask your landlord which applies. Some rentals include one or more utilities in the rent — always confirm what's included before you assume you need to open an account."
+      ]
+    },
+    {
+      "h2": "Electric: Cleveland Public Power or The Illuminating Company?",
+      "body": [
+        "Two different companies provide electricity within the city: **Cleveland Public Power (CPP)**, a municipally-owned utility run by the City's Department of Public Utilities, and **The Illuminating Company**, an investor-owned utility that is part of FirstEnergy. Which one serves a given address depends entirely on location — some blocks are served by CPP, others by Illuminating — so you cannot assume based on neighborhood. Check your specific address with either provider, or ask your landlord which company currently bills the unit, before signing up. Our companion guide, [Cleveland Public Power vs. The Illuminating Company](/cleveland-rentals/guides/cleveland-public-power-vs-illuminating-company/), breaks down how to tell which one serves you."
+      ]
+    },
+    {
+      "h2": "Natural gas: Enbridge Gas Ohio or Columbia Gas",
+      "body": [
+        "Most of the City of Cleveland is served by **Enbridge Gas Ohio**, the company formerly known as The East Ohio Gas Company and, more recently, Dominion Energy Ohio (\"Dominion East Ohio\") — Dominion closed the sale of its Ohio gas distribution business to Enbridge on March 7, 2024. Some Cuyahoga County suburbs are served by **Columbia Gas of Ohio** instead, so if you're moving to a suburb rather than the city proper, confirm which provider serves that specific address before assuming it's Enbridge."
+      ]
+    },
+    {
+      "h2": "Water and sewer: Cleveland Water and NEORSD",
+      "body": [
+        "**Cleveland Water**, a division of the City's Department of Public Utilities, is one of the largest water systems in the country and serves the city plus many surrounding suburbs. Wastewater treatment for Cleveland and much of the metro area is handled regionally by **NEORSD**, while local sanitary billing may run through the city's Water Pollution Control division depending on your address. If you're unsure which entity bills you for sewer service, Cleveland Water's customer service can confirm."
+      ]
+    },
+    {
+      "h2": "Utility setup checklist and timeline",
+      "body": [
+        "Start the process about 1-2 weeks before your move-in date so accounts are active on day one. Have your lease start date, full legal name, forwarding address (if applicable), and Social Security number or another form of ID ready — most providers require this to open a new residential account, and some may require a deposit for a new customer without local billing history."
+      ],
+      "table": {
+        "headers": ["Utility", "Who provides it", "How to confirm for your address"],
+        "rows": [
+          ["Electric", "Cleveland Public Power (CPP) or The Illuminating Company", "Contact either provider with your address, or ask your landlord"],
+          ["Natural gas", "Enbridge Gas Ohio (city); Columbia Gas of Ohio (some suburbs)", "Confirm with the provider directly for your specific address"],
+          ["Water", "Cleveland Water", "Serves the city and many suburbs; contact for a new account"],
+          ["Sewer/stormwater", "NEORSD (regional treatment); billing may route through city Water Pollution Control", "Ask your landlord or Cleveland Water which entity bills you"]
+        ]
+      }
+    },
+    {
+      "h2": "What if utilities are included in your rent?",
+      "body": [
+        "Some Cleveland rentals, especially smaller multi-family units, include one or more utilities in the monthly rent. Never assume — get it in writing in your lease exactly which utilities (if any) are covered, and which you're responsible for setting up yourself. Our [guide to what utilities are typically included in Cleveland rent](/cleveland-rentals/guides/what-utilities-included-cleveland-rent/) walks through common arrangements, and our [winter heating cost guide](/cleveland-rentals/guides/cleveland-rental-winter-heating-cost/) covers what to expect once the lake-effect snow season arrives. If you're still hunting for a home and want to know what a specific property includes, [contact our leasing team](/p/book-showing) directly."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I know if my new address uses Cleveland Public Power or The Illuminating Company?",
+      "a": "Coverage depends on the exact address rather than the neighborhood as a whole, so contact either Cleveland Public Power or The Illuminating Company directly with your street address, or ask your landlord which company currently bills the unit. Don't assume based on a nearby address, since service areas can change block to block."
+    },
+    {
+      "q": "Is it Dominion Gas or Enbridge Gas in Cleveland now?",
+      "a": "It's Enbridge Gas Ohio. Dominion Energy sold its Ohio natural gas distribution business, formerly known as Dominion East Ohio and originally The East Ohio Gas Company, to Enbridge, with the sale closing March 7, 2024. Some Cuyahoga County suburbs are served by Columbia Gas of Ohio instead, so confirm for your exact address."
+    },
+    {
+      "q": "How long does it take to set up utilities before moving into a Cleveland rental?",
+      "a": "Starting 1-2 weeks before your move-in date is generally enough time for electric, gas, and water accounts to be active. Some providers may require a short processing window or a deposit for new customers without prior local billing history, so don't wait until moving day."
+    },
+    {
+      "q": "Do Cleveland renters pay for sewer service separately from water?",
+      "a": "It depends on the property. NEORSD handles regional wastewater treatment, but local sanitary billing may appear on your Cleveland Water bill or route through the city's Water Pollution Control division. Ask your landlord or Cleveland Water directly which applies to your unit."
+    },
+    {
+      "q": "Are utilities ever included in Cleveland rental homes?",
+      "a": "Sometimes, especially in smaller multi-family properties, but it varies by landlord and unit. Always confirm in writing exactly which utilities, if any, are included in your rent before you assume you don't need to open your own electric, gas, or water account."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://www.cpp.org/",
+    "https://www.clevelandwater.com/",
+    "https://www.clevelandohio.gov/city-hall/departments/public-utilities"
+  ],
+  "lastUpdated": "2026-07-04"
+}

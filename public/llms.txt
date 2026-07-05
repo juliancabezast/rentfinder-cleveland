@@ -1,0 +1,24 @@
+# Rent Finder Cleveland
+
+> Rent Finder Cleveland is a residential property-management and leasing company in Cleveland, Ohio. We manage 90+ rental homes — every one accepts Section 8 / Housing Choice Vouchers and is HUD-inspection-ready — concentrated on Cleveland's East and Southeast sides. This site helps renters find houses and apartments for rent in Cleveland OH, understand Section 8 vouchers, and book showings.
+
+Contact: (216) 201-9201 · support@rentfindercleveland.com
+Schedule a showing: https://rentfindercleveland.com/p/book-showing
+
+## Money pages
+- [Houses for Rent in Cleveland, OH](https://rentfindercleveland.com/houses-for-rent-cleveland-oh/): Houses for rent in Cleveland, OH from a local property manager. 2–3 bedroom homes, ~$700–$1,800/mo, and every home accepts Section 8. Book a free showing.
+- [Apartments for Rent in Cleveland, OH](https://rentfindercleveland.com/apartments-for-rent-cleveland-oh/): Apartments for rent in Cleveland, OH — by neighborhood, size, and budget. Affordable and voucher-friendly options, plus how to tour and apply. Book a showing.
+- [Section 8 Housing in Cleveland, OH](https://rentfindercleveland.com/section-8-housing-cleveland-oh/): Section 8 housing in Cleveland, OH — how CMHA vouchers work, applying, payment standards, and finding homes that accept them. Every home we manage is voucher-friendly.
+- [Cleveland Rental Resource Center](https://rentfindercleveland.com/cleveland-rentals/): index of every rental guide.
+
+## Guide categories
+- [Houses for Rent by Cleveland Neighborhood](https://rentfindercleveland.com/cleveland-rentals/neighborhoods/): Rent ranges, transit, and housing stock for renting a house or apartment in every major Cleveland, OH neighborhood — plus Section 8-friendly homes.
+- [Houses for Rent in Cleveland Suburbs](https://rentfindercleveland.com/cleveland-rentals/suburbs/): Renting in the Cleveland suburbs — Lakewood, Parma, Euclid, Cleveland Heights and more. Rent ranges, commute, and what renters should know.
+- [Houses for Rent in Cleveland by Type & Budget](https://rentfindercleveland.com/cleveland-rentals/houses/): Find Cleveland houses for rent by bedrooms, budget, and features — 2 and 3 bedroom homes, under $1,000, pet friendly, with a yard, and more.
+- [Apartments for Rent in Cleveland](https://rentfindercleveland.com/cleveland-rentals/apartments/): Cleveland apartments for rent by neighborhood, size, and budget — studios, 1 and 2 bedrooms, downtown lofts, and cheap apartments under $1,000.
+- [Section 8 Housing & Vouchers in Cleveland](https://rentfindercleveland.com/cleveland-rentals/section-8/): How Section 8 and Housing Choice Vouchers work in Cleveland (CMHA) — applying, waitlists, payment standards, inspections, and finding voucher-friendly homes.
+- [Cleveland & Ohio Renter Guides](https://rentfindercleveland.com/cleveland-rentals/guides/): Practical guides for renting in Cleveland and Ohio — security deposits, applications, credit, utilities, tenant rights, and avoiding rental scams.
+- [Other Cleveland Rentals & Housing Needs](https://rentfindercleveland.com/cleveland-rentals/more/): Rooms for rent, short-term stays, senior and student housing, and other Cleveland rental needs — what's realistic and where to start.
+
+## Full index
+- [XML sitemap](https://rentfindercleveland.com/sitemap.xml)

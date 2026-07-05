@@ -1,0 +1,93 @@
+{
+  "slug": "3x-rent-rule-explained",
+  "cluster": "guides",
+  "title": "How the 3x rent income rule works (and alternatives)",
+  "metaTitle": "The 3x Rent Rule Explained for Cleveland Renters",
+  "metaDescription": "What the 3x rent income rule means, how Cleveland landlords apply it, and alternatives like co-signers, roommates, and Housing Choice Vouchers.",
+  "primaryKeyword": "3x rent rule explained",
+  "secondaryKeywords": ["income requirement to rent an apartment", "gross monthly income rent calculator", "how much income do i need to rent"],
+  "answerBox": "The 3x rent rule is a common landlord guideline requiring a renter's gross monthly income to be at least three times the monthly rent. On a $1,000/month Cleveland rental, that's roughly $3,000 in gross monthly income. It's a widely used industry norm, not an Ohio law, and landlords can apply it flexibly or substitute a co-signer, roommate income, or voucher."
+  ,
+  "sections": [
+    {
+      "h2": "What is the 3x rent rule?",
+      "body": [
+        "The 3x rent rule is a common screening guideline where a landlord wants an applicant's **gross monthly income** to equal at least three times the monthly rent. For a home renting at $1,000 a month, that works out to roughly $3,000 in gross monthly income before taxes. It's an industry-standard rule of thumb used across many U.S. rental markets, including Cleveland — not a legal requirement.",
+        "Because Cleveland rents run lower than many U.S. metros, the dollar income threshold under a 3x rule is also comparatively modest here. Per **Zumper's** market report dated July 4, 2026, the citywide median asking rent is about **$1,250/month**, which would put a 3x income target around $3,750 gross per month — noticeably lower than what the same rule would require in a higher-rent metro."
+      ],
+      "table": {
+        "headers": ["Monthly rent", "Approx. required gross monthly income (3x)"],
+        "rows": [
+          ["$750", "$2,250"],
+          ["$1,000", "$3,000"],
+          ["$1,250", "$3,750"],
+          ["$1,500", "$4,500"]
+        ]
+      }
+    },
+    {
+      "h2": "Is the 3x rent rule required by Ohio law?",
+      "body": [
+        "No. Ohio law does not mandate a specific income-to-rent ratio for renting — 3x is a private industry convention that individual landlords choose whether and how strictly to apply. Some Cleveland landlords use a stricter or looser multiple, and some weigh income alongside credit and rental history rather than as a hard cutoff. This is general information, not legal advice.",
+        "What Ohio law does regulate is how a landlord may use your security deposit and how consistently screening standards — income-based or otherwise — must be applied. Under [ORC §5321.16](https://codes.ohio.gov/ohio-revised-code/section-5321.16), a deposit above $50 or one month's rent (whichever is greater) must earn 5% annual interest on the excess if you stay six months or more, and must be returned with an itemized statement within 30 days of move-out. Separately, income and credit standards must be applied evenly across applicants under Ohio's Fair Housing Law ([ORC Chapter 4112](https://codes.ohio.gov/ohio-revised-code/chapter-4112)) and the federal Fair Housing Act — a landlord cannot apply a stricter income multiple to one protected group than another."
+      ]
+    },
+    {
+      "h2": "What counts as income toward the 3x calculation?",
+      "body": [
+        "Most landlords count gross (pre-tax) wages, salary, and self-employment income, and many will also count verifiable additional income such as Social Security, disability benefits, child support, or a Housing Choice Voucher subsidy. Ask the specific landlord what they count — practices vary."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Wages/salary** — gross pay stubs or an offer letter",
+          "**Self-employment** — often verified via tax returns or bank statements",
+          "**Benefits income** — Social Security, disability, child support (if verifiable)",
+          "**Voucher subsidy** — a Housing Choice Voucher's rent portion can count toward affordability",
+          "**Combined household income** — co-applicants' or roommates' income together, where the landlord allows it"
+        ]
+      }
+    },
+    {
+      "h2": "What if your income doesn't meet 3x rent?",
+      "body": [
+        "The most common alternatives are adding a co-signer whose income (combined with yours, or on its own) meets the threshold, applying with a roommate so combined household income clears the bar, or using a Housing Choice Voucher so CMHA covers part of the rent and lowers what your own income needs to cover. Our [renting with bad credit guide](/cleveland-rentals/guides/rent-house-bad-credit-cleveland/) covers similar workaround options for renters whose full financial picture doesn't fit a landlord's default standard."
+      ]
+    },
+    {
+      "h2": "How does this fit into the overall application process?",
+      "body": [
+        "Income verification is typically just one part of a broader screening process that also includes credit history, rental references, and background checks — see our [step-by-step rental application guide](/cleveland-rentals/guides/rental-application-process-cleveland/) for how income documentation fits alongside the rest of your application. Every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready, which can help voucher holders meet the income-affordability standard even when their personal income alone would fall short. Learn more in our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does the 3x rent rule mean 3 times my take-home pay?",
+      "a": "No, it's typically calculated on gross (pre-tax) monthly income, not take-home pay. For a $1,000/month rental, a landlord using the 3x standard would generally look for about $3,000 in gross monthly income, though the exact calculation can vary by landlord."
+    },
+    {
+      "q": "Is the 3x rent rule a law in Ohio?",
+      "a": "No. It's a common private industry guideline, not an Ohio statute or Cleveland ordinance. Landlords set and apply their own income standards, and some are more flexible than others, especially when other parts of an application are strong."
+    },
+    {
+      "q": "Can a co-signer help me meet the 3x rent requirement?",
+      "a": "Yes. A co-signer's income can often be combined with or substituted for the applicant's income to meet a landlord's income-to-rent standard. Co-signer requirements and whether they're accepted at all vary by landlord."
+    },
+    {
+      "q": "Does a Housing Choice Voucher count toward the 3x rent calculation?",
+      "a": "Often yes — since a voucher covers part of the rent through CMHA, many landlords calculate the income requirement against the tenant-paid portion rather than the full rent, which can make the standard easier to meet for voucher holders."
+    },
+    {
+      "q": "What if my income falls just short of 3x rent?",
+      "a": "Talk to the landlord directly. Some will accept a co-signer, combined roommate income, a larger lawful deposit, or strong rental references as an offset. Every landlord handles borderline cases differently, so it's worth asking rather than assuming disqualification."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://codes.ohio.gov/ohio-revised-code/chapter-4112"
+  ],
+  "lawTopic": true,
+  "lastUpdated": "2026-07-04"
+}

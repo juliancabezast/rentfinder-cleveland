@@ -1,0 +1,83 @@
+{
+  "slug": "section-8-apartments-cleveland-heights",
+  "cluster": "apartments",
+  "title": "Section 8 Apartments in Cleveland Heights",
+  "metaTitle": "Section 8 Apartments in Cleveland Heights, OH",
+  "metaDescription": "Looking for Section 8 apartments in Cleveland Heights, OH? See how CMHA vouchers and the local SOI ordinance work, plus nearby homes. Book a showing.",
+  "primaryKeyword": "section 8 apartments cleveland heights",
+  "secondaryKeywords": ["cleveland heights voucher apartments", "cmha apartments cleveland heights", "section 8 approved apartments cleveland heights"],
+  "answerBox": "Cleveland Heights is a Cuyahoga County suburb bordering Cleveland's University Circle, and one of the few local suburbs with a 2021 ordinance protecting Housing Choice Voucher holders from source-of-income discrimination. CMHA administers Section 8 countywide; we don't yet manage units inside Cleveland Heights but do manage voucher-friendly homes nearby in Glenville and Hough.",
+  "sections": [
+    {
+      "h2": "Are there Section 8 apartments in Cleveland Heights?",
+      "body": [
+        "Yes, in the sense that a Cleveland Heights landlord generally cannot refuse an applicant solely for using a Housing Choice Voucher — the suburb adopted a source-of-income protection ordinance in 2021, one of only a handful of Cuyahoga County municipalities to do so. That said, Rent Finder Cleveland does not currently manage apartment-style units inside Cleveland Heights itself. Our 90+ voucher-friendly rental homes are concentrated in the City of Cleveland's east and southeast side, including **Glenville** and **Hough**, both of which sit directly across the border from Cleveland Heights near University Circle.",
+        "If a Cleveland Heights address specifically matters to your search, [book a showing](/p/book-showing) and tell our leasing team what you need — we can point you to our closest current availability and let you know if anything changes."
+      ]
+    },
+    {
+      "h2": "How CMHA vouchers work, wherever you rent in the county",
+      "body": [
+        "Housing Choice Vouchers for the whole county, including Cleveland Heights, are administered by the Cuyahoga Metropolitan Housing Authority (CMHA), not by any individual city. [CMHA](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) accepts preliminary Housing Choice Voucher applications online year-round with no closing date, and selects applicants from that list through periodic random \"mini-lotteries\" rather than strict first-come-first-served order — CMHA's own guidance notes a name might be reached within days, or it may take months. To apply, you'll need an active email address, Social Security numbers and birth dates for every household member, and household income information.",
+        "Before a voucher can be used on any unit, that unit must also pass a housing-quality inspection. HUD is currently transitioning that standard from the older HQS framework to NSPIRE, with a final transition deadline of February 1, 2027 for the [Housing Choice Voucher program](https://www.hud.gov/helping-americans/housing-choice-vouchers)."
+      ],
+      "table": {
+        "headers": ["Household size", "2025 CMHA income limit (approx.)"],
+        "rows": [
+          ["1 person", "$34,800"],
+          ["2 persons", "$39,800"],
+          ["4 persons", "$49,700"],
+          ["8 persons", "$65,650"]
+        ]
+      }
+    },
+    {
+      "h2": "Cleveland Heights' voucher protection ordinance, explained",
+      "body": [
+        "Ohio has no statewide law requiring landlords to accept Housing Choice Vouchers, and the City of Cleveland itself has no such ordinance either — Cleveland's 2024 \"Pay to Stay\" law dropped source-of-income protections during negotiation. Cleveland Heights is different: news reporting describes it adopting a source-of-income ordinance in 2021, joining a small group of Cuyahoga County suburbs — reporting also names South Euclid, University Heights, and Warrensville Heights — that generally bar landlords from refusing an applicant solely for using a voucher.",
+        "Confirm current protections directly with the city before relying on this, since municipal ordinances can change. See our [guide to source-of-income rules across Greater Cleveland](/cleveland-rentals/section-8/source-of-income-discrimination-cleveland-ohio/) for the fuller jurisdiction-by-jurisdiction picture."
+      ]
+    },
+    {
+      "h2": "Getting around Cleveland Heights without a car",
+      "body": [
+        "Cleveland Heights has no rail station of its own, but RTA bus routes along Cedar Road, Mayfield Road, and Euclid Heights Boulevard connect it to the Red Line's Windermere terminus in neighboring East Cleveland and to the Blue and Green light-rail lines that run through Shaker Heights just to the south. The HealthLine, RTA's bus-rapid-transit route on Euclid Avenue, also links Cleveland Heights-area buses to University Circle and Downtown's Tower City rail hub."
+      ]
+    },
+    {
+      "h2": "Finding a voucher-friendly apartment near Cleveland Heights",
+      "body": [
+        "Every home Rent Finder Cleveland manages — currently concentrated in Cleveland's Glenville, Hough, Slavic Village, Collinwood, Fairfax/Central, and Buckeye-Shaker neighborhoods — accepts Housing Choice Vouchers and is kept HUD-inspection-ready. Glenville and Hough in particular border University Circle just west of Cleveland Heights, making them the closest options if a Cleveland Heights-adjacent location matters to you.",
+        "Read our [Cleveland Section 8 guide](/section-8-housing-cleveland-oh/) for the local application process, or [book a free showing](/p/book-showing) to see current availability near the Cleveland Heights border."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does Rent Finder Cleveland manage Section 8 apartments in Cleveland Heights?",
+      "a": "Not currently. Our 90+ voucher-friendly rental homes are concentrated in the City of Cleveland, with the closest current availability typically in Glenville and Hough, both of which border Cleveland Heights near University Circle. Tell our team what you need and we'll point you to the nearest fit."
+    },
+    {
+      "q": "Does Cleveland Heights protect Section 8 voucher holders?",
+      "a": "Reporting indicates Cleveland Heights adopted a source-of-income protection ordinance in 2021, meaning landlords there generally cannot refuse an applicant solely for using a Housing Choice Voucher. This is different from the City of Cleveland, which currently has no such ordinance. Confirm current rules with the city before relying on this."
+    },
+    {
+      "q": "Who administers Section 8 vouchers in Cleveland Heights?",
+      "a": "CMHA, the Cuyahoga Metropolitan Housing Authority, administers Housing Choice Vouchers countywide, including in Cleveland Heights. Applications run through CMHA's online portal year-round, with selection made through periodic random mini-lotteries rather than strict first-come-first-served order."
+    },
+    {
+      "q": "What is the income limit for a Section 8 voucher near Cleveland Heights?",
+      "a": "As of CMHA's 2025 figures, income limits are roughly $34,800 for one person, $39,800 for two, $49,700 for four, and $65,650 for eight, though these are updated periodically. Check CMHA's current chart before applying, since these numbers change."
+    },
+    {
+      "q": "How do I get to University Circle from Cleveland Heights without a car?",
+      "a": "RTA bus routes along Cedar Road, Mayfield Road, and Euclid Heights Boulevard connect Cleveland Heights to University Circle, the Red Line's Windermere station in East Cleveland, and the Blue/Green light-rail lines through Shaker Heights. The HealthLine bus-rapid-transit route on Euclid Avenue offers another direct connection."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers"
+  ],
+  "lastUpdated": "2026-07-04"
+}

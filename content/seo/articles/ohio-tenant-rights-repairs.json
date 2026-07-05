@@ -1,0 +1,76 @@
+{
+  "slug": "ohio-tenant-rights-repairs",
+  "cluster": "guides",
+  "title": "Ohio tenant rights: repairs and habitability (ORC 5321)",
+  "metaTitle": "Ohio Tenant Rights: Repairs & Habitability (ORC 5321)",
+  "metaDescription": "Ohio tenant rights on repairs: what a landlord must fix under ORC 5321, tenant duties, and the rent-escrow process if repairs are ignored.",
+  "primaryKeyword": "ohio tenant rights repairs",
+  "secondaryKeywords": ["orc 5321 habitability", "landlord won't fix repairs ohio", "rent escrow ohio"],
+  "answerBox": "Under ORC 5321.04, landlords must keep rental units fit, habitable, and code-compliant. If a landlord fails to make a needed repair within a reasonable time — or 30 days, whichever is sooner — a tenant current on rent may generally use rent escrow through the local court, rather than withholding rent directly.",
+  "sections": [
+    {
+      "h2": "What is a landlord required to fix in Ohio?",
+      "body": [
+        "Ohio law generally requires landlords, under ORC 5321.04, to keep rental premises in a fit and habitable condition, comply with all applicable building, housing, and health codes, and keep common areas, plumbing, electrical, heating, and other essential systems in good working order. This duty applies to landlords statewide, including every rental home in Cleveland.",
+        "This is a baseline habitability standard — it covers things like a working furnace, functioning plumbing, and structurally sound conditions, not cosmetic preferences. It applies regardless of whether the unit is a single-family house, duplex, or larger multi-family building."
+      ]
+    },
+    {
+      "h2": "What are a tenant's own responsibilities?",
+      "body": [
+        "Ohio law generally places some maintenance duties on the tenant too, under ORC 5321.05: keeping the unit clean and sanitary, using plumbing, electrical, and other fixtures properly, not damaging the premises, and complying with the lease. A landlord's repair obligations under 5321.04 and a tenant's duties under 5321.05 work together — neither side's obligations exist in isolation."
+      ],
+      "table": {
+        "headers": ["Party", "General duty under Ohio law", "Statute"],
+        "rows": [
+          ["Landlord", "Keep the unit fit and habitable; comply with housing/building codes; maintain plumbing, electrical, heating, and common areas", "ORC 5321.04"],
+          ["Tenant", "Keep the unit clean and sanitary; use fixtures properly; avoid damaging the premises; comply with the lease", "ORC 5321.05"],
+          ["Tenant remedy", "Rent escrow through the local court if the landlord fails to remedy a covered issue", "ORC 5321.07"]
+        ]
+      }
+    },
+    {
+      "h2": "What can I do if my landlord won't make a repair?",
+      "body": [
+        "Ohio law generally requires a tenant to first notify the landlord of the problem, in writing if possible, and give the landlord a reasonable time — or 30 days, whichever is sooner — to fix it. If the landlord still doesn't act and the tenant is current on rent, ORC 5321.07 allows the tenant to deposit rent with the clerk of the municipal or county court (\"rent escrow\") rather than paying the landlord directly, and to ask the court to order repairs or apply the escrowed funds toward fixing the problem.",
+        "Importantly, Ohio does not generally give tenants a broad \"repair-and-deduct\" right the way some other states do — a tenant can't simply hire a repair person and subtract the cost from next month's rent on their own. The statutory path is rent escrow through the court, not unilateral deduction. For related move-out documentation once repairs and habitability issues are resolved, see our [security deposit law explainer](/cleveland-rentals/guides/ohio-security-deposit-law/)."
+      ]
+    },
+    {
+      "h2": "Does the tenant have to be current on rent to use these remedies?",
+      "body": [
+        "Yes — Ohio law generally requires a tenant to be current on rent to use the rent-escrow remedy under ORC 5321.07. This means documenting the issue and requesting a repair promptly, rather than falling behind on rent while waiting for a fix, protects a tenant's ability to use this remedy if it becomes necessary.",
+        "Good documentation habits from move-in help here too — our [move-in inspection checklist](/cleveland-rentals/guides/rental-move-in-inspection-checklist/) covers how to record a unit's original condition, which makes it easier to show when something has genuinely broken versus pre-existed."
+      ]
+    },
+    {
+      "h2": "How does this apply to homes that accept Section 8 vouchers?",
+      "body": [
+        "Every Housing Choice Voucher (Section 8) unit must also pass a housing quality inspection before assistance is paid, on top of the general habitability duties under ORC 5321.04 — HUD is transitioning this inspection standard from HQS to NSPIRE, with a final HCV transition deadline of February 1, 2027. This means voucher-assisted homes are subject to both Ohio's statewide habitability law and a federal inspection standard.",
+        "We manage voucher-friendly rental homes across Cleveland, and every one is HUD-inspection-ready. If you're comparing [houses for rent in Cleveland](/houses-for-rent-cleveland-oh/) with a voucher in hand, our [Section 8 housing guide](/section-8-housing-cleveland-oh/) explains the local process end to end."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What must a landlord fix under Ohio law?",
+      "a": "Ohio law generally requires landlords, under ORC 5321.04, to keep the rental unit fit and habitable, comply with building and housing codes, and maintain plumbing, electrical, heating, and common areas. This is a baseline habitability standard that applies to every residential rental in Ohio, including Cleveland."
+    },
+    {
+      "q": "Can I withhold rent if my landlord won't make repairs in Ohio?",
+      "a": "Not directly. Ohio law generally does not offer a simple repair-and-deduct right. Instead, under ORC 5321.07, a tenant current on rent can deposit rent with the local court (rent escrow) after giving the landlord reasonable time — or 30 days, whichever is sooner — to fix the problem."
+    },
+    {
+      "q": "What happens if I fall behind on rent while waiting for a repair?",
+      "a": "Ohio law generally requires a tenant to be current on rent to use the rent-escrow remedy. Falling behind can affect your ability to use this specific protection, so it's best to document and report repair issues promptly rather than withholding payment on your own."
+    },
+    {
+      "q": "Do Section 8 homes have extra repair or inspection requirements?",
+      "a": "Yes. In addition to Ohio's general habitability law (ORC 5321.04), voucher-assisted units must pass a HUD housing quality inspection before assistance is paid. HUD is transitioning this standard from HQS to NSPIRE, with a final deadline of February 1, 2027 for the Housing Choice Voucher program."
+    }
+  ],
+  "cta": "contact",
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/section-5321.07", "https://www.hud.gov/helping-americans/housing-choice-vouchers"],
+  "lawTopic": true,
+  "lastUpdated": "2026-07-04"
+}

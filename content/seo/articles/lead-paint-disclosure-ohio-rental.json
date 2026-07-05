@@ -1,0 +1,83 @@
+{
+  "slug": "lead-paint-disclosure-ohio-rental",
+  "cluster": "guides",
+  "title": "Ohio lead paint disclosure for rentals (pre-1978 homes)",
+  "metaTitle": "Ohio Lead Paint Disclosure for Rentals (Pre-1978)",
+  "metaDescription": "Ohio lead paint disclosure rules for rentals built before 1978: what landlords must tell tenants, the required EPA pamphlet, and how Cleveland adds its own rule.",
+  "primaryKeyword": "lead paint disclosure ohio rental",
+  "secondaryKeywords": ["pre-1978 rental lead disclosure", "epa lead pamphlet rental", "ohio lead paint law renters"],
+  "lawTopic": true,
+  "answerBox": "Under federal law, landlords of any home built before January 1, 1978 must disclose known lead-based paint hazards, give tenants the EPA pamphlet on lead hazards, and include lead warning language in the lease before it is signed. This applies to every pre-1978 rental in Ohio, including Cleveland, regardless of city-specific rules layered on top.",
+  "sections": [
+    {
+      "h2": "What is the lead paint disclosure requirement for Ohio rentals?",
+      "body": [
+        "Federal law generally requires that before a tenant signs or renews a lease on housing built before January 1, 1978, the landlord must disclose any known lead-based paint or lead hazards in the home, provide copies of any related records or reports, hand over the EPA pamphlet [\"Protect Your Family From Lead in Your Home,\"](https://www.epa.gov/lead/protect-your-family-lead-your-home) and include specific lead warning language directly in the lease. This comes from the federal **Residential Lead-Based Paint Hazard Reduction Act of 1992 (Title X)** and its implementing rules at 24 CFR Part 35 and 40 CFR Part 745, and it applies the same way in every U.S. state, including Ohio.",
+        "This is informational only, not legal advice — always verify current requirements before relying on them for a specific lease. For general federal guidance, see [HUD's lead-based paint program page](https://www.hud.gov/topics/lead_based_paint)."
+      ]
+    },
+    {
+      "h2": "Which Ohio rental homes does this apply to?",
+      "body": [
+        "The trigger is simple: any residential rental unit **originally constructed before January 1, 1978** is covered, because lead-based paint for residential use was banned nationwide that year. A landlord doesn't need proof that lead paint is actually present — the disclosure duty applies to any pre-1978 unit regardless of whether testing has confirmed lead, unless a narrow exemption applies (for example, housing certified lead-free by a qualified inspector, or certain short-term or specific-use housing types).",
+        "Because so much of Cleveland's rental housing stock was built well before 1978, this disclosure duty covers a large share of the city's rental homes, houses, and duplexes alike — not just older single-family houses."
+      ]
+    },
+    {
+      "h2": "What exactly must a landlord provide before the lease is signed?",
+      "body": [
+        "Before a tenant signs the lease (or a renewal), the disclosure package generally must include a lead warning statement and disclosure form built into the lease itself, any records or reports the landlord actually has about lead-based paint or lead hazards in the specific unit or building, and a copy of the EPA's [\"Protect Your Family From Lead in Your Home\"](https://www.epa.gov/lead/protect-your-family-lead-your-home) pamphlet. Both the landlord and tenant sign the disclosure to confirm it was provided."
+      ]
+    },
+    {
+      "h2": "How is this different from Cleveland's Lead-Safe Certification?",
+      "body": [
+        "Federal disclosure and Cleveland's Lead-Safe Certification are two separate requirements that can both apply to the same pre-1978 unit. Federal disclosure is a **paperwork duty**: telling the tenant what's known and handing over the EPA pamphlet before signing. Cleveland's certification, created by city ordinance, goes further for units inside city limits and requires an actual **passed inspection** confirming the unit is lead-safe, renewed every two years. Our companion guide, [Cleveland Lead-Safe Certification for renters](/cleveland-rentals/guides/cleveland-lead-safe-certification-renters/), walks through that city-specific rule in detail."
+      ],
+      "table": {
+        "headers": ["", "Federal lead disclosure (all pre-1978 U.S. rentals)", "Cleveland Lead-Safe Certification (city ordinance)"],
+        "rows": [
+          ["What it requires", "Disclose known hazards, provide EPA pamphlet, add lease warning language", "Pass a lead-safe inspection (visual + dust-wipe clearance) and obtain city certification"],
+          ["Where it applies", "Every U.S. state, including all of Ohio", "City of Cleveland rental units built before 1978 only"],
+          ["Renewal", "One-time disclosure per lease signing/renewal", "Certification valid 2 years, then re-inspection required"],
+          ["Source", "Title X / 24 CFR Part 35 / 40 CFR Part 745 (federal)", "Cleveland Codified Ordinances Chapter 365, §365.04 (city)"]
+        ]
+      }
+    },
+    {
+      "h2": "What should a Cleveland-area renter do with a lead disclosure?",
+      "body": [
+        "Read it before signing, ask the landlord directly about any known lead hazards in the specific unit (not just the building generally), and keep a copy of both the signed disclosure and the EPA pamphlet for your own records. If you're touring a home we manage, our team can walk you through what disclosure paperwork applies to that specific address — [reach out with questions](/p/book-showing) before you sign. For a broader look at renter protections in Ohio, see our guide to [Ohio tenant rights and repair remedies](/cleveland-rentals/guides/ohio-tenant-rights-repairs/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do all Ohio landlords have to disclose lead paint?",
+      "a": "Only for units built before January 1, 1978, when lead-based paint for residential use was banned nationwide. Federal law generally requires disclosure of known hazards, an EPA pamphlet, and lease warning language for those pre-1978 units in every state, including Ohio. Newer construction is not covered by this specific disclosure duty."
+    },
+    {
+      "q": "What is the EPA lead pamphlet renters are supposed to receive?",
+      "a": "It's \"Protect Your Family From Lead in Your Home,\" a federal pamphlet landlords of pre-1978 housing must give tenants before a lease is signed. It explains lead-based paint hazards, health risks, and steps households can take, and is available directly from the EPA's website."
+    },
+    {
+      "q": "Is lead paint disclosure the same as Cleveland's Lead-Safe Certification?",
+      "a": "No. Federal disclosure is a paperwork requirement — telling the tenant what's known and providing the EPA pamphlet. Cleveland's Lead-Safe Certification, a separate city ordinance, requires the unit to actually pass a lead-safe inspection and be certified, renewed every two years, for units within city limits."
+    },
+    {
+      "q": "What happens if a landlord doesn't provide the required lead disclosure?",
+      "a": "Federal law generally treats this disclosure as a required part of leasing pre-1978 housing; consequences for noncompliance can include federal penalties. This is not legal advice — a renter who believes the disclosure wasn't provided should ask the landlord directly and, if needed, seek guidance from a housing or legal aid resource."
+    },
+    {
+      "q": "Does the lead disclosure requirement apply to duplexes and multi-family Cleveland rentals?",
+      "a": "Yes. The federal disclosure duty is based on when the building was constructed, not on whether it's a single-family house, duplex, triplex, or fourplex. Any pre-1978 rental unit is generally covered the same way, regardless of the building's size or number of units."
+    }
+  ],
+  "cta": "contact",
+  "sources": [
+    "https://www.epa.gov/lead/protect-your-family-lead-your-home",
+    "https://www.hud.gov/topics/lead_based_paint",
+    "https://www.clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification"
+  ],
+  "lastUpdated": "2026-07-04"
+}

@@ -1,0 +1,92 @@
+{
+  "slug": "houses-for-rent-near-cleveland-va-hospital",
+  "cluster": "houses",
+  "title": "Houses for Rent Near the VA Hospital, Cleveland",
+  "metaTitle": "Houses for Rent Near the VA Hospital, Cleveland OH",
+  "metaDescription": "Houses for rent near Cleveland's VA hospital in University Circle: rent ranges, HealthLine transit, and VASH/Section 8 voucher basics. Book a showing.",
+  "primaryKeyword": "houses for rent near cleveland va hospital",
+  "secondaryKeywords": ["university circle houses for rent", "wade park rentals cleveland", "vash voucher houses cleveland"],
+  "answerBox": "The Louis Stokes Cleveland VA Medical Center sits in the University Circle/Wade Park area on Cleveland's east side. Nearby east-side rental houses commonly run $750–$1,500 a month for 2- to 3-bedroom homes. Rent Finder Cleveland's Section 8- and VASH-friendly portfolio spans Greater Cleveland — tell us your commute radius to check current availability.",
+  "sections": [
+    {
+      "h2": "Renting a house near the Louis Stokes Cleveland VA Medical Center",
+      "body": [
+        "The Louis Stokes Cleveland VA Medical Center sits on the city's east side in the **University Circle / Wade Park** area, near the Cleveland Museum of Art and Severance Music Center. Renters targeting a short commute to the VA campus are typically searching University Circle, Wade Park, Hough, or Glenville — the east-side neighborhoods that ring University Circle.",
+        "Rent Finder Cleveland manages more than 90 Section 8-ready rental homes across Greater Cleveland, concentrated in specific east-side ZIP codes rather than blanket coverage of every neighborhood around University Circle. If you're a veteran or VA employee looking within commuting distance of the medical center, [book a free showing](/p/book-showing) and tell our team your target radius — we'll flag whatever's currently available that fits."
+      ]
+    },
+    {
+      "h2": "Neighborhoods around the VA campus",
+      "body": [
+        "University Circle itself hosts Case Western Reserve University, the Cleveland Museum of Art, and Severance Music Center, with RTA Red Line and HealthLine access. Glenville sits just to the northeast near St. Clair Avenue, and Hough runs between Downtown and University Circle. For a look at another Cleveland medical-anchor page, see our guide to [houses for rent near MetroHealth](/cleveland-rentals/houses/houses-for-rent-near-metrohealth-cleveland/)."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**University** — east side; University Circle institutions (Case Western Reserve, Cleveland Museum of Art, Severance Music Center); RTA Red Line + HealthLine access",
+          "**Glenville** — northeast side, near University Circle/St. Clair",
+          "**Hough** — east side, between Downtown and University Circle",
+          "**Wade Park** — the park and institutional cluster the VA medical campus sits within"
+        ]
+      }
+    },
+    {
+      "h2": "What it costs to rent a house near University Circle",
+      "body": [
+        "Citywide, Cleveland's median asking rent was **$1,250 a month** as of Zumper's July 4, 2026 report, while RentCafe's July 2, 2026 report put the metro average for professionally managed apartments at **$1,564** for a 787-square-foot unit — RentCafe's higher figure reflects its sample of larger, newer complexes, several of which cluster around University Circle's institutions. Within our own portfolio, Cleveland rental homes range from about **$700 to $1,800 a month**, with most 2- and 3-bedroom homes landing near $1,000."
+      ],
+      "table": {
+        "headers": ["Home size", "Zumper median (Jul 2026)", "RentCafe average (Jul 2026)"],
+        "rows": [
+          ["Studio", "$1,060", "$1,195"],
+          ["1-bedroom", "$1,195", "$1,451"],
+          ["2-bedroom", "$1,100", "$1,818"],
+          ["3-bedroom", "$1,350", "$2,716"]
+        ]
+      }
+    },
+    {
+      "h2": "Getting to the VA hospital by RTA",
+      "body": [
+        "The **HealthLine** — GCRTA's bus-rapid-transit line along Euclid Avenue — runs directly through University Circle on a dedicated median busway, connecting Public Square downtown to East Cleveland and making it the most direct transit option to the VA medical campus without a car. The Red Line and the Blue/Green light-rail lines also converge at Tower City downtown for connections from other parts of the city."
+      ]
+    },
+    {
+      "h2": "Section 8, VASH vouchers, and renting near the VA",
+      "body": [
+        "Veterans using a **HUD-VASH** voucher — which pairs a standard Housing Choice Voucher with VA case-management support — go through the same local voucher system as any other Section 8 applicant. Cuyahoga Metropolitan Housing Authority ([CMHA](https://www.cmha.net/)) administers vouchers for Cuyahoga County, with preliminary applications accepted year-round through CMHA's online portal. Every home Rent Finder Cleveland manages accepts Housing Choice Vouchers and is HUD-inspection-ready. Keep in mind Ohio has no statewide source-of-income law and Cleveland itself doesn't currently protect voucher holders from discrimination — see our [Section 8 guide](/section-8-housing-cleveland-oh/) and our [VASH voucher explainer](/cleveland-rentals/section-8/vash-voucher-cleveland-veterans/) for the full picture."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What neighborhood is Cleveland's VA hospital in?",
+      "a": "The Louis Stokes Cleveland VA Medical Center sits in the University Circle/Wade Park area on the city's east side, near the Cleveland Museum of Art and Severance Music Center. Nearby neighborhoods include Hough to the west and Glenville to the northeast."
+    },
+    {
+      "q": "Do you have houses for rent right next to the VA hospital?",
+      "a": "Our 90-plus rental homes are spread across Greater Cleveland rather than concentrated in one medical district, so we can't promise a specific unit steps from the VA campus. Book a free showing and tell us your target commute time, and our team will match you to whatever Section 8-ready homes are currently available nearby."
+    },
+    {
+      "q": "What is a HUD-VASH voucher?",
+      "a": "HUD-VASH pairs a standard Housing Choice Voucher with VA case-management support for veterans experiencing or at risk of homelessness. It's administered locally the same way as regular Section 8 vouchers, through Cuyahoga Metropolitan Housing Authority (CMHA), so the same application and inspection process applies."
+    },
+    {
+      "q": "How much does it cost to rent a house near University Circle?",
+      "a": "Citywide, Zumper's July 2026 report put Cleveland's median asking rent at $1,250 a month, while two- and three-bedroom houses in east-side neighborhoods near University Circle commonly range from about $750 to $1,500. Our own portfolio of Section 8-ready rental homes across Cleveland runs $700 to $1,800 a month."
+    },
+    {
+      "q": "How do I get to the VA hospital by public transit?",
+      "a": "GCRTA's HealthLine bus-rapid-transit route runs along Euclid Avenue directly through University Circle, connecting Public Square downtown to East Cleveland on a dedicated busway. It's the most direct car-free route to the VA medical campus; the Red Line and light-rail lines connect through Tower City downtown."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.zumper.com/rent-research/cleveland-oh",
+    "https://www.rentcafe.com/average-rent-market-trends/us/oh/cleveland/",
+    "https://www.cmha.net/",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers",
+    "https://signalcleveland.org/source-of-income-discrimination-section-8-housing-vouchers-cuyahoga-county/"
+  ],
+  "lastUpdated": "2026-07-04"
+}

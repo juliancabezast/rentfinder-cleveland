@@ -1,0 +1,83 @@
+{
+  "slug": "rental-application-fee-ohio",
+  "cluster": "guides",
+  "title": "Application fees for renting in Ohio — what's normal & legal",
+  "metaTitle": "Rental Application Fee in Ohio: What's Normal & Legal",
+  "metaDescription": "Wondering what's normal for a rental application fee in Ohio? See what state law does (and doesn't) require, what the fee covers, and how to apply with us.",
+  "primaryKeyword": "rental application fee ohio",
+  "secondaryKeywords": ["application fee laws ohio", "is a rental application fee refundable", "non-refundable application fee cleveland"],
+  "answerBox": "Ohio has no statewide law capping rental application fees. Ohio Revised Code Chapter 5321 sets rules for deposits, notices, and repairs, but it does not set a maximum dollar amount a landlord can charge to process an application. Fees are usually non-refundable and pay for a credit and background check, so ask what's included before you pay.",
+  "sections": [
+    {
+      "h2": "Is there a legal limit on rental application fees in Ohio?",
+      "body": [
+        "No. **Ohio Revised Code Chapter 5321** — the state's main landlord-tenant law — governs security deposits, notices, and repair obligations, but it does not set a maximum dollar amount for a rental application or screening fee. That leaves the amount largely up to the individual landlord or property manager rather than a fixed state rule.",
+        "This is general information, not legal advice, and requirements can change — verify current Ohio law before you rely on it for a dispute. In practice, most Cleveland-area landlords charge an application fee to cover the actual cost of screening you, not as a profit center, so the fee should be reasonably tied to that cost."
+      ]
+    },
+    {
+      "h2": "What does an application fee actually pay for?",
+      "body": [
+        "An application fee typically covers the cost of pulling your credit report, running a background and eviction-history check, and verifying your income and rental history. Because the landlord pays a screening company for these reports regardless of whether you're approved, the fee is usually **non-refundable** once the check has been run.",
+        "A holding or reservation fee is a different thing — it's meant to take a unit off the market while your application is processed, and whether it's refundable depends entirely on what you agreed to in writing. Always ask which category a fee falls into before you hand over payment."
+      ],
+      "table": {
+        "headers": ["Fee type", "Typical purpose", "Refundable?"],
+        "rows": [
+          ["Application / screening fee", "Covers credit, background, and eviction-history checks", "Usually non-refundable once the check runs"],
+          ["Security deposit", "Covers unpaid rent or damage beyond normal wear", "Refundable under [Ohio Revised Code 5321.16](/cleveland-rentals/guides/ohio-security-deposit-law/), minus lawful deductions"],
+          ["Holding / reservation fee", "Reserves a unit while your application is processed", "Varies — get the refund terms in writing before paying"]
+        ]
+      }
+    },
+    {
+      "h2": "Questions to ask before you pay an application fee",
+      "body": [
+        "Before paying anyone to apply for a rental, get clear answers in writing. This protects you both from an unpleasant surprise and from rental scams that use a fake \"application fee\" to collect money for a unit that isn't really available — a pattern covered in our [guide to avoiding Cleveland rental scams](/cleveland-rentals/guides/rental-scams-cleveland-how-to-avoid/)."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Is the fee refundable if I'm not approved, or if I withdraw my application?",
+          "What exactly does the fee cover — credit check, background check, or both?",
+          "Is the fee charged per applicant or per application (relevant for co-applicants)?",
+          "Can you confirm the listing and showing before I pay anything?",
+          "Will I be told the reason if my application is denied?"
+        ]
+      }
+    },
+    {
+      "h2": "How the rental application process works with Rent Finder Cleveland",
+      "body": [
+        "We manage 90+ rental homes across Greater Cleveland, and every one accepts Housing Choice Vouchers (Section 8) and is HUD-inspection-ready. Our leasing team can walk you through what a specific listing's application involves before you pay any fee, and applications are submitted through our secure online portal.",
+        "If you'd rather see the home first, you can [book a free showing](/p/book-showing), or go ahead and [start your application](/apply) once you've found a home that fits. For more on qualifying, see our [rental application process guide](/cleveland-rentals/guides/rental-application-process-cleveland/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does Ohio law cap how much a landlord can charge for a rental application fee?",
+      "a": "No. Ohio Revised Code Chapter 5321 covers security deposits, notices, and repairs, but it doesn't set a maximum application or screening fee amount. Landlords generally set their own fee, though it should reasonably reflect the actual cost of running a credit and background check. Always confirm the amount and what it covers before you pay."
+    },
+    {
+      "q": "Is a rental application fee refundable in Ohio?",
+      "a": "Usually not, because the fee typically pays for a credit and background check that the landlord's screening company runs regardless of the outcome. Some landlords may refund an unused portion if they never ran the check, but this depends on their own policy — ask for the refund terms in writing before you pay."
+    },
+    {
+      "q": "How much is a typical rental application fee in Cleveland?",
+      "a": "There's no fixed statewide amount, since Ohio law doesn't set one. Fees vary by landlord and by what screening services they use. Ask upfront exactly what the fee is and what it includes before you apply, so you can compare it against other listings you're considering."
+    },
+    {
+      "q": "Can a landlord charge an application fee and still deny me?",
+      "a": "Yes. The application fee pays for the screening process itself, not for approval. Every applicant is still evaluated against the landlord's normal criteria, such as income, rental history, and background results, and paying the fee doesn't obligate a landlord to approve any specific applicant."
+    },
+    {
+      "q": "What should I do if a fee feels like a scam?",
+      "a": "Stop before paying. Confirm the listing is real, ask to see the unit or verify the landlord's identity, and never wire money or use a gift card to pay a fee. See our guide on avoiding Cleveland rental scams for warning signs, and book a showing with us for a verified, in-person alternative."
+    }
+  ],
+  "cta": "apply",
+  "lawTopic": true,
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/chapter-5321", "https://codes.ohio.gov/ohio-revised-code/section-5321.16"],
+  "lastUpdated": "2026-07-04"
+}

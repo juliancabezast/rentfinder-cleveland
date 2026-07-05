@@ -1,0 +1,81 @@
+{
+  "slug": "vash-voucher-cleveland-veterans",
+  "cluster": "section-8",
+  "title": "VASH voucher for veterans in Cleveland",
+  "metaTitle": "HUD-VASH Voucher for Veterans in Cleveland, OH",
+  "metaDescription": "How HUD-VASH vouchers work for veterans in Cleveland: eligibility through the VA, how the voucher functions once issued, and finding a voucher-friendly rental.",
+  "primaryKeyword": "vash voucher cleveland veterans",
+  "secondaryKeywords": ["hud-vash cleveland", "veteran housing voucher ohio", "va supportive housing cleveland"],
+  "answerBox": "HUD-VASH (HUD-Veterans Affairs Supportive Housing) combines a Housing Choice Voucher, administered locally by CMHA, with case management and clinical services coordinated through the VA. It's for veterans experiencing or at risk of homelessness, and eligibility runs through VA enrollment and referral rather than a standard voucher application.",
+  "sections": [
+    {
+      "h2": "What is a HUD-VASH voucher?",
+      "body": [
+        "**HUD-VASH** stands for HUD-Veterans Affairs Supportive Housing. It's a federal program that pairs a Housing Choice Voucher — the rental subsidy portion, administered locally by a public housing authority like **CMHA** in Cuyahoga County — with ongoing case management and clinical support coordinated by the **VA**. The combination is intentional: the voucher covers housing cost, while VA case managers help address the underlying issues (health care, income stability, treatment) that put a veteran at risk of homelessness in the first place.",
+        "It is a joint HUD/VA program, which means eligibility and the application path both run through the VA side first, not through a general public housing waitlist.",
+        "HUD-VASH exists alongside the general Housing Choice Voucher program rather than replacing it — a veteran who doesn't need ongoing VA case management, or who isn't currently homeless or at risk of homelessness, would typically apply for a standard voucher through CMHA's regular preliminary application instead."
+      ]
+    },
+    {
+      "h2": "Why HUD-VASH eligibility runs through the VA, not CMHA",
+      "body": [
+        "Because HUD-VASH bundles a housing subsidy with clinical and case-management support, the VA screens for both housing instability and the kind of ongoing support a veteran wants or needs. That's different from CMHA's standard voucher process, which is primarily an income-and-household-size determination. In practice, this means a veteran can't simply fill out CMHA's general preliminary application and expect to be considered for HUD-VASH specifically — the referral has to originate on the VA side."
+      ]
+    },
+    {
+      "h2": "Who is eligible for HUD-VASH in Cleveland?",
+      "body": [
+        "HUD-VASH is targeted at **veterans experiencing homelessness or at risk of homelessness**, generally including those enrolled in VA health care. Because eligibility and referral are handled through the VA rather than an open application, the practical first step for a veteran in the Cleveland area is connecting with VA homeless-programs staff or a VA social worker, who assess eligibility and coordinate the voucher referral with the local public housing authority.",
+        "This differs from the standard Housing Choice Voucher preliminary application, which anyone can submit to CMHA directly online — HUD-VASH instead starts on the VA side of the process."
+      ]
+    },
+    {
+      "h2": "How does a HUD-VASH voucher work once issued?",
+      "body": [
+        "Once a veteran is approved and issued a HUD-VASH voucher, it functions on the rental side much like a standard Housing Choice Voucher: the veteran typically pays roughly 30% of adjusted income toward rent, and the local housing authority pays the remainder directly to the landlord, up to the applicable payment standard. The rental unit still has to pass a HUD housing-quality inspection, and the landlord has to be willing to accept the voucher. The VA case-management side continues alongside the lease — that ongoing support is what distinguishes HUD-VASH from a voucher alone."
+      ]
+    },
+    {
+      "h2": "Finding a home near VA services in Cleveland",
+      "body": [
+        "Some veterans prioritize a rental that's convenient to VA medical appointments. If proximity to VA care matters for your search, our [houses for rent near the Cleveland VA hospital](/cleveland-rentals/houses/houses-for-rent-near-cleveland-va-hospital/) page covers that part of the search, and every home we manage — regardless of location — accepts Housing Choice Vouchers, including HUD-VASH, and is HUD-inspection-ready."
+      ]
+    },
+    {
+      "h2": "HUD-VASH vs. a standard Housing Choice Voucher",
+      "body": [
+        "The two programs share the same rent-subsidy mechanics but differ sharply in who qualifies and how the voucher is obtained."
+      ],
+      "table": {
+        "headers": ["Feature", "HUD-VASH", "Standard Housing Choice Voucher"],
+        "rows": [
+          ["Who qualifies", "Veterans experiencing or at risk of homelessness", "General low-income households meeting CMHA income limits"],
+          ["How you apply", "Referral through VA homeless programs / a VA social worker", "Direct preliminary application to CMHA, open year-round"],
+          ["Support included", "VA case management alongside the rental subsidy", "Rental subsidy only"],
+          ["Rent mechanics", "~30% of adjusted income toward rent, PHA pays the rest", "Same general structure"]
+        ]
+      }
+    }
+  ],
+  "faq": [
+    {
+      "q": "What does HUD-VASH stand for?",
+      "a": "HUD-VASH stands for HUD-Veterans Affairs Supportive Housing. It combines a Housing Choice Voucher rental subsidy, administered by a local public housing authority such as CMHA, with case management and clinical services coordinated by the VA for veterans experiencing or at risk of homelessness."
+    },
+    {
+      "q": "How does a veteran apply for a HUD-VASH voucher in Cleveland?",
+      "a": "Eligibility and referral for HUD-VASH run through the VA, typically starting with a VA social worker or VA homeless-programs staff, rather than a direct application to the housing authority. Contact VA services first if HUD-VASH may apply to your situation."
+    },
+    {
+      "q": "Does a HUD-VASH voucher work the same as a regular Section 8 voucher for landlords?",
+      "a": "For rent payment and inspection purposes, yes — the housing authority pays a portion directly to the landlord and the unit must pass a HUD inspection. The difference is the added VA case-management support that continues alongside the lease for HUD-VASH households."
+    },
+    {
+      "q": "Can I use a HUD-VASH voucher on any Rent Finder Cleveland home?",
+      "a": "Every home we manage accepts Housing Choice Vouchers, including HUD-VASH, and is HUD-inspection-ready. Availability changes, so book a showing and our team can confirm which current listings fit your household size and location needs."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": ["https://www.hud.gov/helping-americans/housing-choice-vouchers", "https://www.cmha.net"],
+  "lastUpdated": "2026-07-04"
+}

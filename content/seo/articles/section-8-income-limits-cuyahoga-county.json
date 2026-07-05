@@ -1,0 +1,100 @@
+{
+  "slug": "section-8-income-limits-cuyahoga-county",
+  "cluster": "section-8",
+  "title": "Section 8 Income Limits in Cuyahoga County (2026)",
+  "metaTitle": "Section 8 Income Limits Cuyahoga County 2026",
+  "metaDescription": "Section 8 income limits in Cuyahoga County range from $34,800 (1 person) to $65,650 (8), per CMHA's chart. See the full table and book a showing.",
+  "primaryKeyword": "section 8 income limits cuyahoga county",
+  "secondaryKeywords": ["CMHA income limits 2026", "HUD income limits Cleveland", "housing choice voucher eligibility Cuyahoga County"],
+  "answerBox": "CMHA's current Housing Choice Voucher income limits, effective April 3, 2025, run from $34,800 for a one-person household up to $65,650 for an eight-person household in Cuyahoga County. HUD updates these Very Low-Income limits every spring, so always confirm the current chart with CMHA before assuming you qualify.",
+  "sections": [
+    {
+      "h2": "What are the current Section 8 income limits in Cuyahoga County?",
+      "body": [
+        "As of CMHA's most recently published chart, effective April 3, 2025, a one-person household must earn at or below $34,800 a year to qualify for a Housing Choice Voucher in Cuyahoga County, rising to $39,800 for two people, $49,700 for four people, and $65,650 for eight people. These are HUD's Very Low-Income limits for the Cleveland metro area, published by CMHA.",
+        "HUD recalculates income limits every spring, so a chart dated 2025 may already be superseded by the time you read this — always confirm the current figures directly on [CMHA's Housing Choice Voucher page](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) before assuming your household does or doesn't qualify.",
+        "These are HUD's **Very Low-Income** limits, specific to the Cleveland metro area rather than a single national number — HUD sets different income limits for different metros based on local area median income, so a Cuyahoga County figure won't match a limit you might see quoted for a different city."
+      ],
+      "table": {
+        "headers": ["Household size", "Annual income limit (effective 4/3/2025)"],
+        "rows": [
+          ["1 person", "$34,800"],
+          ["2 persons", "$39,800"],
+          ["4 persons", "$49,700"],
+          ["8 persons", "$65,650"]
+        ]
+      },
+      "list": {
+        "type": "ul",
+        "items": [
+          "Household sizes of 3, 5, 6, and 7 fall between the figures above — see CMHA's full published chart for those exact numbers.",
+          "Limits are re-published every spring by HUD, so re-check before applying if it's been a year since you last looked."
+        ]
+      }
+    },
+    {
+      "h2": "How do income limits affect your eligibility?",
+      "body": [
+        "Income limits set the ceiling for who can apply and be selected for a voucher — CMHA compares your household's total annual income against the limit for your household size, not just one wage-earner's pay. Falling under the limit for your size makes you income-eligible; it doesn't guarantee immediate selection, since CMHA still places eligible names into its preliminary application system and chooses households through periodic random mini-lotteries. See our [housing choice voucher explainer](/cleveland-rentals/section-8/housing-choice-voucher-program-explained/) for how that selection process works.",
+        "It's worth noting the income limit is a threshold, not a target — there is no minimum income required to qualify for a voucher, and having a very low or even no current income doesn't disqualify a household. What matters is staying at or under the limit that applies to your household size when CMHA reviews your application."
+      ]
+    },
+    {
+      "h2": "What counts toward household income?",
+      "body": [
+        "CMHA's application asks for income information covering every member of the household, along with each person's name, date of birth, and Social Security number, so the calculation is based on total household earnings rather than a single applicant's pay. If your household composition or income changes between applying and being selected, update your information with CMHA directly — the agency uses the most current figures on file when it evaluates your eligibility.",
+        "Because both household size and household income feed into eligibility, a change in either one can shift which income limit applies to you. A household that grows from two people to four, for example, moves to the higher four-person limit — which is one reason it matters to keep CMHA's records current rather than assuming your original application details still apply months or years later.",
+        "It's also worth remembering that this income data is collected at multiple points, not just once: an initial figure at preliminary application, a fuller verification if you're selected for a voucher interview, and then ongoing recertifications once you're leased up. Each of those checkpoints uses the most current household information CMHA has on file, so keeping your contact details and income updates current matters throughout, not just at the start."
+      ]
+    },
+    {
+      "h2": "Do income limits change once you already have a voucher?",
+      "body": [
+        "Yes — after you're leased up, CMHA periodically re-verifies your household's income and composition through a process called recertification, which can adjust your subsidy and tenant rent portion going forward. Our [Section 8 recertification guide](/cleveland-rentals/section-8/section-8-recertification-cleveland/) walks through what that process typically involves and how to stay in compliance.",
+        "A raise, a new job, a household member moving out, or a change in benefits can all affect the numbers CMHA uses at your next recertification. None of that automatically ends your voucher — it typically adjusts how much of the rent you pay versus how much the subsidy covers, so it's worth reporting changes promptly rather than waiting to be asked."
+      ]
+    },
+    {
+      "h2": "How income limits connect to what you'll actually pay in rent",
+      "body": [
+        "Income eligibility is separate from the payment standard CMHA uses to calculate your subsidy amount for a given bedroom size — qualifying under the income limit gets you into the program, while the payment standard, combined with your income, determines your monthly tenant portion. See our breakdown of [how CMHA payment standards work](/cleveland-rentals/section-8/section-8-voucher-payment-standard-cleveland/) for that half of the equation.",
+        "Two households under the same income limit can end up with different rent portions depending on their actual income within that limit, household deductions, and the unit's rent and utility costs. That's why two neighbors with vouchers of the same bedroom size might pay noticeably different amounts out of pocket even though both qualified under the same income threshold."
+      ]
+    },
+    {
+      "h2": "Finding a voucher-friendly home once you qualify",
+      "body": [
+        "Once you know you're income-eligible and have applied, it helps to know where voucher-friendly housing actually exists locally. We manage 90-plus rental homes across Greater Cleveland — concentrated in neighborhoods like Slavic Village, Collinwood, Glenville, Fairfax/Central, Hough, and Buckeye-Shaker — and every home we manage accepts Section 8 and is HUD-inspection-ready. [Book a showing](/p/book-showing) to see what fits your household size.",
+        "Our portfolio is a genuine mix of single-family houses, duplexes, triplexes, and fourplexes, mostly 2- and 3-bedroom homes, so there's real variety even within a voucher-friendly search. Reaching out before your voucher is finalized also gives you time to see what's typically available in your household's bedroom size before you're on the clock to lease up."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How often does CMHA update its Section 8 income limits?",
+      "a": "HUD publishes updated income limits each spring, and CMHA posts the current figures on its Housing Choice Voucher applicant page. Because limits change annually, always check CMHA's current chart rather than relying on a figure from a prior year."
+    },
+    {
+      "q": "What is the income limit for a single person applying for Section 8 in Cuyahoga County?",
+      "a": "As of CMHA's chart effective April 3, 2025, a one-person household must earn at or below $34,800 a year to be income-eligible for a Housing Choice Voucher in Cuyahoga County. Confirm the current figure with CMHA before applying, since HUD updates limits annually."
+    },
+    {
+      "q": "Does meeting the income limit guarantee I'll get a voucher?",
+      "a": "No. Meeting the income limit makes you eligible to be selected, but CMHA still places eligible applicants into its preliminary application system and chooses households through periodic random mini-lotteries. Selection can take anywhere from a few days to several months."
+    },
+    {
+      "q": "Is household income based on one person's paycheck or the whole household?",
+      "a": "CMHA evaluates total household income — the combined income of every household member listed on the application, not just the primary applicant. That's also why the application asks for each household member's information individually."
+    },
+    {
+      "q": "Will Rent Finder Cleveland rent to me once I have a Section 8 voucher within these income limits?",
+      "a": "Yes. Every one of the 90-plus rental homes we manage across Greater Cleveland accepts Housing Choice Vouchers and is HUD-inspection-ready. Once your voucher is issued, book a showing and we'll help match your household size and voucher to available homes."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers"
+  ],
+  "lastUpdated": "2026-07-04"
+}

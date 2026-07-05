@@ -1,0 +1,94 @@
+{
+  "slug": "source-of-income-discrimination-cleveland-ohio",
+  "cluster": "section-8",
+  "title": "Does Cleveland Have a Source-of-Income Law for Section 8 Vouchers?",
+  "metaTitle": "Source of Income Discrimination in Cleveland, OH",
+  "metaDescription": "Source of income discrimination in Cleveland, Ohio: Ohio has no statewide law, and Cleveland itself doesn't protect voucher holders. See which suburbs do.",
+  "primaryKeyword": "source of income discrimination cleveland ohio",
+  "secondaryKeywords": ["is section 8 protected in cleveland", "voucher discrimination law ohio", "cleveland heights section 8 law"],
+  "lawTopic": true,
+  "answerBox": "Ohio has no statewide law banning source-of-income discrimination, and the City of Cleveland does not protect Housing Choice Voucher holders either — a 2024 'Pay to Stay' ordinance dropped that language before passage. Only Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale currently ban refusing tenants for using a voucher.",
+  "sections": [
+    {
+      "h2": "What is source-of-income discrimination?",
+      "body": [
+        "Source-of-income (SOI) discrimination means a landlord refuses an otherwise-qualified applicant specifically because part or all of their rent would be paid through a Housing Choice Voucher (Section 8), public assistance, or another lawful income source — rather than because of the applicant's individually assessed qualifications.",
+        "This is a separate question from the federal Fair Housing Act's protected classes. Under **Ohio law generally**, the protected classes are the 7 federal categories (race, color, national origin, religion, sex, familial status, disability) plus 2 that Ohio adds under **ORC Chapter 4112** — ancestry and military status. **Source of income is not one of the 9 protected classes in Ohio** (not legal advice; verify current law)."
+      ]
+    },
+    {
+      "h2": "Does Ohio law protect Section 8 voucher holders statewide?",
+      "body": [
+        "Generally, no. **Ohio has no statewide source-of-income law**, so in most of the state a private landlord can lawfully decline an applicant solely because they plan to pay with a housing voucher. Whether a voucher holder has any legal protection instead depends entirely on whether the specific city or village where the property sits has passed its own local ordinance."
+      ]
+    },
+    {
+      "h2": "Does the City of Cleveland protect voucher holders?",
+      "body": [
+        "As of this writing (2026-07-04), **no**. Cleveland passed a broader tenant-protection ordinance known as \"Pay to Stay\" in August 2024, but source-of-income language was negotiated out of that ordinance before it passed, according to reporting by Signal Cleveland and The Land (2026-07-04 access). City administration officials have signaled they may introduce separate source-of-income legislation later, but no enacted Cleveland ordinance covering voucher holders was confirmed as of this date.",
+        "That means inside the City of Cleveland itself, a landlord can generally decline a Section 8 applicant without violating a local law — which is exactly why our own portfolio-wide voucher policy exists as a workaround, not a legal requirement. Every home Rent Finder Cleveland manages [accepts Section 8](/cleveland-rentals/section-8/landlords-that-accept-section-8-cleveland/) regardless of what the law requires."
+      ]
+    },
+    {
+      "h2": "Which Cleveland-area suburbs do protect voucher holders?",
+      "body": [
+        "A handful of Cuyahoga County suburbs have passed their own ordinances making it illegal to refuse a tenant solely because they use a Housing Choice Voucher. Always confirm the current ordinance with the specific municipality before assuming protection applies — local law can change."
+      ],
+      "table": {
+        "headers": ["Jurisdiction", "Voucher protection?", "Notes"],
+        "rows": [
+          ["City of Cleveland", "No", "Pay to Stay ordinance (Aug. 2024) excluded source-of-income language"],
+          ["Cleveland Heights", "Yes", "Ordinance passed 2021"],
+          ["South Euclid", "Yes", "Local ordinance"],
+          ["University Heights", "Yes", "Local ordinance"],
+          ["Warrensville Heights", "Yes", "Local ordinance"],
+          ["Linndale", "Yes", "Local ordinance"],
+          ["Rest of Ohio (state law)", "No statewide protection", "Decision is left to each landlord or municipality"]
+        ]
+      }
+    },
+    {
+      "h2": "What can you do if you believe you faced source-of-income discrimination?",
+      "body": [
+        "If the property is in one of the five suburbs above, you generally have a path to file a local complaint — our [guide to reporting Section 8 discrimination in Cleveland Heights](/cleveland-rentals/section-8/report-section-8-discrimination-cleveland-heights/) walks through that process as one example.",
+        "Inside the City of Cleveland and the rest of Ohio, where no local SOI ordinance currently applies, the more reliable path is to focus your search on landlords and property managers who already state a voucher-friendly policy up front rather than finding out property-by-property. See our list of [landlords that accept Section 8 in Cleveland](/cleveland-rentals/section-8/landlords-that-accept-section-8-cleveland/) for a starting point."
+      ]
+    },
+    {
+      "h2": "How Rent Finder Cleveland approaches this",
+      "body": [
+        "Regardless of what any particular city ordinance requires, **all 90+ rental homes we manage across Greater Cleveland accept Housing Choice Vouchers and are HUD-inspection-ready** — a policy across the whole portfolio, not a case-by-case decision. That means you don't have to research which of our listings will consider your voucher. [Book a free showing](/p/book-showing) to see current availability, or start with our broader [Section 8 housing guide](/section-8-housing-cleveland-oh/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is it illegal to refuse Section 8 in Cleveland, Ohio?",
+      "a": "Generally no. Ohio has no statewide source-of-income law, and the City of Cleveland has no local ordinance protecting voucher holders as of 2026-07-04, so a private landlord in the city can typically decline an applicant for using a voucher (not legal advice; verify current law)."
+    },
+    {
+      "q": "Which suburbs near Cleveland protect Section 8 tenants?",
+      "a": "Cleveland Heights, South Euclid, University Heights, Warrensville Heights, and Linndale each have local ordinances banning refusal of tenants based on voucher use. These are the only Cuyahoga County jurisdictions confirmed to have such protection as of 2026-07-04."
+    },
+    {
+      "q": "Did Cleveland's Pay to Stay ordinance protect voucher holders?",
+      "a": "No. Cleveland's Pay to Stay ordinance, passed in August 2024, initially considered source-of-income protections, but that language was negotiated out before the ordinance passed. As of 2026-07-04, no enacted Cleveland ordinance covers Housing Choice Voucher holders."
+    },
+    {
+      "q": "What's the difference between source of income and Fair Housing protected classes?",
+      "a": "The federal Fair Housing Act and Ohio's ORC Chapter 4112 protect 9 classes in Ohio: race, color, national origin, religion, sex, familial status, disability, ancestry, and military status. Source of income is not one of them statewide — protection exists only where a specific city has passed its own ordinance."
+    },
+    {
+      "q": "Does Rent Finder Cleveland require Section 8 acceptance by law?",
+      "a": "No — it's our own policy, not a legal requirement in most of our service area. Every home we manage across Greater Cleveland accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of whether the local city has its own source-of-income ordinance."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://signalcleveland.org/source-of-income-discrimination-section-8-housing-vouchers-cuyahoga-county/",
+    "https://signalcleveland.org/landlord-refuse-your-housing-voucher-heres-how-cleveland-heights-says-it-is-making-complaints-easier-to-file/",
+    "https://thelandcle.org/stories/op-ed-its-time-to-renew-the-fight-against-housing-voucher-discrimination/",
+    "https://www.ohiolegalhelp.org/topic/fair-housing-ohio"
+  ],
+  "lastUpdated": "2026-07-04"
+}

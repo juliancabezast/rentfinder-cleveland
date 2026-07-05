@@ -1,0 +1,90 @@
+{
+  "slug": "get-security-deposit-back-ohio",
+  "cluster": "guides",
+  "title": "How to get your security deposit back in Ohio",
+  "metaTitle": "Get Security Deposit Back in Ohio: Step-by-Step",
+  "metaDescription": "Get your full security deposit back in Ohio: move-out prep, forwarding address, the 30-day rule, and what to do if a landlord withholds it. Renter's guide.",
+  "primaryKeyword": "get security deposit back ohio",
+  "secondaryKeywords": ["security deposit move out checklist", "ohio deposit forwarding address", "itemized deductions ohio rental"],
+  "answerBox": "To get your full security deposit back in Ohio, document the unit's condition at move-in and move-out, clean thoroughly, give your landlord a forwarding address, and return keys promptly. Ohio law generally then requires the landlord to return the deposit — or send an itemized list of deductions — within 30 days.",
+  "sections": [
+    {
+      "h2": "What should I do before I move out?",
+      "body": [
+        "The single biggest thing a renter can do to protect their deposit is document the unit's condition before handing back the keys — photos and video of every room, including closets, appliances, cabinets, and the yard if there is one. This creates a clear before-and-after record if a landlord later disputes damage, and it costs nothing but a few minutes with a phone camera.",
+        "It helps most when it's compared against similar documentation from move-in day, so you have a true baseline rather than relying on memory. If you never did a move-in walkthrough, our [move-in inspection checklist](/cleveland-rentals/guides/rental-move-in-inspection-checklist/) explains what to capture next time and how it protects your deposit later. Cleaning the unit to the same standard it was received in — floors swept, appliances wiped down, trash removed — also reduces the chance of a cleaning-fee deduction."
+      ]
+    },
+    {
+      "h2": "How do I trigger the 30-day return clock?",
+      "body": [
+        "Ohio law generally starts the landlord's 30-day deadline once two things have happened: the lease has terminated and the tenant has delivered possession of the unit — meaning keys are returned and the tenant has actually vacated. Simply giving notice that you're moving doesn't start the clock by itself.",
+        "It's also worth explicitly providing a forwarding address in writing when you turn in keys, even though the statute doesn't strictly require it to trigger the deadline — it removes any argument later that the landlord \"didn't know where to send it.\" For the full legal background on this timeline, see our [Ohio security deposit law explainer](/cleveland-rentals/guides/ohio-security-deposit-law/)."
+      ]
+    },
+    {
+      "h2": "What can't a landlord deduct for?",
+      "body": [
+        "Ohio law generally limits deductions to unpaid rent and damage caused by the tenant's noncompliance with their statutory duties or the lease — not ordinary wear and tear that comes from normal, everyday living in a home over time. A scuff on a wall from years of foot traffic is different from a hole punched in drywall.",
+        "If you're unsure whether something counts as damage or normal wear, review your lease's specific language and keep your move-in photos handy — they're your best evidence either way."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Generally deductible:** unpaid rent, unpaid utility bills the tenant owed under the lease, damage beyond normal wear and tear",
+          "**Generally NOT deductible:** faded paint, worn carpet from years of use, minor nail holes from hanging pictures, appliance wear from age",
+          "**Best practice:** request the itemized statement in writing if you don't receive one within 30 days"
+        ]
+      }
+    },
+    {
+      "h2": "What if my landlord doesn't send my deposit back?",
+      "body": [
+        "If 30 days pass after you've delivered possession and provided a forwarding address, and you've received neither your deposit nor an itemized statement, Ohio law generally allows you to pursue the wrongfully withheld amount. Under ORC 5321.16(C), a tenant can potentially recover that amount plus an equal amount in damages, along with reasonable attorney's fees, when a landlord's failure was in bad faith.",
+        "Before escalating, send a written request (email or letter) asking for the deposit or itemization, and keep a copy. Many disputes get resolved once a landlord realizes the tenant has documentation and is aware of the statutory timeline."
+      ]
+    },
+    {
+      "h2": "A simple move-out timeline",
+      "body": [
+        "Following a consistent sequence at move-out reduces disputes and speeds up your refund. This is the order most Ohio renters use in practice."
+      ],
+      "table": {
+        "headers": ["When", "What to do"],
+        "rows": [
+          ["2–3 weeks before move-out", "Review your lease's notice requirements; schedule a move-out walkthrough if your landlord offers one"],
+          ["Day of move-out", "Clean the unit, photograph every room, remove all belongings, return all keys/fobs"],
+          ["Day of move-out", "Provide your forwarding address in writing"],
+          ["Within 30 days", "Landlord returns deposit or sends itemized deduction statement"],
+          ["If 30 days pass with nothing", "Send a written follow-up; consider small claims court if unresolved"]
+        ]
+      }
+    }
+  ],
+  "faq": [
+    {
+      "q": "How long does a landlord have to return my deposit in Ohio?",
+      "a": "Ohio law generally gives a landlord 30 days after the lease ends and the tenant delivers possession to return the deposit or send an itemized statement of deductions. This 30-day rule applies statewide under Ohio Revised Code 5321.16, so it covers every Cleveland rental the same way, whether it's a single-family house or a multi-family duplex."
+    },
+    {
+      "q": "Do I need to give my landlord a forwarding address?",
+      "a": "It's strongly recommended, in writing, even though it isn't always framed as a strict legal requirement to start the clock. It documents exactly where you can be reached, gives your landlord no excuse for delay, and helps you if a dispute over the 30-day timing comes up later, so provide it the same day you hand back the keys."
+    },
+    {
+      "q": "Can my landlord charge me for normal wear and tear?",
+      "a": "Ohio law generally does not allow deductions for ordinary wear and tear that results from normal use over time, only for actual damage from lease noncompliance or unpaid rent. Photos from move-in and move-out are the best way to show the difference if it's disputed."
+    },
+    {
+      "q": "What can I do if my landlord keeps my whole deposit with no explanation?",
+      "a": "Send a written request for an itemized statement first. If 30 days have passed since move-out and you've received neither the deposit nor an itemization, Ohio law generally allows you to pursue the withheld amount, plus an equal amount in damages and attorney's fees, for bad-faith withholding under ORC 5321.16(C)."
+    },
+    {
+      "q": "Can I take my landlord to small claims court over a deposit dispute?",
+      "a": "Small claims court is a common venue Ohio tenants use for deposit disputes, since claims are often within its dollar limits and don't require an attorney to file. Bring your lease, move-in and move-out photos, any written communication with your landlord, and proof of your forwarding address to support your case."
+    }
+  ],
+  "cta": "contact",
+  "sources": ["https://codes.ohio.gov/ohio-revised-code/section-5321.16"],
+  "lawTopic": true,
+  "lastUpdated": "2026-07-04"
+}

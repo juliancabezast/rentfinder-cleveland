@@ -1,0 +1,82 @@
+{
+  "slug": "houses-for-rent-cleveland-ohio-under-1000",
+  "cluster": "houses",
+  "title": "Houses for Rent in Cleveland, OH Under $1,000",
+  "metaTitle": "Houses for Rent in Cleveland OH Under $1,000",
+  "metaDescription": "Houses for rent in Cleveland, OH under $1,000/mo from a local property manager — realistic sizes and neighborhoods, most Section 8-friendly. Book a showing.",
+  "primaryKeyword": "houses for rent cleveland ohio under 1000",
+  "secondaryKeywords": ["cheap houses cleveland under 1000", "affordable rental homes cleveland ohio", "section 8 houses under 1000 cleveland"],
+  "answerBox": "Houses for rent in Cleveland, OH under $1,000 a month are realistic mainly for 1- and 2-bedroom homes; 3-bedroom homes typically start just above $1,000. Under-$1,000 rentals are common on the city's East and Southeast sides, and most accept Housing Choice Vouchers (Section 8).",
+  "sections": [
+    {
+      "h2": "Can you actually rent a house under $1,000 in Cleveland?",
+      "body": [
+        "Yes, but honestly, it depends on bedroom count. Across our own portfolio, rents run from about $700 to $1,800/mo with a typical rent near $1,000 — so under-$1,000 is realistic for smaller homes, but it isn't a given for every size. 1-bedroom and most 2-bedroom homes commonly fall under $1,000; 3-bedroom and larger homes typically start right around $1,100 and up.",
+        "For context, Zumper's July 4, 2026 report puts Cleveland's citywide median asking rent at $1,250/mo overall, with a 2-bedroom median of $1,100/mo — both above the $1,000 mark. That means an under-$1,000 house is often at the lower end of the local market, not the typical price."
+      ]
+    },
+    {
+      "h2": "What's realistic under $1,000, by bedroom count",
+      "body": [
+        "Here's a realistic picture based on current availability across our own homes. Treat the top row as the most reliable bet if a strict $1,000 ceiling matters to you."
+      ],
+      "table": {
+        "headers": ["Bedrooms", "Typical range", "Realistic under $1,000?"],
+        "rows": [
+          ["1 bedroom", "$700 – $900", "Yes, usually"],
+          ["2 bedroom", "$750 – $1,100", "Often, especially at the lower end"],
+          ["3 bedroom", "$1,100 – $1,500", "Rarely — most start just above $1,000"],
+          ["4+ bedroom", "$1,200 – $1,800", "No — larger homes run well above $1,000"]
+        ]
+      }
+    },
+    {
+      "h2": "Where under-$1,000 houses are most available",
+      "body": [
+        "Our most affordable inventory is concentrated on Cleveland's East and Southeast sides — Slavic Village (44105), Collinwood (44110), Glenville (44108), Fairfax/Central (44104), and Hough (44103) — with a smaller number of homes on the West side around Cudell/Detroit-Shoreway (44102) and Old Brooklyn (44109). These areas are reachable by GCRTA's bus network, and several connect to downtown via the Red Line or the HealthLine on Euclid Avenue.",
+        "See the full [houses-for-rent hub](/houses-for-rent-cleveland-oh/) for every neighborhood and bedroom-count option, or go straight to [book a free showing](/p/book-showing) to see what's open at your budget right now."
+      ]
+    },
+    {
+      "h2": "Stretching an under-$1,000 budget with a voucher",
+      "body": [
+        "If you hold a Housing Choice Voucher, your actual out-of-pocket rent may be lower than the sticker price, since [CMHA](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php) — the Cuyahoga County housing authority — pays a subsidy up to a set payment standard for your bedroom size and covers part of the rent directly. Payment standards change periodically, so check CMHA's current chart rather than assuming a fixed number. Every home we manage accepts vouchers and is HUD-inspection-ready; see [HUD's Housing Choice Voucher overview](https://www.hud.gov/helping-americans/housing-choice-vouchers) for how the program works, or our [Section 8 housing guide](/section-8-housing-cleveland-oh/) for local specifics."
+      ]
+    },
+    {
+      "h2": "What to watch for at this price point",
+      "body": [
+        "At any price under $1,000, always confirm which utilities are included in the rent — some homes bundle water or trash, but most do not include electric or gas, and that difference can matter as much as the sticker rent itself. Our [utilities-included guide](/cleveland-rentals/guides/what-utilities-included-cleveland-rent/) breaks down what's typical for Cleveland rentals. Because affordable inventory moves quickly, the fastest way to see current under-$1,000 options is to [book a free showing](/p/book-showing) or [apply](/apply) once you find a home you like.",
+        "It also helps to stay flexible on bedroom count and exact neighborhood if a firm $1,000 ceiling is the priority. A smaller 2-bedroom in one of our East-side ZIPs will typically beat that budget more reliably than holding out for a specific 3-bedroom floor plan, since larger homes are the ones most likely to price above $1,000 regardless of location."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Are there houses for rent in Cleveland under $1,000 a month?",
+      "a": "Yes, especially 1- and 2-bedroom homes, which commonly fall in the $700-$1,100 range. 3-bedroom and larger homes typically start just above $1,000, so a strict under-$1,000 budget is most realistic for smaller households."
+    },
+    {
+      "q": "What size house can I get for under $1,000 in Cleveland?",
+      "a": "Most often a 1-bedroom or smaller 2-bedroom home. Zumper's July 4, 2026 report shows Cleveland's citywide median 2-bedroom rent at $1,100/mo, so under-$1,000 2-bedrooms tend to be at the lower end of condition or size, not the typical unit."
+    },
+    {
+      "q": "Which Cleveland neighborhoods have the most under-$1,000 houses?",
+      "a": "Affordable homes under $1,000 are common across East and Southeast side neighborhoods including Slavic Village, Collinwood, Glenville, Fairfax/Central, and Hough, plus a smaller number on the West side in Cudell/Detroit-Shoreway and Old Brooklyn."
+    },
+    {
+      "q": "Do under-$1,000 houses in Cleveland accept Section 8 vouchers?",
+      "a": "Every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready, regardless of the listed rent. With a voucher, CMHA's payment standard may cover part of the rent, potentially reducing what you pay out of pocket below the sticker price."
+    },
+    {
+      "q": "Are utilities included in under-$1,000 rentals?",
+      "a": "It varies by property. Some homes include water or trash pickup, but most do not include electric or gas. Always confirm exactly what's included before signing, since utility costs can add a meaningful amount to your real monthly housing cost."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers"
+  ],
+  "lastUpdated": "2026-07-04"
+}

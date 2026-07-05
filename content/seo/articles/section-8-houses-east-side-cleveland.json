@@ -1,0 +1,84 @@
+{
+  "slug": "section-8-houses-east-side-cleveland",
+  "cluster": "section-8",
+  "title": "Section 8 Houses for Rent on Cleveland's East Side",
+  "metaTitle": "Section 8 Houses for Rent on Cleveland's East Side",
+  "metaDescription": "Section 8 houses for rent on the east side of Cleveland — Slavic Village, Collinwood, Glenville, Hough, and Buckeye-Shaker. Every home we manage accepts vouchers.",
+  "primaryKeyword": "section 8 houses east side cleveland",
+  "secondaryKeywords": ["voucher friendly homes east cleveland", "44105 44108 44110 section 8", "east side rental homes cleveland"],
+  "answerBox": "Cleveland's East and Southeast side is home to most of Rent Finder Cleveland's Section 8-friendly rental homes, concentrated in neighborhoods like Slavic Village (44105), Collinwood (44110), Glenville (44108), Fairfax/Central (44104), Hough (44103), and Buckeye-Shaker (44120). Every home we manage accepts Housing Choice Vouchers and is HUD-inspection-ready.",
+  "sections": [
+    {
+      "h2": "Where are Section 8 houses available on Cleveland's east side?",
+      "body": [
+        "Rent Finder Cleveland's rental homes are concentrated on the **East and Southeast side of Cleveland**, across several of the city's 34 Statistical Planning Areas: **Slavic Village (ZIP 44105)**, **Collinwood (44110)**, **Glenville (44108)**, **Fairfax and Central (44104)**, **Hough (44103)**, and **Buckeye-Shaker (44120)**, with additional homes in Union-Miles, Lee-Harvard, Broadway-Slavic Village, and St. Clair-Superior. **Every home we manage in these neighborhoods accepts Housing Choice Vouchers and is HUD-inspection-ready** — it's a portfolio-wide policy, not a case-by-case decision.",
+        "This is the reverse of a common assumption: our current inventory leans East and Southeast, not West side. If you're specifically comparing sides of the city, our [houses for rent on the east side of Cleveland](/houses-for-rent-cleveland-oh/) guide and [houses for rent in Cleveland OH](/houses-for-rent-cleveland-oh/) pillar page cover both."
+      ]
+    },
+    {
+      "h2": "How much does a house rent for on the east side?",
+      "body": [
+        "Rent varies by bedroom count and condition. Across our currently available and coming-soon Cleveland inventory — most of which sits on the East and Southeast side — typical rents run as follows. For broader market context, Zumper's July 2026 report put Cleveland's citywide median asking rent at $1,250/mo, with 3-bedroom units averaging $1,350/mo."
+      ],
+      "table": {
+        "headers": ["Bedrooms", "Typical monthly rent range", "Notes"],
+        "rows": [
+          ["1 bedroom", "around $700", "Least common size in our portfolio"],
+          ["2 bedroom", "$750 – $1,100", "Most common size across our homes"],
+          ["3 bedroom", "$1,100 – $1,500", "Often includes a basement and yard"],
+          ["4 bedroom", "$1,200 – $1,800", "Larger households; fewer units available"]
+        ]
+      }
+    },
+    {
+      "h2": "Getting around the east side",
+      "body": [
+        "GCRTA's **Red Line** heavy-rail runs from Cleveland Hopkins Airport through Downtown's Tower City hub out to Windermere in East Cleveland, connecting several east-side neighborhoods to downtown and the airport. The **HealthLine** bus-rapid-transit route runs along Euclid Avenue between Public Square and University Circle, and the **Blue** and **Green** light-rail lines run from Tower City out to Shaker Heights, serving the Buckeye-Shaker area directly. An extensive local bus network covers the rest of the east side.",
+        "University Circle, reachable via the Red Line and HealthLine, is home to Case Western Reserve University, the Cleveland Museum of Art, and the Cleveland Clinic's main campus vicinity — a common commute destination for east-side renters."
+      ]
+    },
+    {
+      "h2": "Applying for a Section 8 voucher if you don't have one yet",
+      "body": [
+        "The Cuyahoga Metropolitan Housing Authority (CMHA) runs the Housing Choice Voucher program for the entire county, including every east-side Cleveland neighborhood above. CMHA accepts preliminary applications year-round with no closing date, though selection runs through periodic random \"mini-lotteries\" rather than strict first-come, first-served — a name may be reached within days or take months. Applying requires an active email address, Social Security numbers and birth dates for everyone in the household, and household income information. Apply online through [CMHA's applicant portal](https://www.cmha.net/housing/applicants/housing_choice_vouchers.php), or see our [step-by-step guide to applying through CMHA](/cleveland-rentals/section-8/how-to-apply-section-8-cleveland-cmha/).",
+        "Once a voucher is issued, the unit you choose has to pass a housing quality inspection before assistance starts — CMHA handles that step directly, and the home's rent has to fit within the payment standard set for your household's bedroom size."
+      ]
+    },
+    {
+      "h2": "Why book a showing with a local voucher-friendly manager",
+      "body": [
+        "Instead of contacting east-side listings one by one to ask about Section 8, you can start with a property manager whose whole portfolio already accepts vouchers. [Book a free showing](/p/book-showing) and tell our team your bedroom count, budget, and preferred east-side neighborhood, or apply directly through our [secure application portal](/apply) once you've found a home you like.",
+        "Because our east-side homes are kept HUD-inspection-ready as a matter of policy rather than fixed up one listing at a time, the inspection step described above tends to move faster than it would with a landlord who is accepting a voucher for the first time. That can matter if your voucher's search term is already running."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which east-side Cleveland neighborhoods have Section 8 houses available?",
+      "a": "Rent Finder Cleveland's inventory is concentrated in Slavic Village (44105), Collinwood (44110), Glenville (44108), Fairfax/Central (44104), Hough (44103), and Buckeye-Shaker (44120), plus smaller pockets in Union-Miles and Lee-Harvard. Every home we manage in these areas accepts Housing Choice Vouchers."
+    },
+    {
+      "q": "Are Section 8 houses more common on Cleveland's east side than the west side?",
+      "a": "Within our own portfolio, yes — most of our rental homes sit on the East and Southeast side of Cleveland, with a smaller number on the west side. This reflects our specific inventory, not a citywide rule about where voucher-friendly landlords are located."
+    },
+    {
+      "q": "How much do 3-bedroom Section 8 houses rent for on the east side?",
+      "a": "Across our current and coming-soon Cleveland inventory, 3-bedroom homes typically run about $1,100 to $1,500 a month, depending on condition and location. Citywide, Zumper's July 2026 report put the broader Cleveland 3-bedroom median at $1,350/mo."
+    },
+    {
+      "q": "Is transit available on the east side for renters without a car?",
+      "a": "Yes. GCRTA's Red Line heavy rail, the HealthLine bus-rapid-transit route on Euclid Avenue, and the Blue and Green light-rail lines to Shaker Heights all serve east-side neighborhoods, along with an extensive local bus network."
+    },
+    {
+      "q": "Do I need a voucher already to book a showing on an east-side home?",
+      "a": "No. You can tour or apply for any listed home regardless of whether you already have a voucher, since standard screening applies either way. If you don't have a voucher yet, our CMHA application guide explains how to get on the list."
+    }
+  ],
+  "cta": "book-showing",
+  "sources": [
+    "https://www.cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://en.wikipedia.org/wiki/Greater_Cleveland_Regional_Transit_Authority",
+    "https://www.zumper.com/rent-research/cleveland-oh"
+  ],
+  "lastUpdated": "2026-07-04"
+}
