@@ -247,6 +247,22 @@ if (existsSync(idxPath)) {
   }
 }
 
+// ── inject the business sections into llms.txt (idempotent; for AI crawlers) ──
+const llmsPath = join(PUBLIC, "llms.txt");
+if (existsSync(llmsPath)) {
+  let llms = readFileSync(llmsPath, "utf8");
+  if (!llms.includes("/housing-partners/") && !llms.includes("/corporate-leasing/")) {
+    const block =
+      "## For housing partners & employers\n" +
+      sections.map((s) => `- [${s.title}](${absUrl(cfg, "/" + s.slug + "/")}): ${s.metaDescription}`).join("\n") +
+      "\n\n";
+    llms = llms.includes("## Full index")
+      ? llms.replace("## Full index", block + "## Full index")
+      : llms.trimEnd() + "\n\n" + block;
+    writeFileSync(llmsPath, llms);
+  }
+}
+
 const total = smUrls.length;
 const landings = sections.length;
 console.log(`✓ Generated business sections`);
