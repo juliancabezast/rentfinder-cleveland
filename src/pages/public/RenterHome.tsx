@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { trackPropertyView } from "@/lib/trackView";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,13 @@ import { SiteFooter } from "@/components/public/SiteFooter";
 const PHONE_DISPLAY = "(440) 444-4737";
 const PHONE_E164 = "+14404444737";
 
+interface UnitDetail {
+  unit_number: string | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  rent_price: number | null;
+}
+
 interface Listing {
   key: string;
   address: string;
@@ -51,6 +59,7 @@ interface Listing {
   longitude: number | null;
   photo: string | null;
   property_id: string;
+  unitDetails?: UnitDetail[];
 }
 
 /** Expected availability for a Coming Soon home: the date set in Properties,
@@ -67,7 +76,35 @@ async function fetchListings(): Promise<{ listings: Listing[]; areas: string[]; 
     body: { mode: "listings" },
   });
   if (error) throw error;
-  return data as { listings: Listing[]; areas: string[]; cities: string[] };
+  const result = data as { listings: Listing[]; areas: string[]; cities: string[] };
+
+  // Per-unit details so multi-family cards can show a row per unit. Anon can
+  // read listed properties (RLS: anon_view_listed_properties → available /
+  // coming_soon), so one direct query is enough — no edge-function change.
+  const { data: props } = await supabase
+    .from("properties")
+    .select("address, unit_number, bedrooms, bathrooms, rent_price")
+    .in("status", ["available", "coming_soon"]);
+  const byAddr = new Map<string, UnitDetail[]>();
+  for (const p of props || []) {
+    const k = ((p as any).address || "").trim().toLowerCase();
+    if (!k) continue;
+    const arr = byAddr.get(k) || [];
+    arr.push({
+      unit_number: (p as any).unit_number ?? null,
+      bedrooms: (p as any).bedrooms ?? null,
+      bathrooms: (p as any).bathrooms != null ? Number((p as any).bathrooms) : null,
+      rent_price: (p as any).rent_price ?? null,
+    });
+    byAddr.set(k, arr);
+  }
+  for (const l of result.listings) {
+    const k = (l.address || "").trim().toLowerCase();
+    l.unitDetails = (byAddr.get(k) || [])
+      .slice()
+      .sort((a, b) => (a.unit_number || "").localeCompare(b.unit_number || ""));
+  }
+  return result;
 }
 
 function money(n: number | null): string {
@@ -250,10 +287,23 @@ function FilterPanel({
 /** A single listing card. */
 function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void }) {
   const [imgOk, setImgOk] = useState(true);
+  const navigate = useNavigate();
   const coming = l.status === "coming_soon";
+  // Whole card is clickable → opens the property page (which records the
+  // detail-view). Footer buttons stopPropagation so they keep their own action.
+  const openDetail = () => navigate(`/p/schedule-showing/${l.property_id}`);
   return (
     <Card
-      className={`overflow-hidden flex flex-col group hover:shadow-lg transition-all ${
+      onClick={openDetail}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openDetail();
+        }
+      }}
+      className={`overflow-hidden flex flex-col group hover:shadow-lg transition-all cursor-pointer ${
         coming ? "opacity-75 hover:opacity-100" : ""
       }`}
     >
@@ -292,16 +342,36 @@ function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void
         )}
       </div>
       <div className="p-4 flex flex-col flex-1">
-        <div className="text-lg font-bold text-foreground">{rentLabel(l)}</div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-          <span className="inline-flex items-center gap-1"><BedDouble className="h-4 w-4" />{bedLabel(l)}</span>
-          <span className="inline-flex items-center gap-1"><Bath className="h-4 w-4" />{bathLabel(l)}</span>
-          <span className="inline-flex items-center gap-1"><HomeIcon className="h-4 w-4" />{titleCaseType(l.property_type)}</span>
-        </div>
-        <div className="mt-2 text-sm text-foreground font-medium">{l.address}</div>
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+        {/* Address is the card header */}
+        <div className="text-lg font-bold text-foreground leading-tight">{l.address}</div>
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
           <MapPin className="h-3.5 w-3.5" />{l.neighborhood}, {l.city} {l.zip_code || ""}
         </div>
+
+        {l.unitDetails && l.unitDetails.length > 1 ? (
+          /* Multi-family: one row per unit — beds · baths · price */
+          <div className="mt-3 space-y-1.5 border-t border-border pt-2.5">
+            {l.unitDetails.map((u, i) => (
+              <div key={i} className="flex items-center justify-between gap-2 text-sm">
+                <span className="shrink-0 font-semibold text-foreground">
+                  {u.unit_number ? `Unit ${u.unit_number}` : `Unit ${i + 1}`}
+                </span>
+                <span className="flex items-center gap-2.5 text-muted-foreground">
+                  <span className="inline-flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" />{u.bedrooms ?? "—"}</span>
+                  <span className="inline-flex items-center gap-1"><Bath className="h-3.5 w-3.5" />{u.bathrooms != null ? (u.bathrooms % 1 === 0 ? u.bathrooms : u.bathrooms.toFixed(1)) : "—"}</span>
+                  <span className="font-bold text-foreground tabular-nums">{money(u.rent_price)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Single unit: one line — beds · baths · price */
+          <div className="mt-3 flex items-center gap-3 border-t border-border pt-2.5 text-sm">
+            <span className="inline-flex items-center gap-1 text-muted-foreground"><BedDouble className="h-4 w-4" />{bedLabel(l)}</span>
+            <span className="inline-flex items-center gap-1 text-muted-foreground"><Bath className="h-4 w-4" />{bathLabel(l)}</span>
+            <span className="ml-auto text-base font-bold text-foreground">{rentLabel(l)}</span>
+          </div>
+        )}
         {coming && (
           <>
             <div className="mt-1.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-amber-700">
@@ -319,17 +389,17 @@ function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void
             /* Coming soon: no showings yet — voucher holders can apply early */
             <Button
               className="w-full bg-amber-400 text-amber-950 hover:bg-amber-300 font-bold"
-              onClick={() => onApply(l)}
+              onClick={(e) => { e.stopPropagation(); onApply(l); }}
             >
               <ShieldCheck className="h-4 w-4 mr-2" /> Apply with Section 8 Voucher
             </Button>
           ) : (
             <>
-              <Button className="w-full" onClick={() => onApply(l)}>
+              <Button className="w-full" onClick={(e) => { e.stopPropagation(); onApply(l); }}>
                 <FileSignature className="h-4 w-4 mr-2" /> Start Application
               </Button>
               <Button asChild variant="outline" className="w-full">
-                <Link to={`/p/schedule-showing/${l.property_id}`}>
+                <Link to={`/p/schedule-showing/${l.property_id}`} onClick={(e) => e.stopPropagation()}>
                   <CalendarCheck className="h-4 w-4 mr-2" /> Schedule a Showing
                 </Link>
               </Button>
@@ -383,6 +453,13 @@ export default function RenterHome() {
   });
 
   const listings = data?.listings ?? [];
+
+  // Record a real impression for every property shown on the home (raw count,
+  // once per listings load). Fire-and-forget; never blocks render.
+  useEffect(() => {
+    const ids = (data?.listings ?? []).map((l) => l.property_id).filter(Boolean);
+    if (ids.length) trackPropertyView("impression", ids);
+  }, [data]);
 
   const [area, setArea] = useState("all");
   const [beds, setBeds] = useState("any");   // exact match; "0" = Studio, "5" = 5+

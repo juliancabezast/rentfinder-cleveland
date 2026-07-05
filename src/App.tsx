@@ -43,7 +43,6 @@ const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
 const CampaignsPage = lazy(() => import("./pages/campaigns/CampaignsPage"));
 const CommunicationsHub = lazy(() => import("./pages/communications/CommunicationsHub"));
 const PropertySpotlightPage = lazy(() => import("./pages/communications/PropertySpotlightPage"));
-const HomepageAnnouncementPage = lazy(() => import("./pages/communications/HomepageAnnouncementPage"));
 const DemoRequests = lazy(() => import("./pages/DemoRequests"));
 const StarktankPage = lazy(() => import("./pages/starktank/StarktankPage"));
 
@@ -262,17 +261,6 @@ const App = () => (
                 <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
                   <MainLayout>
                     <PropertySpotlightPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/communications/announcement"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
-                  <MainLayout>
-                    <HomepageAnnouncementPage />
                   </MainLayout>
                 </ProtectedRoute>
               }

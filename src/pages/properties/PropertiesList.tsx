@@ -20,6 +20,7 @@ import {
   ChevronRight,
   ChevronDown,
   MapPin,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,8 +79,67 @@ const FILTER_OPTIONS = [
 ];
 
 /** Shared column template so headers, property rows and unit rows all align. */
+// Columns: label (flexes to fill width) | beds baths rent | photos public status
+// | Performance group (leads · 7-day Δ · showings · views) | edit. The flexible
+// label soaks up slack so the row fills edge-to-edge — the Performance group now
+// occupies what used to be an empty right-hand spacer.
 const GRID_COLS =
-  "grid grid-cols-[minmax(0,1fr)_56px_56px_112px_48px_56px_48px_140px_36px] items-center gap-x-2 px-3";
+  "grid min-w-[1080px] grid-cols-[minmax(200px,1fr)_56px_56px_112px_56px_48px_140px_56px_52px_60px_96px_36px] items-center gap-x-2 px-3";
+
+/** Short number: 1234 → "1.2k". */
+function fmtCompact(n: number): string {
+  if (n >= 10000) return `${Math.round(n / 1000)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
+/** Right-hand "Performance" column group: leads · 7-day lead delta · scheduled
+ *  showings · views (detail · impressions). Renders 4 grid cells — a fragment
+ *  adds no grid item, so the 4 divs become direct children of the row grid. */
+function PerfCells({
+  leads, delta, showings, viewsDetail, viewsImpr,
+}: { leads: number; delta: number; showings: number; viewsDetail: number; viewsImpr: number }) {
+  const dash = <span className="text-[11px] text-muted-foreground/40">—</span>;
+  return (
+    <>
+      <div className="flex justify-center">
+        {leads > 0 ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-600">
+            <Users className="h-3 w-3" />{fmtCompact(leads)}
+          </span>
+        ) : dash}
+      </div>
+      <div className="flex justify-center text-[11px] font-bold tabular-nums">
+        {delta > 0 ? (
+          <span className="text-emerald-600">▲{delta}</span>
+        ) : delta < 0 ? (
+          <span className="text-red-500">▼{Math.abs(delta)}</span>
+        ) : (
+          <span className="text-muted-foreground/40">0</span>
+        )}
+      </div>
+      <div className="flex justify-center">
+        {showings > 0 ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700">
+            <CalendarDays className="h-3.5 w-3.5 text-slate-400" />{showings}
+          </span>
+        ) : dash}
+      </div>
+      <div className="flex justify-center">
+        {viewsDetail > 0 || viewsImpr > 0 ? (
+          <span
+            className="inline-flex items-center gap-0.5 text-[11px] font-medium text-slate-700"
+            title={`${viewsDetail} detail views · ${viewsImpr} impressions`}
+          >
+            <Eye className="h-3.5 w-3.5 text-slate-400" />{fmtCompact(viewsDetail)}
+            <span className="px-0.5 text-muted-foreground/40">·</span>
+            <span className="font-normal text-muted-foreground">{fmtCompact(viewsImpr)}</span>
+          </span>
+        ) : dash}
+      </div>
+    </>
+  );
+}
 
 const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
   available: { label: "Available", dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -242,6 +302,8 @@ const PropertiesList: React.FC = () => {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [addingUnitTo, setAddingUnitTo] = useState<{ address: string; city: string; state: string; zip_code: string; property_group_id: string | null } | null>(null);
   const [leadCounts, setLeadCounts] = useState<Map<string, number>>(new Map());
+  const [showingsCounts, setShowingsCounts] = useState<Map<string, number>>(new Map());
+  const [leadsWeek, setLeadsWeek] = useState<Map<string, { cur: number; prev: number }>>(new Map());
   const [live, setLive] = useState(false);
   // Collapsible tree: every property collapsed by default (one compact row),
   // cities expanded. Search/filter auto-expands so matches stay visible.
@@ -274,19 +336,70 @@ const PropertiesList: React.FC = () => {
       if (error) throw error;
       setProperties(data || []);
 
-      const { data: leadData, error: leadError } = await supabase
-        .from("leads")
-        .select("interested_property_id")
-        .eq("organization_id", userRecord.organization_id)
-        .not("interested_property_id", "is", null);
-      if (!leadError && leadData) {
-        const counts = new Map<string, number>();
-        for (const lead of leadData) {
+      // Count interested leads per property. Paginate past PostgREST's 1000-row
+      // cap — this org has 3k+ interested leads and a single high-volume
+      // property (1k+ leads) would otherwise fill the whole first page, leaving
+      // every other property showing "—". Order by the id for stable,
+      // non-overlapping pages.
+      const counts = new Map<string, number>();
+      const LEAD_PAGE = 1000;
+      for (let from = 0; from < 500000; from += LEAD_PAGE) {
+        const { data: leadData, error: leadError } = await supabase
+          .from("leads")
+          .select("interested_property_id")
+          .eq("organization_id", userRecord.organization_id)
+          .not("interested_property_id", "is", null)
+          .order("interested_property_id", { ascending: true })
+          .range(from, from + LEAD_PAGE - 1);
+        if (leadError) break;
+        const rows = leadData || [];
+        for (const lead of rows) {
           const pid = lead.interested_property_id as string;
           counts.set(pid, (counts.get(pid) || 0) + 1);
         }
-        setLeadCounts(counts);
+        if (rows.length < LEAD_PAGE) break;
       }
+      setLeadCounts(counts);
+
+      // Scheduled showings per property (via the purpose-built property_performance view).
+      const showings = new Map<string, number>();
+      const { data: perf } = await supabase
+        .from("property_performance")
+        .select("property_id, showings_scheduled")
+        .eq("organization_id", userRecord.organization_id)
+        .limit(5000);
+      for (const r of (perf as any[]) || []) {
+        if (r.property_id) showings.set(r.property_id as string, Number(r.showings_scheduled) || 0);
+      }
+      setShowingsCounts(showings);
+
+      // New-lead delta: rolling last-7-days vs the prior 7 days, per property.
+      const DAY = 86400000;
+      const curStart = new Date(Date.now() - 7 * DAY).toISOString();
+      const prevStart = new Date(Date.now() - 14 * DAY).toISOString();
+      const week = new Map<string, { cur: number; prev: number }>();
+      for (let from = 0; from < 500000; from += LEAD_PAGE) {
+        const { data: recent, error: rErr } = await supabase
+          .from("leads")
+          .select("interested_property_id, created_at")
+          .eq("organization_id", userRecord.organization_id)
+          .not("interested_property_id", "is", null)
+          .gte("created_at", prevStart)
+          .order("interested_property_id", { ascending: true })
+          .range(from, from + LEAD_PAGE - 1);
+        if (rErr) break;
+        const rws = recent || [];
+        for (const l of rws) {
+          const pid = l.interested_property_id as string;
+          const ts = l.created_at as string | null;
+          if (!pid || !ts) continue;
+          const e = week.get(pid) || { cur: 0, prev: 0 };
+          if (ts >= curStart) e.cur += 1; else e.prev += 1;
+          week.set(pid, e);
+        }
+        if (rws.length < LEAD_PAGE) break;
+      }
+      setLeadsWeek(week);
     } catch (error) {
       console.error("Error fetching properties:", error);
       toast({ title: "Error", description: "Failed to load properties.", variant: "destructive" });
@@ -383,8 +496,18 @@ const PropertiesList: React.FC = () => {
     }));
   }, [filtered]);
 
-  // Collapsible city groups (alphabetical), buildings alphabetical inside.
+  // Collapsible city groups (alphabetical). Within each city, buildings are
+  // ranked: active multi-unit (2+) → active single-unit → coming soon → rented
+  // → inactive, then alphabetical by address inside each rank.
   const cityGroups = useMemo(() => {
+    const ACTIVE_STATUSES = new Set(["available", "in_leasing_process"]);
+    const buildingRank = (b: (typeof grouped)[number]): number => {
+      const statuses = b.units.map((u) => u.status);
+      if (statuses.some((s) => ACTIVE_STATUSES.has(s))) return b.units.length >= 2 ? 0 : 1;
+      if (statuses.some((s) => s === "coming_soon")) return 2;
+      if (statuses.some((s) => s === "rented")) return 3;
+      return 4; // inactive / everything else last
+    };
     const map = new Map<string, typeof grouped>();
     for (const g of grouped) {
       const key = `${g.city}, ${g.state}`;
@@ -395,7 +518,9 @@ const PropertiesList: React.FC = () => {
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([city, buildings]) => ({
         city,
-        buildings,
+        buildings: [...buildings].sort(
+          (a, b) => buildingRank(a) - buildingRank(b) || a.address.localeCompare(b.address),
+        ),
         doors: buildings.reduce((s, b) => s + b.units.length, 0),
         available: buildings.reduce((s, b) => s + b.units.filter((u) => u.status === "available").length, 0),
       }));
@@ -524,17 +649,6 @@ const PropertiesList: React.FC = () => {
             onSave={(v) => updateProperty(unit.id, { rent_price: v })} />
         </div>
 
-        {/* Leads */}
-        <div className="flex justify-center">
-          {unitLeads > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-600">
-              <Users className="h-3 w-3" />{unitLeads}
-            </span>
-          ) : (
-            <span className="text-[11px] text-muted-foreground/40">—</span>
-          )}
-        </div>
-
         {/* Photos */}
         <div className="flex justify-center">
           {hasPhotos ? (
@@ -557,6 +671,15 @@ const PropertiesList: React.FC = () => {
           <StatusSelect status={unit.status} canEdit={canEdit}
             onChange={(v) => updateProperty(unit.id, { status: v })} />
         </div>
+
+        {/* Performance group */}
+        <PerfCells
+          leads={unitLeads}
+          delta={(() => { const w = leadsWeek.get(unit.id); return w ? w.cur - w.prev : 0; })()}
+          showings={showingsCounts.get(unit.id) || 0}
+          viewsDetail={(unit as any).detail_view_count || 0}
+          viewsImpr={(unit as any).impression_count || 0}
+        />
 
         {/* Edit */}
         <div className="flex justify-center">
@@ -645,17 +768,6 @@ const PropertiesList: React.FC = () => {
           </>
         )}
 
-        {/* Leads (sum) */}
-        <div className="flex justify-center">
-          {leads > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-600">
-              <Users className="h-3 w-3" />{leads}
-            </span>
-          ) : (
-            <span className="text-[11px] text-muted-foreground/40">—</span>
-          )}
-        </div>
-
         {/* Photos (all / some / none) */}
         <div className="flex justify-center">
           {unitsWithPhotos === units.length ? (
@@ -719,6 +831,15 @@ const PropertiesList: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Performance group (summed across units) */}
+        <PerfCells
+          leads={leads}
+          delta={units.reduce((s, u) => { const w = leadsWeek.get(u.id); return s + (w ? w.cur - w.prev : 0); }, 0)}
+          showings={units.reduce((s, u) => s + (showingsCounts.get(u.id) || 0), 0)}
+          viewsDetail={units.reduce((s, u) => s + ((u as any).detail_view_count || 0), 0)}
+          viewsImpr={units.reduce((s, u) => s + ((u as any).impression_count || 0), 0)}
+        />
 
         {/* Edit */}
         <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
@@ -853,17 +974,20 @@ const PropertiesList: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border/50 bg-white/80 divide-y divide-border/30">
+        <div className="overflow-x-auto rounded-xl border border-border/50 bg-white/80 divide-y divide-border/30">
           {/* Column headers */}
           <div className={cn(GRID_COLS, "hidden md:grid py-2 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground")}>
             <span>Property</span>
             <span className="text-center">Beds</span>
             <span className="text-center">Baths</span>
             <span className="text-center">Rent</span>
-            <span className="text-center">Leads</span>
             <span className="text-center">Photos</span>
             <span className="text-center">Public</span>
             <span className="text-center">Status</span>
+            <span className="text-center">Leads</span>
+            <span className="text-center">Δ 7d</span>
+            <span className="text-center">Showings</span>
+            <span className="text-center">Views</span>
             <span />
           </div>
 

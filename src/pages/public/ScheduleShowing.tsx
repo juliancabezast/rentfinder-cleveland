@@ -12,6 +12,7 @@ import {
   buildConsentPayload,
 } from "@/components/public/SmsConsentCheckbox";
 import { supabase } from "@/integrations/supabase/client";
+import { trackPropertyView } from "@/lib/trackView";
 import {
   MapPin,
   DollarSign,
@@ -562,6 +563,11 @@ const UnitSelectCard: React.FC<{
               </p>
             );
           })()}
+          {property.description && (
+            <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+              {property.description.split("\n")[0]}
+            </p>
+          )}
         </div>
       </div>
 
@@ -917,6 +923,9 @@ const ScheduleShowing: React.FC = () => {
         setPropertyError("Property not found or no longer available.");
       } else {
         setProperty(data);
+        // Record a real detail-view for this property (raw count). Fires for
+        // every property-page open regardless of entry point.
+        trackPropertyView("detail_view", [data.id]);
       }
       setPropertyLoading(false);
     })();

@@ -48,6 +48,7 @@ import {
   MousePointerClick,
   Ban,
   Palette,
+  Megaphone,
   Download,
   Copy,
   Filter,
@@ -58,6 +59,7 @@ import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmailTemplatesTab } from "@/components/leads/nurturing/EmailTemplatesTab";
+import { MassCampaignsTab } from "@/components/emails/MassCampaignsTab";
 
 interface EmailEvent {
   id: string;
@@ -845,7 +847,22 @@ const EmailsPage = () => {
 
         {/* ── TEMPLATES TAB ── */}
         <TabsContent value="templates" className="mt-4">
-          <EmailTemplatesTab refreshKey={templateRefreshKey} />
+          <Tabs defaultValue="transactional">
+            <TabsList>
+              <TabsTrigger value="transactional" className="gap-2">
+                <Palette className="h-4 w-4" /> Transactional
+              </TabsTrigger>
+              <TabsTrigger value="mass" className="gap-2">
+                <Megaphone className="h-4 w-4" /> Mass Campaigns
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="transactional" className="mt-4">
+              <EmailTemplatesTab refreshKey={templateRefreshKey} />
+            </TabsContent>
+            <TabsContent value="mass" className="mt-4">
+              <MassCampaignsTab />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
 

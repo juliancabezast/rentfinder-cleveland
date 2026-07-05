@@ -238,7 +238,7 @@ const DEFAULT_FEATURES_TEXT = [
 
 // ── Component ─────────────────────────────────────────────────────────
 
-const HomepageAnnouncementPage = () => {
+export const MassCampaignsTab = () => {
   const { userRecord } = useAuth();
   const { getSetting } = useOrganizationSettings();
   const { toast } = useToast();
@@ -489,13 +489,12 @@ const HomepageAnnouncementPage = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <Rocket className="h-6 w-6 text-[#4F46E5]" />
+        <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+          <Rocket className="h-5 w-5 text-[#4F46E5]" />
           New Homepage Announcement
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Introduce the redesigned website to your leads and drive them to browse — sent as a
-          compliant, consent-checked email blast
+        </h2>
+        <p className="text-sm text-slate-500 mt-0.5">
+          A one-time “we relaunched our website” blast to your leads — consent-checked and CAN-SPAM compliant.
         </p>
       </div>
 
@@ -795,4 +794,3 @@ const HomepageAnnouncementPage = () => {
   );
 };
 
-export default HomepageAnnouncementPage;

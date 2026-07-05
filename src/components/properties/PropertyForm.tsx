@@ -29,7 +29,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { PhotoUpload } from './PhotoUpload';
 import { AlternativePropertiesSelector } from './AlternativePropertiesSelector';
-import { Loader2, Sparkles, Globe, Check, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Globe, Check, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { loadListingConfig, renderPropertyDescription, type ListingTemplateConfig } from '@/lib/listingTemplate';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 
@@ -117,9 +118,8 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
   const [investors, setInvestors] = useState<{ id: string; full_name: string }[]>([]);
 
-  // AI generation states
-  const [generatingDesc, setGeneratingDesc] = useState(false);
-  const [generatingNotes, setGeneratingNotes] = useState(false);
+  // Org-wide listing template — used to auto-generate the description on save.
+  const [listingConfig, setListingConfig] = useState<ListingTemplateConfig | null>(null);
 
   // Zillow re-sync states (edit mode only)
   const [zillowUrl, setZillowUrl] = useState('');
@@ -183,68 +183,13 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
     fetchData();
   }, [organization?.id]);
 
-  const getPropertyContext = () => ({
-    address: form.getValues('address'),
-    city: form.getValues('city'),
-    state: form.getValues('state'),
-    zip_code: form.getValues('zip_code'),
-    bedrooms: form.getValues('bedrooms') || 'unknown',
-    bathrooms: form.getValues('bathrooms') || 'unknown',
-    sqft: form.getValues('square_feet') || 'unknown',
-    property_type: form.getValues('property_type') || 'unknown',
-    rent_price: form.getValues('rent_price') || 'unknown',
-  });
-
-  const callOpenAi = async (kind: 'description' | 'notes'): Promise<string | null> => {
-    if (!organization?.id) return null;
-
-    const { data, error } = await supabase.functions.invoke('generate-property-description', {
-      body: { kind, context: getPropertyContext() },
-    });
-
-    if (error) {
-      const msg = error.message || 'Failed to generate text';
-      if (/not configured/i.test(msg)) {
-        toast.error('OpenAI API key not configured. Add it in Settings → Integrations.');
-      } else {
-        throw new Error(msg);
-      }
-      return null;
-    }
-    if (data?.error) {
-      if (/not configured/i.test(data.error)) {
-        toast.error('OpenAI API key not configured. Add it in Settings → Integrations.');
-        return null;
-      }
-      throw new Error(data.error);
-    }
-    return (data?.text as string) || null;
-  };
-
-
-  const generateAiDescription = async () => {
-    setGeneratingDesc(true);
-    try {
-      const result = await callOpenAi('description');
-      if (result) form.setValue('description', result);
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setGeneratingDesc(false);
-    }
-  };
-
-  const generateAiNotes = async () => {
-    setGeneratingNotes(true);
-    try {
-      const result = await callOpenAi('notes');
-      if (result) form.setValue('special_notes', result);
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setGeneratingNotes(false);
-    }
-  };
+  // Load the org-wide listing template so the description can be generated on save.
+  useEffect(() => {
+    if (!organization?.id) return;
+    loadListingConfig(supabase, organization.id)
+      .then(setListingConfig)
+      .catch((e) => console.error('Error loading listing config:', e));
+  }, [organization?.id]);
 
 
   const fieldLabels: Record<string, string> = {
@@ -361,7 +306,9 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
         coming_soon_date: data.status === 'coming_soon' && data.coming_soon_date ? data.coming_soon_date : null,
         video_tour_url: data.video_tour_url || null,
         virtual_tour_url: data.virtual_tour_url || null,
-        description: data.description || null,
+        description: listingConfig
+          ? renderPropertyDescription(listingConfig, data as any)
+          : (data.description || null),
         special_notes: data.special_notes || null,
         investor_id: data.investor_id || null,
         organization_id: organization.id,
@@ -841,62 +788,18 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
             <CardTitle>Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Public Description</FormLabel>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={generateAiDescription}
-                      disabled={generatingDesc}
-                      className="h-7 px-2 text-xs text-[#4F46E5] hover:bg-[#4F46E5]/10"
-                    >
-                      {generatingDesc ? (
-                        <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Generating...</>
-                      ) : (
-                        <><Sparkles className="h-3.5 w-3.5 mr-1" /> AI Magic</>
-                      )}
-                    </Button>
-                  </div>
-                  <FormControl>
-                    <Textarea
-                      rows={4}
-                      placeholder="Describe the property for prospective tenants..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-muted-foreground">
+              The public description is generated automatically from your{" "}
+              <span className="font-medium text-slate-700">Listing Template &amp; Policies</span>{" "}
+              (Properties → Rules) and refreshed whenever you save. It's no longer written per property.
+            </div>
 
             <FormField
               control={form.control}
               name="special_notes"
               render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Internal Notes</FormLabel>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={generateAiNotes}
-                      disabled={generatingNotes}
-                      className="h-7 px-2 text-xs text-[#4F46E5] hover:bg-[#4F46E5]/10"
-                    >
-                      {generatingNotes ? (
-                        <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Generating...</>
-                      ) : (
-                        <><Sparkles className="h-3.5 w-3.5 mr-1" /> AI Magic</>
-                      )}
-                    </Button>
-                  </div>
+                  <FormLabel>Internal Notes</FormLabel>
                   <FormControl>
                     <Textarea
                       rows={3}

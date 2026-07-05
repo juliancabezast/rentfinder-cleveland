@@ -138,6 +138,10 @@ verify_jwt = false
 [functions.leasing-tracker-lookup]
 verify_jwt = false
 
+# Public property-view tracking (impressions + detail views)
+[functions.track-property-view]
+verify_jwt = false
+
 # Zillow Property Import
 [functions.import-zillow-property]
 verify_jwt = false

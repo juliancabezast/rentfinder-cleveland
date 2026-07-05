@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle, Upload, ImageIcon, X, CheckCircle, Sparkles, Building2 } from "lucide-react";
+import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle, Upload, ImageIcon, X, CheckCircle, Building2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -87,14 +87,12 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   const [editSqft, setEditSqft] = useState("");
   const [editPropertyType, setEditPropertyType] = useState("house");
   const [editRent, setEditRent] = useState("");
-  const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState("available");
 
   // Multi-unit state
   const [units, setUnits] = useState<UnitData[]>([]);
 
   // AI description generation
-  const [generatingDesc, setGeneratingDesc] = useState(false);
 
   // AI screenshot extraction state
   const [aiExtracting, setAiExtracting] = useState(false);
@@ -205,49 +203,11 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
     if (aiApprovals.sqft && aiResults.sqft != null) setEditSqft(String(aiResults.sqft));
     if (aiApprovals.rent_price && aiResults.rent_price != null) setEditRent(String(aiResults.rent_price));
     if (aiApprovals.property_type && aiResults.property_type) setEditPropertyType(String(aiResults.property_type));
-    if (aiApprovals.description && aiResults.description) setEditDescription(String(aiResults.description));
     setAiResults(null);
     setAiApprovals({});
     toast({ title: "Fields updated", description: "AI-extracted data has been applied." });
   };
 
-  const generateAiDescription = async () => {
-    if (!userRecord?.organization_id || !property) return;
-
-    setGeneratingDesc(true);
-    try {
-      const context = {
-        address: property.address,
-        city: property.city,
-        state: property.state,
-        zip_code: property.zip_code,
-        bedrooms: editBedrooms || "unknown",
-        bathrooms: editBathrooms || "unknown",
-        sqft: editSqft || "unknown",
-        property_type: editPropertyType,
-        rent_price: editRent || "unknown",
-      };
-
-      const { data, error } = await supabase.functions.invoke("generate-property-description", {
-        body: { kind: "description", context },
-      });
-
-      if (error) throw new Error(error.message || "Failed to generate description");
-      if (data?.error) {
-        if (/not configured/i.test(data.error)) {
-          toast({ title: "OpenAI not configured", description: "Add your OpenAI API key in Settings → Integrations.", variant: "destructive" });
-          return;
-        }
-        throw new Error(data.error);
-      }
-      const desc = data?.text as string | undefined;
-      if (desc) setEditDescription(desc);
-    } catch (err) {
-      toast({ title: "Generation failed", description: (err as Error).message, variant: "destructive" });
-    } finally {
-      setGeneratingDesc(false);
-    }
-  };
 
 
   const resetState = () => {
@@ -292,7 +252,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
       setEditSqft(String(p.square_feet || ""));
       setEditPropertyType(p.property_type || "house");
       setEditRent(String(p.rent_price || ""));
-      setEditDescription(p.description || "");
       setEditStatus(p.status || "available");
       setStep("review");
     } catch (err) {
@@ -327,7 +286,7 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
             state: property.state,
             zip_code: property.zip_code,
             property_type: editPropertyType,
-            description: editDescription || null,
+            description: null,
             cover_photo: property.photos[0] || null,
           })
           .select("id")
@@ -348,7 +307,7 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
           square_feet: parseInt(unit.sqft) || null,
           property_type: editPropertyType,
           rent_price: parseFloat(unit.rent) || 0,
-          description: editDescription || null,
+          description: null,
           photos: property.photos.length > 0 ? property.photos : [],
           status: unit.status,
           property_group_id: group.id,
@@ -380,7 +339,7 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
           square_feet: parseInt(editSqft) || null,
           property_type: editPropertyType,
           rent_price: rentPrice,
-          description: editDescription || null,
+          description: null,
           photos: property.photos.length > 0 ? property.photos : [],
           status: editStatus,
           special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
@@ -811,38 +770,6 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
               </div>
             )}
 
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="edit-desc">Description</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={generateAiDescription}
-                  disabled={generatingDesc}
-                  className="h-7 px-2 text-xs text-[#4F46E5] hover:bg-[#4F46E5]/10"
-                >
-                  {generatingDesc ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-3.5 w-3.5 mr-1" />
-                      AI Magic
-                    </>
-                  )}
-                </Button>
-              </div>
-              <Textarea
-                id="edit-desc"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                rows={3}
-                placeholder="Property description..."
-              />
-            </div>
 
             {error && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
