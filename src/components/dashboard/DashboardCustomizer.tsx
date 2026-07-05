@@ -81,17 +81,43 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
   },
 ];
 
+// Stat cards grouped into 3 dashboard rows of 5. `category` drives the row
+// headers + per-row color accents on the dashboard and the grouped toggles
+// in this customizer.
+export const STAT_CARD_CATEGORIES = [
+  "Leads",
+  "Pipeline & Portfolio",
+  "Communications & Ops",
+] as const;
+
 export const STAT_CARD_DEFS = [
-  { id: "total_doors", label: "Total Doors" },
-  { id: "leads", label: "Leads" },
-  { id: "hot_leads", label: "Hot Leads" },
-  { id: "showings", label: "Showings" },
-  { id: "applicants", label: "Applicants" },
-  { id: "sms_sent", label: "SMS Sent" },
-  { id: "emails_sent", label: "Emails Sent" },
-  { id: "emails_parsed", label: "Emails Parsed" },
-  { id: "calls_made", label: "Calls Made" },
-  { id: "agent_queue", label: "Agent Queue" },
+  // Row 1 — Leads
+  { id: "leads", label: "Leads", category: "Leads" },
+  { id: "new_leads_week", label: "New This Week", category: "Leads" },
+  { id: "hot_leads", label: "Hot Leads", category: "Leads" },
+  { id: "hot_awaiting", label: "Hot Awaiting Contact", category: "Leads" },
+  { id: "uncontacted_backlog", label: "Uncontacted Backlog", category: "Leads" },
+  // Row 2 — Pipeline & Portfolio
+  { id: "showings", label: "Showings", category: "Pipeline & Portfolio" },
+  { id: "show_up_rate", label: "Show-Up Rate", category: "Pipeline & Portfolio" },
+  { id: "applicants", label: "Applicants", category: "Pipeline & Portfolio" },
+  { id: "total_doors", label: "Total Doors", category: "Pipeline & Portfolio" },
+  { id: "available_units", label: "Available Units", category: "Pipeline & Portfolio" },
+  // Row 3 — Communications & Ops
+  { id: "response_time", label: "Lead Response Time", category: "Communications & Ops" },
+  { id: "emails_sent", label: "Emails Sent", category: "Communications & Ops" },
+  { id: "emails_parsed", label: "Leads From Email", category: "Communications & Ops" },
+  { id: "sms_sent", label: "SMS Sent", category: "Communications & Ops" },
+  { id: "agent_queue", label: "Agent Queue", category: "Communications & Ops" },
+];
+
+export type StatsPeriod = "day" | "week" | "month" | "total";
+
+export const STATS_PERIOD_OPTIONS: { value: StatsPeriod; label: string }[] = [
+  { value: "day", label: "Today" },
+  { value: "week", label: "This Week" },
+  { value: "month", label: "This Month" },
+  { value: "total", label: "All Time" },
 ];
 
 export interface WidgetPreference {
@@ -104,6 +130,9 @@ export interface DashboardPrefs {
   widgets: WidgetPreference[];
   layout: "comfortable" | "compact";
   statCards: Record<string, boolean>;
+  /** Time window applied to the period-aware stat cards. Lives here so the
+   * selector sits in this panel instead of a toggle strip on the dashboard. */
+  statsPeriod: StatsPeriod;
 }
 
 export const getDefaultPrefs = (): DashboardPrefs => ({
@@ -114,6 +143,7 @@ export const getDefaultPrefs = (): DashboardPrefs => ({
   })),
   layout: "comfortable",
   statCards: Object.fromEntries(STAT_CARD_DEFS.map((sc) => [sc.id, true])),
+  statsPeriod: "total",
 });
 
 export const loadDashboardPrefs = (userId: string): DashboardPrefs => {
@@ -180,6 +210,10 @@ export const DashboardCustomizer: React.FC<DashboardCustomizerProps> = ({
     onPrefsChange({ ...prefs, layout });
   };
 
+  const setStatsPeriod = (statsPeriod: StatsPeriod) => {
+    onPrefsChange({ ...prefs, statsPeriod });
+  };
+
   const isWidgetVisible = (widgetId: string) => {
     return prefs.widgets.find((w) => w.id === widgetId)?.visible ?? true;
   };
@@ -224,25 +258,51 @@ export const DashboardCustomizer: React.FC<DashboardCustomizerProps> = ({
 
             <Separator />
 
-            {/* Individual Stat Card Toggles */}
+            {/* Stats period filter — applies to the period-aware stat cards */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Stats period:
+              </h3>
+              <RadioGroup
+                value={prefs.statsPeriod ?? "total"}
+                onValueChange={(v) => setStatsPeriod(v as StatsPeriod)}
+                className="grid grid-cols-2 gap-2"
+              >
+                {STATS_PERIOD_OPTIONS.map((opt) => (
+                  <div key={opt.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={opt.value} id={`period-${opt.value}`} />
+                    <Label htmlFor={`period-${opt.value}`}>{opt.label}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+
+            <Separator />
+
+            {/* Individual Stat Card Toggles, grouped by dashboard category */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground">
                 Stat cards:
               </h3>
-              <div className="space-y-3">
-                {STAT_CARD_DEFS.map((card) => (
-                  <div
-                    key={card.id}
-                    className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <span className="text-sm font-medium">{card.label}</span>
-                    <Switch
-                      checked={prefs.statCards[card.id] ?? true}
-                      onCheckedChange={() => toggleStatCard(card.id)}
-                    />
-                  </div>
-                ))}
-              </div>
+              {STAT_CARD_CATEGORIES.map((cat) => (
+                <div key={cat} className="space-y-1">
+                  <p className="px-3 pt-1 text-[11px] font-bold text-slate-400 uppercase tracking-[0.08em]">
+                    {cat}
+                  </p>
+                  {STAT_CARD_DEFS.filter((c) => c.category === cat).map((card) => (
+                    <div
+                      key={card.id}
+                      className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <span className="text-sm font-medium">{card.label}</span>
+                      <Switch
+                        checked={prefs.statCards[card.id] ?? true}
+                        onCheckedChange={() => toggleStatCard(card.id)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
 
             <Separator />

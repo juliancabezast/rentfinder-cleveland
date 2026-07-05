@@ -16,6 +16,7 @@ import {
   loadDashboardPrefs,
   saveDashboardPrefs,
   getDefaultPrefs,
+  StatsPeriod,
 } from "@/components/dashboard/DashboardCustomizer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,18 +33,21 @@ import {
   Mail,
   Inbox,
   Flame,
-  Phone,
   ListChecks,
   FileText,
+  TrendingUp,
+  Target,
+  Hourglass,
+  Timer,
+  Home,
+  CalendarCheck,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TaskQueuePanel } from "@/components/dashboard/TaskQueuePanel";
-
-type StatsPeriod = 'day' | 'week' | 'month' | 'total';
 
 interface DashboardStats {
   totalDoors: number;
@@ -59,15 +63,30 @@ interface DashboardStats {
 
 interface PeriodStats {
   totalLeads: number;
-  hotLeads: number;
   showingsCount: number;
   smsSent: number;
   emailsSent: number;
   emailsParsed: number;
-  callsMade: number;
-  callMinutes: number;
-  applicationsSent: number;
-  applicationsSentLastWeek: number;
+  applicantsNow: number;
+}
+
+// Extra stat-chip metrics served by the dashboard_extra_stats() RPC in one
+// round-trip (current-state / fixed-window — not affected by the period filter).
+interface ExtraStats {
+  newThisWeek: number;
+  newPrevWeek: number;
+  hotAwaitingContact: number;
+  uncontactedBacklog24h: number;
+  hotActive: number;
+  showingsCompleted: number;
+  showingsNoShow: number;
+  queuePending: number;
+  queueOverdue12h: number;
+  availableUnits: number;
+  rentedUnits: number;
+  totalUnits: number;
+  medianResponseMinutes: number | null;
+  pctUnder1h: number | null;
 }
 
 interface PropertyInterest {
@@ -104,9 +123,9 @@ export const AdminDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [extraStats, setExtraStats] = useState<ExtraStats | null>(null);
   const [periodStats, setPeriodStats] = useState<PeriodStats | null>(null);
   const [periodLoading, setPeriodLoading] = useState(false);
-  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('total');
   const [priorityLeads, setPriorityLeads] = useState<PriorityLead[]>([]);
   const [upcomingShowings, setUpcomingShowings] = useState<TodayShowing[]>([]);
   const [topProperties, setTopProperties] = useState<PropertyInterest[]>([]);
@@ -146,12 +165,18 @@ export const AdminDashboard = () => {
     return prefs.statCards?.[cardId] ?? true;
   };
 
-  // Helper: base query for clean leads (complete + no junk names)
+  // Period filter now lives in the Customize panel (prefs) instead of a
+  // toggle strip on the dashboard body.
+  const statsPeriod: StatsPeriod = prefs.statsPeriod ?? 'total';
+
+  // Helper: base query for clean leads (complete + no junk names).
+  // is_demo guard future-proofs against seeded demo data (DemoDataTab).
   const cleanLeadCount = () =>
     supabase
       .from("leads")
       .select("id", { count: "exact", head: true })
       .eq("organization_id", userRecord?.organization_id || "")
+      .not("is_demo", "is", true)
       .not("full_name", "is", null)
       .not("phone", "is", null)
       .not("email", "is", null)
@@ -196,6 +221,7 @@ export const AdminDashboard = () => {
           leadsLastWeekResult,
           pendingTasksResult,
           leadsWithPropertyResult,
+          extraStatsResult,
         ] = await Promise.all([
           supabase.rpc('get_dashboard_summary'),
           supabase
@@ -248,6 +274,9 @@ export const AdminDashboard = () => {
           // Top properties by interest — DB-side aggregate (no 1000-row cap;
           // sums all units of a building and counts all-time interest).
           supabase.rpc("top_properties_by_interest", { p_limit: 5 }),
+          // Extra stat chips (response time, backlog, WoW leads, inventory, hot
+          // awaiting contact) — single DB-side aggregate, demo rows excluded.
+          supabase.rpc("dashboard_extra_stats"),
         ]);
 
         if (summaryResult.error) console.error("Dashboard summary RPC error:", summaryResult.error);
@@ -311,6 +340,37 @@ export const AdminDashboard = () => {
           }))
         );
 
+        // Extra stat chips from dashboard_extra_stats()
+        if (extraStatsResult.error) {
+          console.error("Extra stats RPC error:", extraStatsResult.error);
+        }
+        const extra = extraStatsResult.data as {
+          leads: { new_this_week: number; new_prev_week: number; hot_awaiting_contact: number; uncontacted_backlog_24h: number };
+          hot_active: number;
+          showings: { completed: number; no_show: number };
+          queue: { pending: number; overdue_12h: number };
+          inventory: { available: number; rented: number; total: number };
+          response: { median_minutes: number; pct_under_1h: number; responded_count: number } | null;
+        } | null;
+        if (extra) {
+          setExtraStats({
+            newThisWeek: extra.leads?.new_this_week ?? 0,
+            newPrevWeek: extra.leads?.new_prev_week ?? 0,
+            hotAwaitingContact: extra.leads?.hot_awaiting_contact ?? 0,
+            uncontactedBacklog24h: extra.leads?.uncontacted_backlog_24h ?? 0,
+            hotActive: extra.hot_active ?? 0,
+            showingsCompleted: extra.showings?.completed ?? 0,
+            showingsNoShow: extra.showings?.no_show ?? 0,
+            queuePending: extra.queue?.pending ?? 0,
+            queueOverdue12h: extra.queue?.overdue_12h ?? 0,
+            availableUnits: extra.inventory?.available ?? 0,
+            rentedUnits: extra.inventory?.rented ?? 0,
+            totalUnits: extra.inventory?.total ?? 0,
+            medianResponseMinutes: extra.response?.median_minutes ?? null,
+            pctUnder1h: extra.response?.pct_under_1h ?? null,
+          });
+        }
+
         // Top properties by interest — already ranked + counted by the RPC.
         if (leadsWithPropertyResult.error) {
           console.error("Top properties RPC error:", leadsWithPropertyResult.error);
@@ -343,30 +403,41 @@ export const AdminDashboard = () => {
 
       try {
         const now = new Date();
-        // Compute Cleveland-aware period start
+        // Compute Cleveland-aware (DST-safe) period boundaries for ALL periods
+        // — week/month previously used the viewer's browser timezone.
         const clevNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
         const tzOffset = now.getTime() - clevNow.getTime();
-        const clevelandStartOfDay = () => {
+        const clevelandDay = () => {
           const d = new Date(clevNow);
           d.setHours(0, 0, 0, 0);
-          return new Date(d.getTime() + tzOffset).toISOString();
+          return d;
         };
-        let periodStart: string | null = null;
-        if (statsPeriod === 'day') periodStart = clevelandStartOfDay();
-        else if (statsPeriod === 'week') periodStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString();
-        else if (statsPeriod === 'month') periodStart = startOfMonth(now).toISOString();
+        const toUtcIso = (d: Date) => new Date(d.getTime() + tzOffset).toISOString();
 
-        // Row 1: leads + hot leads (filtered by period, only complete clean leads)
+        let periodStart: string | null = null;
+        let periodEnd: string | null = null;
+        if (statsPeriod === 'day') {
+          const d = clevelandDay();
+          periodStart = toUtcIso(d);
+          const e = new Date(d);
+          e.setDate(e.getDate() + 1);
+          periodEnd = toUtcIso(e);
+        } else if (statsPeriod === 'week') {
+          const d = clevelandDay();
+          d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // back to Monday
+          periodStart = toUtcIso(d);
+        } else if (statsPeriod === 'month') {
+          const d = clevelandDay();
+          d.setDate(1);
+          periodStart = toUtcIso(d);
+        }
+
+        // Leads: complete clean leads created in period
         let leadsQuery = cleanLeadCount();
         if (periodStart) leadsQuery = leadsQuery.gte("created_at", periodStart);
 
-        let hotQuery = cleanLeadCount()
-          .gte("lead_score", 80)
-          .not("status", "in", '("lost","converted")');
-        if (periodStart) hotQuery = hotQuery.gte("created_at", periodStart);
-
-        // Row 2: comms + calls (filtered by period)
-        // SMS: count from system_logs where send-message logged successful SMS
+        // SMS: historical only — the twilio stream stopped 2026-06-25 (SMS
+        // automation removed; n8n replacement pending). Chip is labeled paused.
         let smsQuery = supabase
           .from("system_logs")
           .select("id", { count: "exact", head: true })
@@ -375,13 +446,12 @@ export const AdminDashboard = () => {
           .eq("category", "twilio");
         if (periodStart) smsQuery = smsQuery.gte("created_at", periodStart);
 
-        // Emails: count emails sent (server-side count)
-        let emailQuery = supabase
-          .from("email_events")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", userRecord.organization_id)
-          .in("event_type", ["sent", "delivered", "delivery_delayed"]);
-        if (periodStart) emailQuery = emailQuery.gte("created_at", periodStart);
+        // Emails actually sent — DB RPC filters details->>status IN
+        // (sent/delivered/clicked/opened/complained), excluding the bounced/
+        // failed/queued rows the old event_type count inflated by +76%.
+        const emailQuery = supabase.rpc("count_emails_sent", {
+          p_since: periodStart ?? undefined,
+        });
 
         let parsedQuery = supabase
           .from("system_logs")
@@ -390,46 +460,38 @@ export const AdminDashboard = () => {
           .eq("event_type", "esther_lead_processed");
         if (periodStart) parsedQuery = parsedQuery.gte("created_at", periodStart);
 
-        let callsQuery = supabase
-          .from("calls")
-          .select("duration_seconds")
-          .eq("organization_id", userRecord.organization_id);
-        if (periodStart) callsQuery = callsQuery.gte("started_at", periodStart);
-
-        // Applicants: count leads in application stage (filtered by period)
-        let applicantsQuery = supabase
+        // Applicants: CURRENT pipeline state — deliberately NOT period-gated.
+        // (Gating by lead created_at hid every applicant created before the
+        // selected window: Today showed 0 while 59 were in application.)
+        const applicantsQuery = supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", userRecord.organization_id)
+          .not("is_demo", "is", true)
           .eq("status", "in_application");
-        if (periodStart) applicantsQuery = applicantsQuery.gte("created_at", periodStart);
 
-        // Showings count for period
+        // Showings: exclude cancelled/no_show AND superseded originals
+        // ("rescheduled" — they double-counted reboooked appointments).
+        // "Today" gets an upper bound so future showings don't leak in.
         let showingsCountQuery = supabase
           .from("showings")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", userRecord.organization_id)
-          .not("status", "in", '("cancelled","no_show")');
+          .not("status", "in", '("cancelled","no_show","rescheduled")');
         if (periodStart) showingsCountQuery = showingsCountQuery.gte("scheduled_at", periodStart);
+        if (periodEnd) showingsCountQuery = showingsCountQuery.lt("scheduled_at", periodEnd);
 
-        const [leadsRes, hotRes, smsRes, emailRes, parsedRes, callsRes, applicantsRes, showingsCountRes] = await Promise.all([
-          leadsQuery, hotQuery, smsQuery, emailQuery, parsedQuery, callsQuery, applicantsQuery, showingsCountQuery,
+        const [leadsRes, smsRes, emailRes, parsedRes, applicantsRes, showingsCountRes] = await Promise.all([
+          leadsQuery, smsQuery, emailQuery, parsedQuery, applicantsQuery, showingsCountQuery,
         ]);
-
-        const callRows = callsRes.data || [];
-        const totalSeconds = callRows.reduce((sum: number, c: any) => sum + (c.duration_seconds || 0), 0);
 
         setPeriodStats({
           totalLeads: leadsRes.count || 0,
-          hotLeads: hotRes.count || 0,
           showingsCount: showingsCountRes.count || 0,
           smsSent: smsRes.count || 0,
-          emailsSent: emailRes.count || 0,
+          emailsSent: Number(emailRes.data) || 0,
           emailsParsed: parsedRes.count || 0,
-          callsMade: callRows.length,
-          callMinutes: Math.round(totalSeconds / 60),
-          applicationsSent: applicantsRes.count || 0,
-          applicationsSentLastWeek: 0,
+          applicantsNow: applicantsRes.count || 0,
         });
       } catch (error) {
         console.error("Error fetching period stats:", error);
@@ -491,152 +553,259 @@ export const AdminDashboard = () => {
 
         {/* Stats */}
         {isWidgetVisible("stats_cards") && (
-          <div className="space-y-4">
-            {/* Period filter — applies to all stat cards */}
-            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
-              {([
-                { key: 'day' as StatsPeriod, label: 'Today' },
-                { key: 'week' as StatsPeriod, label: 'Week' },
-                { key: 'month' as StatsPeriod, label: 'Month' },
-                { key: 'total' as StatsPeriod, label: 'Total' },
-              ]).map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setStatsPeriod(key)}
-                  className={cn(
-                    "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                    statsPeriod === key
-                      ? "bg-white text-[#4F46E5] shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
+          <div className="space-y-5">
+            {/* ── Row 1: LEADS (indigo accent) ── */}
+            <div className="space-y-2">
+              <p className="flex items-center gap-1.5 text-[12px] font-bold text-slate-500 uppercase tracking-[0.08em]">
+                <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                Leads
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                {isStatCardVisible("leads") && (
+                  <div className="animate-fade-up stagger-1">
+                    <StatCard
+                      title="Leads"
+                      value={periodStats?.totalLeads || 0}
+                      subtitle={
+                        statsPeriod === 'day' ? 'complete · today'
+                          : statsPeriod === 'week' ? 'complete · this week'
+                          : statsPeriod === 'month' ? 'complete · this month'
+                          : 'complete · all time'
+                      }
+                      icon={Users}
+                      loading={loading || periodLoading}
+                      className="border-l-[3px] border-l-indigo-400/70"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("new_leads_week") && (
+                  <div className="animate-fade-up stagger-2">
+                    <StatCard
+                      title="New This Week"
+                      value={extraStats?.newThisWeek ?? 0}
+                      trend={
+                        extraStats && extraStats.newPrevWeek > 0
+                          ? {
+                              value: Math.round(
+                                ((extraStats.newThisWeek - extraStats.newPrevWeek) / extraStats.newPrevWeek) * 100
+                              ),
+                              isPositive: extraStats.newThisWeek >= extraStats.newPrevWeek,
+                            }
+                          : undefined
+                      }
+                      subtitle={extraStats ? `vs ${extraStats.newPrevWeek} last wk` : "this week"}
+                      icon={TrendingUp}
+                      loading={loading}
+                      className="border-l-[3px] border-l-indigo-400/70"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("hot_leads") && (
+                  <div className="animate-fade-up stagger-3">
+                    <StatCard
+                      title="Hot Leads"
+                      value={extraStats?.hotActive ?? 0}
+                      subtitle="score 80+, active last 30d"
+                      icon={Flame}
+                      loading={loading}
+                      className="border-l-[3px] border-l-indigo-400/70"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("hot_awaiting") && (
+                  <div className="animate-fade-up stagger-4">
+                    <StatCard
+                      title="Hot Awaiting Contact"
+                      value={extraStats?.hotAwaitingContact ?? 0}
+                      subtitle="score 90+, never contacted"
+                      icon={Target}
+                      loading={loading}
+                      onClick={() => navigate("/leads")}
+                      className="border-l-[3px] border-l-indigo-400/70"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("uncontacted_backlog") && (
+                  <div className="animate-fade-up stagger-5">
+                    <StatCard
+                      title="Uncontacted Backlog"
+                      value={extraStats?.uncontactedBacklog24h ?? 0}
+                      subtitle=">24h without first touch"
+                      icon={Hourglass}
+                      loading={loading}
+                      className="border-l-[3px] border-l-indigo-400/70"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Row 1: Portfolio + Leads + Showings + Applicants */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              {isStatCardVisible("total_doors") && (
-                <div className="animate-fade-up stagger-1">
-                  <StatCard
-                    title="Total Doors"
-                    value={stats?.totalDoors || 0}
-                    subtitle={`${stats?.totalDistinctProperties || 0} properties`}
-                    icon={DoorOpen}
-                    loading={loading}
-                  />
-                </div>
-              )}
-              {isStatCardVisible("leads") && (
-                <div className="animate-fade-up stagger-2">
-                  <StatCard
-                    title="Leads"
-                    value={periodStats?.totalLeads || 0}
-                    subtitle={
-                      statsPeriod === 'day' ? `${stats?.completeLeadsToday || 0} complete today`
-                        : statsPeriod === 'week' ? 'this week'
-                        : statsPeriod === 'month' ? 'this month'
-                        : 'all time'
-                    }
-                    icon={Users}
-                    loading={loading || periodLoading}
-                  />
-                </div>
-              )}
-              {isStatCardVisible("hot_leads") && (
-                <div className="animate-fade-up stagger-3">
-                  <StatCard
-                    title="Hot Leads"
-                    value={periodStats?.hotLeads || 0}
-                    subtitle="score 80+"
-                    icon={Flame}
-                    loading={loading || periodLoading}
-                  />
-                </div>
-              )}
-              {isStatCardVisible("showings") && (
-                <div className="animate-fade-up stagger-4">
-                  <StatCard
-                    title="Showings"
-                    value={periodStats?.showingsCount || 0}
-                    subtitle="scheduled"
-                    icon={Calendar}
-                    loading={loading || periodLoading}
-                    onClick={() => navigate("/showings")}
-                  />
-                </div>
-              )}
-              {isStatCardVisible("applicants") && (
-                <div className="animate-fade-up stagger-5 cursor-pointer" onClick={() => navigate("/applicants")}>
-                  <StatCard
-                    title="Applicants"
-                    value={periodStats?.applicationsSent || 0}
-                    subtitle="in application"
-                    icon={FileText}
-                    loading={loading || periodLoading}
-                  />
-                </div>
-              )}
+            {/* ── Row 2: PIPELINE & PORTFOLIO (gold accent) ── */}
+            <div className="space-y-2">
+              <p className="flex items-center gap-1.5 text-[12px] font-bold text-slate-500 uppercase tracking-[0.08em]">
+                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                Pipeline &amp; Portfolio
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                {isStatCardVisible("showings") && (
+                  <div className="animate-fade-up stagger-1">
+                    <StatCard
+                      title="Showings"
+                      value={periodStats?.showingsCount || 0}
+                      subtitle={
+                        statsPeriod === 'day' ? 'today'
+                          : statsPeriod === 'week' ? 'since Monday'
+                          : statsPeriod === 'month' ? 'this month'
+                          : 'all time'
+                      }
+                      icon={Calendar}
+                      loading={loading || periodLoading}
+                      onClick={() => navigate("/showings")}
+                      className="border-l-[3px] border-l-amber-400/80"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("show_up_rate") && (
+                  <div className="animate-fade-up stagger-2">
+                    <StatCard
+                      title="Show-Up Rate"
+                      value={
+                        extraStats && (extraStats.showingsCompleted + extraStats.showingsNoShow) > 0
+                          ? `${Math.round((extraStats.showingsCompleted / (extraStats.showingsCompleted + extraStats.showingsNoShow)) * 1000) / 10}%`
+                          : "—"
+                      }
+                      subtitle={extraStats ? `${extraStats.showingsCompleted} completed showings` : "attended vs no-show"}
+                      icon={CalendarCheck}
+                      loading={loading}
+                      className="border-l-[3px] border-l-amber-400/80"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("applicants") && (
+                  <div className="animate-fade-up stagger-3">
+                    <StatCard
+                      title="Applicants"
+                      value={periodStats?.applicantsNow || 0}
+                      subtitle="currently in application"
+                      icon={FileText}
+                      loading={loading || periodLoading}
+                      onClick={() => navigate("/applicants")}
+                      className="border-l-[3px] border-l-amber-400/80"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("total_doors") && (
+                  <div className="animate-fade-up stagger-4">
+                    <StatCard
+                      title="Total Doors"
+                      value={stats?.totalDoors || 0}
+                      subtitle={`${stats?.totalDistinctProperties || 0} properties`}
+                      icon={DoorOpen}
+                      loading={loading}
+                      className="border-l-[3px] border-l-amber-400/80"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("available_units") && (
+                  <div className="animate-fade-up stagger-5">
+                    <StatCard
+                      title="Available Units"
+                      value={extraStats?.availableUnits ?? 0}
+                      subtitle={
+                        extraStats && extraStats.totalUnits > 0
+                          ? `${Math.round((extraStats.rentedUnits / extraStats.totalUnits) * 100)}% occupied (${extraStats.rentedUnits}/${extraStats.totalUnits})`
+                          : "ready to lease"
+                      }
+                      icon={Home}
+                      loading={loading}
+                      onClick={() => navigate("/properties")}
+                      className="border-l-[3px] border-l-amber-400/80"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Row 2: Communications + Agent Queue */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              {isStatCardVisible("sms_sent") && (
-                <div className="animate-fade-up stagger-6">
-                  <StatCard
-                    title="SMS Sent"
-                    value={periodStats?.smsSent || 0}
-                    subtitle="outbound"
-                    icon={MessageSquare}
-                    loading={loading || periodLoading}
-                  />
-                </div>
-              )}
-              {isStatCardVisible("emails_sent") && (
-                <div className="animate-fade-up stagger-7">
-                  <StatCard
-                    title="Emails Sent"
-                    value={periodStats?.emailsSent || 0}
-                    subtitle="outbound"
-                    icon={Mail}
-                    loading={loading || periodLoading}
-                  />
-                </div>
-              )}
-              {isStatCardVisible("emails_parsed") && (
-                <div className="animate-fade-up stagger-8">
-                  <StatCard
-                    title="Emails Parsed"
-                    value={periodStats?.emailsParsed || 0}
-                    subtitle="inbound"
-                    icon={Inbox}
-                    loading={loading || periodLoading}
-                  />
-                </div>
-              )}
-              {isStatCardVisible("calls_made") && (
-                <div className="animate-fade-up stagger-9">
-                  <StatCard
-                    title="Calls Made"
-                    value={periodStats?.callsMade || 0}
-                    subtitle={`${periodStats?.callMinutes || 0} min on calls`}
-                    icon={Phone}
-                    loading={loading || periodLoading}
-                  />
-                </div>
-              )}
-              {isStatCardVisible("agent_queue") && (
-                <div className="animate-fade-up stagger-10">
-                  <StatCard
-                    title="Agent Queue"
-                    value={stats?.pendingTasks || 0}
-                    subtitle="pending tasks"
-                    icon={ListChecks}
-                    loading={loading}
-                  />
-                </div>
-              )}
+            {/* ── Row 3: COMMUNICATIONS & OPS (sky accent) ── */}
+            <div className="space-y-2">
+              <p className="flex items-center gap-1.5 text-[12px] font-bold text-slate-500 uppercase tracking-[0.08em]">
+                <span className="h-2 w-2 rounded-full bg-sky-500" />
+                Communications &amp; Ops
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                {isStatCardVisible("response_time") && (
+                  <div className="animate-fade-up stagger-1">
+                    <StatCard
+                      title="Lead Response Time"
+                      value={
+                        extraStats?.medianResponseMinutes != null
+                          ? `${extraStats.medianResponseMinutes} min`
+                          : "—"
+                      }
+                      subtitle={
+                        extraStats?.pctUnder1h != null
+                          ? `${extraStats.pctUnder1h}% answered under 1h`
+                          : "median first reply"
+                      }
+                      icon={Timer}
+                      loading={loading}
+                      className="border-l-[3px] border-l-sky-400/70"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("emails_sent") && (
+                  <div className="animate-fade-up stagger-2">
+                    <StatCard
+                      title="Emails Sent"
+                      value={periodStats?.emailsSent || 0}
+                      subtitle="outbound · excl. bounces"
+                      icon={Mail}
+                      loading={loading || periodLoading}
+                      className="border-l-[3px] border-l-sky-400/70"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("emails_parsed") && (
+                  <div className="animate-fade-up stagger-3">
+                    <StatCard
+                      title="Leads From Email"
+                      value={periodStats?.emailsParsed || 0}
+                      subtitle="single-email inbound"
+                      icon={Inbox}
+                      loading={loading || periodLoading}
+                      className="border-l-[3px] border-l-sky-400/70"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("sms_sent") && (
+                  <div className="animate-fade-up stagger-4">
+                    <StatCard
+                      title="SMS Sent"
+                      value={periodStats?.smsSent || 0}
+                      subtitle="paused · historical"
+                      icon={MessageSquare}
+                      loading={loading || periodLoading}
+                      className="border-l-[3px] border-l-sky-400/70"
+                    />
+                  </div>
+                )}
+                {isStatCardVisible("agent_queue") && (
+                  <div className="animate-fade-up stagger-5">
+                    <StatCard
+                      title="Agent Queue"
+                      value={extraStats?.queuePending ?? stats?.pendingTasks ?? 0}
+                      subtitle={
+                        extraStats
+                          ? `${extraStats.queueOverdue12h} overdue >12h`
+                          : "pending tasks"
+                      }
+                      icon={ListChecks}
+                      loading={loading}
+                      className="border-l-[3px] border-l-sky-400/70"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Row 3: Top Properties + Nurturing Leads (each spans 2 cols) */}
@@ -662,9 +831,12 @@ export const AdminDashboard = () => {
         />
       </div>
 
-      {/* Live Panel - Right Side */}
+      {/* Live Panel - Right Side. Sticky + natural height: the card hugs its
+          content (no stretched empty void below) and follows the scroll. */}
       <div className="hidden xl:block xl:col-start-2 xl:row-start-1">
-        <TaskQueuePanel />
+        <div className="xl:sticky xl:top-4">
+          <TaskQueuePanel />
+        </div>
       </div>
 
       {/* Priority Leads + Upcoming Showings - full width below */}

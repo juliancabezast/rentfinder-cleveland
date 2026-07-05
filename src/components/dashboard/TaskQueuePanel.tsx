@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
@@ -12,23 +11,28 @@ import {
   MessageSquare,
   Mail,
   Zap,
-  ChevronRight,
   AlertTriangle,
-  Clock,
   Calendar,
   Send,
   RotateCcw,
   UserCheck,
+  CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { formatDistanceToNow, format, isPast } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { resolveAgentKey } from "@/components/agents/constants";
 import { getLeadName } from "@/components/agents/types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // ── Types ────────────────────────────────────────────────────────────
+
+interface LeadNameRef {
+  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+}
 
 interface QueuedTask {
   id: string;
@@ -37,7 +41,22 @@ interface QueuedTask {
   scheduled_for: string;
   status: string;
   lead_id: string;
-  leads: { full_name: string | null; first_name: string | null; last_name: string | null } | null;
+  leads: LeadNameRef | null;
+}
+
+interface CompletedTask {
+  id: string;
+  agent_type: string;
+  action_type: string;
+  completed_at: string;
+  leads: LeadNameRef | null;
+}
+
+interface QueueSnapshot {
+  tasks: QueuedTask[];
+  totalPending: number;
+  completedToday: number;
+  recent: CompletedTask[];
 }
 
 // ── Agent biblical names ─────────────────────────────────────────────
@@ -81,6 +100,7 @@ const AGENT_TYPE_LABELS: Record<string, string> = {
   no_show_follow_up: "follow up no-show",
   post_showing: "do post-showing follow-up",
   doorloop_pull: "sync with DoorLoop",
+  notification_dispatcher: "send notification",
 };
 
 const ACTION_ICONS: Record<string, React.ElementType> = {
@@ -102,6 +122,32 @@ const AGENT_TYPE_ICONS: Record<string, React.ElementType> = {
   doorloop_pull: Zap,
 };
 
+const VISIBLE_LIMIT = 10;
+
+// ── Live countdown formatting ────────────────────────────────────────
+// Driven by a 1-second ticker so times visibly move — that motion is what
+// makes the panel feel alive.
+
+function formatCountdown(scheduledIso: string, nowMs: number): { label: string; overdue: boolean; dueNow: boolean } {
+  const diff = new Date(scheduledIso).getTime() - nowMs;
+  const abs = Math.abs(diff);
+  const s = Math.floor(abs / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+
+  if (diff > 0) {
+    if (s < 60) return { label: `in ${s}s`, overdue: false, dueNow: true };
+    if (m < 60) return { label: `in ${m}m ${s % 60}s`, overdue: false, dueNow: false };
+    if (h < 24) return { label: `in ${h}h ${m % 60}m`, overdue: false, dueNow: false };
+    return { label: `in ${d}d ${h % 24}h`, overdue: false, dueNow: false };
+  }
+  if (s < 90) return { label: "due now", overdue: false, dueNow: true };
+  if (m < 60) return { label: `${m}m overdue`, overdue: true, dueNow: false };
+  if (h < 24) return { label: `${h}h ${m % 60}m overdue`, overdue: true, dueNow: false };
+  return { label: `${d}d ${h % 24}h overdue`, overdue: true, dueNow: false };
+}
+
 // ── Component ────────────────────────────────────────────────────────
 
 export const TaskQueuePanel = () => {
@@ -109,29 +155,74 @@ export const TaskQueuePanel = () => {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  // 1s heartbeat: re-render so countdowns/"updated Xs ago" tick visibly.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const orgId = userRecord?.organization_id;
   const queryKey = ["live-task-queue", orgId];
 
-  // ── Query ────────────────────────────────────────────────────────────
-  const { data: tasks, isLoading } = useQuery({
+  // ── Query: next 10 + totals + recent completions, one snapshot ──────
+  const { data: snap, isLoading } = useQuery({
     queryKey,
-    queryFn: async () => {
-      if (!orgId) return [];
-      const { data, error } = await supabase
-        .from("agent_tasks")
-        .select(`
-          id, agent_type, action_type, scheduled_for, status, lead_id,
-          leads:lead_id (full_name, first_name, last_name)
-        `)
-        .eq("organization_id", orgId)
-        .in("status", ["pending", "in_progress"])
-        .neq("action_type", "call") // voice removed — never show dead 'call' tasks
-        .order("scheduled_for", { ascending: true })
-        .limit(30);
-      if (error) throw error;
+    queryFn: async (): Promise<QueueSnapshot> => {
+      if (!orgId) return { tasks: [], totalPending: 0, completedToday: 0, recent: [] };
+
+      // Cleveland midnight (DST-aware) for "completed today"
+      const now = new Date();
+      const clevNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+      const tzOffset = now.getTime() - clevNow.getTime();
+      clevNow.setHours(0, 0, 0, 0);
+      const todayStart = new Date(clevNow.getTime() + tzOffset).toISOString();
+
+      const [tasksRes, pendingRes, doneTodayRes, recentRes] = await Promise.all([
+        supabase
+          .from("agent_tasks")
+          .select(`
+            id, agent_type, action_type, scheduled_for, status, lead_id,
+            leads:lead_id (full_name, first_name, last_name)
+          `)
+          .eq("organization_id", orgId)
+          .in("status", ["pending", "in_progress"])
+          .neq("action_type", "call") // voice removed — never show dead 'call' tasks
+          .order("scheduled_for", { ascending: true })
+          .limit(VISIBLE_LIMIT),
+        supabase
+          .from("agent_tasks")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .in("status", ["pending", "in_progress"])
+          .neq("action_type", "call"),
+        supabase
+          .from("agent_tasks")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .eq("status", "completed")
+          .gte("completed_at", todayStart),
+        supabase
+          .from("agent_tasks")
+          .select(`
+            id, agent_type, action_type, completed_at,
+            leads:lead_id (full_name, first_name, last_name)
+          `)
+          .eq("organization_id", orgId)
+          .eq("status", "completed")
+          .not("completed_at", "is", null)
+          .order("completed_at", { ascending: false })
+          .limit(3),
+      ]);
+
+      if (tasksRes.error) throw tasksRes.error;
       setLastUpdate(new Date());
-      return data as unknown as QueuedTask[];
+      return {
+        tasks: (tasksRes.data as unknown as QueuedTask[]) || [],
+        totalPending: pendingRes.count || 0,
+        completedToday: doneTodayRes.count || 0,
+        recent: (recentRes.data as unknown as CompletedTask[]) || [],
+      };
     },
     enabled: !!orgId,
     refetchInterval: 10_000,
@@ -167,27 +258,31 @@ export const TaskQueuePanel = () => {
     setTimeout(() => setIsRefreshing(false), 600);
   }, [queryClient, queryKey]);
 
-  const totalCount = tasks?.length || 0;
+  const tasks = snap?.tasks || [];
+  const totalPending = snap?.totalPending || 0;
+  const completedToday = snap?.completedToday || 0;
+  const recent = snap?.recent || [];
+  const hiddenCount = Math.max(0, totalPending - tasks.length);
+  const secondsSinceUpdate = Math.max(0, Math.floor((nowMs - lastUpdate.getTime()) / 1000));
 
   // ── Render ───────────────────────────────────────────────────────────
 
   return (
-    <Card variant="glass" className="h-full flex flex-col border-l-2 border-l-emerald-400/50">
+    <Card variant="glass" className="flex flex-col border-l-2 border-l-emerald-400/50">
       {/* Header */}
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <div className="relative">
-              <ListChecks className="h-4 w-4 text-emerald-500" />
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500" />
-            </div>
+            <ListChecks className="h-4 w-4 text-emerald-500" />
             Task Queue
-            {totalCount > 0 && (
-              <Badge variant="outline" className="text-xs h-5 ml-1">
-                {totalCount}
-              </Badge>
-            )}
+            {/* LIVE chip — broadcast-style pulse */}
+            <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 animate-ping opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-[10px] font-bold tracking-wider text-emerald-700">LIVE</span>
+            </span>
           </CardTitle>
           <Button
             variant="ghost"
@@ -204,131 +299,158 @@ export const TaskQueuePanel = () => {
             />
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Updated {formatDistanceToNow(lastUpdate, { addSuffix: true })}
+        <p className="text-xs text-muted-foreground tabular-nums">
+          Updated {secondsSinceUpdate <= 1 ? "just now" : `${secondsSinceUpdate}s ago`}
         </p>
       </CardHeader>
 
       {/* Content */}
-      <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
-        {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="p-3 rounded-lg border border-muted">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Skeleton className="h-6 w-6 rounded-full shrink-0" />
-                  <Skeleton className="h-3 w-28" />
-                  <Skeleton className="h-4 w-16 rounded ml-auto" />
-                </div>
-                <Skeleton className="h-3 w-full ml-8" />
-                <Skeleton className="h-3 w-32 ml-8 mt-1" />
+      <CardContent className="pt-0 flex flex-col">
+        {/* Just-completed ticker — proof the engine is doing things */}
+        {recent.length > 0 && (
+          <div className="mb-3 space-y-1.5 rounded-lg bg-emerald-50/50 border border-emerald-100 px-3 py-2.5">
+            {recent.map((r, i) => (
+              <div
+                key={r.id}
+                className={cn(
+                  "flex items-start gap-2 text-xs leading-snug",
+                  i === 0 ? "opacity-100" : i === 1 ? "opacity-75" : "opacity-50"
+                )}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-px" />
+                <span className="min-w-0 flex-1 break-words">
+                  <span className="font-semibold text-emerald-700">{getAgentName(r.agent_type)}</span>
+                  <span className="text-muted-foreground"> {AGENT_TYPE_LABELS[r.agent_type] || ACTION_LABELS[r.action_type] || r.action_type.replace(/_/g, " ")} → </span>
+                  <span className="font-medium">{getLeadName(r.leads)}</span>
+                </span>
+                <span className="shrink-0 whitespace-nowrap text-muted-foreground">
+                  {formatDistanceToNow(new Date(r.completed_at), { addSuffix: true })}
+                </span>
               </div>
             ))}
           </div>
-        ) : !tasks || tasks.length === 0 ? (
+        )}
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-7 w-7 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : tasks.length === 0 ? (
           <EmptyState
             icon={ListChecks}
             title="Queue empty"
             description="No pending tasks — agents are all caught up"
           />
         ) : (
-          <ScrollArea className="flex-1">
-            <div className="space-y-2">
-              {tasks.map((task, index) => {
-                const isInProgress = task.status === "in_progress";
-                const isUpNext = index === 0 && !isInProgress;
-                const agentName = getAgentName(task.agent_type);
-                const actionLabel = AGENT_TYPE_LABELS[task.agent_type] || ACTION_LABELS[task.action_type] || task.action_type.replace(/_/g, " ");
-                const ActionIcon = AGENT_TYPE_ICONS[task.agent_type] || ACTION_ICONS[task.action_type] || Zap;
-                const leadName = getLeadName(task.leads);
-                const scheduledTime = new Date(task.scheduled_for);
-                const timeLabel = isPast(scheduledTime)
-                  ? "Processing soon"
-                  : formatDistanceToNow(scheduledTime, { addSuffix: true });
+          <div className="max-h-[calc(100vh-16rem)] overflow-y-auto pr-1">
+            {/* Timeline: next 10 only */}
+            <div className="relative">
+              {/* connector line (through the dot centers) */}
+              <div className="absolute left-[19px] top-4 bottom-4 w-px bg-border" />
+              <div className="space-y-1.5">
+                {tasks.map((task, index) => {
+                  const isInProgress = task.status === "in_progress";
+                  const isUpNext = index === 0 && !isInProgress;
+                  const agentName = getAgentName(task.agent_type);
+                  const actionLabel = AGENT_TYPE_LABELS[task.agent_type] || ACTION_LABELS[task.action_type] || task.action_type.replace(/_/g, " ");
+                  const ActionIcon = AGENT_TYPE_ICONS[task.agent_type] || ACTION_ICONS[task.action_type] || Zap;
+                  const leadName = getLeadName(task.leads);
+                  const cd = formatCountdown(task.scheduled_for, nowMs);
 
-                return (
-                  <div
-                    key={task.id}
-                    className={cn(
-                      "p-3 rounded-lg border transition-all",
-                      isInProgress
-                        ? "bg-blue-50/40 border-blue-200/60"
-                        : isUpNext
-                          ? "bg-emerald-50/40 border-emerald-200/60"
-                          : "bg-muted/20 border-border/40",
-                      index === 0 && "animate-fade-up"
-                    )}
-                  >
-                    {/* Row 1: icon + scheduled time + badge */}
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className={cn(
-                        "h-7 w-7 rounded-full flex items-center justify-center shrink-0",
-                        isInProgress
-                          ? "bg-blue-100 text-blue-600"
-                          : isUpNext
-                            ? "bg-emerald-100 text-emerald-600"
-                            : "bg-muted text-muted-foreground"
-                      )}>
-                        <ActionIcon className="h-3.5 w-3.5" />
+                  return (
+                    <div
+                      key={task.id}
+                      className={cn(
+                        "relative flex items-start gap-3 rounded-lg py-2.5 pl-1 pr-2 transition-all",
+                        (isUpNext || isInProgress) && "bg-emerald-50/50",
+                        index === 0 && "animate-fade-up"
+                      )}
+                    >
+                      {/* timeline dot */}
+                      <div
+                        className={cn(
+                          "relative z-10 h-8 w-8 rounded-full flex items-center justify-center shrink-0 border-2 border-white shadow-sm",
+                          isInProgress
+                            ? "bg-blue-100 text-blue-600"
+                            : isUpNext
+                              ? "bg-emerald-100 text-emerald-600"
+                              : cd.overdue
+                                ? "bg-amber-50 text-amber-500"
+                                : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {(isUpNext || isInProgress) && (
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 animate-ping opacity-30" />
+                        )}
+                        <ActionIcon className="h-4 w-4" />
                       </div>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
-                        {timeLabel}
-                      </span>
-                      {isInProgress && (
-                        <Badge className="h-5 px-2 text-xs bg-blue-500 hover:bg-blue-500 ml-auto">
-                          IN PROGRESS
-                        </Badge>
-                      )}
-                      {isUpNext && (
-                        <Badge className="h-5 px-2 text-xs bg-emerald-500 hover:bg-emerald-500 ml-auto">
-                          UP NEXT
-                        </Badge>
-                      )}
-                    </div>
 
-                    {/* Row 2: agent + action + method badge */}
-                    <div className="flex items-center gap-1.5 ml-9 flex-wrap">
-                      <p className="text-sm leading-snug">
-                        <span className="font-semibold text-emerald-700 dark:text-emerald-400">
-                          {agentName}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {" "}will {actionLabel}
-                        </span>
-                      </p>
-                      {(task.action_type === "sms") && (
-                        <Badge variant="outline" className="text-xs h-5 px-2 gap-1 bg-green-50 text-green-600 border-green-200">
-                          <MessageSquare className="h-3 w-3" /> SMS
-                        </Badge>
-                      )}
-                      {(task.action_type === "email" || task.action_type === "notify" || task.action_type === "sequence") && (
-                        <Badge variant="outline" className="text-xs h-5 px-2 gap-1 bg-purple-50 text-purple-600 border-purple-200">
-                          <Mail className="h-3 w-3" /> Email
-                        </Badge>
-                      )}
+                      {/* body — two balanced lines, no orphan gaps:
+                          line 1: agent · action ……… badge
+                          line 2: lead name ………… live countdown */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm leading-snug break-words min-w-0">
+                            <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                              {agentName}
+                            </span>
+                            <span className="text-muted-foreground"> · {actionLabel}</span>
+                          </p>
+                          {isInProgress ? (
+                            <Badge className="h-5 px-2 text-[11px] shrink-0 bg-blue-500 hover:bg-blue-500 animate-pulse">
+                              RUNNING
+                            </Badge>
+                          ) : isUpNext ? (
+                            <Badge className="h-5 px-2 text-[11px] shrink-0 bg-emerald-500 hover:bg-emerald-500">
+                              UP NEXT
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <div className="flex items-end justify-between gap-2 mt-0.5">
+                          <p className="text-sm font-medium text-foreground break-words min-w-0">{leadName}</p>
+                          <p
+                            className={cn(
+                              "text-xs tabular-nums flex items-center gap-1 whitespace-nowrap shrink-0",
+                              cd.dueNow
+                                ? "text-emerald-600 font-semibold"
+                                : cd.overdue
+                                  ? "text-amber-600"
+                                  : "text-muted-foreground"
+                            )}
+                          >
+                            {cd.overdue && <AlertTriangle className="h-3.5 w-3.5" />}
+                            {cd.label}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Row 3: lead name */}
-                    <div className="flex items-center gap-1.5 ml-9 mt-1">
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <span className="text-xs font-medium text-foreground truncate">
-                        {leadName}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </ScrollArea>
+          </div>
         )}
 
-        {/* Footer */}
-        {tasks && tasks.length > 0 && (
-          <div className="pt-3 mt-2 border-t">
-            <p className="text-xs text-muted-foreground text-center">
-              {totalCount} pending task{totalCount !== 1 ? "s" : ""}
-            </p>
+        {/* Footer: live totals */}
+        {(totalPending > 0 || completedToday > 0) && (
+          <div className="pt-3 mt-2 border-t flex items-center justify-between text-[13px] text-muted-foreground">
+            <span>
+              {hiddenCount > 0
+                ? `+${hiddenCount} more queued`
+                : `${totalPending} in queue`}
+            </span>
+            <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
+              <CheckCircle2 className="h-4 w-4" />
+              {completedToday} done today
+            </span>
           </div>
         )}
       </CardContent>

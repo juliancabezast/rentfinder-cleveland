@@ -4921,6 +4921,8 @@ export type Database = {
           schedule: string
         }[]
       }
+      count_emails_sent: { Args: { p_since?: string }; Returns: number }
+      dashboard_extra_stats: { Args: never; Returns: Json }
       get_current_profile_role: { Args: never; Returns: string }
       get_dashboard_summary: { Args: never; Returns: Json }
       get_lead_full_context: { Args: { p_lead_id: string }; Returns: Json }

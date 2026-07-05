@@ -158,7 +158,38 @@ serve(async (req: Request) => {
 
       let sent = 0;
       let failed = 0;
+      let suppressed = 0;
       const errors: string[] = [];
+
+      // ── Hard-bounce suppression (sender-reputation kill-switch) ──────
+      // Never send to an address that already hard-bounced for this org.
+      // Found 2026-07-04: a producer re-queued the same typo'd address every
+      // ~5 min for 6 days (~1,050 real bounces) and torched deliverability
+      // (86% bounce rate). Guarding at the send boundary protects against
+      // ANY producer (dispatcher, campaigns, parser) repeating that.
+      const batchRecipients = Array.from(
+        new Set(
+          queued
+            .map((e: { recipient_email?: string | null }) => e.recipient_email || "")
+            .filter(Boolean),
+        ),
+      );
+      const suppressedRecipients = new Set<string>();
+      if (batchRecipients.length > 0) {
+        const { data: bouncedRows, error: bounceErr } = await supabase
+          .from("email_events")
+          .select("recipient_email")
+          .eq("organization_id", org.id)
+          .in("recipient_email", batchRecipients)
+          .eq("details->>status", "bounced")
+          .limit(1000);
+        if (bounceErr) {
+          console.warn("Bounce-suppression lookup failed (continuing unguarded):", bounceErr.message);
+        }
+        for (const r of (bouncedRows as Array<{ recipient_email: string | null }> | null) || []) {
+          if (r.recipient_email) suppressedRecipients.add(r.recipient_email.toLowerCase().trim());
+        }
+      }
 
       // Pre-fetch pacing AND status for every campaign referenced in this
       // batch. Status === "paused" means we skip its emails this run.
@@ -207,6 +238,25 @@ serve(async (req: Request) => {
             .from("email_events")
             .update({ details: { ...email.details, status: "queued" } })
             .eq("id", email.id);
+          continue;
+        }
+
+        // Suppress sends to recipients with a prior hard bounce. Terminal
+        // status ("suppressed") — never re-claimed, never retried.
+        const rcptKey = (email.recipient_email || "").toLowerCase().trim();
+        if (rcptKey && suppressedRecipients.has(rcptKey)) {
+          await supabase
+            .from("email_events")
+            .update({
+              details: {
+                ...email.details,
+                status: "suppressed",
+                error: "Recipient previously hard-bounced — suppressed to protect sender reputation",
+                suppressed_at: new Date().toISOString(),
+              },
+            })
+            .eq("id", email.id);
+          suppressed++;
           continue;
         }
 
@@ -363,22 +413,22 @@ serve(async (req: Request) => {
       }
 
       // System log per org
-      if (sent > 0 || failed > 0) {
+      if (sent > 0 || failed > 0 || suppressed > 0) {
         try {
           await supabase.from("system_logs").insert({
             organization_id: org.id,
             level: failed > 0 ? "warning" : "info",
             category: "general",
             event_type: "email_queue_processed",
-            message: `Email queue processed: ${sent} sent, ${failed} failed out of ${queued.length}`,
-            details: { sent, failed, total: queued.length, errors: errors.slice(0, 10) },
+            message: `Email queue processed: ${sent} sent, ${failed} failed, ${suppressed} suppressed out of ${queued.length}`,
+            details: { sent, failed, suppressed, total: queued.length, errors: errors.slice(0, 10) },
           });
         } catch (logErr) {
           console.warn("System log insert failed:", logErr);
         }
       }
 
-      allResults.push({ org_id: org.id, sent, failed, total: queued.length });
+      allResults.push({ org_id: org.id, sent, failed, suppressed, total: queued.length });
 
       // Reconcile any in_progress campaigns for this org.
       // Completion criterion: no emails left in queued/processing AND every
