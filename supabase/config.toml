@@ -104,6 +104,12 @@ verify_jwt = false
 [functions.agent-hemlane-parser]
 verify_jwt = false
 
+[functions.hemlane-photo-import]
+verify_jwt = false
+
+[functions.hemlane-sync-listings]
+verify_jwt = false
+
 [functions.agent-campaign-orchestrator]
 verify_jwt = false
 
