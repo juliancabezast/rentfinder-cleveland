@@ -52,6 +52,7 @@ const ReferralPage = lazy(() => import("./pages/public/ReferralPage"));
 const TermsOfService = lazy(() => import("./pages/public/TermsOfService"));
 const SmsSignup = lazy(() => import("./pages/public/SmsSignup"));
 const ScheduleShowing = lazy(() => import("./pages/public/ScheduleShowing"));
+const PropertyDetailPublic = lazy(() => import("./pages/public/PropertyDetailPublic"));
 const ApplyRedirect = lazy(() => import("./pages/public/ApplyRedirect"));
 const ApplicationStarted = lazy(() => import("./pages/public/ApplicationStarted"));
 const LeasingTracker = lazy(() => import("./pages/public/LeasingTracker"));
@@ -101,6 +102,9 @@ const App = () => (
                 <Route path="/sms-signup" element={<SmsSignup />} />
                 <Route path="/p/book-showing" element={<ScheduleShowing />} />
                 <Route path="/p/schedule-showing/:propertyId" element={<ScheduleShowing />} />
+                {/* Public property detail (renter-facing "view the property") */}
+                <Route path="/property/:id" element={<PropertyDetailPublic />} />
+                <Route path="/p/property/:id" element={<PropertyDetailPublic />} />
                 <Route path="/p/apply" element={<ApplyRedirect />} />
                 <Route path="/apply" element={<ApplyRedirect />} />
                 <Route path="/apply/started" element={<ApplicationStarted />} />

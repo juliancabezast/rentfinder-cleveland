@@ -289,9 +289,9 @@ function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void
   const [imgOk, setImgOk] = useState(true);
   const navigate = useNavigate();
   const coming = l.status === "coming_soon";
-  // Whole card is clickable → opens the property page (which records the
+  // Whole card is clickable → opens the property detail page (which records the
   // detail-view). Footer buttons stopPropagation so they keep their own action.
-  const openDetail = () => navigate(`/p/schedule-showing/${l.property_id}`);
+  const openDetail = () => navigate(`/property/${l.property_id}`);
   const [expanded, setExpanded] = useState(false);
   const units = l.unitDetails ?? [];
   const collapsible = units.length > 3; // 4+ units collapse to the 2 cheapest

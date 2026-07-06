@@ -148,6 +148,10 @@ verify_jwt = false
 [functions.track-property-view]
 verify_jwt = false
 
+# Public "Ask a question about this home" inquiry → website lead
+[functions.submit-inquiry]
+verify_jwt = false
+
 # Zillow Property Import
 [functions.import-zillow-property]
 verify_jwt = false
