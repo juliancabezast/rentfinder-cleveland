@@ -8,6 +8,44 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Hemlane's public marketplace GraphQL — real, current median rents by city
+// (live listing data), used to anchor the AI estimate instead of letting the
+// model recall stale training-data numbers. No auth token required.
+const HEMLANE_GQL = "https://api.hemlane.com/graphql";
+const HEMLANE_HEADERS = {
+  "Content-Type": "application/json",
+  "Origin": "https://www.hemlane.com",
+  "User-Agent": "Mozilla/5.0",
+};
+const cityKey = (name: string) => String(name || "").split(",")[0].toLowerCase().trim();
+
+interface MarketMedian { median: number; sample: number }
+
+// Build a { normalizedCity -> {median$, sampleCount} } map for Greater Cleveland.
+// nearByCities excludes the origin city, so we union cleveland_OH (the suburb
+// ring) with a close neighbor (euclid_OH) whose ring includes Cleveland proper.
+async function fetchMarketMedians(): Promise<Map<string, MarketMedian>> {
+  const map = new Map<string, MarketMedian>();
+  const call = async (slug: string, distance: number) => {
+    const q = `query{ nearByCities(citySlug:"${slug}", distance:${distance}, pagination:{page:1,limit:80}){ data{ name state rentalsCount medianRentCents } } }`;
+    const r = await fetch(HEMLANE_GQL, { method: "POST", headers: HEMLANE_HEADERS, body: JSON.stringify({ query: q }) });
+    if (!r.ok) return [] as any[];
+    const j = await r.json();
+    return (j?.data?.nearByCities?.data as any[]) || [];
+  };
+  const rows = [...(await call("cleveland_OH", 40)), ...(await call("euclid_OH", 15))];
+  for (const row of rows) {
+    if (row?.state !== "OH") continue;
+    const median = (row.medianRentCents || 0) / 100;
+    const sample = row.rentalsCount || 0;
+    if (median < 300 || sample < 3) continue; // drop noise (tiny samples / bogus medians)
+    const key = cityKey(row.name);
+    const prev = map.get(key);
+    if (!prev || sample > prev.sample) map.set(key, { median, sample }); // prefer the larger sample on dup
+  }
+  return map;
+}
+
 interface PropertyRow {
   id: string;
   address: string;
@@ -109,12 +147,21 @@ serve(async (req: Request) => {
       );
     }
 
+    // Real market medians once per run (best-effort; AI falls back if unavailable).
+    const marketMedians = await fetchMarketMedians().catch((e) => {
+      console.error("Hemlane market medians unavailable:", e);
+      return new Map<string, MarketMedian>();
+    });
+
     let analyzed = 0;
+    let anchored = 0;
     const errors: string[] = [];
 
     for (const prop of properties as PropertyRow[]) {
       try {
-        const result = await analyzeProperty(prop, openaiKey);
+        const local = marketMedians.get(cityKey(prop.city || "")) || null;
+        if (local) anchored++;
+        const result = await analyzeProperty(prop, openaiKey, local);
         if (result) {
           // Upsert into rent_benchmarks
           const { error: upsertErr } = await supabase
@@ -127,6 +174,9 @@ serve(async (req: Request) => {
               market_low: result.market_low,
               market_high: result.market_high,
               sample_size: result.sample_size,
+              market_median_local: local?.median ?? null,
+              market_local_sample: local?.sample ?? null,
+              market_source: local ? "hemlane_nearbycities" : null,
               ai_summary: result.summary,
               ai_model: "gpt-4o-mini",
               analyzed_at: new Date().toISOString(),
@@ -153,6 +203,8 @@ serve(async (req: Request) => {
       JSON.stringify({
         properties_analyzed: analyzed,
         total_properties: properties.length,
+        market_anchored: anchored,
+        market_cities: marketMedians.size,
         ...(errors.length > 0 ? { warnings: errors.slice(0, 5) } : {}),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -168,7 +220,8 @@ serve(async (req: Request) => {
 
 async function analyzeProperty(
   prop: PropertyRow,
-  openaiKey: string
+  openaiKey: string,
+  local: MarketMedian | null,
 ): Promise<BenchmarkResult | null> {
   const bedrooms = prop.bedrooms || "unknown";
   const type = prop.property_type || "apartment";
@@ -179,16 +232,22 @@ async function analyzeProperty(
   const currentRent = prop.rent_price ? `$${prop.rent_price}/month` : "unknown";
   const currentDate = new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", month: "long", year: "numeric" });
 
+  // Anchor the model on real, current market data when we have it, so it
+  // calibrates to the actual local market rather than stale training recall.
+  const anchor = local
+    ? `\n\nGROUND TRUTH (live listing data, ${currentDate}): the current MEDIAN asking rent across ${local.sample} active rentals in ${city}, ${state} is $${Math.round(local.median)}/month. Treat this as authoritative for the citywide level. A ${bedrooms}-bedroom ${type} may sit above or below it, but your market_avg_rent MUST stay consistent with this figure — do not contradict it with a wildly different number. In the summary, note how this property's rent compares to the $${Math.round(local.median)} local median.`
+    : "";
+
   const prompt = `You are a real estate market analyst. Analyze the rental market for a ${bedrooms}-bedroom ${type} located at or near "${address}", ${city}, ${state} ${zip}.
 
-Current listed rent: ${currentRent}
+Current listed rent: ${currentRent}${anchor}
 
-Based on your knowledge of the ${city}, ${state} rental market as of ${currentDate}:
+Based on the ground-truth figure above (when provided) plus your knowledge of the ${city}, ${state} rental market as of ${currentDate}:
 
 1. What is the average monthly rent for comparable ${bedrooms}-bedroom ${type} units within approximately 1 mile of this address?
 2. What is the typical low and high range?
 3. How many comparable properties would you estimate exist in this radius?
-4. A brief 1-sentence market summary for this location.
+4. A brief 1-sentence market summary for this location${local ? `, referencing the $${Math.round(local.median)} local median` : ""}.
 
 IMPORTANT: Respond ONLY with a JSON object in this exact format, no other text:
 {
