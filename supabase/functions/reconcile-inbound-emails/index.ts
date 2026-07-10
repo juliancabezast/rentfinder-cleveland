@@ -91,6 +91,47 @@ serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const dryRun = body.dry_run === true;
 
+    // ── SEED MODE (one-off, run before the first cron): mark everything
+    // currently listed by Resend as pre-migration so the backfill pass only
+    // ever replays genuinely NEW gaps — without this, the first runs would
+    // re-drive ~100 already-processed emails from before inbound_emails
+    // existed (shell/duplicate noise for prospects already captured).
+    if (body.seed === true) {
+      if (!resendApiKey) throw new Error("Seed mode requires RESEND_API_KEY");
+      const listResp = await fetch("https://api.resend.com/emails/receiving?limit=100", {
+        headers: { Authorization: `Bearer ${resendApiKey}` },
+      });
+      if (!listResp.ok) throw new Error(`Resend receiving list returned ${listResp.status}`);
+      const listJson = await listResp.json();
+      const received: Array<{ id: string }> = Array.isArray(listJson?.data) ? listJson.data : Array.isArray(listJson) ? listJson : [];
+      const ids = received.map((r) => r?.id).filter((v): v is string => typeof v === "string" && v.length > 10);
+      const { data: org } = await supabase.from("organizations").select("id").eq("slug", "rent-finder-cleveland").single();
+      if (!org?.id) throw new Error("Organization not found");
+      let seeded = 0;
+      if (ids.length > 0) {
+        const { data: known } = await supabase.from("inbound_emails").select("email_id").in("email_id", ids);
+        const knownSet = new Set((known || []).map((k) => k.email_id));
+        const rows = ids.filter((id) => !knownSet.has(id)).map((email_id) => ({
+          email_id,
+          organization_id: org.id,
+          status: "processed",
+          outcome: "pre_migration",
+          processed_at: new Date().toISOString(),
+        }));
+        if (rows.length > 0 && !dryRun) {
+          const { error: seedErr } = await supabase.from("inbound_emails").insert(rows);
+          if (seedErr) throw new Error(`Seed insert failed: ${seedErr.message}`);
+          seeded = rows.length;
+        } else {
+          seeded = rows.length; // dry-run count
+        }
+      }
+      return new Response(JSON.stringify({ success: true, seeded, listed: ids.length, dry_run: dryRun }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── PASS 1: replay stuck pending/failed rows ─────────────────────
     // 'pending' rows older than 15 min are crashes/timeouts mid-processing —
     // fresh ones may still be in-flight, leave them alone.
