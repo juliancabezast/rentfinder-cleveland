@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import React from "react";
 
 // ── Mocks ─────────────────────────────────────────────────────────────
@@ -16,14 +17,20 @@ const mockSupabaseChain = {
   select: vi.fn().mockReturnThis(),
   insert: vi.fn().mockReturnThis(),
   update: vi.fn().mockReturnThis(),
+  upsert: vi.fn().mockReturnThis(),
   eq: vi.fn().mockReturnThis(),
+  gte: vi.fn().mockReturnThis(),
   in: vi.fn().mockReturnThis(),
   contains: vi.fn().mockReturnThis(),
   order: vi.fn().mockReturnThis(),
   limit: vi.fn().mockReturnThis(),
   single: vi.fn().mockReturnThis(),
+  maybeSingle: vi.fn().mockReturnThis(),
   ilike: vi.fn().mockReturnThis(),
-  then: vi.fn(),
+  // Awaiting the bare chain resolves empty — queries the test doesn't care
+  // about complete instead of hanging forever (plain fn: survives clearAllMocks)
+  then: (onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) =>
+    Promise.resolve({ data: [], error: null, count: 0 }).then(onFulfilled, onRejected),
 };
 
 // Make chain methods return resolved promises at the end
@@ -116,22 +123,32 @@ vi.mock("@/lib/notificationService", () => ({
   sendNotificationEmail: (...args: unknown[]) => mockSendNotificationEmail(...args),
 }));
 
-// Mock email template defaults
-vi.mock("@/lib/emailTemplateDefaults", () => ({
-  renderEmailHtml: vi.fn(() => "<html><body>Welcome!</body></html>"),
-  DEFAULT_CONFIGS: {
-    welcome: {
-      subject: "Welcome to {orgName}!",
-      headerTitle: "{orgName}",
-      bodyParagraphs: ["Welcome, {firstName}!"],
-      buttons: [],
-      showPropertyCard: false,
-      showSteps: false,
-      showSection8Badge: false,
-      footerText: "Questions? Reply to this email.",
+// Mock email template defaults (the wizard imports TEMPLATE_TYPES/TEMPLATE_META
+// for its template selector and defaults to "schedule_showing")
+vi.mock("@/lib/emailTemplateDefaults", () => {
+  const baseConfig = {
+    subject: "Welcome to {orgName}!",
+    headerTitle: "{orgName}",
+    bodyParagraphs: ["Welcome, {firstName}!"],
+    buttons: [],
+    showPropertyCard: false,
+    showSteps: false,
+    showSection8Badge: false,
+    footerText: "Questions? Reply to this email.",
+  };
+  return {
+    renderEmailHtml: vi.fn(() => "<html><body>Welcome!</body></html>"),
+    TEMPLATE_TYPES: ["welcome", "schedule_showing"],
+    TEMPLATE_META: {
+      welcome: { label: "Welcome", description: "Introduce the team" },
+      schedule_showing: { label: "Schedule a Showing", description: "Invite the lead to book a tour" },
     },
-  },
-}));
+    DEFAULT_CONFIGS: {
+      welcome: baseConfig,
+      schedule_showing: { ...baseConfig, subject: "Come see {propertyAddress}!" },
+    },
+  };
+});
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -147,7 +164,9 @@ function renderWithProviders(ui: React.ReactElement, { route = "/" } = {}) {
   const qc = createQueryClient();
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }
@@ -181,21 +200,22 @@ describe("Campaigns Feature — Integration Tests", () => {
 
   // ── 2. Sidebar ──────────────────────────────────────────────────────
 
-  describe("2. Sidebar — Campaigns link in Communications section", () => {
-    it("renders Campaigns link with correct href", async () => {
+  describe("2. Sidebar — Communications hub entry (Campaigns folded into the hub)", () => {
+    it("renders Communications link to /communications and no direct Campaigns link", async () => {
       const { Sidebar } = await import("@/components/layout/Sidebar");
       renderWithProviders(<Sidebar collapsed={false} onCollapse={vi.fn()} />);
-      const link = screen.getByText("Campaigns");
+      const link = screen.getByText("Communications");
       expect(link).toBeTruthy();
-      // Verify it's inside a link pointing to /campaigns
       const anchor = link.closest("a");
-      expect(anchor?.getAttribute("href")).toBe("/campaigns");
+      expect(anchor?.getAttribute("href")).toBe("/communications");
+      // Campaigns is reached through the hub landing, not the sidebar
+      expect(screen.queryByText("Campaigns")).toBeNull();
     });
 
-    it("hides Campaigns text when sidebar is collapsed", async () => {
+    it("hides Communications text when sidebar is collapsed", async () => {
       const { Sidebar } = await import("@/components/layout/Sidebar");
       renderWithProviders(<Sidebar collapsed={true} onCollapse={vi.fn()} />);
-      expect(screen.queryByText("Campaigns")).toBeNull();
+      expect(screen.queryByText("Communications")).toBeNull();
     });
   });
 
@@ -340,27 +360,22 @@ describe("Campaigns Feature — Integration Tests", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Total Leads")).toBeTruthy();
         expect(screen.getByText("With Email")).toBeTruthy();
         expect(screen.getByText("Queued")).toBeTruthy();
         expect(screen.getByText("Sent")).toBeTruthy();
         expect(screen.getByText("Delivered")).toBeTruthy();
-        expect(screen.getByText("Failed")).toBeTruthy();
-        expect(screen.getByText("Showings Booked")).toBeTruthy();
+        expect(screen.getByText("Engaged")).toBeTruthy();
+        expect(screen.getByText("Bounced / Failed")).toBeTruthy();
       });
     });
 
-    it("displays correct totalLeads and leadsWithEmail values", async () => {
-      mockSupabaseChain.contains.mockResolvedValue({ data: [], error: null });
-
+    it("displays leadsWithEmail value in the With Email card", async () => {
       const { CampaignProgressPanel } = await import("@/components/campaigns/CampaignProgressPanel");
       renderWithProviders(
         <CampaignProgressPanel campaignId="camp-1" totalLeads={100} leadsWithEmail={75} />
       );
 
       await waitFor(() => {
-        // Check that the values appear in the stat cards
-        expect(screen.getByText("100")).toBeTruthy();
         expect(screen.getByText("75")).toBeTruthy();
       });
     });
@@ -379,16 +394,23 @@ describe("Campaigns Feature — Integration Tests", () => {
     });
 
     it("calculates progress percentage correctly from email stats", async () => {
+      // Stats are per-recipient (deduped by recipient_email):
       // 3 delivered + 2 sent = 5 processed out of 10 = 50%
       const mockEmailData = [
-        { details: { campaign_id: "camp-1", status: "delivered" } },
-        { details: { campaign_id: "camp-1", status: "delivered" } },
-        { details: { campaign_id: "camp-1", status: "delivered" } },
-        { details: { campaign_id: "camp-1", status: "sent" } },
-        { details: { campaign_id: "camp-1", status: "sent" } },
-        { details: { campaign_id: "camp-1", status: "queued" } },
+        { recipient_email: "a@x.com", event_type: "delivery_delayed", details: { campaign_id: "camp-1", status: "delivered" } },
+        { recipient_email: "b@x.com", event_type: "delivery_delayed", details: { campaign_id: "camp-1", status: "delivered" } },
+        { recipient_email: "c@x.com", event_type: "delivery_delayed", details: { campaign_id: "camp-1", status: "delivered" } },
+        { recipient_email: "d@x.com", event_type: "delivery_delayed", details: { campaign_id: "camp-1", status: "sent" } },
+        { recipient_email: "e@x.com", event_type: "delivery_delayed", details: { campaign_id: "camp-1", status: "sent" } },
+        { recipient_email: "f@x.com", event_type: "delivery_delayed", details: { campaign_id: "camp-1", status: "queued" } },
       ];
-      mockSupabaseChain.contains.mockResolvedValue({ data: mockEmailData, error: null });
+      // The email-stats query terminates in .eq("details->>campaign_id", id)
+      mockSupabaseChain.eq.mockImplementation((col: string) => {
+        if (col === "details->>campaign_id") {
+          return Promise.resolve({ data: mockEmailData, error: null });
+        }
+        return mockSupabaseChain;
+      });
 
       const { CampaignProgressPanel } = await import("@/components/campaigns/CampaignProgressPanel");
       renderWithProviders(
@@ -397,8 +419,6 @@ describe("Campaigns Feature — Integration Tests", () => {
 
       await waitFor(() => {
         expect(screen.getByText("50%")).toBeTruthy();
-        expect(screen.getByText("3")).toBeTruthy(); // delivered
-        expect(screen.getByText("2")).toBeTruthy(); // sent
       });
     });
 
@@ -552,7 +572,6 @@ describe("Campaigns Feature — Integration Tests", () => {
 
     it("CampaignProgressPanel queries email_events with org + campaign filter", async () => {
       const { supabase } = await import("@/integrations/supabase/client");
-      mockSupabaseChain.contains.mockResolvedValue({ data: [], error: null });
 
       const { CampaignProgressPanel } = await import("@/components/campaigns/CampaignProgressPanel");
       renderWithProviders(
@@ -562,25 +581,18 @@ describe("Campaigns Feature — Integration Tests", () => {
       await waitFor(() => {
         expect(supabase.from).toHaveBeenCalledWith("email_events");
         expect(mockSupabaseChain.eq).toHaveBeenCalledWith("organization_id", "org-123");
-        expect(mockSupabaseChain.contains).toHaveBeenCalledWith("details", { campaign_id: "camp-1" });
+        expect(mockSupabaseChain.eq).toHaveBeenCalledWith("details->>campaign_id", "camp-1");
       });
     });
 
     it("CampaignProgressPanel queries showings via campaign_leads junction", async () => {
       const { supabase } = await import("@/integrations/supabase/client");
 
-      // Mock campaign_leads returning lead IDs
-      mockSupabaseChain.contains.mockResolvedValue({ data: [], error: null });
-      mockSupabaseChain.eq.mockImplementation(function (this: typeof mockSupabaseChain, col: string, val: string) {
-        if (col === "campaign_id" && val === "camp-1") {
-          return {
-            ...mockSupabaseChain,
-            then: vi.fn((cb: Function) =>
-              cb({ data: [{ lead_id: "lead-1" }, { lead_id: "lead-2" }], error: null })
-            ),
-          } as unknown as typeof mockSupabaseChain;
-        }
-        return mockSupabaseChain;
+      // The showings query first needs the campaign's start time — without it
+      // the queryFn returns 0 before ever touching campaign_leads.
+      mockSupabaseChain.maybeSingle.mockResolvedValue({
+        data: { started_at: "2026-03-01T00:00:00Z", created_at: "2026-03-01T00:00:00Z" },
+        error: null,
       });
 
       const { CampaignProgressPanel } = await import("@/components/campaigns/CampaignProgressPanel");
@@ -632,16 +644,16 @@ describe("Campaigns Feature — Integration Tests", () => {
       expect(source).toContain("interested_property_id: propertyId");
     });
 
-    it("wizard inserts campaign_leads junction rows", async () => {
+    it("wizard bulk-upserts campaign_leads junction rows (dedup-safe)", async () => {
       const fs = await import("fs");
       const source = fs.readFileSync(
         "src/components/campaigns/CampaignCreateWizard.tsx",
         "utf-8"
       );
 
-      expect(source).toContain('.from("campaign_leads").insert');
+      expect(source).toContain('.from("campaign_leads")');
+      expect(source).toContain('.upsert(payload, { onConflict: "campaign_id,lead_id", ignoreDuplicates: true })');
       expect(source).toContain("campaign_id: newCampaignId");
-      expect(source).toContain("lead_id: insertedLead.id");
       expect(source).toContain("organization_id: orgId");
     });
   });
@@ -649,29 +661,29 @@ describe("Campaigns Feature — Integration Tests", () => {
   // ── 13. Email queue integration ───────────────────────────────────
 
   describe("13. Email queue integration", () => {
-    it("wizard calls sendNotificationEmail with queue:true and campaignId", async () => {
+    it("wizard bulk-queues campaign emails into email_events with campaign_id", async () => {
       const fs = await import("fs");
       const source = fs.readFileSync(
         "src/components/campaigns/CampaignCreateWizard.tsx",
         "utf-8"
       );
 
-      expect(source).toContain("sendNotificationEmail({");
-      expect(source).toContain('notificationType: "campaign_welcome"');
-      expect(source).toContain("queue: true");
-      expect(source).toContain("campaignId: newCampaignId");
+      // Emails queue as email_events rows (details.status "queued") that
+      // process-email-queue drains — no direct sends from the client.
+      expect(source).toContain('.from("email_events")');
+      expect(source).toContain('status: "queued"');
+      expect(source).toContain("campaign_id: newCampaignId");
+      expect(source).toContain("notification_type: `campaign_${templateType}`");
     });
 
-    it("wizard updates campaign status to completed after queuing", async () => {
+    it("wizard records the queued count on the campaign after launch", async () => {
       const fs = await import("fs");
       const source = fs.readFileSync(
         "src/components/campaigns/CampaignCreateWizard.tsx",
         "utf-8"
       );
 
-      expect(source).toContain('status: "completed"');
       expect(source).toContain("emails_queued: emailsQueued");
-      expect(source).toContain("completed_at:");
     });
   });
 
@@ -747,14 +759,16 @@ describe("Campaigns Feature — Integration Tests", () => {
       expect(source).toContain('path="/campaigns"');
     });
 
-    it("Sidebar.tsx has Campaigns in commsNavItems with Megaphone icon", async () => {
+    it("Sidebar has a Communications hub entry and the hub links to /campaigns", async () => {
       const fs = await import("fs");
-      const source = fs.readFileSync("src/components/layout/Sidebar.tsx", "utf-8");
+      const sidebar = fs.readFileSync("src/components/layout/Sidebar.tsx", "utf-8");
+      const hub = fs.readFileSync("src/pages/communications/CommunicationsHub.tsx", "utf-8");
 
-      expect(source).toContain("Megaphone");
-      expect(source).toContain("title: 'Campaigns'");
-      expect(source).toContain("href: '/campaigns'");
-      expect(source).toContain("icon: Megaphone");
+      // Sidebar exposes the single hub entry…
+      expect(sidebar).toContain("title: 'Communications'");
+      expect(sidebar).toContain("href: '/communications'");
+      // …and Campaigns is reachable from the hub landing
+      expect(hub).toContain('href: "/campaigns"');
     });
 
     it("notificationService.ts accepts campaignId in SendEmailParams", async () => {

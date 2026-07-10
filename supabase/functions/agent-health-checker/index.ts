@@ -29,9 +29,10 @@ const CRITICAL_EDGE_FUNCTIONS = [
   "agent-hemlane-parser",
 ];
 
-// Critical cron jobs to verify
+// Critical cron jobs to verify (names must match cron.job.jobname EXACTLY —
+// a wrong name here produced a false "Crons 4/5" for 6 weeks, audit F20)
 const CRITICAL_CRONS = [
-  "process-email-queue-2min",
+  "process-email-queue-every-minute",
   "nehemiah-dispatch-every-5min",
   "zacchaeus-health-check-1h",
   "hourly-telegram-report",
@@ -495,6 +496,112 @@ serve(async (req: Request) => {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // 7. INBOUND LEAD FLOW — dead-man's switch (audit F01/F08)
+    // The Hemlane digest died 2026-06-05 and nothing noticed for 5 weeks:
+    // an OPTIONS ping can't detect a dead upstream email feed. This can.
+    // ═══════════════════════════════════════════════════════════════
+    let inboundFlowCheck = {
+      status: "healthy",
+      message: "OK",
+      hours_since_digest: -1,
+      inbound_events_24h: 0,
+      bounce_rate_24h_pct: 0,
+    };
+    try {
+      // 7a. Daily digest dead-man (arrives ~daily at ~02:00 UTC)
+      const { data: lastDigest } = await supabase
+        .from("system_logs")
+        .select("created_at")
+        .eq("organization_id", organization_id)
+        .eq("event_type", "esther_digest_processed")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const hoursSinceDigest = lastDigest
+        ? (Date.now() - new Date(lastDigest.created_at).getTime()) / 36e5
+        : Infinity;
+
+      // 7b. Inbound volume floor (~70 esther events/day historically)
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count: inbound24h } = await supabase
+        .from("system_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organization_id)
+        .in("event_type", ["esther_lead_processed", "esther_no_contact_info", "esther_digest_processed"])
+        .gte("created_at", dayAgo);
+
+      // 7c. Outbound bounce rate over 24h (email_events.details->>status)
+      const [{ count: bounced24h }, { count: delivered24h }] = await Promise.all([
+        supabase.from("email_events").select("id", { count: "exact", head: true })
+          .eq("organization_id", organization_id)
+          .eq("details->>status", "bounced")
+          .gte("created_at", dayAgo),
+        supabase.from("email_events").select("id", { count: "exact", head: true })
+          .eq("organization_id", organization_id)
+          .eq("details->>status", "delivered")
+          .gte("created_at", dayAgo),
+      ]);
+      const outbound24h = (bounced24h || 0) + (delivered24h || 0);
+      const bounceRate = outbound24h >= 20 ? (bounced24h || 0) / outbound24h : 0;
+
+      const digestOverdue = hoursSinceDigest > 30; // one missed daily digest
+      const digestDead = hoursSinceDigest > 54; // two+ missed
+      const feedDead = (inbound24h || 0) === 0; // whole inbound channel silent
+      const problems: string[] = [];
+      if (digestDead) problems.push(`no Hemlane digest in ${Math.round(hoursSinceDigest)}h`);
+      else if (digestOverdue) problems.push(`Hemlane digest overdue (${Math.round(hoursSinceDigest)}h)`);
+      if (feedDead) problems.push("ZERO inbound Hemlane emails in 24h");
+      else if ((inbound24h || 0) < 10) problems.push(`inbound volume floor: only ${inbound24h} events/24h (~70 expected)`);
+      if (bounceRate > 0.25) problems.push(`bounce rate ${(bounceRate * 100).toFixed(0)}% in 24h (${bounced24h}/${outbound24h})`);
+      else if (bounceRate > 0.10) problems.push(`elevated bounce rate ${(bounceRate * 100).toFixed(0)}% (${bounced24h}/${outbound24h})`);
+
+      inboundFlowCheck = {
+        status: feedDead || digestDead || bounceRate > 0.25 ? "down" : problems.length > 0 ? "degraded" : "healthy",
+        message: problems.length > 0 ? problems.join("; ") : "Inbound flow OK",
+        hours_since_digest: hoursSinceDigest === Infinity ? -1 : Math.round(hoursSinceDigest * 10) / 10,
+        inbound_events_24h: inbound24h || 0,
+        bounce_rate_24h_pct: Math.round(bounceRate * 1000) / 10,
+      };
+
+      // Escalate to Telegram at most once per 12h
+      if (inboundFlowCheck.status !== "healthy") {
+        const { count: recentAlert } = await supabase
+          .from("system_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organization_id)
+          .eq("event_type", "inbound_flow_alert")
+          .gte("created_at", new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString());
+        if (!recentAlert) {
+          const { error: alertLogErr } = await supabase.from("system_logs").insert({
+            organization_id,
+            level: inboundFlowCheck.status === "down" ? "error" : "warning",
+            category: "general",
+            event_type: "inbound_flow_alert",
+            message: `Inbound lead flow ${inboundFlowCheck.status}: ${inboundFlowCheck.message}`,
+            details: inboundFlowCheck,
+          });
+          if (alertLogErr) console.error(`inbound_flow_alert log failed: ${alertLogErr.message}`);
+          if (creds?.telegram_bot_token && creds?.telegram_chat_id) {
+            try {
+              await fetch(`https://api.telegram.org/bot${creds.telegram_bot_token}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  chat_id: creds.telegram_chat_id,
+                  text: `${inboundFlowCheck.status === "down" ? "🚨" : "⚠️"} FLUJO DE LEADS INBOUND ${inboundFlowCheck.status === "down" ? "CAÍDO" : "DEGRADADO"}\n\n${inboundFlowCheck.message}\n\nRevisar Hemlane/Resend — el canal completo depende de ese feed.`,
+                }),
+              });
+            } catch (tgErr) {
+              console.error(`inbound flow telegram alert failed: ${(tgErr as Error).message}`);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      inboundFlowCheck = { status: "unknown", message: (e as Error).message, hours_since_digest: -1, inbound_events_24h: 0, bounce_rate_24h_pct: 0 };
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // BUILD HEALTH REPORT
     // ═══════════════════════════════════════════════════════════════
     const apiDown = results.filter((r) => r.status === "error");
@@ -512,6 +619,8 @@ serve(async (req: Request) => {
     else if (taskQueueCheck.status === "degraded") score -= 0.5;
     if (errorRateCheck.status === "down") score -= 1;
     else if (errorRateCheck.status === "degraded") score -= 0.5;
+    if (inboundFlowCheck.status === "down") score -= 1.5;
+    else if (inboundFlowCheck.status === "degraded") score -= 0.5;
     score = Math.max(0, Math.round(score));
 
     const report = {
@@ -538,6 +647,7 @@ serve(async (req: Request) => {
       email_queue: emailQueueCheck,
       task_queue: taskQueueCheck,
       error_rate: errorRateCheck,
+      inbound_flow: inboundFlowCheck,
     };
 
     // Log health check results
@@ -546,7 +656,8 @@ serve(async (req: Request) => {
       edgeDown.length > 0 ||
       cronDown.length > 0 ||
       emailQueueCheck.status !== "healthy" ||
-      taskQueueCheck.status !== "healthy";
+      taskQueueCheck.status !== "healthy" ||
+      inboundFlowCheck.status !== "healthy";
 
     try {
       await supabase.from("system_logs").insert({
@@ -554,7 +665,7 @@ serve(async (req: Request) => {
         level: hasIssues ? "warning" : "info",
         category: "general",
         event_type: "health_check_complete",
-        message: `Zacchaeus health check: ${score}/10 — APIs ${report.apis.healthy}/${report.apis.total}, Crons ${report.cron_jobs.healthy}/${report.cron_jobs.total}, Edge Fns ${report.edge_functions.healthy}/${report.edge_functions.total}, Email Queue: ${emailQueueCheck.status}, Task Queue: ${taskQueueCheck.status}, Errors 1h: ${errorRateCheck.errors_1h}`,
+        message: `Zacchaeus health check: ${score}/10 — APIs ${report.apis.healthy}/${report.apis.total}, Crons ${report.cron_jobs.healthy}/${report.cron_jobs.total}, Edge Fns ${report.edge_functions.healthy}/${report.edge_functions.total}, Email Queue: ${emailQueueCheck.status}, Task Queue: ${taskQueueCheck.status}, Inbound Flow: ${inboundFlowCheck.status}, Errors 1h: ${errorRateCheck.errors_1h}`,
         details: report,
       });
     } catch {

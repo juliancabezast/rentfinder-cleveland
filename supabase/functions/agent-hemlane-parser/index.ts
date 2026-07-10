@@ -390,14 +390,17 @@ async function upsertLead(
   if (!propertyId && lead.property) {
     console.log(`Esther: no property match for "${lead.property}" — skipping (only humans add properties)`);
     try {
-      await supabase.from("system_logs").insert({
+      // NOTE: level must be 'warning' — 'warn' violates system_logs_level_check
+      // and the insert silently no-ops (supabase-js returns {error}, never throws).
+      const { error: logErr } = await supabase.from("system_logs").insert({
         organization_id: organizationId,
-        level: "warn",
+        level: "warning",
         category: "general",
         event_type: "esther_property_unmatched",
         message: `Esther could not match property: ${lead.property}. Lead will be created without property. Add the property manually if needed.`,
         details: { parsed_property: lead.property, lead_name: lead.name, lead_phone: lead.phone },
       });
+      if (logErr) console.error(`Esther: property_unmatched log insert failed: ${logErr.message}`);
     } catch { /* non-blocking */ }
   }
 
@@ -965,15 +968,57 @@ serve(async (req: Request) => {
       throw new Error("Default organization 'rent-finder-cleveland' not found");
     }
 
-    // ── Get OpenAI key for LLM parsing ──────────────────────────────
+    // ── Get OpenAI key for LLM parsing (+ Telegram for billing alerts) ──
     const { data: creds } = await supabase
       .from("organization_credentials")
-      .select("openai_api_key")
+      .select("openai_api_key, telegram_bot_token, telegram_chat_id")
       .eq("organization_id", organizationId)
       .single();
     const openaiKey = creds?.openai_api_key;
     if (!openaiKey) {
       console.warn("Esther: no OpenAI API key found — LLM parsing unavailable");
+    }
+
+    // ── Hemlane billing/account alerts: escalate to a human ─────────
+    // These used to fall through to esther_parse_skip and die silently — the
+    // account went delinquent with ~11 unseen warnings (audit F02, 2026-07-10).
+    const fromDomain = (fromEmail.toLowerCase().match(/@([\w.-]+)/)?.[1]) || "";
+    const isBillingAlert =
+      (fromDomain === "hemlane.com" || fromDomain.endsWith(".hemlane.com")) &&
+      /payment.{0,20}(fail|declin|issue|unsuccessful|problem)|subscription.{0,30}(fail|attention|delinquen|cancel|expir|past due)|suspend|past due|delinquen|action (needed|required)|update.{0,15}payment/i.test(subject);
+    if (isBillingAlert) {
+      console.warn(`Esther: Hemlane billing/account alert — "${subject}"`);
+      try {
+        const { error: logErr } = await supabase.from("system_logs").insert({
+          organization_id: organizationId,
+          level: "warning",
+          category: "general",
+          event_type: "esther_billing_alert",
+          message: `Hemlane billing/account alert: ${subject}`,
+          details: { email_id: emailId, from: fromEmail, subject, body_preview: (textBody || htmlBody).substring(0, 1200) },
+        });
+        if (logErr) console.error(`Esther: billing alert log failed: ${logErr.message}`);
+      } catch { /* non-blocking */ }
+      if (creds?.telegram_bot_token && creds?.telegram_chat_id) {
+        try {
+          await fetch(`https://api.telegram.org/bot${creds.telegram_bot_token}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: creds.telegram_chat_id,
+              text: `🚨 ALERTA HEMLANE (cuenta/facturación)\n\n"${subject}"\n\nRevisar el dashboard de Hemlane cuanto antes — de esta cuenta depende todo el canal de leads (~140/semana).`,
+            }),
+          });
+        } catch (tgErr) {
+          console.error(`Esther: telegram billing alert failed: ${(tgErr as Error).message}`);
+        }
+      } else {
+        console.warn("Esther: no Telegram credentials — billing alert logged only");
+      }
+      return new Response(
+        JSON.stringify({ message: "Hemlane billing alert escalated", subject }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ── Idempotency: skip if this exact email was already processed ──
@@ -1015,7 +1060,6 @@ serve(async (req: Request) => {
           console.log(`Esther: LLM digest parse returned ${digestLeads.length} leads`);
         } catch (llmErr) {
           console.error(`Esther: LLM digest parse failed, no fallback: ${(llmErr as Error).message}`);
-          // Log the failure but continue with empty array — better to skip than corrupt
           await supabase.from("system_logs").insert({
             organization_id: organizationId,
             level: "error",
@@ -1024,9 +1068,30 @@ serve(async (req: Request) => {
             message: `Esther: LLM digest parsing failed: ${(llmErr as Error).message}`,
             details: { email_id: emailId, subject, error: (llmErr as Error).message },
           });
+          // 503 → svix/Resend retries for ~24h. A transient OpenAI failure must
+          // not permanently lose the whole digest (10-14 leads). No side effects
+          // have happened yet, so a retried delivery is safe.
+          return new Response(
+            JSON.stringify({ error: "LLM digest parsing failed — retry requested", detail: (llmErr as Error).message }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       } else {
         console.error("Esther: no OpenAI key — cannot parse digest");
+        try {
+          await supabase.from("system_logs").insert({
+            organization_id: organizationId,
+            level: "error",
+            category: "general",
+            event_type: "esther_llm_parse_failed",
+            message: "Esther: no OpenAI API key configured — digest left for webhook retry",
+            details: { email_id: emailId, subject },
+          });
+        } catch { /* non-blocking */ }
+        return new Response(
+          JSON.stringify({ error: "No OpenAI API key configured — retry requested" }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // Log parsed digest summary for debugging
@@ -1170,7 +1235,7 @@ serve(async (req: Request) => {
 
       // ── Store inbound digest email as communication record ────────
       try {
-        await supabase.from("communications").insert({
+        const { error: commErr } = await supabase.from("communications").insert({
           organization_id: organizationId,
           recipient: fromEmail,
           subject: subject || "(no subject)",
@@ -1180,6 +1245,7 @@ serve(async (req: Request) => {
           status: "delivered",
           sent_at: new Date().toISOString(),
         });
+        if (commErr) console.error(`Esther: digest archive insert failed: ${commErr.message}`);
       } catch (_) { /* non-blocking */ }
 
       return new Response(
@@ -1212,17 +1278,29 @@ serve(async (req: Request) => {
           message: `Esther: LLM single email parsing failed: ${(llmErr as Error).message}`,
           details: { email_id: emailId, subject, error: (llmErr as Error).message },
         });
-        // Return gracefully — don't create garbage leads
+        // 503 → svix/Resend retries for ~24h. A transient OpenAI outage must NOT
+        // permanently lose the email (returning 200 here lost 3 real inquiries).
+        // No side effects have happened yet, so a retried delivery is safe.
         return new Response(
-          JSON.stringify({ error: "LLM parsing failed", detail: (llmErr as Error).message }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "LLM parsing failed — retry requested", detail: (llmErr as Error).message }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     } else {
       console.error("Esther: no OpenAI key — cannot parse email");
+      try {
+        await supabase.from("system_logs").insert({
+          organization_id: organizationId,
+          level: "error",
+          category: "general",
+          event_type: "esther_llm_parse_failed",
+          message: "Esther: no OpenAI API key configured — email left for webhook retry",
+          details: { email_id: emailId, subject },
+        });
+      } catch { /* non-blocking */ }
       return new Response(
-        JSON.stringify({ error: "No OpenAI API key configured" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "No OpenAI API key configured — retry requested" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -1474,7 +1552,10 @@ serve(async (req: Request) => {
 
     // ── Store inbound email as communication record ─────────────────
     try {
-      await supabase.from("communications").insert({
+      // NOTE: status must be one of communications_status_check (sent/delivered/
+      // failed/opened/clicked) — 'received' violated it and the archive silently
+      // no-oped for every single email since 2026-03-12.
+      const { error: commErr } = await supabase.from("communications").insert({
         organization_id: organizationId,
         lead_id: result.leadId || null,
         recipient: fromEmail,
@@ -1482,9 +1563,10 @@ serve(async (req: Request) => {
         body: textBody || htmlBody || "",
         channel: "email",
         direction: "inbound",
-        status: "received",
+        status: "delivered",
         sent_at: new Date().toISOString(),
       });
+      if (commErr) console.error(`Esther: inbound archive insert failed: ${commErr.message}`);
     } catch (_) { /* non-blocking — don't fail the webhook */ }
 
     return new Response(
