@@ -286,6 +286,10 @@ serve(async (req: Request) => {
 
           const fromName = email.details?.from_name || "Rent Finder Cleveland";
           const fromAddress = `${fromName} <support@${senderDomain}>`;
+          // Replies must land on the Resend inbound domain so they re-enter
+          // the Esther pipeline (audit F05) — the apex MX is split with SES
+          // feedback and replies to support@ never reached anyone.
+          const replyToAddress = `reply@inbound.${senderDomain}`;
 
           // ── CAN-SPAM: only marketing mail gets the unsubscribe URL + headers ──
           let outboundHtml = html as string;
@@ -313,6 +317,7 @@ serve(async (req: Request) => {
             body: JSON.stringify({
               from: fromAddress,
               to: [email.recipient_email],
+              reply_to: replyToAddress,
               subject: email.subject,
               html: outboundHtml,
               ...(Object.keys(resendExtraHeaders).length

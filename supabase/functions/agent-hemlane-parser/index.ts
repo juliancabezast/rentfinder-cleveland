@@ -62,6 +62,8 @@ interface LeadInfo {
 }
 
 // ── Strip HTML to plain text ──────────────────────────────────────────
+// Entities are DECODED (not deleted): "O&#39;Brien" must stay "O'Brien" —
+// stripping apostrophes/accents corrupted names and broke dup-matching (F27).
 function htmlToText(html: string): string {
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
@@ -69,9 +71,19 @@ function htmlToText(html: string): string {
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(?:p|div|tr|td|li|h[1-6])>/gi, "\n")
     .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&#?\w+;/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&(?:#39|#x27|apos|rsquo|#8217);/gi, "'")
+    .replace(/&(?:#34|quot|ldquo|rdquo);/gi, '"')
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#(\d+);/g, (_m, n) => {
+      try { return String.fromCodePoint(parseInt(n, 10)); } catch { return " "; }
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_m, h) => {
+      try { return String.fromCodePoint(parseInt(h, 16)); } catch { return " "; }
+    })
+    .replace(/&#?\w+;/g, " ")
     .trim();
 }
 
@@ -98,20 +110,45 @@ RULES:
 - IGNORE system emails (@hemlane.com, @rentfindercleveland.com)
 - IGNORE footer content, navigation links, boilerplate text
 - Listing sources include: Zillow, Apartments.com, Zumper, Facebook, Craigslist, Realtor.com, HotPads, Rent.com, Trulia
+- Phone numbers in footers, support lines, or "Questions?" sections are NOT lead phones — ignore them. If the SAME phone number appears attached to multiple different people, it is boilerplate — use null for those.
 - If a field is not found for a lead, use null
 - Do NOT skip leads — extract every single one even if incomplete
 
 Respond with ONLY a valid JSON array, no markdown:
 [{"name": "string|null", "phone": "string|null", "email": "string|null", "property": "string|null", "message": null, "listingSource": "string|null"}, ...]`;
 
+interface LLMParseFlags {
+  truncatedInput: boolean;
+  finishLength: boolean;
+  salvaged: boolean;
+}
+
+// Recover a truncated JSON array by cutting at the last complete object (F12)
+function salvageJsonArray(s: string): unknown[] | null {
+  const start = s.indexOf("[");
+  if (start === -1) return null;
+  const lastBrace = s.lastIndexOf("}");
+  if (lastBrace <= start) return null;
+  try {
+    const arr = JSON.parse(s.slice(start, lastBrace + 1) + "]");
+    return Array.isArray(arr) ? arr : null;
+  } catch {
+    return null;
+  }
+}
+
 async function callLLMParser(
   openaiKey: string,
   systemPrompt: string,
   emailContent: string,
-  subject: string
+  subject: string,
+  flags?: LLMParseFlags
 ): Promise<unknown> {
-  // Truncate to ~12k chars to stay well within token limits for gpt-4o-mini
-  const truncated = emailContent.substring(0, 12000);
+  // 48k chars ≈ 12k tokens — well within gpt-4o-mini's 128k context. The old
+  // 12k cap silently clipped dense digests (~20+ leads) mid-list (F12).
+  const MAX_INPUT = 48000;
+  if (flags && emailContent.length > MAX_INPUT) flags.truncatedInput = true;
+  const truncated = emailContent.substring(0, MAX_INPUT);
   const userMessage = `Subject: ${subject}\n\n---EMAIL BODY---\n${truncated}`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -127,7 +164,9 @@ async function callLLMParser(
         { role: "user", content: userMessage },
       ],
       temperature: 0,
-      max_tokens: 2000,
+      // 2000 destroyed the WHOLE digest at ~35 leads (truncated JSON → parse
+      // throw → all leads lost). 8000 gives ~4x headroom (F12).
+      max_tokens: 8000,
     }),
   });
 
@@ -137,21 +176,47 @@ async function callLLMParser(
   }
 
   const data = await response.json();
+  const finishLength = data.choices?.[0]?.finish_reason === "length";
+  if (flags && finishLength) flags.finishLength = true;
   const content = data.choices?.[0]?.message?.content?.trim();
   if (!content) throw new Error("Empty LLM response");
 
   // Strip markdown fences if present
   const cleaned = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
-  return JSON.parse(cleaned);
+  try {
+    return JSON.parse(cleaned);
+  } catch (parseErr) {
+    // Completion was cut off mid-array — salvage the complete objects instead
+    // of losing the entire digest (F12).
+    if (finishLength) {
+      const salvaged = salvageJsonArray(cleaned);
+      if (salvaged) {
+        if (flags) flags.salvaged = true;
+        console.warn(`Esther: JSON truncated at max_tokens — salvaged ${salvaged.length} complete objects`);
+        return salvaged;
+      }
+    }
+    throw parseErr;
+  }
+}
+
+// System domains whose addresses must never become a lead's contact email.
+// Suffix-aware but dot-anchored: matches "hemlane.com" and "mail.hemlane.com"
+// (a subdomain sender would otherwise poison leads.email and cascade
+// cross-person merges via the email dup-check) while NOT matching unrelated
+// domains like "myhemlane.com" (F26).
+const SYSTEM_EMAIL_DOMAINS = ["hemlane.com", "rentfindercleveland.com"];
+function isSystemEmailDomain(dom: string): boolean {
+  return SYSTEM_EMAIL_DOMAINS.some((d) => dom === d || dom.endsWith("." + d));
 }
 
 function validateLeadInfo(raw: any): LeadInfo {
-  const excludedDomains = ["hemlane.com", "rentfindercleveland.com", "inbound.rentfindercleveland.com"];
   const email = typeof raw.email === "string" ? raw.email.toLowerCase().trim() : null;
+  const emailDomain = email && email.includes("@") ? email.split("@").pop() || "" : "";
   return {
     name: typeof raw.name === "string" && raw.name.trim().length > 1 ? raw.name.trim().substring(0, 100) : null,
     phone: typeof raw.phone === "string" && raw.phone.replace(/\D/g, "").length >= 7 ? raw.phone.trim() : null,
-    email: email && /^[\w.+-]+@[\w.-]+\.\w{2,}$/.test(email) && !excludedDomains.some((d) => email.endsWith(d)) ? email : null,
+    email: email && /^[\w.+-]+@[\w.-]+\.\w{2,}$/.test(email) && !isSystemEmailDomain(emailDomain) ? email : null,
     property: typeof raw.property === "string" && raw.property.trim().length > 3 ? raw.property.trim().substring(0, 200) : null,
     message: typeof raw.message === "string" && raw.message.trim().length > 0 ? raw.message.trim().substring(0, 500) : null,
     listingSource: typeof raw.listingSource === "string" && raw.listingSource.trim().length > 0 && !/hemlane/i.test(raw.listingSource) ? raw.listingSource.trim().substring(0, 100) : null,
@@ -161,36 +226,71 @@ function validateLeadInfo(raw: any): LeadInfo {
 async function parseHemlaneEmailLLM(
   openaiKey: string,
   html: string,
-  subject: string
-): Promise<LeadInfo> {
+  subject: string,
+  flags?: LLMParseFlags
+): Promise<{ lead: LeadInfo; extras: LeadInfo[] }> {
   const text = htmlToText(html);
-  const raw = await callLLMParser(openaiKey, LLM_PARSE_SINGLE_PROMPT, text, subject);
+  const raw = await callLLMParser(openaiKey, LLM_PARSE_SINGLE_PROMPT, text, subject, flags);
+  // Defensive: if the model returns an array for a multi-lead email that
+  // slipped past the digest heuristic, process ALL of them instead of
+  // silently dropping everyone after the first (F11).
+  if (Array.isArray(raw)) {
+    const all = raw.map((r: any) => validateLeadInfo(r));
+    const [first, ...rest] = all;
+    console.warn(`Esther LLM parseEmail: model returned ARRAY of ${all.length} — processing all`);
+    return { lead: first || validateLeadInfo({}), extras: rest.filter((l) => l.phone || l.email) };
+  }
   const result = validateLeadInfo(raw);
   console.log(`Esther LLM parseEmail: name=${result.name}, property=${result.property || "NONE"}, email=${result.email}, phone=${result.phone}, message=${result.message ? "yes" : "no"}`);
-  return result;
+  return { lead: result, extras: [] };
+}
+
+// Null out any phone shared by 3+ different digest leads — that's platform
+// boilerplate (office/footer number), and via the phone dup-check it would
+// collapse N different people into one lead (F17).
+function stripBoilerplatePhones(leads: LeadInfo[]): number {
+  const counts = new Map<string, number>();
+  for (const l of leads) {
+    const d = l.phone?.replace(/\D/g, "");
+    if (d && d.length >= 10) counts.set(d, (counts.get(d) || 0) + 1);
+  }
+  let stripped = 0;
+  for (const l of leads) {
+    const d = l.phone?.replace(/\D/g, "");
+    if (d && (counts.get(d) || 0) >= 3) {
+      l.phone = null;
+      stripped++;
+    }
+  }
+  return stripped;
 }
 
 async function parseHemlaneDigestLLM(
   openaiKey: string,
   html: string,
-  subject: string
-): Promise<LeadInfo[]> {
+  subject: string,
+  flags?: LLMParseFlags
+): Promise<{ leads: LeadInfo[]; rawTotal: number; noContact: LeadInfo[] }> {
   const text = htmlToText(html);
-  const raw = await callLLMParser(openaiKey, LLM_PARSE_DIGEST_PROMPT, text, subject);
+  const raw = await callLLMParser(openaiKey, LLM_PARSE_DIGEST_PROMPT, text, subject, flags);
 
   if (!Array.isArray(raw)) {
     console.error("Esther LLM digest: expected array, got", typeof raw);
-    return [];
+    return { leads: [], rawTotal: 0, noContact: [] };
   }
 
-  const leads = raw.map((r: any) => validateLeadInfo(r)).filter(
-    (l: LeadInfo) => l.phone || l.email // Skip leads with no contact info
-  );
-  console.log(`Esther LLM digest: parsed ${leads.length} actionable leads from ${raw.length} total`);
+  const all = raw.map((r: any) => validateLeadInfo(r));
+  const stripped = stripBoilerplatePhones(all);
+  if (stripped > 0) console.warn(`Esther LLM digest: nulled boilerplate phone on ${stripped} leads`);
+  const leads = all.filter((l: LeadInfo) => l.phone || l.email);
+  // Contact-less digest entries used to vanish with only a console.log —
+  // return them so the caller can log/shell them (F12 observability)
+  const noContact = all.filter((l: LeadInfo) => !l.phone && !l.email && (l.name || l.property));
+  console.log(`Esther LLM digest: parsed ${leads.length} actionable leads from ${raw.length} total (${noContact.length} contact-less)`);
   for (const l of leads.slice(0, 5)) {
     console.log(`  → name=${l.name}, email=${l.email}, phone=${l.phone}, property=${l.property}, source=${l.listingSource}`);
   }
-  return leads;
+  return { leads, rawTotal: raw.length, noContact };
 }
 
 // ── Format phone to E.164 ─────────────────────────────────────────────
@@ -406,6 +506,8 @@ async function upsertLead(
 
   console.log(`Esther upsert: lead="${lead.name}" property="${lead.property || "NONE"}" → propertyId=${propertyId || "NULL"}`);
 
+  const trimmedName = lead.name?.trim() || null;
+
   // ── Helper: update an existing lead (shared by all dup paths) ────
   const updateExistingLead = async (existing: { id: string; full_name: string | null; source_detail: string | null; phone?: string | null; interested_property_id: string | null }, dupType: string) => {
     // Fallback: if no property from parser, try extracting from existing source_detail
@@ -418,6 +520,9 @@ async function upsertLead(
         propertyId = await matchProperty(supabase, organizationId, sdAddress[1]);
       }
     }
+
+    // Preserve prior interest as a note before the pointer moves (F29)
+    const propertyChanged = !!(propertyId && existing.interested_property_id && propertyId !== existing.interested_property_id);
 
     // Store clean property reference (don't concatenate — audit trail lives in lead_notes)
     const detail = lead.property
@@ -438,13 +543,15 @@ async function upsertLead(
       /\d{7,}/.test(existing.full_name.replace(/\D/g, ""))
     );
 
+    // NOTE: hemlane_email_id is intentionally NOT overwritten on updates —
+    // it records the email that CREATED the lead (F13: overwriting destroyed
+    // provenance and made digest retries skip unprocessed leads).
     const { error: updateErr } = await supabase
       .from("leads")
       .update({
         last_contact_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         source_detail: detail,
-        hemlane_email_id: emailId,
         ...(lead.email && !(existing as any).email ? { email: lead.email } : {}),
         ...(phone && !(existing as any).phone ? { phone } : {}),
         ...(propertyId ? { interested_property_id: propertyId } : {}),
@@ -462,17 +569,48 @@ async function upsertLead(
       console.log(`Esther: updated existing lead ${existing.id} (${dupType}) — property=${propertyId || "NONE"}`);
     }
 
+    if (propertyChanged) {
+      await saveLeadNote(
+        supabase, organizationId, existing.id,
+        `Lead is now inquiring about ${lead.property} — previous property interest replaced (was a different unit/building).`
+      );
+    }
+
+    // Merge-type updates get a full audit event — fragment/name merges were
+    // previously invisible, making mis-merge rates unmeasurable (F14/F15)
+    if (dupType !== "phone dup" && dupType !== "email dup") {
+      try {
+        await supabase.from("system_logs").insert({
+          organization_id: organizationId,
+          level: "info",
+          category: "general",
+          event_type: "esther_lead_merged",
+          message: `Esther merge (${dupType}): lead ${existing.id} "${existing.full_name || "?"}" ← incoming "${trimmedName || lead.email || phone || "?"}"`,
+          details: {
+            dup_type: dupType,
+            lead_id: existing.id,
+            before: { full_name: existing.full_name, phone: existing.phone ?? null, email: (existing as any).email ?? null, interested_property_id: existing.interested_property_id },
+            incoming: { name: trimmedName, phone, email: lead.email, property: lead.property },
+            email_id: emailId,
+          },
+          related_lead_id: existing.id,
+        });
+      } catch { /* non-blocking */ }
+    }
+
     if (lead.message) {
       await saveLeadNote(supabase, organizationId, existing.id, lead.message);
       const intents = detectAllIntents(lead.message);
       for (const intent of intents) {
-        // Skip if same intent was already scored recently (30 min dedup window)
+        // Skip if same intent was already scored within 7 days — the old
+        // 30-min window let identical platform-prefill messages re-boost the
+        // same lead day after day (max 8x observed → score saturation, F16)
         const { data: recentBoost } = await supabase
           .from("lead_score_history")
           .select("id")
           .eq("lead_id", existing.id)
           .eq("reason_code", intent.reason_code)
-          .gte("created_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())
+          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
           .limit(1)
           .maybeSingle();
         if (recentBoost) {
@@ -552,7 +690,6 @@ async function upsertLead(
   // property in the window. Multiple people can inquire about the same unit,
   // so if there are 2+ incomplete leads we cannot safely determine which one
   // corresponds to this fragment — skip the merge and create a new lead.
-  const trimmedName = lead.name?.trim() || null;
   if (propertyId) {
     const mergeWindowAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recentSameProperty, error: dup3Err } = await supabase
@@ -568,13 +705,22 @@ async function upsertLead(
     if (dup3Err) console.error(`Esther: dup check 3 (fragment-merge) query failed: ${dup3Err.message}`);
 
     if (recentSameProperty) {
-      // Filter to only incomplete candidates (placeholder name or missing phone)
+      // Filter to only TRUE fragments. A complete email-only lead (real name,
+      // no phone) must NOT receive a different person's phone — that grafts
+      // person Y's number onto person X's consent trail (TCPA exposure, F14).
       const weHaveName = trimmedName && trimmedName.length > 2;
       const weHavePhone = !!phone;
       const incompleteCandidates = recentSameProperty.filter((c) => {
-        const isPlaceholderName = !c.full_name || c.full_name.startsWith("Hemlane Lead");
-        const candidateMissingPhone = !c.phone;
-        return (isPlaceholderName && weHaveName) || (candidateMissingPhone && weHavePhone);
+        const namePlaceholder = !c.full_name || c.full_name.startsWith("Hemlane Lead");
+        // We bring the name; candidate lacks one → the classic Hemlane pair
+        if (weHaveName && namePlaceholder) return true;
+        // We bring a phone: only graft into a nameless fragment, or into a
+        // lead whose name matches ours exactly
+        if (weHavePhone && !c.phone) {
+          if (namePlaceholder) return true;
+          if (trimmedName && c.full_name && c.full_name.toLowerCase() === trimmedName.toLowerCase()) return true;
+        }
+        return false;
       });
 
       // Only merge if EXACTLY ONE incomplete lead — ambiguity means different people
@@ -611,35 +757,87 @@ async function upsertLead(
     }
   }
 
+  // ── Dup check 5: contact half arriving after a name-only shell ──────
+  // The "Rental Message" (name, no contact) may now create a shell lead; when
+  // the paired "New inquiry" (contact, no name) arrives later, merge into the
+  // shell instead of creating a nameless duplicate (F03).
+  if (propertyId && (!trimmedName || trimmedName.length <= 2)) {
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: shells, error: dup5Err } = await supabase
+      .from("leads")
+      .select("id, full_name, source_detail, phone, email, interested_property_id")
+      .eq("organization_id", organizationId)
+      .eq("source", "hemlane_email")
+      .eq("interested_property_id", propertyId)
+      .is("phone", null)
+      .is("email", null)
+      .gte("created_at", dayAgo)
+      .limit(2);
+
+    if (dup5Err) console.error(`Esther: dup check 5 (shell-merge) query failed: ${dup5Err.message}`);
+
+    // Exactly-one rule, same as fragment-merge: ambiguity means different people
+    if (shells && shells.length === 1) {
+      console.log(`Esther: shell-merge → ${shells[0].id} "${shells[0].full_name}" gains contact ${phone || lead.email}`);
+      const mergedResult = await updateExistingLead(shells[0], "shell-merge");
+      // The shell had NO contact until this email supplied it — record the
+      // transactional-reply basis now, exactly as the create-new-lead path
+      // does at insert (review finding: consent-evidence regression).
+      try {
+        const { error: consentErr } = await supabase.from("consent_log").insert({
+          organization_id: organizationId,
+          lead_id: shells[0].id,
+          consent_type: "transactional_reply",
+          granted: true,
+          method: "listing_inquiry",
+          evidence_text: `Inbound listing inquiry via ${lead.listingSource || "Hemlane"}${lead.property ? ` for ${lead.property}` : ""} — contact info supplied by paired email (shell-merge). Reply-only, not marketing consent. Received ${new Date().toISOString()}. Email ID: ${emailId}`,
+        });
+        if (consentErr) console.error(`Esther: shell-merge consent_log insert failed: ${consentErr.message}`);
+      } catch { /* non-blocking */ }
+      return mergedResult;
+    }
+  }
+
   // ── Direction B: recover name from paired "Rental Message" email ──
   // If we have no name but have a property, check system_logs for a recent
   // esther_no_contact_info event with the same property that captured the name.
-  // Window: 30 minutes — Hemlane pairs can arrive with significant delay.
+  // Window: 24h to mirror Direction A — Hemlane pairs can arrive hours apart (F25).
   let recoveredName: string | null = null;
   if (!lead.name && lead.property) {
-    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: recentSkipped } = await supabase
       .from("system_logs")
       .select("details")
       .eq("organization_id", organizationId)
       .eq("event_type", "esther_no_contact_info")
-      .gte("created_at", thirtyMinAgo)
+      .gte("created_at", windowStart)
       .order("created_at", { ascending: false })
       .limit(10);
 
     if (recentSkipped) {
+      // Exactly-one-distinct-name guard (review finding): with the window now
+      // 24h, several different people's Rental Messages can sit in the log —
+      // if more than one distinct name matches this property, we can't know
+      // whose contact email this is, so recover nothing.
       const normProperty = normalizeAddress(lead.property).toLowerCase();
+      const matchingNames = new Set<string>();
+      let firstMatch: string | null = null;
       for (const log of recentSkipped) {
         const logProperty = (log.details as any)?.lead_property;
         const logName = (log.details as any)?.lead_name;
         if (logName && logName.length > 2 && logProperty) {
           const normLogProp = normalizeAddress(logProperty).toLowerCase();
           if (normLogProp === normProperty) {
-            recoveredName = logName;
-            console.log(`Esther: recovered name "${logName}" from paired Rental Message for property "${lead.property}"`);
-            break;
+            matchingNames.add(logName.toLowerCase().trim());
+            if (!firstMatch) firstMatch = logName;
           }
         }
+      }
+      if (matchingNames.size === 1 && firstMatch) {
+        recoveredName = firstMatch;
+        console.log(`Esther: recovered name "${firstMatch}" from paired Rental Message for property "${lead.property}"`);
+      } else if (matchingNames.size > 1) {
+        console.log(`Esther: Direction B — ${matchingNames.size} distinct names for property "${lead.property}" (ambiguous), not recovering`);
       }
     }
   }
@@ -694,7 +892,11 @@ async function upsertLead(
         },
       });
     } catch (_) { /* don't mask original error */ }
-    return null;
+    // THROW, don't return null: returning null conflated "not actionable"
+    // with "DB failed", so a transient DB error got terminally marked
+    // skipped and the lead was unreplayably lost (review finding). Throwing
+    // marks the inbound email 'failed' → the reconcile cron replays it.
+    throw new Error(`Lead insert failed: ${err?.message || "no row returned"}`);
   }
 
   const leadId = newLead.id;
@@ -774,6 +976,23 @@ async function saveLeadNote(
 ): Promise<void> {
   const content = `[Hemlane inquiry] ${message}`;
 
+  // Dedup: the nightly digest re-delivers the same message text — 1,069
+  // byte-identical duplicate note rows had accumulated (F13)
+  try {
+    const { data: dupNote } = await supabase
+      .from("lead_notes")
+      .select("id")
+      .eq("lead_id", leadId)
+      .eq("content", content)
+      .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .limit(1)
+      .maybeSingle();
+    if (dupNote) {
+      console.log(`Esther: identical note already saved <24h for lead ${leadId} — skipping duplicate`);
+      return;
+    }
+  } catch { /* fall through to insert */ }
+
   // Try with created_by as null first
   const { error } = await supabase.from("lead_notes").insert({
     organization_id: organizationId,
@@ -800,9 +1019,179 @@ async function saveLeadNote(
   }
 }
 
+// Platform prefill templates — one listing-site click, not typed intent.
+// 1,606 byte-identical "I would like to schedule a tour." notes were earning
+// the same +35 as a hand-written paragraph → 80% of leads in is_priority (F16).
+const PLATFORM_PREFILLS = new Set([
+  "i would like to schedule a tour.",
+  "i would like to schedule a tour",
+  "i'd like to schedule a tour.",
+  "i'd like to schedule a tour",
+  "i'm interested in your property. please contact me with more information.",
+  "i am interested in your property. please contact me with more information.",
+  "i'm interested in this property and would like to schedule a tour.",
+]);
+
+// ── Schedule the one-shot +48h enrichment retry (audit F18) ─────────────
+// Existence-guarded so webhook retries / digest replays don't stack tasks
+// (two tasks would mean two "still interested?" emails).
+async function scheduleEnrichmentFollowup(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  leadId: string,
+  context: Record<string, unknown>
+): Promise<boolean> {
+  try {
+    const { data: existing } = await supabase
+      .from("agent_tasks")
+      .select("id")
+      .eq("lead_id", leadId)
+      .eq("action_type", "enrichment_followup")
+      .in("status", ["pending", "in_progress"])
+      .limit(1)
+      .maybeSingle();
+    if (existing) return false;
+    const { error } = await supabase.from("agent_tasks").insert({
+      organization_id: organizationId,
+      lead_id: leadId,
+      agent_type: "esther",
+      action_type: "enrichment_followup",
+      status: "pending",
+      scheduled_for: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      context,
+    });
+    if (error) {
+      console.error(`Esther: enrichment_followup task insert failed: ${error.message}`);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ── Create a "shell" lead: named prospect with a message but NO contact ──
+// F03: ~110 named prospects (68% with explicit tour intent) used to be
+// discarded when their contact-bearing pair email never arrived. A shell keeps
+// them visible (IncompleteTab) and mergeable when contact shows up (dup check 5).
+async function createShellLead(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  lead: LeadInfo,
+  emailId: string,
+  propertyId: string | null,
+  rawPhone: string | null
+): Promise<{ leadId: string; attached: boolean } | null> {
+  const name = lead.name!.trim();
+
+  // Same person re-inquiring within 7 days → attach the message, don't spawn
+  // one shell per attempt (Shakya Monteith sent 7 in 3 days).
+  // Restricted to other SHELLS (phone+email both null): a same-named lead
+  // with real contact info may be a different person — attaching a stranger's
+  // message there would cross-contaminate records (review finding).
+  // Name comparison happens IN JS: PostgREST rewrites '*' to '%' in ilike
+  // patterns, so an email-supplied name like "A*" would wildcard-match and
+  // inject notes into other prospects' leads (review finding — confirmed
+  // against live PostgREST).
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: shellCandidates } = await supabase
+    .from("leads")
+    .select("id, full_name")
+    .eq("organization_id", organizationId)
+    .eq("source", "hemlane_email")
+    .is("phone", null)
+    .is("email", null)
+    .gte("created_at", sevenDaysAgo)
+    .limit(50);
+  const existing = (shellCandidates || []).find(
+    (c) => (c.full_name || "").toLowerCase().trim() === name.toLowerCase()
+  ) || null;
+
+  if (existing) {
+    console.log(`Esther: shell — attaching message to existing lead ${existing.id} "${existing.full_name}"`);
+    if (lead.message) {
+      await saveLeadNote(supabase, organizationId, existing.id, `${lead.message}${lead.property ? ` [re: ${lead.property}]` : ""}`);
+    }
+    return { leadId: existing.id, attached: true };
+  }
+
+  const sourceVia = lead.listingSource ? ` (via ${lead.listingSource})` : "";
+  const { data: shell, error } = await supabase
+    .from("leads")
+    .insert({
+      organization_id: organizationId,
+      full_name: name,
+      first_name: name.split(" ")[0] || null,
+      last_name: name.split(" ").slice(1).join(" ") || null,
+      phone: null,
+      email: null,
+      source: "hemlane_email",
+      source_detail: lead.property ? `Property: ${lead.property}${sourceVia} — NEEDS CONTACT INFO` : "NEEDS CONTACT INFO",
+      status: "new",
+      hemlane_email_id: emailId,
+      interested_property_id: propertyId,
+      sms_consent: false,
+      call_consent: false,
+    })
+    .select("id")
+    .single();
+
+  if (error || !shell) {
+    console.error(`Esther: shell lead insert failed: ${error?.message}`);
+    return null;
+  }
+
+  const noteParts = [
+    lead.message || null,
+    rawPhone ? `Unparseable phone found in email: ${rawPhone}` : null,
+    "This prospect has no phone/email yet — Hemlane only sent their name and message. Check Hemlane inbox or wait for the paired inquiry email.",
+  ].filter(Boolean);
+  await saveLeadNote(supabase, organizationId, shell.id, noteParts.join(" · "));
+
+  const boost = async (amount: number, code: string, text: string) => {
+    const { error: rpcErr } = await supabase.rpc("log_score_change", {
+      _lead_id: shell.id,
+      _change_amount: amount,
+      _reason_code: code,
+      _reason_text: text,
+      _triggered_by: "engagement",
+      _changed_by_agent: "esther",
+    });
+    if (rpcErr) console.error(`Esther: shell score boost failed (${code}): ${rpcErr.message}`);
+  };
+  await boost(10, "inbound_inquiry", "Lead initiated contact via Hemlane property listing");
+  if (propertyId) await boost(10, "property_matched", "Lead associated with a property on creation");
+  if (lead.message) {
+    for (const intent of detectAllIntents(lead.message)) {
+      await boost(intent.boost, intent.reason_code, intent.reason);
+    }
+  }
+
+  try {
+    await supabase.from("system_logs").insert({
+      organization_id: organizationId,
+      level: "info",
+      category: "general",
+      event_type: "esther_shell_created",
+      message: `Esther: shell lead created for "${name}" (no contact info yet)${lead.property ? ` — ${lead.property}` : ""}`,
+      details: { lead_id: shell.id, lead_name: name, lead_property: lead.property, lead_message: lead.message, email_id: emailId, unparseable_phone: rawPhone },
+      related_lead_id: shell.id,
+    });
+  } catch { /* non-blocking */ }
+
+  console.log(`Esther: shell lead created ${shell.id} "${name}"`);
+  return { leadId: shell.id, attached: false };
+}
+
 // ── Detect intent signals in lead messages (all matching boosts stack) ────
 function detectAllIntents(message: string): { boost: number; reason: string; reason_code: string }[] {
   const m = message.toLowerCase();
+
+  // Prefill click → engagement tier only, never the hand-typed showing tier
+  if (PLATFORM_PREFILLS.has(m.trim())) {
+    return [{ boost: 20, reason: "Standard listing-site tour-request template (platform prefill)", reason_code: "inquiry_intent" }];
+  }
+
   const intents: { boost: number; reason: string; reason_code: string }[] = [];
 
   // Tier 1 — Showing / tour intent (+35)
@@ -850,12 +1239,14 @@ serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
-  const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET")!;
+  const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
   const supabase = createClient(supabaseUrl, serviceRoleKey);
   let organizationId: string | undefined;
+  let processedEmailId: string | null = null; // set once the inbound_emails row exists (for catch-block failure marking)
   const estherStartTime = Date.now();
 
   // ── Test mode: skip signature verification with service_role auth ──
+  // (used by reconcile-inbound-emails to replay pending/failed emails)
   const authHeader = req.headers.get("authorization") || "";
   const isTestMode = authHeader === `Bearer ${serviceRoleKey}`;
 
@@ -866,8 +1257,17 @@ serve(async (req: Request) => {
     const svixTimestamp = req.headers.get("svix-timestamp");
     const svixSignature = req.headers.get("svix-signature");
 
-    if (webhookSecret && !isTestMode) {
-      // When a webhook secret is configured, signature verification is MANDATORY
+    if (!isTestMode) {
+      // FAIL CLOSED: with no secret configured, this public endpoint would
+      // accept unsigned forged lead emails (F32)
+      if (!webhookSecret) {
+        console.error("Esther: RESEND_WEBHOOK_SECRET not configured — rejecting unsigned webhook");
+        return new Response(
+          JSON.stringify({ error: "Webhook secret not configured" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Signature verification is MANDATORY
       if (!svixId || !svixTimestamp || !svixSignature) {
         console.error("Esther: missing Svix signature headers (verification required)");
         return new Response(
@@ -943,13 +1343,12 @@ serve(async (req: Request) => {
     const textBody = emailData.text || "";
 
     // ── Extract reply_to as fallback contact email ────────────────
-    const excludedEmailDomains = ["hemlane.com", "rentfindercleveland.com", "inbound.rentfindercleveland.com"];
     let replyToEmail: string | null = null;
     if (emailData.reply_to) {
       const replyTos = Array.isArray(emailData.reply_to) ? emailData.reply_to : [emailData.reply_to];
       for (const rt of replyTos) {
         const rtMatch = String(rt).toLowerCase().match(/[\w.+-]+@[\w.-]+\.\w{2,}/);
-        if (rtMatch && !excludedEmailDomains.some((d) => rtMatch[0].endsWith(d))) {
+        if (rtMatch && !isSystemEmailDomain(rtMatch[0].split("@").pop() || "")) {
           replyToEmail = rtMatch[0];
           break;
         }
@@ -978,6 +1377,92 @@ serve(async (req: Request) => {
     if (!openaiKey) {
       console.warn("Esther: no OpenAI API key found — LLM parsing unavailable");
     }
+
+    // ── PERSIST FIRST (audit tier b): raw email into inbound_emails ──
+    // The row is idempotency key, re-processable dead-letter queue, inbound
+    // archive, and reconciliation source all at once (F04/F06/F13/F21).
+    // Every terminal path below MUST call markInbound().
+    const { data: priorInbound } = await supabase
+      .from("inbound_emails")
+      .select("status, attempts")
+      .eq("email_id", emailId)
+      .maybeSingle();
+
+    if (priorInbound && (priorInbound.status === "processed" || priorInbound.status === "skipped")) {
+      console.log(`Esther: email ${emailId} already ${priorInbound.status} — skipping`);
+      return new Response(
+        JSON.stringify({ message: `Email already ${priorInbound.status}` }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (priorInbound) {
+      // pending/failed → this is a retry (svix redelivery or reconcile replay).
+      // Optimistic claim on attempts: if a concurrent processor already bumped
+      // it (svix retry racing the reconcile cron), yield instead of running
+      // the pipeline twice (review finding). NOTE: the reconcile cron bumps
+      // attempts itself before replaying, so its own POST arrives with the
+      // fresh value and claims cleanly.
+      const { data: claimed } = await supabase
+        .from("inbound_emails")
+        .update({ attempts: (priorInbound.attempts || 0) + 1 })
+        .eq("email_id", emailId)
+        .eq("attempts", priorInbound.attempts || 0)
+        .select("email_id");
+      if (!claimed || claimed.length === 0) {
+        console.log(`Esther: email ${emailId} claimed by a concurrent processor — yielding`);
+        return new Response(
+          JSON.stringify({ message: "Email is being processed by a concurrent delivery" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      const { error: ieInsErr } = await supabase.from("inbound_emails").insert({
+        email_id: emailId,
+        organization_id: organizationId,
+        from_email: fromEmail,
+        subject,
+        reply_to: replyToEmail,
+        raw_html: htmlBody ? htmlBody.substring(0, 500_000) : null,
+        raw_text: textBody ? textBody.substring(0, 500_000) : null,
+        attempts: 1,
+      });
+      if (ieInsErr && ieInsErr.code === "23505") {
+        // Concurrent duplicate delivery — the other invocation owns this email.
+        // If it dies, its row goes 'failed' and the reconcile cron replays it.
+        console.log(`Esther: email ${emailId} being processed concurrently — yielding`);
+        return new Response(
+          JSON.stringify({ message: "Email is being processed by a concurrent delivery" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (ieInsErr) {
+        // Non-fatal: continue processing without persistence rather than drop the lead
+        console.error(`Esther: inbound_emails insert failed: ${ieInsErr.message}`);
+      }
+    }
+    processedEmailId = emailId;
+
+    const markInbound = async (
+      status: "processed" | "skipped" | "failed",
+      outcome: string,
+      leadId?: string | null,
+      lastError?: string
+    ) => {
+      try {
+        const { error: mkErr } = await supabase
+          .from("inbound_emails")
+          .update({
+            status,
+            outcome: outcome.substring(0, 200),
+            lead_id: leadId ?? null,
+            processed_at: new Date().toISOString(),
+            ...(lastError ? { last_error: lastError.substring(0, 500) } : {}),
+          })
+          .eq("email_id", emailId);
+        if (mkErr) console.error(`Esther: markInbound(${status}/${outcome}) failed: ${mkErr.message}`);
+      } catch { /* non-blocking */ }
+    };
 
     // ── Hemlane billing/account alerts: escalate to a human ─────────
     // These used to fall through to esther_parse_skip and die silently — the
@@ -1015,49 +1500,65 @@ serve(async (req: Request) => {
       } else {
         console.warn("Esther: no Telegram credentials — billing alert logged only");
       }
+      await markInbound("skipped", "billing_alert");
       return new Response(
         JSON.stringify({ message: "Hemlane billing alert escalated", subject }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // ── Idempotency: skip if this exact email was already processed ──
-    const { data: alreadyProcessed } = await supabase
-      .from("leads")
-      .select("id")
-      .eq("hemlane_email_id", emailId)
-      .limit(1)
-      .maybeSingle();
-
-    if (alreadyProcessed) {
-      console.log(`Esther: email ${emailId} already processed → lead ${alreadyProcessed.id}, skipping`);
-      return new Response(
-        JSON.stringify({ message: "Email already processed", lead_id: alreadyProcessed.id }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // NOTE: the old leads.hemlane_email_id idempotency check is gone — it made
+    // digest retries skip every unprocessed lead (F13). inbound_emails.status
+    // above is the real idempotency now.
 
     // ── 4. Detect email type and parse ──────────────────────────────
 
-    // Skip non-lead emails from Hemlane (CSV exports, system notifications)
-    const isNonLeadEmail = /Prospective Tenant Download|Your Hemlane .* Download|Payment Received|Maintenance Request/i.test(subject);
+    // Skip non-lead emails from Hemlane (CSV exports, system notifications,
+    // marketing). GATED on the Hemlane sender domain — a prospect writing
+    // "Re: question about the premium unit" must never match (review finding).
+    const fromIsHemlane = fromDomain === "hemlane.com" || fromDomain.endsWith(".hemlane.com");
+    const isNonLeadEmail = fromIsHemlane &&
+      /Prospective Tenant Download|Your Hemlane .* Download|Payment Received|Maintenance Request|Subscription Renewal|Hemlane Premium|Upgrade your|Advertising Receipt|reaches your inbox/i.test(subject);
     if (isNonLeadEmail) {
       console.log(`Esther: skipping non-lead email — "${subject}"`);
+      await markInbound("skipped", "non_lead");
       return new Response(
         JSON.stringify({ message: "Skipped — not a lead email", subject }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const isDigest = /Property Listings Update|Daily Leads Update/i.test(subject);
+    // Digest detection: exact subjects PLUS a structural fallback — if Hemlane
+    // renames the digest again, an email carrying 3+ distinct prospect emails
+    // must still take the multi-lead path instead of losing all but one (F11)
+    const bodyTextEarly = htmlToText(htmlBody || textBody || "");
+    const distinctProspectEmails = new Set(
+      (bodyTextEarly.toLowerCase().match(/[\w.+-]+@[\w.-]+\.\w{2,}/g) || [])
+        .filter((e) => !isSystemEmailDomain(e.split("@").pop() || ""))
+    );
+    // Known single-lead subjects and direct replies/forwards NEVER take the
+    // digest path (review finding: a quoted thread can carry 3+ addresses and
+    // the digest path has no shell / From-fallback / Direction-A logic).
+    const isKnownSingleSubject = /New inquiry for|Rental Message from/i.test(subject) || /^\s*(re|fwd?):/i.test(subject);
+    const looksMultiLead = distinctProspectEmails.size >= 3 && !isKnownSingleSubject;
+    const isDigest = /Property Listings Update|Daily Leads Update/i.test(subject) || looksMultiLead;
+    if (looksMultiLead && !/Property Listings Update|Daily Leads Update/i.test(subject)) {
+      console.warn(`Esther: structural digest heuristic fired — ${distinctProspectEmails.size} distinct prospect emails, subject "${subject}"`);
+    }
 
     if (isDigest) {
       // ── DIGEST: batch-process all leads (LLM-powered) ────────────
       let digestLeads: LeadInfo[] = [];
+      let digestRawTotal = 0;
+      let digestNoContact: LeadInfo[] = [];
+      const parseFlags: LLMParseFlags = { truncatedInput: false, finishLength: false, salvaged: false };
       if (openaiKey) {
         try {
-          digestLeads = await parseHemlaneDigestLLM(openaiKey, htmlBody || textBody, subject);
-          console.log(`Esther: LLM digest parse returned ${digestLeads.length} leads`);
+          const parsed = await parseHemlaneDigestLLM(openaiKey, htmlBody || textBody, subject, parseFlags);
+          digestLeads = parsed.leads;
+          digestRawTotal = parsed.rawTotal;
+          digestNoContact = parsed.noContact;
+          console.log(`Esther: LLM digest parse returned ${digestLeads.length} leads (${digestRawTotal} raw)`);
         } catch (llmErr) {
           console.error(`Esther: LLM digest parse failed, no fallback: ${(llmErr as Error).message}`);
           await supabase.from("system_logs").insert({
@@ -1068,6 +1569,7 @@ serve(async (req: Request) => {
             message: `Esther: LLM digest parsing failed: ${(llmErr as Error).message}`,
             details: { email_id: emailId, subject, error: (llmErr as Error).message },
           });
+          await markInbound("failed", "digest_llm_parse_failed", null, (llmErr as Error).message);
           // 503 → svix/Resend retries for ~24h. A transient OpenAI failure must
           // not permanently lose the whole digest (10-14 leads). No side effects
           // have happened yet, so a retried delivery is safe.
@@ -1088,10 +1590,39 @@ serve(async (req: Request) => {
             details: { email_id: emailId, subject },
           });
         } catch { /* non-blocking */ }
+        await markInbound("failed", "no_openai_key");
         return new Response(
           JSON.stringify({ error: "No OpenAI API key configured — retry requested" }),
           { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      // Parse-capacity warnings become queryable events, not console noise (F12)
+      if (parseFlags.truncatedInput || parseFlags.finishLength) {
+        try {
+          await supabase.from("system_logs").insert({
+            organization_id: organizationId,
+            level: "warning",
+            category: "general",
+            event_type: "esther_digest_truncated",
+            message: `Esther digest hit a parse-capacity limit: ${parseFlags.truncatedInput ? "input truncated at 48k chars" : ""}${parseFlags.truncatedInput && parseFlags.finishLength ? " + " : ""}${parseFlags.finishLength ? `completion cut at max_tokens${parseFlags.salvaged ? " (salvaged)" : ""}` : ""}. Some leads may be missing — compare with Hemlane.`,
+            details: { email_id: emailId, subject, ...parseFlags, parsed_leads: digestLeads.length },
+          });
+        } catch { /* non-blocking */ }
+      }
+
+      // Contact-less digest entries: log each (they used to vanish silently)
+      for (const nc of digestNoContact) {
+        try {
+          await supabase.from("system_logs").insert({
+            organization_id: organizationId,
+            level: "info",
+            category: "general",
+            event_type: "esther_no_contact_info",
+            message: `Esther digest: lead without contact info — Name: ${nc.name || "unknown"}, Property: ${nc.property || "unknown"}`,
+            details: { email_id: emailId, from: fromEmail, subject, lead_name: nc.name, lead_property: nc.property, lead_message: nc.message, source: "digest" },
+          });
+        } catch { /* non-blocking */ }
       }
 
       // Log parsed digest summary for debugging
@@ -1107,9 +1638,10 @@ serve(async (req: Request) => {
           category: "general",
           event_type: "esther_digest_empty",
           message: `Esther: digest email parsed but no leads found. Subject: ${subject}`,
-          details: { email_id: emailId, from: fromEmail, subject },
+          details: { email_id: emailId, from: fromEmail, subject, raw_total: digestRawTotal },
         });
 
+        await markInbound("processed", "digest_empty");
         return new Response(
           JSON.stringify({ message: "Digest parsed but no leads found" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -1178,6 +1710,18 @@ serve(async (req: Request) => {
                 digestFollowUps.push(`email FAILED → ${lead.email}`);
               }
             }
+
+            // Digest-created incomplete leads get the same +48h enrichment
+            // retry as single-path ones (review finding: they were the only
+            // incomplete leads WITHOUT it).
+            const scheduledTask = await scheduleEnrichmentFollowup(supabase, organizationId, result.leadId, {
+              missing_name: result.missingName,
+              missing_phone: result.missingPhone,
+              lead_email: lead.email,
+              property: lead.property,
+              source: "digest",
+            });
+            if (scheduledTask) digestFollowUps.push(`enrichment task → ${lead.email || leadPhone || result.leadId}`);
           }
         } catch (e) {
           console.error(`Esther digest: error processing ${lead.name}: ${(e as Error).message}`);
@@ -1200,17 +1744,21 @@ serve(async (req: Request) => {
         level: "info",
         category: "general",
         event_type: "esther_digest_processed",
-        message: `Esther: daily digest processed — ${created} new, ${updated} updated, ${skipped} skipped (${digestLeads.length} total)${digestFollowUps.length > 0 ? `. Follow-ups: ${digestFollowUps.length}` : ""}`,
+        message: `Esther: daily digest processed — ${created} new, ${updated} updated, ${skipped} skipped (${digestLeads.length} actionable of ${digestRawTotal} raw)${digestFollowUps.length > 0 ? `. Follow-ups: ${digestFollowUps.length}` : ""}`,
         details: {
           email_id: emailId,
           subject,
           total_leads: digestLeads.length,
+          raw_total: digestRawTotal,
+          no_contact: digestNoContact.length,
           created,
           updated,
           skipped,
           follow_ups: digestFollowUps,
         },
       });
+
+      await markInbound("processed", `digest:${created}c/${updated}u/${skipped}s of ${digestRawTotal} raw`);
 
       // Track Esther execution (digest success)
       try {
@@ -1264,10 +1812,15 @@ serve(async (req: Request) => {
 
     // ── SINGLE EMAIL: parse one lead (LLM-powered) ────────────────
     let leadInfo: LeadInfo;
+    let extraLeads: LeadInfo[] = [];
+    const singleFlags: LLMParseFlags = { truncatedInput: false, finishLength: false, salvaged: false };
     if (openaiKey) {
       try {
-        leadInfo = await parseHemlaneEmailLLM(openaiKey, htmlBody, subject);
-        console.log(`Esther: LLM single parse → name=${leadInfo.name}, email=${leadInfo.email}, phone=${leadInfo.phone}`);
+        const parsed = await parseHemlaneEmailLLM(openaiKey, htmlBody, subject, singleFlags);
+        leadInfo = parsed.lead;
+        extraLeads = parsed.extras;
+        if (singleFlags.truncatedInput) console.warn("Esther: single-email input truncated at 48k chars");
+        console.log(`Esther: LLM single parse → name=${leadInfo.name}, email=${leadInfo.email}, phone=${leadInfo.phone}${extraLeads.length ? ` (+${extraLeads.length} extras)` : ""}`);
       } catch (llmErr) {
         console.error(`Esther: LLM single parse failed: ${(llmErr as Error).message}`);
         await supabase.from("system_logs").insert({
@@ -1278,6 +1831,7 @@ serve(async (req: Request) => {
           message: `Esther: LLM single email parsing failed: ${(llmErr as Error).message}`,
           details: { email_id: emailId, subject, error: (llmErr as Error).message },
         });
+        await markInbound("failed", "llm_parse_failed", null, (llmErr as Error).message);
         // 503 → svix/Resend retries for ~24h. A transient OpenAI outage must NOT
         // permanently lose the email (returning 200 here lost 3 real inquiries).
         // No side effects have happened yet, so a retried delivery is safe.
@@ -1298,6 +1852,7 @@ serve(async (req: Request) => {
           details: { email_id: emailId, subject },
         });
       } catch { /* non-blocking */ }
+      await markInbound("failed", "no_openai_key");
       return new Response(
         JSON.stringify({ error: "No OpenAI API key configured — retry requested" }),
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -1309,7 +1864,31 @@ serve(async (req: Request) => {
       leadInfo.email = replyToEmail;
     }
 
-    // Skip if we have NO contact info (phone or email) — lead is not actionable
+    // From-address fallback: direct prospect replies (to reply@inbound.…)
+    // carry the lead's address in the From header, which the LLM never sees —
+    // without this, a bare "yes, I'm still interested" reply would be
+    // discarded as contact-less (F05 reply loop).
+    if (!leadInfo.email && !leadInfo.phone) {
+      const fromMatch = fromEmail.toLowerCase().match(/[\w.+-]+@[\w.-]+\.\w{2,}/);
+      if (fromMatch && !isSystemEmailDomain(fromMatch[0].split("@").pop() || "")) {
+        leadInfo.email = fromMatch[0];
+        console.log(`Esther: using From address as contact fallback: ${leadInfo.email}`);
+      }
+    }
+
+    // A 7-9 digit phone passes validateLeadInfo but can't be E.164-formatted —
+    // it used to make the lead vanish with only a console.log (F24). Treat it
+    // as no-phone and keep the raw digits as a note for the shell/lead.
+    let unparseablePhone: string | null = null;
+    if (leadInfo.phone && !formatPhoneE164(leadInfo.phone)) {
+      unparseablePhone = leadInfo.phone;
+      leadInfo.phone = null;
+      console.warn(`Esther: unparseable phone "${unparseablePhone}" — keeping as note`);
+    }
+
+    // No contact info (phone or email) → merge the name into its pair, or
+    // create a SHELL lead so the prospect survives (F03: ~110 named prospects
+    // with tour intent used to evaporate here).
     if (!leadInfo.phone && !leadInfo.email) {
       const hasPartialInfo = !!(leadInfo.name || leadInfo.property);
       await supabase.from("system_logs").insert({
@@ -1318,7 +1897,7 @@ serve(async (req: Request) => {
         category: "general",
         event_type: hasPartialInfo ? "esther_no_contact_info" : "esther_parse_skip",
         message: hasPartialInfo
-          ? `Esther: skipped lead creation — has name/property but no phone or email. Name: ${leadInfo.name || "unknown"}, Property: ${leadInfo.property || "unknown"}`
+          ? `Esther: no phone or email in this email. Name: ${leadInfo.name || "unknown"}, Property: ${leadInfo.property || "unknown"}`
           : `Esther: skipped email — no lead info found at all. Subject: ${subject}`,
         details: {
           email_id: emailId,
@@ -1331,95 +1910,136 @@ serve(async (req: Request) => {
         },
       });
 
-      // ── Direction A: "Rental Message" has name but no contact info ──
-      // Hemlane sends paired emails:
-      //   "Rental Message from {property}" → has name, no phone/email
-      //   "New inquiry for {property}" → has phone/email, no name
-      // These can arrive hours apart. Fix the nameless lead now.
+      if (!hasPartialInfo) {
+        await markInbound("skipped", "no_lead_info");
+        return new Response(
+          JSON.stringify({ message: "Email parsed but no lead info found" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // ── Direction A: merge the name into the paired nameless lead ──
+      // Hemlane pairs: "Rental Message from {property}" (name, no contact) +
+      // "New inquiry for {property}" (contact, no name), hours apart.
+      // HARDENED (F15): propertyId match only (the old ilike fallback crossed
+      // units in the same building), EXACTLY-ONE placeholder rule, audited.
       if (leadInfo.name && leadInfo.name.length > 2) {
-        let merged = false;
+        const propertyId = leadInfo.property
+          ? await matchProperty(supabase, organizationId, leadInfo.property)
+          : null;
 
-        // Strategy 1: Match by property (expanded to 24h window)
-        if (leadInfo.property) {
-          const propertyId = await matchProperty(supabase, organizationId, leadInfo.property);
+        if (propertyId) {
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const { data: recentCandidates } = await supabase
+            .from("leads")
+            .select("id, full_name, source_detail, phone, email, interested_property_id")
+            .eq("organization_id", organizationId)
+            .eq("source", "hemlane_email")
+            .eq("interested_property_id", propertyId)
+            .gte("created_at", twentyFourHoursAgo)
+            .order("created_at", { ascending: false })
+            .limit(10);
 
-          // Search by matched property ID first, then by address text if no propertyId match
-          let recentCandidates: { id: string; full_name: string | null; source_detail: string | null }[] = [];
+          const isPlaceholder = (name: string | null) =>
+            !name || name.startsWith("Hemlane Lead") || /^\+?\d[\d\s()-]{6,}$/.test(name) || /\d{7,}/.test((name || "").replace(/\D/g, ""));
+          const placeholders = (recentCandidates || []).filter((c) => isPlaceholder(c.full_name));
 
-          if (propertyId) {
-            const { data } = await supabase
+          if (placeholders.length === 1) {
+            const candidate = placeholders[0];
+            const { error: fixErr } = await supabase
               .from("leads")
-              .select("id, full_name, source_detail")
-              .eq("organization_id", organizationId)
-              .eq("source", "hemlane_email")
-              .eq("interested_property_id", propertyId)
-              .gte("created_at", twentyFourHoursAgo)
-              .order("created_at", { ascending: false })
-              .limit(10);
-            if (data) recentCandidates = data;
-          }
-
-          // Fallback: search by property address text in source_detail
-          if (recentCandidates.length === 0 && leadInfo.property) {
-            const addrWords = leadInfo.property.split(/[\s,]+/).filter((w: string) => w.length > 3).slice(0, 3);
-            if (addrWords.length > 0) {
-              const { data } = await supabase
-                .from("leads")
-                .select("id, full_name, source_detail")
-                .eq("organization_id", organizationId)
-                .eq("source", "hemlane_email")
-                .gte("created_at", twentyFourHoursAgo)
-                .ilike("source_detail", `%${addrWords.join("%")}%`)
-                .order("created_at", { ascending: false })
-                .limit(10);
-              if (data) recentCandidates = data;
-            }
-          }
-
-          if (recentCandidates.length > 0) {
-            const isPlaceholder = (name: string | null) =>
-              !name || name.startsWith("Hemlane Lead") || /^\+?\d[\d\s()-]{6,}$/.test(name) || /\d{7,}/.test((name || "").replace(/\D/g, ""));
-            const placeholders = recentCandidates.filter((c) => isPlaceholder(c.full_name));
-            if (placeholders.length >= 1) {
-              // Take the most recent placeholder
-              const candidate = placeholders[0];
-              const { error: fixErr } = await supabase
-                .from("leads")
-                .update({
-                  full_name: leadInfo.name,
-                  first_name: leadInfo.name!.split(" ")[0] || null,
-                  last_name: leadInfo.name!.split(" ").slice(1).join(" ") || null,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", candidate.id);
-              if (!fixErr) {
-                console.log(`Esther: Direction A name merge → ${candidate.id} "${candidate.full_name}" → "${leadInfo.name}"`);
-                if (leadInfo.message) {
-                  await saveLeadNote(supabase, organizationId, candidate.id, leadInfo.message);
+              .update({
+                full_name: leadInfo.name,
+                first_name: leadInfo.name!.split(" ")[0] || null,
+                last_name: leadInfo.name!.split(" ").slice(1).join(" ") || null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", candidate.id);
+            if (!fixErr) {
+              console.log(`Esther: Direction A name merge → ${candidate.id} "${candidate.full_name}" → "${leadInfo.name}"`);
+              if (leadInfo.message) {
+                await saveLeadNote(supabase, organizationId, candidate.id, leadInfo.message);
+                // Direction A merges never applied intent boosts (F07)
+                for (const intent of detectAllIntents(leadInfo.message)) {
+                  const { error: rpcErr } = await supabase.rpc("log_score_change", {
+                    _lead_id: candidate.id,
+                    _change_amount: intent.boost,
+                    _reason_code: intent.reason_code,
+                    _reason_text: intent.reason,
+                    _triggered_by: "engagement",
+                    _changed_by_agent: "esther",
+                  });
+                  if (rpcErr) console.error(`Esther: Direction A score boost failed: ${rpcErr.message}`);
                 }
-                merged = true;
               }
+              try {
+                await supabase.from("system_logs").insert({
+                  organization_id: organizationId,
+                  level: "info",
+                  category: "general",
+                  event_type: "esther_lead_merged",
+                  message: `Esther merge (direction-A name): lead ${candidate.id} "${candidate.full_name || "?"}" → "${leadInfo.name}"`,
+                  details: {
+                    dup_type: "direction-A name",
+                    lead_id: candidate.id,
+                    before: { full_name: candidate.full_name },
+                    incoming: { name: leadInfo.name, property: leadInfo.property },
+                    email_id: emailId,
+                  },
+                  related_lead_id: candidate.id,
+                });
+              } catch { /* non-blocking */ }
+              await markInbound("processed", "name_merged", candidate.id);
+              return new Response(
+                JSON.stringify({ message: "Name merged into paired lead", lead_id: candidate.id }),
+                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
             }
+          } else if (placeholders.length > 1) {
+            console.log(`Esther: Direction A — ${placeholders.length} placeholder candidates (ambiguous), creating shell instead`);
           }
-        }
-
-        if (!merged) {
-          console.log(`Esther: Direction A — no merge target found for "${leadInfo.name}" (property: ${leadInfo.property || "none"})`);
         }
       }
 
+      // ── No merge target → SHELL lead (name + property + message, no contact) ──
+      if (leadInfo.name && leadInfo.name.length > 2) {
+        const propertyId = leadInfo.property
+          ? await matchProperty(supabase, organizationId, leadInfo.property)
+          : null;
+        const shell = await createShellLead(supabase, organizationId, leadInfo, emailId, propertyId, unparseablePhone);
+        if (shell) {
+          await markInbound("processed", shell.attached ? "message_attached" : "shell_created", shell.leadId);
+          return new Response(
+            JSON.stringify({ message: shell.attached ? "Message attached to existing lead" : "Shell lead created (needs contact info)", lead_id: shell.leadId }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      await markInbound("skipped", "no_contact_discarded");
       return new Response(
-        JSON.stringify({ message: hasPartialInfo ? "Lead has name/property but no contact info — skipped" : "Email parsed but no lead info found" }),
+        JSON.stringify({ message: "Lead has name/property but no contact info — no merge target or shell possible" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const result = await upsertLead(supabase, organizationId, leadInfo, emailId);
 
+    // Multi-lead email that slipped into the single path: process the rest (F11)
+    let extrasProcessed = 0;
+    for (const extra of extraLeads) {
+      try {
+        const r = await upsertLead(supabase, organizationId, extra, emailId);
+        if (r) extrasProcessed++;
+      } catch (e) {
+        console.error(`Esther: extra lead failed: ${(e as Error).message}`);
+      }
+    }
+
     if (!result) {
+      await markInbound(extrasProcessed > 0 ? "processed" : "skipped", extrasProcessed > 0 ? `extras_only:${extrasProcessed}` : "not_actionable");
       return new Response(
-        JSON.stringify({ message: "Could not create lead (no phone or email)" }),
+        JSON.stringify({ message: "Could not create lead (no phone or email)", extras_processed: extrasProcessed }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -1477,6 +2097,16 @@ serve(async (req: Request) => {
         // No phone AND no email → flag for manual admin review
         followUpActions.push("flagged for manual review (no contact info)");
       }
+
+      // One-shot enrichment retry at +48h (F18): the dispatcher re-sends the
+      // info request ONLY if the lead is still missing name/phone by then.
+      const scheduled = await scheduleEnrichmentFollowup(supabase, organizationId, result.leadId, {
+        missing_name: result.missingName,
+        missing_phone: result.missingPhone,
+        lead_email: leadInfo.email,
+        property: leadInfo.property,
+      });
+      if (scheduled) followUpActions.push("enrichment retry scheduled (+48h)");
 
       const missingFields = [result.missingName && "name", result.missingPhone && "phone"].filter(Boolean).join(", ");
       const actionsText = followUpActions.length > 0 ? followUpActions.join(", ") : "none";
@@ -1569,6 +2199,12 @@ serve(async (req: Request) => {
       if (commErr) console.error(`Esther: inbound archive insert failed: ${commErr.message}`);
     } catch (_) { /* non-blocking — don't fail the webhook */ }
 
+    await markInbound(
+      "processed",
+      `${result.isNew ? "lead_created" : "lead_updated"}${extrasProcessed > 0 ? ` +${extrasProcessed} extras` : ""}`,
+      result.leadId
+    );
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -1577,12 +2213,23 @@ serve(async (req: Request) => {
         missing_name: result.missingName,
         missing_phone: result.missingPhone,
         follow_up: followUpActions,
+        ...(extrasProcessed > 0 ? { extras_processed: extrasProcessed } : {}),
         message: `Lead ${result.isNew ? "created" : "updated"} from Hemlane email${actionSuffix}`,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("agent-hemlane-parser (Esther) error:", err);
+
+    // Mark the persisted email as failed so the reconcile cron can replay it
+    if (processedEmailId) {
+      try {
+        await supabase
+          .from("inbound_emails")
+          .update({ status: "failed", outcome: "error", last_error: String((err as Error).message || err).substring(0, 500), processed_at: new Date().toISOString() })
+          .eq("email_id", processedEmailId);
+      } catch { /* non-blocking */ }
+    }
 
     // Log error to system_logs
     try {

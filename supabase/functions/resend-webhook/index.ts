@@ -89,46 +89,44 @@ serve(async (req: Request) => {
     const svixId = req.headers.get("svix-id");
     const svixTimestamp = req.headers.get("svix-timestamp");
     const svixSignature = req.headers.get("svix-signature");
-    const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+    // Dedicated secret (audit F19): svix issues one secret PER endpoint, so
+    // sharing RESEND_WEBHOOK_SECRET with agent-hemlane-parser meant a second
+    // registered endpoint could never verify. Falls back to the shared secret
+    // for backward compat until RESEND_STATUS_WEBHOOK_SECRET is set.
+    const webhookSecret = Deno.env.get("RESEND_STATUS_WEBHOOK_SECRET") || Deno.env.get("RESEND_WEBHOOK_SECRET");
 
-    // ── Signature verification (when configured) ──
+    // ── Signature verification — FAIL CLOSED (audit F32) ──
     let event: ResendEvent;
-    if (webhookSecret) {
-      if (!svixId || !svixTimestamp || !svixSignature) {
-        console.warn("Resend webhook: missing svix headers — rejecting");
-        return new Response(
-          JSON.stringify({ error: "Missing signature headers" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      try {
-        const wh = new Webhook(webhookSecret);
-        event = wh.verify(rawBody, {
-          "svix-id": svixId,
-          "svix-timestamp": svixTimestamp,
-          "svix-signature": svixSignature,
-        }) as ResendEvent;
-      } catch (verifyErr) {
-        console.error("Resend webhook signature failed:", verifyErr);
-        return new Response(
-          JSON.stringify({ error: "Invalid signature" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-    } else {
-      // Accept unsigned events during setup, but log a warning.
-      console.warn(
-        "Resend webhook: RESEND_WEBHOOK_SECRET not set — accepting unverified event. " +
-          "Set the env var in Supabase Dashboard → Edge Functions → Secrets.",
+    if (!webhookSecret) {
+      console.error(
+        "Resend webhook: no RESEND_STATUS_WEBHOOK_SECRET/RESEND_WEBHOOK_SECRET configured — rejecting unsigned event. " +
+          "Set it in Supabase Dashboard → Edge Functions → Secrets.",
       );
-      try {
-        event = JSON.parse(rawBody) as ResendEvent;
-      } catch {
-        return new Response(
-          JSON.stringify({ error: "Invalid JSON body" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+      return new Response(
+        JSON.stringify({ error: "Webhook secret not configured" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      console.warn("Resend webhook: missing svix headers — rejecting");
+      return new Response(
+        JSON.stringify({ error: "Missing signature headers" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    try {
+      const wh = new Webhook(webhookSecret);
+      event = wh.verify(rawBody, {
+        "svix-id": svixId,
+        "svix-timestamp": svixTimestamp,
+        "svix-signature": svixSignature,
+      }) as ResendEvent;
+    } catch (verifyErr) {
+      console.error("Resend webhook signature failed:", verifyErr);
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const resendId = event.data?.email_id;

@@ -176,13 +176,21 @@ serve(async (req: Request) => {
           queued_at: new Date().toISOString(),
         };
       if (campaign_id) detailsObj.campaign_id = campaign_id;
-      const { error: queueErr } = await supabase.from("email_events").insert({
+      // Direct attribution column (audit F18) — details JSON stays for compat.
+      // If the lead was deleted (FK 23503), retry WITHOUT lead_id: attribution
+      // is nice-to-have, queuing the email is mandatory.
+      const queueRow = {
         organization_id,
         event_type: "delivery_delayed",
         recipient_email: to,
         subject,
+        lead_id: related_entity_type === "lead" && typeof related_entity_id === "string" && /^[0-9a-f-]{36}$/i.test(related_entity_id) ? related_entity_id : null,
         details: detailsObj,
-      });
+      };
+      let { error: queueErr } = await supabase.from("email_events").insert(queueRow);
+      if (queueErr && queueErr.code === "23503" && queueRow.lead_id) {
+        ({ error: queueErr } = await supabase.from("email_events").insert({ ...queueRow, lead_id: null }));
+      }
       if (queueErr) console.error("Queue insert error:", queueErr.message);
 
       console.log(`Email queued for ${to}: "${subject}"`);
@@ -226,6 +234,10 @@ serve(async (req: Request) => {
     }
     const senderName = from_name || "Rent Finder Cleveland";
     const fromAddress = `${senderName} <support@${senderDomain}>`;
+    // Replies must land on the Resend inbound domain so they re-enter the
+    // Esther pipeline (audit F05: without this, every prospect reply died in
+    // an unmonitored mailbox and the info-request loop never closed).
+    const replyToAddress = `reply@inbound.${senderDomain}`;
 
     // ── CAN-SPAM: only marketing mail gets the unsubscribe URL + headers ──
     // Transactional emails are left untouched (no {{unsubscribe_url}} in their
@@ -255,6 +267,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         from: fromAddress,
         to: [to],
+        reply_to: replyToAddress,
         subject,
         html: outboundHtml,
         ...(Object.keys(resendExtraHeaders).length
@@ -283,14 +296,19 @@ serve(async (req: Request) => {
           related_entity_type: related_entity_type || null,
         };
       if (campaign_id) sentDetails.campaign_id = campaign_id;
-      await supabase.from("email_events").insert({
+      const sentRow = {
         organization_id,
         event_type: "sent",
         recipient_email: to,
         subject,
         resend_email_id: resendEmailId,
+        lead_id: related_entity_type === "lead" && typeof related_entity_id === "string" && /^[0-9a-f-]{36}$/i.test(related_entity_id) ? related_entity_id : null,
         details: sentDetails,
-      });
+      };
+      const { error: sentErr } = await supabase.from("email_events").insert(sentRow);
+      if (sentErr && sentErr.code === "23503" && sentRow.lead_id) {
+        await supabase.from("email_events").insert({ ...sentRow, lead_id: null });
+      }
     }
 
     // Record cost (non-blocking) — read per-org pricing from settings, default $0.001

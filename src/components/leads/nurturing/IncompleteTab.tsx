@@ -79,12 +79,14 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
     if (!userRecord?.organization_id) return;
     setLoading(true);
 
+    // "Hemlane Lead (216) 555-0123"-style placeholders count as missing a name
+    // even when phone/email are set — they were invisible here before (F33)
     const { data, error } = await supabase
       .from("leads")
       .select("id, full_name, phone, email, status, lead_score, source, created_at")
       .eq("organization_id", userRecord.organization_id)
       .neq("status", "lost")
-      .or("full_name.is.null,phone.is.null,email.is.null")
+      .or("full_name.is.null,phone.is.null,email.is.null,full_name.like.Hemlane Lead*")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -94,7 +96,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
     }
 
     const incomplete = (data || []).filter(
-      (l) => !l.full_name || !l.phone || !l.email
+      (l) => !l.full_name || l.full_name.startsWith("Hemlane Lead") || !l.phone || !l.email
     );
 
     // Fetch next agent_task for each incomplete lead
@@ -173,7 +175,9 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
       const updated = prev.map((l) =>
         l.id === editing.leadId ? { ...l, [editing.field]: editValue.trim() } : l
       );
-      const stillIncomplete = updated.filter((l) => !l.full_name || !l.phone || !l.email);
+      const stillIncomplete = updated.filter(
+        (l) => !l.full_name || l.full_name.startsWith("Hemlane Lead") || !l.phone || !l.email
+      );
       onCountChange(stillIncomplete.length);
       return stillIncomplete;
     });
@@ -225,6 +229,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
 
   const getSeverity = (lead: IncompleteLead): { label: string; color: string } => {
     if (!lead.full_name) return { label: "Missing name", color: "bg-red-100 text-red-800" };
+    if (lead.full_name.startsWith("Hemlane Lead")) return { label: "Placeholder name", color: "bg-red-100 text-red-800" };
     if (!lead.phone && !lead.email) return { label: "No contact info", color: "bg-red-100 text-red-800" };
     if (!lead.phone) return { label: "Missing phone", color: "bg-amber-100 text-amber-800" };
     return { label: "Missing email", color: "bg-amber-100 text-amber-800" };

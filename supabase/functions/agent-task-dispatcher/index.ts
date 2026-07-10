@@ -403,6 +403,81 @@ async function handleShowingConfirmation(
   throw new Error("Lead has no phone or email for confirmation");
 }
 
+// ── Esther enrichment follow-up (audit F18) ─────────────────────────────
+// One-shot retry scheduled +48h after an incomplete lead was created. The old
+// info-request was fire-once-at-creation and phone-only leads got NOTHING.
+// Self-cancelling: if the lead completed in the meantime, do nothing.
+async function handleEnrichmentFollowup(
+  supabase: SupabaseClient,
+  task: AgentTask,
+  lead: AgentTask,
+  settings: OrgSettings
+): Promise<string> {
+  const hasName = !!(lead.full_name && !String(lead.full_name).startsWith("Hemlane Lead"));
+  const hasPhone = !!lead.phone;
+
+  if (hasName && hasPhone) {
+    return "Lead completed on its own — enrichment follow-up not needed";
+  }
+
+  // Respect opt-outs and closed leads (review finding): a lead who
+  // unsubscribed or was marked lost/converted within the 48h window must not
+  // get a "still interested?" email.
+  if ((lead as Record<string, unknown>).unsubscribed_at) {
+    return "Lead unsubscribed — enrichment follow-up cancelled";
+  }
+  const leadStatus = String((lead as Record<string, unknown>).status || "");
+  if (leadStatus === "lost" || leadStatus === "converted") {
+    return `Lead is ${leadStatus} — enrichment follow-up cancelled`;
+  }
+
+  if (lead.email) {
+    const missing: string[] = [];
+    if (!hasName) missing.push("<li><strong>Your full name</strong></li>");
+    if (!hasPhone) missing.push("<li><strong>Best phone number</strong> to reach you</li>");
+    const { error } = await supabase.functions.invoke("send-notification-email", {
+      body: {
+        to: lead.email,
+        subject: `Still interested? We'd love to help — ${settings.org_name}`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+          <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
+            <h1 style="margin:0;color:#ffb22c;font-size:20px;">Just checking in!</h1>
+          </div>
+          <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
+            <p>Hi there! You reached out about one of our rentals a couple of days ago and we'd love to get you scheduled for a showing.</p>
+            <p>Could you reply with:</p>
+            <ul>${missing.join("")}</ul>
+            <p>Just hit reply — your answer comes straight to our leasing team.</p>
+            <br>
+            <p style="color:#666;font-size:14px;">— The ${settings.org_name} Team</p>
+          </div>
+        </div>`,
+        notification_type: "lead_info_request",
+        organization_id: task.organization_id,
+        related_entity_id: task.lead_id,
+        related_entity_type: "lead",
+        from_name: settings.org_name,
+        queue: true,
+      },
+    });
+    if (error) throw new Error(`Enrichment follow-up email failed: ${error.message}`);
+    return `Enrichment follow-up email queued to ${lead.email} (missing: ${!hasName ? "name " : ""}${!hasPhone ? "phone" : ""})`;
+  }
+
+  // Phone-only lead (no email): no compliant automated channel exists since
+  // SMS automation was removed — surface it to a human instead of doing nothing.
+  await supabase.from("system_logs").insert({
+    organization_id: task.organization_id,
+    level: "warning",
+    category: "general",
+    event_type: "esther_manual_enrichment_needed",
+    message: `Lead ${lead.full_name || task.lead_id} is still incomplete after 48h and has no email — needs a manual call/text to complete their info.`,
+    details: { lead_id: task.lead_id, phone: lead.phone, missing_name: !hasName },
+    related_lead_id: task.lead_id,
+  });
+  return "Phone-only lead flagged for manual enrichment (no automated channel)";
+}
+
 async function handleWelcomeSequence(
   supabase: SupabaseClient,
   task: AgentTask,
@@ -1040,7 +1115,7 @@ async function dispatchTask(
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, email, interested_property_id, sms_consent, call_consent"
+      "id, full_name, phone, email, interested_property_id, sms_consent, call_consent, status, unsubscribed_at"
     )
     .eq("id", task.lead_id)
     .single();
@@ -1054,6 +1129,11 @@ async function dispatchTask(
       return handleShowingConfirmation(supabase, task, lead, creds, settings);
     case "welcome_sequence":
       return handleWelcomeSequence(supabase, task, lead, settings);
+    case "esther":
+      if (task.action_type === "enrichment_followup") {
+        return handleEnrichmentFollowup(supabase, task, lead, settings);
+      }
+      return `Auto-completed esther/${task.action_type} (no handler)`;
     case "recapture":
       return handleRecapture(supabase, task, lead, creds, settings);
     case "no_show_followup":

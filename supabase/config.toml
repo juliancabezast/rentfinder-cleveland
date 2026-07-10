@@ -110,6 +110,10 @@ verify_jwt = false
 [functions.hemlane-sync-listings]
 verify_jwt = false
 
+# Inbound email replay + Resend Receiving backfill (audit F21)
+[functions.reconcile-inbound-emails]
+verify_jwt = false
+
 [functions.agent-campaign-orchestrator]
 verify_jwt = false
 
