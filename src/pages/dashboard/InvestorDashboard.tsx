@@ -69,12 +69,27 @@ export const InvestorDashboard = () => {
 
         if (propertiesError) throw propertiesError;
 
-        // Fetch lead counts per property
-        const { data: leadsData, error: leadsError } = await supabase
-          .from("leads")
-          .select("interested_property_id")
-          .in("interested_property_id", propertyIds);
-        if (leadsError) console.error("Error fetching lead counts:", leadsError);
+        // Fetch lead counts per property from interest tags (paginated past the
+        // 1000-row cap). A lead tagged on several of these properties counts
+        // under each — intended.
+        const leadCounts: Record<string, number> = {};
+        const PAGE = 1000;
+        for (let from = 0; from < 200000; from += PAGE) {
+          const { data: tagData, error: tagError } = await supabase
+            .from("lead_property_interests")
+            .select("property_id")
+            .in("property_id", propertyIds)
+            .order("id", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (tagError) {
+            console.error("Error fetching lead counts:", tagError);
+            break;
+          }
+          (tagData || []).forEach((t) => {
+            leadCounts[t.property_id] = (leadCounts[t.property_id] || 0) + 1;
+          });
+          if (!tagData || tagData.length < PAGE) break;
+        }
 
         // Fetch showings per property
         const { data: showingsData, error: showingsError } = await supabase
@@ -84,14 +99,7 @@ export const InvestorDashboard = () => {
         if (showingsError) console.error("Error fetching showings:", showingsError);
 
         // Process metrics
-        const leadCounts: Record<string, number> = {};
         const showingCounts: Record<string, { scheduled: number; completed: number }> = {};
-
-        (leadsData || []).forEach((l) => {
-          if (l.interested_property_id) {
-            leadCounts[l.interested_property_id] = (leadCounts[l.interested_property_id] || 0) + 1;
-          }
-        });
 
         (showingsData || []).forEach((s) => {
           if (!showingCounts[s.property_id]) {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllTagPairs } from "@/lib/leadTags";
 import { useAuth } from "@/contexts/AuthContext";
 import { differenceInDays, differenceInHours, format, startOfWeek, subMonths } from "date-fns";
 
@@ -171,13 +172,14 @@ export function useReportsData(dateRange: DateRange | undefined) {
         showingsRes,
         callsRes,
         propertiesRes,
+        tagPairs,
       ] = await Promise.all([
         // Current period leads (paginated — Supabase caps at 1000 per request)
         fetchPaginated((from, to) =>
           applyLeadFilters(
             supabase
               .from("leads")
-              .select("id, status, source, lead_score, created_at, interested_property_id")
+              .select("id, status, source, lead_score, created_at")
               .eq("organization_id", orgId)
               .gte("created_at", startDate)
               .lte("created_at", endDate)
@@ -216,6 +218,8 @@ export function useReportsData(dateRange: DateRange | undefined) {
           .select("id, address, rent_price, bedrooms, status")
           .eq("organization_id", orgId)
           .limit(1000),
+        // Property-interest tags (for top properties — paginated, throws on error)
+        fetchAllTagPairs(orgId),
       ]);
 
       if (prevLeadsRes.error) throw prevLeadsRes.error;
@@ -369,14 +373,18 @@ export function useReportsData(dateRange: DateRange | undefined) {
       }));
 
       // === TOP PROPERTIES ===
+      // A lead counts under EVERY property it's tagged with (intended — per-property
+      // totals may exceed the total lead count).
+      const leadById = new Map(leads.map(l => [l.id, l]));
       const propLeadCounts = new Map<string, { leads: number; scores: number[]; converted: number }>();
-      leads.forEach(l => {
-        if (!l.interested_property_id) return;
-        const cur = propLeadCounts.get(l.interested_property_id) || { leads: 0, scores: [], converted: 0 };
+      tagPairs.forEach(pair => {
+        const lead = leadById.get(pair.lead_id);
+        if (!lead) return;
+        const cur = propLeadCounts.get(pair.property_id) || { leads: 0, scores: [], converted: 0 };
         cur.leads++;
-        cur.scores.push(l.lead_score || 0);
-        if (l.status === "converted") cur.converted++;
-        propLeadCounts.set(l.interested_property_id, cur);
+        cur.scores.push(lead.lead_score || 0);
+        if (lead.status === "converted") cur.converted++;
+        propLeadCounts.set(pair.property_id, cur);
       });
 
       const propShowingCounts = new Map<string, number>();

@@ -30,7 +30,8 @@ interface LeadRow {
   status: string;
   lead_score: number | null;
   source: string | null;
-  interested_property_id: string | null;
+  /** All tagged property ids from lead_property_interests (may be empty). */
+  property_ids: string[];
   created_at: string;
   last_contact_at: string | null;
   property_address?: string | null;
@@ -127,14 +128,18 @@ function detectDuplicates(leads: LeadRow[]): DuplicateGroup[] {
     }
   }
 
-  // Strategy 3: Name + Property match
+  // Strategy 3: Name + Property match — one dup-key per tagged property, so
+  // ANY shared tagged property groups two same-name leads. Leads with zero
+  // tags are skipped (name alone is too weak a signal).
   const namePropMap = new Map<string, LeadRow[]>();
   for (const lead of leads) {
     const norm = normalizeName(lead.full_name);
-    if (norm && norm.length > 2 && lead.interested_property_id) {
-      const key = `${norm}::${lead.interested_property_id}`;
-      if (!namePropMap.has(key)) namePropMap.set(key, []);
-      namePropMap.get(key)!.push(lead);
+    if (norm && norm.length > 2 && lead.property_ids?.length) {
+      for (const propertyId of lead.property_ids) {
+        const key = `${norm}::${propertyId}`;
+        if (!namePropMap.has(key)) namePropMap.set(key, []);
+        namePropMap.get(key)!.push(lead);
+      }
     }
   }
   for (const [, group] of namePropMap) {
@@ -212,7 +217,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
     // Fetch ALL non-lost leads, paginating past PostgREST's 1000-row cap —
     // otherwise dedup only sees the first 1000 leads and massively undercounts.
     const SELECT_COLS =
-      "id, full_name, phone, email, status, lead_score, source, interested_property_id, created_at, last_contact_at, properties:interested_property_id(address)";
+      "id, full_name, phone, email, status, lead_score, source, created_at, last_contact_at, lead_property_interests(property_id, properties(address))";
     const raw: any[] = [];
     const PAGE = 1000;
     for (let from = 0; from < 100000; from += PAGE) {
@@ -234,7 +239,8 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ refreshKey, onCoun
 
     const leads: LeadRow[] = raw.map((l: any) => ({
       ...l,
-      property_address: l.properties?.address || null,
+      property_ids: (l.lead_property_interests || []).map((t: any) => t.property_id),
+      property_address: l.lead_property_interests?.[0]?.properties?.address || null,
     }));
 
     const detected = detectDuplicates(leads);

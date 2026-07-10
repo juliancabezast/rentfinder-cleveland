@@ -73,29 +73,96 @@ Deno.serve(async (req) => {
 
     const detail = `Question${body.propertyLabel ? ` about ${body.propertyLabel}` : ""}: ${message}`.slice(0, 1000);
 
-    const { data: lead, error: leadError } = await supabase
-      .from("leads")
-      .insert({
-        organization_id: orgId,
-        full_name: fullName || null,
-        email: email || null,
-        phone: phone || null,
-        source: "website",
-        source_detail: detail,
-        interested_property_id: propertyId,
-        status: "new",
-        lead_score: 50,
-        sms_consent: withConsent,
-        sms_consent_at: withConsent ? now : null,
-        call_consent: withConsent,
-        call_consent_at: withConsent ? now : null,
-      })
-      .select("id")
-      .single();
+    // Find-or-create by phone, then email, within the org. A blind INSERT used
+    // to be canceled by the noah dedup trigger (BEFORE INSERT → RETURN NULL),
+    // which made .single() see zero rows and this endpoint 500 even though the
+    // lead existed. The interested_property_id write is mirrored into a
+    // lead_property_interests tag by trg_bridge_ipi_to_lpi (tags accumulate —
+    // asking about a second property ADDS a tag, it never replaces the first).
+    const findExisting = async () => {
+      if (phone) {
+        const { data } = await supabase
+          .from("leads")
+          .select("id, full_name, email, phone, source_detail")
+          .eq("organization_id", orgId)
+          .eq("phone", phone)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (data) return data;
+      }
+      if (email) {
+        const { data } = await supabase
+          .from("leads")
+          .select("id, full_name, email, phone, source_detail")
+          .eq("organization_id", orgId)
+          .eq("email", email)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (data) return data;
+      }
+      return null;
+    };
 
-    if (leadError) {
-      console.error("submit-inquiry lead error:", leadError);
-      return json({ error: "Failed to submit your question." }, 500);
+    let leadId: string;
+    const existing = await findExisting();
+
+    if (existing) {
+      leadId = existing.id;
+      const update: Record<string, unknown> = {
+        updated_at: now,
+        last_contact_at: now,
+        source_detail: existing.source_detail
+          ? `${existing.source_detail} | Also: ${detail}`.slice(0, 2000)
+          : detail,
+      };
+      if (!existing.full_name && fullName) update.full_name = fullName;
+      if (!existing.email && email) update.email = email;
+      if (!existing.phone && phone) update.phone = phone;
+      if (propertyId) update.interested_property_id = propertyId;
+      // Only upgrade consent — never revoke on an email-only follow-up.
+      if (withConsent) {
+        update.sms_consent = true;
+        update.sms_consent_at = now;
+        update.call_consent = true;
+        update.call_consent_at = now;
+      }
+      const { error: updateError } = await supabase.from("leads").update(update).eq("id", leadId);
+      if (updateError) console.error("submit-inquiry enrichment error:", updateError);
+    } else {
+      const { data: lead, error: leadError } = await supabase
+        .from("leads")
+        .insert({
+          organization_id: orgId,
+          full_name: fullName || null,
+          email: email || null,
+          phone: phone || null,
+          source: "website",
+          source_detail: detail,
+          interested_property_id: propertyId,
+          status: "new",
+          lead_score: 50,
+          sms_consent: withConsent,
+          sms_consent_at: withConsent ? now : null,
+          call_consent: withConsent,
+          call_consent_at: withConsent ? now : null,
+        })
+        .select("id")
+        .single();
+
+      if (leadError || !lead) {
+        // The dedup trigger may have canceled the insert in a race — re-resolve.
+        const raced = await findExisting();
+        if (raced) {
+          leadId = raced.id;
+        } else {
+          console.error("submit-inquiry lead error:", leadError);
+          return json({ error: "Failed to submit your question." }, 500);
+        }
+      } else {
+        leadId = lead.id;
+      }
     }
 
     // TCPA evidence — only when a phone was given with consent.
@@ -104,7 +171,7 @@ Deno.serve(async (req) => {
       for (const consent_type of ["sms_marketing", "automated_calls"]) {
         await supabase.from("consent_log").insert({
           organization_id: orgId,
-          lead_id: lead.id,
+          lead_id: leadId,
           consent_type,
           granted: true,
           method: "web_form",
@@ -115,7 +182,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ ok: true, leadId: lead.id }, 200);
+    return json({ ok: true, leadId }, 200);
   } catch (e) {
     console.error("submit-inquiry error:", e);
     return json({ error: "Unexpected error." }, 500);

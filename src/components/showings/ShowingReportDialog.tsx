@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAvailableProperties, sendLeadShowingEmail } from "@/lib/notificationService";
+import { upsertLeadTag } from "@/lib/leadTags";
 
 interface ShowingReportDialogProps {
   open: boolean;
@@ -302,9 +303,6 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
           status: moveToApplicant ? "in_application" : "showed",
           updated_at: new Date().toISOString(),
         };
-        if (reassignPropertyId && reassignPropertyId !== "keep") {
-          leadUpdate.interested_property_id = reassignPropertyId;
-        }
 
         const { error: leadError } = await supabase
           .from("leads")
@@ -313,6 +311,15 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
 
         if (leadError) {
           console.error("Error updating lead status:", leadError);
+        }
+
+        // Additive interest tag — existing tags are kept
+        if (reassignPropertyId && reassignPropertyId !== "keep") {
+          try {
+            await upsertLeadTag(leadId, reassignPropertyId, "showing");
+          } catch (tagError) {
+            console.error("Error tagging lead property interest:", tagError);
+          }
         }
       }
 
@@ -490,7 +497,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
             </div>
           )}
 
-          {/* Reassign property + Move to applicants (only for completed) */}
+          {/* Tag interest in another property + Move to applicants (only for completed) */}
           {status === "completed" && (
             <div className="space-y-4 pt-2 border-t">
               {/* Current property preview */}
@@ -508,21 +515,21 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
                 </div>
               )}
 
-              {/* Reassign property */}
+              {/* Tag interest in another property */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-1.5">
                   <Home className="h-3.5 w-3.5" />
-                  Reassign Property (optional)
+                  Tag Interest in Another Property (optional)
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  If the lead wants to apply for a different property
+                  If the lead is also interested in a different property — existing tags are kept
                 </p>
                 <Select value={reassignPropertyId} onValueChange={setReassignPropertyId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Keep current property" />
+                    <SelectValue placeholder="No additional property" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="keep">Keep current property</SelectItem>
+                    <SelectItem value="keep">No additional property</SelectItem>
                     {properties.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.label}

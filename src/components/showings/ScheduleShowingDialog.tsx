@@ -42,6 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { sendNotificationEmail } from "@/lib/notificationService";
+import { upsertLeadTag } from "@/lib/leadTags";
 import {
   renderEmailHtml,
   DEFAULT_CONFIGS,
@@ -290,12 +291,21 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           email: newLeadEmail.trim() || null,
           source: "manual",
           status: "new",
-          interested_property_id: selectedPropertyId || null,
         })
         .select("id, full_name, phone, email")
         .single();
 
       if (error) throw error;
+
+      // Tag the new lead with the selected property (best-effort — never
+      // fail lead creation over tagging)
+      if (selectedPropertyId) {
+        try {
+          await upsertLeadTag(data.id, selectedPropertyId, "showing");
+        } catch (tagErr) {
+          console.error("Property tag failed (lead still created):", tagErr);
+        }
+      }
 
       // Add to leads list and select it
       setLeads((prev) => [data, ...prev]);

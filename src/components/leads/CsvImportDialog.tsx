@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { sendNotificationEmail } from "@/lib/notificationService";
 import { showingInvitationTemplate } from "@/lib/emailTemplates";
+import { upsertLeadTags } from "@/lib/leadTags";
 
 export interface PropertyInfo {
   id: string;
@@ -643,7 +644,6 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           full_name: analyzed.name !== "—" ? analyzed.name : null,
           ...(phoneE164 ? { phone: phoneE164 } : {}),
           ...(email ? { email } : {}),
-          ...(effectivePropertyId ? { interested_property_id: effectivePropertyId } : {}),
         };
       });
 
@@ -710,19 +710,16 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       let updatedCount = 0;
       const updatedLeadIds: string[] = [];
       for (const dup of duplicates) {
-        const updateFields: Record<string, unknown> = { updated_at: new Date().toISOString() };
-        if (effectivePropertyId) updateFields.interested_property_id = effectivePropertyId;
-
         const { error: updateErr } = await supabase
           .from("leads")
-          .update(updateFields)
+          .update({ updated_at: new Date().toISOString() })
           .eq("id", dup.existingLeadId);
 
         if (!updateErr) {
           updatedCount++;
           updatedLeadIds.push(dup.existingLeadId);
           const noteContent = effectivePropertyId
-            ? `Property updated to ${detectedProp?.address || "new property"} via CSV import by ${uploaderName}`
+            ? `Property tagged: ${detectedProp?.address || "new property"} via CSV import by ${uploaderName}`
             : `Re-imported via CSV by ${uploaderName} (existing lead updated)`;
           allNotes.push({
             lead_id: dup.existingLeadId,
@@ -740,6 +737,19 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
               content: csvNote,
               note_type: "manual",
             });
+          }
+        }
+      }
+
+      // ── 3. Tag imported + updated leads with the batch property (additive) ──
+      if (effectivePropertyId) {
+        const tagLeadIds = [...new Set([...insertedLeads.map((l) => l.id), ...updatedLeadIds])];
+        if (tagLeadIds.length > 0) {
+          try {
+            await upsertLeadTags(userRecord.organization_id, tagLeadIds, effectivePropertyId, "csv_import");
+          } catch (tagErr) {
+            console.error("Property tagging failed:", tagErr);
+            toast.error("Leads imported, but property tagging failed");
           }
         }
       }

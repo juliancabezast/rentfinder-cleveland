@@ -16,6 +16,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sparkles, Trash2, AlertTriangle, Building, Users, Phone, Calendar, BarChart3, Loader2, X, Skull, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { upsertLeadTag } from '@/lib/leadTags';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -314,7 +315,6 @@ export const DemoDataTab: React.FC = () => {
           preferred_language: 'es',
           source: 'inbound_call',
           source_detail: 'DEMO_DATA',
-          interested_property_id: property.id,
           budget_min: 900,
           budget_max: 1200,
           move_in_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -339,6 +339,12 @@ export const DemoDataTab: React.FC = () => {
 
       if (lead1Error) throw lead1Error;
 
+      try {
+        await upsertLeadTag(lead1.id, property.id, 'demo');
+      } catch (tagError) {
+        console.error('Error tagging demo lead with property:', tagError);
+      }
+
       // 3. Create demo priority lead (James) with is_demo = true
       const { data: lead2, error: lead2Error } = await supabase
         .from('leads')
@@ -352,7 +358,6 @@ export const DemoDataTab: React.FC = () => {
           preferred_language: 'en',
           source: 'website',
           source_detail: 'DEMO_DATA',
-          interested_property_id: property.id,
           budget_min: 1000,
           budget_max: 1300,
           move_in_date: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -377,6 +382,12 @@ export const DemoDataTab: React.FC = () => {
         .single();
 
       if (lead2Error) throw lead2Error;
+
+      try {
+        await upsertLeadTag(lead2.id, property.id, 'demo');
+      } catch (tagError) {
+        console.error('Error tagging demo lead with property:', tagError);
+      }
 
       // 4. Create demo call with is_demo = true
       const { data: call, error: callError } = await supabase

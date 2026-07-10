@@ -18,11 +18,17 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tables } from "@/integrations/supabase/types";
+import {
+  LEAD_TAGS_DISPLAY_EMBED,
+  formatTagAddress,
+  mapEmbeddedTags,
+} from "@/lib/leadTags";
 import { DocumentsTab } from "@/components/insights/DocumentsTab";
 
 type SortField = "full_name" | "lead_score" | "created_at" | "last_contact_at";
 type SortDirection = "asc" | "desc";
 type Lead = Tables<"leads">;
+type LeadWithTags = Lead & Parameters<typeof mapEmbeddedTags>[0];
 
 const PAGE_SIZE = 25;
 
@@ -78,11 +84,15 @@ const KnowledgeHub: React.FC = () => {
     setLoading(true);
 
     try {
+      // Property-interest tags come from the LPI junction; when filtering by
+      // property, an ALIASED !inner embed keeps server-side count/pagination
+      // exact (UNIQUE(lead,property) ⇒ no parent-row duplication).
       let query = supabase
         .from("leads")
         .select(
-          `id, full_name, phone, source, status, lead_score, interested_property_id,
-           has_voucher, preferred_language, created_at, last_contact_at`,
+          `id, full_name, phone, source, status, lead_score,
+           has_voucher, preferred_language, created_at, last_contact_at,
+           ${LEAD_TAGS_DISPLAY_EMBED}${appliedFilters.propertyId !== "all" ? ", ipi_filter:lead_property_interests!inner(property_id)" : ""}`,
           { count: "exact" }
         )
         .eq("organization_id", userRecord.organization_id);
@@ -115,7 +125,7 @@ const KnowledgeHub: React.FC = () => {
         query = query.eq("has_voucher", false);
       }
       if (appliedFilters.propertyId !== "all") {
-        query = query.eq("interested_property_id", appliedFilters.propertyId);
+        query = query.eq("ipi_filter.property_id", appliedFilters.propertyId);
       }
       if (appliedFilters.zipCode) {
         query = query.contains("interested_zip_codes", [appliedFilters.zipCode]);
@@ -130,37 +140,20 @@ const KnowledgeHub: React.FC = () => {
 
       if (error) throw error;
 
-      const propertyIds = (data || [])
-        .filter((l: Lead) => l.interested_property_id)
-        .map((l: Lead) => l.interested_property_id as string);
-
-      let propertyMap = new Map<string, string>();
-      if (propertyIds.length > 0) {
-        const { data: propertyData } = await supabase
-          .from("properties")
-          .select("id, address")
-          .in("id", propertyIds);
-
-        if (propertyData) {
-          propertyData.forEach((p) => propertyMap.set(p.id, p.address));
-        }
-      }
-
-      const leadsWithProperties: LeadResult[] = (data || []).map((lead: Lead) => ({
+      const leadsWithProperties: LeadResult[] = (
+        (data || []) as unknown as LeadWithTags[]
+      ).map((lead) => ({
         id: lead.id,
         full_name: lead.full_name,
         phone: lead.phone,
         source: lead.source,
         status: lead.status,
         lead_score: lead.lead_score,
-        interested_property_id: lead.interested_property_id,
         has_voucher: lead.has_voucher,
         preferred_language: lead.preferred_language,
         created_at: lead.created_at || "",
         last_contact_at: lead.last_contact_at,
-        property_address: lead.interested_property_id
-          ? propertyMap.get(lead.interested_property_id)
-          : undefined,
+        property_addresses: mapEmbeddedTags(lead).map(formatTagAddress),
       }));
 
       setLeads(leadsWithProperties);
@@ -207,7 +200,9 @@ const KnowledgeHub: React.FC = () => {
     try {
       let query = supabase
         .from("leads")
-        .select("*")
+        .select(
+          `*, ${LEAD_TAGS_DISPLAY_EMBED}${appliedFilters.propertyId !== "all" ? ", ipi_filter:lead_property_interests!inner(property_id)" : ""}`
+        )
         .eq("organization_id", userRecord.organization_id);
 
       if (appliedFilters.dateRange?.from) {
@@ -237,7 +232,7 @@ const KnowledgeHub: React.FC = () => {
         query = query.eq("has_voucher", false);
       }
       if (appliedFilters.propertyId !== "all") {
-        query = query.eq("interested_property_id", appliedFilters.propertyId);
+        query = query.eq("ipi_filter.property_id", appliedFilters.propertyId);
       }
       if (appliedFilters.zipCode) {
         query = query.contains("interested_zip_codes", [appliedFilters.zipCode]);
@@ -257,23 +252,8 @@ const KnowledgeHub: React.FC = () => {
         return;
       }
 
-      const propertyIds = allLeads
-        .filter((l: Lead) => l.interested_property_id)
-        .map((l: Lead) => l.interested_property_id as string);
-
-      let propertyMap = new Map<string, string>();
-      if (propertyIds.length > 0) {
-        const { data: propertyData } = await supabase
-          .from("properties")
-          .select("id, address")
-          .in("id", propertyIds);
-
-        if (propertyData) {
-          propertyData.forEach((p) => propertyMap.set(p.id, p.address));
-        }
-      }
-
-      const leadIds = allLeads.map((l: Lead) => l.id);
+      const exportLeads = allLeads as unknown as LeadWithTags[];
+      const leadIds = exportLeads.map((l) => l.id);
       const { data: calls } = await supabase
         .from("calls")
         .select("lead_id, summary, started_at")
@@ -309,10 +289,10 @@ const KnowledgeHub: React.FC = () => {
 
       const csvRows = [
         headers.join(","),
-        ...allLeads.map((lead: Lead) => {
-          const propertyAddress = lead.interested_property_id
-            ? propertyMap.get(lead.interested_property_id) || ""
-            : "";
+        ...exportLeads.map((lead) => {
+          const propertyAddress = mapEmbeddedTags(lead)
+            .map(formatTagAddress)
+            .join("; ");
           const callSummary = callSummaryMap.get(lead.id) || "";
 
           return [

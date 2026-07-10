@@ -19,6 +19,8 @@ interface LeadCaptureRequest {
   user_agent: string
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -45,33 +47,84 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date().toISOString()
+    const propertyId = body.interested_property_id && UUID_RE.test(body.interested_property_id)
+      ? body.interested_property_id
+      : null
 
-    // Create the lead
-    const { data: leadData, error: leadError } = await supabase
+    // Find-or-create by phone within the org. A blind INSERT used to be canceled
+    // by the noah dedup trigger (BEFORE INSERT → RETURN NULL), which made
+    // .single() see zero rows and this endpoint 500 even though the lead
+    // existed — so resolve the lead explicitly instead.
+    // The interested_property_id write is mirrored into a lead_property_interests
+    // tag by trg_bridge_ipi_to_lpi (tags accumulate — a repeat inquiry about a
+    // second property ADDS a tag, it never replaces the first).
+    let leadId: string
+
+    const { data: existing } = await supabase
       .from('leads')
-      .insert({
-        organization_id: body.organization_id,
-        full_name: body.full_name || null,
-        phone: body.phone,
-        source: body.source || 'website',
-        source_detail: body.source_detail || 'Public listing page',
-        interested_property_id: body.interested_property_id || null,
+      .select('id, full_name')
+      .eq('organization_id', body.organization_id)
+      .eq('phone', body.phone)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      leadId = existing.id
+      const update: Record<string, unknown> = {
+        updated_at: now,
+        last_contact_at: now,
         call_consent: true,
         call_consent_at: now,
         sms_consent: true,
         sms_consent_at: now,
-        status: 'new',
-        lead_score: 50,
-      })
-      .select('id')
-      .single()
+      }
+      if (!existing.full_name && body.full_name) update.full_name = body.full_name
+      if (propertyId) update.interested_property_id = propertyId
+      const { error: updateError } = await supabase.from('leads').update(update).eq('id', leadId)
+      if (updateError) console.error('Lead enrichment error:', updateError)
+    } else {
+      const { data: leadData, error: leadError } = await supabase
+        .from('leads')
+        .insert({
+          organization_id: body.organization_id,
+          full_name: body.full_name || null,
+          phone: body.phone,
+          source: body.source || 'website',
+          source_detail: body.source_detail || 'Public listing page',
+          interested_property_id: propertyId,
+          call_consent: true,
+          call_consent_at: now,
+          sms_consent: true,
+          sms_consent_at: now,
+          status: 'new',
+          lead_score: 50,
+        })
+        .select('id')
+        .single()
 
-    if (leadError) {
-      console.error('Lead creation error:', leadError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to create lead', details: leadError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      if (leadError || !leadData) {
+        // The dedup trigger may have canceled the insert in a race — re-resolve.
+        const { data: again } = await supabase
+          .from('leads')
+          .select('id')
+          .eq('organization_id', body.organization_id)
+          .eq('phone', body.phone)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+        if (again) {
+          leadId = again.id
+        } else {
+          console.error('Lead creation error:', leadError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to create lead', details: leadError?.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      } else {
+        leadId = leadData.id
+      }
     }
 
     // Log consent for automated calls with IP address (TCPA compliance)
@@ -79,7 +132,7 @@ Deno.serve(async (req) => {
       .from('consent_log')
       .insert({
         organization_id: body.organization_id,
-        lead_id: leadData.id,
+        lead_id: leadId,
         consent_type: 'automated_calls',
         granted: true,
         method: 'web_form',
@@ -98,7 +151,7 @@ Deno.serve(async (req) => {
       .from('consent_log')
       .insert({
         organization_id: body.organization_id,
-        lead_id: leadData.id,
+        lead_id: leadId,
         consent_type: 'sms_marketing',
         granted: true,
         method: 'web_form',
@@ -115,19 +168,19 @@ Deno.serve(async (req) => {
       event_type: 'lead_captured',
       message: `New lead captured from website: ${body.phone}`,
       details: {
-        lead_id: leadData.id,
+        lead_id: leadId,
         ip_address: clientIP,
         source: body.source
       },
-      related_lead_id: leadData.id
+      related_lead_id: leadId
     })
 
-    console.log(`Lead captured successfully: ${leadData.id}, IP: ${clientIP}`)
+    console.log(`Lead captured successfully: ${leadId}, IP: ${clientIP}`)
 
     return new Response(
       JSON.stringify({
         success: true,
-        lead_id: leadData.id,
+        lead_id: leadId,
         message: 'Lead created successfully'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

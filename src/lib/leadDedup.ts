@@ -2,7 +2,7 @@
 // dashboard widget and the Duplicates tab always agree on the count.
 //
 // Groups leads via union-find across three strategies: same phone, same email,
-// or same name + interested property. Callers MUST pass the FULL lead set
+// or same name + any shared tagged property. Callers MUST pass the FULL lead set
 // (paginate past PostgREST's 1000-row cap) — otherwise the result is silently
 // undercounted, which is exactly the bug this file was created to fix.
 
@@ -11,7 +11,8 @@ export interface DedupLead {
   full_name: string | null;
   phone: string | null;
   email: string | null;
-  interested_property_id: string | null;
+  /** All tagged property ids from lead_property_interests (may be empty). */
+  property_ids: string[];
   created_at?: string | null;
 }
 
@@ -101,14 +102,18 @@ export function detectDuplicates<T extends DedupLead>(leads: T[]): DuplicateGrou
     }
   }
 
-  // Strategy 3: Name + Property match
+  // Strategy 3: Name + Property match — one dup-key per tagged property, so
+  // ANY shared tagged property groups two same-name leads. Leads with zero
+  // tags are skipped (name alone is too weak a signal).
   const namePropMap = new Map<string, T[]>();
   for (const lead of leads) {
     const norm = normalizeName(lead.full_name);
-    if (norm && norm.length > 2 && lead.interested_property_id) {
-      const key = `${norm}::${lead.interested_property_id}`;
-      if (!namePropMap.has(key)) namePropMap.set(key, []);
-      namePropMap.get(key)!.push(lead);
+    if (norm && norm.length > 2 && lead.property_ids?.length) {
+      for (const propertyId of lead.property_ids) {
+        const key = `${norm}::${propertyId}`;
+        if (!namePropMap.has(key)) namePropMap.set(key, []);
+        namePropMap.get(key)!.push(lead);
+      }
     }
   }
   for (const [, group] of namePropMap) {
@@ -156,11 +161,12 @@ export function detectDuplicates<T extends DedupLead>(leads: T[]): DuplicateGrou
 }
 
 // Fetch ALL non-lost leads for the given org, paginating past the 1000-row cap.
-// Returns the minimal columns dedup needs (callers can widen the select).
+// Returns the minimal columns dedup needs (callers can widen the select, but
+// must keep the lead_property_interests embed so property_ids stays populated).
 export async function fetchAllLeadsForDedup<T extends DedupLead>(
   supabase: any,
   organizationId: string,
-  columns = "id, full_name, phone, email, interested_property_id, created_at",
+  columns = "id, full_name, phone, email, created_at, lead_property_interests(property_id)",
 ): Promise<T[]> {
   const out: T[] = [];
   const PAGE = 1000;
@@ -173,7 +179,12 @@ export async function fetchAllLeadsForDedup<T extends DedupLead>(
       .order("id", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw error;
-    const rows = (data || []) as T[];
+    const rows = ((data || []) as any[]).map((l) => ({
+      ...l,
+      property_ids: (l.lead_property_interests || []).map(
+        (t: { property_id: string }) => t.property_id,
+      ),
+    })) as T[];
     out.push(...rows);
     if (rows.length < PAGE) break;
   }

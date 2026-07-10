@@ -572,7 +572,7 @@ async function upsertLead(
     if (propertyChanged) {
       await saveLeadNote(
         supabase, organizationId, existing.id,
-        `Lead is now inquiring about ${lead.property} — previous property interest replaced (was a different unit/building).`
+        `Lead is now also inquiring about ${lead.property} — added as an additional property-interest tag (previous interests kept).`
       );
     }
 
@@ -692,12 +692,14 @@ async function upsertLead(
   // corresponds to this fragment — skip the merge and create a new lead.
   if (propertyId) {
     const mergeWindowAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    // Property match via tag membership (lead_property_interests) — the legacy
+    // single-column equality missed leads whose latest interest moved on.
     const { data: recentSameProperty, error: dup3Err } = await supabase
       .from("leads")
-      .select("id, full_name, source_detail, phone, email, interested_property_id")
+      .select("id, full_name, source_detail, phone, email, interested_property_id, lead_property_interests!inner(property_id)")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
-      .eq("interested_property_id", propertyId)
+      .eq("lead_property_interests.property_id", propertyId)
       .gte("created_at", mergeWindowAgo)
       .order("created_at", { ascending: false })
       .limit(10);
@@ -765,10 +767,10 @@ async function upsertLead(
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: shells, error: dup5Err } = await supabase
       .from("leads")
-      .select("id, full_name, source_detail, phone, email, interested_property_id")
+      .select("id, full_name, source_detail, phone, email, interested_property_id, lead_property_interests!inner(property_id)")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
-      .eq("interested_property_id", propertyId)
+      .eq("lead_property_interests.property_id", propertyId)
       .is("phone", null)
       .is("email", null)
       .gte("created_at", dayAgo)
@@ -1932,10 +1934,10 @@ serve(async (req: Request) => {
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
           const { data: recentCandidates } = await supabase
             .from("leads")
-            .select("id, full_name, source_detail, phone, email, interested_property_id")
+            .select("id, full_name, source_detail, phone, email, interested_property_id, lead_property_interests!inner(property_id)")
             .eq("organization_id", organizationId)
             .eq("source", "hemlane_email")
-            .eq("interested_property_id", propertyId)
+            .eq("lead_property_interests.property_id", propertyId)
             .gte("created_at", twentyFourHoursAgo)
             .order("created_at", { ascending: false })
             .limit(10);

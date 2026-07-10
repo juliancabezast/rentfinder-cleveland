@@ -47,6 +47,7 @@ import { format, startOfWeek } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { mapEmbeddedTags } from "@/lib/leadTags";
 import { TaskQueuePanel } from "@/components/dashboard/TaskQueuePanel";
 
 interface DashboardStats {
@@ -240,7 +241,7 @@ export const AdminDashboard = () => {
             .from("leads")
             .select(`
               id, full_name, phone, lead_score, priority_reason, status, is_human_controlled,
-              properties(address)
+              lead_property_interests(property_id, last_interest_at, properties(address, unit_number, city))
             `)
             .eq("organization_id", userRecord.organization_id)
             .eq("is_priority", true)
@@ -336,7 +337,7 @@ export const AdminDashboard = () => {
             priority_reason: l.priority_reason,
             status: l.status,
             is_human_controlled: l.is_human_controlled,
-            property_address: l.properties?.address,
+            property_address: mapEmbeddedTags(l)[0]?.property?.address,
           }))
         );
 

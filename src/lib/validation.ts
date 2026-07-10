@@ -86,7 +86,6 @@ export const leadFormSchema = z.object({
   move_in_date: z.string().optional().transform(val => val || null),
   preferred_language: z.enum(['en', 'es']).default('en'),
   status: z.string().default('new'),
-  interested_property_id: z.string().optional().transform(val => val || null),
   has_voucher: z.boolean().default(false),
   voucher_status: z.string().optional().transform(val => val || null),
   housing_authority: z.string().max(100).optional().transform(val => val?.trim() || null),

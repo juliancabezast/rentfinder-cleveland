@@ -633,7 +633,7 @@ describe("Campaigns Feature — Integration Tests", () => {
   // ── 12. Leads source = "campaign" ─────────────────────────────────
 
   describe("12. Leads integration — source='campaign'", () => {
-    it("wizard source code inserts leads with source: 'campaign'", async () => {
+    it("wizard source code inserts leads with source: 'campaign' and tags property interest", async () => {
       const fs = await import("fs");
       const source = fs.readFileSync(
         "src/components/campaigns/CampaignCreateWizard.tsx",
@@ -641,7 +641,9 @@ describe("Campaigns Feature — Integration Tests", () => {
       );
 
       expect(source).toContain('source: "campaign"');
-      expect(source).toContain("interested_property_id: propertyId");
+      // Property interest is recorded via the lead_property_interests junction
+      // (new AND pre-existing leads), not a column on the leads insert.
+      expect(source).toContain('upsertLeadTags(orgId, validLeadIds, propertyId, "campaign")');
     });
 
     it("wizard bulk-upserts campaign_leads junction rows (dedup-safe)", async () => {

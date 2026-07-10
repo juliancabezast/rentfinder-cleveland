@@ -336,25 +336,25 @@ const PropertiesList: React.FC = () => {
       if (error) throw error;
       setProperties(data || []);
 
-      // Count interested leads per property. Paginate past PostgREST's 1000-row
-      // cap — this org has 3k+ interested leads and a single high-volume
-      // property (1k+ leads) would otherwise fill the whole first page, leaving
-      // every other property showing "—". Order by the id for stable,
-      // non-overlapping pages.
+      // Count interested leads per property from lead_property_interests tags
+      // (a lead counts under EVERY property it's tagged with). Paginate past
+      // PostgREST's 1000-row cap — this org has 4k+ tags and a single
+      // high-volume property (1k+ leads) would otherwise fill the whole first
+      // page, leaving every other property showing "—". Order by the id for
+      // stable, non-overlapping pages.
       const counts = new Map<string, number>();
       const LEAD_PAGE = 1000;
       for (let from = 0; from < 500000; from += LEAD_PAGE) {
-        const { data: leadData, error: leadError } = await supabase
-          .from("leads")
-          .select("interested_property_id")
+        const { data: tagData, error: tagError } = await supabase
+          .from("lead_property_interests")
+          .select("property_id")
           .eq("organization_id", userRecord.organization_id)
-          .not("interested_property_id", "is", null)
-          .order("interested_property_id", { ascending: true })
+          .order("id", { ascending: true })
           .range(from, from + LEAD_PAGE - 1);
-        if (leadError) break;
-        const rows = leadData || [];
-        for (const lead of rows) {
-          const pid = lead.interested_property_id as string;
+        if (tagError) break;
+        const rows = tagData || [];
+        for (const tag of rows) {
+          const pid = tag.property_id as string;
           counts.set(pid, (counts.get(pid) || 0) + 1);
         }
         if (rows.length < LEAD_PAGE) break;
@@ -373,24 +373,25 @@ const PropertiesList: React.FC = () => {
       }
       setShowingsCounts(showings);
 
-      // New-lead delta: rolling last-7-days vs the prior 7 days, per property.
+      // New-interest delta: rolling last-7-days vs the prior 7 days, per
+      // property. Tag created_at = FIRST time a lead showed interest in the
+      // property, so this counts genuinely new interest events.
       const DAY = 86400000;
       const curStart = new Date(Date.now() - 7 * DAY).toISOString();
       const prevStart = new Date(Date.now() - 14 * DAY).toISOString();
       const week = new Map<string, { cur: number; prev: number }>();
       for (let from = 0; from < 500000; from += LEAD_PAGE) {
         const { data: recent, error: rErr } = await supabase
-          .from("leads")
-          .select("interested_property_id, created_at")
+          .from("lead_property_interests")
+          .select("property_id, created_at")
           .eq("organization_id", userRecord.organization_id)
-          .not("interested_property_id", "is", null)
           .gte("created_at", prevStart)
-          .order("interested_property_id", { ascending: true })
+          .order("id", { ascending: true })
           .range(from, from + LEAD_PAGE - 1);
         if (rErr) break;
         const rws = recent || [];
         for (const l of rws) {
-          const pid = l.interested_property_id as string;
+          const pid = l.property_id as string;
           const ts = l.created_at as string | null;
           if (!pid || !ts) continue;
           const e = week.get(pid) || { cur: 0, prev: 0 };

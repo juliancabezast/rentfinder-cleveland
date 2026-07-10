@@ -63,10 +63,11 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
   const fetchLeadCount = async () => {
     setLoadingCount(true);
     try {
+      // One tag row per lead (UNIQUE lead_id+property_id) ⇒ rows = leads
       const { count, error } = await supabase
-        .from("leads")
+        .from("lead_property_interests")
         .select("id", { count: "exact", head: true })
-        .eq("interested_property_id", sourceProperty.id);
+        .eq("property_id", sourceProperty.id);
 
       if (error) throw error;
       setLeadCount(count ?? 0);
@@ -89,25 +90,71 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
 
     setReassigning(true);
     try {
+      const CHUNK = 200;
+
+      // (a) Every lead currently tagged with the source property (paginated
+      // past the 1000-row cap so collision detection never misses rows)
+      const sourceLeadIds: string[] = [];
+      const PAGE = 1000;
+      for (let from = 0; from < 200000; from += PAGE) {
+        const { data, error } = await supabase
+          .from("lead_property_interests")
+          .select("lead_id")
+          .eq("property_id", sourceProperty.id)
+          .order("id", { ascending: true })
+          .range(from, from + PAGE - 1);
+
+        if (error) throw error;
+        sourceLeadIds.push(...((data || []).map((r) => r.lead_id)));
+        if (!data || data.length < PAGE) break;
+      }
+
+      // (b) Leads already tagged with the target property (collisions)
+      const collidingIds: string[] = [];
+      for (let i = 0; i < sourceLeadIds.length; i += CHUNK) {
+        const { data, error } = await supabase
+          .from("lead_property_interests")
+          .select("lead_id")
+          .eq("property_id", targetPropertyId)
+          .in("lead_id", sourceLeadIds.slice(i, i + CHUNK));
+
+        if (error) throw error;
+        collidingIds.push(...((data || []).map((r) => r.lead_id)));
+      }
+
+      // (c) Drop the colliding SOURCE tags — those leads already carry the
+      // target tag, so moving would violate UNIQUE(lead_id, property_id)
+      for (let i = 0; i < collidingIds.length; i += CHUNK) {
+        const { error } = await supabase
+          .from("lead_property_interests")
+          .delete()
+          .eq("property_id", sourceProperty.id)
+          .in("lead_id", collidingIds.slice(i, i + CHUNK));
+
+        if (error) throw error;
+      }
+
+      // (d) Move the remaining tags to the target property
       const { error } = await supabase
-        .from("leads")
+        .from("lead_property_interests")
         .update({
-          interested_property_id: targetPropertyId,
-          updated_at: new Date().toISOString(),
+          property_id: targetPropertyId,
+          source: "reassign",
+          last_interest_at: new Date().toISOString(),
         })
-        .eq("interested_property_id", sourceProperty.id);
+        .eq("property_id", sourceProperty.id);
 
       if (error) throw error;
 
-      toast.success(`${leadCount} lead${leadCount > 1 ? "s" : ""} reassigned`, {
+      toast.success(`${leadCount} lead${leadCount > 1 ? "s" : ""} retagged`, {
         description: `From ${sourceProperty.address} → ${targetProperty?.address}`,
       });
 
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error("Error reassigning leads:", error);
-      toast.error("Failed to reassign leads");
+      console.error("Error retagging leads:", error);
+      toast.error("Failed to retag leads");
     } finally {
       setReassigning(false);
     }
@@ -119,10 +166,10 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Reassign Leads
+            Retag Leads
           </DialogTitle>
           <DialogDescription>
-            Move all leads from one property to another
+            Move every lead's interest tag from one property to another
           </DialogDescription>
         </DialogHeader>
 
@@ -147,11 +194,11 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
                   </Badge>
                 ) : leadCount === 0 ? (
                   <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                    No leads assigned
+                    No leads tagged
                   </Badge>
                 ) : (
                   <Badge className="bg-[#4F46E5] text-white">
-                    {leadCount} lead{leadCount > 1 ? "s" : ""} assigned
+                    {leadCount} lead{leadCount > 1 ? "s" : ""} tagged
                   </Badge>
                 )}
               </div>
@@ -247,9 +294,10 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
             <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
               <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
               <p className="text-sm text-amber-800">
-                This will reassign <strong>{leadCount}</strong> lead{leadCount > 1 ? "s" : ""} from{" "}
+                This will move the property tag of <strong>{leadCount}</strong> lead{leadCount > 1 ? "s" : ""} from{" "}
                 <strong>{sourceProperty.address}</strong> to{" "}
-                <strong>{targetProperty?.address}</strong>. This action cannot be easily undone.
+                <strong>{targetProperty?.address}</strong>. Leads already tagged with the target
+                property keep that tag. This action cannot be easily undone.
               </p>
             </div>
           )}
@@ -267,10 +315,10 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
             {reassigning ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Reassigning...
+                Retagging...
               </>
             ) : (
-              `Reassign ${leadCount ?? 0} Lead${(leadCount ?? 0) > 1 ? "s" : ""}`
+              `Retag ${leadCount ?? 0} Lead${(leadCount ?? 0) > 1 ? "s" : ""}`
             )}
           </Button>
         </DialogFooter>

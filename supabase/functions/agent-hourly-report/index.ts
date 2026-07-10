@@ -325,12 +325,11 @@ serve(async (req: Request) => {
         .gte("updated_at", sinceMonth),
 
       // ── TOP 5 PROPERTIES ────────────────────────────────────
-      // Leads grouped by interested_property_id (last 30 days)
+      // Interest events grouped by property_id (last 30 days)
       supabase
-        .from("leads")
-        .select("interested_property_id, properties:interested_property_id(address)")
+        .from("lead_property_interests")
+        .select("property_id, properties:property_id(address)")
         .eq("organization_id", organizationId)
-        .not("interested_property_id", "is", null)
         .gte("created_at", sinceMonth)
         .limit(1000),
 
@@ -408,7 +407,7 @@ serve(async (req: Request) => {
     const leadPropertyRows = topPropertiesRes.data || [];
     const propCounts: Record<string, { address: string; count: number }> = {};
     leadPropertyRows.forEach((row: any) => {
-      const pid = row.interested_property_id;
+      const pid = row.property_id;
       if (!pid) return;
       if (!propCounts[pid]) {
         const addr = row.properties?.address || "Unknown";

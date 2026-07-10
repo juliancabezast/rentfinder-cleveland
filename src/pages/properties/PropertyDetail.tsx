@@ -218,16 +218,16 @@ const PropertyDetail: React.FC = () => {
           }
         }
 
-        // Fetch recent leads interested in this property
-        const { data: leadsData } = await supabase
-          .from('leads')
-          .select('id, full_name, first_name, last_name, status, created_at')
-          .eq('interested_property_id', id)
+        // Fetch recent leads interested in this property (via property-interest tags)
+        const { data: interestData } = await supabase
+          .from('lead_property_interests')
+          .select('created_at, leads(id, full_name, first_name, last_name, status, created_at)')
+          .eq('property_id', id)
           .order('created_at', { ascending: false })
           .limit(5);
 
-        if (leadsData) {
-          setRecentLeads(leadsData);
+        if (interestData) {
+          setRecentLeads(interestData.flatMap((row) => (row.leads ? [row.leads] : [])));
         }
 
         // Fetch upcoming showings
@@ -841,14 +841,14 @@ const PropertyDetail: React.FC = () => {
               onSuccess={() => {
                 setRecentLeads([]);
                 supabase
-                  .from('leads')
-                  .select('id, full_name, first_name, last_name, status, created_at')
-                  .eq('interested_property_id', id!)
+                  .from('lead_property_interests')
+                  .select('created_at, leads(id, full_name, first_name, last_name, status, created_at)')
+                  .eq('property_id', id!)
                   .order('created_at', { ascending: false })
                   .limit(5)
                   .then(({ data, error }) => {
                     if (error) { console.error('Error refetching leads:', error); return; }
-                    if (data) setRecentLeads(data);
+                    if (data) setRecentLeads(data.flatMap((row) => (row.leads ? [row.leads] : [])));
                   });
               }}
             />

@@ -121,7 +121,7 @@ export const AgentDashboard = () => {
             .from("leads")
             .select(`
               id, full_name, phone, lead_score, status, priority_reason, is_human_controlled,
-              properties(address)
+              lead_property_interests(last_interest_at, properties(address))
             `)
             .eq("organization_id", userRecord.organization_id)
             .eq("assigned_leasing_agent_id", userRecord.id)
@@ -174,18 +174,24 @@ export const AgentDashboard = () => {
           }))
         );
 
-        // Process assigned leads
+        // Process assigned leads (address = most recent property-interest tag)
         setAssignedLeads(
-          (assignedLeadsResult.data || []).map((l: any) => ({
-            id: l.id,
-            full_name: l.full_name,
-            phone: l.phone,
-            lead_score: l.lead_score,
-            status: l.status,
-            priority_reason: l.priority_reason,
-            is_human_controlled: l.is_human_controlled,
-            property_address: l.properties?.address,
-          }))
+          (assignedLeadsResult.data || []).map((l: any) => {
+            const latestTag = [...(l.lead_property_interests || [])].sort(
+              (a: any, b: any) =>
+                (b.last_interest_at || "").localeCompare(a.last_interest_at || "")
+            )[0];
+            return {
+              id: l.id,
+              full_name: l.full_name,
+              phone: l.phone,
+              lead_score: l.lead_score,
+              status: l.status,
+              priority_reason: l.priority_reason,
+              is_human_controlled: l.is_human_controlled,
+              property_address: latestTag?.properties?.address,
+            };
+          })
         );
 
         // Process recent reports

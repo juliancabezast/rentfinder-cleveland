@@ -26,8 +26,7 @@ export interface LeadResult {
   source: string;
   status: string;
   lead_score: number | null;
-  interested_property_id: string | null;
-  property_address?: string;
+  property_addresses?: string[];
   has_voucher: boolean | null;
   preferred_language: string | null;
   created_at: string;
@@ -182,8 +181,24 @@ export const LeadsResultsTable: React.FC<LeadsResultsTableProps> = ({
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate">
-                    {lead.property_address || (
+                  <TableCell className="max-w-[180px]">
+                    {lead.property_addresses && lead.property_addresses.length > 0 ? (
+                      <div
+                        className="flex items-center gap-1"
+                        title={
+                          lead.property_addresses.length > 1
+                            ? lead.property_addresses.join(", ")
+                            : undefined
+                        }
+                      >
+                        <span className="truncate">{lead.property_addresses[0]}</span>
+                        {lead.property_addresses.length > 1 && (
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            +{lead.property_addresses.length - 1}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>

@@ -41,6 +41,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { leadIdsTaggedWith, upsertLeadTags } from "@/lib/leadTags";
 import {
   renderEmailHtml,
   DEFAULT_CONFIGS,
@@ -306,13 +307,18 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
           (l) => l.status !== "lost" && l.status !== "converted",
         );
       } else if (propertyId) {
-        // 1. Leads currently interested in this property
-        const { data: interested, error: intErr } = await supabase
-          .from("leads")
-          .select("id, full_name, email, phone, status")
-          .eq("organization_id", orgId)
-          .eq("interested_property_id", propertyId);
-        if (intErr) console.error("Interested-leads fetch failed:", intErr);
+        // 1. Leads tagged with interest in this property (lead_property_interests)
+        const taggedIds = Array.from(await leadIdsTaggedWith([propertyId]));
+        const interested: LeadRow[] = [];
+        for (let i = 0; i < taggedIds.length; i += 200) {
+          const { data: tagged, error: tagErr } = await supabase
+            .from("leads")
+            .select("id, full_name, email, phone, status")
+            .eq("organization_id", orgId)
+            .in("id", taggedIds.slice(i, i + 200));
+          if (tagErr) console.error("Interested-leads fetch failed:", tagErr);
+          interested.push(...((tagged as LeadRow[] | null) || []));
+        }
 
         // 2. Leads with at least one showing for this property
         const { data: showings } = await supabase
@@ -343,7 +349,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         }
 
         const extraIds = Array.from(new Set([...showingLeadIds, ...priorLeadIds]));
-        const knownIds = new Set((interested || []).map((l) => l.id));
+        const knownIds = new Set(interested.map((l) => l.id));
         const missingIds = extraIds.filter((id) => !knownIds.has(id));
 
         let extraLeads: LeadRow[] = [];
@@ -355,7 +361,7 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             .in("id", missingIds);
           extraLeads = (extra as LeadRow[] | null) || [];
         }
-        merged = [...((interested as LeadRow[] | null) || []), ...extraLeads];
+        merged = [...interested, ...extraLeads];
       }
 
       // Best-effort: drop leads that have unsubscribed. Only runs if the
@@ -743,7 +749,6 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
             email: r.email,
             source: "campaign",
             status: "new",
-            interested_property_id: propertyId,
           }));
           const { data: inserted, error: insErr } = await supabase
             .from("leads")
@@ -765,6 +770,19 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
       const validLeadIds = resolved
         .map((r) => r.leadId)
         .filter((v): v is string => Boolean(v));
+
+      // Tag every recipient (new AND pre-existing) with interest in this
+      // property via lead_property_interests — replaces the old single-FK
+      // column on leads. Non-fatal: a tag failure shouldn't abort the launch.
+      if (validLeadIds.length > 0) {
+        setLaunchStage(`Tagging ${validLeadIds.length} leads with property interest…`);
+        try {
+          await upsertLeadTags(orgId, validLeadIds, propertyId, "campaign");
+        } catch (tagErr: any) {
+          console.warn("lead_property_interests bulk tag:", tagErr?.message || tagErr);
+        }
+      }
+
       if (validLeadIds.length > 0) {
         setLaunchStage(`Linking ${validLeadIds.length} leads to campaign…`);
         for (let i = 0; i < validLeadIds.length; i += 1000) {

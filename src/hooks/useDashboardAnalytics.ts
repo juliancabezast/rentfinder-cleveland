@@ -19,7 +19,6 @@ interface LeadRow {
   source: string;
   lead_score: number | null;
   budget_max: number | null;
-  interested_property_id: string | null;
   created_at: string;
 }
 
@@ -248,7 +247,7 @@ export function useDashboardAnalytics() {
           .limit(1000),
         supabase
           .from("leads")
-          .select("id, status, source, lead_score, budget_max, interested_property_id, created_at")
+          .select("id, status, source, lead_score, budget_max, created_at")
           .eq("organization_id", orgId)
           .limit(5000),
         supabase

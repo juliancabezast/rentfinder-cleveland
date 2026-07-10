@@ -36,10 +36,8 @@ interface LeadRow {
   status: string;
   lead_score: number | null;
   source: string | null;
-  interested_property_id: string | null;
   created_at: string;
   last_contact_at: string | null;
-  property_address?: string | null;
 }
 
 interface MergeDialogProps {
@@ -110,7 +108,6 @@ export const MERGE_FIELDS = [
   { key: "lead_score", label: "Score" },
   { key: "source", label: "Source" },
   { key: "source_detail", label: "Source Detail" },
-  { key: "interested_property_id", label: "Property" },
   { key: "budget_min", label: "Budget Min" },
   { key: "budget_max", label: "Budget Max" },
   { key: "move_in_date", label: "Move-in Date" },
@@ -177,7 +174,6 @@ export async function performMerge(
   // left on the loser and cascade-deleted with it.
   const dedupTables = [
     { table: "lead_property_interests", col: "property_id" },
-    { table: "lead_properties", col: "property_id" },
     { table: "campaign_leads", col: "campaign_id" },
     { table: "campaign_recipients", col: "campaign_id" },
   ];
@@ -333,7 +329,6 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
       // those are left on the loser and cascade-deleted with it.
       const dedupTables = [
         { table: "lead_property_interests", col: "property_id" },
-        { table: "lead_properties", col: "property_id" },
         { table: "campaign_leads", col: "campaign_id" },
         { table: "campaign_recipients", col: "campaign_id" },
       ];
@@ -395,11 +390,6 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
 
   const getDisplayValue = (lead: any, key: string): string => {
     if (!lead) return "(loading)";
-    if (key === "interested_property_id") {
-      return lead[key]
-        ? (winner.property_address || loser.property_address || lead[key]?.slice(0, 8))
-        : "(empty)";
-    }
     return displayValue(lead[key]);
   };
 

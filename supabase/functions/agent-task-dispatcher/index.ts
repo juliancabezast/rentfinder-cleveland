@@ -492,24 +492,30 @@ async function handleWelcomeSequence(
   if (lead.email || ctx.email) {
     const email = lead.email || ctx.email;
 
-    // Get property info if available
+    // City-only interest context (comms policy: never name a specific property).
+    // Cities derive from the lead's property-interest tags (lead_property_interests).
     let propertyInfo = "";
-    let propData: { address?: string; rent_price?: number; bedrooms?: number; bathrooms?: number } | null = null;
-    if (ctx.interested_property_id || lead.interested_property_id) {
-      const { data: prop } = await supabase
-        .from("properties")
-        .select("address, rent_price, bedrooms, bathrooms")
-        .eq("id", ctx.interested_property_id || lead.interested_property_id)
-        .single();
-
-      if (prop) {
-        propData = prop;
+    let cities: string[] = [];
+    {
+      const { data: tagRows } = await supabase
+        .from("lead_property_interests")
+        .select("properties:property_id(city)")
+        .eq("lead_id", task.lead_id)
+        .order("last_interest_at", { ascending: false })
+        .limit(10);
+      cities = [
+        ...new Set(
+          ((tagRows as { properties: { city: string | null } | null }[] | null) || [])
+            .map((r) => r.properties?.city)
+            .filter((c): c is string => !!c)
+        ),
+      ];
+      if (cities.length) {
+        const cityPhrase = `homes in ${cities.slice(0, 3).join(", ")}`;
         propertyInfo = `
           <div style="background-color:#EEF2FF;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #4F46E5;">
-            <p style="margin:0 0 4px;font-weight:600;color:#4F46E5;">${escapeHtml(prop.address)}</p>
-            <p style="margin:0;color:#666;">
-              ${prop.bedrooms ? `${prop.bedrooms} bed` : ""}${prop.bathrooms ? ` / ${prop.bathrooms} bath` : ""}${prop.rent_price ? ` — $${prop.rent_price}/mo` : ""}
-            </p>
+            <p style="margin:0 0 4px;font-weight:600;color:#4F46E5;">Thanks for your interest in ${escapeHtml(cityPhrase)}!</p>
+            <p style="margin:0;color:#666;"><a href="https://${settings.sender_domain}" style="color:#4F46E5;">Browse all current listings</a></p>
           </div>`;
       }
     }
@@ -523,10 +529,13 @@ async function handleWelcomeSequence(
       const vars: Record<string, string> = {
         "{firstName}": firstName,
         "{fullName}": lead.full_name || firstName,
-        "{propertyAddress}": propData?.address || "",
-        "{propertyRent}": propData?.rent_price ? `$${propData.rent_price}` : "",
-        "{propertyBeds}": propData?.bedrooms ? String(propData.bedrooms) : "",
-        "{propertyBaths}": propData?.bathrooms ? String(propData.bathrooms) : "",
+        // Property-level vars retired (city-only comms policy) — kept as empty
+        // strings so any legacy template placeholders resolve blank, not literal.
+        "{propertyAddress}": "",
+        "{propertyRent}": "",
+        "{propertyBeds}": "",
+        "{propertyBaths}": "",
+        "{interestCities}": cities.join(", "),
         "{orgName}": settings.org_name,
         "{senderDomain}": settings.sender_domain,
       };

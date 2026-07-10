@@ -82,6 +82,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
   const [properties, setProperties] = useState<PropertyOption[]>([]);
 
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [initialPropertyIds, setInitialPropertyIds] = useState<string[]>([]);
   const [interestsLoaded, setInterestsLoaded] = useState(false);
   const [propertyPopoverOpen, setPropertyPopoverOpen] = useState(false);
 
@@ -126,16 +127,13 @@ export const LeadForm: React.FC<LeadFormProps> = ({
           .select("property_id")
           .eq("lead_id", lead.id);
 
-        if (interests && interests.length > 0) {
-          setSelectedPropertyIds(interests.map((i: any) => i.property_id));
-        } else if (lead.interested_property_id) {
-          // Fallback to legacy single FK
-          setSelectedPropertyIds([lead.interested_property_id]);
-        }
+        const existing = (interests || []).map((i: any) => i.property_id);
+        setSelectedPropertyIds(existing);
+        setInitialPropertyIds(existing);
       }
 
       // Mark interests as loaded so an early submit can't wipe existing
-      // property interests via the delete/insert sync in handleSubmit
+      // property interests via the diff sync in handleSubmit
       setInterestsLoaded(true);
     };
 
@@ -148,7 +146,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
 
     setLoading(true);
     try {
-      // Base lead data — interested_property_id keeps first selection for backward compat
+      // Base lead data — property interests live in lead_property_interests
       const leadData = {
         organization_id: userRecord.organization_id,
         first_name: formData.first_name || null,
@@ -162,7 +160,6 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         preferred_language: formData.preferred_language,
         status: formData.status,
         source: formData.source,
-        interested_property_id: selectedPropertyIds[0] || null,
         budget_min: formData.budget_min ? parseFloat(formData.budget_min) : null,
         budget_max: formData.budget_max ? parseFloat(formData.budget_max) : null,
         move_in_date: formData.move_in_date || null,
@@ -195,21 +192,34 @@ export const LeadForm: React.FC<LeadFormProps> = ({
           .eq("id", lead.id);
         if (error) throw error;
 
-        // Sync junction table: delete old, insert new — but only once existing
-        // interests have loaded, so an early submit can't wipe them
+        // Diff-sync junction table: only insert new tags and delete removed
+        // ones, so kept tags preserve their created_at / last_interest_at /
+        // source — and only once existing interests have loaded, so an early
+        // submit can't wipe them
         if (interestsLoaded) {
-          const { error: deleteErr } = await supabase
-            .from("lead_property_interests")
-            .delete()
-            .eq("lead_id", lead.id);
-          if (deleteErr) console.error("Failed to clear property interests:", deleteErr);
+          const toAdd = selectedPropertyIds.filter(
+            (pid) => !initialPropertyIds.includes(pid)
+          );
+          const toRemove = initialPropertyIds.filter(
+            (pid) => !selectedPropertyIds.includes(pid)
+          );
 
-          if (selectedPropertyIds.length > 0) {
+          if (toRemove.length > 0) {
+            const { error: deleteErr } = await supabase
+              .from("lead_property_interests")
+              .delete()
+              .eq("lead_id", lead.id)
+              .in("property_id", toRemove);
+            if (deleteErr) console.error("Failed to remove property interests:", deleteErr);
+          }
+
+          if (toAdd.length > 0) {
             const { error: insertErr } = await supabase.from("lead_property_interests").insert(
-              selectedPropertyIds.map((pid) => ({
+              toAdd.map((pid) => ({
                 organization_id: userRecord.organization_id,
                 lead_id: lead.id,
                 property_id: pid,
+                source: "manual",
               }))
             );
             if (insertErr) {
@@ -241,6 +251,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
               organization_id: userRecord.organization_id,
               lead_id: newLead.id,
               property_id: pid,
+              source: "manual",
             }))
           );
         }
@@ -268,14 +279,11 @@ export const LeadForm: React.FC<LeadFormProps> = ({
               
               // Auto-populate with top match if lead didn't specify any properties
               if (selectedPropertyIds.length === 0 && matches.length > 0) {
-                await supabase
-                  .from("leads")
-                  .update({ interested_property_id: matches[0].property_id })
-                  .eq("id", newLead.id);
                 await supabase.from("lead_property_interests").insert({
                   organization_id: userRecord.organization_id,
                   lead_id: newLead.id,
                   property_id: matches[0].property_id,
+                  source: "auto_match",
                 });
               }
             }

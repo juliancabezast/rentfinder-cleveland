@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,14 +35,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import { DoorloopStatusBadge } from "./DoorloopStatusBadge";
-
-interface Property {
-  id: string;
-  address: string;
-  unit_number?: string | null;
-  rent_price?: number | null;
-  bedrooms?: number | null;
-}
+import { LeadTagChips } from "./LeadTagChips";
+import { LeadTag, upsertLeadTag, removeLeadTag } from "@/lib/leadTags";
 
 interface LeadDetailHeaderProps {
   lead: {
@@ -69,9 +62,9 @@ interface LeadDetailHeaderProps {
     has_voucher?: boolean | null;
     voucher_amount?: number | null;
     housing_authority?: string | null;
-    interested_property_id?: string | null;
   };
-  property?: Property | null;
+  /** Property-interest tags (most recent first) — the multi-tag model. */
+  tags: LeadTag[];
   permissions: {
     canScheduleShowing: boolean;
     canEditLeadInfo: boolean;
@@ -141,7 +134,7 @@ const headerButtonClass = "bg-white border border-[#d1d5db] text-[#374151] hover
 
 export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   lead,
-  property,
+  tags,
   permissions,
   onScheduleShowing,
   onEdit,
@@ -162,39 +155,6 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   const [orgProperties, setOrgProperties] = useState<
     { id: string; address: string; unit_number: string | null; city: string }[]
   >([]);
-  // All properties this lead is interested in (from lead_property_interests junction)
-  const [additionalProperties, setAdditionalProperties] = useState<
-    { property_id: string; address: string; unit_number: string | null; listing_source?: string | null }[]
-  >([]);
-
-  // Fetch property interests from junction table
-  useEffect(() => {
-    const fetchLeadProperties = async () => {
-      if (!lead.id || !userRecord?.organization_id) return;
-      try {
-        const { data } = await supabase
-          .from("lead_property_interests" as any)
-          .select("property_id, properties:property_id(address, unit_number)")
-          .eq("lead_id", lead.id)
-          .eq("organization_id", userRecord.organization_id);
-        if (data) {
-          // Filter out the primary property to avoid duplication
-          setAdditionalProperties(
-            data
-              .map((row: any) => ({
-                property_id: row.property_id,
-                address: (row.properties as any)?.address || "Unknown",
-                unit_number: (row.properties as any)?.unit_number || null,
-              }))
-              .filter((p: any) => p.property_id !== lead.interested_property_id)
-          );
-        }
-      } catch {
-        // Graceful fallback
-      }
-    };
-    fetchLeadProperties();
-  }, [lead.id, lead.interested_property_id, userRecord?.organization_id]);
 
   const fetchAllProperties = async () => {
     if (!userRecord?.organization_id) return;
@@ -225,12 +185,9 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
           .limit(5);
 
         if (data && data.length === 1) {
-          // Exact match → auto-assign
-          await supabase
-            .from("leads")
-            .update({ interested_property_id: data[0].id })
-            .eq("id", lead.id);
-          toast.success(`Property assigned: ${data[0].address}`);
+          // Exact match → add as a tag (accumulates; never replaces prior interests)
+          await upsertLeadTag(lead.id, data[0].id, "manual_match");
+          toast.success(`Property tagged: ${data[0].address}`);
           onPropertyMatched?.();
           return;
         }
@@ -261,39 +218,27 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
     if (!propertyId || propertyId === "none") return;
 
     try {
-      // Set as primary interested property
-      const { error: updateErr } = await supabase
-        .from("leads")
-        .update({ interested_property_id: propertyId })
-        .eq("id", lead.id);
-      if (updateErr) throw updateErr;
-
-      // Also record in lead_properties junction table (best-effort)
-      if (userRecord?.organization_id) {
-        try {
-          await supabase
-            .from("lead_properties" as any)
-            .upsert(
-              {
-                organization_id: userRecord.organization_id,
-                lead_id: lead.id,
-                property_id: propertyId,
-                source: "manual_match",
-              },
-              { onConflict: "lead_id,property_id" }
-            );
-        } catch {
-          // Table may not be in generated types — ignore
-        }
-      }
+      // Add as a property-interest tag (accumulates; never replaces)
+      await upsertLeadTag(lead.id, propertyId, "manual_match");
 
       const selected = orgProperties.find((p) => p.id === propertyId);
-      toast.success(`Property assigned: ${selected?.address || "OK"}`);
+      toast.success(`Property tagged: ${selected?.address || "OK"}`);
       setShowPropertySelector(false);
       onPropertyMatched?.();
     } catch (err) {
-      console.error("Property assign error:", err);
-      toast.error("Error assigning property");
+      console.error("Property tag error:", err);
+      toast.error("Error tagging property");
+    }
+  };
+
+  const handleRemoveTag = async (propertyId: string) => {
+    try {
+      await removeLeadTag(lead.id, propertyId);
+      toast.success("Property tag removed");
+      onPropertyMatched?.();
+    } catch (err) {
+      console.error("Property untag error:", err);
+      toast.error("Error removing property tag");
     }
   };
 
@@ -422,63 +367,29 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
           </div>
         </div>
 
-        {/* Row 2: Property + AI Brief */}
+        {/* Row 2: Property-interest tags + AI Brief */}
         <div className="flex flex-col lg:flex-row lg:items-start gap-4 pt-2 border-t border-[#e5e7eb]">
-          {/* Left: Property of interest */}
+          {/* Left: property tags (flat — every property the lead ever asked about) */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2 text-sm">
               <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-              {property ? (
-                <div className="space-y-1">
-                  <div>
-                    <span className="font-medium">{property.address}</span>
-                    {property.unit_number && <span> #{property.unit_number}</span>}
-                    <span className="text-muted-foreground ml-2">
-                      {property.rent_price && `$${property.rent_price.toLocaleString()}/mo`}
-                      {property.bedrooms && ` · ${property.bedrooms} BR`}
-                    </span>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                {tags.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <LeadTagChips
+                      tags={tags}
+                      showCities
+                      onRemove={permissions.canEditLeadInfo ? handleRemoveTag : undefined}
+                    />
+                    {tags[0]?.property?.rent_price ? (
+                      <span className="text-xs text-muted-foreground">
+                        · latest ${tags[0].property.rent_price.toLocaleString()}/mo
+                      </span>
+                    ) : null}
                   </div>
-                  {/* Additional properties from lead_properties junction */}
-                  {additionalProperties
-                    .filter((ap) => ap.property_id !== property.id)
-                    .map((ap) => (
-                      <div key={ap.property_id} className="text-xs text-muted-foreground flex items-center gap-1">
-                        <span>+</span>
-                        <span className="font-medium text-foreground">
-                          {ap.address}
-                          {ap.unit_number ? ` #${ap.unit_number}` : ""}
-                        </span>
-                      </div>
-                    ))}
-                </div>
-              ) : showPropertySelector ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <Select onValueChange={handlePropertySelect}>
-                    <SelectTrigger className="h-7 text-xs w-[260px]">
-                      <SelectValue placeholder="Select property..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {orgProperties.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.address}
-                          {p.unit_number ? ` #${p.unit_number}` : ""} — {p.city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0"
-                    onClick={() => setShowPropertySelector(false)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-1">
+                ) : !showPropertySelector ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground italic">No property selected</span>
+                    <span className="text-muted-foreground italic">No property interests yet</span>
                     <Button
                       variant="outline"
                       size="sm"
@@ -494,27 +405,49 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                       Property Match
                     </Button>
                   </div>
-                  {/* Show additional properties even when no primary is set */}
-                  {additionalProperties.length > 0 && (
-                    <div className="space-y-0.5">
-                      {additionalProperties.map((ap) => (
-                        <div key={ap.property_id} className="text-xs text-muted-foreground flex items-center gap-1">
-                          <span>+</span>
-                          <span className="font-medium text-foreground">
-                            {ap.address}
-                            {ap.unit_number ? ` #${ap.unit_number}` : ""}
-                          </span>
-                          {ap.listing_source && (
-                            <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                              {ap.listing_source}
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                ) : null}
+
+                {showPropertySelector ? (
+                  <div className="flex items-center gap-2">
+                    <Select onValueChange={handlePropertySelect}>
+                      <SelectTrigger className="h-7 text-xs w-[260px]">
+                        <SelectValue placeholder="Select property..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {orgProperties.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.address}
+                            {p.unit_number ? ` #${p.unit_number}` : ""} — {p.city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => setShowPropertySelector(false)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  permissions.canEditLeadInfo &&
+                  tags.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={async () => {
+                        await fetchAllProperties();
+                        setShowPropertySelector(true);
+                      }}
+                    >
+                      + Add property
+                    </Button>
+                  )
+                )}
+              </div>
             </div>
           </div>
 

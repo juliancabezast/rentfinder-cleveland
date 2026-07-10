@@ -81,24 +81,30 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Build reference from interested property or lead prefs ───
+    // ── Build reference from tagged properties or lead prefs ─────
     let refBedrooms: number | null = null;
     let refBathrooms: number | null = null;
     let refRent: number | null = lead.budget_max;
     let refZip: string | null = null;
     let refCity: string | null = null;
     let refState: string | null = null;
-    let excludePropertyId: string | null = null;
+    let excludeIds: string[] = [];
 
-    if (lead.interested_property_id) {
-      const { data: refProp } = await supabase
-        .from("properties")
-        .select("id, bedrooms, bathrooms, rent_price, zip_code, city, state")
-        .eq("id", lead.interested_property_id)
-        .single();
+    const { data: interests } = await supabase
+      .from("lead_property_interests")
+      .select(
+        "property_id, last_interest_at, properties:property_id(id, bedrooms, bathrooms, rent_price, zip_code, city, state)"
+      )
+      .eq("lead_id", lead.id)
+      .order("last_interest_at", { ascending: false });
 
+    if (interests && interests.length > 0) {
+      // Every tagged property is excluded from suggestions
+      excludeIds = interests.map((t) => t.property_id).filter(Boolean);
+
+      // Most-recent tag's property is the match reference
+      const refProp = interests.find((t) => t.properties)?.properties;
       if (refProp) {
-        excludePropertyId = refProp.id;
         if (!refBedrooms) refBedrooms = refProp.bedrooms;
         if (!refBathrooms) refBathrooms = refProp.bathrooms;
         if (!refRent) refRent = refProp.rent_price;
@@ -129,6 +135,11 @@ serve(async (req: Request) => {
       query = query.eq("state", refState);
     }
 
+    // Exclude every property the lead is already tagged on
+    if (excludeIds.length > 0) {
+      query = query.not("id", "in", `(${excludeIds.join(",")})`);
+    }
+
     const { data: properties } = await query.order("rent_price", { ascending: true });
 
     if (!properties || properties.length === 0) {
@@ -142,7 +153,6 @@ serve(async (req: Request) => {
     // Score = earned / possible × 100 — only active categories count
     // so properties with different strengths get meaningfully different %
     const scored = properties
-      .filter((p) => p.id !== excludePropertyId)
       .map((p) => {
         let earned = 0;
         let possible = 0;

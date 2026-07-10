@@ -303,12 +303,27 @@ serve(async (req) => {
             .lte("period_end", endDate);
 
           // Fetch conversion predictions for leads on these properties
-          const { data: predictions } = await supabase
-            .from("conversion_predictions")
-            .select("*, leads!inner(interested_property_id)")
+          const { data: interestRows } = await supabase
+            .from("lead_property_interests")
+            .select("lead_id")
             .eq("organization_id", orgId)
-            .eq("is_current", true)
-            .in("leads.interested_property_id", propertyIds);
+            .in("property_id", propertyIds);
+
+          const interestedLeadIds = [...new Set((interestRows || []).map((r) => r.lead_id))];
+
+          let predictions: any[] = [];
+          for (let i = 0; i < interestedLeadIds.length; i += 200) {
+            const chunk = interestedLeadIds.slice(i, i + 200);
+            const { data: chunkPredictions } = await supabase
+              .from("conversion_predictions")
+              .select("*")
+              .eq("organization_id", orgId)
+              .eq("is_current", true)
+              .in("lead_id", chunk);
+            if (chunkPredictions) {
+              predictions = predictions.concat(chunkPredictions);
+            }
+          }
 
           // Generate report via OpenAI
           const systemPrompt = `You are a professional report writer for a property management company.

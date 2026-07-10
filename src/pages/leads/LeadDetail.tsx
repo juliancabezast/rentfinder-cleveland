@@ -46,6 +46,7 @@ import { ScoreHistoryPreview } from "@/components/leads/ScoreHistoryPreview";
 import { NotesTab } from "@/components/leads/NotesTab";
 import { PinnedNotesPreview } from "@/components/leads/PinnedNotesPreview";
 import { LeasingReportTab } from "@/components/leads/LeasingReportTab";
+import { LEAD_TAGS_EMBED, mapEmbeddedTags } from "@/lib/leadTags";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -120,12 +121,7 @@ const LeadDetail: React.FC = () => {
     try {
       const { data: leadData, error: leadError } = await supabase
         .from("leads")
-        .select(
-          `
-          *,
-          properties:interested_property_id (id, address, unit_number, rent_price, bedrooms)
-        `
-        )
+        .select(`*, ${LEAD_TAGS_EMBED}`)
         .eq("id", id)
         .eq("organization_id", userRecord?.organization_id)
         .single();
@@ -321,7 +317,7 @@ const LeadDetail: React.FC = () => {
       {/* Compact Header */}
       <LeadDetailHeader
         lead={lead}
-        property={lead.properties}
+        tags={mapEmbeddedTags(lead)}
         permissions={{
           canScheduleShowing: permissions.canScheduleShowing,
           canEditLeadInfo: permissions.canEditLeadInfo,

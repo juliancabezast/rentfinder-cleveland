@@ -494,6 +494,71 @@ export type Database = {
           },
         ]
       }
+      business_leads: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          ip_address: string | null
+          lead_type: string
+          message: string | null
+          notes: string | null
+          organization_id: string
+          organization_name: string | null
+          phone: string | null
+          source: string | null
+          source_detail: string | null
+          status: string
+          updated_at: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          ip_address?: string | null
+          lead_type: string
+          message?: string | null
+          notes?: string | null
+          organization_id: string
+          organization_name?: string | null
+          phone?: string | null
+          source?: string | null
+          source_detail?: string | null
+          status?: string
+          updated_at?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          ip_address?: string | null
+          lead_type?: string
+          message?: string | null
+          notes?: string | null
+          organization_id?: string
+          organization_name?: string | null
+          phone?: string | null
+          source?: string | null
+          source_detail?: string | null
+          status?: string
+          updated_at?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calls: {
         Row: {
           agent_quality_details: Json | null
@@ -1504,6 +1569,105 @@ export type Database = {
           },
         ]
       }
+      hemlane_sync_runs: {
+        Row: {
+          discrepancy_count: number
+          dry_run: boolean
+          id: string
+          linked_count: number
+          organization_id: string
+          ran_at: string
+          summary: Json
+          updated_count: number
+        }
+        Insert: {
+          discrepancy_count?: number
+          dry_run?: boolean
+          id?: string
+          linked_count?: number
+          organization_id: string
+          ran_at?: string
+          summary?: Json
+          updated_count?: number
+        }
+        Update: {
+          discrepancy_count?: number
+          dry_run?: boolean
+          id?: string
+          linked_count?: number
+          organization_id?: string
+          ran_at?: string
+          summary?: Json
+          updated_count?: number
+        }
+        Relationships: []
+      }
+      inbound_emails: {
+        Row: {
+          attempts: number
+          email_id: string
+          from_email: string | null
+          last_error: string | null
+          lead_id: string | null
+          organization_id: string
+          outcome: string | null
+          processed_at: string | null
+          raw_html: string | null
+          raw_text: string | null
+          received_at: string
+          reply_to: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          attempts?: number
+          email_id: string
+          from_email?: string | null
+          last_error?: string | null
+          lead_id?: string | null
+          organization_id: string
+          outcome?: string | null
+          processed_at?: string | null
+          raw_html?: string | null
+          raw_text?: string | null
+          received_at?: string
+          reply_to?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          attempts?: number
+          email_id?: string
+          from_email?: string | null
+          last_error?: string | null
+          lead_id?: string | null
+          organization_id?: string
+          outcome?: string | null
+          processed_at?: string | null
+          raw_html?: string | null
+          raw_text?: string | null
+          received_at?: string
+          reply_to?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_emails_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_emails_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_health: {
         Row: {
           consecutive_failures: number | null
@@ -2159,25 +2323,31 @@ export type Database = {
       }
       lead_property_interests: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
+          last_interest_at: string
           lead_id: string
           organization_id: string
           property_id: string
+          source: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
+          last_interest_at?: string
           lead_id: string
           organization_id: string
           property_id: string
+          source?: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
+          last_interest_at?: string
           lead_id?: string
           organization_id?: string
           property_id?: string
+          source?: string
         }
         Relationships: [
           {
@@ -2328,6 +2498,7 @@ export type Database = {
           human_controlled_by: string | null
           id: string
           identity_verified: boolean | null
+          intake_preferences: Json | null
           interested_property_id: string | null
           interested_zip_codes: string[] | null
           is_demo: boolean | null
@@ -2390,6 +2561,7 @@ export type Database = {
           human_controlled_by?: string | null
           id?: string
           identity_verified?: boolean | null
+          intake_preferences?: Json | null
           interested_property_id?: string | null
           interested_zip_codes?: string[] | null
           is_demo?: boolean | null
@@ -2452,6 +2624,7 @@ export type Database = {
           human_controlled_by?: string | null
           id?: string
           identity_verified?: boolean | null
+          intake_preferences?: Json | null
           interested_property_id?: string | null
           interested_zip_codes?: string[] | null
           is_demo?: boolean | null
@@ -2977,12 +3150,18 @@ export type Database = {
           created_at: string | null
           deposit_amount: number | null
           description: string | null
+          detail_view_count: number
           doorloop_property_id: string | null
+          hemlane_listing_id: string | null
+          hemlane_synced_fields: Json
           hud_inspection_ready: boolean | null
           id: string
+          impression_count: number
           investor_id: string | null
           is_demo: boolean | null
+          latitude: number | null
           listed_date: string | null
+          longitude: number | null
           managed_by: string | null
           organization_id: string
           owner_id: string | null
@@ -3015,12 +3194,18 @@ export type Database = {
           created_at?: string | null
           deposit_amount?: number | null
           description?: string | null
+          detail_view_count?: number
           doorloop_property_id?: string | null
+          hemlane_listing_id?: string | null
+          hemlane_synced_fields?: Json
           hud_inspection_ready?: boolean | null
           id?: string
+          impression_count?: number
           investor_id?: string | null
           is_demo?: boolean | null
+          latitude?: number | null
           listed_date?: string | null
+          longitude?: number | null
           managed_by?: string | null
           organization_id: string
           owner_id?: string | null
@@ -3053,12 +3238,18 @@ export type Database = {
           created_at?: string | null
           deposit_amount?: number | null
           description?: string | null
+          detail_view_count?: number
           doorloop_property_id?: string | null
+          hemlane_listing_id?: string | null
+          hemlane_synced_fields?: Json
           hud_inspection_ready?: boolean | null
           id?: string
+          impression_count?: number
           investor_id?: string | null
           is_demo?: boolean | null
+          latitude?: number | null
           listed_date?: string | null
+          longitude?: number | null
           managed_by?: string | null
           organization_id?: string
           owner_id?: string | null
@@ -3341,7 +3532,10 @@ export type Database = {
           id: string
           market_avg_rent: number | null
           market_high: number | null
+          market_local_sample: number | null
           market_low: number | null
+          market_median_local: number | null
+          market_source: string | null
           organization_id: string
           our_rent: number | null
           property_id: string
@@ -3356,7 +3550,10 @@ export type Database = {
           id?: string
           market_avg_rent?: number | null
           market_high?: number | null
+          market_local_sample?: number | null
           market_low?: number | null
+          market_median_local?: number | null
+          market_source?: string | null
           organization_id: string
           our_rent?: number | null
           property_id: string
@@ -3371,7 +3568,10 @@ export type Database = {
           id?: string
           market_avg_rent?: number | null
           market_high?: number | null
+          market_local_sample?: number | null
           market_low?: number | null
+          market_median_local?: number | null
+          market_source?: string | null
           organization_id?: string
           our_rent?: number | null
           property_id?: string
@@ -4806,6 +5006,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_lead_property_tag: {
+        Args: { p_lead_id: string; p_property_id: string; p_source?: string }
+        Returns: string
+      }
       build_campaign_audience: {
         Args: { p_criteria: Json; p_organization_id: string }
         Returns: {
@@ -4877,27 +5081,10 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: number
       }
+      count_emails_sent: { Args: { p_since?: string }; Returns: number }
       count_leads_today: {
         Args: { p_organization_id: string }
         Returns: number
-      }
-      top_properties_by_interest: {
-        Args: { p_limit?: number }
-        Returns: {
-          property_id: string
-          address: string
-          city: string
-          lead_count: number
-        }[]
-      }
-      nurturing_widget_stats: {
-        Args: never
-        Returns: {
-          incomplete: number
-          duplicates: number
-          for_review: number
-          graduated_this_week: number
-        }[]
       }
       create_default_feature_toggles: {
         Args: {
@@ -4908,6 +5095,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      dashboard_extra_stats: { Args: never; Returns: Json }
       execute_agent_task_now: {
         Args: { p_executed_by: string; p_task_id: string }
         Returns: Json
@@ -4921,14 +5109,16 @@ export type Database = {
           schedule: string
         }[]
       }
-      count_emails_sent: { Args: { p_since?: string }; Returns: number }
-      dashboard_extra_stats: { Args: never; Returns: Json }
       get_current_profile_role: { Args: never; Returns: string }
       get_dashboard_summary: { Args: never; Returns: Json }
       get_lead_full_context: { Args: { p_lead_id: string }; Returns: Json }
       get_lead_funnel: {
         Args: { _date_from?: string; _date_to?: string }
         Returns: Json
+      }
+      get_lead_interest_cities: {
+        Args: { p_lead_id: string }
+        Returns: string[]
       }
       get_org_setting: {
         Args: { p_default?: Json; p_key: string; p_organization_id: string }
@@ -4970,6 +5160,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_property_views: {
+        Args: {
+          p_event: string
+          p_organization_id: string
+          p_property_ids: string[]
+        }
+        Returns: undefined
+      }
       is_admin: { Args: never; Returns: boolean }
       is_editor_or_above: { Args: never; Returns: boolean }
       is_staff_role: { Args: never; Returns: boolean }
@@ -4981,6 +5179,10 @@ export type Database = {
           p_lead_id: string
           p_organization_id: string
         }
+        Returns: Json
+      }
+      leasing_tracker_response_stats: {
+        Args: { p_organization_id: string }
         Returns: Json
       }
       log_agent_activity: {
@@ -5048,6 +5250,15 @@ export type Database = {
         }
         Returns: Json
       }
+      nurturing_widget_stats: {
+        Args: never
+        Returns: {
+          duplicates: number
+          for_review: number
+          graduated_this_week: number
+          incomplete: number
+        }[]
+      }
       pause_lead_agent_tasks: {
         Args: { _lead_id: string; _reason: string; _user_id: string }
         Returns: number
@@ -5102,6 +5313,15 @@ export type Database = {
         Returns: undefined
       }
       sync_cost_data: { Args: never; Returns: Json }
+      top_properties_by_interest: {
+        Args: { p_limit?: number }
+        Returns: {
+          address: string
+          city: string
+          lead_count: number
+          property_id: string
+        }[]
+      }
       unstick_processing_emails: { Args: never; Returns: undefined }
       user_has_property_access: {
         Args: { _auth_user_id: string; _property_id: string }

@@ -199,15 +199,27 @@ serve(async (req) => {
       // Fallback to direct query
       const { data: lead, error: leadError } = await supabase
         .from("leads")
-        .select(`
-          *,
-          properties:interested_property_id (address, city)
-        `)
+        .select("*")
         .eq("id", lead_id)
         .single();
 
       if (leadError || !lead) {
         throw new Error(`Lead not found: ${leadError?.message}`);
+      }
+
+      // Cities only (never addresses) from tagged property interests
+      const { data: interests } = await supabase
+        .from("lead_property_interests")
+        .select("lead_id, properties:property_id (city)")
+        .in("lead_id", [lead_id]);
+
+      const citiesByLead = new Map<string, string[]>();
+      for (const interest of interests || []) {
+        const city = (interest as any).properties?.city;
+        if (!city) continue;
+        const cities = citiesByLead.get(interest.lead_id) || [];
+        if (!cities.includes(city)) cities.push(city);
+        citiesByLead.set(interest.lead_id, cities);
       }
 
       leadData = {
@@ -216,9 +228,7 @@ serve(async (req) => {
         phone: lead.phone,
         email: lead.email || "",
         source: lead.source,
-        interested_property: lead.properties
-          ? `${lead.properties.address}, ${lead.properties.city}`
-          : "",
+        interested_property: (citiesByLead.get(lead.id) || []).join(", "),
         status: lead.status,
         lead_score: lead.lead_score || 0,
         has_voucher: lead.has_voucher ? "Yes" : "No",

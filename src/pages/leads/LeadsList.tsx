@@ -60,6 +60,8 @@ import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
 import { LeadForm } from "@/components/leads/LeadForm";
 import { CsvImportDialog, type PropertyInfo } from "@/components/leads/CsvImportDialog";
 import LeadFilterPills, { ActiveFilters, FilterCounts } from "@/components/leads/LeadFilterPills";
+import { LeadTagChips } from "@/components/leads/LeadTagChips";
+import { LEAD_TAGS_DISPLAY_EMBED, formatTagAddress, mapEmbeddedTags } from "@/lib/leadTags";
 import type { Tables } from "@/integrations/supabase/types";
 
 // Agent name mapping — 7 agents across 4 departments
@@ -118,7 +120,11 @@ type Lead = Tables<"leads">;
 type AgentTask = Tables<"agent_tasks">;
 
 interface LeadWithProperty extends Lead {
-  properties?: { address: string; unit_number: string | null } | null;
+  lead_property_interests?: {
+    property_id: string;
+    last_interest_at: string | null;
+    properties: { address: string; unit_number: string | null; city: string | null } | null;
+  }[] | null;
   nextAction?: AgentTask | null;
 }
 
@@ -318,7 +324,10 @@ const LeadsList: React.FC = () => {
       const today = startOfDay(new Date());
       const in20Days = addDays(today, 20);
 
-      // Select only columns needed for list view
+      // Select only columns needed for list view. Property-interest tags come
+      // from the LPI junction; when filtering by property, an ALIASED !inner
+      // embed keeps server-side count/pagination exact (UNIQUE(lead,property)
+      // guarantees no parent-row duplication for a single-property filter).
       let query = supabase
         .from("leads")
         .select(
@@ -338,9 +347,8 @@ const LeadsList: React.FC = () => {
           move_in_date,
           created_at,
           last_contact_at,
-          interested_property_id,
           preferred_language,
-          properties:interested_property_id (address, unit_number)
+          ${LEAD_TAGS_DISPLAY_EMBED}${propertyFilter !== "all" ? ",\n          ipi_filter:lead_property_interests!inner(property_id)" : ""}
         `,
           { count: "exact" }
         )
@@ -367,7 +375,7 @@ const LeadsList: React.FC = () => {
         query = query.eq("source", sourceFilter);
       }
       if (propertyFilter !== "all") {
-        query = query.eq("interested_property_id", propertyFilter);
+        query = query.eq("ipi_filter.property_id", propertyFilter);
       }
 
       // Apply toggle filters
@@ -546,7 +554,7 @@ const LeadsList: React.FC = () => {
       let query = supabase
         .from("leads")
         .select(
-          "id, full_name, first_name, last_name, email, phone, status, source, lead_score, is_priority, is_human_controlled, has_voucher, voucher_status, move_in_date, created_at, last_contact_at, preferred_language"
+          `id, full_name, first_name, last_name, email, phone, status, source, lead_score, is_priority, is_human_controlled, has_voucher, voucher_status, move_in_date, created_at, last_contact_at, preferred_language, ${LEAD_TAGS_DISPLAY_EMBED}${propertyFilter !== "all" ? ", ipi_filter:lead_property_interests!inner(property_id)" : ""}`
         )
         .eq("organization_id", userRecord.organization_id)
         .not("full_name", "is", null)
@@ -564,7 +572,7 @@ const LeadsList: React.FC = () => {
 
       if (statusFilter !== "all") query = query.eq("status", statusFilter);
       if (sourceFilter !== "all") query = query.eq("source", sourceFilter);
-      if (propertyFilter !== "all") query = query.eq("interested_property_id", propertyFilter);
+      if (propertyFilter !== "all") query = query.eq("ipi_filter.property_id", propertyFilter);
       if (activeFilters.priority) query = query.eq("is_priority", true);
       if (activeFilters.humanControlled) query = query.eq("is_human_controlled", true);
       if (activeFilters.moveInSoon) {
@@ -598,7 +606,7 @@ const LeadsList: React.FC = () => {
       const headers = [
         "Name", "First Name", "Last Name", "Email", "Phone", "Status", "Source",
         "Score", "Priority", "Human Controlled", "Voucher", "Move-in Date",
-        "Language", "Created", "Last Contact",
+        "Language", "Created", "Last Contact", "Properties",
       ];
 
       const escape = (v: string | null | undefined) => {
@@ -625,6 +633,7 @@ const LeadsList: React.FC = () => {
         escape(l.preferred_language),
         l.created_at ? format(new Date(l.created_at), "yyyy-MM-dd") : "",
         l.last_contact_at ? format(new Date(l.last_contact_at), "yyyy-MM-dd") : "",
+        escape(mapEmbeddedTags(l as Parameters<typeof mapEmbeddedTags>[0]).map(formatTagAddress).join("; ")),
       ].join(","));
 
       const csv = [headers.join(","), ...csvRows].join("\n");
@@ -961,14 +970,12 @@ const LeadsList: React.FC = () => {
                       <TableCell>
                         <LeadStatusBadge status={lead.status} />
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell max-w-[200px] truncate text-muted-foreground text-[13px]">
-                        {lead.properties?.address
-                          ? `${lead.properties.address}${
-                              lead.properties.unit_number
-                                ? ` #${lead.properties.unit_number}`
-                                : ""
-                            }`
-                          : "—"}
+                      <TableCell className="hidden sm:table-cell max-w-[240px]">
+                        {lead.lead_property_interests?.length ? (
+                          <LeadTagChips tags={mapEmbeddedTags(lead)} max={1} />
+                        ) : (
+                          <span className="text-muted-foreground text-[13px]">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground text-[13px]">
                         {lead.created_at

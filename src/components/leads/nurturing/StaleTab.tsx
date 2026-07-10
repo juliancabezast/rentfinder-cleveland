@@ -91,7 +91,7 @@ export const StaleTab: React.FC<StaleTabProps> = ({ refreshKey, onCountChange })
     const { data, error } = await supabase
       .from("leads")
       .select(
-        "id, full_name, phone, email, status, lead_score, last_contact_at, updated_at, created_at, properties:interested_property_id(address)"
+        "id, full_name, phone, email, status, lead_score, last_contact_at, updated_at, created_at, lead_property_interests(last_interest_at, properties(address))"
       )
       .eq("organization_id", userRecord.organization_id)
       .in("status", ACTIVE_STATUSES)
@@ -107,10 +107,18 @@ export const StaleTab: React.FC<StaleTabProps> = ({ refreshKey, onCountChange })
     }
 
     const stale: StaleLead[] = (data || [])
-      .map((l: any) => ({
-        ...l,
-        property_address: l.properties?.address || null,
-      }))
+      .map((l: any) => {
+        // Most-recent property-interest tag wins the display slot.
+        const latestTag = (l.lead_property_interests || [])
+          .slice()
+          .sort((a: any, b: any) =>
+            (b.last_interest_at || "").localeCompare(a.last_interest_at || "")
+          )[0];
+        return {
+          ...l,
+          property_address: latestTag?.properties?.address || null,
+        };
+      })
       .filter((l: StaleLead) => getDaysStale(l) >= 14);
 
     setLeads(stale);

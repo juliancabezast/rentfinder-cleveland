@@ -366,22 +366,37 @@ serve(async (req) => {
     if (units.length === 0) return json({ matches: [] });
     const unitIds = units.map((u) => u.id);
 
-    // Leads across all units (de-identified, applicants excluded). PostgREST
+    // Leads across all units (de-identified, applicants excluded). Interest
+    // tags live in lead_property_interests; a lead tagged on several units of
+    // this building must count ONCE, so collect ids and dedupe. PostgREST
     // caps a select at 1000 rows, so page through to count large buildings.
-    const leads: { status: string; source: string; created_at: string }[] = [];
     const PAGE = 1000;
+    const leadIdSet = new Set<string>();
     for (let from = 0; from < 50000; from += PAGE) {
+      const { data, error } = await supabase
+        .from("lead_property_interests").select("lead_id")
+        .eq("organization_id", orgId)
+        .in("property_id", unitIds)
+        .order("lead_id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      for (const r of data || []) leadIdSet.add(r.lead_id as string);
+      if (!data || data.length < PAGE) break;
+    }
+
+    const leads: { status: string; source: string; created_at: string }[] = [];
+    const leadIds = [...leadIdSet];
+    const CHUNK = 200;
+    for (let i = 0; i < leadIds.length; i += CHUNK) {
       const { data, error } = await supabase
         .from("leads").select("status, source, created_at")
         .eq("organization_id", orgId)
-        .in("interested_property_id", unitIds)
+        .in("id", leadIds.slice(i, i + CHUNK))
         .eq("is_demo", false)
         .not("status", "in", `(${HIDDEN_LEAD_STATUSES.join(",")})`)
-        .order("created_at", { ascending: true })
-        .range(from, from + PAGE - 1);
+        .order("created_at", { ascending: true });
       if (error) throw error;
       leads.push(...((data || []) as typeof leads));
-      if (!data || data.length < PAGE) break;
     }
 
     const byStatus: Record<string, number> = {};

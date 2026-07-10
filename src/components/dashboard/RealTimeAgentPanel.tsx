@@ -24,6 +24,14 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 
 // ── Types ────────────────────────────────────────────────────────────
 
+interface RecentLeadTagRow {
+  last_interest_at: string | null;
+  properties: {
+    address: string;
+    city: string | null;
+  } | null;
+}
+
 interface RecentLeadRow {
   id: string;
   full_name: string | null;
@@ -32,11 +40,20 @@ interface RecentLeadRow {
   source: string;
   created_at: string;
   updated_at: string;
-  properties: {
-    address: string;
-    city: string;
-  } | null;
+  lead_property_interests: RecentLeadTagRow[] | null;
 }
+
+// Most-recent property-interest tag for a lead (client-side max — embedded rows are few)
+const latestInterestProperty = (lead: RecentLeadRow) => {
+  let latest: RecentLeadTagRow | null = null;
+  for (const tag of lead.lead_property_interests || []) {
+    if (!tag.properties) continue;
+    if (!latest || (tag.last_interest_at || "") > (latest.last_interest_at || "")) {
+      latest = tag;
+    }
+  }
+  return latest?.properties ?? null;
+};
 
 interface NextTaskRow {
   id: string;
@@ -126,7 +143,7 @@ export const RealTimeAgentPanel = () => {
 
       const { data, error } = await supabase
         .from("leads")
-        .select("id, full_name, phone, email, source, created_at, updated_at, properties(address, city)")
+        .select("id, full_name, phone, email, source, created_at, updated_at, lead_property_interests(last_interest_at, properties(address, city))")
         .eq("organization_id", orgId)
         .order("updated_at", { ascending: false })
         .limit(20);
@@ -292,6 +309,7 @@ export const RealTimeAgentPanel = () => {
                   updateAction: `updated from ${lead.source}`,
                 };
                 const nextTask = nextTaskByLead[lead.id];
+                const interestProperty = latestInterestProperty(lead);
                 const leadName =
                   lead.full_name || lead.phone || lead.email || "Unknown Lead";
                 const createdAt = new Date(lead.created_at);
@@ -361,12 +379,13 @@ export const RealTimeAgentPanel = () => {
                       </span>
                     </p>
 
-                    {/* Row 3: property interest (only if matched) */}
-                    {lead.properties && (
+                    {/* Row 3: property interest (only if tagged) */}
+                    {interestProperty && (
                       <p className="text-xs text-muted-foreground ml-9 mt-0.5">
                         Interested in:{" "}
                         <span className="font-medium text-foreground">
-                          {lead.properties.address}, {lead.properties.city}
+                          {interestProperty.address}
+                          {interestProperty.city ? `, ${interestProperty.city}` : ""}
                         </span>
                       </p>
                     )}

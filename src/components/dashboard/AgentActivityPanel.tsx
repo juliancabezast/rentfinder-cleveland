@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Activity, RefreshCw, Clock, User, Home } from "lucide-react";
+import { Activity, RefreshCw, Clock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow, format } from "date-fns";
@@ -25,7 +25,7 @@ interface ActivityEntry {
   execution_ms: number | null;
   created_at: string;
   related_lead_id: string | null;
-  leads: { full_name: string; interested_property_id: string | null; properties: { address: string } | null } | null;
+  leads: { full_name: string } | null;
 }
 
 // ── Agent biblical names ─────────────────────────────────────────────
@@ -76,7 +76,7 @@ export const AgentActivityPanel = ({ variant = "sidebar" }: { variant?: "sidebar
         .from("agent_activity_log")
         .select(`
           id, agent_key, action, status, message, execution_ms, created_at, related_lead_id,
-          leads:related_lead_id (full_name, interested_property_id, properties:interested_property_id (address))
+          leads:related_lead_id (full_name)
         `)
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
@@ -128,7 +128,6 @@ export const AgentActivityPanel = ({ variant = "sidebar" }: { variant?: "sidebar
     const agentName = getAgentName(entry.agent_key);
     const time = new Date(entry.created_at);
     const leadName = entry.leads?.full_name;
-    const propertyAddress = entry.leads?.properties?.address;
 
     return (
       <div
@@ -169,21 +168,13 @@ export const AgentActivityPanel = ({ variant = "sidebar" }: { variant?: "sidebar
           </span>
         </p>
 
-        {/* Row 3: lead + property */}
-        {(leadName || propertyAddress) && (
+        {/* Row 3: lead */}
+        {leadName && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 ml-9 mt-1">
-            {leadName && (
-              <span className="flex items-center gap-1 text-xs text-foreground/70">
-                <User className="h-3.5 w-3.5 shrink-0" />
-                {leadName}
-              </span>
-            )}
-            {propertyAddress && (
-              <span className="flex items-center gap-1 text-xs text-foreground/70">
-                <Home className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate max-w-[200px]">{propertyAddress}</span>
-              </span>
-            )}
+            <span className="flex items-center gap-1 text-xs text-foreground/70">
+              <User className="h-3.5 w-3.5 shrink-0" />
+              {leadName}
+            </span>
           </div>
         )}
 

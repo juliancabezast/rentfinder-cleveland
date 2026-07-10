@@ -14,6 +14,8 @@
 // (`process-email-queue` treats a row as marketing whenever `details.campaign_id`
 // is present, which we always set below.)
 
+import { leadIdsTaggedWith } from "@/lib/leadTags";
+
 export type SpotlightAudienceMode = "all_active" | "by_status" | "interested";
 
 export interface SpotlightRecipient {
@@ -102,16 +104,25 @@ export async function fetchSpotlightRecipients(
   if (mode === "interested") {
     const propertyIds = (opts.propertyIds || []).filter(Boolean);
     if (propertyIds.length === 0) return [];
-    const rows = await fetchAll((from, to) =>
-      supabase
+    // Two-step: resolve tagged lead ids from lead_property_interests (already
+    // paginated + deduped by leadIdsTaggedWith), then fetch the lead fields in
+    // id-chunks of 200 — each chunk returns ≤200 rows, safely under the
+    // PostgREST 1000-row cap, so no .range() pagination is needed here.
+    const taggedIds = [...(await leadIdsTaggedWith(propertyIds))];
+    if (taggedIds.length === 0) return [];
+    const rows: Array<{ id: string; email: string | null; status: string | null }> = [];
+    for (let i = 0; i < taggedIds.length; i += 200) {
+      const { data, error } = await supabase
         .from("leads")
         .select("id, email, status")
         .eq("organization_id", orgId)
-        .in("interested_property_id", propertyIds)
-        .not("email", "is", null)
-        .order("id", { ascending: true })
-        .range(from, to),
-    );
+        .in("id", taggedIds.slice(i, i + 200))
+        .not("email", "is", null);
+      if (error) throw error;
+      rows.push(
+        ...((data || []) as Array<{ id: string; email: string | null; status: string | null }>),
+      );
+    }
     return clean(rows);
   }
 

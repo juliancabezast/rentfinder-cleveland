@@ -27,12 +27,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { CITY_CONFIGS, type CityKey } from "@/components/analytics/ClevelandHeatGrid";
 import { LeadHeatMapView } from "@/components/analytics/LeadHeatMapView";
+import { fetchAllTagPairs, type TagPair } from "@/lib/leadTags";
 import { cn } from "@/lib/utils";
 
 interface Lead {
   id: string;
   interested_zip_codes: string[] | null;
-  interested_property_id: string | null;
   budget_min: number | null;
   budget_max: number | null;
   has_voucher: boolean | null;
@@ -73,6 +73,7 @@ export const LeadHeatMap: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [showings, setShowings] = useState<Showing[]>([]);
+  const [tagPairs, setTagPairs] = useState<TagPair[]>([]);
   const [selectedCity, setSelectedCity] = useState<CityKey>("cleveland");
   // "all" = every lead since the beginning (default); otherwise "YYYY-MM" in org timezone
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
@@ -96,7 +97,7 @@ export const LeadHeatMap: React.FC = () => {
           const { data, error } = await supabase
             .from("leads")
             .select(
-              "id, interested_zip_codes, interested_property_id, budget_min, budget_max, has_voucher, status, voucher_amount, created_at"
+              "id, interested_zip_codes, budget_min, budget_max, has_voucher, status, voucher_amount, created_at"
             )
             .eq("organization_id", userRecord.organization_id)
             .eq("is_demo", false)
@@ -128,9 +129,10 @@ export const LeadHeatMap: React.FC = () => {
         return out;
       };
 
-      const [allLeads, allShowings, propertiesRes] = await Promise.all([
+      const [allLeads, allShowings, allTagPairs, propertiesRes] = await Promise.all([
         fetchAllLeads(),
         fetchAllShowings(),
+        fetchAllTagPairs(userRecord.organization_id),
         supabase
           .from("properties")
           .select("id, address, zip_code, status, rent_price")
@@ -141,6 +143,7 @@ export const LeadHeatMap: React.FC = () => {
       if (propertiesRes.error) throw propertiesRes.error;
       setLeads(allLeads);
       setShowings(allShowings);
+      setTagPairs(allTagPairs);
       setProperties(propertiesRes.data || []);
     } catch (error) {
       console.error("Error fetching heat map data:", error);
@@ -205,19 +208,30 @@ export const LeadHeatMap: React.FC = () => {
     return map;
   }, [properties]);
 
-  // Every zip a lead is interested in (explicit zips + the zip of their property of interest)
+  // Property-interest tags per lead (from lead_property_interests)
+  const tagsByLead = useMemo(() => {
+    const map = new Map<string, string[]>();
+    tagPairs.forEach((p) => {
+      const list = map.get(p.lead_id) || [];
+      list.push(p.property_id);
+      map.set(p.lead_id, list);
+    });
+    return map;
+  }, [tagPairs]);
+
+  // Every zip a lead is interested in (explicit zips + the zips of ALL tagged properties)
   const zipsForLead = useCallback(
     (lead: Lead): string[] => {
       const zips = new Set<string>();
       if (lead.interested_zip_codes) {
         lead.interested_zip_codes.forEach((z) => zips.add(z));
       }
-      if (lead.interested_property_id && propertyZipMap[lead.interested_property_id]) {
-        zips.add(propertyZipMap[lead.interested_property_id]);
+      for (const propId of tagsByLead.get(lead.id) || []) {
+        if (propertyZipMap[propId]) zips.add(propertyZipMap[propId]);
       }
       return Array.from(zips);
     },
-    [propertyZipMap]
+    [propertyZipMap, tagsByLead]
   );
 
   // Calculate stats for each zip code
@@ -232,9 +246,8 @@ export const LeadHeatMap: React.FC = () => {
       zips.forEach((zip) => {
         if (!zipLeadMap[zip]) zipLeadMap[zip] = [];
         zipLeadMap[zip].push(lead);
-        if (lead.interested_property_id) {
+        for (const propId of tagsByLead.get(lead.id) || []) {
           if (!zipPropertyCount[zip]) zipPropertyCount[zip] = {};
-          const propId = lead.interested_property_id;
           zipPropertyCount[zip][propId] = (zipPropertyCount[zip][propId] || 0) + 1;
         }
       });
@@ -264,7 +277,7 @@ export const LeadHeatMap: React.FC = () => {
     });
 
     return stats;
-  }, [filteredLeads, zipsForLead, properties]);
+  }, [filteredLeads, zipsForLead, tagsByLead, properties]);
 
   // Leads the map cannot place: no zip/property link, or in areas outside the mapped cities
   const coverage = useMemo(() => {

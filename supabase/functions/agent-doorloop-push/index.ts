@@ -105,19 +105,21 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    // Fetch interested property for notes
+    // Fetch interested property cities for notes (comms policy: cities only, never addresses)
     let propertyNote = "";
-    if (lead.interested_property_id) {
-      const { data: property } = await supabase
-        .from("properties")
-        .select("address, city")
-        .eq("id", lead.interested_property_id)
-        .single();
+    const { data: interests } = await supabase
+      .from("lead_property_interests")
+      .select("property_id, properties:property_id(city)")
+      .eq("lead_id", lead.id);
 
-      if (property) {
-        propertyNote = ` Interested in: ${property.address}, ${property.city}`;
-      }
-    }
+    const cities = [
+      ...new Set(
+        (interests || [])
+          .map((i: any) => i.properties?.city)
+          .filter((c: string | null | undefined): c is string => !!c)
+      ),
+    ];
+    propertyNote = cities.length ? ` Interested in: ${cities.join(", ")}` : "";
 
     const tenantData = {
       firstName: lead.first_name || "",

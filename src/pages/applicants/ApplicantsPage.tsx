@@ -55,7 +55,6 @@ interface Applicant {
   created_at: string;
   source: string | null;
   property_address?: string;
-  interested_property_id: string | null;
 }
 
 const NEXT_STATUSES = [
@@ -85,8 +84,8 @@ const ApplicantsPage = () => {
         .from("leads")
         .select(`
           id, full_name, email, phone, lead_score, status,
-          updated_at, created_at, source, interested_property_id,
-          properties(address, city)
+          updated_at, created_at, source,
+          lead_property_interests(last_interest_at, properties(address, city))
         `)
         .eq("organization_id", userRecord.organization_id)
         .eq("status", "in_application")
@@ -95,21 +94,27 @@ const ApplicantsPage = () => {
       if (error) throw error;
 
       setApplicants(
-        (data || []).map((l: any) => ({
-          id: l.id,
-          full_name: l.full_name,
-          email: l.email,
-          phone: l.phone,
-          lead_score: l.lead_score,
-          status: l.status,
-          updated_at: l.updated_at,
-          created_at: l.created_at,
-          source: l.source,
-          interested_property_id: l.interested_property_id,
-          property_address: l.properties
-            ? `${l.properties.address}, ${l.properties.city}`
-            : undefined,
-        }))
+        (data || []).map((l: any) => {
+          const latestTag = (l.lead_property_interests || [])
+            .slice()
+            .sort((a: any, b: any) =>
+              (b.last_interest_at || "").localeCompare(a.last_interest_at || "")
+            )[0];
+          return {
+            id: l.id,
+            full_name: l.full_name,
+            email: l.email,
+            phone: l.phone,
+            lead_score: l.lead_score,
+            status: l.status,
+            updated_at: l.updated_at,
+            created_at: l.created_at,
+            source: l.source,
+            property_address: latestTag?.properties
+              ? `${latestTag.properties.address}, ${latestTag.properties.city}`
+              : undefined,
+          };
+        })
       );
     } catch (err) {
       console.error("Error fetching applicants:", err);

@@ -323,13 +323,24 @@ serve(async (req) => {
     const nextYear = month === 12 ? year + 1 : year;
     const periodEnd = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
 
-    // 6. Get leads for these properties this month
-    const { data: leads } = await supabase
-      .from("leads")
-      .select("id, status, lead_score, source, interested_property_id, has_voucher")
-      .in("interested_property_id", propertyIds)
-      .gte("created_at", periodStart)
-      .lt("created_at", periodEnd);
+    // 6. Get lead-property interest pairs for these properties, then the distinct leads this month
+    const { data: interestPairs } = await supabase
+      .from("lead_property_interests")
+      .select("lead_id, property_id, created_at")
+      .in("property_id", propertyIds);
+
+    const distinctLeadIds = [...new Set((interestPairs || []).map((p) => p.lead_id))];
+
+    const leads: any[] = [];
+    for (let i = 0; i < distinctLeadIds.length; i += 200) {
+      const { data: leadChunk } = await supabase
+        .from("leads")
+        .select("id, status, lead_score, source, has_voucher")
+        .in("id", distinctLeadIds.slice(i, i + 200))
+        .gte("created_at", periodStart)
+        .lt("created_at", periodEnd);
+      if (leadChunk) leads.push(...leadChunk);
+    }
 
     // 7. Get showings
     const { data: showings } = await supabase
@@ -363,9 +374,12 @@ serve(async (req) => {
       by_property: {},
     };
 
-    // Per-property breakdown
+    // Per-property breakdown (a lead tagged on multiple properties counts under each)
     properties?.forEach((prop) => {
-      const propLeads = leads?.filter((l) => l.interested_property_id === prop.id) || [];
+      const propLeadIds = new Set(
+        (interestPairs || []).filter((p) => p.property_id === prop.id).map((p) => p.lead_id)
+      );
+      const propLeads = leads?.filter((l) => propLeadIds.has(l.id)) || [];
       const propShowings = showings?.filter((s) => s.property_id === prop.id) || [];
       metrics.by_property[prop.id] = {
         address: `${prop.address}${prop.unit_number ? " " + prop.unit_number : ""}`,
