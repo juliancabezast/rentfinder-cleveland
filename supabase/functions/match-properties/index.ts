@@ -64,11 +64,11 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Get lead with preferences + interested property ──────────
+    // ── Get lead with preferences (property interests come from tags) ──
     const { data: lead } = await supabase
       .from("leads")
       .select(
-        "id, budget_min, budget_max, has_voucher, voucher_amount, interested_property_id, interested_zip_codes"
+        "id, budget_min, budget_max, has_voucher, voucher_amount, interested_zip_codes"
       )
       .eq("id", lead_id)
       .eq("organization_id", organization_id)

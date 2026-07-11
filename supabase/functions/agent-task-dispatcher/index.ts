@@ -1124,7 +1124,7 @@ async function dispatchTask(
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, email, interested_property_id, sms_consent, call_consent, status, unsubscribed_at"
+      "id, full_name, phone, email, sms_consent, call_consent, status, unsubscribed_at"
     )
     .eq("id", task.lead_id)
     .single();

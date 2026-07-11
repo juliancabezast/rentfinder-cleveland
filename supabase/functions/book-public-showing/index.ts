@@ -288,9 +288,8 @@ serve(async (req: Request) => {
       if (!leadEmail && existingLead.email) {
         leadEmail = existingLead.email;
       }
-      // Update lead with property + email if needed
+      // Update lead with email if needed (property interest is tagged below)
       const leadUpdate: Record<string, any> = {
-        interested_property_id: property_id,
         updated_at: new Date().toISOString(),
       };
       if (email && !existingLead.email) leadUpdate.email = email;
@@ -306,7 +305,6 @@ serve(async (req: Request) => {
           email: leadEmail,
           source: "website",
           status: "new",
-          interested_property_id: property_id,
           has_voucher: has_voucher !== undefined ? !!has_voucher : null,
           sms_consent: consent?.sms_consent ?? false,
           call_consent: consent?.call_consent ?? false,
@@ -322,6 +320,16 @@ serve(async (req: Request) => {
         );
       }
       leadId = newLead.id;
+    }
+
+    // ── Property-interest tag (accumulates; bumps recency on repeat) ───
+    {
+      const { error: tagError } = await supabase.rpc("add_lead_property_tag", {
+        p_lead_id: leadId,
+        p_property_id: property_id,
+        p_source: "showing_request",
+      });
+      if (tagError) console.error("Property tag error:", tagError);
     }
 
     // ── Log consent ───────────────────────────────────────────────────
@@ -507,7 +515,6 @@ serve(async (req: Request) => {
         lead_score: newScore,
         is_priority: true,
         priority_reason: "Showing requested (+30 pts)",
-        interested_property_id: property_id,
         updated_at: new Date().toISOString(),
       })
       .eq("id", leadId);

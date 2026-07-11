@@ -276,7 +276,6 @@ serve(async (req: Request) => {
             source: "website",
             source_detail: "marketplace_application",
             status: "new",
-            interested_property_id: propertyId || null,
             has_voucher: hasVoucher ?? null,
           })
           .select("id")
@@ -293,7 +292,7 @@ serve(async (req: Request) => {
     // ── Load the current lead so we merge (never blank out) existing data ───
     const { data: lead } = await supabase
       .from("leads")
-      .select("id, organization_id, full_name, email, has_voucher, housing_authority, move_in_date, budget_min, budget_max, intake_preferences, interested_property_id, lead_score, status")
+      .select("id, organization_id, full_name, email, has_voucher, housing_authority, move_in_date, budget_min, budget_max, intake_preferences, lead_score, status")
       .eq("id", leadId)
       .eq("organization_id", orgId)
       .maybeSingle();
@@ -319,8 +318,17 @@ serve(async (req: Request) => {
     if (hasVoucher !== undefined) update.has_voucher = hasVoucher;
     if (housingAuthority) update.housing_authority = housingAuthority;
     if (moveInDate) update.move_in_date = moveInDate;
-    if (propertyId) update.interested_property_id = propertyId;
     if (householdSize !== undefined) update.intake_preferences = nextPrefs;
+
+    // Property interest = accumulating tag (never replaces prior interests)
+    if (propertyId) {
+      const { error: tagError } = await supabase.rpc("add_lead_property_tag", {
+        p_lead_id: leadId,
+        p_property_id: propertyId,
+        p_source: "application",
+      });
+      if (tagError) console.error("Property tag error:", tagError);
+    }
 
     // ── FINAL step: promote to Applicant + log consent + pinned note ────────
     let previousScore = lead.lead_score ?? 40;
@@ -421,7 +429,7 @@ serve(async (req: Request) => {
         message: `Online application submitted: ${update.full_name || lead.full_name || "New applicant"}`,
         details: {
           lead_id: leadId,
-          property_id: propertyId || lead.interested_property_id || null,
+          property_id: propertyId || null,
           source: "marketplace_application",
           sms_consent: !!consent?.sms_consent,
         },
@@ -439,7 +447,8 @@ serve(async (req: Request) => {
         const chatId = creds?.telegram_chat_id;
         if (botToken && chatId) {
           let propAddr = "";
-          const pid = propertyId || lead.interested_property_id;
+          // Operational: the application's own property (never the lead's interest tags)
+          const pid = propertyId;
           if (pid) {
             const { data: p } = await supabase
               .from("properties")

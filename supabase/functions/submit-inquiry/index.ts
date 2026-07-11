@@ -76,9 +76,9 @@ Deno.serve(async (req) => {
     // Find-or-create by phone, then email, within the org. A blind INSERT used
     // to be canceled by the noah dedup trigger (BEFORE INSERT → RETURN NULL),
     // which made .single() see zero rows and this endpoint 500 even though the
-    // lead existed. The interested_property_id write is mirrored into a
-    // lead_property_interests tag by trg_bridge_ipi_to_lpi (tags accumulate —
-    // asking about a second property ADDS a tag, it never replaces the first).
+    // lead existed. Property interest is recorded as a lead_property_interests
+    // TAG via the add_lead_property_tag RPC (tags accumulate — asking about a
+    // second property ADDS a tag, it never replaces the first).
     const findExisting = async () => {
       if (phone) {
         const { data } = await supabase
@@ -120,7 +120,6 @@ Deno.serve(async (req) => {
       if (!existing.full_name && fullName) update.full_name = fullName;
       if (!existing.email && email) update.email = email;
       if (!existing.phone && phone) update.phone = phone;
-      if (propertyId) update.interested_property_id = propertyId;
       // Only upgrade consent — never revoke on an email-only follow-up.
       if (withConsent) {
         update.sms_consent = true;
@@ -140,7 +139,6 @@ Deno.serve(async (req) => {
           phone: phone || null,
           source: "website",
           source_detail: detail,
-          interested_property_id: propertyId,
           status: "new",
           lead_score: 50,
           sms_consent: withConsent,
@@ -163,6 +161,16 @@ Deno.serve(async (req) => {
       } else {
         leadId = lead.id;
       }
+    }
+
+    // Property-interest tag (accumulates; bumps recency when asked again).
+    if (propertyId) {
+      const { error: tagError } = await supabase.rpc("add_lead_property_tag", {
+        p_lead_id: leadId,
+        p_property_id: propertyId,
+        p_source: "website_inquiry",
+      });
+      if (tagError) console.error("Property tag error:", tagError);
     }
 
     // TCPA evidence — only when a phone was given with consent.

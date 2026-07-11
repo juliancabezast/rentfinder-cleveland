@@ -509,9 +509,19 @@ async function upsertLead(
   const trimmedName = lead.name?.trim() || null;
 
   // ── Helper: update an existing lead (shared by all dup paths) ────
-  const updateExistingLead = async (existing: { id: string; full_name: string | null; source_detail: string | null; phone?: string | null; interested_property_id: string | null }, dupType: string) => {
-    // Fallback: if no property from parser, try extracting from existing source_detail
-    if (!propertyId && !existing.interested_property_id && existing.source_detail) {
+  const updateExistingLead = async (existing: { id: string; full_name: string | null; source_detail: string | null; phone?: string | null }, dupType: string) => {
+    // Tag state drives the fallback + "new interest" note below.
+    const { data: anyTag } = await supabase
+      .from("lead_property_interests")
+      .select("id")
+      .eq("lead_id", existing.id)
+      .limit(1)
+      .maybeSingle();
+    const hasTags = !!anyTag;
+
+    // Fallback: if no property from parser and the lead has no tags yet,
+    // try extracting from existing source_detail
+    if (!propertyId && !hasTags && existing.source_detail) {
       const sdAddress = existing.source_detail.match(
         /Property:\s*(\d+\s+[A-Za-z][\w\s]+?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Place|Pl|Court|Ct|Circle|Cir|Terrace|Ter|Parkway|Pkwy))/i
       );
@@ -521,8 +531,19 @@ async function upsertLead(
       }
     }
 
-    // Preserve prior interest as a note before the pointer moves (F29)
-    const propertyChanged = !!(propertyId && existing.interested_property_id && propertyId !== existing.interested_property_id);
+    // A genuinely NEW interest (property not yet tagged on a lead that already
+    // had interests) gets a note — tags accumulate, nothing is replaced (F29)
+    let propertyChanged = false;
+    if (propertyId && hasTags) {
+      const { data: sameTag } = await supabase
+        .from("lead_property_interests")
+        .select("id")
+        .eq("lead_id", existing.id)
+        .eq("property_id", propertyId)
+        .limit(1)
+        .maybeSingle();
+      propertyChanged = !sameTag;
+    }
 
     // Store clean property reference (don't concatenate — audit trail lives in lead_notes)
     const detail = lead.property
@@ -554,7 +575,6 @@ async function upsertLead(
         source_detail: detail,
         ...(lead.email && !(existing as any).email ? { email: lead.email } : {}),
         ...(phone && !(existing as any).phone ? { phone } : {}),
-        ...(propertyId ? { interested_property_id: propertyId } : {}),
         ...(needsNameFix ? {
           full_name: lead.name,
           first_name: lead.name!.split(" ")[0] || null,
@@ -567,6 +587,16 @@ async function upsertLead(
       console.error(`Esther: lead update failed for ${existing.id}: ${updateErr.message}`);
     } else {
       console.log(`Esther: updated existing lead ${existing.id} (${dupType}) — property=${propertyId || "NONE"}`);
+    }
+
+    // Accumulate the property-interest tag (bumps recency when asked again)
+    if (propertyId) {
+      const { error: tagErr } = await supabase.rpc("add_lead_property_tag", {
+        p_lead_id: existing.id,
+        p_property_id: propertyId,
+        p_source: "hemlane_email",
+      });
+      if (tagErr) console.error(`Esther: property tag failed for ${existing.id}: ${tagErr.message}`);
     }
 
     if (propertyChanged) {
@@ -589,7 +619,7 @@ async function upsertLead(
           details: {
             dup_type: dupType,
             lead_id: existing.id,
-            before: { full_name: existing.full_name, phone: existing.phone ?? null, email: (existing as any).email ?? null, interested_property_id: existing.interested_property_id },
+            before: { full_name: existing.full_name, phone: existing.phone ?? null, email: (existing as any).email ?? null },
             incoming: { name: trimmedName, phone, email: lead.email, property: lead.property },
             email_id: emailId,
           },
@@ -637,7 +667,7 @@ async function upsertLead(
   if (phone) {
     const { data: existing, error: dupErr } = await supabase
       .from("leads")
-      .select("id, full_name, source_detail, phone, email, interested_property_id")
+      .select("id, full_name, source_detail, phone, email")
       .eq("organization_id", organizationId)
       .eq("phone", phone)
       .maybeSingle();
@@ -647,7 +677,7 @@ async function upsertLead(
       console.warn(`Esther: multiple leads with phone ${phone}, using first`);
       const { data: first } = await supabase
         .from("leads")
-        .select("id, full_name, source_detail, phone, email, interested_property_id")
+        .select("id, full_name, source_detail, phone, email")
         .eq("organization_id", organizationId)
         .eq("phone", phone)
         .limit(1)
@@ -662,7 +692,7 @@ async function upsertLead(
   if (lead.email) {
     const { data: existing, error: dupErr } = await supabase
       .from("leads")
-      .select("id, full_name, source_detail, phone, email, interested_property_id")
+      .select("id, full_name, source_detail, phone, email")
       .eq("organization_id", organizationId)
       .eq("email", lead.email)
       .maybeSingle();
@@ -671,7 +701,7 @@ async function upsertLead(
       console.warn(`Esther: multiple leads with email ${lead.email}, using first`);
       const { data: first } = await supabase
         .from("leads")
-        .select("id, full_name, source_detail, phone, email, interested_property_id")
+        .select("id, full_name, source_detail, phone, email")
         .eq("organization_id", organizationId)
         .eq("email", lead.email)
         .limit(1)
@@ -696,7 +726,7 @@ async function upsertLead(
     // single-column equality missed leads whose latest interest moved on.
     const { data: recentSameProperty, error: dup3Err } = await supabase
       .from("leads")
-      .select("id, full_name, source_detail, phone, email, interested_property_id, lead_property_interests!inner(property_id)")
+      .select("id, full_name, source_detail, phone, email, lead_property_interests!inner(property_id)")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
       .eq("lead_property_interests.property_id", propertyId)
@@ -743,7 +773,7 @@ async function upsertLead(
     if (phoneDigits.length === 7) {
       const { data: phoneInName, error: dup4Err } = await supabase
         .from("leads")
-        .select("id, full_name, source_detail, phone, email, interested_property_id")
+        .select("id, full_name, source_detail, phone, email")
         .eq("organization_id", organizationId)
         .eq("source", "hemlane_email")
         .like("full_name", `%${phoneDigits.slice(0, 3)}%${phoneDigits.slice(3)}%`)
@@ -767,7 +797,7 @@ async function upsertLead(
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: shells, error: dup5Err } = await supabase
       .from("leads")
-      .select("id, full_name, source_detail, phone, email, interested_property_id, lead_property_interests!inner(property_id)")
+      .select("id, full_name, source_detail, phone, email, lead_property_interests!inner(property_id)")
       .eq("organization_id", organizationId)
       .eq("source", "hemlane_email")
       .eq("lead_property_interests.property_id", propertyId)
@@ -866,7 +896,6 @@ async function upsertLead(
       source_detail: propertyDetail,
       status: "new",
       hemlane_email_id: emailId,
-      interested_property_id: propertyId,
       sms_consent: false,
       call_consent: false,
     })
@@ -903,6 +932,17 @@ async function upsertLead(
 
   const leadId = newLead.id;
   const now = new Date().toISOString();
+
+  // Seed the property-interest tag for the brand-new lead
+  if (propertyId) {
+    const { error: tagErr } = await supabase.rpc("add_lead_property_tag", {
+      p_lead_id: leadId,
+      p_property_id: propertyId,
+      p_source: "hemlane_email",
+    });
+    if (tagErr) console.error(`Esther: property tag failed for new lead ${leadId}: ${tagErr.message}`);
+  }
+
   const listingPlatform = lead.listingSource || "Hemlane";
   const evidenceText = `Inbound listing inquiry via ${listingPlatform}${lead.property ? ` for ${lead.property}` : ""} — reply-only, not marketing consent. Received ${now}. Email ID: ${emailId}`;
 
@@ -1131,7 +1171,6 @@ async function createShellLead(
       source_detail: lead.property ? `Property: ${lead.property}${sourceVia} — NEEDS CONTACT INFO` : "NEEDS CONTACT INFO",
       status: "new",
       hemlane_email_id: emailId,
-      interested_property_id: propertyId,
       sms_consent: false,
       call_consent: false,
     })
@@ -1141,6 +1180,16 @@ async function createShellLead(
   if (error || !shell) {
     console.error(`Esther: shell lead insert failed: ${error?.message}`);
     return null;
+  }
+
+  // Seed the property-interest tag for the shell lead
+  if (propertyId) {
+    const { error: shellTagErr } = await supabase.rpc("add_lead_property_tag", {
+      p_lead_id: shell.id,
+      p_property_id: propertyId,
+      p_source: "hemlane_email",
+    });
+    if (shellTagErr) console.error(`Esther: property tag failed for shell ${shell.id}: ${shellTagErr.message}`);
   }
 
   const noteParts = [
@@ -1934,7 +1983,7 @@ serve(async (req: Request) => {
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
           const { data: recentCandidates } = await supabase
             .from("leads")
-            .select("id, full_name, source_detail, phone, email, interested_property_id, lead_property_interests!inner(property_id)")
+            .select("id, full_name, source_detail, phone, email, lead_property_interests!inner(property_id)")
             .eq("organization_id", organizationId)
             .eq("source", "hemlane_email")
             .eq("lead_property_interests.property_id", propertyId)

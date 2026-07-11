@@ -2259,68 +2259,6 @@ export type Database = {
           },
         ]
       }
-      lead_properties: {
-        Row: {
-          created_at: string | null
-          id: string
-          lead_id: string
-          listing_source: string | null
-          notes: string | null
-          organization_id: string
-          property_id: string
-          source: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          lead_id: string
-          listing_source?: string | null
-          notes?: string | null
-          organization_id: string
-          property_id: string
-          source?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          lead_id?: string
-          listing_source?: string | null
-          notes?: string | null
-          organization_id?: string
-          property_id?: string
-          source?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lead_properties_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_properties_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_properties_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_properties_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "property_performance"
-            referencedColumns: ["property_id"]
-          },
-        ]
-      }
       lead_property_interests: {
         Row: {
           created_at: string
@@ -2499,7 +2437,6 @@ export type Database = {
           id: string
           identity_verified: boolean | null
           intake_preferences: Json | null
-          interested_property_id: string | null
           interested_zip_codes: string[] | null
           is_demo: boolean | null
           is_human_controlled: boolean | null
@@ -2562,7 +2499,6 @@ export type Database = {
           id?: string
           identity_verified?: boolean | null
           intake_preferences?: Json | null
-          interested_property_id?: string | null
           interested_zip_codes?: string[] | null
           is_demo?: boolean | null
           is_human_controlled?: boolean | null
@@ -2625,7 +2561,6 @@ export type Database = {
           id?: string
           identity_verified?: boolean | null
           intake_preferences?: Json | null
-          interested_property_id?: string | null
           interested_zip_codes?: string[] | null
           is_demo?: boolean | null
           is_human_controlled?: boolean | null
@@ -2681,20 +2616,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_interested_property_id_fkey"
-            columns: ["interested_property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_interested_property_id_fkey"
-            columns: ["interested_property_id"]
-            isOneToOne: false
-            referencedRelation: "property_performance"
-            referencedColumns: ["property_id"]
           },
           {
             foreignKeyName: "leads_organization_id_fkey"

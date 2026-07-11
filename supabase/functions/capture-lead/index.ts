@@ -55,8 +55,8 @@ Deno.serve(async (req) => {
     // by the noah dedup trigger (BEFORE INSERT → RETURN NULL), which made
     // .single() see zero rows and this endpoint 500 even though the lead
     // existed — so resolve the lead explicitly instead.
-    // The interested_property_id write is mirrored into a lead_property_interests
-    // tag by trg_bridge_ipi_to_lpi (tags accumulate — a repeat inquiry about a
+    // Property interest is recorded as a lead_property_interests TAG via the
+    // add_lead_property_tag RPC (tags accumulate — a repeat inquiry about a
     // second property ADDS a tag, it never replaces the first).
     let leadId: string
 
@@ -80,7 +80,6 @@ Deno.serve(async (req) => {
         sms_consent_at: now,
       }
       if (!existing.full_name && body.full_name) update.full_name = body.full_name
-      if (propertyId) update.interested_property_id = propertyId
       const { error: updateError } = await supabase.from('leads').update(update).eq('id', leadId)
       if (updateError) console.error('Lead enrichment error:', updateError)
     } else {
@@ -92,7 +91,6 @@ Deno.serve(async (req) => {
           phone: body.phone,
           source: body.source || 'website',
           source_detail: body.source_detail || 'Public listing page',
-          interested_property_id: propertyId,
           call_consent: true,
           call_consent_at: now,
           sms_consent: true,
@@ -125,6 +123,16 @@ Deno.serve(async (req) => {
       } else {
         leadId = leadData.id
       }
+    }
+
+    // Record the property-interest tag (accumulates; bumps recency on repeat)
+    if (propertyId) {
+      const { error: tagError } = await supabase.rpc('add_lead_property_tag', {
+        p_lead_id: leadId,
+        p_property_id: propertyId,
+        p_source: 'website',
+      })
+      if (tagError) console.error('Property tag error:', tagError)
     }
 
     // Log consent for automated calls with IP address (TCPA compliance)
