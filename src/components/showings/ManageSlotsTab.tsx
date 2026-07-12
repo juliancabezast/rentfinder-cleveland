@@ -31,7 +31,7 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { format, addDays, parseISO, startOfDay } from "date-fns";
+import { format, addDays, parseISO, startOfDay, startOfWeek } from "date-fns";
 
 // ── The single "listable" definition: a property whose slots may be shown /
 // opened / booked. Changing a property OFF this set makes its slots vanish
@@ -72,9 +72,17 @@ interface CancelledShowing {
   lead_id: string;
 }
 
+interface BookingInfo {
+  showingId: string | null;
+  leadName: string;
+  address: string;
+  status: string | null;
+}
+
 interface TimeSlotGroup {
   time: string;
   properties: SlotProperty[]; // listable, unbooked, enabled — the "open" pool
+  bookings: BookingInfo[];    // real bookings at this time (lead + property)
   bookedCount: number;
   cancelledShowings: CancelledShowing[];
 }
@@ -99,17 +107,23 @@ function timeToMinutes(t: string) {
   return h * 60 + m;
 }
 
+// First name only (cells are tiny; full name lives in the popover)
+function firstName(name: string) {
+  return (name || "").trim().split(/\s+/)[0] || name;
+}
+
 // City open/close popover (checkbox list). Extracted to keep hooks stable.
 const CityPicker: React.FC<{
   cities: string[];
   counts: Map<string, number>;
   busy: boolean;
   defaultAll?: boolean;
+  initialSelected?: string[];
   actionLabel: string;
   onConfirm: (cities: string[]) => void;
-}> = ({ cities, counts, busy, defaultAll, actionLabel, onConfirm }) => {
+}> = ({ cities, counts, busy, defaultAll, initialSelected, actionLabel, onConfirm }) => {
   const [selected, setSelected] = React.useState<Set<string>>(
-    () => new Set(defaultAll ? cities : []),
+    () => new Set(initialSelected ?? (defaultAll ? cities : [])),
   );
   const allChecked = selected.size === cities.length && cities.length > 0;
   return (
@@ -223,10 +237,10 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   }, [orgId, weekOffset]);
 
   const jumpToDate = (dateStr: string) => {
-    const target = parseISO(dateStr);
-    const today = startOfDay(new Date());
-    const diffDays = Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    setWeekOffset(Math.floor(diffDays / 7));
+    const targetMon = startOfWeek(parseISO(dateStr), { weekStartsOn: 1 });
+    const todayMon = startOfWeek(startOfDay(new Date()), { weekStartsOn: 1 });
+    const diffDays = Math.round((targetMon.getTime() - todayMon.getTime()) / (1000 * 60 * 60 * 24));
+    setWeekOffset(Math.round(diffDays / 7));
   };
 
   // ── Listable properties grouped by city (the "open a city" pool) ────
@@ -254,10 +268,10 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     })();
   }, [orgId]);
 
-  // ── Week dates ──────────────────────────────────────────────────────
+  // ── Week dates (weeks start on MONDAY) ──────────────────────────────
   const weekDates = useMemo(() => {
-    const start = addDays(startOfDay(new Date()), weekOffset * 7);
-    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    const monday = addDays(startOfWeek(startOfDay(new Date()), { weekStartsOn: 1 }), weekOffset * 7);
+    return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   }, [weekOffset]);
   const weekStart = weekDates[0];
   const weekEnd = weekDates[6];
@@ -390,10 +404,19 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       if (timeMap) {
         timeMap.forEach((props, time) => {
           const openPool = props.filter((p) => p.is_enabled && !p.is_booked);
+          const bookings: BookingInfo[] = props
+            .filter((p) => p.is_booked && p.lead_name)
+            .map((p) => ({
+              showingId: p.booked_showing_id,
+              leadName: p.lead_name!,
+              address: p.property_address,
+              status: p.showing_status,
+            }));
           timeSlots.set(time, {
             time,
             properties: openPool,
-            bookedCount: props.filter((p) => p.is_booked && p.lead_name).length,
+            bookings,
+            bookedCount: bookings.length,
             cancelledShowings: dayCancelled?.get(time) || [],
           });
         });
@@ -401,7 +424,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       // Fold cancelled-only times (no slot row) so they still surface
       dayCancelled?.forEach((cs, time) => {
         if (!timeSlots.has(time)) {
-          timeSlots.set(time, { time, properties: [], bookedCount: 0, cancelledShowings: cs });
+          timeSlots.set(time, { time, properties: [], bookings: [], bookedCount: 0, cancelledShowings: cs });
         }
       });
       return { date: dateStr, timeSlots };
@@ -524,7 +547,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     const skipped = LADDER.length - times.length;
     toast({
       title: "Day opened",
-      description: `${format(parseISO(date), "EEE MMM d")} — ${times.length} times × ${propIds.length} homes${skipped > 0 ? ` (${skipped} skipped: booked/past)` : ""}.`,
+      description: `${format(parseISO(date), "EEE MMM d")} — ${times.length} times × ${propIds.length} homes.${skipped > 0 ? ` (${skipped} already-booked/past time${skipped === 1 ? "" : "s"} left untouched.)` : ""}`,
     });
     await fetchSlots();
     setBusyKey(null);
@@ -677,7 +700,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setBusyKey(null); return; }
     }
     const cellCount = dates.length * times.length - skipped;
-    toast({ title: "Range opened", description: `${cellCount} time slots × ${propIds.length} homes${skipped > 0 ? ` (${skipped} skipped: booked/past)` : ""}.` });
+    toast({ title: "Range opened", description: `${cellCount} time slots × ${propIds.length} homes.${skipped > 0 ? ` (${skipped} already-booked/past time${skipped === 1 ? "" : "s"} left untouched.)` : ""}` });
     await fetchSlots();
     setBusyKey(null);
     setRangeSel(null);
@@ -949,10 +972,17 @@ const SlotCell: React.FC<{
   const isBooked = bookedCount > 0;
   const isOpen = openCount > 0;
 
+  const bookings = ts?.bookings || [];
+
   // Past cells are read-only
   if (past) {
-    if (isBooked) return <div className="rounded-md border bg-green-50 border-green-200 text-green-700 px-2 py-1.5 text-[10px] font-semibold">Done</div>;
-    if (hasCancelled) return <div className="rounded-md border bg-orange-50 border-orange-200 text-orange-500 px-2 py-1.5 text-[10px] line-through">{cancelled[0].lead_name}</div>;
+    if (isBooked) return (
+      <div className="rounded-md border bg-green-50 border-green-200 text-green-700 px-2 py-1 text-[10px]">
+        <div className="font-bold truncate">{firstName(bookings[0]?.leadName || "Done")}</div>
+        {bookings[0]?.address && <div className="opacity-70 truncate">{bookings[0].address}</div>}
+      </div>
+    );
+    if (hasCancelled) return <div className="rounded-md border bg-orange-50 border-orange-200 text-orange-500 px-2 py-1.5 text-[10px] line-through">{firstName(cancelled[0].lead_name)}</div>;
     return <span className="text-slate-300">—</span>;
   }
 
@@ -980,10 +1010,13 @@ const SlotCell: React.FC<{
             <Loader2 className="h-3 w-3 mx-auto animate-spin" />
           ) : isBooked ? (
             <>
-              <div className="font-bold truncate">{bookedCount > 1 ? `${bookedCount} booked` : "Booked"}</div>
+              <div className="font-bold truncate">{firstName(bookings[0]?.leadName || "Booked")}</div>
+              <div className="text-[10px] opacity-70 truncate">
+                {bookedCount > 1 ? `+${bookedCount - 1} more · ${bookings[0]?.address || ""}` : (bookings[0]?.address || "Booked")}
+              </div>
             </>
           ) : hasCancelled ? (
-            <div className="font-bold truncate line-through">{cancelled[0].lead_name}</div>
+            <div className="font-bold truncate line-through">{firstName(cancelled[0].lead_name)}</div>
           ) : isOpen ? (
             <>
               <div className="font-bold">Open</div>
@@ -1006,9 +1039,28 @@ const SlotCell: React.FC<{
             </Badge>
           </div>
 
-          {/* Booked showings — view/cancel (lead names fetched on open) */}
-          {isBooked && onShowingClick && (
-            <BookedFetcher orgDate={day.date} time={time} onShowingClick={onShowingClick} />
+          {/* Booked showings — view/cancel (lead + property from the grid) */}
+          {isBooked && (
+            <div className="space-y-1.5">
+              {bookings.map((b, i) => (
+                <button
+                  key={b.showingId || i}
+                  onClick={() => b.showingId && onShowingClick?.(b.showingId)}
+                  disabled={!b.showingId || !onShowingClick}
+                  className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors text-left disabled:cursor-default"
+                >
+                  <Home className="h-3 w-3 shrink-0 text-blue-500" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{b.address || "Booked"}</div>
+                  </div>
+                  <span className="flex items-center gap-1 text-blue-700 shrink-0">
+                    <User className="h-3 w-3" />
+                    <span className="text-[10px] font-medium truncate max-w-[90px]">{b.leadName}</span>
+                    {b.showingId && onShowingClick && <Eye className="h-3 w-3" />}
+                  </span>
+                </button>
+              ))}
+            </div>
           )}
 
           {/* Cancelled / no-show / rescheduled */}
@@ -1039,18 +1091,40 @@ const SlotCell: React.FC<{
             </p>
           )}
 
-          {/* THE single control: Open (with cities) or Close */}
+          {/* Controls: Open (with cities) / add more cities / Close */}
           {isOpen ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
-              disabled={cellBusy}
-              onClick={onClose}
-            >
-              {cellBusy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <X className="h-3 w-3 mr-1" />}
-              Close this time
-            </Button>
+            <>
+              {/* Add MORE cities to an already-open time (same day can serve
+                  several cities). Defaults to the cities not yet open here. */}
+              {(() => {
+                const openCities = new Set(ts!.properties.map((p) => p.property_city).filter(Boolean));
+                const notOpen = cityNames.filter((c) => !openCities.has(c));
+                if (notOpen.length === 0) return null;
+                return (
+                  <div className="pt-1 border-t">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-1.5">Also open for…</p>
+                    <CityPicker
+                      cities={cityNames}
+                      counts={cityCounts}
+                      busy={cellBusy}
+                      initialSelected={notOpen}
+                      actionLabel="Add cities"
+                      onConfirm={onOpen}
+                    />
+                  </div>
+                );
+              })()}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                disabled={cellBusy}
+                onClick={onClose}
+              >
+                {cellBusy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <X className="h-3 w-3 mr-1" />}
+                Close this time
+              </Button>
+            </>
           ) : !isBooked ? (
             <div className="pt-1 border-t">
               <p className="text-[10px] text-muted-foreground font-medium mb-1.5">Open this time for…</p>
@@ -1070,59 +1144,3 @@ const SlotCell: React.FC<{
   );
 };
 
-// Fetch the booked showing(s) for this exact date+time on demand (booked rows
-// are excluded from the cell's open pool, so their lead names load here).
-const BookedFetcher: React.FC<{ orgDate: string; time: string; onShowingClick: (id: string) => void }> = ({ orgDate, time, onShowingClick }) => {
-  const { userRecord } = useAuth();
-  const orgId = userRecord?.organization_id;
-  const [rows, setRows] = useState<{ id: string; lead: string; address: string }[] | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!orgId) return;
-      const { data } = await supabase
-        .from("showing_available_slots")
-        .select("booked_showing_id, showings:booked_showing_id(id, status, leads(full_name), properties(address))")
-        .eq("organization_id", orgId)
-        .eq("slot_date", orgDate)
-        .eq("slot_time", time)
-        .eq("is_booked", true)
-        .not("booked_showing_id", "is", null);
-      if (cancelled) return;
-      const seen = new Set<string>();
-      const out: { id: string; lead: string; address: string }[] = [];
-      (data || []).forEach((r: any) => {
-        const sh = r.showings;
-        if (sh && !seen.has(sh.id)) {
-          seen.add(sh.id);
-          out.push({ id: sh.id, lead: sh.leads?.full_name || "Booked", address: sh.properties?.address || "" });
-        }
-      });
-      setRows(out);
-    })();
-    return () => { cancelled = true; };
-  }, [orgId, orgDate, time]);
-
-  if (rows === null) return <div className="flex justify-center py-1"><Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /></div>;
-  return (
-    <div className="space-y-1.5">
-      {rows.map((r) => (
-        <button
-          key={r.id}
-          onClick={() => onShowingClick(r.id)}
-          className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors text-left"
-        >
-          <Home className="h-3 w-3 shrink-0 text-blue-500" />
-          <div className="flex-1 min-w-0">
-            <div className="font-medium truncate">{r.address}</div>
-          </div>
-          <span className="flex items-center gap-1 text-blue-700 shrink-0">
-            <User className="h-3 w-3" />
-            <span className="text-[10px] font-medium truncate max-w-[80px]">{r.lead}</span>
-            <Eye className="h-3 w-3" />
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-};
