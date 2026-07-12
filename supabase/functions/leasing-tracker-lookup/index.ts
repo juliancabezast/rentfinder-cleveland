@@ -195,9 +195,14 @@ serve(async (req) => {
     // properties and groups them by city.
     if (payload.mode === "open_agenda") {
       const today = orgToday();
-      const catalogIds = catalog.map((p) => p.id);
+      // Only advertise open slots for LISTABLE homes (available / coming_soon).
+      // A rented/in_leasing_process home may still be in the tracker catalog,
+      // but its slots must not be publicly bookable (matches admin + RLS gate).
+      const LISTABLE = new Set(["available", "coming_soon"]);
+      const listable = catalog.filter((p) => LISTABLE.has(String(p.status)));
+      const catalogIds = listable.map((p) => p.id);
       const cityById = new Map(
-        catalog.map((p) => [p.id, String(p.city || "").trim()]),
+        listable.map((p) => [p.id, String(p.city || "").trim()]),
       );
       if (catalogIds.length === 0) return json({ cities: [], total_slots: 0 });
 
@@ -365,6 +370,12 @@ serve(async (req) => {
     const units = catalog.filter((p) => addrKey(p.address) === groupKey);
     if (units.length === 0) return json({ matches: [] });
     const unitIds = units.map((u) => u.id);
+    // Open-agenda counts must only reflect LISTABLE units — a rented unit in
+    // this building may still have stale enabled slots that must not be
+    // advertised as bookable (matches admin + RLS gate). Leads/showings
+    // aggregates below intentionally stay across ALL units (owner tracking).
+    const listableSet = new Set(["available", "coming_soon"]);
+    const slotUnitIds = units.filter((u) => listableSet.has(String(u.status))).map((u) => u.id);
 
     // Leads across all units (de-identified, applicants excluded). Interest
     // tags live in lead_property_interests; a lead tagged on several units of
@@ -486,22 +497,21 @@ serve(async (req) => {
     // select() must come before filters in postgrest-js.
     const slotQuery = (sel: string, opts?: { count: "exact"; head: boolean }) =>
       supabase.from("showing_available_slots").select(sel, opts)
-        .in("property_id", unitIds).eq("is_enabled", true).eq("is_booked", false);
-    const { count: openUpcomingCount } = await slotQuery("id", {
-      count: "exact", head: true,
-    }).gte("slot_date", today);
-    const { count: openPastCount } = await slotQuery("id", {
-      count: "exact", head: true,
-    }).lt("slot_date", today);
-    const { data: upcomingSlots } = await slotQuery(
-      "id, slot_date, slot_time, duration_minutes",
-    )
-      .gte("slot_date", today)
-      .order("slot_date", { ascending: true })
-      .order("slot_time", { ascending: true })
-      .limit(30);
-    const openUpcoming = openUpcomingCount || 0;
-    const openPast = openPastCount || 0;
+        .in("property_id", slotUnitIds).eq("is_enabled", true).eq("is_booked", false);
+    let openUpcoming = 0, openPast = 0;
+    let upcomingSlots: any[] | null = [];
+    if (slotUnitIds.length > 0) {
+      const { count: openUpcomingCount } = await slotQuery("id", { count: "exact", head: true }).gte("slot_date", today);
+      const { count: openPastCount } = await slotQuery("id", { count: "exact", head: true }).lt("slot_date", today);
+      const res = await slotQuery("id, slot_date, slot_time, duration_minutes")
+        .gte("slot_date", today)
+        .order("slot_date", { ascending: true })
+        .order("slot_time", { ascending: true })
+        .limit(30);
+      upcomingSlots = res.data;
+      openUpcoming = openUpcomingCount || 0;
+      openPast = openPastCount || 0;
+    }
 
     // Org-wide first-response speed (median minutes to first email reply,
     // last 120 days) — same responder serves every property. Soft-fails to

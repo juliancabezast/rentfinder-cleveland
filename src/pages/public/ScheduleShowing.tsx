@@ -653,15 +653,26 @@ const ScheduleShowing: React.FC = () => {
       const today = format(new Date(), "yyyy-MM-dd");
       const maxDate = format(addDays(new Date(), 30), "yyyy-MM-dd");
 
-      const { data: slotData } = await supabase
-        .from("showing_available_slots")
-        .select("property_id, slot_date, slot_time")
-        .eq("is_enabled", true)
-        .eq("is_booked", false)
-        .gte("slot_date", today)
-        .lte("slot_date", maxDate);
+      // Paginated: a busy 30-day window across many homes exceeds PostgREST's
+      // 1000-row cap, which would silently hide genuinely-open days from renters.
+      const PAGE = 1000;
+      const slotData: { property_id: string; slot_date: string; slot_time: string }[] = [];
+      for (let from = 0; from < 30000; from += PAGE) {
+        const { data: page } = await supabase
+          .from("showing_available_slots")
+          .select("property_id, slot_date, slot_time")
+          .eq("is_enabled", true)
+          .eq("is_booked", false)
+          .gte("slot_date", today)
+          .lte("slot_date", maxDate)
+          .order("slot_date")
+          .order("slot_time")
+          .range(from, from + PAGE - 1);
+        slotData.push(...((page as any[]) || []));
+        if (!page || page.length < PAGE) break;
+      }
 
-      if (!slotData || slotData.length === 0) {
+      if (slotData.length === 0) {
         setRawProperties([]);
         setRawSlots([]);
         setPropertiesLoading(false);
@@ -676,7 +687,7 @@ const ScheduleShowing: React.FC = () => {
         .from("properties")
         .select("*")
         .in("id", uniqueIds)
-        .eq("status", "available")
+        .in("status", ["available", "coming_soon"]) // listable = bookable
         .order("address");
 
       setRawProperties((propData as Property[] | null) || []);
@@ -917,9 +928,10 @@ const ScheduleShowing: React.FC = () => {
         .eq("id", effectivePropertyId)
         .single();
 
-      // Inactive properties are hidden from every public surface — treat a
-      // direct link to one exactly like a property that no longer exists.
-      if (error || !data || data.status === "inactive") {
+      // Only listable properties (available / coming_soon) are bookable.
+      // A direct link to a rented/inactive/in_leasing_process home is treated
+      // exactly like a property that no longer exists (matches admin + RLS gate).
+      if (error || !data || !["available", "coming_soon"].includes(data.status)) {
         setPropertyError("Property not found or no longer available.");
       } else {
         setProperty(data);

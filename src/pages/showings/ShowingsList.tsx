@@ -127,7 +127,6 @@ const ShowingsList: React.FC = () => {
 
   // Dialog states
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
-  const [enableSlotsOpen, setEnableSlotsOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedShowingForReport, setSelectedShowingForReport] = useState<{
     id: string;
@@ -519,15 +518,6 @@ const ShowingsList: React.FC = () => {
                 <ExternalLink className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Leasing Tracker</span>
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEnableSlotsOpen(true)}
-                className="h-8"
-              >
-                <Plus className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Enable Slots</span>
-              </Button>
             </>
           )}
           <Button
@@ -561,8 +551,6 @@ const ShowingsList: React.FC = () => {
 
         <TabsContent value="slots" className="space-y-6">
           <ManageSlotsTab
-            externalDialogOpen={enableSlotsOpen}
-            onExternalDialogHandled={() => setEnableSlotsOpen(false)}
             onTotalsChange={setSlotTotals}
             onShowingClick={(showingId) => {
               setSelectedShowingId(showingId);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { EnableSlotsDialog, EditSlotData } from "./EnableSlotsDialog";
 import {
   CalendarDays,
   ChevronLeft,
@@ -20,12 +19,31 @@ import {
   Loader2,
   User,
   Home,
-  Ban,
   Eye,
   EyeOff,
   Check,
+  X,
 } from "lucide-react";
 import { format, addDays, parseISO, startOfDay } from "date-fns";
+
+// ── The single "listable" definition: a property whose slots may be shown /
+// opened / booked. Changing a property OFF this set makes its slots vanish
+// everywhere automatically (read-time gate, no cleanup needed). ────────────
+const LISTABLE_STATUSES = ["available", "coming_soon"];
+
+// Standard half-hour ladder the grid ALWAYS renders (even on an empty week),
+// so every future cell is clickable — no "Enable Slots" bootstrap needed.
+const LADDER_START_H = 9;
+const LADDER_END_H = 18; // exclusive of the final :30 past this
+function buildLadder(): string[] {
+  const out: string[] = [];
+  for (let h = LADDER_START_H; h <= LADDER_END_H; h++) {
+    out.push(`${String(h).padStart(2, "0")}:00:00`);
+    if (h < LADDER_END_H) out.push(`${String(h).padStart(2, "0")}:30:00`);
+  }
+  return out;
+}
+const LADDER = buildLadder();
 
 // ── Types ────────────────────────────────────────────────────────────
 interface SlotProperty {
@@ -49,17 +67,14 @@ interface CancelledShowing {
 
 interface TimeSlotGroup {
   time: string;
-  properties: SlotProperty[];
-  totalCount: number;
+  properties: SlotProperty[]; // listable, unbooked, enabled — the "open" pool
   bookedCount: number;
-  isBlocked: boolean;
   cancelledShowings: CancelledShowing[];
 }
 
 interface DayData {
   date: string;
-  timeSlots: TimeSlotGroup[];
-  hasSlots: boolean;
+  timeSlots: Map<string, TimeSlotGroup>; // time -> group
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -71,16 +86,38 @@ function formatTime(t: string) {
   return `${display}:${m} ${ampm}`;
 }
 
-// Quick-enable popover content (extracted to avoid hooks-in-callback)
-const QuickEnableCities: React.FC<{
+// Minutes-since-midnight for a "HH:MM[:SS]" time
+function timeToMinutes(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+// City open/close popover (checkbox list). Extracted to keep hooks stable.
+const CityPicker: React.FC<{
   cities: string[];
   counts: Map<string, number>;
-  enabling: boolean;
-  onEnable: (cities: string[]) => void;
-}> = ({ cities, counts, enabling, onEnable }) => {
-  const [selected, setSelected] = React.useState<Set<string>>(() => new Set());
+  busy: boolean;
+  defaultAll?: boolean;
+  actionLabel: string;
+  onConfirm: (cities: string[]) => void;
+}> = ({ cities, counts, busy, defaultAll, actionLabel, onConfirm }) => {
+  const [selected, setSelected] = React.useState<Set<string>>(
+    () => new Set(defaultAll ? cities : []),
+  );
+  const allChecked = selected.size === cities.length && cities.length > 0;
   return (
     <div className="space-y-1.5">
+      {cities.length > 1 && (
+        <label className="flex items-center gap-2 text-xs cursor-pointer font-medium pb-1 border-b">
+          <input
+            type="checkbox"
+            checked={allChecked}
+            onChange={(e) => setSelected(e.target.checked ? new Set(cities) : new Set())}
+            className="rounded border-slate-300"
+          />
+          All cities
+        </label>
+      )}
       {cities.map((city) => (
         <label key={city} className="flex items-center gap-2 text-xs cursor-pointer">
           <input
@@ -93,33 +130,29 @@ const QuickEnableCities: React.FC<{
             }}
             className="rounded border-slate-300"
           />
-          {city} ({counts.get(city) || 0})
+          {city} <span className="text-muted-foreground">({counts.get(city) || 0})</span>
         </label>
       ))}
       <Button
         size="sm"
         className="w-full h-7 text-xs bg-[#4F46E5] hover:bg-[#4F46E5]/90 mt-1"
-        disabled={selected.size === 0 || enabling}
-        onClick={() => onEnable([...selected])}
+        disabled={selected.size === 0 || busy}
+        onClick={() => onConfirm([...selected])}
       >
-        {enabling ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-        Enable
+        {busy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+        {actionLabel}
       </Button>
     </div>
   );
 };
 
 interface ManageSlotsTabProps {
-  externalDialogOpen?: boolean;
-  onExternalDialogHandled?: () => void;
   onTotalsChange?: (totals: { available: number; booked: number }) => void;
   onShowingClick?: (showingId: string) => void;
 }
 
 // ── Component ────────────────────────────────────────────────────────
 export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
-  externalDialogOpen,
-  onExternalDialogHandled,
   onTotalsChange,
   onShowingClick,
 }) => {
@@ -129,49 +162,53 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const [weekOffset, setWeekOffset] = useState(0);
   const [slotData, setSlotData] = useState<DayData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editData, setEditData] = useState<EditSlotData | null>(null);
-  const [prefilledDate, setPrefilledDate] = useState<Date | undefined>();
-  const [blockingSlot, setBlockingSlot] = useState<string | null>(null);
-
-  const [quickEnabling, setQuickEnabling] = useState(false);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [hideEmptyDays, setHideEmptyDays] = useState(false);
-
-  // Missing report dates
   const [missingReportDates, setMissingReportDates] = useState<string[]>([]);
+
+  // A ticking "now" so the red line moves without a full refetch.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const orgId = userRecord?.organization_id;
 
-  // Fetch showings with missing reports (past showings that were completed or happened but have no agent_report)
+  // Today's date string in Cleveland tz (for now-line + past checks)
+  const todayStr = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const nowMinutes = (() => {
+    const parts = now.toLocaleString("en-GB", {
+      timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false,
+    }).split(":").map(Number);
+    return parts[0] * 60 + parts[1];
+  })();
+
+  // ── Missing report dates (unchanged behaviour) ──────────────────────
   useEffect(() => {
     if (!orgId) return;
     (async () => {
-      // Past showings (scheduled before now) that are still scheduled/confirmed (happened but no report)
-      // OR completed/no_show with no agent_report
-      const now = new Date().toISOString();
+      const nowIso = new Date().toISOString();
       const { data } = await supabase
         .from("showings")
         .select("scheduled_at, status, agent_report")
         .eq("organization_id", orgId)
-        .lt("scheduled_at", now)
+        .lt("scheduled_at", nowIso)
         .in("status", ["scheduled", "confirmed", "completed", "no_show"])
         .is("agent_report", null)
         .order("scheduled_at", { ascending: true });
-
       if (data && data.length > 0) {
         const dates = new Set<string>();
         for (const s of data) {
-          const d = new Date(s.scheduled_at);
-          dates.add(d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }));
+          dates.add(new Date(s.scheduled_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" }));
         }
         setMissingReportDates([...dates].sort());
       } else {
         setMissingReportDates([]);
       }
     })();
-  }, [orgId, weekOffset]); // refetch when week changes (in case reports are submitted)
+  }, [orgId, weekOffset]);
 
-  // Navigate to the week containing a specific date
   const jumpToDate = (dateStr: string) => {
     const target = parseISO(dateStr);
     const today = startOfDay(new Date());
@@ -179,72 +216,40 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     setWeekOffset(Math.floor(diffDays / 7));
   };
 
-  // Fetch org properties grouped by city (for quick-enable)
-  const [citiesWithProps, setCitiesWithProps] = useState<Map<string, { id: string; address: string }[]>>(new Map());
+  // ── Listable properties grouped by city (the "open a city" pool) ────
+  const [citiesWithProps, setCitiesWithProps] = useState<Map<string, string[]>>(new Map());
+  const cityNames = useMemo(() => [...citiesWithProps.keys()].sort(), [citiesWithProps]);
+  const cityCounts = useMemo(
+    () => new Map([...citiesWithProps.entries()].map(([c, ids]) => [c, ids.length])),
+    [citiesWithProps],
+  );
   useEffect(() => {
     if (!orgId) return;
     (async () => {
       const { data } = await supabase
         .from("properties")
-        .select("id, address, city")
+        .select("id, city, status")
         .eq("organization_id", orgId)
-        .not("status", "in", '("rented","inactive")');
-      if (data) {
-        const map = new Map<string, { id: string; address: string }[]>();
-        for (const p of data as any[]) {
-          const city = p.city || "Other";
-          if (!map.has(city)) map.set(city, []);
-          map.get(city)!.push({ id: p.id, address: p.address });
-        }
-        setCitiesWithProps(map);
+        .in("status", LISTABLE_STATUSES);
+      const map = new Map<string, string[]>();
+      for (const p of (data || []) as { id: string; city: string | null }[]) {
+        const city = p.city || "Other";
+        if (!map.has(city)) map.set(city, []);
+        map.get(city)!.push(p.id);
       }
+      setCitiesWithProps(map);
     })();
   }, [orgId]);
 
-  // Quick-enable a single slot (date+time) for selected cities
-  const handleQuickEnable = async (date: string, time: string, cities: string[]) => {
-    if (!orgId || cities.length === 0) return;
-    setQuickEnabling(true);
-    const props = cities.flatMap((c) => citiesWithProps.get(c) || []);
-    const rows = props.map((p) => ({
-      organization_id: orgId,
-      property_id: p.id,
-      slot_date: date,
-      slot_time: time,
-      is_enabled: true,
-    }));
-    const { error } = await supabase
-      .from("showing_available_slots")
-      .upsert(rows, { onConflict: "organization_id,property_id,slot_date,slot_time" });
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Enabled", description: `${formatTime(time)} on ${format(parseISO(date), "MMM d")} — ${props.length} properties.` });
-      fetchSlots();
-    }
-    setQuickEnabling(false);
-  };
-
-  // Open dialog when triggered from parent
-  useEffect(() => {
-    if (externalDialogOpen) {
-      setEditData(null);
-      setPrefilledDate(undefined);
-      setDialogOpen(true);
-      onExternalDialogHandled?.();
-    }
-  }, [externalDialogOpen]);
-
-  // Week dates (7 days starting from today + weekOffset*7)
+  // ── Week dates ──────────────────────────────────────────────────────
   const weekDates = useMemo(() => {
     const start = addDays(startOfDay(new Date()), weekOffset * 7);
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [weekOffset]);
-
   const weekStart = weekDates[0];
   const weekEnd = weekDates[6];
 
-  // ── Fetch slots for current week with per-property detail ────────
+  // ── Fetch slots for the visible week (status-gated) ─────────────────
   const fetchSlots = useCallback(async () => {
     if (!orgId) return;
     setLoading(true);
@@ -252,26 +257,43 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     const startStr = format(weekDates[0], "yyyy-MM-dd");
     const endStr = format(weekDates[6], "yyyy-MM-dd");
 
-    // Query slots with property info and booked showing + lead name
-    const { data, error } = await supabase
-      .from("showing_available_slots")
-      .select(`
-        id, slot_date, slot_time, is_booked, is_enabled, property_id,
-        properties(address, city),
-        booked_showing_id
-      `)
-      .eq("organization_id", orgId)
-      .gte("slot_date", startStr)
-      .lte("slot_date", endStr)
-      .order("slot_date")
-      .order("slot_time");
+    // Slots + property status. Enabled/unbooked slots are only "open" when the
+    // property is still listable; booked slots always render (history).
+    // PAGINATED: a full-city "Open all day" writes 56×19 ≈ 1,064 rows for ONE
+    // day, so a multi-day week easily exceeds PostgREST's 1000-row cap. Without
+    // this loop, later days silently drop → cells mispaint and a dropped booked
+    // cell would offer the Open action (double-booking). Page until short.
+    const PAGE = 1000;
+    const data: any[] = [];
+    for (let from = 0; from < 20000; from += PAGE) {
+      const { data: page, error } = await supabase
+        .from("showing_available_slots")
+        .select(`
+          id, slot_date, slot_time, is_booked, is_enabled, property_id,
+          properties(address, city, status),
+          booked_showing_id
+        `)
+        .eq("organization_id", orgId)
+        .gte("slot_date", startStr)
+        .lte("slot_date", endStr)
+        .order("slot_date")
+        .order("slot_time")
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error("Error fetching slots:", error);
+        toast({ title: "Error", description: "Failed to load slots.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      data.push(...(page || []));
+      if (!page || page.length < PAGE) break;
+    }
 
-    // Fetch lead names for booked slots in a separate query
-    const bookedShowingIds = (data || [])
-      .filter((s: any) => s.booked_showing_id)
-      .map((s: any) => s.booked_showing_id);
+    const bookedShowingIds = [...new Set(
+      (data || []).filter((s: any) => s.booked_showing_id).map((s: any) => s.booked_showing_id),
+    )];
 
-    let showingInfoMap = new Map<string, { leadName: string; propertyId: string; status: string }>();
+    const showingInfoMap = new Map<string, { leadName: string; propertyId: string; status: string }>();
     if (bookedShowingIds.length > 0) {
       const { data: showingsData } = await supabase
         .from("showings")
@@ -286,8 +308,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       });
     }
 
-    // Cleveland-aware fetch window: convert the visible date range to UTC instants at
-    // America/New_York boundaries so evening showings on the last day aren't dropped.
+    // Cleveland-aware window for showing timestamps (evening rows on the edge day)
     const orgTz = "America/New_York";
     const clevelandBoundaryUTC = (dateStr: string, endOfDay: boolean) => {
       const asUTC = new Date(`${dateStr}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}Z`);
@@ -299,7 +320,6 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     const startInstant = clevelandBoundaryUTC(startStr, false);
     const endInstant = clevelandBoundaryUTC(endStr, true);
 
-    // Also fetch cancelled/no_show/rescheduled showings for this week to display in calendar
     const { data: cancelledData } = await supabase
       .from("showings")
       .select("id, scheduled_at, status, lead_id, property_id, leads(full_name), properties(address)")
@@ -308,29 +328,12 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       .gte("scheduled_at", startInstant)
       .lte("scheduled_at", endInstant);
 
-    // Fetch active showings (scheduled/confirmed) for the week — needed for days without slots
-    const { data: activeShowingsData } = await supabase
-      .from("showings")
-      .select("id, scheduled_at, status, property_id, leads(full_name), properties(address)")
-      .eq("organization_id", orgId)
-      .in("status", ["scheduled", "confirmed"])
-      .gte("scheduled_at", startInstant)
-      .lte("scheduled_at", endInstant);
-
-    // Build set of dates that have active showings
-    const datesWithShowings = new Set<string>();
-    (activeShowingsData || []).forEach((s: any) => {
-      const d = new Date(s.scheduled_at);
-      datesWithShowings.add(d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }));
-    });
-
-    // Build a map: date -> time -> CancelledShowing[]
     const cancelledMap = new Map<string, Map<string, CancelledShowing[]>>();
     (cancelledData || []).forEach((s: any) => {
       const d = new Date(s.scheduled_at);
       const dateKey = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
       const h = d.toLocaleString("en-GB", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false });
-      const timeKey = h + ":00"; // "HH:mm:00"
+      const timeKey = h + ":00";
       if (!cancelledMap.has(dateKey)) cancelledMap.set(dateKey, new Map());
       const tm = cancelledMap.get(dateKey)!;
       if (!tm.has(timeKey)) tm.set(timeKey, []);
@@ -343,192 +346,245 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       });
     });
 
-    if (error) {
-      console.error("Error fetching slots:", error);
-      toast({ title: "Error", description: "Failed to load slots.", variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-
-    // Build day data for each day in the week
+    // Group by date -> time
     const dayMap = new Map<string, Map<string, SlotProperty[]>>();
-
     (data || []).forEach((s: any) => {
       const dateKey = s.slot_date;
       if (!dayMap.has(dateKey)) dayMap.set(dateKey, new Map());
       const timeMap = dayMap.get(dateKey)!;
       if (!timeMap.has(s.slot_time)) timeMap.set(s.slot_time, []);
-
-      const showingInfo = s.booked_showing_id ? showingInfoMap.get(s.booked_showing_id) : null;
-      // Only show lead name on the actual property that was booked, not blocked slots
-      const isRealBooking = showingInfo && showingInfo.propertyId === s.property_id;
+      const info = s.booked_showing_id ? showingInfoMap.get(s.booked_showing_id) : null;
+      const isRealBooking = info && info.propertyId === s.property_id;
+      const status = (s.properties as any)?.status || "";
       timeMap.get(s.slot_time)!.push({
         property_id: s.property_id,
         property_address: (s.properties as any)?.address || "Unknown",
         property_city: (s.properties as any)?.city || "",
         is_booked: s.is_booked,
-        is_enabled: s.is_enabled,
-        lead_name: isRealBooking ? showingInfo.leadName : null,
+        // status gate: an enabled slot on a de-listed property is NOT open
+        is_enabled: s.is_enabled && LISTABLE_STATUSES.includes(status),
+        lead_name: isRealBooking ? info!.leadName : null,
         booked_showing_id: isRealBooking ? s.booked_showing_id : null,
-        showing_status: isRealBooking ? showingInfo.status : null,
+        showing_status: isRealBooking ? info!.status : null,
       });
     });
 
     const days: DayData[] = weekDates.map((d) => {
       const dateStr = format(d, "yyyy-MM-dd");
       const timeMap = dayMap.get(dateStr);
-
-      if (!timeMap || timeMap.size === 0) {
-        return { date: dateStr, timeSlots: [], hasSlots: datesWithShowings.has(dateStr) };
-      }
-
-      const timeSlots: TimeSlotGroup[] = [];
       const dayCancelled = cancelledMap.get(dateStr);
-      timeMap.forEach((props, time) => {
-        const enabledProps = props.filter((p) => p.is_enabled);
-        const allDisabled = enabledProps.length === 0;
-        timeSlots.push({
-          time,
-          properties: props.sort((a, b) => a.property_address.localeCompare(b.property_address)),
-          totalCount: props.length,
-          bookedCount: enabledProps.filter((p) => p.is_booked && p.lead_name).length,
-          isBlocked: allDisabled,
-          cancelledShowings: dayCancelled?.get(time) || [],
+      const timeSlots = new Map<string, TimeSlotGroup>();
+      if (timeMap) {
+        timeMap.forEach((props, time) => {
+          const openPool = props.filter((p) => p.is_enabled && !p.is_booked);
+          timeSlots.set(time, {
+            time,
+            properties: openPool,
+            bookedCount: props.filter((p) => p.is_booked && p.lead_name).length,
+            cancelledShowings: dayCancelled?.get(time) || [],
+          });
         });
+      }
+      // Fold cancelled-only times (no slot row) so they still surface
+      dayCancelled?.forEach((cs, time) => {
+        if (!timeSlots.has(time)) {
+          timeSlots.set(time, { time, properties: [], bookedCount: 0, cancelledShowings: cs });
+        }
       });
-
-      timeSlots.sort((a, b) => a.time.localeCompare(b.time));
-
-      return { date: dateStr, timeSlots, hasSlots: true };
+      return { date: dateStr, timeSlots };
     });
 
     setSlotData(days);
     setLoading(false);
   }, [orgId, weekDates]);
 
-  useEffect(() => {
-    fetchSlots();
-  }, [fetchSlots]);
+  useEffect(() => { fetchSlots(); }, [fetchSlots]);
 
-  // ── Summary totals (1 person = 1 slot per time) ─────────────────────
+  // ── Totals ──────────────────────────────────────────────────────────
   const totals = useMemo(() => {
-    let available = 0;
-    let booked = 0;
+    let available = 0, booked = 0;
     slotData.forEach((day) => {
       day.timeSlots.forEach((ts) => {
-        if (ts.isBlocked) return; // don't count blocked slots
-        if (ts.bookedCount > 0) {
-          booked += 1;
-        } else {
-          available += 1;
-        }
+        if (ts.bookedCount > 0) booked += 1;
+        else if (ts.properties.length > 0) available += 1;
       });
     });
     return { available, booked };
   }, [slotData]);
+  useEffect(() => { onTotalsChange?.(totals); }, [totals.available, totals.booked]);
 
-  // Push totals to parent
-  useEffect(() => {
-    onTotalsChange?.(totals);
-  }, [totals.available, totals.booked]);
+  // A booking is agent-time-scoped: one showing blocks that time across ALL
+  // homes. So a time is "taken" if ANY booked row exists for that date+time —
+  // re-opening it would insert fresh bookable rows on the other homes and let
+  // a second renter double-book the agent (review CRITICAL).
+  const timeHasBooking = async (date: string, time: string): Promise<boolean> => {
+    if (!orgId) return false;
+    const { count } = await supabase
+      .from("showing_available_slots")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId).eq("slot_date", date).eq("slot_time", time).eq("is_booked", true);
+    return (count || 0) > 0;
+  };
 
-
-  // ── Block / unblock a time slot ────────────────────────────────────
-  const handleToggleBlock = async (date: string, time: string, block: boolean) => {
-    if (!orgId) return;
+  // ── OPEN a slot (date+time) for the chosen cities ───────────────────
+  const openSlot = async (date: string, time: string, cities: string[]) => {
+    if (!orgId || cities.length === 0) return;
     const key = `${date}-${time}`;
-    setBlockingSlot(key);
-
+    setBusyKey(key);
+    if (await timeHasBooking(date, time)) {
+      toast({ title: "Already booked", description: `${formatTime(time)} · ${format(parseISO(date), "MMM d")} has a booking — can't reopen it.`, variant: "destructive" });
+      await fetchSlots();
+      setBusyKey(null);
+      return;
+    }
+    const propIds = cities.flatMap((c) => citiesWithProps.get(c) || []);
+    const rows = propIds.map((property_id) => ({
+      organization_id: orgId,
+      property_id,
+      slot_date: date,
+      slot_time: time,
+      is_enabled: true,
+    }));
     const { error } = await supabase
       .from("showing_available_slots")
-      .update({ is_enabled: !block, updated_at: new Date().toISOString() })
+      .upsert(rows, { onConflict: "organization_id,property_id,slot_date,slot_time" });
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Opened", description: `${formatTime(time)} · ${format(parseISO(date), "MMM d")} — ${propIds.length} homes.` });
+      await fetchSlots();
+    }
+    setBusyKey(null);
+  };
+
+  // ── CLOSE a slot (date+time), all unbooked rows ─────────────────────
+  const closeSlot = async (date: string, time: string) => {
+    if (!orgId) return;
+    const key = `${date}-${time}`;
+    setBusyKey(key);
+    const { error } = await supabase
+      .from("showing_available_slots")
+      .update({ is_enabled: false, updated_at: new Date().toISOString() })
       .eq("organization_id", orgId)
       .eq("slot_date", date)
       .eq("slot_time", time)
       .eq("is_booked", false);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: block ? "Blocked" : "Unblocked", description: `${formatTime(time)} on ${format(parseISO(date), "MMM d")} ${block ? "blocked" : "re-enabled"}.` });
-      fetchSlots();
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Closed", description: `${formatTime(time)} · ${format(parseISO(date), "MMM d")} closed.` });
+      await fetchSlots();
     }
-    setBlockingSlot(null);
+    setBusyKey(null);
   };
 
-  // Block/unblock slots for a specific city only
-  const handleToggleBlockByCity = async (date: string, time: string, city: string, block: boolean) => {
-    if (!orgId) return;
-    const key = `${date}-${time}`;
-    setBlockingSlot(key);
-
-    // Get property IDs for this city
-    const { data: cityProps } = await supabase
-      .from("properties")
-      .select("id")
-      .eq("organization_id", orgId)
-      .eq("city", city);
-
-    const propIds = (cityProps || []).map((p: any) => p.id);
-    if (propIds.length === 0) {
-      setBlockingSlot(null);
+  // ── Bulk: open a whole DAY (all ladder times) for cities ────────────
+  const openDay = async (date: string, cities: string[]) => {
+    if (!orgId || cities.length === 0) return;
+    const key = `day-${date}`;
+    setBusyKey(key);
+    // Exclude times that already have a booking (would double-book, review
+    // CRITICAL) and times already in the past for today.
+    const { data: bookedRows } = await supabase
+      .from("showing_available_slots")
+      .select("slot_time")
+      .eq("organization_id", orgId).eq("slot_date", date).eq("is_booked", true);
+    const bookedTimes = new Set((bookedRows || []).map((r: any) => r.slot_time));
+    const times = LADDER.filter(
+      (t) => !bookedTimes.has(t) && !(date === todayStr && timeToMinutes(t) + 30 <= nowMinutes),
+    );
+    if (times.length === 0) {
+      toast({ title: "Nothing to open", description: "All times this day are already booked or past." });
+      setBusyKey(null);
       return;
     }
+    const propIds = cities.flatMap((c) => citiesWithProps.get(c) || []);
+    const rows = propIds.flatMap((property_id) =>
+      times.map((slot_time) => ({
+        organization_id: orgId, property_id, slot_date: date, slot_time, is_enabled: true,
+      })),
+    );
+    for (let i = 0; i < rows.length; i += 200) {
+      const { error } = await supabase
+        .from("showing_available_slots")
+        .upsert(rows.slice(i, i + 200), { onConflict: "organization_id,property_id,slot_date,slot_time" });
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setBusyKey(null); return; }
+    }
+    const skipped = LADDER.length - times.length;
+    toast({
+      title: "Day opened",
+      description: `${format(parseISO(date), "EEE MMM d")} — ${times.length} times × ${propIds.length} homes${skipped > 0 ? ` (${skipped} skipped: booked/past)` : ""}.`,
+    });
+    await fetchSlots();
+    setBusyKey(null);
+  };
 
+  // ── Bulk: close a whole DAY (all unbooked) ──────────────────────────
+  const closeDay = async (date: string) => {
+    if (!orgId) return;
+    const key = `day-${date}`;
+    setBusyKey(key);
     const { error } = await supabase
       .from("showing_available_slots")
-      .update({ is_enabled: !block, updated_at: new Date().toISOString() })
+      .update({ is_enabled: false, updated_at: new Date().toISOString() })
       .eq("organization_id", orgId)
       .eq("slot_date", date)
-      .eq("slot_time", time)
-      .eq("is_booked", false)
-      .in("property_id", propIds);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: block ? "Blocked" : "Unblocked", description: `${city} slots at ${formatTime(time)} on ${format(parseISO(date), "MMM d")} ${block ? "blocked" : "re-enabled"}.` });
-      fetchSlots();
-    }
-    setBlockingSlot(null);
+      .eq("is_booked", false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Day closed", description: `${format(parseISO(date), "EEE MMM d")} closed.` }); await fetchSlots(); }
+    setBusyKey(null);
   };
 
-  // ── All unique times across the week (for row headers) ────────────
+  // ── Grid rows: the fixed ladder ∪ any existing off-ladder times ─────
   const allTimes = useMemo(() => {
-    const timeSet = new Set<string>();
-    slotData.forEach((day) => {
-      day.timeSlots.forEach((ts) => timeSet.add(ts.time));
-    });
-    return Array.from(timeSet).sort();
+    const set = new Set<string>(LADDER);
+    slotData.forEach((day) => day.timeSlots.forEach((_, t) => set.add(t)));
+    return [...set].sort();
   }, [slotData]);
 
-  // Days to render (optionally hiding empty ones — days with booked showings are kept via hasSlots)
+  // Which days to render
+  const dayHasContent = (d: DayData) =>
+    [...d.timeSlots.values()].some((ts) => ts.properties.length > 0 || ts.bookedCount > 0 || ts.cancelledShowings.length > 0);
   const visibleDays = useMemo(() => {
     if (!hideEmptyDays) return slotData;
-    return slotData.filter((d) => d.hasSlots);
+    return slotData.filter(dayHasContent);
   }, [slotData, hideEmptyDays]);
 
-  // ── Cell color logic (booked / open / blocked) ─────────────────────
-  const getCellStyle = (ts: TimeSlotGroup | undefined) => {
-    if (!ts) return "bg-slate-50 text-slate-300";
-    if (ts.isBlocked) return "bg-red-50 border-red-200 text-red-400";
-    if (ts.bookedCount === 0) return "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100";
-    // Check if all real bookings are completed
-    const realBookings = ts.properties.filter((p) => p.is_booked && p.lead_name);
-    const allCompleted = realBookings.length > 0 && realBookings.every((p) => p.showing_status === "completed");
-    if (allCompleted) return "bg-green-100 border-green-300 text-green-800";
-    return "bg-blue-50 border-blue-200 text-blue-800";
-  };
+  const isPast = (dateStr: string) => dateStr < todayStr;
+  const isPastCell = (dateStr: string, time: string) =>
+    dateStr < todayStr || (dateStr === todayStr && timeToMinutes(time) + 30 <= nowMinutes);
 
-  // Check if a date is in the past
-  const isPast = (dateStr: string) => {
-    const today = format(new Date(), "yyyy-MM-dd");
-    return dateStr < today;
-  };
+  // ── Now-line: measured from the real DOM (row heights vary, off-ladder
+  // times create gaps — arithmetic on a fixed header/row height mispaints).
+  const gridRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  const [nowTop, setNowTop] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (loading || !visibleDays.some((d) => d.date === todayStr) || allTimes.length === 0) {
+      setNowTop(null);
+      return;
+    }
+    const grid = gridRef.current;
+    if (!grid) { setNowTop(null); return; }
+    const gridTop = grid.getBoundingClientRect().top - grid.scrollTop;
+    let top: number | null = null;
+    for (let i = 0; i < allTimes.length; i++) {
+      const tMin = timeToMinutes(allTimes[i]);
+      const nextMin = i + 1 < allTimes.length ? timeToMinutes(allTimes[i + 1]) : tMin + 30;
+      if (nowMinutes >= tMin && nowMinutes < nextMin) {
+        const rowEl = rowRefs.current.get(allTimes[i]);
+        if (rowEl) {
+          const rect = rowEl.getBoundingClientRect();
+          const frac = (nowMinutes - tMin) / (nextMin - tMin);
+          top = rect.top - gridTop + rect.height * frac;
+        }
+        break;
+      }
+    }
+    setNowTop(top);
+  }, [now, nowMinutes, loading, visibleDays, allTimes, todayStr, slotData]);
 
   return (
     <div className="space-y-3">
-      {/* ── Missing report alerts ──────────────────────────────────── */}
+      {/* Missing report alerts */}
       {missingReportDates.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium text-red-600 shrink-0">Missing reports:</span>
@@ -544,7 +600,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         </div>
       )}
 
-      {/* ── Week navigation ──────────────────────────────────────────── */}
+      {/* Week navigation */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={() => setWeekOffset((w) => w - 1)}>
           <ChevronLeft className="h-4 w-4" />
@@ -553,6 +609,14 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
           <span className="text-sm font-semibold">
             {format(weekStart, "MMM d")} – {format(weekEnd, "MMM d, yyyy")}
           </span>
+          {weekOffset !== 0 && (
+            <button
+              onClick={() => setWeekOffset(0)}
+              className="text-[11px] px-2 py-0.5 rounded-md text-[#4F46E5] bg-[#4F46E5]/10 hover:bg-[#4F46E5]/20 transition-colors"
+            >
+              Today
+            </button>
+          )}
           <button
             onClick={() => setHideEmptyDays((v) => !v)}
             title={hideEmptyDays ? "Show all days" : "Hide empty days"}
@@ -566,419 +630,344 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         </Button>
       </div>
 
-      {/* ── Weekly grid ──────────────────────────────────────────────── */}
+      {/* Weekly grid */}
       {loading ? (
         <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-xl" />
-          ))}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
         </div>
-      ) : allTimes.length === 0 && visibleDays.every((d) => !d.hasSlots) ? (
+      ) : cityNames.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <CalendarDays className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="font-medium text-muted-foreground">No slots this week</p>
+            <Home className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="font-medium text-muted-foreground">No listable properties</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Click "Enable Slots" to add available times for showings.
+              Set a property to <b>Available</b> or <b>Coming soon</b> to open showing times for it.
             </p>
           </CardContent>
         </Card>
       ) : (
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-xs">
-                {/* ── Column headers (days) ────────────────────────── */}
+            <div className="relative overflow-x-auto" ref={gridRef}>
+              <table className="w-full min-w-[640px] text-xs border-separate border-spacing-0">
+                {/* Column headers (days) — click to open/close a whole day */}
                 <thead>
-                  <tr className="border-b">
-                    <th className="w-20 p-2 text-left text-muted-foreground font-medium sticky left-0 bg-white z-10">
+                  <tr>
+                    <th className="w-16 p-2 text-left text-muted-foreground font-medium sticky left-0 bg-white z-20">
                       Time
                     </th>
                     {visibleDays.map((day) => {
                       const dateObj = parseISO(day.date);
-                      const isToday = format(new Date(), "yyyy-MM-dd") === day.date;
+                      const isToday = todayStr === day.date;
+                      const past = isPast(day.date);
+                      const dayBusy = busyKey === `day-${day.date}`;
                       return (
                         <th
                           key={day.date}
-                          className={`p-2 text-center font-medium min-w-[100px] ${
-                            isToday ? "bg-[#4F46E5]/5" : ""
-                          } ${isPast(day.date) ? "opacity-40" : ""}`}
+                          className={`p-1.5 text-center font-medium min-w-[92px] ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
                         >
-                          <div className="text-[10px] text-muted-foreground uppercase">
-                            {format(dateObj, "EEE")}
-                          </div>
-                          <div className={`text-sm font-bold ${isToday ? "text-[#4F46E5]" : ""}`}>
-                            {format(dateObj, "d")}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {format(dateObj, "MMM")}
-                          </div>
+                          <div className="text-[10px] text-muted-foreground uppercase">{format(dateObj, "EEE")}</div>
+                          <div className={`text-sm font-bold ${isToday ? "text-[#4F46E5]" : ""}`}>{format(dateObj, "d")}</div>
+                          <div className="text-[10px] text-muted-foreground">{format(dateObj, "MMM")}</div>
+                          {!past && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="mt-1 w-full rounded-md border border-dashed border-slate-200 py-0.5 text-[10px] text-slate-400 hover:border-[#4F46E5]/40 hover:text-[#4F46E5] hover:bg-[#4F46E5]/5 transition-colors">
+                                  {dayBusy ? <Loader2 className="h-3 w-3 mx-auto animate-spin" /> : "Open / close day"}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56 p-3" side="bottom" align="center">
+                                <p className="text-xs font-semibold mb-2">{format(dateObj, "EEE, MMM d")}</p>
+                                <CityPicker
+                                  cities={cityNames}
+                                  counts={cityCounts}
+                                  busy={dayBusy}
+                                  defaultAll
+                                  actionLabel="Open all day"
+                                  onConfirm={(cities) => openDay(day.date, cities)}
+                                />
+                                {dayHasContent(day) && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full h-7 text-xs mt-2 text-red-600 border-red-200 hover:bg-red-50"
+                                    disabled={dayBusy}
+                                    onClick={() => closeDay(day.date)}
+                                  >
+                                    <X className="h-3 w-3 mr-1" /> Close whole day
+                                  </Button>
+                                )}
+                              </PopoverContent>
+                            </Popover>
+                          )}
                         </th>
                       );
                     })}
                   </tr>
                 </thead>
 
-                {/* ── Time rows ─────────────────────────────────────── */}
-                <tbody>
+                {/* Time rows */}
+                <tbody className="relative">
                   {allTimes.map((time) => (
-                    <tr key={time} className="border-b last:border-b-0">
-                      <td className="p-2 font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-white z-10">
+                    <tr
+                      key={time}
+                      ref={(el) => {
+                        if (el) rowRefs.current.set(time, el);
+                        else rowRefs.current.delete(time);
+                      }}
+                    >
+                      <td className="p-2 font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-white z-20">
                         {formatTime(time)}
                       </td>
                       {visibleDays.map((day) => {
-                        const ts = day.timeSlots.find((s) => s.time === time);
-                        const past = isPast(day.date);
-                        const isToday = format(new Date(), "yyyy-MM-dd") === day.date;
-
-                        if (!ts) {
-                          return (
-                            <td
-                              key={day.date}
-                              className={`p-1 text-center ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
-                            >
-                              {past ? (
-                                <span className="text-slate-300">—</span>
-                              ) : (
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <button
-                                      className="w-full rounded-md border border-dashed border-slate-200 px-2 py-1.5 text-xs text-slate-300 hover:border-[#4F46E5]/40 hover:text-[#4F46E5] hover:bg-[#4F46E5]/5 transition-colors"
-                                      title="Enable this slot"
-                                    >
-                                      <Plus className="h-3 w-3 mx-auto" />
-                                    </button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-52 p-3" side="bottom" align="center">
-                                    <p className="text-xs font-semibold mb-2">{formatTime(time)} — {format(parseISO(day.date), "MMM d")}</p>
-                                    <QuickEnableCities
-                                      cities={[...citiesWithProps.keys()].sort()}
-                                      counts={new Map([...citiesWithProps.entries()].map(([c, p]) => [c, p.length]))}
-                                      enabling={quickEnabling}
-                                      onEnable={(cities) => handleQuickEnable(day.date, time, cities)}
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-                              )}
-                            </td>
-                          );
-                        }
+                        const ts = day.timeSlots.get(time);
+                        const isToday = todayStr === day.date;
+                        const past = isPastCell(day.date, time);
+                        const cellBusy = busyKey === `${day.date}-${time}`;
 
                         return (
                           <td
                             key={day.date}
-                            className={`p-1 text-center ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
+                            className={`p-1 text-center align-middle ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
                           >
-                            {(() => {
-                              const realBookings = ts.properties.filter((p) => p.is_booked && p.lead_name);
-                              const blockedSlots = ts.properties.filter((p) => p.is_booked && !p.lead_name);
-                              const isBooked = realBookings.length > 0 || blockedSlots.length > 0;
-                              const firstBooked = realBookings[0];
-                              const hasCancelled = ts.cancelledShowings.length > 0;
-                              const firstCancelled = ts.cancelledShowings[0];
-
-                              // Determine cell style — cancelled gets a special style if slot is otherwise open
-                              const cellStyle = hasCancelled && !firstBooked && !ts.isBlocked
-                                ? "bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100"
-                                : getCellStyle(ts);
-
-                              return (
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <button
-                                      className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${cellStyle}`}
-                                    >
-                                      {ts.isBlocked ? (
-                                        <>
-                                          <div className="font-bold">Blocked</div>
-                                          <div className="text-[10px] opacity-70">
-                                            <Ban className="h-2.5 w-2.5 inline" />
-                                          </div>
-                                        </>
-                                      ) : firstBooked ? (
-                                        <>
-                                          <div className="font-bold truncate">
-                                            {firstBooked.lead_name}
-                                          </div>
-                                          <div className="text-[10px] opacity-70 truncate">
-                                            {firstBooked.property_address}
-                                          </div>
-                                        </>
-                                      ) : hasCancelled ? (
-                                        <>
-                                          <div className="font-bold truncate line-through">
-                                            {firstCancelled.lead_name}
-                                          </div>
-                                          <div className="text-[10px] opacity-70 truncate">
-                                            {firstCancelled.status === "cancelled" ? "Cancelled" : firstCancelled.status === "no_show" ? "No Show" : "Rescheduled"}
-                                          </div>
-                                        </>
-                                      ) : blockedSlots.length > 0 ? (
-                                        <div className="font-bold text-slate-500">Blocked</div>
-                                      ) : (
-                                        <>
-                                          <div className="font-bold">Open</div>
-                                          {(() => {
-                                            const cities = [...new Set(ts.properties.filter(p => p.is_enabled && p.property_city).map(p => p.property_city))];
-                                            return cities.length > 0 ? (
-                                              <div className="text-[10px] opacity-70 truncate">
-                                                {cities.join(", ")}
-                                              </div>
-                                            ) : null;
-                                          })()}
-                                        </>
-                                      )}
-                                    </button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-72 p-3" side="bottom" align="center">
-                                    <div className="space-y-2">
-                                      <div className="flex items-center justify-between">
-                                        <span className="font-semibold text-sm">
-                                          {formatTime(time)} — {format(parseISO(day.date), "MMM d")}
-                                        </span>
-                                        <Badge
-                                          variant="outline"
-                                          className={`text-[10px] ${ts.isBlocked ? "border-red-200 text-red-600" : isBooked ? "border-blue-200 text-blue-700" : "border-emerald-200 text-emerald-700"}`}
-                                        >
-                                          {ts.isBlocked ? "Blocked" : realBookings.length > 0 ? `${realBookings.length} booked` : blockedSlots.length > 0 ? "Blocked" : "Open"}
-                                        </Badge>
-                                      </div>
-                                      {/* Show real bookings */}
-                                      {realBookings.length > 0 && (
-                                        <div className="space-y-1.5">
-                                          {realBookings.map((p) => (
-                                            <div
-                                              key={p.property_id}
-                                              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs bg-blue-50 border border-blue-100"
-                                            >
-                                              <Home className="h-3 w-3 shrink-0 text-blue-500" />
-                                              <div className="flex-1 min-w-0">
-                                                <div className="font-medium truncate">{p.property_address}</div>
-                                              </div>
-                                              <div className="flex items-center gap-1 text-blue-700 shrink-0">
-                                                <User className="h-3 w-3" />
-                                                <span className="text-[10px] font-medium truncate max-w-[80px]">
-                                                  {p.lead_name}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                      {/* View / Cancel button for booked showings */}
-                                      {!past && realBookings.length > 0 && onShowingClick && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="w-full mt-1 h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const booking = realBookings.find((p) => p.booked_showing_id);
-                                            if (booking?.booked_showing_id) onShowingClick(booking.booked_showing_id);
-                                          }}
-                                        >
-                                          <Eye className="h-3 w-3 mr-1" />
-                                          View / Cancel Showing
-                                        </Button>
-                                      )}
-                                      {/* Cancelled / No-Show / Rescheduled showings */}
-                                      {ts.cancelledShowings.length > 0 && (
-                                        <div className="space-y-1.5">
-                                          <p className="text-[10px] text-muted-foreground font-medium">
-                                            {ts.cancelledShowings.length === 1 ? "Cancelled/Missed Showing" : `${ts.cancelledShowings.length} Cancelled/Missed Showings`}
-                                          </p>
-                                          {ts.cancelledShowings.map((cs) => (
-                                            <div
-                                              key={cs.id}
-                                              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs bg-orange-50 border border-orange-100"
-                                            >
-                                              <User className="h-3 w-3 shrink-0 text-orange-500" />
-                                              <div className="flex-1 min-w-0">
-                                                <div className="font-medium truncate line-through">{cs.lead_name}</div>
-                                                <div className="text-[10px] text-orange-600">{cs.property_address}</div>
-                                              </div>
-                                              <Badge variant="outline" className="text-[10px] border-orange-200 text-orange-600 shrink-0">
-                                                {cs.status === "cancelled" ? "Cancelled" : cs.status === "no_show" ? "No Show" : "Rescheduled"}
-                                              </Badge>
-                                            </div>
-                                          ))}
-                                          {!past && onShowingClick && ts.cancelledShowings.map((cs) => (
-                                            <Button
-                                              key={`view-${cs.id}`}
-                                              variant="outline"
-                                              size="sm"
-                                              className="w-full h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                onShowingClick(cs.id);
-                                              }}
-                                            >
-                                              <Eye className="h-3 w-3 mr-1" />
-                                              View {cs.lead_name}
-                                            </Button>
-                                          ))}
-                                        </div>
-                                      )}
-                                      {/* Blocked slots (other properties at same time) */}
-                                      {blockedSlots.length > 0 && (
-                                        <div>
-                                          <p className="text-[10px] text-muted-foreground">
-                                            {blockedSlots.length} other {blockedSlots.length === 1 ? "property" : "properties"} blocked at this time
-                                          </p>
-                                        </div>
-                                      )}
-                                      {/* Available properties */}
-                                      {!ts.isBlocked && ts.properties.filter((p) => p.is_enabled && !p.is_booked).length > 0 && (
-                                        <div>
-                                          <p className="text-[10px] text-muted-foreground mb-1">
-                                            {ts.properties.filter((p) => p.is_enabled && !p.is_booked).length} properties available at this time
-                                          </p>
-                                        </div>
-                                      )}
-                                      {/* Per-city block/unblock buttons */}
-                                      {!past && (() => {
-                                        const openByCity = new Map<string, number>();
-                                        const blockedByCity = new Map<string, number>();
-                                        ts.properties.forEach((p) => {
-                                          if (!p.property_city || p.is_booked) return;
-                                          if (p.is_enabled) {
-                                            openByCity.set(p.property_city, (openByCity.get(p.property_city) || 0) + 1);
-                                          } else {
-                                            blockedByCity.set(p.property_city, (blockedByCity.get(p.property_city) || 0) + 1);
-                                          }
-                                        });
-                                        const allCities = [...new Set([...openByCity.keys(), ...blockedByCity.keys()])].sort();
-                                        if (allCities.length <= 1) return null;
-                                        return (
-                                          <div className="space-y-1 pt-1 border-t">
-                                            <p className="text-[10px] text-muted-foreground font-medium">Block by city</p>
-                                            {allCities.map((city) => {
-                                              const openCount = openByCity.get(city) || 0;
-                                              const blockedCount = blockedByCity.get(city) || 0;
-                                              const isCityBlocked = openCount === 0 && blockedCount > 0;
-                                              return (
-                                                <Button
-                                                  key={city}
-                                                  variant="outline"
-                                                  size="sm"
-                                                  className={`w-full h-7 text-xs justify-between ${isCityBlocked ? "text-emerald-600 border-emerald-200 hover:bg-emerald-50" : "text-red-600 border-red-200 hover:bg-red-50"}`}
-                                                  disabled={blockingSlot === `${day.date}-${time}`}
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleToggleBlockByCity(day.date, time, city, !isCityBlocked);
-                                                  }}
-                                                >
-                                                  <span className="flex items-center gap-1">
-                                                    {isCityBlocked ? <Check className="h-3 w-3" /> : <Ban className="h-3 w-3" />}
-                                                    {city}
-                                                  </span>
-                                                  <span className="text-[10px] opacity-70">
-                                                    {isCityBlocked ? `${blockedCount} blocked` : `${openCount} open`}
-                                                  </span>
-                                                </Button>
-                                              );
-                                            })}
-                                          </div>
-                                        );
-                                      })()}
-                                      {/* Block / unblock button */}
-                                      {!past && realBookings.length === 0 && (
-                                        ts.isBlocked ? (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full mt-1 h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-                                            disabled={blockingSlot === `${day.date}-${time}`}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleToggleBlock(day.date, time, false);
-                                            }}
-                                          >
-                                            {blockingSlot === `${day.date}-${time}` ? (
-                                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                            ) : (
-                                              <Check className="h-3 w-3 mr-1" />
-                                            )}
-                                            Unblock this time
-                                          </Button>
-                                        ) : (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full mt-1 h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                                            disabled={blockingSlot === `${day.date}-${time}`}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleToggleBlock(day.date, time, true);
-                                            }}
-                                          >
-                                            {blockingSlot === `${day.date}-${time}` ? (
-                                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                            ) : (
-                                              <Ban className="h-3 w-3 mr-1" />
-                                            )}
-                                            Block this time
-                                          </Button>
-                                        )
-                                      )}
-                                    </div>
-                                  </PopoverContent>
-                                </Popover>
-                              );
-                            })()}
+                            <SlotCell
+                              day={day}
+                              time={time}
+                              ts={ts}
+                              past={past}
+                              cellBusy={cellBusy}
+                              cityNames={cityNames}
+                              cityCounts={cityCounts}
+                              onOpen={(cities) => openSlot(day.date, time, cities)}
+                              onClose={() => closeSlot(day.date, time)}
+                              onShowingClick={onShowingClick}
+                            />
                           </td>
                         );
                       })}
                     </tr>
                   ))}
-
                 </tbody>
               </table>
+
+              {/* NOW-LINE — a red rule at the current time (measured position) */}
+              {nowTop != null && <NowLine top={nowTop} />}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* ── Legend ────────────────────────────────────────────────────── */}
+      {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" />
-          Open
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" />
-          Booked
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-green-100 border border-green-300" />
-          Completed
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-300">—</span>
-          No slot
-        </div>
-        <div className="ml-auto text-[10px]">
-          Click any cell for details
-        </div>
+        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" /> Open</div>
+        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" /> Booked</div>
+        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-green-100 border border-green-300" /> Completed</div>
+        <div className="flex items-center gap-1.5"><span className="inline-block w-3 border-t-2 border-red-500" /> Now</div>
+        <div className="ml-auto text-[10px]">Click a cell to open, close, or view</div>
       </div>
+    </div>
+  );
+};
 
-      {/* ── Dialog ───────────────────────────────────────────────────── */}
-      {orgId && (
-        <EnableSlotsDialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) {
-              setEditData(null);
-              setPrefilledDate(undefined);
-            }
-          }}
-          onSuccess={fetchSlots}
-          orgId={orgId}
-          editData={editData}
-          prefilledDate={prefilledDate}
-        />
-      )}
+// ── Now-line overlay (absolute px position measured from the DOM) ──────
+const NowLine: React.FC<{ top: number }> = ({ top }) => (
+  <div aria-hidden className="pointer-events-none absolute left-0 right-0 z-10" style={{ top }}>
+    <div className="relative">
+      <div className="absolute left-14 right-0 border-t-2 border-red-500/70" />
+      <div className="absolute left-12 -top-[5px] h-2.5 w-2.5 rounded-full bg-red-500 shadow" />
+    </div>
+  </div>
+);
+
+// ── A single calendar cell: open / booked / cancelled / closed / add ──
+const SlotCell: React.FC<{
+  day: DayData;
+  time: string;
+  ts: TimeSlotGroup | undefined;
+  past: boolean;
+  cellBusy: boolean;
+  cityNames: string[];
+  cityCounts: Map<string, number>;
+  onOpen: (cities: string[]) => void;
+  onClose: () => void;
+  onShowingClick?: (id: string) => void;
+}> = ({ day, time, ts, past, cellBusy, cityNames, cityCounts, onOpen, onClose, onShowingClick }) => {
+  const openCount = ts?.properties.length || 0;
+  const bookedCount = ts?.bookedCount || 0;
+  const cancelled = ts?.cancelledShowings || [];
+  const hasCancelled = cancelled.length > 0;
+
+  // Booked cell: we need the lead name — pull from the day's raw group. The
+  // open `properties` array excludes booked rows, so re-scan is unnecessary;
+  // booked info is surfaced through a separate lookup on click. For the label
+  // we show a compact "Booked" state (name shown in the popover).
+  const isBooked = bookedCount > 0;
+  const isOpen = openCount > 0;
+
+  // Past cells are read-only
+  if (past) {
+    if (isBooked) return <div className="rounded-md border bg-green-50 border-green-200 text-green-700 px-2 py-1.5 text-[10px] font-semibold">Done</div>;
+    if (hasCancelled) return <div className="rounded-md border bg-orange-50 border-orange-200 text-orange-500 px-2 py-1.5 text-[10px] line-through">{cancelled[0].lead_name}</div>;
+    return <span className="text-slate-300">—</span>;
+  }
+
+  // Cell style
+  let cellStyle = "bg-slate-50/60 text-slate-300 border-dashed border-slate-200 hover:border-[#4F46E5]/40 hover:text-[#4F46E5] hover:bg-[#4F46E5]/5";
+  if (isBooked) cellStyle = "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100";
+  else if (hasCancelled) cellStyle = "bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100";
+  else if (isOpen) cellStyle = "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100";
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${cellStyle}`}>
+          {cellBusy ? (
+            <Loader2 className="h-3 w-3 mx-auto animate-spin" />
+          ) : isBooked ? (
+            <>
+              <div className="font-bold truncate">{bookedCount > 1 ? `${bookedCount} booked` : "Booked"}</div>
+            </>
+          ) : hasCancelled ? (
+            <div className="font-bold truncate line-through">{cancelled[0].lead_name}</div>
+          ) : isOpen ? (
+            <>
+              <div className="font-bold">Open</div>
+              {(() => {
+                const cities = [...new Set(ts!.properties.map((p) => p.property_city).filter(Boolean))];
+                return cities.length > 0 ? <div className="text-[10px] opacity-70 truncate">{cities.join(", ")}</div> : null;
+              })()}
+            </>
+          ) : (
+            <Plus className="h-3 w-3 mx-auto" />
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3" side="bottom" align="center">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-sm">{formatTime(time)} · {format(parseISO(day.date), "MMM d")}</span>
+            <Badge variant="outline" className={`text-[10px] ${isBooked ? "border-blue-200 text-blue-700" : isOpen ? "border-emerald-200 text-emerald-700" : "border-slate-200 text-slate-500"}`}>
+              {isBooked ? `${bookedCount} booked` : isOpen ? "Open" : "Closed"}
+            </Badge>
+          </div>
+
+          {/* Booked showings — view/cancel (lead names fetched on open) */}
+          {isBooked && onShowingClick && (
+            <BookedFetcher orgDate={day.date} time={time} onShowingClick={onShowingClick} />
+          )}
+
+          {/* Cancelled / no-show / rescheduled */}
+          {hasCancelled && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-muted-foreground font-medium">
+                {cancelled.length === 1 ? "Cancelled / missed" : `${cancelled.length} cancelled / missed`}
+              </p>
+              {cancelled.map((cs) => (
+                <div key={cs.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs bg-orange-50 border border-orange-100">
+                  <User className="h-3 w-3 shrink-0 text-orange-500" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate line-through">{cs.lead_name}</div>
+                    <div className="text-[10px] text-orange-600">{cs.property_address}</div>
+                  </div>
+                  {onShowingClick && (
+                    <button onClick={() => onShowingClick(cs.id)} className="text-orange-600 hover:text-orange-800"><Eye className="h-3.5 w-3.5" /></button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Open pool summary */}
+          {isOpen && (
+            <p className="text-[10px] text-muted-foreground">
+              {openCount} {openCount === 1 ? "home" : "homes"} available at this time
+            </p>
+          )}
+
+          {/* THE single control: Open (with cities) or Close */}
+          {isOpen ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+              disabled={cellBusy}
+              onClick={onClose}
+            >
+              {cellBusy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <X className="h-3 w-3 mr-1" />}
+              Close this time
+            </Button>
+          ) : !isBooked ? (
+            <div className="pt-1 border-t">
+              <p className="text-[10px] text-muted-foreground font-medium mb-1.5">Open this time for…</p>
+              <CityPicker
+                cities={cityNames}
+                counts={cityCounts}
+                busy={cellBusy}
+                defaultAll
+                actionLabel="Open"
+                onConfirm={onOpen}
+              />
+            </div>
+          ) : null}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+// Fetch the booked showing(s) for this exact date+time on demand (booked rows
+// are excluded from the cell's open pool, so their lead names load here).
+const BookedFetcher: React.FC<{ orgDate: string; time: string; onShowingClick: (id: string) => void }> = ({ orgDate, time, onShowingClick }) => {
+  const { userRecord } = useAuth();
+  const orgId = userRecord?.organization_id;
+  const [rows, setRows] = useState<{ id: string; lead: string; address: string }[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!orgId) return;
+      const { data } = await supabase
+        .from("showing_available_slots")
+        .select("booked_showing_id, showings:booked_showing_id(id, status, leads(full_name), properties(address))")
+        .eq("organization_id", orgId)
+        .eq("slot_date", orgDate)
+        .eq("slot_time", time)
+        .eq("is_booked", true)
+        .not("booked_showing_id", "is", null);
+      if (cancelled) return;
+      const seen = new Set<string>();
+      const out: { id: string; lead: string; address: string }[] = [];
+      (data || []).forEach((r: any) => {
+        const sh = r.showings;
+        if (sh && !seen.has(sh.id)) {
+          seen.add(sh.id);
+          out.push({ id: sh.id, lead: sh.leads?.full_name || "Booked", address: sh.properties?.address || "" });
+        }
+      });
+      setRows(out);
+    })();
+    return () => { cancelled = true; };
+  }, [orgId, orgDate, time]);
+
+  if (rows === null) return <div className="flex justify-center py-1"><Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /></div>;
+  return (
+    <div className="space-y-1.5">
+      {rows.map((r) => (
+        <button
+          key={r.id}
+          onClick={() => onShowingClick(r.id)}
+          className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors text-left"
+        >
+          <Home className="h-3 w-3 shrink-0 text-blue-500" />
+          <div className="flex-1 min-w-0">
+            <div className="font-medium truncate">{r.address}</div>
+          </div>
+          <span className="flex items-center gap-1 text-blue-700 shrink-0">
+            <User className="h-3 w-3" />
+            <span className="text-[10px] font-medium truncate max-w-[80px]">{r.lead}</span>
+            <Eye className="h-3 w-3" />
+          </span>
+        </button>
+      ))}
     </div>
   );
 };

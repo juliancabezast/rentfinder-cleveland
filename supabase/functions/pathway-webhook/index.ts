@@ -118,6 +118,16 @@ serve(async (req: Request) => {
         );
       }
 
+      // Only listable properties (available / coming_soon) may be offered.
+      const { data: prop } = await supabase
+        .from("properties").select("status").eq("id", property_id).single();
+      if (!prop || !["available", "coming_soon"].includes(prop.status)) {
+        return new Response(
+          JSON.stringify({ has_slots: false, slots: [], message: "This home is no longer available for showings." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Use Cleveland timezone for "today" (DST-aware)
       const clevelandNow = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // yyyy-MM-dd format
       const todayStr = clevelandNow;
@@ -179,6 +189,16 @@ serve(async (req: Request) => {
             status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
+        );
+      }
+
+      // Only listable properties (available / coming_soon) may be reserved.
+      const { data: rprop } = await supabase
+        .from("properties").select("status").eq("id", property_id).single();
+      if (!rprop || !["available", "coming_soon"].includes(rprop.status)) {
+        return new Response(
+          JSON.stringify({ success: false, error: "This home is no longer available for showings." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 

@@ -238,6 +238,26 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── Backstop: one showing blocks that agent hour across ALL homes ─
+    // Even if a fresh open slot row exists at this time, refuse if a live
+    // showing already occupies the same date+time (defends against a
+    // re-opened booked hour — review CRITICAL).
+    {
+      const bookedSibling = await supabase
+        .from("showing_available_slots")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organization_id)
+        .eq("slot_date", slot_date)
+        .eq("slot_time", slot_time)
+        .eq("is_booked", true);
+      if ((bookedSibling.count || 0) > 0) {
+        return new Response(
+          JSON.stringify({ error: "This time was just booked. Please select another." }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // ── Get property + org info ───────────────────────────────────────
     const [{ data: property }, { data: org }] = await Promise.all([
       supabase
@@ -252,9 +272,13 @@ serve(async (req: Request) => {
         .single(),
     ]);
 
-    // Inactive properties are hidden from all public surfaces — refuse direct
-    // POSTs even if a stale enabled slot still exists for them.
-    if (property?.status === "inactive") {
+    // Only listable properties (available / coming_soon) can be booked. This
+    // refuses direct POSTs against a rented/inactive/in_leasing_process
+    // property even if a stale enabled slot still exists (matches the admin
+    // calendar + anon RLS gate — change a property's status and it stops
+    // being bookable everywhere, automatically).
+    const LISTABLE_STATUSES = ["available", "coming_soon"];
+    if (!property || !LISTABLE_STATUSES.includes(property.status)) {
       return new Response(
         JSON.stringify({ error: "This property is no longer available for showings." }),
         { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
