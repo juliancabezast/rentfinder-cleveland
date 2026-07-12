@@ -112,6 +112,13 @@ function firstName(name: string) {
   return (name || "").trim().split(/\s+/)[0] || name;
 }
 
+// Human label for a cancelled/no-show/rescheduled showing
+function cancelStatusLabel(status: string) {
+  if (status === "rescheduled") return "Rescheduled";
+  if (status === "no_show") return "No-show";
+  return "Cancelled";
+}
+
 // City open/close popover (checkbox list). Extracted to keep hooks stable.
 const CityPicker: React.FC<{
   cities: string[];
@@ -1029,7 +1036,12 @@ const SlotCell: React.FC<{
         {bookings[0]?.address && <div className="opacity-70 truncate">{bookings[0].address}</div>}
       </div>
     );
-    if (hasCancelled) return <div className="rounded-md border bg-orange-50 border-orange-200 text-orange-500 px-2 py-1.5 text-[10px] line-through">{firstName(cancelled[0].lead_name)}</div>;
+    if (hasCancelled) return (
+      <div className="rounded-md border bg-orange-50 border-orange-200 text-orange-600 px-2 py-1 text-[10px]">
+        <div className="line-through truncate">{firstName(cancelled[0].lead_name)}</div>
+        <div className="opacity-80">{cancelStatusLabel(cancelled[0].status)}</div>
+      </div>
+    );
     return <span className="text-slate-300">—</span>;
   }
 
@@ -1063,7 +1075,10 @@ const SlotCell: React.FC<{
               </div>
             </>
           ) : hasCancelled ? (
-            <div className="font-bold truncate line-through">{firstName(cancelled[0].lead_name)}</div>
+            <>
+              <div className="font-bold truncate line-through">{firstName(cancelled[0].lead_name)}</div>
+              <div className="text-[10px] opacity-80">{cancelStatusLabel(cancelled[0].status)}</div>
+            </>
           ) : isOpen ? (
             <>
               <div className="font-bold">Open</div>
