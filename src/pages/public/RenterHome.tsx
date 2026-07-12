@@ -479,6 +479,10 @@ export default function RenterHome() {
     if (ids.length) trackPropertyView("impression", ids);
   }, [data]);
 
+  // City defaults to Cleveland — the portfolio also has homes in East
+  // Cleveland, Milwaukee, Detroit and Akron, but the site is Cleveland-first.
+  const DEFAULT_CITY = "Cleveland";
+  const [city, setCity] = useState(DEFAULT_CITY);
   const [area, setArea] = useState("all");
   const [beds, setBeds] = useState("any");   // exact match; "0" = Studio, "5" = 5+
   const [baths, setBaths] = useState("any"); // exact match; "5" = 5+
@@ -490,11 +494,12 @@ export default function RenterHome() {
   // against the OTHER active filters (faceted search) — an option only
   // enables if choosing it yields at least one home, so "0 homes"
   // dead-ends are impossible to pick.
-  type FacetSkip = "area" | "beds" | "baths" | "zip" | "price" | "type";
+  type FacetSkip = "city" | "area" | "beds" | "baths" | "zip" | "price" | "type";
   const passes = (l: Listing, skip?: FacetSkip): boolean => {
     const [pMin, pMax] = priceRange;
     const priceFilterOn = pMin > PRICE_MIN || pMax < PRICE_MAX;
 
+    if (skip !== "city" && city !== "all" && l.city !== city) return false;
     if (skip !== "area" && area !== "all" && l.neighborhood !== area) return false;
     if (skip !== "beds" && !bedMatches(l, beds)) return false;
     if (skip !== "baths" && !bathMatches(l, baths)) return false;
@@ -516,13 +521,22 @@ export default function RenterHome() {
   // Faceted options: values with ≥1 matching home given the other filters.
   // The currently-selected value is always kept so the control never blanks.
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  const cityOptions = useMemo(() => {
+    const opts = [...new Set(
+      listings.filter((l) => passes(l, "city")).map((l) => l.city).filter(Boolean) as string[],
+    )].sort((a, b) => (a === DEFAULT_CITY ? -1 : b === DEFAULT_CITY ? 1 : a.localeCompare(b)));
+    if (city !== "all" && !opts.includes(city)) opts.push(city);
+    return opts;
+  }, [listings, city, area, beds, baths, zip, priceRange, homeType]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const areaOptions = useMemo(() => {
     const opts = [...new Set(
       listings.filter((l) => passes(l, "area")).map((l) => l.neighborhood).filter(Boolean),
     )].sort();
     if (area !== "all" && !opts.includes(area)) opts.push(area);
     return opts;
-  }, [listings, area, beds, baths, zip, priceRange, homeType]);
+  }, [listings, city, area, beds, baths, zip, priceRange, homeType]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const zipOptions = useMemo(() => {
@@ -531,7 +545,7 @@ export default function RenterHome() {
     )].sort();
     if (zip !== "all" && !opts.includes(zip)) opts.push(zip);
     return opts;
-  }, [listings, area, beds, baths, zip, priceRange, homeType]);
+  }, [listings, city, area, beds, baths, zip, priceRange, homeType]);
 
   // Faceted enablement for the segmented cells: a cell is clickable only if
   // choosing it (given the OTHER filters) yields ≥1 home. Current value and
@@ -541,21 +555,21 @@ export default function RenterHome() {
     "any", beds,
     ...["0", "1", "2", "3", "4", "5"].filter((v) =>
       listings.some((l) => passes(l, "beds") && bedMatches(l, v))),
-  ]), [listings, area, beds, baths, zip, priceRange, homeType]);
+  ]), [listings, city, area, beds, baths, zip, priceRange, homeType]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const bathEnabled = useMemo(() => new Set([
     "any", baths,
     ...["1", "2", "3", "4", "5"].filter((v) =>
       listings.some((l) => passes(l, "baths") && bathMatches(l, v))),
-  ]), [listings, area, beds, baths, zip, priceRange, homeType]);
+  ]), [listings, city, area, beds, baths, zip, priceRange, homeType]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const typeEnabled = useMemo(() => new Set([
     "any", homeType,
     ...["single", "multi"].filter((v) =>
       listings.some((l) => passes(l, "type") && typeMatches(l, v))),
-  ]), [listings, area, beds, baths, zip, priceRange, homeType]);
+  ]), [listings, city, area, beds, baths, zip, priceRange, homeType]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const filtered = useMemo(() => {
@@ -567,7 +581,7 @@ export default function RenterHome() {
         (a, b) =>
           (a.status === "coming_soon" ? 1 : 0) - (b.status === "coming_soon" ? 1 : 0),
       );
-  }, [listings, area, beds, baths, zip, priceRange, homeType]);
+  }, [listings, city, area, beds, baths, zip, priceRange, homeType]);
 
   // Free-text search from a `?q=` landing (Sitelinks Search Box → /?q={term}).
   // Layered on top of the faceted filters without touching them.
@@ -589,12 +603,14 @@ export default function RenterHome() {
   const availableCount = listings.filter((l) => l.status === "available").length;
 
   const priceActive = priceRange[0] > PRICE_MIN || priceRange[1] < PRICE_MAX;
+  // City counts as "active" only when it moved OFF the Cleveland default.
   const hasActiveFilters =
-    area !== "all" || beds !== "any" || baths !== "any" || zip !== "all" ||
-    priceActive || homeType !== "any";
+    city !== DEFAULT_CITY || area !== "all" || beds !== "any" || baths !== "any" ||
+    zip !== "all" || priceActive || homeType !== "any";
 
   // Badge for the mobile "Filters" button — how many filters are active.
   const activeFilterCount =
+    (city !== DEFAULT_CITY ? 1 : 0) +
     (area !== "all" ? 1 : 0) +
     (beds !== "any" ? 1 : 0) +
     (baths !== "any" ? 1 : 0) +
@@ -624,6 +640,7 @@ export default function RenterHome() {
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
   const resetFilters = () => {
+    setCity(DEFAULT_CITY); // back to the Cleveland default, not "all"
     setArea("all"); setBeds("any"); setBaths("any"); setZip("all");
     setPriceRange([PRICE_MIN, PRICE_MAX]);
     setHomeType("any");
@@ -713,7 +730,10 @@ export default function RenterHome() {
         </div>
 
         {/* ── Desktop inline row ── */}
-        <div className="w-full px-6 py-4 hidden lg:flex flex-wrap lg:flex-nowrap items-end gap-x-5 gap-y-3">
+        {/* justify-between spreads leftover width evenly between the controls
+            on wide screens — without it, all the slack pooled into one big
+            blank gap between "Home type" and "Results". */}
+        <div className="w-full px-6 py-4 hidden lg:flex flex-wrap lg:flex-nowrap lg:justify-between items-end gap-x-5 gap-y-3">
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2 shrink-0 h-12 self-end">
             <img
@@ -725,6 +745,19 @@ export default function RenterHome() {
             />
             <span className="font-bold text-foreground hidden 2xl:inline whitespace-nowrap">Rent Finder Cleveland</span>
           </Link>
+
+          {/* City — Cleveland by default; the portfolio spans 5 cities.
+              Wide enough for "East Cleveland" without truncating. */}
+          <div className="flex flex-col gap-1 min-w-0 w-[190px] shrink-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">City</span>
+            <Select value={city} onValueChange={setCity}>
+              <SelectTrigger className="h-12 w-full rounded-full border-transparent bg-card px-5 text-[15px] font-semibold shadow-sm transition-shadow hover:shadow-md"><SelectValue /></SelectTrigger>
+              <SelectContent className="min-w-[210px] rounded-2xl border-stone-200 p-1.5 shadow-xl">
+                {cityOptions.map((c) => <SelectItem key={c} value={c} className="rounded-lg text-[15px] py-2.5">{c}</SelectItem>)}
+                <SelectItem value="all" className="rounded-lg text-[15px] py-2.5">All cities</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Area */}
           <div className="flex flex-col gap-1 min-w-0 w-[180px] shrink-0">
@@ -846,7 +879,7 @@ export default function RenterHome() {
 
           {/* Live results + clear — Clear (✕) always reserves space so the
               bar never grows a second row when filters activate */}
-          <div className="flex flex-col gap-1 shrink-0 items-start ml-auto">
+          <div className="flex flex-col gap-1 shrink-0 items-start">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Results</span>
             <div className="h-12 flex items-center gap-2">
               <span className="text-[15px] font-extrabold text-primary whitespace-nowrap tabular-nums">
@@ -880,6 +913,18 @@ export default function RenterHome() {
           </SheetHeader>
 
           <div className="space-y-5 pt-2">
+            {/* City — full width (Cleveland default) */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">City</span>
+              <Select value={city} onValueChange={setCity}>
+                <SelectTrigger className="h-12 w-full rounded-full border-border/60 bg-card px-5 text-[15px] font-semibold shadow-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {cityOptions.map((c) => <SelectItem key={c} value={c} className="text-[15px] py-2.5">{c}</SelectItem>)}
+                  <SelectItem value="all" className="text-[15px] py-2.5">All cities</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Area + ZIP side by side (big touch targets) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
