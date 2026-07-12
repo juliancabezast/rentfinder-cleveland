@@ -8,6 +8,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -165,6 +172,12 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [hideEmptyDays, setHideEmptyDays] = useState(false);
   const [missingReportDates, setMissingReportDates] = useState<string[]>([]);
+
+  // Drag-to-select range state (logic lives after allTimes/visibleDays exist)
+  const [drag, setDrag] = useState<{ a: { d: number; t: number }; b: { d: number; t: number } } | null>(null);
+  const draggingRef = useRef(false);
+  const movedRef = useRef(false);
+  const [rangeSel, setRangeSel] = useState<{ dates: string[]; times: string[] } | null>(null);
 
   // A ticking "now" so the red line moves without a full refetch.
   const [now, setNow] = useState(() => new Date());
@@ -582,6 +595,94 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     setNowTop(top);
   }, [now, nowMinutes, loading, visibleDays, allTimes, todayStr, slotData]);
 
+  // ── Drag-to-select a rectangular range of cells, then open in one shot ──
+  // Press on a future cell, drag to another, release → a dialog asks which
+  // cities to open across the whole day×time rectangle (booked/past excluded).
+  const beginDrag = (d: number, t: number) => {
+    draggingRef.current = true;
+    movedRef.current = false;
+    setDrag({ a: { d, t }, b: { d, t } });
+  };
+  const extendDrag = (d: number, t: number) => {
+    if (!draggingRef.current) return;
+    setDrag((prev) => {
+      if (!prev || (prev.b.d === d && prev.b.t === t)) return prev;
+      movedRef.current = true;
+      return { ...prev, b: { d, t } };
+    });
+  };
+  const inDrag = (d: number, t: number) => {
+    if (!drag) return false;
+    const dMin = Math.min(drag.a.d, drag.b.d), dMax = Math.max(drag.a.d, drag.b.d);
+    const tMin = Math.min(drag.a.t, drag.b.t), tMax = Math.max(drag.a.t, drag.b.t);
+    return d >= dMin && d <= dMax && t >= tMin && t <= tMax;
+  };
+  // Global pointerup ends the drag; a real drag (moved) opens the range dialog.
+  useEffect(() => {
+    const onUp = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      setDrag((cur) => {
+        if (cur && movedRef.current) {
+          const dMin = Math.min(cur.a.d, cur.b.d), dMax = Math.max(cur.a.d, cur.b.d);
+          const tMin = Math.min(cur.a.t, cur.b.t), tMax = Math.max(cur.a.t, cur.b.t);
+          setRangeSel({
+            dates: visibleDays.slice(dMin, dMax + 1).map((x) => x.date),
+            times: allTimes.slice(tMin, tMax + 1),
+          });
+        }
+        return null; // clear highlight
+      });
+      // keep movedRef true through the trailing click (so the cell popover is
+      // swallowed), then reset on the next tick
+      setTimeout(() => { movedRef.current = false; }, 0);
+    };
+    window.addEventListener("pointerup", onUp);
+    return () => window.removeEventListener("pointerup", onUp);
+  }, [visibleDays, allTimes]);
+
+  // ── Open a rectangular RANGE (dates × times) for the chosen cities ──
+  const openRange = async (dates: string[], times: string[], cities: string[]) => {
+    if (!orgId || cities.length === 0 || dates.length === 0 || times.length === 0) return;
+    setBusyKey("range");
+    const propIds = cities.flatMap((c) => citiesWithProps.get(c) || []);
+    // Booked (date,time) pairs across the range — never re-open those.
+    const { data: bookedRows } = await supabase
+      .from("showing_available_slots")
+      .select("slot_date, slot_time")
+      .eq("organization_id", orgId)
+      .in("slot_date", dates)
+      .eq("is_booked", true);
+    const bookedSet = new Set((bookedRows || []).map((r: any) => `${r.slot_date}|${r.slot_time}`));
+
+    const rows: any[] = [];
+    let skipped = 0;
+    for (const date of dates) {
+      for (const time of times) {
+        const isPastPair = date < todayStr || (date === todayStr && timeToMinutes(time) + 30 <= nowMinutes);
+        if (isPastPair || bookedSet.has(`${date}|${time}`)) { skipped++; continue; }
+        for (const property_id of propIds) {
+          rows.push({ organization_id: orgId, property_id, slot_date: date, slot_time: time, is_enabled: true });
+        }
+      }
+    }
+    if (rows.length === 0) {
+      toast({ title: "Nothing to open", description: "Every cell in that range is booked or in the past." });
+      setBusyKey(null); setRangeSel(null); return;
+    }
+    for (let i = 0; i < rows.length; i += 200) {
+      const { error } = await supabase
+        .from("showing_available_slots")
+        .upsert(rows.slice(i, i + 200), { onConflict: "organization_id,property_id,slot_date,slot_time" });
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setBusyKey(null); return; }
+    }
+    const cellCount = dates.length * times.length - skipped;
+    toast({ title: "Range opened", description: `${cellCount} time slots × ${propIds.length} homes${skipped > 0 ? ` (${skipped} skipped: booked/past)` : ""}.` });
+    await fetchSlots();
+    setBusyKey(null);
+    setRangeSel(null);
+  };
+
   return (
     <div className="space-y-3">
       {/* Missing report alerts */}
@@ -649,7 +750,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="relative overflow-x-auto" ref={gridRef}>
-              <table className="w-full min-w-[640px] text-xs border-separate border-spacing-0">
+              <table className="w-full min-w-[640px] text-xs border-separate border-spacing-0 select-none">
                 {/* Column headers (days) — click to open/close a whole day */}
                 <thead>
                   <tr>
@@ -708,7 +809,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
                 {/* Time rows */}
                 <tbody className="relative">
-                  {allTimes.map((time) => (
+                  {allTimes.map((time, tIdx) => (
                     <tr
                       key={time}
                       ref={(el) => {
@@ -719,7 +820,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                       <td className="p-2 font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-white z-20">
                         {formatTime(time)}
                       </td>
-                      {visibleDays.map((day) => {
+                      {visibleDays.map((day, dIdx) => {
                         const ts = day.timeSlots.get(time);
                         const isToday = todayStr === day.date;
                         const past = isPastCell(day.date, time);
@@ -728,7 +829,8 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                         return (
                           <td
                             key={day.date}
-                            className={`p-1 text-center align-middle ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
+                            onPointerEnter={() => extendDrag(dIdx, tIdx)}
+                            className={`p-1 text-center align-middle ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""} ${inDrag(dIdx, tIdx) ? "bg-[#4F46E5]/15" : ""}`}
                           >
                             <SlotCell
                               day={day}
@@ -738,6 +840,11 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                               cellBusy={cellBusy}
                               cityNames={cityNames}
                               cityCounts={cityCounts}
+                              dayIdx={dIdx}
+                              timeIdx={tIdx}
+                              highlighted={inDrag(dIdx, tIdx)}
+                              movedRef={movedRef}
+                              onDragBegin={beginDrag}
                               onOpen={(cities) => openSlot(day.date, time, cities)}
                               onClose={() => closeSlot(day.date, time)}
                               onShowingClick={onShowingClick}
@@ -763,8 +870,41 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" /> Booked</div>
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-green-100 border border-green-300" /> Completed</div>
         <div className="flex items-center gap-1.5"><span className="inline-block w-3 border-t-2 border-red-500" /> Now</div>
-        <div className="ml-auto text-[10px]">Click a cell to open, close, or view</div>
+        <div className="ml-auto text-[10px]">Click a cell — or drag across a range — to open</div>
       </div>
+
+      {/* Drag-selected RANGE → open dialog */}
+      <Dialog open={!!rangeSel} onOpenChange={(o) => { if (!o) setRangeSel(null); }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Open a range of times</DialogTitle>
+            <DialogDescription>
+              {rangeSel && (() => {
+                const d0 = rangeSel.dates[0], d1 = rangeSel.dates[rangeSel.dates.length - 1];
+                const t0 = rangeSel.times[0], t1 = rangeSel.times[rangeSel.times.length - 1];
+                const dayLabel = d0 === d1
+                  ? format(parseISO(d0), "EEE, MMM d")
+                  : `${format(parseISO(d0), "EEE MMM d")} – ${format(parseISO(d1), "EEE MMM d")}`;
+                const timeLabel = t0 === t1 ? formatTime(t0) : `${formatTime(t0)} – ${formatTime(t1)}`;
+                return <>{dayLabel} · {timeLabel} — {rangeSel.dates.length * rangeSel.times.length} time slots</>;
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="pt-1">
+            <p className="text-[11px] text-muted-foreground font-medium mb-2">Open these times for…</p>
+            {rangeSel && (
+              <CityPicker
+                cities={cityNames}
+                counts={cityCounts}
+                busy={busyKey === "range"}
+                defaultAll
+                actionLabel="Open range"
+                onConfirm={(cities) => openRange(rangeSel.dates, rangeSel.times, cities)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -788,10 +928,15 @@ const SlotCell: React.FC<{
   cellBusy: boolean;
   cityNames: string[];
   cityCounts: Map<string, number>;
+  dayIdx: number;
+  timeIdx: number;
+  highlighted: boolean;
+  movedRef: React.MutableRefObject<boolean>;
+  onDragBegin: (d: number, t: number) => void;
   onOpen: (cities: string[]) => void;
   onClose: () => void;
   onShowingClick?: (id: string) => void;
-}> = ({ day, time, ts, past, cellBusy, cityNames, cityCounts, onOpen, onClose, onShowingClick }) => {
+}> = ({ day, time, ts, past, cellBusy, cityNames, cityCounts, dayIdx, timeIdx, highlighted, movedRef, onDragBegin, onOpen, onClose, onShowingClick }) => {
   const openCount = ts?.properties.length || 0;
   const bookedCount = ts?.bookedCount || 0;
   const cancelled = ts?.cancelledShowings || [];
@@ -820,7 +965,17 @@ const SlotCell: React.FC<{
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${cellStyle}`}>
+        <button
+          className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${cellStyle} ${highlighted ? "ring-2 ring-[#4F46E5] ring-offset-1" : ""}`}
+          // Mouse drag to select a range (only when startable: future, not booked)
+          onPointerDown={(e) => {
+            if (e.pointerType === "mouse" && e.button === 0 && !isBooked) onDragBegin(dayIdx, timeIdx);
+          }}
+          // Swallow the click that ends a drag so this cell's popover doesn't open
+          onClick={(e) => {
+            if (movedRef.current) { e.preventDefault(); e.stopPropagation(); }
+          }}
+        >
           {cellBusy ? (
             <Loader2 className="h-3 w-3 mx-auto animate-spin" />
           ) : isBooked ? (
