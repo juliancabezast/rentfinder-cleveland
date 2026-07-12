@@ -212,7 +212,7 @@ const TYPE_OPTS = [
 
 /** Shared style for the popover trigger pills in the sticky filter bar. */
 const FILTER_PILL =
-  "h-12 rounded-full border border-transparent bg-card px-5 text-[15px] font-semibold shadow-sm transition-shadow hover:shadow-md inline-flex items-center justify-between gap-2 whitespace-nowrap";
+  "h-12 w-full min-w-0 rounded-full border border-transparent bg-card px-5 text-[15px] font-semibold shadow-sm transition-shadow hover:shadow-md inline-flex items-center justify-between gap-2 whitespace-nowrap";
 
 interface SegmentedOption {
   value: string;
@@ -730,10 +730,10 @@ export default function RenterHome() {
         </div>
 
         {/* ── Desktop inline row ── */}
-        {/* justify-between spreads leftover width evenly between the controls
-            on wide screens — without it, all the slack pooled into one big
-            blank gap between "Home type" and "Results". */}
-        <div className="w-full px-6 py-4 hidden lg:flex flex-wrap lg:flex-nowrap lg:justify-between items-end gap-x-5 gap-y-3">
+        {/* Every control is flex-1: the pills THEMSELVES stretch to fill the
+            row, so there is never dead space between them — only the fixed
+            gap-x-5 breathing room. */}
+        <div className="w-full px-6 py-4 hidden lg:flex flex-wrap lg:flex-nowrap items-end gap-x-5 gap-y-3">
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2 shrink-0 h-12 self-end">
             <img
@@ -746,9 +746,8 @@ export default function RenterHome() {
             <span className="font-bold text-foreground hidden 2xl:inline whitespace-nowrap">Rent Finder Cleveland</span>
           </Link>
 
-          {/* City — Cleveland by default; the portfolio spans 5 cities.
-              Wide enough for "East Cleveland" without truncating. */}
-          <div className="flex flex-col gap-1 min-w-0 w-[190px] shrink-0">
+          {/* City — Cleveland by default; the portfolio spans 5 cities */}
+          <div className="flex flex-col gap-1 flex-1 min-w-[165px]">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">City</span>
             <Select value={city} onValueChange={setCity}>
               <SelectTrigger className="h-12 w-full rounded-full border-transparent bg-card px-5 text-[15px] font-semibold shadow-sm transition-shadow hover:shadow-md"><SelectValue /></SelectTrigger>
@@ -760,7 +759,7 @@ export default function RenterHome() {
           </div>
 
           {/* Area */}
-          <div className="flex flex-col gap-1 min-w-0 w-[180px] shrink-0">
+          <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Area</span>
             <Select value={area} onValueChange={setArea}>
               <SelectTrigger className="h-12 w-full rounded-full border-transparent bg-card px-5 text-[15px] font-semibold shadow-sm transition-shadow hover:shadow-md"><SelectValue /></SelectTrigger>
@@ -772,7 +771,7 @@ export default function RenterHome() {
           </div>
 
           {/* ZIP */}
-          <div className="flex flex-col gap-1 min-w-0 w-[140px] shrink-0">
+          <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">ZIP code</span>
             <Select value={zip} onValueChange={setZip}>
               <SelectTrigger className="h-12 w-full rounded-full border-transparent bg-card px-5 text-[15px] font-semibold shadow-sm transition-shadow hover:shadow-md"><SelectValue /></SelectTrigger>
@@ -784,7 +783,7 @@ export default function RenterHome() {
           </div>
 
           {/* Price — popover panel (reference style: title + Done, no extras) */}
-          <div className="flex flex-col gap-1 shrink-0">
+          <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Price</span>
             <Popover open={priceOpen} onOpenChange={setPriceOpen}>
               <PopoverTrigger asChild>
@@ -824,7 +823,7 @@ export default function RenterHome() {
           </div>
 
           {/* Rooms — Bedrooms + Bathrooms segmented rows (reference style) */}
-          <div className="flex flex-col gap-1 shrink-0">
+          <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Rooms</span>
             <Popover open={roomsOpen} onOpenChange={setRoomsOpen}>
               <PopoverTrigger asChild>
@@ -855,7 +854,7 @@ export default function RenterHome() {
           </div>
 
           {/* Property type — segmented row (reference style) */}
-          <div className="flex flex-col gap-1 shrink-0">
+          <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5">Home type</span>
             <Popover open={typeOpen} onOpenChange={setTypeOpen}>
               <PopoverTrigger asChild>
