@@ -512,6 +512,51 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     setBusyKey(null);
   };
 
+  // ── SET the exact set of open cities for a time (per-city on/off) ────
+  // Used by the open-cell popover so a checkbox tells the TRUTH: checked =
+  // that city is open here. Applying opens the newly-checked cities and
+  // closes the newly-unchecked ones — the per-city control the old "add"
+  // picker hid (a de-checked already-open city read as "off" but stayed on).
+  const setSlotCities = async (date: string, time: string, targetCities: string[]) => {
+    if (!orgId) return;
+    const key = `${date}-${time}`;
+    setBusyKey(key);
+    if (await timeHasBooking(date, time)) {
+      toast({ title: "Already booked", description: `${formatTime(time)} · ${format(parseISO(date), "MMM d")} has a booking — can't change it.`, variant: "destructive" });
+      await fetchSlots(); setBusyKey(null); return;
+    }
+    const target = new Set(targetCities);
+    const enableIds: string[] = [];
+    const disableIds: string[] = [];
+    for (const c of cityNames) {
+      const ids = citiesWithProps.get(c) || [];
+      (target.has(c) ? enableIds : disableIds).push(...ids);
+    }
+    // Open the checked cities (upsert), close the unchecked ones (unbooked).
+    if (enableIds.length) {
+      const rows = enableIds.map((property_id) => ({
+        organization_id: orgId, property_id, slot_date: date, slot_time: time, is_enabled: true,
+      }));
+      for (let i = 0; i < rows.length; i += 200) {
+        const { error } = await supabase
+          .from("showing_available_slots")
+          .upsert(rows.slice(i, i + 200), { onConflict: "organization_id,property_id,slot_date,slot_time" });
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setBusyKey(null); return; }
+      }
+    }
+    if (disableIds.length) {
+      const { error } = await supabase
+        .from("showing_available_slots")
+        .update({ is_enabled: false, updated_at: new Date().toISOString() })
+        .eq("organization_id", orgId).eq("slot_date", date).eq("slot_time", time)
+        .eq("is_booked", false).in("property_id", disableIds);
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setBusyKey(null); return; }
+    }
+    toast({ title: "Updated", description: `${formatTime(time)} · ${format(parseISO(date), "MMM d")} — ${target.size} ${target.size === 1 ? "city" : "cities"} open.` });
+    await fetchSlots();
+    setBusyKey(null);
+  };
+
   // ── Bulk: open a whole DAY (all ladder times) for cities ────────────
   const openDay = async (date: string, cities: string[]) => {
     if (!orgId || cities.length === 0) return;
@@ -869,6 +914,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                               movedRef={movedRef}
                               onDragBegin={beginDrag}
                               onOpen={(cities) => openSlot(day.date, time, cities)}
+                              onSetCities={(cities) => setSlotCities(day.date, time, cities)}
                               onClose={() => closeSlot(day.date, time)}
                               onShowingClick={onShowingClick}
                             />
@@ -957,9 +1003,10 @@ const SlotCell: React.FC<{
   movedRef: React.MutableRefObject<boolean>;
   onDragBegin: (d: number, t: number) => void;
   onOpen: (cities: string[]) => void;
+  onSetCities: (cities: string[]) => void;
   onClose: () => void;
   onShowingClick?: (id: string) => void;
-}> = ({ day, time, ts, past, cellBusy, cityNames, cityCounts, dayIdx, timeIdx, highlighted, movedRef, onDragBegin, onOpen, onClose, onShowingClick }) => {
+}> = ({ day, time, ts, past, cellBusy, cityNames, cityCounts, dayIdx, timeIdx, highlighted, movedRef, onDragBegin, onOpen, onSetCities, onClose, onShowingClick }) => {
   const openCount = ts?.properties.length || 0;
   const bookedCount = ts?.bookedCount || 0;
   const cancelled = ts?.cancelledShowings || [];
@@ -1091,29 +1138,23 @@ const SlotCell: React.FC<{
             </p>
           )}
 
-          {/* Controls: Open (with cities) / add more cities / Close */}
+          {/* Controls: per-city on/off (checkbox tells the truth: checked =
+              currently open) + close-all. */}
           {isOpen ? (
             <>
-              {/* Add MORE cities to an already-open time (same day can serve
-                  several cities). Defaults to the cities not yet open here. */}
-              {(() => {
-                const openCities = new Set(ts!.properties.map((p) => p.property_city).filter(Boolean));
-                const notOpen = cityNames.filter((c) => !openCities.has(c));
-                if (notOpen.length === 0) return null;
-                return (
-                  <div className="pt-1 border-t">
-                    <p className="text-[10px] text-muted-foreground font-medium mb-1.5">Also open for…</p>
-                    <CityPicker
-                      cities={cityNames}
-                      counts={cityCounts}
-                      busy={cellBusy}
-                      initialSelected={notOpen}
-                      actionLabel="Add cities"
-                      onConfirm={onOpen}
-                    />
-                  </div>
-                );
-              })()}
+              <div className="pt-1 border-t">
+                <p className="text-[10px] text-muted-foreground font-medium mb-1.5">
+                  Cities open here — <span className="text-emerald-600">check = open</span>, uncheck to close
+                </p>
+                <CityPicker
+                  cities={cityNames}
+                  counts={cityCounts}
+                  busy={cellBusy}
+                  initialSelected={[...new Set(ts!.properties.map((p) => p.property_city).filter(Boolean))]}
+                  actionLabel="Update"
+                  onConfirm={onSetCities}
+                />
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -1122,7 +1163,7 @@ const SlotCell: React.FC<{
                 onClick={onClose}
               >
                 {cellBusy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <X className="h-3 w-3 mr-1" />}
-                Close this time
+                Close this time (all cities)
               </Button>
             </>
           ) : !isBooked ? (
