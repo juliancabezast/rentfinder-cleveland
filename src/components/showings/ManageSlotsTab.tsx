@@ -198,7 +198,9 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const [drag, setDrag] = useState<{ a: { d: number; t: number }; b: { d: number; t: number } } | null>(null);
   const draggingRef = useRef(false);
   const movedRef = useRef(false);
-  const [rangeSel, setRangeSel] = useState<{ dates: string[]; times: string[] } | null>(null);
+  // openCities = cities already open somewhere in the range (pre-checked so the
+  // dialog can CLOSE them too, not just add — set-state, like the single cell).
+  const [rangeSel, setRangeSel] = useState<{ dates: string[]; times: string[]; openCities: string[] } | null>(null);
 
   // A ticking "now" so the red line moves without a full refetch.
   const [now, setNow] = useState(() => new Date());
@@ -701,10 +703,19 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         if (cur && movedRef.current) {
           const dMin = Math.min(cur.a.d, cur.b.d), dMax = Math.max(cur.a.d, cur.b.d);
           const tMin = Math.min(cur.a.t, cur.b.t), tMax = Math.max(cur.a.t, cur.b.t);
-          setRangeSel({
-            dates: visibleDays.slice(dMin, dMax + 1).map((x) => x.date),
-            times: allTimes.slice(tMin, tMax + 1),
-          });
+          const days = visibleDays.slice(dMin, dMax + 1);
+          const dates = days.map((x) => x.date);
+          const times = allTimes.slice(tMin, tMax + 1);
+          // Which cities are already open anywhere in the rectangle → pre-check
+          const openCities = new Set<string>();
+          for (const day of days) {
+            for (const time of times) {
+              day.timeSlots.get(time)?.properties.forEach((p) => {
+                if (p.property_city) openCities.add(p.property_city);
+              });
+            }
+          }
+          setRangeSel({ dates, times, openCities: [...openCities] });
         }
         return null; // clear highlight
       });
@@ -716,12 +727,18 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     return () => window.removeEventListener("pointerup", onUp);
   }, [visibleDays, allTimes]);
 
-  // ── Open a rectangular RANGE (dates × times) for the chosen cities ──
-  const openRange = async (dates: string[], times: string[], cities: string[]) => {
-    if (!orgId || cities.length === 0 || dates.length === 0 || times.length === 0) return;
+  // ── SET the open cities across a rectangular RANGE (dates × times) ──
+  // Set-state, like the single cell: checked cities are OPENED everywhere in
+  // the range, unchecked cities are CLOSED everywhere. Booked/past cells are
+  // never touched. Passing an empty target closes the whole range.
+  const applyRange = async (dates: string[], times: string[], cities: string[]) => {
+    if (!orgId || dates.length === 0 || times.length === 0) return;
     setBusyKey("range");
-    const propIds = cities.flatMap((c) => citiesWithProps.get(c) || []);
-    // Booked (date,time) pairs across the range — never re-open those.
+    const target = new Set(cities);
+    const enableIds = cityNames.filter((c) => target.has(c)).flatMap((c) => citiesWithProps.get(c) || []);
+    const disableIds = cityNames.filter((c) => !target.has(c)).flatMap((c) => citiesWithProps.get(c) || []);
+
+    // Booked (date,time) pairs in the range — never open OR close those.
     const { data: bookedRows } = await supabase
       .from("showing_available_slots")
       .select("slot_date, slot_time")
@@ -730,29 +747,51 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       .eq("is_booked", true);
     const bookedSet = new Set((bookedRows || []).map((r: any) => `${r.slot_date}|${r.slot_time}`));
 
-    const rows: any[] = [];
+    // Actionable (date,time) pairs: not booked, not past.
+    const pairs: [string, string][] = [];
     let skipped = 0;
     for (const date of dates) {
       for (const time of times) {
-        const isPastPair = date < todayStr || (date === todayStr && timeToMinutes(time) + 30 <= nowMinutes);
-        if (isPastPair || bookedSet.has(`${date}|${time}`)) { skipped++; continue; }
-        for (const property_id of propIds) {
+        const pastPair = date < todayStr || (date === todayStr && timeToMinutes(time) + 30 <= nowMinutes);
+        if (pastPair || bookedSet.has(`${date}|${time}`)) { skipped++; continue; }
+        pairs.push([date, time]);
+      }
+    }
+    if (pairs.length === 0) {
+      toast({ title: "Nothing to change", description: "Every cell in that range is booked or in the past." });
+      setBusyKey(null); setRangeSel(null); return;
+    }
+
+    // OPEN checked cities across the actionable pairs (upsert).
+    if (enableIds.length) {
+      const rows: any[] = [];
+      for (const [date, time] of pairs) {
+        for (const property_id of enableIds) {
           rows.push({ organization_id: orgId, property_id, slot_date: date, slot_time: time, is_enabled: true });
         }
       }
+      for (let i = 0; i < rows.length; i += 200) {
+        const { error } = await supabase
+          .from("showing_available_slots")
+          .upsert(rows.slice(i, i + 200), { onConflict: "organization_id,property_id,slot_date,slot_time" });
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setBusyKey(null); return; }
+      }
     }
-    if (rows.length === 0) {
-      toast({ title: "Nothing to open", description: "Every cell in that range is booked or in the past." });
-      setBusyKey(null); setRangeSel(null); return;
-    }
-    for (let i = 0; i < rows.length; i += 200) {
+    // CLOSE unchecked cities across the whole rectangle (unbooked rows only).
+    if (disableIds.length) {
       const { error } = await supabase
         .from("showing_available_slots")
-        .upsert(rows.slice(i, i + 200), { onConflict: "organization_id,property_id,slot_date,slot_time" });
+        .update({ is_enabled: false, updated_at: new Date().toISOString() })
+        .eq("organization_id", orgId)
+        .in("slot_date", dates).in("slot_time", times)
+        .eq("is_booked", false).in("property_id", disableIds);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setBusyKey(null); return; }
     }
-    const cellCount = dates.length * times.length - skipped;
-    toast({ title: "Range opened", description: `${cellCount} time slots × ${propIds.length} homes.${skipped > 0 ? ` (${skipped} already-booked/past time${skipped === 1 ? "" : "s"} left untouched.)` : ""}` });
+
+    toast({
+      title: "Range updated",
+      description: `${pairs.length} time slots — ${target.size} ${target.size === 1 ? "city" : "cities"} open.${skipped > 0 ? ` (${skipped} booked/past left untouched.)` : ""}`,
+    });
     await fetchSlots();
     setBusyKey(null);
     setRangeSel(null);
@@ -949,11 +988,11 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         <div className="ml-auto text-[10px]">Click a cell — or drag across a range — to open</div>
       </div>
 
-      {/* Drag-selected RANGE → open dialog */}
+      {/* Drag-selected RANGE → set-state dialog (open checked, close unchecked) */}
       <Dialog open={!!rangeSel} onOpenChange={(o) => { if (!o) setRangeSel(null); }}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Open a range of times</DialogTitle>
+            <DialogTitle>Cities open for this range</DialogTitle>
             <DialogDescription>
               {rangeSel && (() => {
                 const d0 = rangeSel.dates[0], d1 = rangeSel.dates[rangeSel.dates.length - 1];
@@ -966,19 +1005,35 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
               })()}
             </DialogDescription>
           </DialogHeader>
-          <div className="pt-1">
-            <p className="text-[11px] text-muted-foreground font-medium mb-2">Open these times for…</p>
-            {rangeSel && (
+          {rangeSel && (
+            <div className="pt-1 space-y-2">
+              <p className="text-[11px] text-muted-foreground font-medium">
+                <span className="text-emerald-600">Check = open</span> across the range, uncheck to close.
+                {rangeSel.openCities.length === 0 && " (Nothing is open here yet.)"}
+              </p>
               <CityPicker
+                // key resets the checkbox state when a new range is selected
+                key={`${rangeSel.dates[0]}-${rangeSel.times[0]}-${rangeSel.dates.length}x${rangeSel.times.length}`}
                 cities={cityNames}
                 counts={cityCounts}
                 busy={busyKey === "range"}
-                defaultAll
-                actionLabel="Open range"
-                onConfirm={(cities) => openRange(rangeSel.dates, rangeSel.times, cities)}
+                initialSelected={rangeSel.openCities.length > 0 ? rangeSel.openCities : cityNames}
+                actionLabel="Apply to range"
+                onConfirm={(cities) => applyRange(rangeSel.dates, rangeSel.times, cities)}
               />
-            )}
-          </div>
+              {rangeSel.openCities.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                  disabled={busyKey === "range"}
+                  onClick={() => applyRange(rangeSel.dates, rangeSel.times, [])}
+                >
+                  <X className="h-3 w-3 mr-1" /> Close all in range
+                </Button>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
