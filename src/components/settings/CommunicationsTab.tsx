@@ -615,16 +615,19 @@ export const CommunicationsTab: React.FC = () => {
                 disabled={showingsBotSaving}
                 onClick={async () => {
                   setShowingsBotSaving(true);
-                  // Stored in organization_credentials (admin-only RLS), not
-                  // organization_settings, so non-admin org members can't read the token.
-                  const { error: showingsBotErr } = await supabase
-                    .from('organization_credentials')
-                    .update({
-                      telegram_showings_bot_token: showingsBotToken,
-                      telegram_showings_chat_id: showingsChatId,
-                    })
-                    .eq('organization_id', userRecord!.organization_id);
-                  if (showingsBotErr) {
+                  // Secrets are written via the manage-org-credentials edge
+                  // function; the client no longer has direct RLS access.
+                  const fieldsToSave: Record<string, string> = {
+                    telegram_showings_chat_id: showingsChatId,
+                  };
+                  if (showingsBotToken) {
+                    fieldsToSave.telegram_showings_bot_token = showingsBotToken;
+                  }
+                  const { data, error: showingsBotErr } = await supabase.functions.invoke(
+                    'manage-org-credentials',
+                    { body: { action: 'update_fields', fields: fieldsToSave } }
+                  );
+                  if (showingsBotErr || data?.error) {
                     toast.error('Failed to save showings bot');
                   } else {
                     toast.success('Showings bot saved');
