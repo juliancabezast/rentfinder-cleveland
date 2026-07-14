@@ -139,13 +139,15 @@ async function buildShowingsAgenda(supabase: any, organizationId: string): Promi
     `)
     .eq("organization_id", organizationId)
     .gte("scheduled_at", nowIso)
-    .not("status", "in", "(cancelled,no_show,completed)")
+    // Exclude reschedule-pending / dead states — only real confirmed upcoming ones.
+    .not("status", "in", "(cancelled,no_show,completed,rescheduled)")
     .order("scheduled_at", { ascending: true })
     .limit(60);
 
   if (error) return `❌ No pude leer los showings: ${escapeHtml(error.message)}`;
   const list = (shows as any[]) || [];
-  if (list.length === 0) return `📅 <b>No hay showings próximos agendados.</b>`;
+  // Nobody has a confirmed upcoming showing → show open availability instead.
+  if (list.length === 0) return await buildAvailability(supabase, organizationId);
 
   // Group by NY-day.
   const groups = new Map<string, any[]>();
@@ -163,6 +165,66 @@ async function buildShowingsAgenda(supabase: any, organizationId: string): Promi
     for (const s of items) out.push(renderShowing(s));
   }
   return out.join("\n");
+}
+
+// Fallback when there are no confirmed upcoming showings: summarize the open
+// availability (open, enabled, unbooked slots) by day — dates + time ranges.
+async function buildAvailability(supabase: any, organizationId: string): Promise<string> {
+  const todayNY = new Date().toLocaleDateString("en-CA", { timeZone: NY });
+  const slots: any[] = [];
+  const PAGE = 1000;
+  for (let from = 0; from < 60000; from += PAGE) {
+    const { data, error } = await supabase
+      .from("showing_available_slots")
+      .select("slot_date, slot_time, property_id")
+      .eq("organization_id", organizationId)
+      .eq("is_enabled", true).eq("is_booked", false)
+      .gte("slot_date", todayNY)
+      .order("slot_date", { ascending: true }).order("slot_time", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) return `📅 <b>No hay showings próximos.</b>\n❌ No pude leer la disponibilidad: ${escapeHtml(error.message)}`;
+    slots.push(...(data || []));
+    if (!data || data.length < PAGE) break;
+  }
+  if (slots.length === 0) {
+    return `📭 <b>No hay showings próximos ni horarios disponibles configurados.</b>`;
+  }
+
+  // Group by date → distinct times + distinct properties.
+  const byDate = new Map<string, { times: Set<string>; props: Set<string> }>();
+  for (const s of slots) {
+    const g = byDate.get(s.slot_date) || { times: new Set(), props: new Set() };
+    g.times.add(s.slot_time);
+    g.props.add(s.property_id);
+    byDate.set(s.slot_date, g);
+  }
+
+  const out: string[] = [
+    `📭 <b>No hay showings confirmados próximos.</b>`,
+    ``,
+    `🟢 <b>Disponibilidad abierta para agendar (${slots.length} horarios):</b>`,
+  ];
+  let days = 0;
+  for (const [date, g] of byDate) {
+    if (days++ >= 14) { out.push(`<i>…y más días con disponibilidad</i>`); break; }
+    const times = [...g.times].sort();
+    const range = times.length <= 10
+      ? times.map(fmtSlotTime).join(", ")
+      : `${fmtSlotTime(times[0])}–${fmtSlotTime(times[times.length - 1])}`;
+    const dayLabel = new Date(`${date}T12:00:00Z`).toLocaleDateString("es-ES", {
+      timeZone: NY, weekday: "short", day: "numeric", month: "short",
+    });
+    out.push(`• <b>${cap(dayLabel)}</b> — ${range} · ${g.props.size} props`);
+  }
+  return out.join("\n");
+}
+
+// "HH:MM:SS" → "10:00 AM"
+function fmtSlotTime(t: string): string {
+  const [h, m] = t.split(":").map((x) => parseInt(x, 10));
+  const ampm = h >= 12 ? "PM" : "AM";
+  const disp = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${disp}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
 function renderShowing(s: any): string {
