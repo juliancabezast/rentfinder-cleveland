@@ -119,18 +119,21 @@ export const CommunicationsTab: React.FC = () => {
   useEffect(() => {
     const fetchOrgData = async () => {
       if (!userRecord?.organization_id) return;
-      const [{ data: orgData }, { data: credsData }] = await Promise.all([
+      const [orgRes, credsRes] = await Promise.all([
         supabase
           .from('organizations')
           .select('owner_email')
           .eq('id', userRecord.organization_id)
           .single(),
-        supabase
-          .from('organization_credentials')
-          .select('telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id')
-          .eq('organization_id', userRecord.organization_id)
-          .single(),
+        supabase.functions.invoke('manage-org-credentials', {
+          body: { action: 'get_status' },
+        }),
       ]);
+      const orgData = orgRes.data;
+      const fields = (credsRes.data?.fields ?? {}) as Record<
+        string,
+        { configured: boolean; masked: string; value?: string }
+      >;
       if (orgData?.owner_email) {
         setOwnerEmail(orgData.owner_email);
         if (!notificationPrefs.notification_email) {
@@ -138,10 +141,14 @@ export const CommunicationsTab: React.FC = () => {
         }
       }
       setTelegramConfigured(
-        !!(credsData?.telegram_bot_token && credsData?.telegram_chat_id)
+        !!(fields.telegram_bot_token?.configured && fields.telegram_chat_id?.configured)
       );
-      if (credsData?.telegram_showings_bot_token) setShowingsBotToken(credsData.telegram_showings_bot_token);
-      if (credsData?.telegram_showings_chat_id) setShowingsChatId(credsData.telegram_showings_chat_id);
+      // Chat IDs are non-secret identifiers so they come back in cleartext.
+      // The bot token is a secret and only its masked form is available — leave
+      // the input empty so the admin re-enters it on save.
+      if (fields.telegram_showings_chat_id?.value) {
+        setShowingsChatId(fields.telegram_showings_chat_id.value);
+      }
     };
     fetchOrgData();
   }, [userRecord?.organization_id]);
