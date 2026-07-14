@@ -160,10 +160,6 @@ verify_jwt = false
 [functions.telegram-notify]
 verify_jwt = false
 
-# Daily morning Telegram digest (cron-driven)
-[functions.agent-daily-digest]
-verify_jwt = false
-
 # Zillow Property Import
 [functions.import-zillow-property]
 verify_jwt = false

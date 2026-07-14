@@ -34,13 +34,32 @@ interface NotifyBody {
   message?: string;
 }
 
+// Humanize raw DB source codes into friendly labels.
+const SOURCE_LABELS: Record<string, string> = {
+  hemlane_email: "Hemlane",
+  hemlane: "Hemlane",
+  website: "Website",
+  website_inquiry: "Website",
+  referral: "Referral",
+  manual: "Manual",
+  campaign: "Campaign",
+  csv_import: "CSV import",
+  sms: "SMS",
+};
+function friendlySource(raw: unknown): string {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+  return SOURCE_LABELS[s.toLowerCase()] || s;
+}
+
 // ── Event formatters (HTML) ──────────────────────────────────────────────────
 function formatEvent(event: string, p: Record<string, unknown>): string {
   const name = escapeHtml(p.name || p.full_name || "Unknown");
   const phone = p.phone ? `\n📞 ${escapeHtml(p.phone)}` : "";
   const voucher = p.has_voucher ? "\n🎟️ Section 8 voucher" : "";
   const interest = p.interest ? `\n🏠 ${escapeHtml(p.interest)}` : "";
-  const source = p.source ? ` · <i>${escapeHtml(p.source)}</i>` : "";
+  const src = friendlySource(p.source);
+  const source = src ? ` · <i>${escapeHtml(src)}</i>` : "";
 
   switch (event) {
     case "new_lead":
@@ -74,6 +93,13 @@ serve(async (req) => {
     const body = (await req.json().catch(() => ({}))) as NotifyBody;
 
     const channel = body.channel === "showings" ? "showings" : "report";
+
+    // New-lead alerts only fire when a phone is on file — a name-only lead
+    // (e.g. the first half of a Hemlane paired email) is not actionable yet.
+    if (body.event === "new_lead") {
+      const ph = String((body.payload as Record<string, unknown> | undefined)?.phone ?? "").trim();
+      if (!ph) return json({ ok: false, skipped: "no_phone" });
+    }
 
     // Resolve org (single tenant): explicit id → by slug → first org.
     let orgId = body.organization_id ?? null;

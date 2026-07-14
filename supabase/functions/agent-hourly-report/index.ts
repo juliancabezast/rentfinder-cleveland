@@ -422,6 +422,25 @@ serve(async (req: Request) => {
     // ── Agent queue ─────────────────────────────────────────────
     const agentQueueCount = agentQueueRes.count || 0;
 
+    // ── Needs attention (folds in the former daily-digest signal) ──
+    const dayAgoIso = new Date(now.getTime() - 86400000).toISOString();
+    const tomorrowStart = startOfDay(new Date(now.getTime() + 86400000), timezone);
+    const [hotAwaitingRes, backlogRes, todayShowingsRes] = await Promise.all([
+      supabase.from("leads").select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId).eq("is_demo", false)
+        .gte("lead_score", 85).not("status", "in", "(lost,converted)")
+        .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`),
+      supabase.from("leads").select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId).eq("is_demo", false)
+        .eq("status", "new").lt("created_at", dayAgoIso),
+      supabase.from("showings").select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId)
+        .gte("scheduled_at", sinceDay).lt("scheduled_at", tomorrowStart),
+    ]);
+    const hotAwaiting = hotAwaitingRes.count || 0;
+    const uncontactedBacklog = backlogRes.count || 0;
+    const todayScheduledShowings = todayShowingsRes.count || 0;
+
     // ══════════════════════════════════════════════════════════════
     // BUILD MESSAGE
     // ══════════════════════════════════════════════════════════════
@@ -456,9 +475,17 @@ serve(async (req: Request) => {
     lines.push(``, `━━ <b>TODAY</b> ━━`);
     lines.push(`👥 ${dayLeadCount} leads${dayHotLeads > 0 ? ` · 🔥 ${dayHotLeads} hot (80+)` : ""}`);
     lines.push(`📞 ${dayCallCount} calls · ${dayCallMin} min`);
-    lines.push(`🏠 ${dayShowingsCompleted} showings completed`);
+    lines.push(`🏠 ${todayScheduledShowings} showings scheduled · ${dayShowingsCompleted} completed`);
     lines.push(`✉️ ${dayEmailCount} emails · 💬 ${daySmsCount} SMS`);
     lines.push(`💰 Cost: $${dayTotalCost.toFixed(2)}`);
+
+    // ── NEEDS ATTENTION ─────────────────────────────────────────
+    if (hotAwaiting > 0 || uncontactedBacklog > 0) {
+      lines.push(``, `━━ <b>⚡ NEEDS ATTENTION</b> ━━`);
+      if (hotAwaiting > 0) lines.push(`🔥 ${hotAwaiting} hot leads awaiting contact (24h+)`);
+      if (uncontactedBacklog > 0) lines.push(`📋 ${uncontactedBacklog} uncontacted in backlog`);
+      lines.push(`<i>Escribe "update" para ver la agenda de showings</i>`);
+    }
 
     // ── WEEK / MONTH ────────────────────────────────────────────
     lines.push(``, `━━ <b>WEEK / MONTH</b> ━━`);
