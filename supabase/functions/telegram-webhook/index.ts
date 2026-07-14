@@ -176,7 +176,7 @@ async function buildAvailability(supabase: any, organizationId: string): Promise
   for (let from = 0; from < 60000; from += PAGE) {
     const { data, error } = await supabase
       .from("showing_available_slots")
-      .select("slot_date, slot_time, property_id")
+      .select("slot_date, slot_time, properties:property_id(city)")
       .eq("organization_id", organizationId)
       .eq("is_enabled", true).eq("is_booked", false)
       .gte("slot_date", todayNY)
@@ -190,19 +190,20 @@ async function buildAvailability(supabase: any, organizationId: string): Promise
     return `📭 <b>No hay showings próximos ni horarios disponibles configurados.</b>`;
   }
 
-  // Group by date → distinct times + distinct properties.
-  const byDate = new Map<string, { times: Set<string>; props: Set<string> }>();
+  // Group by date → distinct times (for the range) + distinct CITIES with agenda.
+  const byDate = new Map<string, { times: Set<string>; cities: Set<string> }>();
   for (const s of slots) {
-    const g = byDate.get(s.slot_date) || { times: new Set(), props: new Set() };
+    const g = byDate.get(s.slot_date) || { times: new Set(), cities: new Set() };
     g.times.add(s.slot_time);
-    g.props.add(s.property_id);
+    const city = s.properties?.city;
+    if (city) g.cities.add(city);
     byDate.set(s.slot_date, g);
   }
 
   const out: string[] = [
     `📭 <b>No hay showings confirmados próximos.</b>`,
     ``,
-    `🟢 <b>Disponibilidad abierta para agendar (${slots.length} horarios):</b>`,
+    `🟢 <b>Agenda abierta para reservar (por día y ciudad):</b>`,
   ];
   let days = 0;
   for (const [date, g] of byDate) {
@@ -211,10 +212,11 @@ async function buildAvailability(supabase: any, organizationId: string): Promise
     const range = times.length <= 10
       ? times.map(fmtSlotTime).join(", ")
       : `${fmtSlotTime(times[0])}–${fmtSlotTime(times[times.length - 1])}`;
+    const cities = [...g.cities].sort().join(", ") || "—";
     const dayLabel = new Date(`${date}T12:00:00Z`).toLocaleDateString("es-ES", {
       timeZone: NY, weekday: "short", day: "numeric", month: "short",
     });
-    out.push(`• <b>${cap(dayLabel)}</b> — ${range} · ${g.props.size} props`);
+    out.push(`• <b>${cap(dayLabel)}</b> — ${range}\n   📍 ${escapeHtml(cities)}`);
   }
   return out.join("\n");
 }
