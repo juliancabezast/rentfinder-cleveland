@@ -1112,6 +1112,28 @@ function buildPostShowingEmail(firstName: string, address: string): string {
   </div>`;
 }
 
+// ── Sheets backup (Apps Script webhook via agent-sheets-backup) ────────────────
+async function handleSheetsBackup(task: AgentTask): Promise<string> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  // Invoke WITHOUT task_id so the sub-function doesn't double-manage task status
+  // (the dispatcher's completeTask/failTask owns the lifecycle).
+  const resp = await fetch(`${supabaseUrl}/functions/v1/agent-sheets-backup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+    body: JSON.stringify({
+      lead_id: task.lead_id,
+      organization_id: task.organization_id,
+      context: task.context || { operation: "upsert" },
+    }),
+  });
+  const out = await resp.json().catch(() => ({}));
+  if (!resp.ok || out?.success === false) {
+    throw new Error(`sheets-backup failed: ${out?.error || resp.status}`);
+  }
+  return out?.skipped ? `Sheets sync skipped (${out.reason})` : `Lead synced to Google Sheet`;
+}
+
 // ── Router ────────────────────────────────────────────────────────────────────
 
 async function dispatchTask(
@@ -1154,6 +1176,8 @@ async function dispatchTask(
     case "campaign_voice":
     case "campaign":
       return handleCampaign(supabase, task, lead);
+    case "sheets_backup":
+      return handleSheetsBackup(task);
     case "conversion_predictor":
     case "lead_scoring":
     case "doorloop_pull":

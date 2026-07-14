@@ -1809,6 +1809,22 @@ serve(async (req: Request) => {
         },
       });
 
+      // ── Batch summary to Telegram (RFC Report bot): one message per digest,
+      // "X leads complementados por ese correo" — replaces per-lead spam. ──
+      try {
+        const digestPropCount = new Set(
+          digestLeads.map((l) => (l.property || "").trim().toLowerCase()).filter(Boolean)
+        ).size;
+        await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+          body: JSON.stringify({
+            channel: "report", event: "hemlane_digest",
+            payload: { total: digestLeads.length, created, updated, skipped, properties: digestPropCount },
+          }),
+        });
+      } catch (_) { /* ignore */ }
+
       await markInbound("processed", `digest:${created}c/${updated}u/${skipped}s of ${digestRawTotal} raw`);
 
       // Track Esther execution (digest success)
@@ -2098,6 +2114,25 @@ serve(async (req: Request) => {
     const formattedPhone = leadInfo.phone ? formatPhoneE164(leadInfo.phone) : null;
     const contactId = formattedPhone || leadInfo.email || "unknown";
     const followUpActions: string[] = [];
+
+    // ── Real-time new-lead alert (RFC Report bot) — single-email path only.
+    // Digest leads are summarized in one batch message instead (never per-lead). ──
+    if (result.isNew) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+          body: JSON.stringify({
+            channel: "report", event: "new_lead",
+            payload: {
+              name: leadInfo.name || "Hemlane lead",
+              source: `Hemlane${leadInfo.listingSource ? ` (${leadInfo.listingSource})` : ""}`,
+              phone: formattedPhone, interest: leadInfo.property,
+            },
+          }),
+        });
+      } catch (_) { /* ignore */ }
+    }
 
     // ── Schedule follow-up when data is incomplete ────────────────────
     if (result.isNew && (result.missingName || result.missingPhone)) {

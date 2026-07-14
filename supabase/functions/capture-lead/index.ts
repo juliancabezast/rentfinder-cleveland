@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
     // add_lead_property_tag RPC (tags accumulate — a repeat inquiry about a
     // second property ADDS a tag, it never replaces the first).
     let leadId: string
+    let isNewLead = false
 
     const { data: existing } = await supabase
       .from('leads')
@@ -122,6 +123,7 @@ Deno.serve(async (req) => {
         }
       } else {
         leadId = leadData.id
+        isNewLead = true
       }
     }
 
@@ -133,6 +135,20 @@ Deno.serve(async (req) => {
         p_source: 'website',
       })
       if (tagError) console.error('Property tag error:', tagError)
+    }
+
+    // Best-effort real-time new-lead alert (RFC Report bot) — never blocks
+    if (isNewLead) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseServiceKey}` },
+          body: JSON.stringify({
+            channel: 'report', event: 'new_lead',
+            payload: { name: body.full_name || 'Website lead', source: body.source || 'website', phone: body.phone },
+          }),
+        })
+      } catch (_) { /* ignore */ }
     }
 
     // Log consent for automated calls with IP address (TCPA compliance)

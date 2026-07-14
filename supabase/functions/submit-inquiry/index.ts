@@ -106,6 +106,7 @@ Deno.serve(async (req) => {
     };
 
     let leadId: string;
+    let isNewLead = false;
     const existing = await findExisting();
 
     if (existing) {
@@ -160,6 +161,7 @@ Deno.serve(async (req) => {
         }
       } else {
         leadId = lead.id;
+        isNewLead = true;
       }
     }
 
@@ -171,6 +173,20 @@ Deno.serve(async (req) => {
         p_source: "website_inquiry",
       });
       if (tagError) console.error("Property tag error:", tagError);
+    }
+
+    // Best-effort real-time new-lead alert (RFC Report bot) — never blocks
+    if (isNewLead) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+          body: JSON.stringify({
+            channel: "report", event: "new_lead",
+            payload: { name: fullName || "Website inquiry", source: "website (ask a question)", phone, interest: body.propertyLabel },
+          }),
+        });
+      } catch (_) { /* ignore */ }
     }
 
     // TCPA evidence — only when a phone was given with consent.

@@ -156,6 +156,14 @@ verify_jwt = false
 [functions.submit-inquiry]
 verify_jwt = false
 
+# Generalized service-role Telegram sender (2-bot: report + showings)
+[functions.telegram-notify]
+verify_jwt = false
+
+# Daily morning Telegram digest (cron-driven)
+[functions.agent-daily-digest]
+verify_jwt = false
+
 # Zillow Property Import
 [functions.import-zillow-property]
 verify_jwt = false

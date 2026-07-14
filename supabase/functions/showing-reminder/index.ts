@@ -142,19 +142,33 @@ serve(async (req: Request) => {
         }
       }
 
-      // Get route bot config
-      const { data: settings } = await supabase
-        .from("organization_settings")
-        .select("key, value")
-        .eq("organization_id", orgId)
-        .in("key", ["telegram_route_bot_token", "telegram_route_chat_id"]);
+      // Resolve the Showing/Route bot: prefer the admin-only showings
+      // credentials, fall back to legacy route settings, then the general bot.
+      const [{ data: creds }, { data: settings }] = await Promise.all([
+        supabase
+          .from("organization_credentials")
+          .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
+          .eq("organization_id", orgId)
+          .maybeSingle(),
+        supabase
+          .from("organization_settings")
+          .select("key, value")
+          .eq("organization_id", orgId)
+          .in("key", ["telegram_route_bot_token", "telegram_route_chat_id", "telegram_showings_bot_token", "telegram_showings_chat_id"]),
+      ]);
 
       const settingsMap = new Map((settings || []).map((s: any) => [s.key, s.value]));
-      const botToken = settingsMap.get("telegram_route_bot_token") as string;
-      const chatId = settingsMap.get("telegram_route_chat_id") as string;
+      const botToken = (creds?.telegram_showings_bot_token
+        || settingsMap.get("telegram_showings_bot_token")
+        || settingsMap.get("telegram_route_bot_token")
+        || creds?.telegram_bot_token) as string;
+      const chatId = (creds?.telegram_showings_chat_id
+        || settingsMap.get("telegram_showings_chat_id")
+        || settingsMap.get("telegram_route_chat_id")
+        || creds?.telegram_chat_id) as string;
 
       if (!botToken || !chatId) {
-        console.log(`Showing reminder: org ${orgId} has no route bot configured, skipping`);
+        console.log(`Showing reminder: org ${orgId} has no showings/route bot configured, skipping`);
         continue;
       }
 

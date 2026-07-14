@@ -823,6 +823,24 @@ serve(async (req: Request) => {
       console.warn("Telegram notification failed:", tgErr);
     }
 
+    // ── Real-time new-lead alert (RFC Report bot) — only for brand-new leads ──
+    if (!existingLead) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+          body: JSON.stringify({
+            channel: "report", event: "new_lead",
+            payload: {
+              name: full_name.trim(), source: "public showing booking",
+              phone: phone?.trim() || formattedPhone, has_voucher: !!has_voucher,
+              interest: propertyAddress,
+            },
+          }),
+        });
+      } catch (_) { /* ignore */ }
+    }
+
     // ── Cost record (Zacchaeus) ───────────────────────────────────────
     // Record minimal platform cost for the booking interaction
     const now = new Date();

@@ -286,6 +286,19 @@ serve(async (req: Request) => {
           return json({ error: "Could not start your application. Please try again or call us." }, 500);
         }
         leadId = newLead.id;
+
+        // Best-effort real-time new-lead alert (RFC Report bot) — catches
+        // applicants who start but may abandon before the final-submit alert.
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+            body: JSON.stringify({
+              channel: "report", event: "new_lead",
+              payload: { name: fullName, source: "marketplace application", phone: e164, has_voucher: hasVoucher ?? false },
+            }),
+          });
+        } catch (_) { /* ignore */ }
       }
     }
 
