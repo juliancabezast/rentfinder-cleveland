@@ -36,7 +36,7 @@ const mockSupabaseChain = {
 // Make chain methods return resolved promises at the end
 Object.keys(mockSupabaseChain).forEach((key) => {
   if (key !== "then") {
-    (mockSupabaseChain as Record<string, ReturnType<typeof vi.fn>>)[key].mockReturnValue(
+    (mockSupabaseChain as unknown as Record<string, ReturnType<typeof vi.fn>>)[key].mockReturnValue(
       mockSupabaseChain
     );
   }

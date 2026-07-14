@@ -134,32 +134,34 @@ export const IntegrationKeysTab: React.FC = () => {
       if (!userRecord?.organization_id) return;
 
       try {
-        // Fetch credentials and test statuses in parallel
-        const [credsResult, logsResult] = await Promise.all([
+        // Fetch credential status (masked) via edge function — client no
+        // longer reads organization_credentials directly. Plaintext keys are
+        // never returned; the UI shows a masked placeholder ("••••abcd").
+        const [statusResult, logsResult] = await Promise.all([
+          supabase.functions.invoke("manage-org-credentials", {
+            body: { action: "get_status" },
+          }),
           supabase
-            .from('organization_credentials')
-            .select('*')
-            .eq('organization_id', userRecord.organization_id)
-            .single(),
-          supabase
-            .from('integration_health')
-            .select('*')
-            .eq('organization_id', userRecord.organization_id),
+            .from("integration_health")
+            .select("*")
+            .eq("organization_id", userRecord.organization_id),
         ]);
 
-        if (credsResult.error && credsResult.error.code !== 'PGRST116') throw credsResult.error;
+        const fields = (statusResult.data?.fields ?? {}) as Record<
+          string,
+          { configured: boolean; masked: string; value?: string }
+        >;
 
-        if (credsResult.data) {
-          const creds: Record<string, string> = {};
-          INTEGRATION_KEYS.forEach((key) => {
-            if (key.isSecretEnv) return; // Skip env secrets
-            const value = credsResult.data[key.key as keyof typeof credsResult.data];
-            if (value && typeof value === 'string') {
-              creds[key.key] = value;
-            }
-          });
-          setCredentials(creds);
-        }
+        const creds: Record<string, string> = {};
+        INTEGRATION_KEYS.forEach((key) => {
+          if (key.isSecretEnv) return;
+          const f = fields[key.key];
+          if (f?.configured) {
+            // Show plaintext for public identifiers (phone / chat id), masked for secrets.
+            creds[key.key] = f.value ?? f.masked;
+          }
+        });
+        setCredentials(creds);
 
         // Parse test statuses from integration_health
         const statuses: Record<string, TestStatus> = {};
@@ -235,33 +237,12 @@ export const IntegrationKeysTab: React.FC = () => {
 
     setSaving(key);
     try {
-      // Check if credentials record exists
-      const { data: existing } = await supabase
-        .from('organization_credentials')
-        .select('id')
-        .eq('organization_id', userRecord.organization_id)
-        .single();
-
-      if (existing) {
-        const { error } = await supabase
-          .from('organization_credentials')
-          .update({
-            [key]: newValues[key],
-            updated_at: new Date().toISOString(),
-          })
-          .eq('organization_id', userRecord.organization_id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('organization_credentials')
-          .insert({
-            organization_id: userRecord.organization_id,
-            [key]: newValues[key],
-          });
-
-        if (error) throw error;
-      }
+      const { data, error } = await supabase.functions.invoke(
+        "manage-org-credentials",
+        { body: { action: "update_field", field: key, value: newValues[key] } }
+      );
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setCredentials((prev) => ({ ...prev, [key]: newValues[key] }));
       cancelEditing(key);
