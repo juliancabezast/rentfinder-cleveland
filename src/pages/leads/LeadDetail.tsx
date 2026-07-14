@@ -317,7 +317,7 @@ const LeadDetail: React.FC = () => {
       {/* Compact Header */}
       <LeadDetailHeader
         lead={lead}
-        tags={mapEmbeddedTags(lead)}
+        tags={mapEmbeddedTags(lead as Parameters<typeof mapEmbeddedTags>[0])}
         permissions={{
           canScheduleShowing: permissions.canScheduleShowing,
           canEditLeadInfo: permissions.canEditLeadInfo,
