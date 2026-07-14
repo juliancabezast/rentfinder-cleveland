@@ -237,33 +237,12 @@ export const IntegrationKeysTab: React.FC = () => {
 
     setSaving(key);
     try {
-      // Check if credentials record exists
-      const { data: existing } = await supabase
-        .from('organization_credentials')
-        .select('id')
-        .eq('organization_id', userRecord.organization_id)
-        .single();
-
-      if (existing) {
-        const { error } = await supabase
-          .from('organization_credentials')
-          .update({
-            [key]: newValues[key],
-            updated_at: new Date().toISOString(),
-          })
-          .eq('organization_id', userRecord.organization_id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('organization_credentials')
-          .insert({
-            organization_id: userRecord.organization_id,
-            [key]: newValues[key],
-          });
-
-        if (error) throw error;
-      }
+      const { data, error } = await supabase.functions.invoke(
+        "manage-org-credentials",
+        { body: { action: "update_field", field: key, value: newValues[key] } }
+      );
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setCredentials((prev) => ({ ...prev, [key]: newValues[key] }));
       cancelEditing(key);
