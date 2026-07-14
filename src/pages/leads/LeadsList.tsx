@@ -601,7 +601,7 @@ const LeadsList: React.FC = () => {
         return;
       }
 
-      const rows = data;
+      const rows = data as any[];
 
       const headers = [
         "Name", "First Name", "Last Name", "Email", "Phone", "Status", "Source",
