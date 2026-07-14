@@ -35,12 +35,13 @@ export const IntegrationHealth: React.FC = () => {
     if (!userRecord?.organization_id) return;
 
     try {
-      // Fetch credentials
-      const { data: creds } = await supabase
-        .from("organization_credentials")
-        .select("*")
-        .eq("organization_id", userRecord.organization_id)
-        .single();
+      // Fetch credential status (masked) via edge function — client no longer
+      // reads organization_credentials directly.
+      const { data: statusResp } = await supabase.functions.invoke(
+        "manage-org-credentials",
+        { body: { action: "get_status" } }
+      );
+      const fields = (statusResp?.fields ?? {}) as Record<string, { configured: boolean }>;
 
       // Fetch integration health statuses
       const { data: testLogs } = await supabase
@@ -57,11 +58,10 @@ export const IntegrationHealth: React.FC = () => {
         if (integration.key === "resend") {
           // Resend is stored as env secret, assume configured if we've had successful tests
           hasCredentials = true; // Will be verified by test
-        } else if (creds) {
-          hasCredentials = integration.credentialKeys.every((k) => {
-            const value = creds[k as keyof typeof creds];
-            return value && typeof value === "string" && value.length > 0;
-          });
+        } else {
+          hasCredentials = integration.credentialKeys.every(
+            (k) => fields[k]?.configured === true
+          );
         }
 
         if (!hasCredentials && integration.key !== "resend") {
