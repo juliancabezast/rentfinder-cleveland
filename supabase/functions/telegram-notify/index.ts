@@ -52,6 +52,17 @@ function friendlySource(raw: unknown): string {
   return SOURCE_LABELS[s.toLowerCase()] || s;
 }
 
+// Pretty-print US numbers for readability; falls back to the raw string.
+function prettyPhone(raw: unknown): string {
+  const s = String(raw ?? "");
+  const digits = s.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1"))
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10)
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return s.trim();
+}
+
 // ── Event formatters (HTML) ──────────────────────────────────────────────────
 function formatEvent(event: string, p: Record<string, unknown>): string {
   const name = escapeHtml(p.name || p.full_name || "Unknown");
@@ -64,8 +75,24 @@ function formatEvent(event: string, p: Record<string, unknown>): string {
   switch (event) {
     case "new_lead":
       return `🆕 <b>New lead</b> — ${name}${source}${interest}${phone}${voucher}`;
-    case "hot_lead":
-      return `🔥 <b>Hot lead (${escapeHtml(p.score ?? "")})</b> — ${name}${source}${interest}${phone}${voucher}`;
+    case "hot_lead": {
+      // A "call now" opportunity card for the showings bot. The phone is the
+      // whole point (gated upstream — never fires without one): render it as a
+      // tappable tel: link, then the actual tagged property + voucher + move-in.
+      const rawPhone = String(p.phone ?? "").trim();
+      const tel = rawPhone.replace(/[^\d+]/g, "");
+      const phoneLine = tel
+        ? `\n📞 <a href="tel:${escapeHtml(tel)}"><b>${escapeHtml(prettyPhone(rawPhone))}</b></a>`
+        : "";
+      const propLine = p.property ? `\n🏠 ${escapeHtml(p.property)}` : "";
+      const moreN = Number(p.more_count ?? 0);
+      const more = moreN > 0 ? ` <i>(+${moreN} more tagged)</i>` : "";
+      const vAmt = p.voucher_amount != null && Number(p.voucher_amount) > 0
+        ? ` · $${Number(p.voucher_amount).toLocaleString("en-US")}/mo` : "";
+      const voucherLine = p.has_voucher ? `\n🎟️ Section 8 voucher${vAmt}` : "";
+      const moveLine = p.move_in ? `\n📅 Move-in ${escapeHtml(p.move_in)}` : "";
+      return `📞🔥 <b>Hot lead — call now · ${escapeHtml(p.score ?? "")}</b>\n<b>${name}</b>${source}${phoneLine}${propLine}${more}${voucherLine}${moveLine}`;
+    }
     case "hemlane_digest": {
       const total = escapeHtml(p.total ?? 0);
       const created = escapeHtml(p.created ?? 0);
@@ -94,9 +121,10 @@ serve(async (req) => {
 
     const channel = body.channel === "showings" ? "showings" : "report";
 
-    // New-lead alerts only fire when a phone is on file — a name-only lead
-    // (e.g. the first half of a Hemlane paired email) is not actionable yet.
-    if (body.event === "new_lead") {
+    // Lead alerts only fire when a phone is on file — a name-only lead (e.g. the
+    // first half of a Hemlane paired email) is not actionable. Hot-lead alerts
+    // are call-now opportunities, so a phone is mandatory there too.
+    if (body.event === "new_lead" || body.event === "hot_lead") {
       const ph = String((body.payload as Record<string, unknown> | undefined)?.phone ?? "").trim();
       if (!ph) return json({ ok: false, skipped: "no_phone" });
     }

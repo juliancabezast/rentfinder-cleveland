@@ -116,6 +116,25 @@ function formatDateHuman(d: string, tz = "America/New_York"): string {
   });
 }
 
+// Escape user/DB text before placing it in a parse_mode=HTML Telegram message.
+function escapeHtml(s: unknown): string {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+// Redact any api.telegram.org bot token from a value before logging.
+function redactToken(v: unknown): string {
+  return String(v ?? "").replace(/bot\d+:[\w-]+/g, "bot<redacted>");
+}
+// Constant-time string compare (auth header check).
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const aB = enc.encode(a), bB = enc.encode(b);
+  const len = Math.max(aB.length, bB.length);
+  let diff = aB.length ^ bB.length;
+  for (let i = 0; i < len; i++) diff |= (aB[i] ?? 0) ^ (bB[i] ?? 0);
+  return diff === 0;
+}
+const BOOKING_SOURCES = new Set(["public_link", "telegram_bot", "admin", "campaign"]);
+
 // ── Calendar helpers ─────────────────────────────────────────────────
 function buildGoogleCalUrl(data: {
   title: string;
@@ -201,7 +220,20 @@ serve(async (req: Request) => {
       has_voucher,
       note,
       consent,
+      // ── Optional (agent/internal callers, e.g. the Telegram bot) ──
+      // lead_id: book for THIS exact lead (skip find-or-create by phone).
+      // booking_source: overrides the default "public_link" marker.
+      lead_id: bodyLeadId,
+      booking_source: bodyBookingSource,
     } = body;
+
+    // These two are privileged: honored ONLY for internal callers that present
+    // the service-role key (the Telegram bot does). A public/anonymous caller
+    // cannot hijack an existing lead by UUID or spoof the booking source.
+    const isInternal = timingSafeEqual(req.headers.get("Authorization") || "", `Bearer ${serviceRoleKey}`);
+    const effLeadId: string | undefined = isInternal ? bodyLeadId : undefined;
+    const effBookingSource: string | undefined =
+      isInternal && BOOKING_SOURCES.has(bodyBookingSource) ? bodyBookingSource : undefined;
 
     // ── Validation ────────────────────────────────────────────────────
     if (!property_id || !organization_id || !slot_date || !slot_time || !full_name || !phone) {
@@ -298,52 +330,77 @@ serve(async (req: Request) => {
 
     let leadId: string;
     let leadEmail: string | null = email || null;
+    let leadIsNew = false;
 
-    const { data: existingLead } = await supabase
-      .from("leads")
-      .select("id, status, email")
-      .eq("organization_id", organization_id)
-      .eq("phone", formattedPhone)
-      .maybeSingle();
-
-    if (existingLead) {
-      leadId = existingLead.id;
-      // Use existing email if lead didn't provide one now
-      if (!leadEmail && existingLead.email) {
-        leadEmail = existingLead.email;
-      }
-      // Update lead with email if needed (property interest is tagged below)
-      const leadUpdate: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-      };
-      if (email && !existingLead.email) leadUpdate.email = email;
-      if (has_voucher !== undefined) leadUpdate.has_voucher = !!has_voucher;
-      await supabase.from("leads").update(leadUpdate).eq("id", leadId);
-    } else {
-      const { data: newLead, error: leadErr } = await supabase
+    // Agent/internal path: a specific lead was named (e.g. the Telegram bot,
+    // which already resolved the exact lead). Use it directly and skip the
+    // phone-based find-or-create so we never create a duplicate.
+    let providedLead: { id: string; email: string | null } | null = null;
+    if (effLeadId) {
+      const { data: pl } = await supabase
         .from("leads")
-        .insert({
-          organization_id,
-          full_name: full_name.trim(),
-          phone: formattedPhone,
-          email: leadEmail,
-          source: "website",
-          status: "new",
-          has_voucher: has_voucher !== undefined ? !!has_voucher : null,
-          sms_consent: consent?.sms_consent ?? false,
-          call_consent: consent?.call_consent ?? false,
-        })
-        .select("id")
-        .single();
+        .select("id, email")
+        .eq("organization_id", organization_id)
+        .eq("id", effLeadId)
+        .maybeSingle();
+      if (pl) providedLead = pl as { id: string; email: string | null };
+    }
 
-      if (leadErr || !newLead) {
-        console.error("Lead creation error:", leadErr);
-        return new Response(
-          JSON.stringify({ error: `Failed to register: ${leadErr?.message || "Unknown error"}. Please try again.` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    if (providedLead) {
+      leadId = providedLead.id;
+      if (!leadEmail && providedLead.email) leadEmail = providedLead.email;
+      const upd: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (email && !providedLead.email) upd.email = email;
+      if (has_voucher !== undefined) upd.has_voucher = !!has_voucher;
+      await supabase.from("leads").update(upd).eq("id", leadId);
+    } else {
+      const { data: existingLead } = await supabase
+        .from("leads")
+        .select("id, status, email")
+        .eq("organization_id", organization_id)
+        .eq("phone", formattedPhone)
+        .maybeSingle();
+
+      if (existingLead) {
+        leadId = existingLead.id;
+        // Use existing email if lead didn't provide one now
+        if (!leadEmail && existingLead.email) {
+          leadEmail = existingLead.email;
+        }
+        // Update lead with email if needed (property interest is tagged below)
+        const leadUpdate: Record<string, any> = {
+          updated_at: new Date().toISOString(),
+        };
+        if (email && !existingLead.email) leadUpdate.email = email;
+        if (has_voucher !== undefined) leadUpdate.has_voucher = !!has_voucher;
+        await supabase.from("leads").update(leadUpdate).eq("id", leadId);
+      } else {
+        const { data: newLead, error: leadErr } = await supabase
+          .from("leads")
+          .insert({
+            organization_id,
+            full_name: full_name.trim(),
+            phone: formattedPhone,
+            email: leadEmail,
+            source: "website",
+            status: "new",
+            has_voucher: has_voucher !== undefined ? !!has_voucher : null,
+            sms_consent: consent?.sms_consent ?? false,
+            call_consent: consent?.call_consent ?? false,
+          })
+          .select("id")
+          .single();
+
+        if (leadErr || !newLead) {
+          console.error("Lead creation error:", leadErr);
+          return new Response(
+            JSON.stringify({ error: `Failed to register: ${leadErr?.message || "Unknown error"}. Please try again.` }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        leadId = newLead.id;
+        leadIsNew = true;
       }
-      leadId = newLead.id;
     }
 
     // ── Property-interest tag (accumulates; bumps recency on repeat) ───
@@ -396,13 +453,21 @@ serve(async (req: Request) => {
         scheduled_at: scheduledAt,
         duration_minutes: durationMinutes,
         status: "scheduled",
-        booking_source: "public_link",
+        booking_source: effBookingSource || "public_link",
       })
       .select("id")
       .single();
 
     if (showingErr || !showing) {
       console.error("Showing creation error:", showingErr);
+      // Partial unique index showings_one_active_per_org_time: another booking
+      // (any property) already holds this exact time for the single agent.
+      if ((showingErr as any)?.code === "23505") {
+        return new Response(
+          JSON.stringify({ error: "This time was just booked. Please select another." }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(
         JSON.stringify({ error: `Failed to create showing: ${showingErr?.message || "Unknown error"}. Please try again.` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -750,7 +815,7 @@ serve(async (req: Request) => {
         slot_time,
         source: campaignId ? "campaign" : "website",
         campaign_id: campaignId,
-        lead_is_new: !existingLead,
+        lead_is_new: leadIsNew,
       },
       related_lead_id: leadId,
       related_showing_id: showing.id,
@@ -788,22 +853,20 @@ serve(async (req: Request) => {
         const mapsQuery = encodeURIComponent(`${property?.address || ""}, ${property?.city || ""}, ${property?.state || ""} ${property?.zip_code || ""}`);
 
         const visitorNote = typeof note === "string" ? note.trim().slice(0, 500) : "";
-        const escapedNote = visitorNote
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-
+        // Every dynamic field must be HTML-escaped — parse_mode is HTML, and an
+        // unescaped "&"/"<" (e.g. a lead named "John & Jane") makes Telegram 400
+        // the whole message, so staff would silently never see the booking.
         const msg = [
           `🏠 <b>New Showing Booked!</b>`,
           ``,
-          `📍 <b>${addr}</b>${rentStr ? ` — ${rentStr}` : ""}`,
-          `📅 ${dateHuman} at ${timeHuman}`,
+          `📍 <b>${escapeHtml(addr)}</b>${rentStr ? ` — ${rentStr}` : ""}`,
+          `📅 ${escapeHtml(dateHuman)} at ${escapeHtml(timeHuman)}`,
           ``,
-          `👤 <b>${full_name.trim()}</b>`,
-          `📞 ${leadPhoneStr}`,
-          `✉️ ${leadEmailStr}`,
-          ...(visitorNote ? [``, `📝 <i>${escapedNote}</i>`] : []),
-          `🔗 Source: Public booking page`,
+          `👤 <b>${escapeHtml(full_name.trim())}</b>`,
+          `📞 ${escapeHtml(leadPhoneStr)}`,
+          `✉️ ${escapeHtml(leadEmailStr)}`,
+          ...(visitorNote ? [``, `📝 <i>${escapeHtml(visitorNote)}</i>`] : []),
+          `🔗 Source: ${escapeHtml(effBookingSource === "telegram_bot" ? "Telegram bot" : "Public booking page")}`,
           ``,
           `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
         ].join("\n");
@@ -820,11 +883,11 @@ serve(async (req: Request) => {
         });
       }
     } catch (tgErr) {
-      console.warn("Telegram notification failed:", tgErr);
+      console.warn("Telegram notification failed:", redactToken((tgErr as Error)?.message));
     }
 
     // ── Real-time new-lead alert (RFC Report bot) — only for brand-new leads ──
-    if (!existingLead) {
+    if (leadIsNew) {
       try {
         await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
           method: "POST",
