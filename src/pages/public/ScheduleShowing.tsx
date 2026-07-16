@@ -687,7 +687,7 @@ const ScheduleShowing: React.FC = () => {
         .from("properties")
         .select("*")
         .in("id", uniqueIds)
-        .in("status", ["available", "coming_soon"]) // listable = bookable
+        .in("status", ["available"]) // bookable = available only (coming_soon is visible in the catalog but not bookable)
         .order("address");
 
       setRawProperties((propData as Property[] | null) || []);
@@ -790,7 +790,7 @@ const ScheduleShowing: React.FC = () => {
           .from("properties")
           .select("*")
           .eq("id", featuredId)
-          .in("status", ["available", "coming_soon"])
+          .in("status", ["available"]) // bookable = available only
           .maybeSingle();
         if (fp) setFeaturedProperty(fp as Property);
       }
@@ -928,10 +928,11 @@ const ScheduleShowing: React.FC = () => {
         .eq("id", effectivePropertyId)
         .single();
 
-      // Only listable properties (available / coming_soon) are bookable.
-      // A direct link to a rented/inactive/in_leasing_process home is treated
-      // exactly like a property that no longer exists (matches admin + RLS gate).
-      if (error || !data || !["available", "coming_soon"].includes(data.status)) {
+      // Only 'available' properties are bookable. coming_soon is visible in the
+      // catalog (home/detail) but not bookable; a direct link to a
+      // coming_soon/rented/inactive home is treated exactly like a property that
+      // no longer exists (matches admin + RLS gate).
+      if (error || !data || data.status !== "available") {
         setPropertyError("Property not found or no longer available.");
       } else {
         setProperty(data);

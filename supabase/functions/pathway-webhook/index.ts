@@ -118,10 +118,10 @@ serve(async (req: Request) => {
         );
       }
 
-      // Only listable properties (available / coming_soon) may be offered.
+      // Only 'available' properties may be offered (coming_soon is not bookable).
       const { data: prop } = await supabase
         .from("properties").select("status").eq("id", property_id).single();
-      if (!prop || !["available", "coming_soon"].includes(prop.status)) {
+      if (!prop || prop.status !== "available") {
         return new Response(
           JSON.stringify({ has_slots: false, slots: [], message: "This home is no longer available for showings." }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -192,10 +192,10 @@ serve(async (req: Request) => {
         );
       }
 
-      // Only listable properties (available / coming_soon) may be reserved.
+      // Only 'available' properties may be reserved (coming_soon is not bookable).
       const { data: rprop } = await supabase
         .from("properties").select("status").eq("id", property_id).single();
-      if (!rprop || !["available", "coming_soon"].includes(rprop.status)) {
+      if (!rprop || rprop.status !== "available") {
         return new Response(
           JSON.stringify({ success: false, error: "This home is no longer available for showings." }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

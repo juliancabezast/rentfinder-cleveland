@@ -179,7 +179,7 @@ async function handleText(ctx: Ctx, rawText: string) {
   // Escapes that always win.
   if (CANCEL_TRIGGERS.has(t)) {
     await clearSession(ctx);
-    await send(ctx, "❌ Cancelado.");
+    await sendMenu(ctx, "❌ Listo, cancelado.");
     return;
   }
   if (MENU_TRIGGERS.has(t)) {
@@ -194,8 +194,9 @@ async function handleText(ctx: Ctx, rawText: string) {
     if (session.step === "choose_property") { await handlePropertyFilter(ctx, session, raw); return; }
     if (session.step === "find_lead") { await handleLeadSearch(ctx, session, raw); return; }
     if (session.step === "create_lead") { await handleCreateLeadInput(ctx, session, raw); return; }
+    if (session.step === "leasing_search") { await handleLeasingSearch(ctx, session, raw); return; }
     // Button-only steps: nudge instead of dumping the agenda on a stray text.
-    if (["choose_slot", "confirm", "offer_schedule"].includes(session.step)) {
+    if (["choose_slot", "confirm", "offer_schedule", "leasing_lang"].includes(session.step)) {
       await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
       return;
     }
@@ -225,18 +226,22 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data === "m:ag")  { await answer("Cargando agenda…"); await typing(ctx);
       const agenda = await buildShowingsAgenda(ctx.supabase, ctx.organizationId); await sendChunks(ctx, agenda); return; }
     if (data === "m:rp")  { await answer("Generando reporte…"); await typing(ctx); await runReport(ctx); return; }
-    if (data === "m:x")   { await answer(); await clearSession(ctx); await edit(ctx, messageId, "❌ Cancelado."); return; }
+    if (data === "m:lr")  { await answer(); await startLeasingReport(ctx, messageId); return; }
+    if (data === "m:menu"){ await answer(); await clearSession(ctx); await showMenu(ctx, messageId); return; }
+    if (data === "m:x")   { await answer(); await clearSession(ctx); await showMenu(ctx, messageId, "❌ Listo, cancelado."); return; }
 
     if (data.startsWith("p:"))  { await answer(); await chooseProperty(ctx, messageId, data.slice(2)); return; }
     if (data.startsWith("tp:")) { await answer(); await renderSlots(ctx, messageId, parseInt(data.slice(3), 10) || 0); return; }
     if (data.startsWith("t:"))  { await answer(); await chooseSlot(ctx, messageId, data.slice(2)); return; }
     if (data === "nl")          { await answer(); await startCreateLead(ctx, messageId, false); return; }
     if (data.startsWith("l:"))  { await answer(); await chooseLead(ctx, messageId, data.slice(2)); return; }
+    if (data.startsWith("lrl:")){ await answer("Generando…"); await generateLeasingReport(ctx, messageId, data.slice(4) === "en" ? "en" : "es"); return; }
+    if (data.startsWith("lr:")) { await answer(); await chooseLeasingBuilding(ctx, messageId, parseInt(data.slice(3), 10)); return; }
 
     if (data === "ok")   { await answer("Agendando…"); await confirmBooking(ctx, messageId); return; }
-    if (data === "no")   { await answer(); await clearSession(ctx); await edit(ctx, messageId, "❌ Cancelado."); return; }
+    if (data === "no")   { await answer(); await clearSession(ctx); await showMenu(ctx, messageId, "❌ Listo, cancelado."); return; }
     if (data === "os:y") { await answer(); await offerScheduleYes(ctx, messageId); return; }
-    if (data === "os:n") { await answer(); await clearSession(ctx); await edit(ctx, messageId, "✅ Lead guardado. (Sin showing)"); return; }
+    if (data === "os:n") { await answer(); await clearSession(ctx); await showMenu(ctx, messageId, "✅ Lead guardado. 👍"); return; }
 
     await answer();
   } catch (err) {
@@ -250,11 +255,17 @@ function mainMenuKeyboard() {
   return [
     [{ text: "📅 Agendar showing", callback_data: "m:sch" }],
     [{ text: "➕ Crear lead", callback_data: "m:new" }],
+    [{ text: "📄 Reporte de leasing", callback_data: "m:lr" }],
     [{ text: "📋 Ver agenda", callback_data: "m:ag" }, { text: "📊 Reporte", callback_data: "m:rp" }],
   ];
 }
-async function sendMenu(ctx: Ctx) {
-  await send(ctx, "🤖 <b>¿Qué querés hacer?</b>", mainMenuKeyboard());
+const MENU_GREETING = "👋 Soy <b>Samuel</b>, tu asistente de agendas.\n¿Qué querés hacer?";
+async function sendMenu(ctx: Ctx, prefix?: string) {
+  await send(ctx, (prefix ? `${prefix}\n\n` : "") + MENU_GREETING, mainMenuKeyboard());
+}
+// Same menu, but edits the button's message in place (falls back to a new one).
+async function showMenu(ctx: Ctx, messageId: number | undefined, prefix?: string) {
+  await editOrSend(ctx, messageId, (prefix ? `${prefix}\n\n` : "") + MENU_GREETING, mainMenuKeyboard());
 }
 
 // ── Step 1: choose property (type to filter) ─────────────────────────────────────
@@ -262,7 +273,7 @@ async function startSchedule(ctx: Ctx, messageId?: number) {
   // Preserve any lead already chosen (lead-first flow); otherwise start clean.
   const prev = await getSession(ctx);
   const data = prev?.data?.lead_id
-    ? { lead_id: prev.data.lead_id, lead_name: prev.data.lead_name, lead_phone: prev.data.lead_phone }
+    ? { lead_id: prev.data.lead_id, lead_name: prev.data.lead_name, lead_phone: prev.data.lead_phone, lead_email: prev.data.lead_email ?? null }
     : {};
   await setSession(ctx, "choose_property", data);
   const msg = "🏠 <b>Agendar showing</b>\n\nEscribí parte de la <b>dirección</b> o <b>ciudad</b> de la propiedad (ej: <code>117th</code> o <code>Cleveland</code>):";
@@ -278,7 +289,7 @@ async function handlePropertyFilter(ctx: Ctx, session: Session, rawQuery: string
     .from("properties")
     .select("id, address, unit_number, city, status")
     .eq("organization_id", ctx.organizationId)
-    .in("status", ["available", "coming_soon"])
+    .in("status", ["available"]) // bookable = available only (coming_soon not bookable)
     .or(`address.ilike.%${q}%,city.ilike.%${q}%,unit_number.ilike.%${q}%`)
     .limit(25);
 
@@ -320,7 +331,7 @@ async function chooseProperty(ctx: Ctx, messageId: number | undefined, propertyI
     .eq("organization_id", ctx.organizationId)
     .eq("id", propertyId)
     .maybeSingle();
-  if (!prop || !["available", "coming_soon"].includes(prop.status)) {
+  if (!prop || prop.status !== "available") {
     await editOrSend(ctx, messageId, "❌ Esa propiedad ya no está disponible. Mandá <b>menu</b> para reiniciar.");
     return;
   }
@@ -465,14 +476,14 @@ async function chooseLead(ctx: Ctx, messageId: number | undefined, leadId: strin
   }
   const { data: lead } = await ctx.supabase
     .from("leads")
-    .select("id, full_name, first_name, last_name, phone")
+    .select("id, full_name, first_name, last_name, phone, email")
     .eq("organization_id", ctx.organizationId)
     .eq("id", leadId)
     .maybeSingle();
   if (!lead) { await editOrSend(ctx, messageId, "❌ No encontré ese lead. Mandá <b>menu</b> para reiniciar."); return; }
   if (!lead.phone) { await editOrSend(ctx, messageId, "❌ Ese lead no tiene teléfono; no puedo agendarlo."); return; }
 
-  const data = { ...(session.data || {}), lead_id: lead.id, lead_name: leadName(lead), lead_phone: lead.phone };
+  const data = { ...(session.data || {}), lead_id: lead.id, lead_name: leadName(lead), lead_phone: lead.phone, lead_email: lead.email || null };
   await setSession(ctx, "confirm", data);
   await showConfirm(ctx, messageId, data);
 }
@@ -483,7 +494,7 @@ async function startCreateLead(ctx: Ctx, messageId: number | undefined, fromMenu
   // From the menu: start clean. Mid-schedule (nl): keep the chosen property/slot.
   const data = fromMenu ? { from_menu_create: true } : { ...(prev?.data || {}), from_menu_create: false };
   await setSession(ctx, "create_lead", data);
-  const msg = "➕ <b>Crear lead</b>\n\nMandá los datos así:\n<code>Nombre Apellido, teléfono</code>\n(opcional: <code>, email</code>)\n\nEj: <code>Juan Pérez, 216-555-1234</code>";
+  const msg = "➕ <b>Crear lead</b>\n\nMandá los 3 datos separados por coma:\n<code>Nombre Apellido, teléfono, email</code>\n\nEj: <code>Juan Pérez, 216-555-1234, juan@mail.com</code>\n\n<i>El email es necesario para enviarle la confirmación del showing.</i>";
   await editOrSend(ctx, messageId, msg, [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
 }
 
@@ -491,11 +502,12 @@ async function handleCreateLeadInput(ctx: Ctx, session: Session, raw: string) {
   const parts = raw.split(",").map((s) => s.trim());
   const name = parts[0] || "";
   const phoneRaw = parts[1] || "";
-  const email = parts[2] && /@/.test(parts[2]) ? parts[2] : null;
+  const email = (parts[2] || "").trim();
   const digits = phoneRaw.replace(/\D/g, "");
+  const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
 
-  if (name.length < 2 || !/\p{L}/u.test(name) || digits.length < 10) {
-    await send(ctx, "⚠️ Formato inválido. Mandá:\n<code>Nombre Apellido, teléfono</code>\nEj: <code>Juan Pérez, 216-555-1234</code>",
+  if (name.length < 2 || !/\p{L}/u.test(name) || digits.length < 10 || !emailOk) {
+    await send(ctx, "⚠️ Necesito los <b>3 datos</b>: nombre, teléfono y email.\n<code>Nombre Apellido, teléfono, email</code>\nEj: <code>Juan Pérez, 216-555-1234, juan@mail.com</code>",
       [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
     return;
   }
@@ -508,10 +520,15 @@ async function handleCreateLeadInput(ctx: Ctx, session: Session, raw: string) {
   let resolvedName = name;
   let existed = false;
   const { data: existing } = await ctx.supabase
-    .from("leads").select("id, full_name")
+    .from("leads").select("id, full_name, email")
     .eq("organization_id", ctx.organizationId).eq("phone", phone).maybeSingle();
   if (existing) {
     leadId = existing.id; resolvedName = existing.full_name || name; existed = true;
+    // Backfill the email if the existing lead didn't have one, so the showing
+    // confirmation can go out.
+    if (email && !existing.email) {
+      await ctx.supabase.from("leads").update({ email }).eq("id", leadId);
+    }
   } else {
     await ctx.supabase.from("leads").insert({
       organization_id: ctx.organizationId,
@@ -529,7 +546,7 @@ async function handleCreateLeadInput(ctx: Ctx, session: Session, raw: string) {
   }
   if (!leadId) { await send(ctx, "❌ No pude crear el lead. Probá de nuevo o mandá <b>menu</b>."); return; }
 
-  const data = { ...(session.data || {}), lead_id: leadId, lead_name: resolvedName, lead_phone: phone };
+  const data = { ...(session.data || {}), lead_id: leadId, lead_name: resolvedName, lead_phone: phone, lead_email: email };
   const prefix = existed ? `ℹ️ Ese teléfono ya existía — uso el lead <b>${escapeHtml(resolvedName)}</b>.` : `✅ Lead creado: <b>${escapeHtml(resolvedName)}</b>.`;
 
   if (data.slot_id) {
@@ -585,6 +602,7 @@ async function confirmBooking(ctx: Ctx, messageId?: number) {
       slot_time: d.slot_time,
       full_name: d.lead_name,
       phone: d.lead_phone,
+      email: d.lead_email || undefined,
       lead_id: d.lead_id,
       booking_source: "telegram_bot",
     }),
@@ -593,8 +611,15 @@ async function confirmBooking(ctx: Ctx, messageId?: number) {
 
   if (resp.ok && result?.success) {
     await clearSession(ctx);
+    const emailLine =
+      result.email_status === "sent"
+        ? `\n✉️ Confirmación enviada a ${escapeHtml(result.emailed_to || d.lead_email || "")}`
+        : result.email_status === "failed"
+        ? `\n⚠️ No se pudo enviar el email de confirmación al inquilino.`
+        : `\n⚠️ El lead no tiene email — no se le envió confirmación.`;
     await editOrSend(ctx, messageId,
-      `✅ <b>Showing agendado</b>\n\n👤 ${escapeHtml(d.lead_name)}\n📞 ${escapeHtml(prettyPhone(d.lead_phone))}\n🏠 ${escapeHtml(d.property_label)}\n📅 ${escapeHtml(d.slot_label)}`);
+      `✅ <b>¡Showing agendado!</b>\n\n👤 ${escapeHtml(d.lead_name)}\n📞 ${escapeHtml(prettyPhone(d.lead_phone))}\n🏠 ${escapeHtml(d.property_label)}\n📅 ${escapeHtml(d.slot_label)}${emailLine}`,
+      [[{ text: "📅 Agendar otro", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
     return;
   }
 
@@ -616,13 +641,85 @@ async function runReport(ctx: Ctx) {
   const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/agent-hourly-report`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
-    body: JSON.stringify({ organization_id: ctx.organizationId }),
+    body: JSON.stringify({ organization_id: ctx.organizationId, bot: ctx.bot }),
   });
   const result = await resp.json().catch(() => ({}));
   if (!resp.ok || result.error) {
     await send(ctx, `❌ Error generando el reporte: ${escapeHtml(result.error || "desconocido")}`);
   }
-  // agent-hourly-report sends its own message on success.
+  // agent-hourly-report sends the report itself, to the bot we told it to.
+}
+
+// ── Leasing report (PDF) ─────────────────────────────────────────────────────────
+async function startLeasingReport(ctx: Ctx, messageId?: number) {
+  await setSession(ctx, "leasing_search", {});
+  await editOrSend(ctx, messageId,
+    "📄 <b>Reporte de leasing</b>\n\nEscribí la <b>dirección</b> o <b>ciudad</b> de la propiedad (ej: <code>117th</code> o <code>Cleveland</code>):",
+    [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+}
+
+async function handleLeasingSearch(ctx: Ctx, _session: Session, rawQuery: string) {
+  const q = rawQuery.trim();
+  if (q.length < 2) { await send(ctx, "Escribí al menos 2 letras de la dirección o ciudad."); return; }
+  await typing(ctx);
+  const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/leasing-tracker-lookup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
+    body: JSON.stringify({ query: q }),
+  });
+  const result = await resp.json().catch(() => ({}));
+  const matches = (result?.matches || []) as any[];
+  if (!matches.length) {
+    await send(ctx, `🔎 No encontré propiedades para «${escapeHtml(rawQuery)}». Probá otra búsqueda.`,
+      [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+    return;
+  }
+  // Store the building list in the session; buttons carry only the index (the
+  // groupKey/address can exceed Telegram's 64-byte callback_data limit).
+  const buildings = matches.slice(0, 8).map((m) => ({
+    key: m.key, label: `${m.address}${m.city ? ` · ${m.city}` : ""}`,
+  }));
+  await setSession(ctx, "leasing_search", { buildings });
+  const rows = buildings.map((b, i) => [{ text: b.label.slice(0, 62), callback_data: `lr:${i}` }]);
+  rows.push([{ text: "❌ Cancelar", callback_data: "m:x" }]);
+  await send(ctx, "🏠 <b>Elegí la propiedad para el reporte:</b>", rows);
+}
+
+async function chooseLeasingBuilding(ctx: Ctx, messageId: number | undefined, idx: number) {
+  const session = await getSession(ctx);
+  const buildings = session?.data?.buildings as { key: string; label: string }[] | undefined;
+  const b = buildings?.[idx];
+  if (!b) { await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Mandá <b>menu</b> para empezar de nuevo."); return; }
+  await setSession(ctx, "leasing_lang", { group_key: b.key, group_label: b.label });
+  await editOrSend(ctx, messageId,
+    `📄 <b>${escapeHtml(b.label)}</b>\n\n¿En qué idioma generás el reporte?`,
+    [[{ text: "🇪🇸 Español", callback_data: "lrl:es" }, { text: "🇺🇸 English", callback_data: "lrl:en" }],
+     [{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+}
+
+async function generateLeasingReport(ctx: Ctx, messageId: number | undefined, lang: "es" | "en") {
+  const session = await getSession(ctx);
+  const gk = session?.data?.group_key;
+  const label = session?.data?.group_label || "";
+  if (!gk) { await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Mandá <b>menu</b> para empezar de nuevo."); return; }
+  await editOrSend(ctx, messageId, `📄 Generando el reporte de <b>${escapeHtml(label)}</b>…`);
+  await typing(ctx);
+  const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/leasing-report-pdf`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
+    body: JSON.stringify({ organization_id: ctx.organizationId, groupKey: gk, lang, chat_id: ctx.chatId, bot: ctx.bot }),
+  });
+  const result = await resp.json().catch(() => ({}));
+  if (resp.ok && result?.ok) {
+    // The PDF itself is delivered by leasing-report-pdf via sendDocument.
+    await clearSession(ctx);
+    await send(ctx, "✅ Reporte enviado 📄",
+      [[{ text: "📄 Otro reporte", callback_data: "m:lr" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
+  } else {
+    // Keep the session so "Reintentar" still has the group_key.
+    await send(ctx, `❌ No pude generar el reporte: ${escapeHtml(result?.error || "error")}.\nProbá de nuevo o mandá <b>menu</b>.`,
+      [[{ text: "🔁 Reintentar", callback_data: `lrl:${lang}` }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

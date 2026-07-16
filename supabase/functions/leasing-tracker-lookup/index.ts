@@ -195,11 +195,11 @@ serve(async (req) => {
     // properties and groups them by city.
     if (payload.mode === "open_agenda") {
       const today = orgToday();
-      // Only advertise open slots for LISTABLE homes (available / coming_soon).
-      // A rented/in_leasing_process home may still be in the tracker catalog,
-      // but its slots must not be publicly bookable (matches admin + RLS gate).
-      const LISTABLE = new Set(["available", "coming_soon"]);
-      const listable = catalog.filter((p) => LISTABLE.has(String(p.status)));
+      // Only advertise open slots for BOOKABLE homes ('available' only).
+      // coming_soon/rented/in_leasing_process homes may still be in the tracker
+      // catalog, but their slots must not be publicly bookable (matches admin + RLS gate).
+      const BOOKABLE = new Set(["available"]);
+      const listable = catalog.filter((p) => BOOKABLE.has(String(p.status)));
       const catalogIds = listable.map((p) => p.id);
       const cityById = new Map(
         listable.map((p) => [p.id, String(p.city || "").trim()]),
@@ -374,8 +374,8 @@ serve(async (req) => {
     // this building may still have stale enabled slots that must not be
     // advertised as bookable (matches admin + RLS gate). Leads/showings
     // aggregates below intentionally stay across ALL units (owner tracking).
-    const listableSet = new Set(["available", "coming_soon"]);
-    const slotUnitIds = units.filter((u) => listableSet.has(String(u.status))).map((u) => u.id);
+    const bookableSet = new Set(["available"]);
+    const slotUnitIds = units.filter((u) => bookableSet.has(String(u.status))).map((u) => u.id);
 
     // Leads across all units (de-identified, applicants excluded). Interest
     // tags live in lead_property_interests; a lead tagged on several units of

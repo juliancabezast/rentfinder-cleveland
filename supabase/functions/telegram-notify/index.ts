@@ -77,13 +77,13 @@ function formatEvent(event: string, p: Record<string, unknown>): string {
       return `🆕 <b>New lead</b> — ${name}${source}${interest}${phone}${voucher}`;
     case "hot_lead": {
       // A "call now" opportunity card for the showings bot. The phone is the
-      // whole point (gated upstream — never fires without one): render it as a
-      // tappable tel: link, then the actual tagged property + voucher + move-in.
+      // whole point (gated upstream — never fires without one). Render it as
+      // PLAIN E.164 text: Telegram mobile auto-detects that as a tappable call
+      // link. (A <a href="tel:"> link is NOT tappable in Telegram, and a
+      // formatted number with parens/spaces doesn't reliably auto-detect.)
       const rawPhone = String(p.phone ?? "").trim();
       const tel = rawPhone.replace(/[^\d+]/g, "");
-      const phoneLine = tel
-        ? `\n📞 <a href="tel:${escapeHtml(tel)}"><b>${escapeHtml(prettyPhone(rawPhone))}</b></a>`
-        : "";
+      const phoneLine = tel ? `\n📞 ${escapeHtml(tel)}` : "";
       const propLine = p.property ? `\n🏠 ${escapeHtml(p.property)}` : "";
       const moreN = Number(p.more_count ?? 0);
       const more = moreN > 0 ? ` <i>(+${moreN} more tagged)</i>` : "";

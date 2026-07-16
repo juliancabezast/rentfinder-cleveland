@@ -189,7 +189,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           .from("properties")
           .select("id, address, unit_number, rent_price, city")
           .eq("organization_id", userRecord.organization_id)
-          .in("status", ["available", "coming_soon"])
+          .in("status", ["available"]) // bookable = available only (coming_soon not bookable)
           .order("address"),
         supabase
           .from("users")

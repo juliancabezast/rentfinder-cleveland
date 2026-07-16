@@ -148,6 +148,10 @@ verify_jwt = false
 [functions.leasing-tracker-lookup]
 verify_jwt = false
 
+# Leasing report PDF (internal — verifies the service-role bearer itself)
+[functions.leasing-report-pdf]
+verify_jwt = false
+
 # Public property-view tracking (impressions + detail views)
 [functions.track-property-view]
 verify_jwt = false

@@ -304,13 +304,13 @@ serve(async (req: Request) => {
         .single(),
     ]);
 
-    // Only listable properties (available / coming_soon) can be booked. This
-    // refuses direct POSTs against a rented/inactive/in_leasing_process
-    // property even if a stale enabled slot still exists (matches the admin
-    // calendar + anon RLS gate — change a property's status and it stops
-    // being bookable everywhere, automatically).
-    const LISTABLE_STATUSES = ["available", "coming_soon"];
-    if (!property || !LISTABLE_STATUSES.includes(property.status)) {
+    // Only 'available' properties can be booked. coming_soon is visible in the
+    // public catalog but NOT bookable. This refuses direct POSTs against a
+    // coming_soon/rented/inactive/in_leasing_process property even if a stale
+    // enabled slot still exists (matches the admin calendar + anon RLS gate —
+    // change a property's status and it stops being bookable everywhere).
+    const BOOKABLE_STATUSES = ["available"];
+    if (!property || !BOOKABLE_STATUSES.includes(property.status)) {
       return new Response(
         JSON.stringify({ error: "This property is no longer available for showings." }),
         { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -647,6 +647,9 @@ serve(async (req: Request) => {
     }
 
     // ── Send confirmation email (if lead has email) ───────────────────
+    // Track the outcome so callers (e.g. the Telegram bot) can report back
+    // whether the tenant actually got a confirmation.
+    let emailStatus: "sent" | "no_email" | "failed" = leadEmail ? "failed" : "no_email";
     if (leadEmail) {
       try {
         const calTitle = `Property Showing — ${property?.address || "Tour"}`;
@@ -660,7 +663,7 @@ serve(async (req: Request) => {
           timezone: propTz,
         };
 
-        await supabase.functions.invoke("send-notification-email", {
+        const { error: emailInvokeErr } = await supabase.functions.invoke("send-notification-email", {
           body: {
             to: leadEmail,
             subject: `Showing Confirmed — ${property?.address || "Property Tour"}`,
@@ -683,9 +686,11 @@ serve(async (req: Request) => {
             queue: false,
           },
         });
+        emailStatus = emailInvokeErr ? "failed" : "sent";
       } catch (emailErr) {
         // Don't fail the booking if email fails
         console.error("Confirmation email failed:", emailErr);
+        emailStatus = "failed";
       }
     }
 
@@ -926,6 +931,8 @@ serve(async (req: Request) => {
         success: true,
         showing_id: showing.id,
         lead_id: leadId,
+        email_status: emailStatus,
+        emailed_to: emailStatus === "sent" ? leadEmail : null,
         message: "Showing booked successfully.",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -33,10 +33,11 @@ import {
 } from "lucide-react";
 import { format, addDays, parseISO, startOfDay, startOfWeek } from "date-fns";
 
-// ── The single "listable" definition: a property whose slots may be shown /
-// opened / booked. Changing a property OFF this set makes its slots vanish
-// everywhere automatically (read-time gate, no cleanup needed). ────────────
-const LISTABLE_STATUSES = ["available", "coming_soon"];
+// ── The single "bookable" definition: a property whose slots may be shown /
+// opened / booked. Only 'available' — coming_soon is visible in the public
+// catalog (home/detail) but NOT bookable. Changing a property OFF this set
+// makes its slots vanish everywhere automatically (read-time gate, no cleanup). ─
+const BOOKABLE_STATUSES = ["available"];
 
 // Standard half-hour ladder the grid ALWAYS renders (even on an empty week),
 // so every future cell is clickable — no "Enable Slots" bootstrap needed.
@@ -266,7 +267,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         .from("properties")
         .select("id, city, status")
         .eq("organization_id", orgId)
-        .in("status", LISTABLE_STATUSES);
+        .in("status", BOOKABLE_STATUSES);
       const map = new Map<string, string[]>();
       for (const p of (data || []) as { id: string; city: string | null }[]) {
         const city = p.city || "Other";
@@ -398,7 +399,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         property_city: (s.properties as any)?.city || "",
         is_booked: s.is_booked,
         // status gate: an enabled slot on a de-listed property is NOT open
-        is_enabled: s.is_enabled && LISTABLE_STATUSES.includes(status),
+        is_enabled: s.is_enabled && BOOKABLE_STATUSES.includes(status),
         lead_name: isRealBooking ? info!.leadName : null,
         booked_showing_id: isRealBooking ? s.booked_showing_id : null,
         showing_status: isRealBooking ? info!.status : null,

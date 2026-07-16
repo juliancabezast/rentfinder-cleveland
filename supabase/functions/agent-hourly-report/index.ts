@@ -105,6 +105,10 @@ serve(async (req: Request) => {
   try {
     const body = await req.json().catch(() => ({}));
     organizationId = body.organization_id || "";
+    // Which bot should receive this report? The Telegram scheduling bot passes
+    // bot:"showings" so the report lands in the thread the user tapped; the
+    // hourly cron passes nothing → general (unchanged).
+    const requestedBot = body.bot === "showings" ? "showings" : "general";
 
     if (!organizationId) {
       return new Response(
@@ -116,7 +120,7 @@ serve(async (req: Request) => {
     // ── Get Telegram credentials ──────────────────────────────────
     const { data: creds } = await supabase
       .from("organization_credentials")
-      .select("telegram_bot_token, telegram_chat_id")
+      .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
       .eq("organization_id", organizationId)
       .single();
 
@@ -126,6 +130,14 @@ serve(async (req: Request) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Route to the requested bot. Use the showings bot ONLY when BOTH its token
+    // and chat id are set; otherwise fall back to the general pair atomically
+    // (never mix one bot's token with another bot's chat id).
+    const useShowings = requestedBot === "showings"
+      && !!creds.telegram_showings_bot_token && !!creds.telegram_showings_chat_id;
+    const botToken = useShowings ? creds.telegram_showings_bot_token : creds.telegram_bot_token;
+    const chatId = useShowings ? creds.telegram_showings_chat_id : creds.telegram_chat_id;
 
     // ── Get org name + timezone ───────────────────────────────────
     const { data: org } = await supabase
@@ -537,12 +549,12 @@ serve(async (req: Request) => {
     const message = lines.join("\n");
 
     // ── Send to Telegram ──────────────────────────────────────
-    const telegramUrl = `https://api.telegram.org/bot${creds.telegram_bot_token}/sendMessage`;
+    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
     const telegramResp = await fetch(telegramUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        chat_id: creds.telegram_chat_id,
+        chat_id: chatId,
         text: message,
         parse_mode: "HTML",
         disable_web_page_preview: true,
