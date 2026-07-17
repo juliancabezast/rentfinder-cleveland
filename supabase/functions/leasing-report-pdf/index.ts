@@ -359,7 +359,8 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { organization_id, groupKey, chat_id } = body as Record<string, any>;
     const lang: "es" | "en" = body.lang === "en" ? "en" : "es";
-    const bot = body.bot === "general" ? "general" : "showings";
+    const bot = body.bot === "general" ? "general"
+      : body.bot === "leasing" ? "leasing" : "showings";
     if (!organization_id || !groupKey || !chat_id) {
       return json({ ok: false, error: "missing organization_id, groupKey or chat_id" }, 400);
     }
@@ -377,14 +378,30 @@ serve(async (req) => {
 
     const pdf = await buildPdf(data, lang);
 
-    // Resolve the delivery bot token (atomic showings→general fallback).
+    // Resolve the delivery bot token. LeasingAgent (route bot) is the default
+    // caller now; its token lives in organization_settings.
     const supabase = createClient(supabaseUrl, serviceKey);
     const { data: creds } = await supabase
       .from("organization_credentials")
       .select("telegram_bot_token, telegram_showings_bot_token")
       .eq("organization_id", organization_id)
       .maybeSingle();
-    const botToken = bot === "showings"
+    let leasingToken: string | undefined;
+    if (bot === "leasing") {
+      const { data: rs } = await supabase
+        .from("organization_settings").select("key, value")
+        .eq("organization_id", organization_id)
+        .in("key", ["telegram_route_bot_token"]);
+      const unwrapVal = (v: any) => {
+        if (v == null) return undefined;
+        try { const p = JSON.parse(String(v)); return typeof p === "string" ? p : String(v); }
+        catch { return String(v); }
+      };
+      leasingToken = new Map((rs || []).map((s: any) => [s.key, unwrapVal(s.value)])).get("telegram_route_bot_token");
+    }
+    const botToken = bot === "leasing"
+      ? (leasingToken || creds?.telegram_bot_token)
+      : bot === "showings"
       ? (creds?.telegram_showings_bot_token || creds?.telegram_bot_token)
       : creds?.telegram_bot_token;
     if (!botToken) return json({ ok: false, error: "no bot token" }, 400);

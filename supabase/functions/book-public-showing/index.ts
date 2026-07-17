@@ -220,12 +220,21 @@ serve(async (req: Request) => {
       has_voucher,
       note,
       consent,
+      // ── Attribution (public callers): which email/campaign drove this book. ──
+      src: bodySrc,
+      campaign_id: bodyCampaignId,
       // ── Optional (agent/internal callers, e.g. the Telegram bot) ──
       // lead_id: book for THIS exact lead (skip find-or-create by phone).
       // booking_source: overrides the default "public_link" marker.
       lead_id: bodyLeadId,
       booking_source: bodyBookingSource,
     } = body;
+    const attribSrc = typeof bodySrc === "string" ? bodySrc.slice(0, 40) : null;
+    const attribCampaignId =
+      typeof bodyCampaignId === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bodyCampaignId)
+        ? bodyCampaignId
+        : null;
 
     // These two are privileged: honored ONLY for internal callers that present
     // the service-role key (the Telegram bot does). A public/anonymous caller
@@ -354,12 +363,32 @@ serve(async (req: Request) => {
       if (has_voucher !== undefined) upd.has_voucher = !!has_voucher;
       await supabase.from("leads").update(upd).eq("id", leadId);
     } else {
-      const { data: existingLead } = await supabase
+      let { data: existingLead } = await supabase
         .from("leads")
-        .select("id, status, email")
+        .select("id, status, email, phone")
         .eq("organization_id", organization_id)
         .eq("phone", formattedPhone)
         .maybeSingle();
+
+      // Phone missed → fall back to a normalized-email match. A campaign lead
+      // who books with a different phone should link to their EXISTING record,
+      // not fork a duplicate (which breaks attribution + the "already booked"
+      // reminder filter). Wildcards escaped so ilike is an exact, case-
+      // insensitive match; oldest record wins.
+      if (!existingLead && leadEmail) {
+        const emailPattern = leadEmail.trim().replace(/[\\%_]/g, (c) => "\\" + c);
+        const { data: byEmail } = await supabase
+          .from("leads")
+          .select("id, status, email, phone")
+          .eq("organization_id", organization_id)
+          .ilike("email", emailPattern)
+          .order("created_at", { ascending: true })
+          .limit(2);
+        // Only auto-link when the email maps to EXACTLY ONE lead. A shared
+        // household inbox (2+ leads) is ambiguous — guessing could attribute the
+        // booking to the wrong person, so fall through to create a fresh lead.
+        if (byEmail && byEmail.length === 1) existingLead = byEmail[0];
+      }
 
       if (existingLead) {
         leadId = existingLead.id;
@@ -372,6 +401,9 @@ serve(async (req: Request) => {
           updated_at: new Date().toISOString(),
         };
         if (email && !existingLead.email) leadUpdate.email = email;
+        // Backfill phone only when the matched (email) lead had none — never
+        // clobber a real phone already on file.
+        if (formattedPhone && !existingLead.phone) leadUpdate.phone = formattedPhone;
         if (has_voucher !== undefined) leadUpdate.has_voucher = !!has_voucher;
         await supabase.from("leads").update(leadUpdate).eq("id", leadId);
       } else {
@@ -663,8 +695,18 @@ serve(async (req: Request) => {
           timezone: propTz,
         };
 
-        const { error: emailInvokeErr } = await supabase.functions.invoke("send-notification-email", {
-          body: {
+        const emailResp = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // Send the service-role key in BOTH slots so the callee's internal
+            // auth gate accepts us no matter which header it reads. (Regression:
+            // supabase.functions.invoke did not present the service role the way
+            // that gate expects, so every confirmation 401'd from 2026-07-10.)
+            Authorization: `Bearer ${serviceRoleKey}`,
+            apikey: serviceRoleKey,
+          },
+          body: JSON.stringify({
             to: leadEmail,
             subject: `Showing Confirmed — ${property?.address || "Property Tour"}`,
             html: showingConfirmationEmail({
@@ -684,9 +726,15 @@ serve(async (req: Request) => {
             related_entity_id: showing.id,
             related_entity_type: "showing",
             queue: false,
-          },
+          }),
         });
-        emailStatus = emailInvokeErr ? "failed" : "sent";
+        if (!emailResp.ok) {
+          const errBody = await emailResp.text().catch(() => "");
+          console.error(`Confirmation email failed (${emailResp.status}): ${errBody.slice(0, 200)}`);
+          emailStatus = "failed";
+        } else {
+          emailStatus = "sent";
+        }
       } catch (emailErr) {
         // Don't fail the booking if email fails
         console.error("Confirmation email failed:", emailErr);
@@ -791,19 +839,23 @@ serve(async (req: Request) => {
     }
 
     // ── Campaign attribution ──────────────────────────────────────────
-    let campaignId: string | null = null;
-    try {
-      const { data: campaignLink } = await supabase
-        .from("campaign_leads")
-        .select("campaign_id")
-        .eq("lead_id", leadId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (campaignLink) {
-        campaignId = campaignLink.campaign_id;
-      }
-    } catch (_) { /* non-critical */ }
+    // The explicit ?cid= from the email link is authoritative (it's the exact
+    // send that drove THIS booking). Fall back to the lead's most-recent
+    // campaign_leads link when the URL carried no cid.
+    let campaignId: string | null = attribCampaignId;
+    if (!campaignId) {
+      try {
+        const { data: campaignLink } = await supabase
+          .from("campaign_leads")
+          .select("campaign_id")
+          .eq("lead_id", leadId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (campaignLink) campaignId = campaignLink.campaign_id;
+      } catch (_) { /* non-critical */ }
+    }
+    const attributionSource = attribSrc || (campaignId ? "campaign" : "website");
 
     // ── System log ────────────────────────────────────────────────────
     await supabase.from("system_logs").insert({
@@ -818,7 +870,8 @@ serve(async (req: Request) => {
         property_id,
         slot_date,
         slot_time,
-        source: campaignId ? "campaign" : "website",
+        source: attributionSource,
+        attribution_src: attribSrc,
         campaign_id: campaignId,
         lead_is_new: leadIsNew,
       },

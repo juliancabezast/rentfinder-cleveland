@@ -61,6 +61,18 @@ async function buildUnsubscribeUrl(
   return `${supabaseUrl}/functions/v1/unsubscribe?token=${token}`;
 }
 
+// Per-recipient prefill token: <leadId>.<exp>.<sig>, resolved by
+// resolve-lead-token so the booking page auto-fills a known lead. 14-day expiry.
+async function buildPrefillToken(
+  leadId: string | null | undefined,
+  secret: string,
+): Promise<string> {
+  if (!secret || !leadId) return "";
+  const exp = Math.floor(Date.now() / 1000) + 14 * 24 * 3600;
+  const sig = await signLeadId(`${leadId}.${exp}`, secret);
+  return `${leadId}.${exp}.${sig}`;
+}
+
 function isMarketingEmail(details: Record<string, unknown> | undefined): boolean {
   if (!details) return false;
   if (typeof details.campaign_id === "string" && details.campaign_id.length > 0) return true;
@@ -300,12 +312,30 @@ serve(async (req: Request) => {
               : undefined;
             const unsubUrl = await buildUnsubscribeUrl(leadId, supabaseUrl, senderDomain);
             outboundHtml = outboundHtml.split("{{unsubscribe_url}}").join(unsubUrl);
+            // Deep-link prefill: substitute the per-recipient token + campaign id
+            // so email CTAs (…?src=campaign&cid={{campaign_id}}&t={{prefill_token}})
+            // land on a pre-filled booking form. No-ops when the placeholders
+            // aren't present in the HTML.
+            const tokenSecret =
+              Deno.env.get("LEAD_TOKEN_SECRET") || Deno.env.get("UNSUBSCRIBE_SECRET") || "";
+            const prefillToken = await buildPrefillToken(leadId, tokenSecret);
+            outboundHtml = outboundHtml.split("{{prefill_token}}").join(prefillToken);
+            outboundHtml = outboundHtml
+              .split("{{campaign_id}}")
+              .join(String(email.details?.campaign_id || ""));
             resendExtraHeaders["List-Unsubscribe"] = `<${unsubUrl}>`;
             // One-Click POST is only valid against an HTTPS endpoint (not a mailto).
             if (unsubUrl.startsWith("http")) {
               resendExtraHeaders["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
             }
           }
+
+          // Safety net: strip any prefill/campaign placeholders that were NOT
+          // substituted above (e.g. a template carrying them sent as
+          // non-marketing) so we never ship literal "{{prefill_token}}" text.
+          outboundHtml = outboundHtml
+            .split("{{prefill_token}}").join("")
+            .split("{{campaign_id}}").join("");
 
           // Send via Resend
           const resendResponse = await fetch("https://api.resend.com/emails", {

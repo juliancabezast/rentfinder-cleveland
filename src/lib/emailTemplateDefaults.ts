@@ -148,7 +148,7 @@ export const DEFAULT_CONFIGS: Record<EmailTemplateType, EmailTemplateConfig> = {
       "Thank you for your interest in our rental properties. We're excited to help you find your next home in Cleveland.",
     ],
     buttons: [
-      { text: "Book a Showing", url: "https://{senderDomain}/p/book-showing", style: "primary" },
+      { text: "Book a Showing", url: "https://{senderDomain}/p/book-showing?src=email&cid={{campaign_id}}&t={{prefill_token}}", style: "primary" },
       { text: "Apply Now", url: "https://{senderDomain}/p/apply", style: "secondary" },
     ],
     showPropertyCard: true,
@@ -171,7 +171,7 @@ export const DEFAULT_CONFIGS: Record<EmailTemplateType, EmailTemplateConfig> = {
       "Book a free, no-pressure tour and see it for yourself. Times are filling up fast!",
     ],
     buttons: [
-      { text: "Schedule My Tour", url: "https://{senderDomain}/p/book-showing", style: "primary" },
+      { text: "Schedule My Tour", url: "https://{senderDomain}/p/book-showing?src=email&cid={{campaign_id}}&t={{prefill_token}}", style: "primary" },
     ],
     showPropertyCard: true,
     showSteps: false,
@@ -232,7 +232,7 @@ export const DEFAULT_CONFIGS: Record<EmailTemplateType, EmailTemplateConfig> = {
       "We have more great properties available — book another tour and we'll find the right home for you!",
     ],
     buttons: [
-      { text: "Schedule Another Showing", url: "https://{senderDomain}/p/book-showing", style: "primary" },
+      { text: "Schedule Another Showing", url: "https://{senderDomain}/p/book-showing?src=email&cid={{campaign_id}}&t={{prefill_token}}", style: "primary" },
     ],
     showPropertyCard: false,
     showSteps: false,
@@ -249,7 +249,7 @@ export const DEFAULT_CONFIGS: Record<EmailTemplateType, EmailTemplateConfig> = {
       "Please pick a new date and time that works for you:",
     ],
     buttons: [
-      { text: "Reschedule Showing", url: "https://{senderDomain}/p/book-showing", style: "primary" },
+      { text: "Reschedule Showing", url: "https://{senderDomain}/p/book-showing?src=email&cid={{campaign_id}}&t={{prefill_token}}", style: "primary" },
     ],
     showPropertyCard: false,
     showSteps: false,

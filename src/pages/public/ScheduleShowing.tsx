@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -589,6 +589,15 @@ const ScheduleShowing: React.FC = () => {
   const { propertyId } = useParams<{ propertyId: string }>();
   const isMultiMode = !propertyId;
 
+  // Campaign attribution + one-tap prefill: emails deep-link with
+  // ?src=campaign&cid=<campaign_id>&t=<signed lead token>. `t` is resolved
+  // server-side (resolve-lead-token) so the recipient's name/phone/email
+  // auto-fill — no re-typing for the ~thousands of leads we already know.
+  const [searchParams] = useSearchParams();
+  const attribSrc = searchParams.get("src") || null;
+  const attribCid = searchParams.get("cid") || null;
+  const prefillToken = searchParams.get("t") || null;
+
   // Multi-mode: property selection
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [bedsFilter, setBedsFilter] = useState<number>(0); // 0 = any, else minimum beds
@@ -626,6 +635,45 @@ const ScheduleShowing: React.FC = () => {
     () => (localStorage.getItem("rf_payment") as "self" | "voucher") || ""
   );
   const [note, setNote] = useState("");
+  const [prefilledName, setPrefilledName] = useState<string | null>(null);
+
+  // Resolve ?t=<signed token> → prefill this known lead's name/phone/email so a
+  // recipient who came from our email doesn't re-type anything. Best-effort:
+  // only fills a field the visitor hasn't already set, and silently no-ops on
+  // an invalid/expired token.
+  useEffect(() => {
+    if (!prefillToken) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke("resolve-lead-token", {
+          body: { token: prefillToken },
+        });
+        if (cancelled || !data || (data as any).error) return;
+        const d = data as { first_name?: string; full_name?: string; phone?: string; email?: string };
+        if (d.first_name) setPrefilledName(String(d.first_name));
+        if (d.full_name) setFullName((prev) => prev || String(d.full_name));
+        if (d.phone) {
+          const raw = String(d.phone).replace(/\D/g, "").slice(-10);
+          if (raw.length === 10) {
+            // Only fill when the field is untouched — never stomp a number the
+            // visitor is mid-typing (matches the name/email empty-only guard).
+            setPhone((prev) =>
+              prev.trim().length > 0
+                ? prev
+                : `(${raw.slice(0, 3)}) ${raw.slice(3, 6)}-${raw.slice(6)}`
+            );
+          }
+        }
+        if (d.email) setEmail((prev) => prev || String(d.email));
+      } catch {
+        /* prefill is best-effort — never block the page */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [prefillToken]);
 
   // Call Now button config
   const [callNowConfig, setCallNowConfig] = useState<{ enabled: boolean; phone: string; label: string } | null>(null);
@@ -970,7 +1018,7 @@ const ScheduleShowing: React.FC = () => {
 
       const { data, error } = await supabase
         .from("showing_available_slots")
-        .select("slot_date")
+        .select("slot_date, slot_time")
         .eq("property_id", effectivePropertyId)
         .eq("is_enabled", true)
         .eq("is_booked", false)
@@ -978,12 +1026,25 @@ const ScheduleShowing: React.FC = () => {
         .lte("slot_date", maxDate);
 
       if (!error && data) {
-        const uniqueDates = [...new Set(data.map((d) => d.slot_date))];
+        // Apply the SAME lead-time cutoff the time grid uses, so "today" only
+        // shows as a pickable date when it still has a bookable time. Without
+        // this, a renter taps Today → "No available times on this date" and
+        // bounces (audit finding #4).
+        const tz = getTimezoneForCity(property?.city);
+        const nowInTz = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+        const todayStr = format(nowInTz, "yyyy-MM-dd");
+        const cutoffMinutes = nowInTz.getHours() * 60 + nowInTz.getMinutes() + leadTimeMinutes;
+        const bookable = data.filter((d) => {
+          if (d.slot_date !== todayStr) return true;
+          const [h, m] = String(d.slot_time).split(":").map(Number);
+          return h * 60 + m >= cutoffMinutes;
+        });
+        const uniqueDates = [...new Set(bookable.map((d) => d.slot_date))];
         setAvailableDates(uniqueDates.map((d) => parseISO(d)));
       }
       setDatesLoading(false);
     })();
-  }, [effectivePropertyId]);
+  }, [effectivePropertyId, property?.city, leadTimeMinutes]);
 
   // ---- Fetch slots for selected date ----
   useEffect(() => {
@@ -1028,10 +1089,8 @@ const ScheduleShowing: React.FC = () => {
 
   // ---- Handle booking ----
   const handleBook = async () => {
-    if (!consent) {
-      setConsentError(true);
-      return;
-    }
+    // Consent is OPTIONAL — never block a tour booking on it (the confirmation
+    // email is transactional). Only name + a valid phone are truly required.
     setConsentError(false);
     if (!fullName.trim() || !isPhoneValid) return;
     if (!selectedDate || !selectedTime || !effectivePropertyId || !property) return;
@@ -1049,9 +1108,15 @@ const ScheduleShowing: React.FC = () => {
           full_name: fullName.trim(),
           phone: phone.trim(),
           email: email.trim() || null,
-          has_voucher: paymentType === "voucher",
+          // Payment method is now optional — leave has_voucher unset when the
+          // renter didn't pick one, rather than defaulting them to self-pay.
+          has_voucher: paymentType === "" ? undefined : paymentType === "voucher",
           note: note.trim() || null,
           consent: buildConsentPayload(consent),
+          // Attribution (best-effort; ignored by the backend if absent).
+          src: attribSrc,
+          campaign_id: attribCid,
+          prefill_token: prefillToken,
         },
       });
 
@@ -1769,8 +1834,16 @@ const ScheduleShowing: React.FC = () => {
                     <div className="h-6 w-6 rounded-full bg-[#4F46E5] text-white flex items-center justify-center text-xs font-bold">
                       3
                     </div>
-                    <h3 className="font-semibold">Your Information</h3>
+                    <h3 className="font-semibold">
+                      {prefilledName ? `Almost done, ${prefilledName}` : "Your Information"}
+                    </h3>
                   </div>
+
+                  {prefilledName && (
+                    <p className="text-sm text-muted-foreground -mt-1">
+                      We filled in your details — just confirm below.
+                    </p>
+                  )}
 
                   {/* Summary badges */}
                   <div className="flex flex-wrap gap-2 text-sm">
@@ -1833,7 +1906,7 @@ const ScheduleShowing: React.FC = () => {
 
                     {/* Payment type */}
                     <div>
-                      <Label>Payment Method <span className="text-destructive">*</span></Label>
+                      <Label>Payment Method <span className="text-muted-foreground font-normal">(optional)</span></Label>
                       <div className="grid grid-cols-2 gap-2 mt-1">
                         <button
                           type="button"
@@ -1897,7 +1970,7 @@ const ScheduleShowing: React.FC = () => {
                     <Button
                       className="w-full h-12 bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white font-semibold text-base"
                       onClick={handleBook}
-                      disabled={submitting || !fullName.trim() || !isPhoneValid || !paymentType}
+                      disabled={submitting || !fullName.trim() || !isPhoneValid}
                     >
                       {submitting ? (
                         <>

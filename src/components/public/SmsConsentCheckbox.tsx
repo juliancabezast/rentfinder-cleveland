@@ -2,16 +2,22 @@ import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
-export const SMS_CONSENT_VERSION = "1.1";
+export const SMS_CONSENT_VERSION = "2.0";
 
+// SMS-only, opt-in (voice was removed from the product; "HomeGuard" brand retired).
+// This is OPTIONAL — booking a tour never depends on it (a confirmation email
+// still goes out either way). Keep it plain-language so it doesn't scare renters
+// off at the final step.
 export const SMS_CONSENT_LANGUAGE =
-  "I agree to receive automated phone calls and SMS text messages from Rent Finder Cleveland / HomeGuard regarding property updates, showing reminders, and related communications. Calls may be recorded for quality purposes. Message frequency varies. Msg&data rates may apply. Reply STOP to unsubscribe at any time. Reply HELP for help. Consent is not required to apply for housing.";
+  "Text me showing reminders and updates about my tour and this home. Message frequency varies; msg & data rates may apply. Reply STOP to opt out anytime, HELP for help. Consent isn't required to book a tour or to apply for housing.";
 
 /** Builds the consent metadata payload to send to the edge function. */
 export function buildConsentPayload(granted: boolean) {
   return {
     sms_consent: granted,
-    call_consent: granted,
+    // Voice was removed from the product and the disclosed language is SMS-only,
+    // so we never record call consent (avoids a TCPA evidence mismatch).
+    call_consent: false,
     consent_method: "web" as const,
     consent_source_url: window.location.href,
     consent_language: SMS_CONSENT_LANGUAGE,
@@ -50,7 +56,7 @@ export const SmsConsentCheckbox: React.FC<SmsConsentCheckboxProps> = ({
           error ? "text-destructive" : "text-muted-foreground"
         )}
       >
-        {SMS_CONSENT_LANGUAGE} View our{" "}
+        <span className="font-semibold">Optional —</span> {SMS_CONSENT_LANGUAGE} View our{" "}
         <a
           href="/privacy-policy"
           target="_blank"

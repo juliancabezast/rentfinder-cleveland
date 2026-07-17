@@ -21,6 +21,19 @@ const MARKETING_NOTIFICATION_TYPES = new Set([
   "promotion",
 ]);
 
+// Decode a JWT's `role` claim WITHOUT verifying the signature. Diagnostics
+// only (auth-rejection logging) — returns just the role string, never the token.
+function jwtRole(token: string): string {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return "none";
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return String(json.role || "unknown");
+  } catch {
+    return "invalid";
+  }
+}
+
 // ── CAN-SPAM unsubscribe (per-recipient, HMAC-signed) ──────────────────────
 function base64urlEncode(bytes: Uint8Array): string {
   let bin = "";
@@ -98,10 +111,26 @@ serve(async (req: Request) => {
     // logged-in user; reject anon/invalid tokens.
     const authHeader = req.headers.get("Authorization") || "";
     const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const apiKeyHeader = (req.headers.get("apikey") || "").trim();
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-    const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+    // Internal service-role callers (edge fns / queue processor / cron) present
+    // the service-role key. `supabase.functions.invoke()` carries that key in
+    // the `apikey` header (its Bearer Authorization is the anon/session token),
+    // whereas raw-fetch callers put it in the Bearer token — accept EITHER, so
+    // both call styles authenticate. Public callers only ever have the anon key
+    // in both headers, so this remains a real gate (regression: the invoke path
+    // silently 401'd every transactional immediate send from 2026-07-10).
+    const isServiceRole =
+      (callerToken.length > 0 && callerToken === serviceRoleKey) ||
+      (apiKeyHeader.length > 0 && apiKeyHeader === serviceRoleKey);
     if (!isServiceRole) {
       if (!callerToken || callerToken === anonKey) {
+        // Key-safe diagnostics only — never log the token/key itself.
+        console.warn(
+          "send-notification-email: rejected caller (no service role) " +
+          `authRole=${jwtRole(callerToken)} bearerLen=${callerToken.length} ` +
+          `apikeyLen=${apiKeyHeader.length} srkLen=${serviceRoleKey.length}`,
+        );
         return new Response(
           JSON.stringify({ error: "Unauthorized" }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -109,6 +138,11 @@ serve(async (req: Request) => {
       }
       const { data: authData, error: authErr } = await supabase.auth.getUser(callerToken);
       if (authErr || !authData?.user) {
+        console.warn(
+          "send-notification-email: rejected caller (getUser failed) " +
+          `authRole=${jwtRole(callerToken)} bearerLen=${callerToken.length} ` +
+          `apikeyLen=${apiKeyHeader.length} srkLen=${serviceRoleKey.length}`,
+        );
         return new Response(
           JSON.stringify({ error: "Unauthorized" }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -257,6 +291,13 @@ serve(async (req: Request) => {
         resendExtraHeaders["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
       }
     }
+
+    // Strip prefill/campaign placeholders (this immediate path doesn't mint a
+    // per-recipient token — that's the queue's job) so a template carrying them
+    // never ships the literal "{{prefill_token}}" / "{{campaign_id}}" text.
+    outboundHtml = outboundHtml
+      .split("{{prefill_token}}").join("")
+      .split("{{campaign_id}}").join("");
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",

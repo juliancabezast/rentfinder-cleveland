@@ -108,7 +108,8 @@ serve(async (req: Request) => {
     // Which bot should receive this report? The Telegram scheduling bot passes
     // bot:"showings" so the report lands in the thread the user tapped; the
     // hourly cron passes nothing → general (unchanged).
-    const requestedBot = body.bot === "showings" ? "showings" : "general";
+    const requestedBot = body.bot === "showings" ? "showings"
+      : body.bot === "leasing" ? "leasing" : "general";
 
     if (!organizationId) {
       return new Response(
@@ -134,10 +135,34 @@ serve(async (req: Request) => {
     // Route to the requested bot. Use the showings bot ONLY when BOTH its token
     // and chat id are set; otherwise fall back to the general pair atomically
     // (never mix one bot's token with another bot's chat id).
+    // LeasingAgent (route bot) token/chat live in organization_settings.
+    let leasingToken: string | undefined;
+    let leasingChat: string | undefined;
+    if (requestedBot === "leasing") {
+      const { data: rs } = await supabase
+        .from("organization_settings").select("key, value")
+        .eq("organization_id", organizationId)
+        .in("key", ["telegram_route_bot_token", "telegram_route_chat_id"]);
+      const unwrapVal = (v: any) => {
+        if (v == null) return undefined;
+        try { const p = JSON.parse(String(v)); return typeof p === "string" ? p : String(v); }
+        catch { return String(v); }
+      };
+      const m = new Map((rs || []).map((s: any) => [s.key, unwrapVal(s.value)]));
+      leasingToken = m.get("telegram_route_bot_token");
+      leasingChat = m.get("telegram_route_chat_id");
+    }
+    // Route to the requested bot atomically (never mix one bot's token with
+    // another's chat id). Fall back to the general pair if the target isn't set.
+    const useLeasing = requestedBot === "leasing" && !!leasingToken && !!leasingChat;
     const useShowings = requestedBot === "showings"
       && !!creds.telegram_showings_bot_token && !!creds.telegram_showings_chat_id;
-    const botToken = useShowings ? creds.telegram_showings_bot_token : creds.telegram_bot_token;
-    const chatId = useShowings ? creds.telegram_showings_chat_id : creds.telegram_chat_id;
+    const botToken = useLeasing ? leasingToken
+      : useShowings ? creds.telegram_showings_bot_token
+      : creds.telegram_bot_token;
+    const chatId = useLeasing ? leasingChat
+      : useShowings ? creds.telegram_showings_chat_id
+      : creds.telegram_chat_id;
 
     // ── Get org name + timezone ───────────────────────────────────
     const { data: org } = await supabase
@@ -258,22 +283,23 @@ serve(async (req: Request) => {
         .eq("organization_id", organizationId)
         .eq("status", "completed")
         .gte("updated_at", sinceDay),
-      // Emails sent today
+      // Emails sent today — the real pipeline logs to email_events (event_type
+      // 'sent'), NOT communications; and communications has no created_at column
+      // (it's sent_at), so the old query silently returned 0 emails every hour.
       supabase
-        .from("communications")
+        .from("email_events")
         .select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId)
-        .eq("channel", "email")
-        .eq("direction", "outbound")
+        .eq("event_type", "sent")
         .gte("created_at", sinceDay),
-      // SMS sent today
+      // SMS sent today (communications uses sent_at, not created_at).
       supabase
         .from("communications")
         .select("id, cost_twilio", { count: "exact" })
         .eq("organization_id", organizationId)
         .eq("channel", "sms")
         .eq("direction", "outbound")
-        .gte("created_at", sinceDay)
+        .gte("sent_at", sinceDay)
         .limit(1000),
       // Errors today (with messages)
       supabase
@@ -337,13 +363,14 @@ serve(async (req: Request) => {
         .gte("updated_at", sinceMonth),
 
       // ── TOP 5 PROPERTIES ────────────────────────────────────
-      // Interest events grouped by property_id (last 30 days)
-      supabase
-        .from("lead_property_interests")
-        .select("property_id, properties:property_id(address)")
-        .eq("organization_id", organizationId)
-        .gte("created_at", sinceMonth)
-        .limit(1000),
+      // Grouped in the DB (RPC) so it isn't capped by PostgREST's 1000-row
+      // limit — a raw select + JS fold silently corrupted the ranking once
+      // monthly interest events exceeded 1000.
+      supabase.rpc("report_top_properties", {
+        p_org: organizationId,
+        p_since: sinceMonth,
+        p_limit: 5,
+      }),
 
       // ── AGENT QUEUE ─────────────────────────────────────────
       supabase
@@ -416,35 +443,34 @@ serve(async (req: Request) => {
     const monthConverted = monthConvertedRes.count || 0;
 
     // ── TOP 5 PROPERTIES ────────────────────────────────────────
-    const leadPropertyRows = topPropertiesRes.data || [];
-    const propCounts: Record<string, { address: string; count: number }> = {};
-    leadPropertyRows.forEach((row: any) => {
-      const pid = row.property_id;
-      if (!pid) return;
-      if (!propCounts[pid]) {
-        const addr = row.properties?.address || "Unknown";
-        propCounts[pid] = { address: addr, count: 0 };
-      }
-      propCounts[pid].count++;
-    });
-    const top5Props = Object.values(propCounts)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+    // report_top_properties RPC already grouped + ranked in the DB.
+    const top5Props = (topPropertiesRes.data || []).map((r: any) => ({
+      address: r.address || "Unknown",
+      count: Number(r.cnt) || 0,
+    }));
 
     // ── Agent queue ─────────────────────────────────────────────
     const agentQueueCount = agentQueueRes.count || 0;
 
-    // ── Needs attention (folds in the former daily-digest signal) ──
+    // ── Needs attention — bounded to ACTIONABLE, not the whole history ──
+    // Raw all-time counts were pure noise: 55% of the base scores ≥85 and 96%
+    // sits in 'new', so "2200 hot / 3800 backlog" printed every hour and meant
+    // nothing. Scope to recently-created leads that genuinely need a first touch.
     const dayAgoIso = new Date(now.getTime() - 86400000).toISOString();
+    const twoDaysAgoIso = new Date(now.getTime() - 2 * 86400000).toISOString();
+    const sevenDaysAgoIso = new Date(now.getTime() - 7 * 86400000).toISOString();
     const tomorrowStart = startOfDay(new Date(now.getTime() + 86400000), timezone);
     const [hotAwaitingRes, backlogRes, todayShowingsRes] = await Promise.all([
+      // Hot leads from the last 7 days still not contacted → worth calling now.
       supabase.from("leads").select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId).eq("is_demo", false)
         .gte("lead_score", 85).not("status", "in", "(lost,converted)")
-        .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`),
+        .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`)
+        .gte("created_at", sevenDaysAgoIso),
+      // New leads from the last 48h awaiting a first touch.
       supabase.from("leads").select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId).eq("is_demo", false)
-        .eq("status", "new").lt("created_at", dayAgoIso),
+        .eq("status", "new").gte("created_at", twoDaysAgoIso),
       supabase.from("showings").select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId)
         .gte("scheduled_at", sinceDay).lt("scheduled_at", tomorrowStart),
@@ -494,8 +520,8 @@ serve(async (req: Request) => {
     // ── NEEDS ATTENTION ─────────────────────────────────────────
     if (hotAwaiting > 0 || uncontactedBacklog > 0) {
       lines.push(``, `━━ <b>⚡ NEEDS ATTENTION</b> ━━`);
-      if (hotAwaiting > 0) lines.push(`🔥 ${hotAwaiting} hot leads awaiting contact (24h+)`);
-      if (uncontactedBacklog > 0) lines.push(`📋 ${uncontactedBacklog} uncontacted in backlog`);
+      if (hotAwaiting > 0) lines.push(`🔥 ${hotAwaiting} new hot leads to call (last 7d, uncontacted)`);
+      if (uncontactedBacklog > 0) lines.push(`📋 ${uncontactedBacklog} new leads awaiting first contact (48h)`);
       lines.push(`<i>Escribe "update" para ver la agenda de showings</i>`);
     }
 

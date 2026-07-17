@@ -175,12 +175,15 @@ serve(async (req) => {
     let botToken: string | undefined;
     let chatId: string | undefined;
     if (channel === "showings") {
-      botToken = creds?.telegram_showings_bot_token
-        || setting("telegram_showings_bot_token") || setting("telegram_route_bot_token")
-        || creds?.telegram_bot_token;
-      chatId = creds?.telegram_showings_chat_id
-        || setting("telegram_showings_chat_id") || setting("telegram_route_chat_id")
-        || creds?.telegram_chat_id;
+      // Hot-lead cards go to the Showings Agent bot only. The route bot is now
+      // LeasingAgent (interactive) and must NOT receive pushed hot leads.
+      // Pair token+chat ATOMICALLY — never mix the showings token with the
+      // general chat id (or vice versa) under a partial config.
+      const sTok = creds?.telegram_showings_bot_token || setting("telegram_showings_bot_token");
+      const sChat = creds?.telegram_showings_chat_id || setting("telegram_showings_chat_id");
+      const useShowings = !!sTok && !!sChat;
+      botToken = useShowings ? sTok : creds?.telegram_bot_token;
+      chatId = useShowings ? sChat : creds?.telegram_chat_id;
     } else {
       botToken = creds?.telegram_bot_token;
       chatId = creds?.telegram_chat_id;

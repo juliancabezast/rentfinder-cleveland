@@ -92,7 +92,7 @@ serve(async (req: Request) => {
 
     // Which bot is this? The webhook is registered per-bot with ?bot=general /
     // ?bot=showings so we resolve reliably even when both bots DM the same chat.
-    const botParam = new URL(req.url).searchParams.get("bot"); // 'general' | 'showings' | null
+    const botParam = new URL(req.url).searchParams.get("bot"); // 'general' | 'showings' | 'leasing' | null
 
     const { data: creds } = await supabase
       .from("organization_credentials")
@@ -102,35 +102,50 @@ serve(async (req: Request) => {
       .maybeSingle();
 
     const organizationId: string | undefined = creds?.organization_id;
+
+    // The LeasingAgent bot's token/chat live in organization_settings
+    // (telegram_route_bot_token / telegram_route_chat_id). LeasingAgent serves
+    // the whole interactive menu; the general (RFC) + showings bots are
+    // push-only and just redirect a user who messages them here.
+    let routeToken: string | undefined;
+    let routeChat: string | undefined;
+    if (organizationId) {
+      const { data: rs } = await supabase
+        .from("organization_settings").select("key, value")
+        .eq("organization_id", organizationId)
+        .in("key", ["telegram_route_bot_token", "telegram_route_chat_id"]);
+      const m = new Map((rs || []).map((s: any) => [s.key, unwrap(s.value)]));
+      routeToken = m.get("telegram_route_bot_token") as string | undefined;
+      routeChat = m.get("telegram_route_chat_id") as string | undefined;
+    }
+
     let botToken: string | undefined;
     let bot = "general";
 
     if (creds) {
-      if (botParam === "showings") {
+      if (botParam === "leasing") {
+        bot = "leasing";
+        botToken = routeToken;
+      } else if (botParam === "showings") {
         bot = "showings";
         botToken = (creds.telegram_showings_bot_token as string) || undefined;
       } else if (botParam === "general") {
         bot = "general";
         botToken = (creds.telegram_bot_token as string) || undefined;
       } else {
-        // Legacy fallback: match by chat id (general is checked first).
+        // Legacy fallback: match by chat id (general first). All bots usually DM
+        // the same chat, so ?bot= is the reliable signal; this is best-effort.
         if (chatId === String(creds.telegram_chat_id)) {
           bot = "general";
           botToken = creds.telegram_bot_token as string;
         } else if (chatId === String(creds.telegram_showings_chat_id)) {
           bot = "showings";
           botToken = creds.telegram_showings_bot_token as string;
+        } else if (routeChat && chatId === String(routeChat)) {
+          bot = "leasing";
+          botToken = routeToken;
         }
       }
-    }
-    // Showings token can live in org_settings (migration window) or fall back to general.
-    if (!botToken && organizationId && (bot === "showings" || botParam === "showings")) {
-      const { data: rs } = await supabase
-        .from("organization_settings").select("key, value")
-        .eq("organization_id", organizationId)
-        .in("key", ["telegram_showings_bot_token", "telegram_route_bot_token"]);
-      const m = new Map((rs || []).map((s: any) => [s.key, unwrap(s.value)]));
-      botToken = (m.get("telegram_showings_bot_token") || m.get("telegram_route_bot_token") || creds?.telegram_bot_token) as string;
     }
     if (!botToken) botToken = creds?.telegram_bot_token as string;
 
@@ -144,11 +159,14 @@ serve(async (req: Request) => {
     // configured chats — otherwise any stranger who messages a public bot could
     // drive it (read lead PII, create leads, book showings).
     const allowedChats = new Set(
-      [creds?.telegram_chat_id, creds?.telegram_showings_chat_id]
+      [creds?.telegram_chat_id, creds?.telegram_showings_chat_id, routeChat]
         .map((c) => (c == null ? "" : String(c)))
         .filter((c) => c && c !== "null")
     );
-    if (allowedChats.size > 0 && !allowedChats.has(chatId)) {
+    // Fail CLOSED: if no owner chats are configured we cannot verify the caller,
+    // so refuse rather than admit an anonymous caller into the now-interactive
+    // LeasingAgent menu (lead PII read / lead creation / showing booking).
+    if (!allowedChats.has(chatId)) {
       console.warn(`telegram-webhook: ignoring update from non-allowlisted chat ${chatId}`);
       return okResponse();
     }
@@ -173,6 +191,10 @@ serve(async (req: Request) => {
 // Text messages
 // ═══════════════════════════════════════════════════════════════════════════════
 async function handleText(ctx: Ctx, rawText: string) {
+  // Only the LeasingAgent bot is interactive. If someone messages the RFC or
+  // Showings bot, point them to LeasingAgent instead of driving the menu there.
+  if (ctx.bot !== "leasing") { await redirectToLeasing(ctx); return; }
+
   const raw = String(rawText).trim();
   const t = raw.toLowerCase();
 
@@ -220,6 +242,10 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   const messageId: number | undefined = cbq.message?.message_id;
   const answer = (text?: string) => answerCbq(ctx, cbq.id, text);
 
+  // Only LeasingAgent is interactive. Old buttons lingering on the RFC/Showings
+  // threads just redirect (e.g. a stale hot-lead card in the showings bot).
+  if (ctx.bot !== "leasing") { await answer(); await redirectToLeasing(ctx, messageId); return; }
+
   try {
     if (data === "m:sch") { await answer(); await startSchedule(ctx, messageId); return; }
     if (data === "m:new") { await answer(); await startCreateLead(ctx, messageId, true); return; }
@@ -259,7 +285,13 @@ function mainMenuKeyboard() {
     [{ text: "📋 Ver agenda", callback_data: "m:ag" }, { text: "📊 Reporte", callback_data: "m:rp" }],
   ];
 }
-const MENU_GREETING = "👋 Soy <b>Samuel</b>, tu asistente de agendas.\n¿Qué querés hacer?";
+const MENU_GREETING = "👋 Soy <b>LeasingAgent</b>, tu asistente de agendas y reportes.\n¿Qué querés hacer?";
+// RFC/Showings bots are push-only; nudge the user to the interactive bot.
+async function redirectToLeasing(ctx: Ctx, messageId?: number) {
+  const msg = "🤖 Este bot es solo de avisos.\nPara <b>agendar showings</b> y <b>reportes</b>, escribile a <b>LeasingAgent</b>.";
+  if (messageId) await editOrSend(ctx, messageId, msg);
+  else await send(ctx, msg);
+}
 async function sendMenu(ctx: Ctx, prefix?: string) {
   await send(ctx, (prefix ? `${prefix}\n\n` : "") + MENU_GREETING, mainMenuKeyboard());
 }
@@ -435,7 +467,15 @@ async function chooseSlot(ctx: Ctx, messageId: number | undefined, slotId: strin
 
 async function handleLeadSearch(ctx: Ctx, session: Session, rawQuery: string) {
   await typing(ctx);
-  const digits = rawQuery.replace(/\D/g, "");
+  // People often paste a whole blob (a reminder card, a signature) that happens
+  // to contain the phone/email. Naively stripping every non-digit fused the
+  // street number + rent + date + phone into one junk string that matched
+  // nothing, so the lead was "not found" even though the phone was right there.
+  // Extract the real phone/email first; only fall back to a name search when the
+  // text carries neither.
+  const email = extractEmail(rawQuery);
+  const phone10 = extractPhone10(rawQuery);
+
   let query = ctx.supabase
     .from("leads")
     .select("id, full_name, first_name, last_name, phone, lead_score")
@@ -444,12 +484,24 @@ async function handleLeadSearch(ctx: Ctx, session: Session, rawQuery: string) {
     .order("lead_score", { ascending: false })
     .limit(8);
 
-  if (digits.length >= 7) {
-    query = query.ilike("phone", `%${digits}%`);
+  const orClauses: string[] = [];
+  if (phone10) orClauses.push(`phone.ilike.%${phone10}%`);
+  if (email) orClauses.push(`email.ilike.%${sanitizeLike(email)}%`);
+
+  if (orClauses.length) {
+    query = query.or(orClauses.join(","));
   } else {
-    const q = sanitizeLike(rawQuery);
-    if (q.length < 2) { await send(ctx, "Escribí al menos 2 letras del nombre, o un teléfono."); return; }
-    query = query.or(`full_name.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+    // No phone/email found. If the input is basically a number, treat it as a
+    // partial phone fragment (old behavior); otherwise search by cleaned name.
+    const onlyPhoneChars = /^[\s\d()+.\-]+$/.test(rawQuery.trim());
+    const digits = rawQuery.replace(/\D/g, "");
+    if (onlyPhoneChars && digits.length >= 7) {
+      query = query.ilike("phone", `%${digits}%`);
+    } else {
+      const q = sanitizeLike(cleanNameQuery(rawQuery));
+      if (q.length < 2) { await send(ctx, "Escribí al menos 2 letras del nombre, o un teléfono."); return; }
+      query = query.or(`full_name.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+    }
   }
 
   const { data: leads } = await query;
@@ -823,6 +875,28 @@ function slotDayLabel(date: string): string {
 // PostgREST .or() splits on commas; strip characters that would break the filter.
 function sanitizeLike(s: string): string {
   return String(s).replace(/[,%()*]/g, " ").trim();
+}
+// Pull the first email out of arbitrary pasted text (blob-tolerant).
+function extractEmail(raw: string): string | null {
+  const m = raw.match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/);
+  return m ? m[0] : null;
+}
+// Pull a US phone (10 digits) out of arbitrary pasted text. Only digit groups
+// joined by phone-ish separators count, so a street number + rent + date on
+// separate lines can't fuse into a fake "number".
+function extractPhone10(raw: string): string | null {
+  const candidates = raw.match(/\+?1?[\s.\-()]*\d{3}[\s.\-()]*\d{3}[\s.\-()]*\d{4}/g) || [];
+  for (const c of candidates) {
+    const d = c.replace(/\D/g, "");
+    if (d.length === 10) return d;
+    if (d.length === 11 && d.startsWith("1")) return d.slice(1);
+  }
+  return null;
+}
+// Strip emojis, symbols and digits so a pasted "Janetta Pace — 🎫" degrades to a
+// clean name query (keeps Unicode letters + spaces).
+function cleanNameQuery(raw: string): string {
+  return raw.replace(/[^\p{L}\s]/gu, " ").replace(/\s+/g, " ").trim();
 }
 function todayNY(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: NY });
