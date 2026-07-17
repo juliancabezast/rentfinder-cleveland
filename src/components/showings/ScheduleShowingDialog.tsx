@@ -92,6 +92,17 @@ const DURATION_OPTIONS = [
   { value: "60", label: "60 min" },
 ];
 
+// Every half-hour 8:00 AM–8:00 PM. Admins pick from ALL of these (not just the
+// publicly-open slots); the submit path materializes a slot row on the fly.
+const ADMIN_TIME_OPTIONS: string[] = (() => {
+  const out: string[] = [];
+  for (let h = 8; h <= 20; h++) {
+    out.push(`${String(h).padStart(2, "0")}:00:00`);
+    if (h < 20) out.push(`${String(h).padStart(2, "0")}:30:00`);
+  }
+  return out;
+})();
+
 export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
   open,
   onOpenChange,
@@ -118,7 +129,9 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
   const [selectedLeadId, setSelectedLeadId] = useState<string>("");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
+  // Admins can book ANY half-hour manually — not just the publicly-open slots.
+  const [selectedTime, setSelectedTime] = useState<string>(""); // "HH:MM:00"
+  const [bookedTimes, setBookedTimes] = useState<Set<string>>(new Set()); // org-wide booked times for the date (single agent ⇒ can't double-book)
   const [selectedDuration, setSelectedDuration] = useState<string>("30");
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -154,7 +167,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       setAvailableDates(new Set());
       setSelectedDate(undefined);
       setAvailableSlots([]);
-      setSelectedSlotId("");
+      setSelectedTime("");
     }
   }, [selectedPropertyId]);
 
@@ -164,7 +177,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       fetchAvailableSlots();
     } else {
       setAvailableSlots([]);
-      setSelectedSlotId("");
+      setSelectedTime("");
     }
   }, [selectedPropertyId, selectedDate]);
 
@@ -241,7 +254,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     if (!userRecord?.organization_id || !selectedPropertyId || !selectedDate) return;
 
     setLoadingSlots(true);
-    setSelectedSlotId("");
+    setSelectedTime("");
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       const { data, error } = await supabase
@@ -265,9 +278,20 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         return true;
       });
       setAvailableSlots(deduped);
+
+      // Org-wide booked times for this date — the single agent can't be in two
+      // places at once, so these are disabled in the manual-book time picker.
+      const { data: bookedRows } = await supabase
+        .from("showing_available_slots")
+        .select("slot_time")
+        .eq("organization_id", userRecord.organization_id)
+        .eq("slot_date", dateStr)
+        .eq("is_booked", true);
+      setBookedTimes(new Set((bookedRows || []).map((r) => r.slot_time)));
     } catch (error) {
       console.error("Error fetching available slots:", error);
       setAvailableSlots([]);
+      setBookedTimes(new Set());
     } finally {
       setLoadingSlots(false);
     }
@@ -329,7 +353,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     }
     setSelectedPropertyId("");
     setSelectedDate(undefined);
-    setSelectedSlotId("");
+    setSelectedTime("");
     setSelectedDuration("30");
     setSelectedAgentId("");
     setNotes("");
@@ -356,8 +380,8 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       toast.error("Please select a date");
       return;
     }
-    if (!selectedSlotId) {
-      toast.error("Please select an available time slot");
+    if (!selectedTime) {
+      toast.error("Please pick a time");
       return;
     }
 
@@ -367,21 +391,60 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       return;
     }
 
-    const slot = availableSlots.find((s) => s.id === selectedSlotId);
-    if (!slot) {
-      toast.error("Selected slot not found. Please refresh.");
+    if (bookedTimes.has(selectedTime)) {
+      toast.error("That time is already booked (the agent is busy). Pick another.");
       return;
     }
 
     setSubmitting(true);
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-      const slotTime = slot.slot_time;
-      const durationMinutes = parseInt(selectedDuration) || slot.duration_minutes || 30;
+      const slotTime = selectedTime;
+      const durationMinutes = parseInt(selectedDuration) || 30;
 
       // Build timezone-aware scheduled_at using property's city timezone
       const propertyTz = getTimezoneForCity(selectedProperty?.city);
       const scheduledAt = buildScheduledAt(dateStr, slotTime, propertyTz);
+
+      // Find (or materialize) the slot row for this property+date+time. Admins
+      // book ANY half-hour, so when the public grid has no row we create one.
+      let slotRowId: string;
+      {
+        const { data: existing } = await supabase
+          .from("showing_available_slots")
+          .select("id, is_booked")
+          .eq("organization_id", userRecord.organization_id)
+          .eq("property_id", selectedPropertyId)
+          .eq("slot_date", dateStr)
+          .eq("slot_time", slotTime)
+          .maybeSingle();
+        if (existing?.is_booked) {
+          toast.error("That time was just taken. Please pick another.");
+          await fetchAvailableSlots();
+          setSubmitting(false);
+          return;
+        }
+        if (existing) {
+          slotRowId = existing.id;
+        } else {
+          const { data: created, error: createErr } = await supabase
+            .from("showing_available_slots")
+            .insert({
+              organization_id: userRecord.organization_id,
+              property_id: selectedPropertyId,
+              slot_date: dateStr,
+              slot_time: slotTime,
+              duration_minutes: durationMinutes,
+              is_enabled: true,
+              is_booked: false,
+            })
+            .select("id")
+            .single();
+          if (createErr || !created) throw createErr || new Error("Could not create the time slot");
+          slotRowId = created.id;
+        }
+      }
+      const slot = { id: slotRowId };
 
       // Atomically mark slot as booked FIRST (prevents race conditions)
       const { data: bookedSlot, error: bookErr } = await supabase
@@ -957,9 +1020,9 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                       mode="single"
                       selected={selectedDate}
                       onSelect={setSelectedDate}
-                      disabled={(date) =>
-                        isBefore(date, startOfDay(new Date())) || !isDateAvailable(date)
-                      }
+                      // Admins can book on ANY future date (a slot is created on
+                      // submit if the public grid has none) — only block the past.
+                      disabled={(date) => isBefore(date, startOfDay(new Date()))}
                       initialFocus
                       className="pointer-events-auto"
                     />
@@ -967,7 +1030,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                 </PopoverContent>
               </Popover>
               {selectedPropertyId && !loadingDates && availableDates.size === 0 && (
-                <p className="text-xs text-amber-600">No available dates for this property</p>
+                <p className="text-xs text-slate-400">No public slots yet — you can still book any time manually.</p>
               )}
             </div>
 
@@ -982,21 +1045,22 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                 <div className="h-10 px-3 border border-slate-200 rounded-lg flex items-center text-sm text-slate-400">
                   Select property & date
                 </div>
-              ) : availableSlots.length === 0 ? (
-                <div className="h-10 px-3 border border-amber-200 rounded-lg flex items-center text-sm text-amber-600 bg-amber-50">
-                  No slots available
-                </div>
               ) : (
-                <Select value={selectedSlotId} onValueChange={setSelectedSlotId}>
+                <Select value={selectedTime} onValueChange={setSelectedTime}>
                   <SelectTrigger className="h-10 border-slate-200 text-sm">
-                    <SelectValue placeholder="Select time" />
+                    <SelectValue placeholder="Pick any time" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableSlots.map((slot) => (
-                      <SelectItem key={slot.id} value={slot.id}>
-                        {formatTimeDisplay(slot.slot_time)}
-                      </SelectItem>
-                    ))}
+                    {ADMIN_TIME_OPTIONS.map((t) => {
+                      const booked = bookedTimes.has(t);
+                      const open = availableSlots.some((s) => s.slot_time === t);
+                      return (
+                        <SelectItem key={t} value={t} disabled={booked}>
+                          {formatTimeDisplay(t)}
+                          {booked ? " · booked" : open ? "" : " · add"}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               )}
@@ -1067,7 +1131,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !selectedSlotId}
+            disabled={submitting || !selectedTime}
             className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
           >
             {submitting ? (
