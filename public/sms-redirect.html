@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Enviar mensaje</title>
+</head>
+<body style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f3f4f6;color:#111;display:flex;min-height:100vh;align-items:center;justify-content:center;">
+  <div style="text-align:center;padding:24px;max-width:440px;">
+    <div style="font-size:46px;line-height:1;">📲</div>
+    <h2 style="margin:10px 0 4px;">Abriendo Mensajes…</h2>
+    <p style="color:#555;font-size:15px;margin:0 0 6px;">Si no se abre solo, tocá el botón:</p>
+    <a id="go" href="#" style="display:inline-block;margin:14px 0;padding:16px 30px;background:#4F46E5;color:#fff;border-radius:14px;text-decoration:none;font-size:18px;font-weight:600;">Abrir Mensajes</a>
+    <p id="preview" style="color:#888;font-size:13px;white-space:pre-wrap;margin-top:14px;text-align:left;background:#fff;border-radius:10px;padding:12px;"></p>
+  </div>
+  <script>
+    // This page exists only to bounce a Telegram button into the phone's
+    // Messages app: Telegram treats sms: links as a call on iOS and rejects
+    // sms: in url-buttons, but a real browser (this page) honors sms: fine.
+    var params = new URLSearchParams(location.search);
+    var to = params.get("to") || "";
+    var body = params.get("body") || "";
+    // iOS wants sms:NUMBER&body=... ; Android wants sms:NUMBER?body=...
+    var sep = /android/i.test(navigator.userAgent) ? "?" : "&";
+    var link = "sms:" + to + sep + "body=" + encodeURIComponent(body);
+    var a = document.getElementById("go");
+    a.setAttribute("href", link);
+    document.getElementById("preview").textContent = body;
+    // Auto-open; the button is the guaranteed user-gesture fallback.
+    setTimeout(function () { try { location.href = link; } catch (e) {} }, 300);
+  </script>
+</body>
+</html>

@@ -36,6 +36,76 @@ function formatDateShort(dateStr: string): string {
   });
 }
 
+// Dispatch due follow-up reminders (from the Telegram "quiere seguimiento"
+// action) as Hot Leads cards via telegram-notify. Independent of the showing
+// reminders — MUST run on every tick regardless of whether a showing is due.
+async function dispatchLeadReminders(
+  supabase: any, supabaseUrl: string, serviceRoleKey: string,
+): Promise<number> {
+  let sent = 0;
+  try {
+    const { data: dueReminders } = await supabase
+      .from("lead_reminders")
+      .select("id, organization_id, lead_id")
+      .eq("status", "pending")
+      .lte("due_at", new Date().toISOString())
+      .limit(50);
+
+    for (const r of dueReminders || []) {
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("id, full_name, first_name, last_name, phone, lead_score, source, status, has_voucher, voucher_amount, move_in_date, is_demo")
+        .eq("id", r.lead_id)
+        .maybeSingle();
+
+      const phone = String(lead?.phone ?? "").trim();
+      // Skip dead/converted/demo/phoneless leads — just close the reminder.
+      if (!lead || !phone || ["lost", "converted"].includes(lead.status || "") || lead.is_demo) {
+        await supabase.from("lead_reminders").update({ status: "skipped", sent_at: new Date().toISOString() }).eq("id", r.id);
+        continue;
+      }
+
+      // Most-recent tagged property for the card (cosmetic).
+      const { data: tag } = await supabase
+        .from("lead_property_interests")
+        .select("properties:property_id(address, unit_number, city)")
+        .eq("lead_id", lead.id)
+        .order("created_at", { ascending: false })
+        .limit(1).maybeSingle();
+      const pr = (tag as any)?.properties;
+      const property = pr ? `${pr.address}${pr.unit_number ? ` ${pr.unit_number}` : ""}${pr.city ? ` · ${pr.city}` : ""}` : null;
+      const name = lead.full_name || [lead.first_name, lead.last_name].filter(Boolean).join(" ") || "Lead";
+      const moveIn = lead.move_in_date
+        ? new Date(lead.move_in_date + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" })
+        : null;
+
+      const resp = await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+        body: JSON.stringify({
+          organization_id: r.organization_id,
+          channel: "showings",
+          event: "lead_reminder",
+          payload: {
+            lead_id: lead.id, name, score: lead.lead_score, phone, source: lead.source,
+            property, has_voucher: !!lead.has_voucher, voucher_amount: lead.voucher_amount, move_in: moveIn,
+          },
+        }),
+      });
+      // telegram-notify ALWAYS returns HTTP 200 — real success is the body {ok}.
+      const jr = await resp.json().catch(() => ({}));
+      const delivered = resp.ok && jr?.ok === true;
+      await supabase.from("lead_reminders")
+        .update({ status: delivered ? "sent" : "failed", sent_at: new Date().toISOString() })
+        .eq("id", r.id);
+      if (delivered) sent++;
+    }
+  } catch (remErr) {
+    console.error("lead_reminders dispatch error:", remErr);
+  }
+  return sent;
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -67,6 +137,10 @@ serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Due follow-up reminders run FIRST + unconditionally — they must not be
+    // gated by whether any showing happens to be in the 25-35 min window below.
+    const remindersSent = await dispatchLeadReminders(supabase, supabaseUrl, serviceRoleKey);
 
     // Get current time in Cleveland (America/New_York)
     const now = new Date();
@@ -100,7 +174,7 @@ serve(async (req: Request) => {
 
     if (showingsErr) {
       console.error("Error fetching showings:", showingsErr);
-      return new Response(JSON.stringify({ error: showingsErr.message }), {
+      return new Response(JSON.stringify({ error: showingsErr.message, reminders_sent: remindersSent }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -108,7 +182,7 @@ serve(async (req: Request) => {
 
     if (!showings || showings.length === 0) {
       console.log("Showing reminder: no showings in the 25-35 min window");
-      return new Response(JSON.stringify({ sent: 0, message: "No showings in window" }), {
+      return new Response(JSON.stringify({ sent: 0, message: "No showings in window", reminders_sent: remindersSent }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -262,7 +336,7 @@ serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ sent, total: showings.length }),
+      JSON.stringify({ sent, total: showings.length, reminders_sent: remindersSent }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

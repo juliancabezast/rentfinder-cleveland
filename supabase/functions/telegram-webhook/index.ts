@@ -175,6 +175,8 @@ serve(async (req: Request) => {
 
     if (cbq) {
       await handleCallback(ctx, cbq);
+    } else if (message?.photo) {
+      await handlePhoto(ctx, message);
     } else if (message?.text) {
       await handleText(ctx, message.text);
     }
@@ -218,8 +220,10 @@ async function handleText(ctx: Ctx, rawText: string) {
     if (session.step === "create_lead") { await handleCreateLeadInput(ctx, session, raw); return; }
     if (session.step === "leasing_search") { await handleLeasingSearch(ctx, session, raw); return; }
     if (session.step === "custom_time") { await handleCustomTime(ctx, session, raw); return; }
+    if (session.step === "sr_text") { await handleShowingReportText(ctx, session, raw); return; }
+    if (session.step === "sr_photo") { await send(ctx, "📷 Enviá una <b>foto</b>, o tocá <b>Volver</b>."); return; }
     // Button-only steps: nudge instead of dumping the agenda on a stray text.
-    if (["choose_day", "choose_time", "confirm", "offer_schedule", "leasing_lang"].includes(session.step)) {
+    if (["choose_day", "choose_time", "confirm", "offer_schedule", "leasing_lang", "sr_pick", "sr_review"].includes(session.step)) {
       await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
       return;
     }
@@ -229,10 +233,9 @@ async function handleText(ctx: Ctx, rawText: string) {
   if (REPORT_TRIGGERS.has(t)) { await runReport(ctx); return; }
   if (HELP_TRIGGERS.has(t)) { await send(ctx, HELP_TEXT); return; }
 
-  // Default (incl. UPDATE_TRIGGERS and anything else): the upcoming agenda.
-  await typing(ctx);
-  const agenda = await buildShowingsAgenda(ctx.supabase, ctx.organizationId);
-  await sendChunks(ctx, agenda);
+  // Default (incl. UPDATE_TRIGGERS and anything else): the upcoming agenda + the
+  // per-lead "enviar mensaje" picker.
+  await showAgenda(ctx);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -243,17 +246,28 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   const messageId: number | undefined = cbq.message?.message_id;
   const answer = (text?: string) => answerCbq(ctx, cbq.id, text);
 
-  // Only LeasingAgent is interactive. Old buttons lingering on the RFC/Showings
-  // threads just redirect (e.g. a stale hot-lead card in the showings bot).
-  if (ctx.bot !== "leasing") { await answer(); await redirectToLeasing(ctx, messageId); return; }
+  // Only LeasingAgent is interactive — EXCEPT `act:*` (Registrar acción), which
+  // is the one flow allowed on the Hot Leads (showings) bot too. Everything else
+  // on RFC/Showings just redirects.
+  if (ctx.bot !== "leasing" && !data.startsWith("act:")) {
+    await answer(); await redirectToLeasing(ctx, messageId); return;
+  }
 
   try {
+    if (data.startsWith("act:")) { await handleAction(ctx, cbq, data); return; }
+    if (data.startsWith("msg:")) { await answer(); await chooseSmsLead(ctx, messageId, data.slice(4)); return; }
+    if (data.startsWith("sms:")) { await answer(); await sendSmsTemplate(ctx, messageId, data.slice(4)); return; }
     if (data === "m:sch") { await answer(); await startSchedule(ctx, messageId); return; }
     if (data === "m:new") { await answer(); await startCreateLead(ctx, messageId, true); return; }
-    if (data === "m:ag")  { await answer("Cargando agenda…"); await typing(ctx);
-      const agenda = await buildShowingsAgenda(ctx.supabase, ctx.organizationId); await sendChunks(ctx, agenda); return; }
+    if (data === "m:ag")  { await answer("Cargando agenda…"); await showAgenda(ctx); return; }
     if (data === "m:rp")  { await answer("Generando reporte…"); await typing(ctx); await runReport(ctx); return; }
     if (data === "m:lr")  { await answer(); await startLeasingReport(ctx, messageId); return; }
+    if (data === "m:sr")  { await answer(); await startShowingReport(ctx, messageId); return; }
+    if (data.startsWith("srx:")) { await answer(); await chooseShowingToReport(ctx, messageId, parseInt(data.slice(4), 10) || 0); return; }
+    if (data === "sre")   { await answer("Enriqueciendo…"); await enrichReport(ctx, messageId); return; }
+    if (data === "srp")   { await answer(); await askForPhoto(ctx, messageId); return; }
+    if (data === "srb")   { await answer(); await showReportReview(ctx, messageId); return; }
+    if (data === "srs")   { await answer("Guardando…"); await saveShowingReport(ctx, messageId); return; }
     if (data === "m:menu"){ await answer(); await clearSession(ctx); await showMenu(ctx, messageId); return; }
     if (data === "m:x")   { await answer(); await clearSession(ctx); await showMenu(ctx, messageId, "❌ Listo, cancelado."); return; }
 
@@ -289,6 +303,7 @@ function mainMenuKeyboard() {
     [{ text: "📅 Agendar showing", callback_data: "m:sch" }],
     [{ text: "➕ Crear lead", callback_data: "m:new" }],
     [{ text: "📄 Reporte de leasing", callback_data: "m:lr" }],
+    [{ text: "📝 Reporte de showing", callback_data: "m:sr" }],
     [{ text: "📋 Ver agenda", callback_data: "m:ag" }, { text: "📊 Reporte", callback_data: "m:rp" }],
   ];
 }
@@ -1135,7 +1150,323 @@ async function leadTimeCutoffMs(_supabase?: any, _organizationId?: string): Prom
   return Date.now();
 }
 
-// ── Existing agenda/report rendering (unchanged) ─────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// Hot Leads — "Registrar acción" (runs on the showings bot too; stateless)
+// ═══════════════════════════════════════════════════════════════════════════════
+function actionMenuKeyboard(leadId: string) {
+  return [
+    [{ text: "📵 Llamé, no contestó", callback_data: `act:noans:${leadId}` }],
+    [{ text: "🔁 Quiere seguimiento (mañana 9am)", callback_data: `act:fu:${leadId}` }],
+    [{ text: "📅 Quiere agendar showing", callback_data: `act:sch:${leadId}` }],
+    [{ text: "👋 Ya lo contacté", callback_data: `act:done:${leadId}` }],
+    [{ text: "❌ No interesado", callback_data: `act:lost:${leadId}` }],
+  ];
+}
+// Insert a lead_notes row for a Telegram-logged action (created_by is null —
+// there's no app user behind a Telegram tap; the origin marker lives in content).
+async function logLeadNote(ctx: Ctx, leadId: string, noteType: string, content: string) {
+  await ctx.supabase.from("lead_notes").insert({
+    organization_id: ctx.organizationId, lead_id: leadId,
+    content: `${content} · via Telegram`, note_type: noteType,
+  });
+}
+// Next day 09:00 America/New_York as a UTC ISO string (DST-aware via slotToUtcMs).
+function nextDay9amET(): string {
+  const todayNy = todayNY();
+  const tomorrowNy = new Date(new Date(`${todayNy}T12:00:00Z`).getTime() + 86400000)
+    .toLocaleDateString("en-CA", { timeZone: NY });
+  return new Date(slotToUtcMs(tomorrowNy, "09:00:00")).toISOString();
+}
+async function handleAction(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, verb = "", leadId = ""] = data.split(":");
+  if (!leadId) { await answer(); return; }
+
+  const { data: lead } = await ctx.supabase
+    .from("leads")
+    .select("id, full_name, first_name, last_name, phone, status")
+    .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
+  if (!lead) { await answer("Lead no encontrado."); return; }
+  const name = leadName(lead);
+  const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
+
+  // Open the action submenu as a NEW message (keeps the call-now card intact).
+  if (verb === "menu") {
+    await answer();
+    await send(ctx, `📋 <b>Registrar acción</b> — ${escapeHtml(name)}`, actionMenuKeyboard(leadId));
+    return;
+  }
+
+  const again = [[{ text: "📋 Otra acción", callback_data: `act:menu:${leadId}` }]];
+  try {
+    if (verb === "noans") {
+      await answer("Anotado ✅");
+      await logLeadNote(ctx, leadId, "call_summary", "📞 Llamé — no contestó");
+      await editOrSend(ctx, messageId, `✅ Anotado: <b>no contestó</b> — ${escapeHtml(name)}`, again);
+    } else if (verb === "fu") {
+      await answer("Seguimiento agendado ✅");
+      await logLeadNote(ctx, leadId, "follow_up", "🔁 Llamé — pidió seguimiento");
+      // Idempotent: at most one pending reminder per lead (a double-tap, or the
+      // "Otra acción" re-tap path, must not create duplicate morning cards).
+      const { data: existingRem } = await ctx.supabase.from("lead_reminders")
+        .select("id").eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
+        .eq("status", "pending").limit(1).maybeSingle();
+      if (!existingRem) {
+        await ctx.supabase.from("lead_reminders").insert({
+          organization_id: ctx.organizationId, lead_id: leadId,
+          due_at: nextDay9amET(), reason: "follow_up", status: "pending",
+        });
+      }
+      await editOrSend(ctx, messageId, `✅ <b>Seguimiento agendado</b> para mañana 9am ⏰ — ${escapeHtml(name)}`, again);
+    } else if (verb === "sch") {
+      await answer();
+      await logLeadNote(ctx, leadId, "general", "📅 Quiere agendar showing");
+      await editOrSend(ctx, messageId,
+        `📅 Anotado. Abrí <b>LeasingAgent</b> → 📅 Agendar showing y pegá este teléfono para encontrarlo:\n📞 ${escapeHtml(tel)}`, again);
+    } else if (verb === "done") {
+      await answer("Anotado ✅");
+      await logLeadNote(ctx, leadId, "call_summary", "👋 Ya contactado");
+      await editOrSend(ctx, messageId, `✅ Anotado: <b>ya contactado</b> — ${escapeHtml(name)}`, again);
+    } else if (verb === "lost") {
+      await answer("Marcado ✅");
+      await ctx.supabase.from("leads").update({ status: "lost" })
+        .eq("organization_id", ctx.organizationId).eq("id", leadId);
+      await logLeadNote(ctx, leadId, "objection", "❌ No interesado — marcado lost");
+      await editOrSend(ctx, messageId, `✅ Marcado <b>no interesado</b> (lost) — ${escapeHtml(name)}`, again);
+    } else {
+      await answer();
+    }
+  } catch (err) {
+    console.error("handleAction error:", err);
+    await editOrSend(ctx, messageId, "❌ No pude registrar la acción. Probá de nuevo.", again);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LeasingAgent agenda — quick SMS (opens the phone's native Messages app)
+// ═══════════════════════════════════════════════════════════════════════════════
+async function upcomingTargets(ctx: Ctx): Promise<any[]> {
+  const nowIso = new Date().toISOString();
+  const { data } = await ctx.supabase
+    .from("showings")
+    .select(`scheduled_at, lead_id,
+      leads:lead_id ( full_name, first_name, last_name, phone ),
+      properties:property_id ( address, unit_number, city )`)
+    .eq("organization_id", ctx.organizationId)
+    .gte("scheduled_at", nowIso)
+    .not("status", "in", "(cancelled,no_show,completed,rescheduled)")
+    .order("scheduled_at", { ascending: true }).limit(20);
+  return (data || []).map((s: any) => {
+    const l = s.leads || {}; const p = s.properties || {};
+    return {
+      lead_id: s.lead_id,
+      name: l.full_name || [l.first_name, l.last_name].filter(Boolean).join(" ") || "Lead",
+      phone: String(l.phone ?? "").replace(/[^\d+]/g, ""),
+      addr: p.address ? `${p.address}${p.unit_number ? ` #${p.unit_number}` : ""}${p.city ? `, ${p.city}` : ""}` : "the property",
+      time: new Date(s.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true }),
+      day: new Date(s.scheduled_at).toLocaleDateString("en-US", { timeZone: NY, weekday: "short", month: "short", day: "numeric" }),
+    };
+  }).filter((t: any) => t.phone);
+}
+async function showAgenda(ctx: Ctx) {
+  await typing(ctx);
+  const agenda = await buildShowingsAgenda(ctx.supabase, ctx.organizationId);
+  await sendChunks(ctx, agenda);
+  const targets = await upcomingTargets(ctx);
+  if (!targets.length) return;
+  // Stash targets in the session — MERGE (don't wipe an in-flight booking flow;
+  // a lingering "Ver agenda" tap must not clobber a confirm-step session).
+  const s = await getSession(ctx);
+  await setSession(ctx, s?.step ?? "idle", { ...(s?.data ?? {}), sms_targets: targets });
+  // Buttons carry the lead_id (stable), not a positional index — the target list
+  // is regenerated on every agenda refresh, so an index could point at a
+  // different lead. A UUID keeps callback_data well under Telegram's 64 bytes.
+  const rows = targets.slice(0, 10).map((t: any) => [{
+    text: `📩 ${t.name} · ${t.day} ${t.time}`.slice(0, 62), callback_data: `msg:${t.lead_id}`,
+  }]);
+  await send(ctx, "📩 <b>Enviar mensaje a un inquilino:</b>", rows);
+}
+async function chooseSmsLead(ctx: Ctx, messageId: number | undefined, leadId: string) {
+  const session = await getSession(ctx);
+  const t = (session?.data?.sms_targets || []).find((x: any) => x.lead_id === leadId);
+  if (!t) { await editOrSend(ctx, messageId, "⌛ Esa lista expiró. Mandá <b>update</b> para ver la agenda de nuevo."); return; }
+  const rows = [
+    [{ text: "✅ Confirmar showing (en 30 min)", callback_data: `sms:${leadId}:conf` }],
+    [{ text: "🚗 Estoy a 5 min", callback_data: `sms:${leadId}:5min` }],
+    [{ text: "📍 Ya llegué", callback_data: `sms:${leadId}:here` }],
+    [{ text: "📝 Link para aplicar (post-showing)", callback_data: `sms:${leadId}:apply` }],
+  ];
+  await editOrSend(ctx, messageId,
+    `📩 <b>Mensaje para ${escapeHtml(t.name)}</b>\n📞 ${escapeHtml(t.phone)}\n🏠 ${escapeHtml(t.addr)}\n\nElegí el mensaje:`, rows);
+}
+const APPLY_LINK = "https://homeguard.app.doorloop.com/tenant-portal/rental-applications/listing?source=CompanyLink";
+function smsBody(tmpl: string, t: any): string {
+  const first = String(t.name || "there").split(/\s+/)[0];
+  const addr = t.addr || "the property";
+  const time = t.time || "";
+  switch (tmpl) {
+    case "conf": return `Hi ${first}, confirming your showing today at ${time} — ${addr}. See you soon! Text me back if anything changes.`;
+    case "5min": return `Hi ${first}, I'm about 5 minutes away from ${addr}. See you shortly!`;
+    case "here": return `Hi ${first}, I'm here at ${addr} for your showing whenever you're ready.`;
+    case "apply": return `Thanks for visiting ${addr}, ${first}! Ready to apply? Start here: ${APPLY_LINK}`;
+    default: return `Hi ${first}!`;
+  }
+}
+async function sendSmsTemplate(ctx: Ctx, messageId: number | undefined, rest: string) {
+  // rest = "<lead_id>:<tmpl>" — lead_id is a UUID (no colon), so split on the first ":".
+  const sep = rest.indexOf(":");
+  const leadId = sep >= 0 ? rest.slice(0, sep) : rest;
+  const tmpl = sep >= 0 ? rest.slice(sep + 1) : "";
+  const session = await getSession(ctx);
+  const t = (session?.data?.sms_targets || []).find((x: any) => x.lead_id === leadId);
+  if (!t) { await editOrSend(ctx, messageId, "⌛ Esa lista expiró. Mandá <b>update</b> de nuevo."); return; }
+  const body = smsBody(tmpl || "", t);
+  const tel = String(t.phone).replace(/[^\d+]/g, "");
+  // Telegram treats sms: links as a call on iOS and rejects sms: in URL buttons,
+  // so the button points at a redirect page on the SITE domain (Supabase edge
+  // fns are forced to text/plain and can't serve renderable HTML). That page
+  // runs in a real browser where sms: works → opens Messages prefilled.
+  const openUrl = `https://rentfindercleveland.com/sms-redirect.html?to=${encodeURIComponent(tel)}&body=${encodeURIComponent(body)}`;
+  const msg = [
+    `📩 <b>${escapeHtml(t.name)}</b> — mensaje listo:`,
+    ``,
+    `<code>${escapeHtml(body)}</code>`,
+    ``,
+    `👇 Tocá el botón: abre <b>Mensajes</b> con el texto ya escrito.`,
+  ].join("\n");
+  await send(ctx, msg, [[{ text: "📲 Abrir Mensajes", url: openUrl }]]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Reporte de showing (previos): pick → text → AI enrich → optional photo → save
+// ═══════════════════════════════════════════════════════════════════════════════
+async function startShowingReport(ctx: Ctx, messageId: number | undefined) {
+  const nowIso = new Date().toISOString();
+  const { data: shows } = await ctx.supabase
+    .from("showings")
+    .select(`id, scheduled_at, status,
+      leads:lead_id ( full_name, first_name, last_name ),
+      properties:property_id ( address, unit_number, city )`)
+    .eq("organization_id", ctx.organizationId)
+    .lt("scheduled_at", nowIso)
+    .not("status", "in", "(cancelled,rescheduled)")
+    .order("scheduled_at", { ascending: false })
+    .limit(10);
+  const list = (shows || []).map((s: any) => {
+    const l = s.leads || {}; const p = s.properties || {};
+    return {
+      id: s.id,
+      name: l.full_name || [l.first_name, l.last_name].filter(Boolean).join(" ") || "Lead",
+      addr: p.address ? `${p.address}${p.unit_number ? ` #${p.unit_number}` : ""}${p.city ? `, ${p.city}` : ""}` : "—",
+      when: `${new Date(s.scheduled_at).toLocaleDateString("en-US", { timeZone: NY, weekday: "short", month: "short", day: "numeric" })} ${new Date(s.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true })}`,
+    };
+  });
+  if (!list.length) { await editOrSend(ctx, messageId, "📭 No hay showings previos para reportar."); return; }
+  await setSession(ctx, "sr_pick", { sr_list: list });
+  const rows = list.slice(0, 8).map((s: any, i: number) => [{ text: `${s.name} · ${s.when}`.slice(0, 62), callback_data: `srx:${i}` }]);
+  rows.push([{ text: "❌ Cancelar", callback_data: "m:x" }]);
+  await editOrSend(ctx, messageId, "📝 <b>Reporte de showing</b>\nElegí el showing a reportar:", rows);
+}
+async function chooseShowingToReport(ctx: Ctx, messageId: number | undefined, idx: number) {
+  const session = await getSession(ctx);
+  const s = session?.data?.sr_list?.[idx];
+  if (!s) { await editOrSend(ctx, messageId, "⌛ Esa lista expiró. Mandá <b>menu</b> y probá de nuevo."); return; }
+  await setSession(ctx, "sr_text", { ...session.data, sr_id: s.id, sr_name: s.name, sr_addr: s.addr, sr_report: undefined, sr_photo: undefined });
+  await editOrSend(ctx, messageId,
+    `📝 <b>${escapeHtml(s.name)}</b>\n🏠 ${escapeHtml(s.addr)}\n\n✍️ Escribí el reporte del showing (cómo estuvo, interés del prospecto, objeciones, próximos pasos…).`,
+    [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+}
+async function handleShowingReportText(ctx: Ctx, session: Session, raw: string) {
+  const text = String(raw).trim().slice(0, 3000);
+  if (text.length < 3) { await send(ctx, "Escribí un poco más de detalle 🙂"); return; }
+  await setSession(ctx, "sr_review", { ...(session.data || {}), sr_report: text });
+  await showReportReview(ctx, undefined);
+}
+async function showReportReview(ctx: Ctx, messageId: number | undefined) {
+  const session = await getSession(ctx);
+  const d = session?.data || {};
+  if (!d.sr_report) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte. Mandá <b>menu</b>."); return; }
+  const rows = [
+    [{ text: "✨ Enriquecer con IA", callback_data: "sre" }],
+    [{ text: d.sr_photo ? "📷 Cambiar foto" : "📷 Agregar foto", callback_data: "srp" }],
+    [{ text: "💾 Guardar en el showing", callback_data: "srs" }],
+    [{ text: "❌ Cancelar", callback_data: "m:x" }],
+  ];
+  await editOrSend(ctx, messageId,
+    `📝 <b>Reporte — ${escapeHtml(d.sr_name)}</b>\n🏠 ${escapeHtml(d.sr_addr)}${d.sr_photo ? "\n📷 Foto adjunta ✓" : ""}\n\n${escapeHtml(d.sr_report)}`, rows);
+}
+async function enrichReport(ctx: Ctx, messageId: number | undefined) {
+  const session = await getSession(ctx);
+  const d = session?.data || {};
+  if (!d.sr_report) { await editOrSend(ctx, messageId, "No hay texto para enriquecer."); return; }
+  await editOrSend(ctx, messageId, "✨ Enriqueciendo con IA…");
+  try {
+    const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/enhance-report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
+      body: JSON.stringify({ report_text: d.sr_report, property_address: d.sr_addr, organization_id: ctx.organizationId }),
+    });
+    const j = await resp.json().catch(() => ({}));
+    const enhanced = resp.ok ? j.enhanced_text : null;
+    if (!enhanced) { await setSession(ctx, "sr_review", d); await showReportReview(ctx, undefined); await send(ctx, "⚠️ No pude enriquecer ahora; te dejo el texto original."); return; }
+    await setSession(ctx, "sr_review", { ...d, sr_report: enhanced });
+    await showReportReview(ctx, undefined);
+  } catch (e) {
+    console.error("enrichReport", e);
+    await setSession(ctx, "sr_review", d);
+    await showReportReview(ctx, undefined);
+  }
+}
+async function askForPhoto(ctx: Ctx, messageId: number | undefined) {
+  const session = await getSession(ctx);
+  if (!session?.data?.sr_id) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte. Mandá <b>menu</b>."); return; }
+  await setSession(ctx, "sr_photo", { ...session.data });
+  await editOrSend(ctx, messageId, "📷 Enviá la <b>foto</b> ahora (como imagen).", [[{ text: "◀️ Volver", callback_data: "srb" }]]);
+}
+async function handlePhoto(ctx: Ctx, message: any) {
+  const session = await getSession(ctx);
+  if (session?.step !== "sr_photo" || !session?.data?.sr_id) return; // only during the report flow
+  const photos = message.photo || [];
+  const largest = photos[photos.length - 1];
+  if (!largest?.file_id) { await send(ctx, "No pude leer la foto. Probá de nuevo."); return; }
+  await typing(ctx);
+  try {
+    const gf = await fetch(`https://api.telegram.org/bot${ctx.botToken}/getFile?file_id=${largest.file_id}`);
+    const filePath = (await gf.json())?.result?.file_path;
+    if (!filePath) throw new Error("no file_path");
+    const dl = await fetch(`https://api.telegram.org/file/bot${ctx.botToken}/${filePath}`);
+    const bytes = new Uint8Array(await dl.arrayBuffer());
+    const ext = (String(filePath).split(".").pop() || "jpg").toLowerCase();
+    const key = `showing-reports/${session.data.sr_id}-${Date.now()}.${ext === "png" ? "png" : "jpg"}`;
+    const { error: upErr } = await ctx.supabase.storage.from("property-photos")
+      .upload(key, bytes, { contentType: ext === "png" ? "image/png" : "image/jpeg", upsert: true });
+    if (upErr) throw upErr;
+    const { data: pub } = ctx.supabase.storage.from("property-photos").getPublicUrl(key);
+    await setSession(ctx, "sr_review", { ...session.data, sr_photo: pub?.publicUrl });
+    await send(ctx, "📷 Foto agregada ✓");
+    await showReportReview(ctx, undefined);
+  } catch (e) {
+    console.error("handlePhoto", e);
+    await send(ctx, "❌ No pude subir la foto. Probá de nuevo o guardá sin foto.");
+  }
+}
+async function saveShowingReport(ctx: Ctx, messageId: number | undefined) {
+  const session = await getSession(ctx);
+  const d = session?.data || {};
+  if (!d.sr_id || !d.sr_report) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte. Mandá <b>menu</b>."); return; }
+  const upd: Record<string, any> = { agent_report: d.sr_report };
+  if (d.sr_photo) upd.agent_report_photo_url = d.sr_photo;
+  const { error } = await ctx.supabase.from("showings").update(upd)
+    .eq("organization_id", ctx.organizationId).eq("id", d.sr_id);
+  if (error) { await editOrSend(ctx, messageId, `❌ No pude guardar: ${escapeHtml(error.message)}`); return; }
+  await clearSession(ctx);
+  await editOrSend(ctx, messageId,
+    `✅ <b>Reporte guardado</b> en el showing de ${escapeHtml(d.sr_name)}.${d.sr_photo ? "\n📷 Con foto." : ""}`,
+    [[{ text: "📝 Otro reporte", callback_data: "m:sr" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
+}
+
+// ── Existing agenda/report rendering ─────────────────────────────────────────────
 async function buildShowingsAgenda(supabase: any, organizationId: string): Promise<string> {
   const nowIso = new Date().toISOString();
   const { data: shows, error } = await supabase
@@ -1171,7 +1502,8 @@ async function buildShowingsAgenda(supabase: any, organizationId: string): Promi
       timeZone: NY, weekday: "long", day: "numeric", month: "long",
     });
     out.push(``, `━━ <b>${cap(dayLabel)}</b> ━━`);
-    for (const s of items) out.push(renderShowing(s));
+    // Blank line between leads within a day (they were cramped edge-to-edge).
+    items.forEach((s: any, i: number) => { if (i > 0) out.push(""); out.push(renderShowing(s)); });
   }
   return out.join("\n");
 }
@@ -1271,19 +1603,27 @@ function renderShowing(s: any): string {
   if (l.preferred_language) bits.push(l.preferred_language === "es" ? "ES" : "EN");
   if (bits.length) lines.push(`   ${bits.join(" · ")}`);
 
-  if (l.source_detail) lines.push(`   📝 ${escapeHtml(String(l.source_detail).slice(0, 400))}`);
-  const prefs = renderPrefs(l.intake_preferences);
-  if (prefs) lines.push(`   🗒️ ${escapeHtml(prefs)}`);
+  if (l.source_detail) lines.push(`   📝 ${escapeHtml(String(l.source_detail).slice(0, 300))}`);
+  // Form answers as clean, ordered bullets (was a raw JSONB dump).
+  for (const b of prefsLines(l.intake_preferences)) lines.push(`   • ${escapeHtml(b)}`);
   if (s.agent_report) lines.push(`   💬 ${escapeHtml(String(s.agent_report).slice(0, 300))}`);
   return lines.join("\n");
 }
 
-function renderPrefs(prefs: unknown): string {
-  if (!prefs || typeof prefs !== "object") return "";
-  const entries = Object.entries(prefs as Record<string, unknown>)
-    .filter(([, v]) => v !== null && v !== undefined && v !== "")
-    .map(([k, v]) => `${k.replace(/_/g, " ")}: ${typeof v === "object" ? JSON.stringify(v) : v}`);
-  return entries.join(" · ");
+// Clean, ordered render of the intake-form quiz answers. Budget + voucher +
+// move-in already appear in `bits` above, so they're not repeated here.
+// Adapted from submit-application's buildIntakeNote.
+function prefsLines(prefs: unknown): string[] {
+  if (!prefs || typeof prefs !== "object") return [];
+  const p = prefs as Record<string, any>;
+  const out: string[] = [];
+  if (p.household_size != null) out.push(`👥 ${p.household_size} en el hogar`);
+  if (Array.isArray(p.property_types) && p.property_types.length) out.push(`🏘️ ${p.property_types.join(", ")}`);
+  if (p.pets) out.push(`🐾 Mascotas: ${p.pets}`);
+  if (p.income_source) out.push(`💼 ${p.income_source}`);
+  if (p.move_urgency) out.push(`⏱️ ${p.move_urgency}`);
+  if (p.fee_acknowledged) out.push(`✅ Aceptó fee $50 + Términos`);
+  return out;
 }
 
 function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }

@@ -63,6 +63,32 @@ function prettyPhone(raw: unknown): string {
   return s.trim();
 }
 
+// The body of a "call now" card (name/phone/property/voucher/move-in), shared by
+// the hot_lead alert and the next-day lead_reminder. Phone is PLAIN E.164 so
+// Telegram mobile auto-detects a tappable call link.
+function hotLeadBody(p: Record<string, unknown>): string {
+  const name = escapeHtml(p.name || p.full_name || "Unknown");
+  const src = friendlySource(p.source);
+  const source = src ? ` · <i>${escapeHtml(src)}</i>` : "";
+  const tel = String(p.phone ?? "").trim().replace(/[^\d+]/g, "");
+  const phoneLine = tel ? `\n📞 ${escapeHtml(tel)}` : "";
+  const propLine = p.property ? `\n🏠 ${escapeHtml(p.property)}` : "";
+  const moreN = Number(p.more_count ?? 0);
+  const more = moreN > 0 ? ` <i>(+${moreN} more tagged)</i>` : "";
+  const vAmt = p.voucher_amount != null && Number(p.voucher_amount) > 0
+    ? ` · $${Number(p.voucher_amount).toLocaleString("en-US")}/mo` : "";
+  const voucherLine = p.has_voucher ? `\n🎟️ Section 8 voucher${vAmt}` : "";
+  const moveLine = p.move_in ? `\n📅 Move-in ${escapeHtml(p.move_in)}` : "";
+  return `<b>${name}</b>${source}${phoneLine}${propLine}${more}${voucherLine}${moveLine}`;
+}
+
+// Per-lead action button for Hot Leads cards. Only when a lead_id is present.
+function actionKeyboard(p: Record<string, unknown>): any[][] | undefined {
+  const leadId = typeof p.lead_id === "string" ? p.lead_id : "";
+  if (!leadId) return undefined;
+  return [[{ text: "📋 Registrar acción", callback_data: `act:menu:${leadId}` }]];
+}
+
 // ── Event formatters (HTML) ──────────────────────────────────────────────────
 function formatEvent(event: string, p: Record<string, unknown>): string {
   const name = escapeHtml(p.name || p.full_name || "Unknown");
@@ -75,24 +101,13 @@ function formatEvent(event: string, p: Record<string, unknown>): string {
   switch (event) {
     case "new_lead":
       return `🆕 <b>New lead</b> — ${name}${source}${interest}${phone}${voucher}`;
-    case "hot_lead": {
-      // A "call now" opportunity card for the showings bot. The phone is the
-      // whole point (gated upstream — never fires without one). Render it as
-      // PLAIN E.164 text: Telegram mobile auto-detects that as a tappable call
-      // link. (A <a href="tel:"> link is NOT tappable in Telegram, and a
-      // formatted number with parens/spaces doesn't reliably auto-detect.)
-      const rawPhone = String(p.phone ?? "").trim();
-      const tel = rawPhone.replace(/[^\d+]/g, "");
-      const phoneLine = tel ? `\n📞 ${escapeHtml(tel)}` : "";
-      const propLine = p.property ? `\n🏠 ${escapeHtml(p.property)}` : "";
-      const moreN = Number(p.more_count ?? 0);
-      const more = moreN > 0 ? ` <i>(+${moreN} more tagged)</i>` : "";
-      const vAmt = p.voucher_amount != null && Number(p.voucher_amount) > 0
-        ? ` · $${Number(p.voucher_amount).toLocaleString("en-US")}/mo` : "";
-      const voucherLine = p.has_voucher ? `\n🎟️ Section 8 voucher${vAmt}` : "";
-      const moveLine = p.move_in ? `\n📅 Move-in ${escapeHtml(p.move_in)}` : "";
-      return `📞🔥 <b>Hot lead — call now · ${escapeHtml(p.score ?? "")}</b>\n<b>${name}</b>${source}${phoneLine}${propLine}${more}${voucherLine}${moveLine}`;
-    }
+    case "hot_lead":
+      // A "call now" opportunity card for the showings bot (gated upstream —
+      // never fires without a phone). Body shared with lead_reminder.
+      return `📞🔥 <b>Hot lead — call now · ${escapeHtml(p.score ?? "")}</b>\n${hotLeadBody(p)}`;
+    case "lead_reminder":
+      // Next-day follow-up: same card, re-surfaced by the reminder cron.
+      return `⏰🔁 <b>Follow-up de hoy · ${escapeHtml(p.score ?? "")}</b>\n${hotLeadBody(p)}`;
     case "hemlane_digest": {
       const total = escapeHtml(p.total ?? 0);
       const created = escapeHtml(p.created ?? 0);
@@ -124,7 +139,7 @@ serve(async (req) => {
     // Lead alerts only fire when a phone is on file — a name-only lead (e.g. the
     // first half of a Hemlane paired email) is not actionable. Hot-lead alerts
     // are call-now opportunities, so a phone is mandatory there too.
-    if (body.event === "new_lead" || body.event === "hot_lead") {
+    if (body.event === "new_lead" || body.event === "hot_lead" || body.event === "lead_reminder") {
       const ph = String((body.payload as Record<string, unknown> | undefined)?.phone ?? "").trim();
       if (!ph) return json({ ok: false, skipped: "no_phone" });
     }
@@ -191,6 +206,12 @@ serve(async (req) => {
 
     if (!botToken || !chatId) return json({ ok: false, skipped: "not_configured" });
 
+    // Hot-lead / follow-up cards carry a "Registrar acción" button (only when a
+    // lead_id is in the payload). Preformatted `message` payloads get no buttons.
+    const keyboard = (!body.message && (body.event === "hot_lead" || body.event === "lead_reminder"))
+      ? actionKeyboard(body.payload || {})
+      : undefined;
+
     const tgResp = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -199,6 +220,7 @@ serve(async (req) => {
         text: message,
         parse_mode: "HTML",
         disable_web_page_preview: true,
+        ...(keyboard ? { reply_markup: { inline_keyboard: keyboard } } : {}),
       }),
     });
 
