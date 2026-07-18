@@ -263,7 +263,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data === "m:rp")  { await answer("Generando reporte…"); await typing(ctx); await runReport(ctx); return; }
     if (data === "m:lr")  { await answer(); await startLeasingReport(ctx, messageId); return; }
     if (data === "m:sr")  { await answer(); await startShowingReport(ctx, messageId); return; }
-    if (data.startsWith("srx:")) { await answer(); await chooseShowingToReport(ctx, messageId, parseInt(data.slice(4), 10) || 0); return; }
+    if (data.startsWith("srx:")) { await answer(); await chooseShowingToReport(ctx, messageId, data.slice(4)); return; }
     if (data === "sre")   { await answer("Enriqueciendo…"); await enrichReport(ctx, messageId); return; }
     if (data === "srp")   { await answer(); await askForPhoto(ctx, messageId); return; }
     if (data === "srb")   { await answer(); await showReportReview(ctx, messageId); return; }
@@ -1364,13 +1364,15 @@ async function startShowingReport(ctx: Ctx, messageId: number | undefined) {
   });
   if (!list.length) { await editOrSend(ctx, messageId, "📭 No hay showings previos para reportar."); return; }
   await setSession(ctx, "sr_pick", { sr_list: list });
-  const rows = list.slice(0, 8).map((s: any, i: number) => [{ text: `${s.name} · ${s.when}`.slice(0, 62), callback_data: `srx:${i}` }]);
+  // Carry the stable showing id (not a positional index) — the list is
+  // regenerated on every re-open, so an index could bind the wrong showing.
+  const rows = list.slice(0, 8).map((s: any) => [{ text: `${s.name} · ${s.when}`.slice(0, 62), callback_data: `srx:${s.id}` }]);
   rows.push([{ text: "❌ Cancelar", callback_data: "m:x" }]);
   await editOrSend(ctx, messageId, "📝 <b>Reporte de showing</b>\nElegí el showing a reportar:", rows);
 }
-async function chooseShowingToReport(ctx: Ctx, messageId: number | undefined, idx: number) {
+async function chooseShowingToReport(ctx: Ctx, messageId: number | undefined, showingId: string) {
   const session = await getSession(ctx);
-  const s = session?.data?.sr_list?.[idx];
+  const s = (session?.data?.sr_list || []).find((x: any) => x.id === showingId);
   if (!s) { await editOrSend(ctx, messageId, "⌛ Esa lista expiró. Mandá <b>menu</b> y probá de nuevo."); return; }
   await setSession(ctx, "sr_text", { ...session.data, sr_id: s.id, sr_name: s.name, sr_addr: s.addr, sr_report: undefined, sr_photo: undefined });
   await editOrSend(ctx, messageId,
@@ -1387,6 +1389,9 @@ async function showReportReview(ctx: Ctx, messageId: number | undefined) {
   const session = await getSession(ctx);
   const d = session?.data || {};
   if (!d.sr_report) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte. Mandá <b>menu</b>."); return; }
+  // Centralize the step invariant so EVERY entry (incl. "◀️ Volver" from photo)
+  // lands on sr_review — otherwise a stray text got the wrong nudge.
+  if (session?.step !== "sr_review") await setSession(ctx, "sr_review", d);
   const rows = [
     [{ text: "✨ Enriquecer con IA", callback_data: "sre" }],
     [{ text: d.sr_photo ? "📷 Cambiar foto" : "📷 Agregar foto", callback_data: "srp" }],
