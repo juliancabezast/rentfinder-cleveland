@@ -217,8 +217,9 @@ async function handleText(ctx: Ctx, rawText: string) {
     if (session.step === "find_lead") { await handleLeadSearch(ctx, session, raw); return; }
     if (session.step === "create_lead") { await handleCreateLeadInput(ctx, session, raw); return; }
     if (session.step === "leasing_search") { await handleLeasingSearch(ctx, session, raw); return; }
+    if (session.step === "custom_time") { await handleCustomTime(ctx, session, raw); return; }
     // Button-only steps: nudge instead of dumping the agenda on a stray text.
-    if (["choose_slot", "confirm", "offer_schedule", "leasing_lang"].includes(session.step)) {
+    if (["choose_day", "choose_time", "confirm", "offer_schedule", "leasing_lang"].includes(session.step)) {
       await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
       return;
     }
@@ -257,7 +258,13 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data === "m:x")   { await answer(); await clearSession(ctx); await showMenu(ctx, messageId, "❌ Listo, cancelado."); return; }
 
     if (data.startsWith("p:"))  { await answer(); await chooseProperty(ctx, messageId, data.slice(2)); return; }
-    if (data.startsWith("tp:")) { await answer(); await renderSlots(ctx, messageId, parseInt(data.slice(3), 10) || 0); return; }
+    if (data.startsWith("dp:")) { await answer(); await renderDays(ctx, messageId, parseInt(data.slice(3), 10) || 0); return; }
+    if (data === "dx")          { await answer(); await renderCustomDays(ctx, messageId); return; }
+    if (data.startsWith("d:"))  { await answer(); await chooseDay(ctx, messageId, data.slice(2)); return; }
+    if (data.startsWith("tp:")) { await answer(); await renderTimes(ctx, messageId, parseInt(data.slice(3), 10) || 0); return; }
+    if (data === "tx")          { await answer(); await startCustomTime(ctx, messageId); return; }
+    if (data === "bk")          { await answer(); await renderDays(ctx, messageId, 0); return; }
+    if (data === "bk2")         { await answer(); await backToTimes(ctx, messageId); return; }
     if (data.startsWith("t:"))  { await answer(); await chooseSlot(ctx, messageId, data.slice(2)); return; }
     if (data === "nl")          { await answer(); await startCreateLead(ctx, messageId, false); return; }
     if (data.startsWith("l:"))  { await answer(); await chooseLead(ctx, messageId, data.slice(2)); return; }
@@ -332,14 +339,20 @@ async function handlePropertyFilter(ctx: Ctx, session: Session, rawQuery: string
   }
 
   const ids = props.map((p: any) => p.id);
+  const cutoffMs = await leadTimeCutoffMs(ctx.supabase, ctx.organizationId);
   const { data: slotProps } = await ctx.supabase
     .from("showing_available_slots")
-    .select("property_id")
+    .select("property_id, slot_date, slot_time")
     .eq("organization_id", ctx.organizationId)
     .eq("is_enabled", true).eq("is_booked", false)
     .gte("slot_date", todayNY())
     .in("property_id", ids);
-  const withSlots = new Set((slotProps || []).map((s: any) => s.property_id));
+  // Only count properties that still have a FUTURE (bookable) slot.
+  const withSlots = new Set(
+    (slotProps || [])
+      .filter((s: any) => slotToUtcMs(s.slot_date, s.slot_time) > cutoffMs)
+      .map((s: any) => s.property_id)
+  );
 
   const usable = props.filter((p: any) => withSlots.has(p.id));
   if (usable.length === 0) {
@@ -374,52 +387,174 @@ async function chooseProperty(ctx: Ctx, messageId: number | undefined, propertyI
     ...(session.data || {}),
     property_id: prop.id,
     property_label: propLabel(prop),
-    slot_id: undefined, slot_date: undefined, slot_time: undefined, slot_label: undefined,
+    slot_day: undefined, slot_id: undefined, slot_date: undefined, slot_time: undefined,
+    slot_label: undefined, custom_slot: undefined,
   };
-  await setSession(ctx, "choose_slot", data);
-  await renderSlots(ctx, messageId, 0);
+  await setSession(ctx, "choose_day", data);
+  await renderDays(ctx, messageId, 0);
 }
 
-async function renderSlots(ctx: Ctx, messageId: number | undefined, page: number) {
+// All future, bookable slots for a property (past/too-soon already dropped).
+async function fetchFutureSlots(ctx: Ctx, propertyId: string): Promise<any[]> {
+  const { data: slots } = await ctx.supabase
+    .from("showing_available_slots")
+    .select("id, slot_date, slot_time, duration_minutes")
+    .eq("organization_id", ctx.organizationId)
+    .eq("property_id", propertyId)
+    .eq("is_enabled", true).eq("is_booked", false)
+    .gte("slot_date", todayNY())
+    .order("slot_date", { ascending: true }).order("slot_time", { ascending: true })
+    .limit(500);
+  const cutoffMs = await leadTimeCutoffMs(ctx.supabase, ctx.organizationId);
+  return (slots || []).filter((s: any) => slotToUtcMs(s.slot_date, s.slot_time) > cutoffMs);
+}
+
+// ── Step 2: choose the DAY ───────────────────────────────────────────────────────
+async function renderDays(ctx: Ctx, messageId: number | undefined, page: number) {
   const session = await getSession(ctx);
   if (!session?.data?.property_id) {
     await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Mandá <b>menu</b> para empezar de nuevo.");
     return;
   }
-  const { data: slots } = await ctx.supabase
-    .from("showing_available_slots")
-    .select("id, slot_date, slot_time, duration_minutes")
-    .eq("organization_id", ctx.organizationId)
-    .eq("property_id", session.data.property_id)
-    .eq("is_enabled", true).eq("is_booked", false)
-    .gte("slot_date", todayNY())
-    .order("slot_date", { ascending: true }).order("slot_time", { ascending: true })
-    .limit(200);
-
-  const all = slots || [];
-  if (all.length === 0) {
-    await editOrSend(ctx, messageId,
-      `📭 <b>${escapeHtml(session.data.property_label)}</b>\nNo tiene horarios disponibles. Elegí otra propiedad.`,
-      [[{ text: "◀️ Otra propiedad", callback_data: "m:sch" }], [{ text: "❌ Cancelar", callback_data: "m:x" }]]);
-    return;
-  }
+  const slots = await fetchFutureSlots(ctx, session.data.property_id);
+  const dayCount = new Map<string, number>();
+  for (const s of slots) dayCount.set(s.slot_date, (dayCount.get(s.slot_date) || 0) + 1);
+  const days = [...dayCount.keys()]; // date-ascending (query order preserved)
 
   const PER = 8;
-  const pages = Math.ceil(all.length / PER);
+  const pages = Math.max(1, Math.ceil(days.length / PER));
   const p = Math.min(Math.max(page, 0), pages - 1);
-  const slice = all.slice(p * PER, p * PER + PER);
-  const rows = slice.map((s: any) => [{
-    text: `${slotDayLabel(s.slot_date)} · ${fmtSlotTime(s.slot_time)}`,
-    callback_data: `t:${s.id}`,
+  const rows = days.slice(p * PER, p * PER + PER).map((d) => [{
+    text: `${slotDayLabel(d)} · ${dayCount.get(d)} horario${dayCount.get(d) === 1 ? "" : "s"}`,
+    callback_data: `d:${d}`,
+  }]);
+  const nav: any[] = [];
+  if (p > 0) nav.push({ text: "◀️", callback_data: `dp:${p - 1}` });
+  if (p < pages - 1) nav.push({ text: "▶️", callback_data: `dp:${p + 1}` });
+  if (nav.length) rows.push(nav);
+  rows.push([{ text: "🗓️ Otro día", callback_data: "dx" }]);
+  rows.push([{ text: "◀️ Otra propiedad", callback_data: "m:sch" }, { text: "❌ Cancelar", callback_data: "m:x" }]);
+
+  const head = days.length
+    ? `🏠 <b>${escapeHtml(session.data.property_label)}</b>\n📅 <b>Elegí el día:</b>${pages > 1 ? ` <i>(pág ${p + 1}/${pages})</i>` : ""}`
+    : `🏠 <b>${escapeHtml(session.data.property_label)}</b>\nNo tiene días con horarios abiertos — tocá <b>🗓️ Otro día</b> para abrir uno.`;
+  await editOrSend(ctx, messageId, head, rows);
+}
+
+// Pick ANY of the next 14 days (even without preset slots → abrir horario nuevo).
+async function renderCustomDays(ctx: Ctx, messageId: number | undefined) {
+  const base = new Date(`${todayNY()}T12:00:00Z`); // noon UTC never day-shifts in NY
+  const days: string[] = [];
+  for (let i = 0; i < 14; i++) {
+    days.push(new Date(base.getTime() + i * 86400000).toLocaleDateString("en-CA", { timeZone: NY }));
+  }
+  const rows: any[] = [];
+  for (let i = 0; i < days.length; i += 2) {
+    rows.push(days.slice(i, i + 2).map((d) => ({ text: slotDayLabel(d), callback_data: `d:${d}` })));
+  }
+  rows.push([{ text: "◀️ Volver", callback_data: "bk" }, { text: "❌ Cancelar", callback_data: "m:x" }]);
+  await editOrSend(ctx, messageId, "🗓️ <b>Elegí cualquier día</b> (podés abrir un horario fuera de la agenda):", rows);
+}
+
+async function chooseDay(ctx: Ctx, messageId: number | undefined, dateStr: string) {
+  const session = await getSession(ctx);
+  if (!session?.data?.property_id) {
+    await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Mandá <b>menu</b> para empezar de nuevo.");
+    return;
+  }
+  const data = { ...(session.data || {}), slot_day: dateStr,
+    slot_id: undefined, slot_date: undefined, slot_time: undefined, slot_label: undefined, custom_slot: undefined };
+  await setSession(ctx, "choose_time", data);
+  await renderTimes(ctx, messageId, 0);
+}
+
+// ── Step 2b: choose the TIME within the chosen day ───────────────────────────────
+async function renderTimes(ctx: Ctx, messageId: number | undefined, page: number) {
+  const session = await getSession(ctx);
+  const day = session?.data?.slot_day;
+  if (!session?.data?.property_id || !day) {
+    await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Mandá <b>menu</b> para empezar de nuevo.");
+    return;
+  }
+  const slots = (await fetchFutureSlots(ctx, session.data.property_id)).filter((s: any) => s.slot_date === day);
+
+  const PER = 8;
+  const pages = Math.max(1, Math.ceil(slots.length / PER));
+  const p = Math.min(Math.max(page, 0), pages - 1);
+  const rows = slots.slice(p * PER, p * PER + PER).map((s: any) => [{
+    text: fmtSlotTime(s.slot_time), callback_data: `t:${s.id}`,
   }]);
   const nav: any[] = [];
   if (p > 0) nav.push({ text: "◀️", callback_data: `tp:${p - 1}` });
   if (p < pages - 1) nav.push({ text: "▶️", callback_data: `tp:${p + 1}` });
   if (nav.length) rows.push(nav);
-  rows.push([{ text: "◀️ Otra propiedad", callback_data: "m:sch" }, { text: "❌ Cancelar", callback_data: "m:x" }]);
+  rows.push([{ text: "🕐 Otro horario", callback_data: "tx" }]);
+  rows.push([{ text: "◀️ Otro día", callback_data: "bk" }, { text: "❌ Cancelar", callback_data: "m:x" }]);
 
-  const header = `🏠 <b>${escapeHtml(session.data.property_label)}</b>\n📅 <b>Elegí un horario:</b>${pages > 1 ? ` <i>(pág ${p + 1}/${pages})</i>` : ""}`;
-  await editOrSend(ctx, messageId, header, rows);
+  const head = slots.length
+    ? `🏠 <b>${escapeHtml(session.data.property_label)}</b>\n📅 <b>${slotDayLabel(day)}</b> — elegí la hora:${pages > 1 ? ` <i>(pág ${p + 1}/${pages})</i>` : ""}`
+    : `🏠 <b>${escapeHtml(session.data.property_label)}</b>\n📅 <b>${slotDayLabel(day)}</b> — sin horarios abiertos.\nTocá <b>🕐 Otro horario</b> para abrir uno:`;
+  await editOrSend(ctx, messageId, head, rows);
+}
+
+// Back from the custom-time prompt to the time list — must reset the step so
+// stray text is treated as a button-nudge, not a custom-time entry.
+async function backToTimes(ctx: Ctx, messageId: number | undefined) {
+  const session = await getSession(ctx);
+  if (session?.data) await setSession(ctx, "choose_time", { ...session.data, custom_slot: undefined });
+  await renderTimes(ctx, messageId, 0);
+}
+
+// ── Step 2c: custom time (outside the agenda) ────────────────────────────────────
+async function startCustomTime(ctx: Ctx, messageId: number | undefined) {
+  const session = await getSession(ctx);
+  if (!session?.data?.property_id || !session?.data?.slot_day) {
+    await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Mandá <b>menu</b> para reiniciar.");
+    return;
+  }
+  await setSession(ctx, "custom_time", session.data);
+  await editOrSend(ctx, messageId,
+    `🕐 <b>${slotDayLabel(session.data.slot_day)}</b>\nEscribí la hora del showing.\nEj: <code>2:30 PM</code> · <code>14:30</code> · <code>10 am</code>`,
+    [[{ text: "◀️ Volver a horarios", callback_data: "bk2" }], [{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+}
+
+async function handleCustomTime(ctx: Ctx, session: Session, raw: string) {
+  const day = session.data?.slot_day;
+  if (!session.data?.property_id || !day) { await send(ctx, "⌛ Se perdió la selección. Mandá <b>menu</b>."); return; }
+  const t = parseTime(raw);
+  if (!t) {
+    await send(ctx, "⚠️ No entendí la hora. Probá: <code>2:30 PM</code>, <code>14:30</code> o <code>10 am</code>.",
+      [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+    return;
+  }
+  const cutoffMs = await leadTimeCutoffMs(ctx.supabase, ctx.organizationId);
+  if (slotToUtcMs(day, t) <= cutoffMs) {
+    await send(ctx, "⏰ Esa hora ya pasó. Elegí una hora futura.",
+      [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+    return;
+  }
+  // Don't offer a time an active showing already occupies (agent-hour guard).
+  const { count } = await ctx.supabase
+    .from("showing_available_slots")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", ctx.organizationId)
+    .eq("slot_date", day).eq("slot_time", t).eq("is_booked", true);
+  if ((count || 0) > 0) {
+    await send(ctx, "❌ Ya hay un showing a esa hora. Probá otra.",
+      [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+    return;
+  }
+  const data = { ...(session.data || {}),
+    slot_id: undefined, slot_date: day, slot_time: t, custom_slot: true,
+    slot_label: `${slotDayLabel(day)} · ${fmtSlotTime(t)}` };
+  if (data.lead_id) {
+    await setSession(ctx, "confirm", data);
+    await showConfirm(ctx, undefined, data);
+  } else {
+    await setSession(ctx, "find_lead", data);
+    await send(ctx, `✅ <b>${escapeHtml(data.property_label)}</b>\n📅 ${escapeHtml(data.slot_label)}\n\n👤 Enviá el <b>nombre</b> o <b>teléfono</b> del lead:`,
+      [[{ text: "➕ Crear lead nuevo", callback_data: "nl" }], [{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+  }
 }
 
 // ── Step 3: identify the lead ────────────────────────────────────────────────────
@@ -437,7 +572,14 @@ async function chooseSlot(ctx: Ctx, messageId: number | undefined, slotId: strin
     .maybeSingle();
   if (!slot || !slot.is_enabled || slot.is_booked) {
     await editOrSend(ctx, messageId, "❌ Ese horario ya no está disponible. Elegí otro:");
-    await renderSlots(ctx, undefined, 0);
+    await renderTimes(ctx, undefined, 0);
+    return;
+  }
+  // Guard against booking a past/too-soon slot tapped from a stale message.
+  const cutoffMs = await leadTimeCutoffMs(ctx.supabase, ctx.organizationId);
+  if (slotToUtcMs(slot.slot_date, slot.slot_time) <= cutoffMs) {
+    await editOrSend(ctx, messageId, "⏰ Ese horario ya pasó. Te muestro los disponibles:");
+    await renderTimes(ctx, undefined, 0);
     return;
   }
 
@@ -448,6 +590,7 @@ async function chooseSlot(ctx: Ctx, messageId: number | undefined, slotId: strin
     slot_time: slot.slot_time,
     duration: slot.duration_minutes || 30,
     slot_label: `${slotDayLabel(slot.slot_date)} · ${fmtSlotTime(slot.slot_time)}`,
+    custom_slot: undefined, // booking a real existing slot — not a custom one
   };
 
   // Lead-first flow already has the lead → jump straight to confirm.
@@ -522,7 +665,9 @@ async function handleLeadSearch(ctx: Ctx, session: Session, rawQuery: string) {
 
 async function chooseLead(ctx: Ctx, messageId: number | undefined, leadId: string) {
   const session = await getSession(ctx);
-  if (!session?.data?.slot_id) {
+  // A slot must be chosen — either a preset one (slot_id) or a custom time
+  // (custom_slot, whose row is created lazily at confirm, so slot_id is null).
+  if (!session?.data?.slot_id && !session?.data?.custom_slot) {
     await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Mandá <b>menu</b> para empezar de nuevo.");
     return;
   }
@@ -601,8 +746,8 @@ async function handleCreateLeadInput(ctx: Ctx, session: Session, raw: string) {
   const data = { ...(session.data || {}), lead_id: leadId, lead_name: resolvedName, lead_phone: phone, lead_email: email };
   const prefix = existed ? `ℹ️ Ese teléfono ya existía — uso el lead <b>${escapeHtml(resolvedName)}</b>.` : `✅ Lead creado: <b>${escapeHtml(resolvedName)}</b>.`;
 
-  if (data.slot_id) {
-    // Mid-schedule: property + slot already chosen → offer to confirm the booking.
+  if (data.slot_id || data.custom_slot) {
+    // Mid-schedule: property + slot (preset or custom) already chosen → confirm.
     await setSession(ctx, "confirm", data);
     await send(ctx, `${prefix}\n\n🏠 ${escapeHtml(data.property_label)}\n📅 ${escapeHtml(data.slot_label)}\n📞 ${escapeHtml(prettyPhone(phone))}\n\n¿Agendo el showing?`,
       [[{ text: "✅ Sí, agendar", callback_data: "ok" }], [{ text: "❌ No", callback_data: "m:x" }]]);
@@ -644,22 +789,85 @@ async function confirmBooking(ctx: Ctx, messageId?: number) {
     return;
   }
 
-  const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/book-public-showing`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
-    body: JSON.stringify({
-      property_id: d.property_id,
-      organization_id: ctx.organizationId,
-      slot_date: d.slot_date,
-      slot_time: d.slot_time,
-      full_name: d.lead_name,
-      phone: d.lead_phone,
-      email: d.lead_email || undefined,
-      lead_id: d.lead_id,
-      booking_source: "telegram_bot",
-    }),
-  });
-  const result = await resp.json().catch(() => ({}));
+  // Re-validate the time at confirm — a slot that was future when picked can go
+  // past if the operator idles on the confirm screen (session TTL is 30 min).
+  const confirmCutoffMs = await leadTimeCutoffMs(ctx.supabase, ctx.organizationId);
+  if (slotToUtcMs(d.slot_date, d.slot_time) <= confirmCutoffMs) {
+    await setSession(ctx, "choose_time", { ...d, slot_id: undefined, slot_time: undefined, slot_label: undefined, custom_slot: undefined });
+    await editOrSend(ctx, messageId, "⏰ Ese horario ya pasó. Elegí otro:");
+    await renderTimes(ctx, undefined, 0);
+    return;
+  }
+
+  // Custom time: book-public-showing only books against an existing enabled slot
+  // row. FIND-OR-CREATE one (the table is UNIQUE on org+property+date+time, so a
+  // blind INSERT would collide with a preset/disabled row at that time).
+  let createdSlotId: string | null = null;
+  if (d.custom_slot) {
+    const findOpen = () => ctx.supabase
+      .from("showing_available_slots")
+      .select("id, is_enabled, is_booked")
+      .eq("organization_id", ctx.organizationId).eq("property_id", d.property_id)
+      .eq("slot_date", d.slot_date).eq("slot_time", d.slot_time).maybeSingle();
+    const reoffer = async (msg: string) => {
+      await setSession(ctx, "choose_time", { ...d, slot_id: undefined, slot_time: undefined, slot_label: undefined, custom_slot: undefined });
+      await editOrSend(ctx, messageId, msg);
+      await renderTimes(ctx, undefined, 0);
+    };
+    const { data: ex } = await findOpen();
+    if (ex?.is_booked) { await reoffer("❌ Justo se ocupó esa hora. Elegí otra:"); return; }
+    if (ex) {
+      // Reuse a pre-existing open/disabled row (re-enable if needed). Do NOT set
+      // createdSlotId — we must never delete a row we didn't create.
+      if (!ex.is_enabled) await ctx.supabase.from("showing_available_slots").update({ is_enabled: true }).eq("id", ex.id);
+    } else {
+      const { data: ns, error: nsErr } = await ctx.supabase
+        .from("showing_available_slots")
+        .insert({
+          organization_id: ctx.organizationId, property_id: d.property_id,
+          slot_date: d.slot_date, slot_time: d.slot_time,
+          duration_minutes: 30, is_enabled: true, is_booked: false,
+        })
+        .select("id").single();
+      if (nsErr || !ns) {
+        // Likely a unique-violation race — re-fetch and reuse if still open.
+        const { data: ex2 } = await findOpen();
+        if (!ex2 || ex2.is_booked) { await reoffer("❌ No pude abrir ese horario. Elegí otro:"); return; }
+        if (!ex2.is_enabled) await ctx.supabase.from("showing_available_slots").update({ is_enabled: true }).eq("id", ex2.id);
+      } else {
+        createdSlotId = ns.id;
+      }
+    }
+  }
+
+  let resp: Response;
+  let result: any = {};
+  try {
+    resp = await fetch(`${ctx.supabaseUrl}/functions/v1/book-public-showing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
+      body: JSON.stringify({
+        property_id: d.property_id,
+        organization_id: ctx.organizationId,
+        slot_date: d.slot_date,
+        slot_time: d.slot_time,
+        full_name: d.lead_name,
+        phone: d.lead_phone,
+        email: d.lead_email || undefined,
+        lead_id: d.lead_id,
+        booking_source: "telegram_bot",
+      }),
+    });
+    result = await resp.json().catch(() => ({}));
+  } catch (_fetchErr) {
+    // Network throw — clean up a slot we just opened so it can't orphan.
+    if (createdSlotId) {
+      await ctx.supabase.from("showing_available_slots").delete().eq("id", createdSlotId).eq("is_booked", false);
+    }
+    await editOrSend(ctx, messageId, "❌ Error de red al agendar. Probá de nuevo.",
+      [[{ text: "🔁 Reintentar", callback_data: "ok" }], [{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+    return;
+  }
 
   if (resp.ok && result?.success) {
     await clearSession(ctx);
@@ -675,11 +883,17 @@ async function confirmBooking(ctx: Ctx, messageId?: number) {
     return;
   }
 
+  // Booking failed → clean up a slot we opened for a custom time (only if still
+  // unbooked; a successful claim above already flipped it to is_booked=true).
+  if (createdSlotId) {
+    await ctx.supabase.from("showing_available_slots").delete().eq("id", createdSlotId).eq("is_booked", false);
+  }
+
   if (resp.status === 409) {
-    // Slot got taken (or the agent hour was booked elsewhere) — re-offer slots.
-    await setSession(ctx, "choose_slot", { ...d, slot_id: undefined, slot_date: undefined, slot_time: undefined, slot_label: undefined });
+    // Slot got taken (or the agent hour was booked elsewhere) — re-offer times.
+    await setSession(ctx, "choose_time", { ...d, slot_id: undefined, slot_time: undefined, slot_label: undefined, custom_slot: undefined });
     await editOrSend(ctx, messageId, "❌ Ese horario ya fue tomado. Elegí otro:");
-    await renderSlots(ctx, undefined, 0);
+    await renderTimes(ctx, undefined, 0);
     return;
   }
 
@@ -901,6 +1115,25 @@ function cleanNameQuery(raw: string): string {
 function todayNY(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: NY });
 }
+// NY-local "YYYY-MM-DD" + "HH:MM:SS" → UTC epoch ms (DST-aware; same offset
+// method book-public-showing uses to build scheduled_at).
+function slotToUtcMs(dateStr: string, timeStr: string): number {
+  const ref = new Date(`${dateStr}T12:00:00Z`);
+  const utcRepr = new Date(ref.toLocaleString("en-US", { timeZone: "UTC" }));
+  const tzRepr = new Date(ref.toLocaleString("en-US", { timeZone: NY }));
+  const offH = Math.round((tzRepr.getTime() - utcRepr.getTime()) / 3600000);
+  const sign = offH >= 0 ? "+" : "-";
+  const abs = String(Math.abs(offH)).padStart(2, "0");
+  return new Date(`${dateStr}T${timeStr}${sign}${abs}:00`).getTime();
+}
+// Earliest bookable instant for the LeasingAgent bot = NOW. The bot is
+// admin-driven, so the operator can book ANY future time (even 15 min out). The
+// renter-facing `showing_lead_time_minutes` buffer (e.g. 180) does NOT apply
+// here — it only gates same-hour PUBLIC bookings on the website. We just hide
+// slots already in the past. (Kept async + same signature so callers don't change.)
+async function leadTimeCutoffMs(_supabase?: any, _organizationId?: string): Promise<number> {
+  return Date.now();
+}
 
 // ── Existing agenda/report rendering (unchanged) ─────────────────────────────────
 async function buildShowingsAgenda(supabase: any, organizationId: string): Promise<string> {
@@ -960,10 +1193,13 @@ async function buildAvailability(supabase: any, organizationId: string): Promise
     slots.push(...(data || []));
     if (!data || data.length < PAGE) break;
   }
-  if (slots.length === 0) return `📭 <b>No hay showings próximos ni horarios disponibles configurados.</b>`;
+  // Hide slots already in the past / inside the same-day lead-time buffer.
+  const cutoffMs = await leadTimeCutoffMs(supabase, organizationId);
+  const futureSlots = slots.filter((s: any) => slotToUtcMs(s.slot_date, s.slot_time) > cutoffMs);
+  if (futureSlots.length === 0) return `📭 <b>No hay showings próximos ni horarios disponibles configurados.</b>`;
 
   const byDate = new Map<string, { times: Set<string>; cities: Set<string> }>();
-  for (const s of slots) {
+  for (const s of futureSlots) {
     const g = byDate.get(s.slot_date) || { times: new Set(), cities: new Set() };
     g.times.add(s.slot_time);
     const city = s.properties?.city;
@@ -996,6 +1232,22 @@ function fmtSlotTime(t: string): string {
   const ampm = h >= 12 ? "PM" : "AM";
   const disp = h === 0 ? 12 : h > 12 ? h - 12 : h;
   return `${disp}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+// Parse a free-text time ("2:30 PM", "14:30", "10 am", "9") → "HH:MM:SS" or null.
+function parseTime(raw: string): string | null {
+  const s = String(raw).trim().toLowerCase().replace(/\./g, "");
+  const m = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
+  const mer = m[3] || "";
+  if (min > 59) return null;
+  // A meridiem only makes sense on a 1–12 clock hour ("15 am" is nonsense).
+  if (mer && (h < 1 || h > 12)) return null;
+  if (mer === "am") { if (h === 12) h = 0; }
+  else if (mer === "pm") { if (h !== 12) h += 12; }
+  if (h > 23) return null;
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`;
 }
 
 function renderShowing(s: any): string {

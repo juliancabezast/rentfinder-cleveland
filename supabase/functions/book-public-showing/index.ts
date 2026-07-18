@@ -881,26 +881,38 @@ serve(async (req: Request) => {
 
     // ── Telegram notification ─────────────────────────────────────────
     try {
-      const [{ data: creds }, { data: showingsSettings }] = await Promise.all([
+      const [{ data: creds }, { data: leasingSettings }] = await Promise.all([
         supabase
           .from("organization_credentials")
-          .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
+          .select("telegram_bot_token, telegram_chat_id")
           .eq("organization_id", organization_id)
           .single(),
         supabase
           .from("organization_settings")
           .select("key, value")
           .eq("organization_id", organization_id)
-          .in("key", ["telegram_showings_bot_token", "telegram_showings_chat_id"]),
+          .in("key", ["telegram_route_bot_token", "telegram_route_chat_id"]),
       ]);
 
-      const showingsMap = new Map((showingsSettings || []).map((s: any) => [s.key, s.value]));
-      // Prefer admin-only credentials; fall back to legacy org_settings during the
-      // migration window, then to the general bot token.
-      const botToken = creds?.telegram_showings_bot_token || (showingsMap.get("telegram_showings_bot_token") as string) || creds?.telegram_bot_token;
-      const chatId = creds?.telegram_showings_chat_id || (showingsMap.get("telegram_showings_chat_id") as string) || creds?.telegram_chat_id;
+      const unwrapVal = (v: any) => {
+        if (v == null) return undefined;
+        try { const p = JSON.parse(String(v)); return typeof p === "string" ? p : String(v); }
+        catch { return String(v); }
+      };
+      const lm = new Map((leasingSettings || []).map((s: any) => [s.key, unwrapVal(s.value)]));
+      // "New Showing Booked!" alerts go to LeasingAgent (the showings/scheduling
+      // bot), NOT to the Hot Leads bot. Pair token+chat atomically; fall back to
+      // the general (RFC) bot only if the route pair is missing.
+      const lTok = lm.get("telegram_route_bot_token");
+      const lChat = lm.get("telegram_route_chat_id");
+      const useLeasing = !!lTok && !!lChat;
+      const botToken = useLeasing ? lTok : creds?.telegram_bot_token;
+      const chatId = useLeasing ? lChat : creds?.telegram_chat_id;
 
-      if (botToken && chatId) {
+      // Skip the alert for bookings made THROUGH the bot — the user already got
+      // an inline "✅ Showing agendado" confirmation in that same LeasingAgent
+      // thread, so a second "New Showing Booked!" would just be a duplicate.
+      if (botToken && chatId && effBookingSource !== "telegram_bot") {
         const tz = getTimezoneForCity(property?.city || null);
         const dateHuman = formatDateHuman(slot_date, tz);
         const timeHuman = formatTimeHuman(slot_time);
