@@ -4083,6 +4083,41 @@ export type Database = {
           },
         ]
       }
+      telegram_bot_sessions: {
+        Row: {
+          bot: string | null
+          chat_id: string
+          data: Json
+          organization_id: string | null
+          step: string
+          updated_at: string
+        }
+        Insert: {
+          bot?: string | null
+          chat_id: string
+          data?: Json
+          organization_id?: string | null
+          step?: string
+          updated_at?: string
+        }
+        Update: {
+          bot?: string | null
+          chat_id?: string
+          data?: Json
+          organization_id?: string | null
+          step?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_bot_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string | null
@@ -5214,6 +5249,13 @@ export type Database = {
         Returns: {
           leads_checked: number
           leads_updated: number
+        }[]
+      }
+      report_top_properties: {
+        Args: { p_limit?: number; p_org: string; p_since: string }
+        Returns: {
+          address: string
+          cnt: number
         }[]
       }
       reset_agent_daily_counters: { Args: never; Returns: undefined }
