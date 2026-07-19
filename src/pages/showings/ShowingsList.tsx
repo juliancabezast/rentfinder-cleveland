@@ -520,14 +520,16 @@ const ShowingsList: React.FC = () => {
               </Button>
             </>
           )}
-          <Button
-            size="sm"
-            onClick={() => setScheduleDialogOpen(true)}
-            className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white h-8"
-          >
-            <Plus className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Schedule Showing</span>
-          </Button>
+          {permissions.canScheduleShowing && (
+            <Button
+              size="sm"
+              onClick={() => setScheduleDialogOpen(true)}
+              className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white h-8"
+            >
+              <Plus className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Schedule Showing</span>
+            </Button>
+          )}
         </div>
       </div>
 

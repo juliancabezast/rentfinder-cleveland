@@ -395,6 +395,13 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
   const handleSubmit = async () => {
     if (!userRecord?.organization_id) return;
 
+    // Only editor-or-above can book: a leasing_agent's score/task/showing writes
+    // are RLS-denied (silently lost, or the booking hard-fails), so gate here too.
+    if (!["super_admin", "admin", "editor"].includes(userRecord.role)) {
+      toast.error("You don't have permission to schedule showings.");
+      return;
+    }
+
     if (!selectedLeadId) {
       toast.error("Please select a lead");
       return;
@@ -435,13 +442,51 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       const propertyTz = getTimezoneForCity(selectedProperty?.city);
       const scheduledAt = buildScheduledAt(dateStr, slotTime, propertyTz);
 
+      // Re-check the property is still bookable — it may have flipped to
+      // rented/coming_soon/inactive since the dialog opened (the public edge fn
+      // does this too; the admin dialog trusted its open-time snapshot).
+      {
+        const { data: prop } = await supabase
+          .from("properties")
+          .select("status")
+          .eq("id", selectedPropertyId)
+          .maybeSingle();
+        if (prop && prop.status !== "available") {
+          toast.error("That property is no longer available to book.");
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      // A showing longer than one 30-min slot spans multiple slot times. The
+      // single agent can't be in two places, so every spanned time must be free
+      // and gets blocked below — the exact-time unique index only guards the first.
+      const slotsSpanned = Math.max(1, Math.ceil(durationMinutes / 30));
+      const spannedTimes: string[] = [];
+      {
+        const [sH, sM] = slotTime.split(":").map(Number);
+        for (let i = 0; i < slotsSpanned; i++) {
+          const total = sH * 60 + sM + i * 30;
+          if (Math.floor(total / 60) >= 24) break;
+          spannedTimes.push(
+            `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}:00`
+          );
+        }
+      }
+      const conflictTime = spannedTimes.slice(1).find((t) => bookedTimes.has(t));
+      if (conflictTime) {
+        toast.error(`The agent is busy at ${formatTimeDisplay(conflictTime)} — pick a shorter duration or another time.`);
+        setSubmitting(false);
+        return;
+      }
+
       // Find (or materialize) the slot row for this property+date+time. Admins
       // book ANY half-hour, so when the public grid has no row we create one.
       let slotRowId: string;
       {
         const { data: existing } = await supabase
           .from("showing_available_slots")
-          .select("id, is_booked")
+          .select("id, is_booked, is_enabled")
           .eq("organization_id", userRecord.organization_id)
           .eq("property_id", selectedPropertyId)
           .eq("slot_date", dateStr)
@@ -450,6 +495,13 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         if (existing?.is_booked) {
           toast.error("That time was just taken. Please pick another.");
           await fetchAvailableSlots();
+          setSubmitting(false);
+          return;
+        }
+        if (existing && existing.is_enabled === false) {
+          // Don't silently reactivate a time the owner turned off (the edge fn
+          // gates on is_enabled too).
+          toast.error("That time is turned off for this property. Enable it in the calendar first, or pick another.");
           setSubmitting(false);
           return;
         }
@@ -525,62 +577,69 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         throw showingError;
       }
 
-      // Link slot to showing
-      await supabase
-        .from("showing_available_slots")
-        .update({ booked_showing_id: showingData.id })
-        .eq("id", slot.id);
+      // ── Post-commit slot bookkeeping. The showing row is ALREADY saved, so a
+      // failure here must NOT surface as "Failed to schedule" — log and move on.
+      try {
+        const bufferUpdate = {
+          is_booked: true,
+          booked_showing_id: showingData.id,
+          booked_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
 
-      // Block ALL properties at this time (single-agent model)
-      const bufferUpdate = {
-        is_booked: true,
-        booked_showing_id: showingData.id,
-        booked_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+        // Link the primary slot to the showing.
+        const { error: linkErr } = await supabase
+          .from("showing_available_slots")
+          .update({ booked_showing_id: showingData.id })
+          .eq("id", slot.id);
+        if (linkErr) console.error("Link slot → showing failed:", linkErr);
 
-      // Block same time slot on all other properties
-      await supabase
-        .from("showing_available_slots")
-        .update(bufferUpdate)
-        .eq("organization_id", userRecord.organization_id)
-        .eq("slot_date", dateStr)
-        .eq("slot_time", slotTime)
-        .eq("is_booked", false);
-
-      // Read buffer setting (default 0 = no buffer)
-      const bufferMinutes = Number(getSetting("buffer_minutes", 0));
-
-      if (bufferMinutes > 0) {
-        const [bH, bM] = slotTime.split(":").map(Number);
-
-        // Buffer AFTER on ALL properties
-        const bufferSlots = Math.ceil(bufferMinutes / 30);
-        for (let i = 1; i <= bufferSlots; i++) {
-          const afterTotal = bH * 60 + bM + (i * 30);
-          const afterTime = `${String(Math.floor(afterTotal / 60)).padStart(2, "0")}:${String(afterTotal % 60).padStart(2, "0")}:00`;
-          if (Math.floor(afterTotal / 60) >= 24) break;
-          await supabase
+        // Block every time this showing spans, across ALL properties (single agent).
+        for (const t of spannedTimes) {
+          const { error: blockErr } = await supabase
             .from("showing_available_slots")
             .update(bufferUpdate)
             .eq("organization_id", userRecord.organization_id)
             .eq("slot_date", dateStr)
-            .eq("slot_time", afterTime)
+            .eq("slot_time", t)
             .eq("is_booked", false);
+          if (blockErr) console.error(`Block spanned slot ${t} failed:`, blockErr);
         }
 
-        // Buffer BEFORE on ALL properties
-        const beforeTotal = bH * 60 + bM - 30;
-        if (beforeTotal >= 0) {
-          const beforeTime = `${String(Math.floor(beforeTotal / 60)).padStart(2, "0")}:${String(beforeTotal % 60).padStart(2, "0")}:00`;
-          await supabase
-            .from("showing_available_slots")
-            .update(bufferUpdate)
-            .eq("organization_id", userRecord.organization_id)
-            .eq("slot_date", dateStr)
-            .eq("slot_time", beforeTime)
-            .eq("is_booked", false);
+        // Optional buffer before the first / after the last spanned slot.
+        const bufferMinutes = Number(getSetting("buffer_minutes", 0));
+        if (bufferMinutes > 0) {
+          const [fH, fM] = spannedTimes[0].split(":").map(Number);
+          const [lH, lM] = spannedTimes[spannedTimes.length - 1].split(":").map(Number);
+          const bufferSlots = Math.ceil(bufferMinutes / 30);
+
+          for (let i = 1; i <= bufferSlots; i++) {
+            const afterTotal = lH * 60 + lM + i * 30;
+            if (Math.floor(afterTotal / 60) >= 24) break;
+            const afterTime = `${String(Math.floor(afterTotal / 60)).padStart(2, "0")}:${String(afterTotal % 60).padStart(2, "0")}:00`;
+            await supabase
+              .from("showing_available_slots")
+              .update(bufferUpdate)
+              .eq("organization_id", userRecord.organization_id)
+              .eq("slot_date", dateStr)
+              .eq("slot_time", afterTime)
+              .eq("is_booked", false);
+          }
+
+          const beforeTotal = fH * 60 + fM - 30;
+          if (beforeTotal >= 0) {
+            const beforeTime = `${String(Math.floor(beforeTotal / 60)).padStart(2, "0")}:${String(beforeTotal % 60).padStart(2, "0")}:00`;
+            await supabase
+              .from("showing_available_slots")
+              .update(bufferUpdate)
+              .eq("organization_id", userRecord.organization_id)
+              .eq("slot_date", dateStr)
+              .eq("slot_time", beforeTime)
+              .eq("is_booked", false);
+          }
         }
+      } catch (bookkeepingErr) {
+        console.error("Slot bookkeeping failed (showing still created):", bookkeepingErr);
       }
 
       // ── SIDE EFFECTS (showing is already saved; don't fail the booking) ──
