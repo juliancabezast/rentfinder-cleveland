@@ -273,21 +273,28 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     if (!userRecord?.organization_id) return;
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("leads")
-      .select("id, full_name, phone, email, status, lead_score, source, created_at")
-      .eq("organization_id", userRecord.organization_id)
-      .neq("status", "lost")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Failed to fetch leads for analysis:", error.message);
-      setLoading(false);
-      return;
+    // Paginate — a 1000-row cap analyzed only the newest ~5% of leads.
+    const data: any[] = [];
+    const PAGE = 1000;
+    for (let from = 0; from < 100000; from += PAGE) {
+      const { data: page, error } = await supabase
+        .from("leads")
+        .select("id, full_name, phone, email, status, lead_score, source, created_at")
+        .eq("organization_id", userRecord.organization_id)
+        .neq("status", "lost")
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error("Failed to fetch leads for analysis:", error.message);
+        setLoading(false);
+        return;
+      }
+      data.push(...(page || []));
+      if (!page || page.length < PAGE) break;
     }
 
     const suspects: SuspectLead[] = [];
-    for (const lead of data || []) {
+    for (const lead of data) {
       const alerts = analyzeLead(lead);
       if (alerts.length > 0) {
         suspects.push({ ...lead, alerts });

@@ -401,9 +401,17 @@ const LeadsList: React.FC = () => {
 
       // Search filter
       if (searchQuery) {
-        query = query.or(
-          `full_name.ilike.%${searchQuery}%,first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`
-        );
+        // Search name + email + phone (sanitized against PostgREST .or() grammar).
+        const q = searchQuery.replace(/[,()%*]/g, " ").trim();
+        const digits = searchQuery.replace(/\D/g, "");
+        const ors = [
+          `full_name.ilike.%${q}%`,
+          `first_name.ilike.%${q}%`,
+          `last_name.ilike.%${q}%`,
+          `email.ilike.%${q}%`,
+        ];
+        if (digits.length >= 3) ors.push(`phone.ilike.%${digits}%`);
+        query = query.or(ors.join(","));
       }
 
       // Apply sorting
@@ -587,9 +595,17 @@ const LeadsList: React.FC = () => {
         query = query.in("id", [...leadsWithShowings]);
       }
       if (searchQuery) {
-        query = query.or(
-          `full_name.ilike.%${searchQuery}%,first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`
-        );
+        // Search name + email + phone (sanitized against PostgREST .or() grammar).
+        const q = searchQuery.replace(/[,()%*]/g, " ").trim();
+        const digits = searchQuery.replace(/\D/g, "");
+        const ors = [
+          `full_name.ilike.%${q}%`,
+          `first_name.ilike.%${q}%`,
+          `last_name.ilike.%${q}%`,
+          `email.ilike.%${q}%`,
+        ];
+        if (digits.length >= 3) ors.push(`phone.ilike.%${digits}%`);
+        query = query.or(ors.join(","));
       }
 
       query = query.order(sortField, { ascending: sortDirection === "asc" });

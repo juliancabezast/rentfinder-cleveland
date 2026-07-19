@@ -294,16 +294,25 @@ export const CampaignCreateWizard = ({ onComplete, onCancel }: CampaignCreateWiz
         // Pull every lead in the org. We filter dead-ends client-side because
         // PostgREST's `NOT IN` follows SQL semantics and silently drops rows
         // with NULL status — which most leads created via webhook/scrape have.
-        const { data, error } = await supabase
-          .from("leads")
-          .select("id, full_name, email, phone, status")
-          .eq("organization_id", orgId)
-          .order("created_at", { ascending: false })
-          .limit(5000);
-        if (error) {
-          console.error("All-leads fetch failed:", error);
+        // Paginate the whole org — a .limit(5000) silently under-sent to the
+        // oldest ~13.8k leads on an 18.8k-lead org.
+        const allRows: LeadRow[] = [];
+        const PAGE = 1000;
+        for (let from = 0; from < 100000; from += PAGE) {
+          const { data, error } = await supabase
+            .from("leads")
+            .select("id, full_name, email, phone, status")
+            .eq("organization_id", orgId)
+            .order("id", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) {
+            console.error("All-leads fetch failed:", error);
+            break;
+          }
+          allRows.push(...((data as LeadRow[] | null) || []));
+          if (!data || data.length < PAGE) break;
         }
-        merged = ((data as LeadRow[] | null) || []).filter(
+        merged = allRows.filter(
           (l) => l.status !== "lost" && l.status !== "converted",
         );
       } else if (propertyId) {

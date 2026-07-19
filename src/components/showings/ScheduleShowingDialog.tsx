@@ -334,7 +334,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         .insert({
           organization_id: userRecord.organization_id,
           full_name: newLeadName.trim() || null,
-          phone: newLeadPhone.trim() || "N/A",
+          phone: newLeadPhone.trim() || null,
           email: newLeadEmail.trim() || null,
           source: "manual",
           status: "new",

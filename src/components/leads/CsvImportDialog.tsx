@@ -520,15 +520,29 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       const { validLeads, missingContact } = buildLeadsFromFile(autoMapping, data, headers);
       const hasProperty = !!detectedProperty;
 
-      // Fetch existing leads for dedup
-      const { data: existingLeads } = await supabase
-        .from("leads")
-        .select("id, phone, email")
-        .eq("organization_id", userRecord.organization_id);
+      // Fetch existing leads for dedup — paginate past PostgREST's 1000-row cap,
+      // else dedup only sees the first 1000 of ~18.8k leads and re-imports the
+      // rest as brand-new duplicates on every import.
+      const existingLeads: { id: string; phone: string | null; email: string | null }[] = [];
+      const DEDUP_PAGE = 1000;
+      for (let from = 0; from < 100000; from += DEDUP_PAGE) {
+        const { data, error } = await supabase
+          .from("leads")
+          .select("id, phone, email")
+          .eq("organization_id", userRecord.organization_id)
+          .order("id", { ascending: true })
+          .range(from, from + DEDUP_PAGE - 1);
+        if (error) {
+          console.error("Failed to fetch existing leads for dedup:", error.message);
+          break;
+        }
+        existingLeads.push(...(data || []));
+        if (!data || data.length < DEDUP_PAGE) break;
+      }
 
       const existingPhoneMap = new Map<string, string>();
       const existingEmailMap = new Map<string, string>();
-      (existingLeads || []).forEach((l) => {
+      existingLeads.forEach((l) => {
         if (l.phone) existingPhoneMap.set(normalizePhone(l.phone), l.id);
         if (l.email) existingEmailMap.set(l.email.toLowerCase().trim(), l.id);
       });

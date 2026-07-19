@@ -88,22 +88,29 @@ export const StaleTab: React.FC<StaleTabProps> = ({ refreshKey, onCountChange })
 
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabase
-      .from("leads")
-      .select(
-        "id, full_name, phone, email, status, lead_score, last_contact_at, updated_at, created_at, lead_property_interests(last_interest_at, properties(address))"
-      )
-      .eq("organization_id", userRecord.organization_id)
-      .in("status", ACTIVE_STATUSES)
-      .or(
-        `last_contact_at.is.null,last_contact_at.lt.${fourteenDaysAgo}`
-      )
-      .order("last_contact_at", { ascending: true, nullsFirst: true });
-
-    if (error) {
-      console.error("Failed to fetch stale leads:", error.message);
-      setLoading(false);
-      return;
+    // Paginate — a 1000-row cap showed/counted only the "most stale" ~5%.
+    // Secondary sort by id keeps page boundaries deterministic.
+    const data: any[] = [];
+    const PAGE = 1000;
+    for (let from = 0; from < 100000; from += PAGE) {
+      const { data: page, error } = await supabase
+        .from("leads")
+        .select(
+          "id, full_name, phone, email, status, lead_score, last_contact_at, updated_at, created_at, lead_property_interests(last_interest_at, properties(address))"
+        )
+        .eq("organization_id", userRecord.organization_id)
+        .in("status", ACTIVE_STATUSES)
+        .or(`last_contact_at.is.null,last_contact_at.lt.${fourteenDaysAgo}`)
+        .order("last_contact_at", { ascending: true, nullsFirst: true })
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error("Failed to fetch stale leads:", error.message);
+        setLoading(false);
+        return;
+      }
+      data.push(...(page || []));
+      if (!page || page.length < PAGE) break;
     }
 
     const stale: StaleLead[] = (data || [])
