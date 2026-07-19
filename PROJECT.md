@@ -1,5 +1,86 @@
 # PROJECT COMPLETE — Rent Finder Cleveland
-## Version 16 | June 29, 2026
+## Version 17 | July 19, 2026
+
+---
+
+# MD17 — Renter Marketplace Pivot + Lead-Gen Engine + Telegram Ops (2026-07-19)
+
+> This snapshot supersedes MD16 (June 29, 2026). MD16 recorded the single-domain reorientation and the security "saneamiento" plan. The three weeks since have been the most productive stretch of the project: the product **pivoted from a SaaS-first surface to a renter-facing marketplace**, a **Hemlane-fed lead-generation engine** was built and loaded (4k → ~18.8k leads), the **showings + Telegram operations layer** was rebuilt into an interactive control surface, and the saneamiento audit findings were shipped. The full MD16 reference (agents, schema, roles, compliance) is retained below unchanged; this section records what moved.
+
+## A. Headline — what changed since MD16
+
+1. **Renter marketplace is now the front door.** `/` is a renter marketplace homepage (hero, faceted filter bar, Section-8/voucher-first CTAs); the SaaS/admin app moved to `/saas` + role-gated routes. New public renter surfaces: property detail (`/property/:id` and `/p/property/:id`), marketplace application flow (`ApplicationDialog` → `submit-application`), public showing booking with deep-link prefill + attribution.
+2. **SEO/GEO content hub.** 342 static renter articles + 3 pillars under `public/` targeting "Houses For Rent in Cleveland OH", Fair-Housing-gated, plus a B2B repositioning (Housing Partners / Corporate Leasing) and `business_leads` capture. Sitemap index + `llms.txt` + AI-crawler `robots.txt`.
+3. **Hemlane lead-gen engine.** Public Hemlane GraphQL sync (73 units + ~954 re-hosted photos), a daily `ownerListings` re-sync cron, a rebuilt **Esther** inbound-email parser (persist-first ingestion, shell leads, reply loop, reconciliation cron, hardened dedup/merges), and a **bulk load of 14,768 Hemlane leads** (from 60 xlsx / 23,651 rows → ~15,291 unique) with a **city-tag** taxonomy (Cleveland 8,618, Detroit 3,597, STL 937, Elyria 778, Milwaukee 531, East Cleveland 159, Akron 18).
+4. **Multi-property TAG model.** `interested_property_id` (single-column axis) was **dropped**; leads now carry multiple `lead_property_interests` tags with recency. Every property-touch surface (parser, booking, heat map, tracker) reads tags.
+5. **Showings rebuilt.** Single-flow availability calendar (calendar "+", drag-range to open times, Monday-start week, measured now-line), a **single-agent time-blocking booking model** (a booked time blocks that slot across all properties — the double-booking guard is load-bearing), and `coming_soon` = **VISIBLE but NOT bookable** (bookable = `['available']` only), enforced in RLS + 4 edge fns + frontend guards.
+6. **Telegram operations layer (2–3 bots).** RFC "report" bot + Showings "hot leads" bot + interactive LeasingAgent scheduling bot. Interactive "agendar showing" state machine, hot-lead call-now cards, showing-report flow (attendance + notes + photo + AI enrich + PDF), daily/hourly digests, and — as of this snapshot — **automated 🆕 new-lead + 🔥 hot-lead alerts** for Hemlane paired-email leads (see §F).
+7. **Mass-email campaign engine.** Compliant batched pipeline (`campaigns` → `email_events` queued rows → `process-email-queue` cron → Resend, auto-bounce-suppression, per-recipient unsubscribe HMAC + prefill token). Ran weekend blasts (2,310 CLE + 777 MKE; later an 11,032-recipient Cleveland/EC/Akron blast at ~3,000/hr, 91% delivered, 0 spam complaints).
+8. **Saneamiento shipped.** The MD16 audit findings + two further sweeps (23-issue + 18-finding) were fixed and deployed: profiles/users privilege-escalation closed at policy level, edge-auth gates, TCPA/CAN-SPAM, fail-closed compliance. RLS consolidated for performance.
+
+## B. Live statistics — MD16 → MD17 delta
+
+| Metric | MD16 (Jun 29) | MD17 (Jul 19) | Note |
+|--------|---------------|---------------|------|
+| Organizations | 1 | 1 | Single tenant ("Smart Leasing AI", `rent-finder-cleveland`) |
+| **Leads** | ~4,066 | **18,836** | +14,768 from the Hemlane bulk load, city-tagged |
+| Properties (total / available) | — | **107 / 37** | multi-unit; `coming_soon` visible-not-bookable |
+| **Tables** | 67 | **71** | +business_leads, lead_reminders, telegram sessions, inbound_emails, etc. |
+| **DB functions** | 77 | **92** | scoring, tagging, timezone, reconcile helpers |
+| **Triggers** (rows) | 33 | **~42** | incl. `lead_became_priority`, tag helpers |
+| **RLS policies** | 291 → 254 | **163** | perf consolidation (fewer, combined policies) |
+| **Edge functions** (deployed) | ~36 | **67** | repo↔prod parity maintained |
+| Build | Vite, 0 errors | Vite, 0 errors | `npx vite build` is the TS check |
+
+## C. Major workstreams (Jul 1–19)
+
+**Renter marketplace & homepage** — `daefa7b` marketplace homepage; `216ea3b` full overhaul (3.3MB hero video, sticky faceted filter bar, coming-soon ribbon, voucher CTAs, self-hosted brand assets); `b36b426` mobile-first (bottom-sheet filters); `4c43d40`/`4da26f9` City filter (Cleveland default) + evenly-distributed filter pills; public property detail page; `submit-application` marketplace flow + `intake_preferences`.
+
+**SEO / content / B2B** — `eb8fff4` 342-article content hub + GEO/SEO; `4a5f9fc` PM→"local rental team" repositioning + 85 B2B articles; `2721205` llms.txt Housing Partners/Corporate Leasing; `business_leads` + `submit-business-lead` + `/business`.
+
+**Hemlane pipeline & Esther** — `b4b343d` multi-host photo-import edge fn; `5623eb8` daily ownerListings re-sync; `240a423` rent-benchmark anchored on real Hemlane medians; `477623a` + `0079ccc` Esther tier-b overhaul (persist-first `inbound_emails`, shell leads, reply loop `reconcile-inbound-emails` + cron); bulk load of 14,768 leads + city tagging.
+
+**Lead tag migration** — `ca98078` multi-property tag model; `ea07723` `interested_property_id` GONE (verified live, bundle-hash match).
+
+**Showings & calendar** — `8d60c6d` single-flow availability calendar + status gate; `d73d2a6` drag-range open; `0c86c9f` Monday-start + booked-cell names; `c77e42e`/`c295711` open-cell city checkboxes reflect real state; `421519f` admin books any half-hour/any date; `coming_soon` = visible-not-bookable across RLS + edge fns.
+
+**Telegram ops** — `dbf6096` more reports on 2 bots + live Google Sheets sync; `9754a25` interactive showing-scheduler bot + hot-lead call cards; `4a6605d` leasing-report PDF + email confirmation + tappable phone; `56003a5` LeasingAgent-bot alerts + custom day/time; `4092418` Hot Leads actions + next-day reminders + agenda quick-SMS + showing reports; `4f24a27` showing-report picker/photo fixes; `33a0cca` **new-lead + hot-lead alerts fire for Hemlane paired-email leads** (this snapshot).
+
+**Dashboards & analytics** — `7419618` real-data heat map overhaul + communications hub; `8850cd5` honest categorized stat chips + live task queue + bounce suppression; `88c7c4a` uncapped 1000-row widgets + multi-date agenda banner.
+
+**Leasing Tracker** — `612f9eb` public owner-facing tracker (grouped buildings, open slots, de-identified agent comments, ES/EN); `a6210f1`/`d94de78` PII redaction + recent-interest metric + open-agenda banner; `leasing-tracker-lookup` comment date now `scheduled_at` (not `completed_at`).
+
+**Booking funnel** — `973f288` removed conversion-killers (optional consent, deep-link prefill via `resolve-lead-token`, attribution, lead-time date filter); `showing_lead_time_minutes` 1440→180; Resend open/click tracking on; confirmation-email 401 outage fixed (internal edge→edge must use raw fetch with service key in both `Authorization` and `apikey`).
+
+**Security** — `29696af` self role-escalation closed at policy WITH CHECK on users/profiles; `efe8cd4` publish-gate findings (definer view + RLS id joins); RLS perf consolidation (254→163).
+
+## D. Edge functions (67 deployed — repo↔prod parity)
+
+Notable additions since MD16: `agent-conversion-predictor`, `agent-doorloop-pull`/`-push`, `agent-insight-generator`, `agent-notification-dispatcher`, `agent-report-generator`, `agent-scoring`, `agent-sheets-backup`, `batch-predictions`, `capture-lead`, `check-coming-soon`, `generate-investor-report`(+`-all`), `hemlane-photo-import`, `hemlane-sync-listings`, `leasing-report-pdf`, `leasing-tracker-lookup`, `manage-org-credentials`, `persona-webhook`, `reconcile-inbound-emails`, `resolve-lead-token`, `submit-application`, `submit-business-lead`, `submit-demo-request`, `submit-inquiry`, `telegram-notify`, `telegram-webhook`, `track-property-view`, `trigger-referral-campaign`.
+
+The Telegram alert stack: **`telegram-notify`** (single service-role choke point; formats `new_lead`/`hot_lead`/`lead_reminder`/`hemlane_digest`/`showing_scheduled`; force-routes all per-lead events to the Showings bot; phone-gates lead cards) and **`telegram-webhook`** (interactive scheduling + showing-report state machine, per-bot session keys, owner allowlist).
+
+## E. Compliance & data notes
+
+- **Fair Housing / TCPA** unchanged in principle: scoring never uses protected classes; inbound listing inquiries log a `transactional_reply` consent basis (NOT marketing consent); `joseph_compliance_check()` fails closed.
+- **City-tag taxonomy** replaces ZIP for audience building (user directive: "por ciudad, no por zip"; Elyria is its own city). Campaign audiences are city-scoped.
+- **Featured-campaign rules** (memory): NEVER feature 13671 Euclid / Yorick / Whitcomb; ALWAYS pin Imperial Unit C, Westropp, Mount Auburn, Jeffries, 1361 E 45th, Dunlap. Campaign phone (440) 444-4737.
+
+## F. This snapshot's change — Telegram new-lead/hot-lead fix (`33a0cca`)
+
+New Hemlane leads weren't reaching Telegram. A 3-agent diagnostic found two causes, both fixed + deployed:
+- **Parser (Esther):** Hemlane sends each inquiry as two emails (name-only shell, then the contact half), so the actionable lead lands as an UPDATE (`isNew=false`) and the 🆕 alert was skipped. `upsertLead` now returns `gainedPhone` + `finalName/Phone/Property`; a `notifyNewLead` helper fires on `isNew || gainedPhone` (and for extra leads).
+- **Dispatcher (Nehemiah):** `handleNotificationDispatch` was a throwing stub, so `priority_lead` tasks (enqueued by the `lead_became_priority` trigger) never sent a 🔥 card. It now fetches the lead + top tagged property and posts `telegram-notify event:hot_lead` to the Showings bot (skips gracefully without a phone).
+- **Behavior:** 🆕 for every new lead + 🔥 additionally for priority ones, both to the Showings bot. The 4 missed leads (Tylesha/Charlene 🔥, Richard/Gabrielle 🆕) were backfilled live.
+
+## G. Known open items / standing flags
+
+- **12,193 pending `welcome_sequence` tasks** (backlog from the Hemlane bulk load) — do NOT invoke the dispatcher manually (would blast welcome emails); confirm whether the sequence should run, pause, or be purged.
+- **494 old `priority_lead` notify tasks are `failed`** (won't retry) — going-forward is fixed; historical backfill is optional.
+- **`new_lead` 🆕 is Hemlane-only** — website/campaign new leads don't push a 🆕 card (hot_lead 🔥 IS source-agnostic via the dispatcher).
+- **Frontend conversion-killers** partially open (deep-link CTA, prefill) pending further rebuild iterations.
+- **Legal text** referencing legacy brands still flagged for separate review.
+- **Edge-function duplication** (~45%, no `_shared/`) and Deno std version drift remain.
 
 ---
 
