@@ -20,7 +20,9 @@ function predictConversion(lead: Record<string, unknown>, stats: {
   let probability = 0.15; // Base 15%
   const factors: Array<{ factor: string; impact: string; weight: number }> = [];
 
-  // Lead score impact
+  // Lead score impact — milestone domain {0,10,50,80,100} (2026-07-19):
+  // asistió/aplicó (>=80) → +0.25, agendó (50) → neutral, normal/intentó
+  // (<30) → -0.1. The tiering below maps cleanly onto the new domain.
   const score = (lead.lead_score as number) || 0;
   if (score >= 80) {
     probability += 0.25;

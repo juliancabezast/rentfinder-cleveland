@@ -8,6 +8,16 @@ interface ScoreDisplayProps {
   showPriorityBadge?: boolean;
 }
 
+// Milestone model (2026-07-19): score domain is {0,10,50,80,100} — a fact
+// ladder (normal → intentó → agendó → asistió → aplicó), not a 0-100 gauge.
+export const getMilestoneLabel = (score: number): string | null => {
+  if (score >= 100) return "Aplicó";
+  if (score >= 80) return "Asistió";
+  if (score >= 50) return "Agendó";
+  if (score >= 10) return "Intentó";
+  return null;
+};
+
 // Continuous HSL gradient: 40 = red (0°), 70 = yellow (45°), 100 = green (142°)
 const getScoreHue = (score: number): number => {
   const clamped = Math.max(0, Math.min(100, score));
@@ -29,7 +39,9 @@ export const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   size = "md",
   showPriorityBadge = true,
 }) => {
-  const isPriority = score >= 85;
+  // Hot = milestone agendó+ (score >= 50) under the milestone model
+  const isPriority = score >= 50;
+  const milestoneLabel = getMilestoneLabel(score);
 
   const sizeClasses = {
     sm: "text-xs font-semibold min-w-[2.25rem] h-9 px-2",
@@ -52,7 +64,7 @@ export const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
       </div>
       {showPriorityBadge && isPriority && (
         <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">
-          Priority
+          {milestoneLabel || "Priority"}
         </Badge>
       )}
     </div>

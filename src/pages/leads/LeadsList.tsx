@@ -978,7 +978,7 @@ const LeadsList: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <ScoreDisplay
-                          score={lead.lead_score || 50}
+                          score={lead.lead_score ?? 0}
                           size="sm"
                           showPriorityBadge={false}
                         />

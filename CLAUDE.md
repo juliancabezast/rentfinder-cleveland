@@ -109,7 +109,7 @@ Leads can be taken under manual control, pausing all AI automation. Requires man
 - `organization_settings` — Per-org config (key/value with category)
 - `leads` — Core records with scoring, status flow, human control flags
 - `agent_tasks` — Scheduled AI actions (columns: `agent_type`, `action_type`, `status`)
-- `lead_score_history` — Explainable scoring audit trail (enforcement trigger `prevent_direct_lead_score_update` is currently DISABLED; go through `log_score_change` / recalculate edge fn by convention)
+- `lead_score_history` — Explainable scoring audit trail. Since 2026-07-19 the ONLY legitimate writer is the DB **milestone engine** (`triggered_by='milestone_engine'`); `log_score_change` is a neutralized no-op (ignores its delta, just recomputes)
 - `consent_log` — TCPA compliance evidence
 - `email_events` — Email queue + delivery tracking (details JSONB with `status: "queued"/"sent"/"failed"`)
 - `cost_records` — Per-interaction cost attribution
@@ -143,7 +143,7 @@ const todayStart = new Date(clevelandNow.getTime() + offset).toISOString(); // U
 - Every query MUST filter by `organization_id` passed in the request body
 
 ## Critical Rules
-- Scoring changes should go through `log_score_change` / the recalculate edge fn so `lead_score_history` stays accurate — but note the audit-trail trigger `prevent_direct_lead_score_update` is currently DISABLED (enforcement is OFF; this is convention, not hard-enforced)
+- **Milestone scoring (2026-07-19)**: `lead_score` is a pure function of facts — domain **{0,10,50,80,100}** (0 normal · 10 intentó · 50 agendó/confirmed · 80 asistió · 100 aplicó). NEVER write `lead_score`/`is_priority` from app code: the DB milestone engine (`compute_milestone_score`/`apply_milestone_score` + triggers on `showings`/`leads.status`) owns them. `log_score_change` is a no-op (delta ignored); `recalculate_lead_scores(p_org)` is the org-scoped recompute. Canonical hot predicate = **`is_priority`** (= score≥50 AND not lost). The ladder is duplicated in `compute_milestone_score`, the LATERAL in `recalculate_lead_scores`, `ScoreDisplay.getMilestoneLabel`, and ScoringTab `MILESTONES` — change all together. Hot-lead Telegram triggers (`trg_notify_lead_hot`, `trg_sprint2_priority_notify`) are DISABLED by owner decision.
 - Edge functions use Deno imports (`https://deno.land/std@0.168.0/`, `https://esm.sh/`)
 - For cron-triggered agents, DB settings `app.settings.supabase_url` and `app.settings.service_role_key` must be set
 - Emails: sender domain should come from org's `sender_domain` setting, not hardcoded

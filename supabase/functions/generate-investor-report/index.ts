@@ -149,7 +149,7 @@ function generateReportHTML(
       <div style="background: #fef3c7; border-radius: 8px; padding: 16px;">
         <p style="margin: 0; color: #92400e; font-size: 14px;">
           📊 <strong>Additional Stats:</strong> ${metrics.voucher_leads} voucher leads ·
-          ${metrics.no_shows} no-shows · Avg. lead score: ${metrics.avg_lead_score}
+          ${metrics.no_shows} no-shows · Avg. milestone score: ${metrics.avg_lead_score}
         </p>
       </div>
     </div>
@@ -202,7 +202,7 @@ function generateNarrativeSummary(
     narrative += `There were ${metrics.no_shows} no-shows. `;
   }
 
-  narrative += `The average lead score was ${metrics.avg_lead_score}.\n\n`;
+  narrative += `The average milestone score was ${metrics.avg_lead_score}.\n\n`;
 
   if (insights.length > 0) {
     narrative += "Key Insights:\n";

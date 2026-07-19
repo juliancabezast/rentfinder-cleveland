@@ -333,12 +333,12 @@ serve(async (req) => {
               .maybeSingle();
 
             if (lead && lead.status !== "converted") {
-              // Update lead to converted with score 100
+              // Update lead to converted (milestone engine scores 100 on this
+              // status change)
               await supabase
                 .from("leads")
                 .update({
                   status: "converted",
-                  lead_score: 100,
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", lead.id);

@@ -305,7 +305,7 @@ serve(async (req: Request) => {
     // ── Load the current lead so we merge (never blank out) existing data ───
     const { data: lead } = await supabase
       .from("leads")
-      .select("id, organization_id, full_name, email, has_voucher, housing_authority, move_in_date, budget_min, budget_max, intake_preferences, lead_score, status")
+      .select("id, organization_id, full_name, email, has_voucher, housing_authority, move_in_date, budget_min, budget_max, intake_preferences, status")
       .eq("id", leadId)
       .eq("organization_id", orgId)
       .maybeSingle();
@@ -344,18 +344,13 @@ serve(async (req: Request) => {
     }
 
     // ── FINAL step: promote to Applicant + log consent + pinned note ────────
-    let previousScore = lead.lead_score ?? 40;
     if (isFinal) {
       nextPrefs.fee_acknowledged = true;
       update.intake_preferences = nextPrefs;
+      // Scoring/priority handled by the DB milestone engine on this status
+      // change (aplicó = 100 + is_priority).
       update.status = "in_application";
       update.stage = "lead";
-      update.is_priority = true;
-      update.priority_reason = "Started online application";
-
-      // Modest score bump with audit row (matches app scoring convention)
-      const newScore = Math.min(previousScore + 25, 100);
-      update.lead_score = newScore;
 
       // Optional SMS/TCPA consent (NOT required to apply)
       const consent = body.consent;
@@ -370,21 +365,6 @@ serve(async (req: Request) => {
       if (upErr) {
         console.error("final update error:", upErr);
         return json({ error: "Could not submit your application. Please try again." }, 500);
-      }
-
-      // Score audit trail
-      if (newScore !== previousScore) {
-        await supabase.from("lead_score_history").insert({
-          lead_id: leadId,
-          organization_id: orgId,
-          previous_score: previousScore,
-          new_score: newScore,
-          change_amount: newScore - previousScore,
-          reason_code: "application_started",
-          reason_text: "Lead started an online rental application — Hot Lead boost",
-          triggered_by: "engagement",
-          changed_by_agent: "submit-application",
-        });
       }
 
       // ── Consent log: $50 fee + Privacy/Terms acknowledgment (REQUIRED) ────
@@ -450,14 +430,17 @@ serve(async (req: Request) => {
       });
 
       // ── Best-effort Telegram alert to the team (never fails the request) ──
+      // Per-lead call-now card → the Funnel (lead-management) bot; fall back to
+      // the general bot only when the funnel pair is incomplete (atomic pair).
       try {
         const { data: creds } = await supabase
           .from("organization_credentials")
-          .select("telegram_bot_token, telegram_chat_id")
+          .select("telegram_bot_token, telegram_chat_id, telegram_funnel_bot_token, telegram_funnel_chat_id")
           .eq("organization_id", orgId)
           .maybeSingle();
-        const botToken = creds?.telegram_bot_token;
-        const chatId = creds?.telegram_chat_id;
+        const useFunnel = !!creds?.telegram_funnel_bot_token && !!creds?.telegram_funnel_chat_id;
+        const botToken = useFunnel ? creds?.telegram_funnel_bot_token : creds?.telegram_bot_token;
+        const chatId = useFunnel ? creds?.telegram_funnel_chat_id : creds?.telegram_chat_id;
         if (botToken && chatId) {
           let propAddr = "";
           // Operational: the application's own property (never the lead's interest tags)

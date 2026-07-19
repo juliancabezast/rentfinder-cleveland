@@ -81,7 +81,7 @@ serve(async (req) => {
     if (benchmarks && benchmarks.length > 0) {
       totalConverted = benchmarks.length;
       avgScore = Math.round(
-        benchmarks.reduce((sum, l) => sum + (l.lead_score || 50), 0) / benchmarks.length
+        benchmarks.reduce((sum, l) => sum + (l.lead_score ?? 0), 0) / benchmarks.length
       );
       avgDays = Math.round(
         benchmarks.reduce((sum, l) => {

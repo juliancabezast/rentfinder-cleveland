@@ -1137,9 +1137,9 @@ async function rfcPeriodReport(ctx: Ctx, period: "today" | "week" | "month") {
     // Source breakdown grouped in the DB (raw selects cap at 1000 rows silently).
     ctx.supabase.rpc("report_source_breakdown", { p_org: ctx.organizationId, p_since: curStartUtc, p_until: curEndUtc, p_limit: 4 }),
     ctx.supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
-      .eq("is_demo", false).gte("lead_score", 85).gte("created_at", curStartUtc).lt("created_at", curEndUtc),
+      .eq("is_demo", false).gte("lead_score", 50).gte("created_at", curStartUtc).lt("created_at", curEndUtc),
     ctx.supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
-      .eq("is_demo", false).gte("lead_score", 85).gte("created_at", prevStartUtc).lt("created_at", prevEndUtc),
+      .eq("is_demo", false).gte("lead_score", 50).gte("created_at", prevStartUtc).lt("created_at", prevEndUtc),
     // Counts queue-drained sends too (event_type='sent' alone misses ~99%).
     ctx.supabase.rpc("report_emails_sent", { p_org: ctx.organizationId, p_since: curStartUtc, p_until: curEndUtc }),
     ctx.supabase.rpc("report_emails_sent", { p_org: ctx.organizationId, p_since: prevStartUtc, p_until: prevEndUtc }),
@@ -1182,7 +1182,7 @@ async function rfcPeriodReport(ctx: Ctx, period: "today" | "week" | "month") {
     `<b>${title}</b> <i>(${note})</i>`,
     ``,
     `👥 <b>${cur.l} leads</b> (${rfcDelta(cur.l, prev.l)})${srcLine ? ` — ${srcLine}` : ""}`,
-    `🔥 ${hotRes.count || 0} hot 85+ (${rfcDelta(hotRes.count || 0, hotPrevRes.count || 0)})`,
+    `🔥 ${hotRes.count || 0} hot (${rfcDelta(hotRes.count || 0, hotPrevRes.count || 0)})`,
     `🏠 ${cur.s} showings (${rfcDelta(cur.s, prev.s)})`,
     `✉️ ${curEmails} emails (${rfcDelta(curEmails, prevEmails)}) · 💬 ${smsRes.count || 0} SMS (${rfcDelta(smsRes.count || 0, smsPrevRes.count || 0)})`,
     `🎉 ${convRes.count || 0} convertidos (${rfcDelta(convRes.count || 0, convPrevRes.count || 0)})`,
@@ -1201,7 +1201,7 @@ async function rfcFunnelReport(ctx: Ctx) {
     ctx.supabase.from("leads")
       .select("id, full_name, first_name, last_name, phone, lead_score, source")
       .eq("organization_id", ctx.organizationId).eq("is_demo", false)
-      .gte("lead_score", 85).not("status", "in", "(lost,converted)")
+      .gte("lead_score", 50).not("status", "in", "(lost,converted)")
       .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`)
       .gte("created_at", sevenDaysAgoIso)
       .not("phone", "is", null)

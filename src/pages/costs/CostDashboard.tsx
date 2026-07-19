@@ -346,7 +346,7 @@ const CostDashboard: React.FC = () => {
                         <p>Leads: <span className="font-medium">{d.totalLeads}</span></p>
                         <p>Showings: <span className="font-medium">{d.showingsScheduled} scheduled, {d.showingsCompleted} completed</span></p>
                         {d.avgLeadScore != null && (
-                          <p>Avg Score: <span className="font-medium">{Math.round(d.avgLeadScore)}</span></p>
+                          <p>Avg Milestone: <span className="font-medium">{Math.round(d.avgLeadScore)}</span></p>
                         )}
                         {d.daysOnMarket != null && (
                           <p>Days on Market: <span className="font-medium">{d.daysOnMarket}</span></p>

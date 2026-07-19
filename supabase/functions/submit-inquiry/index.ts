@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
           source: "website",
           source_detail: detail,
           status: "new",
-          lead_score: 50,
+          lead_score: 0, // milestone model: every lead starts NORMAL
           sms_consent: withConsent,
           sms_consent_at: withConsent ? now : null,
           call_consent: withConsent,

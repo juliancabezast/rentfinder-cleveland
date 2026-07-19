@@ -279,7 +279,7 @@ serve(async (req: Request) => {
         // Source breakdown grouped in the DB (raw selects cap at 1000 rows silently).
         supabase.rpc("report_source_breakdown", { p_org: organizationId, p_since: ydayStartUtc, p_until: todayStartUtc, p_limit: 4 }),
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-          .eq("is_demo", false).gte("lead_score", 85).gte("created_at", ydayStartUtc).lt("created_at", todayStartUtc),
+          .eq("is_demo", false).gte("lead_score", 50).gte("created_at", ydayStartUtc).lt("created_at", todayStartUtc),
         supabase.from("showings").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
           .eq("status", "completed").gte("scheduled_at", ydayStartUtc).lt("scheduled_at", todayStartUtc),
         supabase.from("showings").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
@@ -293,7 +293,7 @@ serve(async (req: Request) => {
         supabase.rpc("report_costs_summary", { p_org: organizationId, p_since: ydayStartUtc, p_until: todayStartUtc }),
         // Needs-attention, bounded to actionable (same scoping as the on-demand report).
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-          .eq("is_demo", false).gte("lead_score", 85).not("status", "in", "(lost,converted)")
+          .eq("is_demo", false).gte("lead_score", 50).not("status", "in", "(lost,converted)")
           .or(`last_contact_at.is.null,last_contact_at.lt.${new Date(now.getTime() - 86400000).toISOString()}`)
           .gte("created_at", new Date(now.getTime() - 7 * 86400000).toISOString()),
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
@@ -347,7 +347,7 @@ serve(async (req: Request) => {
         ``,
         `━━ <b>AYER</b> ━━`,
         `👥 <b>${ydayLeadCount} leads</b> (${deltaBadge(ydayLeadCount, dayBeforeCount)} vs anteayer)${ydaySourcesLine ? ` — ${ydaySourcesLine}` : ""}`,
-        `🔥 ${ydayHotRes.count || 0} hot (85+)`,
+        `🔥 ${ydayHotRes.count || 0} hot (milestone)`,
         `🏠 ${dayShowings(yday)} showings · ✅ ${ydayShowCompRes.count || 0} completados${(ydayShowNSRes.count || 0) > 0 ? ` · 👻 ${ydayShowNSRes.count} no-show` : ""}`,
         `✉️ ${Number(ydayEmailsRes.data) || 0} emails · 💬 ${ydaySmsRes.count || 0} SMS`,
         `${(ydayConvRes.count || 0) > 0 ? `🎉 ${ydayConvRes.count} convertidos\n` : ""}💰 Costo: <b>${money(costTotal)}</b>${costParts ? ` (${costParts})` : ""}`,
@@ -407,7 +407,7 @@ serve(async (req: Request) => {
         .eq("is_demo", false).gte("created_at", todayStartUtc),
       supabase.rpc("report_source_breakdown", { p_org: organizationId, p_since: todayStartUtc, p_until: tomorrowStartUtc, p_limit: 4 }),
       supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-        .eq("is_demo", false).gte("lead_score", 85).gte("created_at", todayStartUtc),
+        .eq("is_demo", false).gte("lead_score", 50).gte("created_at", todayStartUtc),
       // Hemlane digests processed today — the parser logs one row per digest email.
       supabase.from("system_logs").select("details").eq("organization_id", organizationId)
         .eq("event_type", "esther_digest_processed").gte("created_at", todayStartUtc).limit(100),
@@ -443,7 +443,7 @@ serve(async (req: Request) => {
       `🌙 <b>Digest del día — ${fmtDayEs(today)}</b>`,
       ``,
       `🆕 <b>Entraron hoy: ${todayLeadCount} leads</b>${todaySourcesLine ? ` — ${todaySourcesLine}` : ""}`,
-      `🔥 ${todayHotRes.count || 0} hot (85+)`,
+      `🔥 ${todayHotRes.count || 0} hot (milestone)`,
       ``,
       `📧 <b>Hemlane</b>: ${dCount} digest${dCount === 1 ? "" : "s"} procesado${dCount === 1 ? "" : "s"}` +
         (dCount ? ` — ${dCreated} nuevos · 🌱 ${dUpdated} nutridos${dSkipped ? ` · ${dSkipped} omitidos` : ""}` : ""),

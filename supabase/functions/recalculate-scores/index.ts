@@ -66,94 +66,18 @@ serve(async (req: Request) => {
       );
     }
 
-    // Fetch org scoring settings
-    const { data: settings } = await supabase
-      .from("organization_settings")
-      .select("key, value")
-      .eq("organization_id", organization_id)
-      .eq("category", "scoring");
-
-    const settingsMap: Record<string, unknown> = {};
-    for (const s of settings || []) {
-      settingsMap[s.key] = s.value;
-    }
-
-    const startingScore = Number(settingsMap.starting_score) || 50;
-    const rules = (settingsMap.custom_scoring_rules || {}) as Record<string, number>;
-
-    // Fetch all active leads
-    const { data: leads, error: leadErr } = await supabase
-      .from("leads")
-      .select("id, lead_score, status")
-      .eq("organization_id", organization_id)
-      .neq("status", "lost");
-
-    if (leadErr) throw leadErr;
-    if (!leads || leads.length === 0) {
-      return new Response(
-        JSON.stringify({ success: true, updated: 0, message: "No active leads" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // For each lead, recalculate score based on their score history
-    let updated = 0;
-    let failed = 0;
-
-    for (const lead of leads) {
-      try {
-        // Get all score history for this lead
-        const { data: history } = await supabase
-          .from("lead_score_history")
-          .select("change_amount, reason_code")
-          .eq("lead_id", lead.id)
-          .order("created_at", { ascending: true });
-
-        // Recalculate: start from starting_score and replay all changes
-        // applying custom rule overrides where applicable
-        let newScore = startingScore;
-
-        for (const entry of history || []) {
-          const code = entry.reason_code;
-          // Fair Housing: never re-apply source-of-income (voucher / Section 8)
-          // score changes when replaying history — these may exist from before
-          // voucher scoring was removed, but must not be re-introduced.
-          if (code && /voucher|section.?8/i.test(code)) continue;
-          // Idempotency: skip this function's OWN prior recalculation deltas.
-          // Each run logs a "recalculation" delta into lead_score_history; replaying
-          // those on top of the freshly-recomputed base would re-sum prior
-          // adjustments, drifting scores upward every run until clamped at 100.
-          if (code === "recalculation") continue;
-          // If there's a custom rule override for this reason code, use it
-          if (code && rules[code] !== undefined) {
-            newScore += rules[code];
-          } else {
-            // Otherwise use the original change amount
-            newScore += entry.change_amount;
-          }
-        }
-
-        // Clamp to 0-100
-        newScore = Math.max(0, Math.min(100, newScore));
-
-        // Only update if score changed
-        if (newScore !== lead.lead_score) {
-          const changeAmount = newScore - (lead.lead_score || startingScore);
-          await supabase.rpc("log_score_change", {
-            _lead_id: lead.id,
-            _change_amount: changeAmount,
-            _reason_code: "recalculation",
-            _reason_text: `Score recalculated from ${lead.lead_score} to ${newScore} (bulk recalculation)`,
-            _triggered_by: "system",
-            _changed_by_agent: "admin_recalculate",
-          });
-          updated++;
-        }
-      } catch (err) {
-        console.error(`Failed to recalculate lead ${lead.id}:`, err);
-        failed++;
-      }
-    }
+    // ── Milestone model (2026-07-19) ────────────────────────────────
+    // The legacy history-replay engine is retired. Scores are a pure
+    // function of verifiable facts (agendó 50 / asistió 80 / aplicó 100,
+    // intentó 10, normal 0), owned by the DB milestone engine. This
+    // endpoint now just triggers the set-based recompute-all RPC.
+    const { data: recompute, error: rpcErr } = await supabase.rpc("recalculate_lead_scores", {
+      p_org: organization_id, // org-scoped: never recompute other tenants
+    });
+    if (rpcErr) throw rpcErr;
+    const row = Array.isArray(recompute) ? recompute[0] : recompute;
+    const checked = row?.leads_checked ?? 0;
+    const updated = row?.leads_updated ?? 0;
 
     // Log the operation
     await supabase.from("system_logs").insert({
@@ -161,12 +85,12 @@ serve(async (req: Request) => {
       level: "info",
       category: "general",
       event_type: "score_recalculation",
-      message: `Bulk score recalculation: ${updated} updated, ${failed} failed out of ${leads.length} leads`,
-      details: { updated, failed, total: leads.length },
+      message: `Milestone recompute: ${updated} updated of ${checked} leads`,
+      details: { updated, total: checked, engine: "milestone_v1" },
     });
 
     return new Response(
-      JSON.stringify({ success: true, updated, failed, total: leads.length }),
+      JSON.stringify({ success: true, updated, failed: 0, total: checked }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

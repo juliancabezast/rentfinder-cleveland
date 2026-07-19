@@ -651,42 +651,18 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       const propertyAddr = selectedProperty ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ''}` : "Property";
       const lead = selectedLeadObj;
 
-      // Update lead status + boost score +30
+      // Advance lead status. Scoring is handled by the DB milestone engine
+      // (trg_milestone_showings fired by the showings INSERT → agendó = 50).
       try {
-        const { data: currentLead } = await supabase
-          .from("leads")
-          .select("lead_score")
-          .eq("id", selectedLeadId)
-          .single();
-
-        const previousScore = currentLead?.lead_score ?? 50;
-        const newScore = Math.min(previousScore + 30, 100);
-
         await supabase
           .from("leads")
           .update({
             status: "showing_scheduled",
-            lead_score: newScore,
-            is_priority: true,
-            priority_reason: "Showing requested (+30 pts)",
             updated_at: new Date().toISOString(),
           })
           .eq("id", selectedLeadId);
-
-        await supabase.from("lead_score_history").insert({
-          lead_id: selectedLeadId,
-          organization_id: userRecord.organization_id,
-          previous_score: previousScore,
-          new_score: newScore,
-          change_amount: 30,
-          reason_code: "showing_requested",
-          reason_text: "Showing scheduled — automatic Hot Lead boost",
-          triggered_by: "engagement",
-          related_showing_id: showingData.id,
-          changed_by_user_id: userRecord.id,
-        });
-      } catch (scoreErr) {
-        console.error("Lead score update failed (showing still created):", scoreErr);
+      } catch (statusErr) {
+        console.error("Lead status update failed (showing still created):", statusErr);
       }
 
       // Persist the admin's internal notes as a lead note (mirrors public booking flow)

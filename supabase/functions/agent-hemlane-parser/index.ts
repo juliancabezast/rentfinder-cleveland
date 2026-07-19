@@ -630,34 +630,8 @@ async function upsertLead(
 
     if (lead.message) {
       await saveLeadNote(supabase, organizationId, existing.id, lead.message);
-      const intents = detectAllIntents(lead.message);
-      for (const intent of intents) {
-        // Skip if same intent was already scored within 7 days — the old
-        // 30-min window let identical platform-prefill messages re-boost the
-        // same lead day after day (max 8x observed → score saturation, F16)
-        const { data: recentBoost } = await supabase
-          .from("lead_score_history")
-          .select("id")
-          .eq("lead_id", existing.id)
-          .eq("reason_code", intent.reason_code)
-          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .limit(1)
-          .maybeSingle();
-        if (recentBoost) {
-          console.log(`Esther: skipping ${intent.reason_code} boost for ${existing.id} — already applied recently`);
-          continue;
-        }
-
-        const { error: rpcErr } = await supabase.rpc("log_score_change", {
-          _lead_id: existing.id,
-          _change_amount: intent.boost,
-          _reason_code: intent.reason_code,
-          _reason_text: intent.reason,
-          _triggered_by: "engagement",
-          _changed_by_agent: "esther",
-        });
-        if (rpcErr) console.error(`Esther: score boost failed (${intent.reason_code}): ${rpcErr.message}`);
-      }
+      // Intent score boosts retired 2026-07-19 — milestone model: score = verifiable
+      // facts only (agendó/asistió/aplicó), owned by the DB milestone engine.
     }
 
     // Signal the shell→contact transition: a name-only (or contactless) lead
@@ -982,43 +956,9 @@ async function upsertLead(
     }
   }
 
-  // ── Helper: call log_score_change with proper error handling ────
-  const applyScoreBoost = async (amount: number, reasonCode: string, reasonText: string, triggeredBy: string) => {
-    const { error: rpcErr } = await supabase.rpc("log_score_change", {
-      _lead_id: leadId,
-      _change_amount: amount,
-      _reason_code: reasonCode,
-      _reason_text: reasonText,
-      _triggered_by: triggeredBy,
-      _changed_by_agent: "esther",
-    });
-    if (rpcErr) {
-      console.error(`Esther: score boost failed (${reasonCode}, +${amount}): ${rpcErr.message}`);
-    } else {
-      console.log(`Esther: score boost applied (${reasonCode}, +${amount}) for lead ${leadId}`);
-    }
-  };
-
-  // ── Base score: inbound inquiry = real lead (+10) ─────────────
-  await applyScoreBoost(10, "inbound_inquiry", "Lead initiated contact via Hemlane property listing", "engagement");
-
-  // ── Bonus: complete contact info (+5) ─────────────────────────
-  if (phone && lead.email) {
-    await applyScoreBoost(5, "complete_contact", "Lead provided both phone and email", "engagement");
-  }
-
-  // ── Score boost if lead has a matched property (+10) ──────────
-  if (propertyId) {
-    await applyScoreBoost(10, "property_matched", "Lead associated with a property on creation", "engagement");
-  }
-
-  // ── Auto-score based on message intent (boosts stack) ─────────
-  if (lead.message) {
-    const intents = detectAllIntents(lead.message);
-    for (const intent of intents) {
-      await applyScoreBoost(intent.boost, intent.reason_code, intent.reason, "engagement");
-    }
-  }
+  // Intake score boosts retired 2026-07-19 — milestone model: every lead
+  // starts NORMAL (0); score moves only on agendó/asistió/aplicó facts,
+  // owned by the DB milestone engine.
 
   return {
     leadId, isNew: true, missingName: !lead.name, missingPhone: !phone,
@@ -1081,18 +1021,9 @@ async function saveLeadNote(
   }
 }
 
-// Platform prefill templates — one listing-site click, not typed intent.
-// 1,606 byte-identical "I would like to schedule a tour." notes were earning
-// the same +35 as a hand-written paragraph → 80% of leads in is_priority (F16).
-const PLATFORM_PREFILLS = new Set([
-  "i would like to schedule a tour.",
-  "i would like to schedule a tour",
-  "i'd like to schedule a tour.",
-  "i'd like to schedule a tour",
-  "i'm interested in your property. please contact me with more information.",
-  "i am interested in your property. please contact me with more information.",
-  "i'm interested in this property and would like to schedule a tour.",
-]);
+// Intent-boost machinery (PLATFORM_PREFILLS + detectAllIntents) deleted
+// 2026-07-19 — milestone model: score = verifiable facts only, owned by the
+// DB milestone engine. Do NOT re-introduce keyword scoring.
 
 // ── Schedule the one-shot +48h enrichment retry (audit F18) ─────────────
 // Existence-guarded so webhook retries / digest replays don't stack tasks
@@ -1219,24 +1150,7 @@ async function createShellLead(
   ].filter(Boolean);
   await saveLeadNote(supabase, organizationId, shell.id, noteParts.join(" · "));
 
-  const boost = async (amount: number, code: string, text: string) => {
-    const { error: rpcErr } = await supabase.rpc("log_score_change", {
-      _lead_id: shell.id,
-      _change_amount: amount,
-      _reason_code: code,
-      _reason_text: text,
-      _triggered_by: "engagement",
-      _changed_by_agent: "esther",
-    });
-    if (rpcErr) console.error(`Esther: shell score boost failed (${code}): ${rpcErr.message}`);
-  };
-  await boost(10, "inbound_inquiry", "Lead initiated contact via Hemlane property listing");
-  if (propertyId) await boost(10, "property_matched", "Lead associated with a property on creation");
-  if (lead.message) {
-    for (const intent of detectAllIntents(lead.message)) {
-      await boost(intent.boost, intent.reason_code, intent.reason);
-    }
-  }
+  // Shell score boosts retired 2026-07-19 — milestone model (score = facts only).
 
   try {
     await supabase.from("system_logs").insert({
@@ -1255,52 +1169,6 @@ async function createShellLead(
 }
 
 // ── Detect intent signals in lead messages (all matching boosts stack) ────
-function detectAllIntents(message: string): { boost: number; reason: string; reason_code: string }[] {
-  const m = message.toLowerCase();
-
-  // Prefill click → engagement tier only, never the hand-typed showing tier
-  if (PLATFORM_PREFILLS.has(m.trim())) {
-    return [{ boost: 20, reason: "Standard listing-site tour-request template (platform prefill)", reason_code: "inquiry_intent" }];
-  }
-
-  const intents: { boost: number; reason: string; reason_code: string }[] = [];
-
-  // Tier 1 — Showing / tour intent (+35)
-  const showingPatterns = [
-    /schedul\w*\s+(a\s+)?(tour|showing|visit|viewing|walkthrough)/,
-    /\b(want|like|love|interested)\b.*\b(tour|showing|visit|see|view)\b/,
-    /\b(can|could)\s+(i|we)\s+(tour|visit|see|view|come\s+see)/,
-    /\bset\s+up\s+a?\s*(tour|showing|visit|viewing)\b/,
-    /\b(book|request)\s+a?\s*(tour|showing|visit|viewing)\b/,
-    /\bwhen\s+can\s+(i|we)\s+(tour|see|visit|view|come)/,
-    /\b(move[\s-]?in|ready\s+to\s+move|looking\s+to\s+move)\b/,
-  ];
-  for (const pat of showingPatterns) {
-    if (pat.test(m)) {
-      intents.push({ boost: 35, reason: "Lead expressed showing/tour intent in inquiry message", reason_code: "showing_intent" });
-      break;
-    }
-  }
-
-  // Fair Housing: source of income (Section 8 / housing vouchers) must NOT boost the lead
-  // score. Voucher status is captured for property matching only, never for scoring/ranking.
-
-  // Tier 3 — General engagement signals (+20)
-  const engagementPatterns = [
-    /\b(how\s+much|what.*rent|price|cost|monthly)\b/,
-    /\b(available|availability|still\s+available|is\s+(it|this)\s+available)\b/,
-    /\b(apply|application|how\s+(do|can)\s+(i|we)\s+apply)\b/,
-  ];
-  for (const pat of engagementPatterns) {
-    if (pat.test(m)) {
-      intents.push({ boost: 20, reason: "Lead asked about availability/pricing/application in inquiry", reason_code: "inquiry_intent" });
-      break;
-    }
-  }
-
-  return intents;
-}
-
 // ── Main handler ──────────────────────────────────────────────────────
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -2034,18 +1902,7 @@ serve(async (req: Request) => {
               console.log(`Esther: Direction A name merge → ${candidate.id} "${candidate.full_name}" → "${leadInfo.name}"`);
               if (leadInfo.message) {
                 await saveLeadNote(supabase, organizationId, candidate.id, leadInfo.message);
-                // Direction A merges never applied intent boosts (F07)
-                for (const intent of detectAllIntents(leadInfo.message)) {
-                  const { error: rpcErr } = await supabase.rpc("log_score_change", {
-                    _lead_id: candidate.id,
-                    _change_amount: intent.boost,
-                    _reason_code: intent.reason_code,
-                    _reason_text: intent.reason,
-                    _triggered_by: "engagement",
-                    _changed_by_agent: "esther",
-                  });
-                  if (rpcErr) console.error(`Esther: Direction A score boost failed: ${rpcErr.message}`);
-                }
+                // Intent boosts retired 2026-07-19 — milestone model (score = facts only).
               }
               try {
                 await supabase.from("system_logs").insert({

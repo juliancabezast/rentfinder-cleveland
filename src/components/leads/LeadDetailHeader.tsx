@@ -315,7 +315,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
               leadId={lead.id}
               doorloopProspectId={lead.doorloop_prospect_id}
             />
-            <SmallScoreCircle score={lead.lead_score || 50} />
+            <SmallScoreCircle score={lead.lead_score ?? 0} />
           </div>
 
           {/* Right: Action buttons - all same style */}

@@ -194,17 +194,18 @@ export const DataHealthDashboard: React.FC = () => {
       });
       setDuplicateFindings(dupes);
 
-      // ── Leads stuck at default score (50) ──────────────────────
+      // ── Off-ladder scores (milestone domain is {0,10,50,80,100}) ──
+      const MILESTONE_DOMAIN = new Set([0, 10, 50, 80, 100]);
       const stuck: Finding[] = [];
       leads.forEach((l) => {
-        if (l.lead_score === 50 && l.status !== "new") {
+        if (l.lead_score != null && !MILESTONE_DOMAIN.has(l.lead_score)) {
           stuck.push({
             id: l.id,
             type: "lead",
             severity: "warning",
             icon: <Target className="h-4 w-4" />,
             title: l.full_name || l.phone || "Unknown",
-            description: `Score stuck at 50 (default) — status: ${l.status}`,
+            description: `Off-ladder score ${l.lead_score} (milestone domain is 0/10/50/80/100) — a stray writer bypassed the engine`,
             link: `/leads/${l.id}`,
           });
         }

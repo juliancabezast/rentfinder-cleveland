@@ -310,12 +310,12 @@ serve(async (req: Request) => {
         .gte("created_at", sinceDay)
         .order("created_at", { ascending: false })
         .limit(10),
-      // Hot leads today (score >= 80)
+      // Hot leads today (milestone: score >= 50)
       supabase
         .from("leads")
         .select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId)
-        .gte("lead_score", 80)
+        .gte("lead_score", 50)
         .gte("created_at", sinceDay),
 
       // ── WEEKLY ──────────────────────────────────────────────
@@ -464,7 +464,7 @@ serve(async (req: Request) => {
       // Hot leads from the last 7 days still not contacted → worth calling now.
       supabase.from("leads").select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId).eq("is_demo", false)
-        .gte("lead_score", 85).not("status", "in", "(lost,converted)")
+        .gte("lead_score", 50).not("status", "in", "(lost,converted)")
         .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`)
         .gte("created_at", sevenDaysAgoIso),
       // New leads from the last 48h awaiting a first touch.

@@ -186,15 +186,8 @@ function normalizePhoneE164(phone: string): string {
   return trimmed;
 }
 
-function calculateImportScore(lead: Record<string, unknown>, hasPropertyAssigned: boolean): number {
-  let score = 30;
-  if (lead.phone) score += 5;
-  if (lead.email) score += 5;
-  if (lead.phone && lead.email) score += 3;
-  if (hasPropertyAssigned) score += 5;
-  if (lead.has_voucher === true || (lead.voucher_amount && Number(lead.voucher_amount) > 0)) score += 10;
-  return Math.min(score, 100);
-}
+// calculateImportScore deleted 2026-07-19 — milestone model: imported leads
+// start at 0; the DB milestone engine is the only score writer.
 
 // Robustly parse a move-in date from CSV/Excel input. Handles Excel date
 // serials (e.g. "46000"), ISO yyyy-mm-dd, and DD/MM/YYYY. Returns a
@@ -586,7 +579,9 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         if (phone) seenPhones.add(phone);
         if (email) seenEmails.add(email);
 
-        lead.lead_score = calculateImportScore(lead, hasProperty);
+        // Milestone model (2026-07-19): every imported lead starts NORMAL (0).
+        // Score moves only on agendó/asistió/aplicó facts via the DB engine.
+        lead.lead_score = 0;
 
         newLeads.push({
           rowNum: lead._rowNum,
@@ -1033,8 +1028,8 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                   Stage: Prospect
                 </span>
                 {preImportAnalysis.newLeads.length > 0 && (
-                  <span className="px-2 py-1 bg-green-50 text-green-700 border border-green-200 rounded font-medium">
-                    Score: {String(preImportAnalysis.newLeads[0].data.lead_score ?? "")}
+                  <span className="px-2 py-1 bg-[#f4f1f1] text-muted-foreground rounded font-medium">
+                    Score: 0 (milestone model — leads earn points by acting)
                   </span>
                 )}
                 {preImportAnalysis.mappedFields.map((field) => (
@@ -1111,13 +1106,8 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                               {lead.email || <span className="text-muted-foreground">—</span>}
                             </td>
                             <td className="px-2 py-1.5 text-right">
-                              <span className={cn(
-                                "px-1.5 py-0.5 rounded text-[10px] font-bold",
-                                Number(lead.data.lead_score) >= 60
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-[#f4f1f1] text-[#6b7280]"
-                              )}>
-                                {String(lead.data.lead_score)}
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#f4f1f1] text-[#6b7280]">
+                                0
                               </span>
                             </td>
                           </tr>

@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
           sms_consent: true,
           sms_consent_at: now,
           status: 'new',
-          lead_score: 50,
+          lead_score: 0, // milestone model: every lead starts NORMAL
         })
         .select('id')
         .single()

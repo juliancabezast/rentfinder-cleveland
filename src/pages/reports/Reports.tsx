@@ -215,10 +215,10 @@ const Reports: React.FC = () => {
           loading={loading}
         />
         <StatCard
-          title="Avg Lead Score"
+          title="Avg Milestone Score"
           value={(data?.avgLeadScore ?? 0).toFixed(0)}
           icon={Target}
-          subtitle="out of 100"
+          subtitle="0=normal · 50=agendó · 80=asistió · 100=aplicó"
           loading={loading}
         />
         <StatCard
