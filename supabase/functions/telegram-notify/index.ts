@@ -82,11 +82,15 @@ function hotLeadBody(p: Record<string, unknown>): string {
   return `<b>${name}</b>${source}${phoneLine}${propLine}${more}${voucherLine}${moveLine}`;
 }
 
-// Per-lead action button for Hot Leads cards. Only when a lead_id is present.
+// Per-lead action buttons for Funnel cards. Only when a lead_id is present.
 function actionKeyboard(p: Record<string, unknown>): any[][] | undefined {
   const leadId = typeof p.lead_id === "string" ? p.lead_id : "";
   if (!leadId) return undefined;
-  return [[{ text: "📋 Registrar acción", callback_data: `act:menu:${leadId}` }]];
+  return [
+    [{ text: "📋 Registrar acción", callback_data: `act:menu:${leadId}` }],
+    [{ text: "💬 Enviar SMS", callback_data: `act:sms:${leadId}` },
+     { text: "🎯 Cambiar etapa", callback_data: `act:st:${leadId}` }],
+  ];
 }
 
 // ── Event formatters (HTML) ──────────────────────────────────────────────────
@@ -131,18 +135,31 @@ function formatEvent(event: string, p: Record<string, unknown>): string {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // INTERNAL-ONLY sender (deployed --no-verify-jwt): without this gate, anyone
+  // could push forged interactive lead cards into the owner's chat. Accept the
+  // service key from Authorization OR apikey (functions.invoke uses apikey).
+  const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  const apikeyHdr = req.headers.get("apikey") || "";
+  if (bearer !== serviceKey && apikeyHdr !== serviceKey) {
+    return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const supabase = createClient(supabaseUrl, serviceKey);
     const body = (await req.json().catch(() => ({}))) as NotifyBody;
 
-    // ALL per-lead alerts (new + hot + reminders) go to the Hot Leads bot — the
-    // RFC report bot must NOT receive individual leads (user request). Force the
-    // showings channel for these events regardless of the caller's `channel`
-    // (the new_lead senders still pass channel:"report"). Digests/reports keep
-    // their channel.
+    // ALL per-lead alerts (new + hot + reminders) go to the FUNNEL bot
+    // (@FunnelRFCBot) — the lead-management bot (2026-07-19 restructure; the
+    // old Hot Leads/@ShowingsBot is being repurposed and receives nothing).
+    // Forced regardless of the caller's `channel` (new_lead senders still pass
+    // channel:"report"). Digests/reports keep their channel; 'showings' stays
+    // resolvable for legacy callers.
     const LEAD_EVENTS = new Set(["new_lead", "hot_lead", "lead_reminder"]);
-    const channel = (body.channel === "showings" || LEAD_EVENTS.has(String(body.event || "")))
-      ? "showings" : "report";
+    const channel = LEAD_EVENTS.has(String(body.event || "")) ? "funnel"
+      : body.channel === "showings" ? "showings"
+      : body.channel === "funnel" ? "funnel" : "report";
 
     // Lead alerts only fire when a phone is on file — a name-only lead (e.g. the
     // first half of a Hemlane paired email) is not actionable. Hot-lead alerts
@@ -176,7 +193,7 @@ serve(async (req) => {
     const [{ data: creds }, { data: settings }] = await Promise.all([
       supabase
         .from("organization_credentials")
-        .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
+        .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id, telegram_funnel_bot_token, telegram_funnel_chat_id")
         .eq("organization_id", orgId)
         .maybeSingle(),
       supabase
@@ -197,11 +214,16 @@ serve(async (req) => {
 
     let botToken: string | undefined;
     let chatId: string | undefined;
-    if (channel === "showings") {
-      // Hot-lead cards go to the Showings Agent bot only. The route bot is now
-      // LeasingAgent (interactive) and must NOT receive pushed hot leads.
-      // Pair token+chat ATOMICALLY — never mix the showings token with the
-      // general chat id (or vice versa) under a partial config.
+    if (channel === "funnel") {
+      // Lead-management bot. Pair token+chat ATOMICALLY — never mix one bot's
+      // token with another bot's chat id under a partial config.
+      const fTok = creds?.telegram_funnel_bot_token;
+      const fChat = creds?.telegram_funnel_chat_id;
+      const useFunnel = !!fTok && !!fChat;
+      botToken = useFunnel ? fTok : creds?.telegram_bot_token;
+      chatId = useFunnel ? fChat : creds?.telegram_chat_id;
+    } else if (channel === "showings") {
+      // Legacy channel (old Hot Leads bot) — kept resolvable for old callers.
       const sTok = creds?.telegram_showings_bot_token || setting("telegram_showings_bot_token");
       const sChat = creds?.telegram_showings_chat_id || setting("telegram_showings_chat_id");
       const useShowings = !!sTok && !!sChat;

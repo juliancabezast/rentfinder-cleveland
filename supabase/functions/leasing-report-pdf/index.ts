@@ -379,15 +379,16 @@ serve(async (req) => {
     const pdf = await buildPdf(data, lang);
 
     // Resolve the delivery bot token. LeasingAgent (route bot) is the default
-    // caller now; its token lives in organization_settings.
+    // caller; its creds now live in organization_credentials (settings = legacy
+    // fallback only).
     const supabase = createClient(supabaseUrl, serviceKey);
     const { data: creds } = await supabase
       .from("organization_credentials")
-      .select("telegram_bot_token, telegram_showings_bot_token")
+      .select("telegram_bot_token, telegram_showings_bot_token, telegram_route_bot_token")
       .eq("organization_id", organization_id)
       .maybeSingle();
-    let leasingToken: string | undefined;
-    if (bot === "leasing") {
+    let leasingToken: string | undefined = (creds?.telegram_route_bot_token as string) || undefined;
+    if (bot === "leasing" && !leasingToken) {
       const { data: rs } = await supabase
         .from("organization_settings").select("key, value")
         .eq("organization_id", organization_id)

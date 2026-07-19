@@ -52,29 +52,39 @@ serve(async (req: Request) => {
       });
     }
 
-    // Read credentials server-side
-    const [{ data: creds }, { data: showingsSettings }] = await Promise.all([
+    // Read credentials server-side (settings = legacy fallback only; route
+    // creds moved into organization_credentials 2026-07-19)
+    const [{ data: creds }, { data: routeSettings }] = await Promise.all([
       supabase
         .from("organization_credentials")
-        .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
+        .select("telegram_bot_token, telegram_chat_id, telegram_route_bot_token, telegram_route_chat_id")
         .eq("organization_id", callerRecord.organization_id)
         .single(),
       supabase
         .from("organization_settings")
         .select("key, value")
         .eq("organization_id", callerRecord.organization_id)
-        .in("key", ["telegram_showings_bot_token", "telegram_showings_chat_id"]),
+        .in("key", ["telegram_route_bot_token", "telegram_route_chat_id"]),
     ]);
 
-    const settingsMap = new Map((showingsSettings || []).map((s: { key: string; value: string }) => [s.key, s.value]));
+    const unwrapVal = (v: unknown) => {
+      if (v == null) return undefined;
+      const str = String(v);
+      try { const p = JSON.parse(str); return typeof p === "string" ? p : str; } catch { return str; }
+    };
+    const settingsMap = new Map((routeSettings || []).map((s: { key: string; value: string }) => [s.key, unwrapVal(s.value)]));
 
     let botToken: string | undefined;
     let chatId: string | undefined;
     if (channel === "showings") {
-      // Prefer admin-only credentials; fall back to legacy org_settings during the
-      // migration window, then to the general bot token.
-      botToken = creds?.telegram_showings_bot_token || (settingsMap.get("telegram_showings_bot_token") as string) || creds?.telegram_bot_token;
-      chatId = creds?.telegram_showings_chat_id || (settingsMap.get("telegram_showings_chat_id") as string) || creds?.telegram_chat_id;
+      // Showing-related cards now live with LeasingAgent (route bot) — the old
+      // Hot Leads bot is parked (2026-07-19 restructure). Pair token+chat
+      // atomically; fall back to the general bot.
+      const rTok = (creds?.telegram_route_bot_token || settingsMap.get("telegram_route_bot_token")) as string | undefined;
+      const rChat = (creds?.telegram_route_chat_id || settingsMap.get("telegram_route_chat_id")) as string | undefined;
+      const useRoute = !!rTok && !!rChat;
+      botToken = useRoute ? rTok : creds?.telegram_bot_token;
+      chatId = useRoute ? rChat : creds?.telegram_chat_id;
     } else {
       botToken = creds?.telegram_bot_token;
       chatId = creds?.telegram_chat_id;

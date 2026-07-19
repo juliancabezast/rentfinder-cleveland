@@ -98,7 +98,7 @@ async function dispatchLeadReminders(
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
         body: JSON.stringify({
           organization_id: r.organization_id,
-          channel: "showings",
+          channel: "funnel",
           event: "lead_reminder",
           payload: {
             lead_id: lead.id, name, score: lead.lead_score, phone, source: lead.source,
@@ -244,30 +244,35 @@ serve(async (req: Request) => {
         }
       }
 
-      // Resolve the Showing/Route bot: prefer the admin-only showings
-      // credentials, fall back to legacy route settings, then the general bot.
+      // Resolve the LeasingAgent (route) bot — showing-day cards live with the
+      // showings operation (2026-07-19 restructure; the old Hot Leads bot is
+      // parked). Fall back to the general bot. Values may be JSON-encoded.
       const [{ data: creds }, { data: settings }] = await Promise.all([
         supabase
           .from("organization_credentials")
-          .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
+          .select("telegram_bot_token, telegram_chat_id, telegram_route_bot_token, telegram_route_chat_id")
           .eq("organization_id", orgId)
           .maybeSingle(),
+        // Legacy fallback only — route creds moved into organization_credentials.
         supabase
           .from("organization_settings")
           .select("key, value")
           .eq("organization_id", orgId)
-          .in("key", ["telegram_route_bot_token", "telegram_route_chat_id", "telegram_showings_bot_token", "telegram_showings_chat_id"]),
+          .in("key", ["telegram_route_bot_token", "telegram_route_chat_id"]),
       ]);
 
-      const settingsMap = new Map((settings || []).map((s: any) => [s.key, s.value]));
-      const botToken = (creds?.telegram_showings_bot_token
-        || settingsMap.get("telegram_showings_bot_token")
-        || settingsMap.get("telegram_route_bot_token")
-        || creds?.telegram_bot_token) as string;
-      const chatId = (creds?.telegram_showings_chat_id
-        || settingsMap.get("telegram_showings_chat_id")
-        || settingsMap.get("telegram_route_chat_id")
-        || creds?.telegram_chat_id) as string;
+      const unwrapVal = (v: unknown) => {
+        if (v == null) return undefined;
+        const str = String(v);
+        try { const p = JSON.parse(str); return typeof p === "string" ? p : str; } catch { return str; }
+      };
+      const settingsMap = new Map((settings || []).map((s: any) => [s.key, unwrapVal(s.value)]));
+      // Pair token+chat ATOMICALLY — never mix the route token with the general chat.
+      const routeTok = creds?.telegram_route_bot_token || settingsMap.get("telegram_route_bot_token");
+      const routeChat = creds?.telegram_route_chat_id || settingsMap.get("telegram_route_chat_id");
+      const useRoute = !!routeTok && !!routeChat;
+      const botToken = (useRoute ? routeTok : creds?.telegram_bot_token) as string;
+      const chatId = (useRoute ? routeChat : creds?.telegram_chat_id) as string;
 
       if (!botToken || !chatId) {
         console.log(`Showing reminder: org ${orgId} has no showings/route bot configured, skipping`);

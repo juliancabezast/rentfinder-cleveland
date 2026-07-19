@@ -21,6 +21,8 @@ const SECRET_FIELDS = new Set([
   "maxmind_license_key",
   "telegram_bot_token",
   "telegram_showings_bot_token",
+  "telegram_funnel_bot_token",
+  "telegram_route_bot_token",
 ]);
 
 // Fields that are safe to return in cleartext (public identifiers, not secrets).
@@ -29,6 +31,8 @@ const PUBLIC_FIELDS = new Set([
   "twilio_whatsapp_number",
   "telegram_chat_id",
   "telegram_showings_chat_id",
+  "telegram_funnel_chat_id",
+  "telegram_route_chat_id",
 ]);
 
 const ALL_FIELDS = [...SECRET_FIELDS, ...PUBLIC_FIELDS];

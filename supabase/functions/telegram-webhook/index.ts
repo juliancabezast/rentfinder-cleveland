@@ -90,33 +90,33 @@ serve(async (req: Request) => {
     const chatId = String(cbq?.message?.chat?.id ?? message?.chat?.id ?? "");
     if (!chatId) return okResponse();
 
-    // Which bot is this? The webhook is registered per-bot with ?bot=general /
-    // ?bot=showings so we resolve reliably even when both bots DM the same chat.
-    const botParam = new URL(req.url).searchParams.get("bot"); // 'general' | 'showings' | 'leasing' | null
+    // Which bot is this? The webhook is registered per-bot with ?bot= so we
+    // resolve reliably even when all bots DM the same chat.
+    const botParam = new URL(req.url).searchParams.get("bot"); // 'general' | 'showings' | 'leasing' | 'funnel' | null
 
     const { data: creds } = await supabase
       .from("organization_credentials")
-      .select("organization_id, telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
+      .select("organization_id, telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id, telegram_funnel_bot_token, telegram_funnel_chat_id, telegram_route_bot_token, telegram_route_chat_id")
       .not("telegram_bot_token", "is", null)
       .limit(1)
       .maybeSingle();
 
     const organizationId: string | undefined = creds?.organization_id;
 
-    // The LeasingAgent bot's token/chat live in organization_settings
-    // (telegram_route_bot_token / telegram_route_chat_id). LeasingAgent serves
-    // the whole interactive menu; the general (RFC) + showings bots are
-    // push-only and just redirect a user who messages them here.
-    let routeToken: string | undefined;
-    let routeChat: string | undefined;
-    if (organizationId) {
+    // The LeasingAgent (route) bot's token/chat now live in
+    // organization_credentials like every other bot (moved out of the
+    // client-readable organization_settings 2026-07-19); legacy settings kept
+    // as a best-effort fallback for older environments.
+    let routeToken: string | undefined = (creds?.telegram_route_bot_token as string) || undefined;
+    let routeChat: string | undefined = (creds?.telegram_route_chat_id as string) || undefined;
+    if (organizationId && (!routeToken || !routeChat)) {
       const { data: rs } = await supabase
         .from("organization_settings").select("key, value")
         .eq("organization_id", organizationId)
         .in("key", ["telegram_route_bot_token", "telegram_route_chat_id"]);
       const m = new Map((rs || []).map((s: any) => [s.key, unwrap(s.value)]));
-      routeToken = m.get("telegram_route_bot_token") as string | undefined;
-      routeChat = m.get("telegram_route_chat_id") as string | undefined;
+      routeToken = routeToken || (m.get("telegram_route_bot_token") as string | undefined);
+      routeChat = routeChat || (m.get("telegram_route_chat_id") as string | undefined);
     }
 
     let botToken: string | undefined;
@@ -129,6 +129,9 @@ serve(async (req: Request) => {
       } else if (botParam === "showings") {
         bot = "showings";
         botToken = (creds.telegram_showings_bot_token as string) || undefined;
+      } else if (botParam === "funnel") {
+        bot = "funnel";
+        botToken = (creds.telegram_funnel_bot_token as string) || undefined;
       } else if (botParam === "general") {
         bot = "general";
         botToken = (creds.telegram_bot_token as string) || undefined;
@@ -141,6 +144,9 @@ serve(async (req: Request) => {
         } else if (chatId === String(creds.telegram_showings_chat_id)) {
           bot = "showings";
           botToken = creds.telegram_showings_bot_token as string;
+        } else if (chatId === String(creds.telegram_funnel_chat_id)) {
+          bot = "funnel";
+          botToken = creds.telegram_funnel_bot_token as string;
         } else if (routeChat && chatId === String(routeChat)) {
           bot = "leasing";
           botToken = routeToken;
@@ -159,7 +165,7 @@ serve(async (req: Request) => {
     // configured chats — otherwise any stranger who messages a public bot could
     // drive it (read lead PII, create leads, book showings).
     const allowedChats = new Set(
-      [creds?.telegram_chat_id, creds?.telegram_showings_chat_id, routeChat]
+      [creds?.telegram_chat_id, creds?.telegram_showings_chat_id, creds?.telegram_funnel_chat_id, routeChat]
         .map((c) => (c == null ? "" : String(c)))
         .filter((c) => c && c !== "null")
     );
@@ -193,11 +199,12 @@ serve(async (req: Request) => {
 // Text messages
 // ═══════════════════════════════════════════════════════════════════════════════
 async function handleText(ctx: Ctx, rawText: string) {
-  // Showings (Hot Leads) stays push-only → redirect. The RFC (general) bot has
-  // its own reports menu. Everything else (scheduling, leads, agenda) lives in
-  // LeasingAgent.
+  // Per-bot routing: Funnel = lead management, RFC (general) = reports menu,
+  // LeasingAgent = scheduling/agenda. The old Hot Leads (showings) bot is
+  // parked for a future purpose → redirect.
   if (ctx.bot === "showings") { await redirectToLeasing(ctx); return; }
   if (ctx.bot === "general") { await handleRfcText(ctx, rawText); return; }
+  if (ctx.bot === "funnel") { await handleFunnelText(ctx, rawText); return; }
 
   const raw = String(rawText).trim();
   const t = raw.toLowerCase();
@@ -248,15 +255,27 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   const messageId: number | undefined = cbq.message?.message_id;
   const answer = (text?: string) => answerCbq(ctx, cbq.id, text);
 
-  // LeasingAgent owns the operational menu. Two exceptions: `act:*` (Registrar
-  // acción) also works on the Hot Leads (showings) bot, and `rp:*` (reports
-  // menu) belongs to the RFC (general) bot. Everything else redirects.
-  if (ctx.bot !== "leasing" && !data.startsWith("act:") && !(ctx.bot === "general" && data.startsWith("rp:"))) {
+  // Per-bot callback permissions: LeasingAgent owns the operational menu;
+  // `act:*`/`ast:*`/`asms:*` (lead actions) run anywhere a lead card lives —
+  // the Funnel bot today, plus legacy cards on the old Hot Leads bot; `rp:*`
+  // belongs to RFC; `fnl:*`/`fl:*` to the Funnel menu. Everything else redirects.
+  const LEAD_ACTION = data.startsWith("act:") || data.startsWith("ast:") || data.startsWith("asms:");
+  const cbAllowed =
+    ctx.bot === "leasing" ? true
+    : LEAD_ACTION ? true
+    : ctx.bot === "general" ? data.startsWith("rp:")
+    : ctx.bot === "funnel" ? (data.startsWith("fnl:") || data.startsWith("fl:"))
+    : false;
+  if (!cbAllowed) {
     await answer(); await redirectToLeasing(ctx, messageId); return;
   }
 
   try {
     if (data.startsWith("act:")) { await handleAction(ctx, cbq, data); return; }
+    if (data.startsWith("ast:")) { await handleStageSet(ctx, cbq, data); return; }
+    if (data.startsWith("asms:")) { await handleFunnelSms(ctx, cbq, data); return; }
+    if (data.startsWith("fnl:")) { await handleFunnelMenuCb(ctx, cbq, data); return; }
+    if (data.startsWith("fl:")) { await answer(); await funnelOpenFromList(ctx, cbq.message?.message_id, data.slice(3)); return; }
     if (data.startsWith("rp:")) { await handleRfcCallback(ctx, cbq, data); return; }
     if (data.startsWith("msg:")) { await answer(); await chooseSmsLead(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("sms:")) { await answer(); await sendSmsTemplate(ctx, messageId, data.slice(4)); return; }
@@ -313,9 +332,13 @@ function mainMenuKeyboard() {
   ];
 }
 const MENU_GREETING = "👋 Soy <b>LeasingAgent</b>, tu asistente de agendas y reportes.\n¿Qué querés hacer?";
-// RFC/Showings bots are push-only; nudge the user to the interactive bot.
+// Wrong-bot nudge: "parked" wording only fits the old Hot Leads bot; on active
+// bots (a stale button, e.g.) route neutrally instead.
 async function redirectToLeasing(ctx: Ctx, messageId?: number) {
-  const msg = "🤖 Este bot es solo de avisos.\nPara <b>agendar showings</b> y <b>reportes</b>, escribile a <b>LeasingAgent</b>.";
+  const routes = "👥 Leads → <b>FunnelRFC</b> · 📅 Agendas → <b>LeasingAgent</b> · 📊 Datos → <b>RFC Report</b>.";
+  const msg = ctx.bot === "showings"
+    ? `🤖 Este bot está en pausa.\n${routes}`
+    : `🤖 Ese botón no funciona en este bot.\n${routes}`;
   if (messageId) await editOrSend(ctx, messageId, msg);
   else await send(ctx, msg);
 }
@@ -1290,6 +1313,280 @@ async function handleRfcAiQuestion(ctx: Ctx, session: Session, raw: string) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// Funnel bot (@FunnelRFCBot) — lead management: search → card → act
+// ═══════════════════════════════════════════════════════════════════════════════
+const FNL_GREETING =
+  "🎯 Soy <b>Funnel</b>, tu gestor de leads.\n\n" +
+  "Escribí un <b>nombre o teléfono</b> y te traigo el lead, o abrí una lista:";
+function funnelMenuKeyboard() {
+  return [
+    [{ text: "🔥 Hot sin contactar", callback_data: "fnl:hot" }],
+    [{ text: "⏰ Seguimientos de hoy", callback_data: "fnl:rem" }],
+    [{ text: "🆕 Últimos leads", callback_data: "fnl:new" }],
+  ];
+}
+const FNL_STAGES: { code: string; status: string; label: string }[] = [
+  { code: "c", status: "contacted", label: "📞 Contactado" },
+  { code: "e", status: "engaged", label: "💬 Engaged" },
+  { code: "n", status: "nurturing", label: "🌱 Nurturing" },
+  { code: "q", status: "qualified", label: "✅ Calificado" },
+  { code: "l", status: "lost", label: "❌ Perdido" },
+];
+const FNL_STATUS_LABEL: Record<string, string> = {
+  new: "🆕 Nuevo", contacted: "📞 Contactado", engaged: "💬 Engaged",
+  nurturing: "🌱 Nurturing", qualified: "✅ Calificado",
+  showing_scheduled: "📅 Showing agendado", showed: "🏠 Asistió a showing",
+  in_application: "🧾 En aplicación", converted: "🎉 Convertido", lost: "❌ Perdido",
+};
+
+async function sendFunnelMenu(ctx: Ctx, prefix?: string) {
+  await send(ctx, (prefix ? `${prefix}\n\n` : "") + FNL_GREETING, funnelMenuKeyboard());
+}
+
+async function handleFunnelText(ctx: Ctx, rawText: string) {
+  const raw = String(rawText).trim();
+  const t = raw.toLowerCase();
+  if (CANCEL_TRIGGERS.has(t)) { await clearSession(ctx); await sendFunnelMenu(ctx, "❌ Listo, cancelado."); return; }
+  if (MENU_TRIGGERS.has(t) || HELP_TRIGGERS.has(t)) { await clearSession(ctx); await sendFunnelMenu(ctx); return; }
+  // Anything else IS a lead search — that's the point: type a name or phone.
+  await funnelSearchLeads(ctx, raw);
+}
+
+async function handleFunnelMenuCb(ctx: Ctx, cbq: any, data: string) {
+  const messageId: number | undefined = cbq.message?.message_id;
+  const answer = (text?: string) => answerCbq(ctx, cbq.id, text);
+  if (data === "fnl:menu") { await answer(); await editOrSend(ctx, messageId, FNL_GREETING, funnelMenuKeyboard()); return; }
+  if (data === "fnl:find") { await answer(); await editOrSend(ctx, messageId, "🔍 Escribí el <b>nombre</b> o <b>teléfono</b> del lead 👇"); return; }
+  if (data === "fnl:hot") {
+    await answer("Buscando…"); await typing(ctx);
+    const dayAgoIso = new Date(Date.now() - 86400000).toISOString();
+    const sevenDaysAgoIso = new Date(Date.now() - 7 * 86400000).toISOString();
+    const { data: rows } = await ctx.supabase.from("leads")
+      .select("id, full_name, first_name, last_name, phone, lead_score, status")
+      .eq("organization_id", ctx.organizationId).eq("is_demo", false)
+      .gte("lead_score", 50).not("status", "in", "(lost,converted)")
+      .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`)
+      .gte("created_at", sevenDaysAgoIso).not("phone", "is", null)
+      .order("lead_score", { ascending: false }).limit(8);
+    await funnelShowList(ctx, messageId, "🔥 <b>Hot sin contactar</b> (últimos 7d)", rows || []);
+    return;
+  }
+  if (data === "fnl:rem") {
+    await answer("Buscando…"); await typing(ctx);
+    const todayStartIso = nyMidnightUtcIso(todayNY());
+    const tomorrowStartIso = nyMidnightUtcIso(shiftDay(todayNY(), 1));
+    // "Hoy" = pending due through today (overdue included) + already sent today.
+    const { data: rems } = await ctx.supabase.from("lead_reminders")
+      .select("lead_id, status, leads:lead_id(id, full_name, first_name, last_name, phone, lead_score, status)")
+      .eq("organization_id", ctx.organizationId)
+      .or(`and(status.eq.pending,due_at.lt.${tomorrowStartIso}),and(status.eq.sent,sent_at.gte.${todayStartIso})`)
+      .limit(24);
+    const seen = new Set<string>(); const rows: any[] = [];
+    for (const r of rems || []) {
+      const l = (r as any).leads;
+      if (!l || seen.has(l.id)) continue;
+      seen.add(l.id); rows.push(l);
+    }
+    await funnelShowList(ctx, messageId, "⏰ <b>Seguimientos de hoy</b>", rows.slice(0, 8));
+    return;
+  }
+  if (data === "fnl:new") {
+    await answer("Buscando…"); await typing(ctx);
+    const { data: rows } = await ctx.supabase.from("leads")
+      .select("id, full_name, first_name, last_name, phone, lead_score, status")
+      .eq("organization_id", ctx.organizationId).eq("is_demo", false)
+      .not("phone", "is", null)
+      .order("created_at", { ascending: false }).limit(8);
+    await funnelShowList(ctx, messageId, "🆕 <b>Últimos leads</b> (con teléfono)", rows || []);
+    return;
+  }
+  await answer();
+}
+
+// Pick-list: buttons carry the lead UUID directly (39 bytes < Telegram's 64) —
+// no session storage, so lists never expire.
+async function funnelShowList(ctx: Ctx, messageId: number | undefined, title: string, rows: any[]) {
+  if (!rows.length) {
+    await editOrSend(ctx, messageId, `${title}\n\n✅ Nada por acá.`, [[{ text: "🎯 Menú", callback_data: "fnl:menu" }]]);
+    return;
+  }
+  const kb = rows.map((l: any) => [{
+    text: `${leadName(l)} · ${l.lead_score ?? "–"} pts`.slice(0, 62),
+    callback_data: `fl:${l.id}`,
+  }]);
+  kb.push([{ text: "🎯 Menú", callback_data: "fnl:menu" }]);
+  await editOrSend(ctx, messageId, `${title} — tocá para abrir:`, kb);
+}
+
+async function funnelOpenFromList(ctx: Ctx, messageId: number | undefined, leadId: string) {
+  await funnelLeadCard(ctx, messageId, leadId);
+}
+
+async function funnelSearchLeads(ctx: Ctx, raw: string) {
+  await typing(ctx);
+  const phone10 = extractPhone10(raw);
+  let rows: any[] = [];
+  if (phone10) {
+    const { data } = await ctx.supabase.from("leads")
+      .select("id, full_name, first_name, last_name, phone, lead_score, status")
+      .eq("organization_id", ctx.organizationId)
+      .ilike("phone", `%${phone10}%`)
+      .limit(8);
+    rows = data || [];
+  }
+  // Partial phone (7-9 digits) — mirror the leasing search fallback.
+  if (!rows.length && /^[\s\d()+.\-]+$/.test(raw)) {
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length >= 7) {
+      const { data } = await ctx.supabase.from("leads")
+        .select("id, full_name, first_name, last_name, phone, lead_score, status")
+        .eq("organization_id", ctx.organizationId)
+        .ilike("phone", `%${digits}%`)
+        .limit(8);
+      rows = data || [];
+    }
+  }
+  if (!rows.length) {
+    const nameQ = sanitizeLike(cleanNameQuery(raw));
+    if (nameQ.length >= 2) {
+      const { data } = await ctx.supabase.from("leads")
+        .select("id, full_name, first_name, last_name, phone, lead_score, status")
+        .eq("organization_id", ctx.organizationId)
+        .or(`full_name.ilike.%${nameQ}%,first_name.ilike.%${nameQ}%,last_name.ilike.%${nameQ}%`)
+        .order("created_at", { ascending: false })
+        .limit(8);
+      rows = data || [];
+    }
+  }
+  if (!rows.length) {
+    await send(ctx, `🔎 No encontré leads para «${escapeHtml(raw.slice(0, 60))}». Probá con otra parte del nombre o el teléfono.`,
+      [[{ text: "🎯 Menú", callback_data: "fnl:menu" }]]);
+    return;
+  }
+  if (rows.length === 1) { await funnelLeadCard(ctx, undefined, rows[0].id); return; }
+  await funnelShowList(ctx, undefined, `🔍 <b>Resultados</b>`, rows);
+}
+
+// The lead card — everything needed to decide, then act. Phone stays plain
+// E.164 so Telegram mobile auto-detects a tappable call link.
+async function funnelLeadCard(ctx: Ctx, messageId: number | undefined, leadId: string) {
+  const { data: l } = await ctx.supabase.from("leads")
+    .select("id, full_name, first_name, last_name, phone, email, status, lead_score, source, has_voucher, voucher_amount, housing_authority, move_in_date, budget_min, budget_max, created_at, last_contact_at")
+    .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
+  if (!l) { await editOrSend(ctx, messageId, "❌ Lead no encontrado."); return; }
+  const [{ data: tags }, { data: lastNote }] = await Promise.all([
+    ctx.supabase.from("lead_property_interests")
+      .select("properties:property_id(address, unit_number, city)")
+      .eq("lead_id", leadId).order("created_at", { ascending: false }).limit(3),
+    ctx.supabase.from("lead_notes").select("content")
+      .eq("lead_id", leadId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  const tel = String(l.phone ?? "").replace(/[^\d+]/g, "");
+  const lines: string[] = [];
+  lines.push(`🎯 <b>${escapeHtml(leadName(l))}</b> · ${l.lead_score ?? "–"} pts`);
+  lines.push(`📊 Etapa: <b>${FNL_STATUS_LABEL[l.status] || escapeHtml(l.status || "—")}</b>`);
+  if (tel) lines.push(`📞 ${escapeHtml(tel)}`);
+  if (l.email) lines.push(`✉️ ${escapeHtml(l.email)}`);
+  const props = (tags || []).map((t: any) => t.properties).filter(Boolean);
+  if (props.length) lines.push(`🏠 ${escapeHtml(propLabel(props[0]))}${props.length > 1 ? ` <i>(+${props.length - 1} más)</i>` : ""}`);
+  const bits: string[] = [];
+  if (l.has_voucher) bits.push(`🎟️ Voucher${l.voucher_amount ? ` $${Number(l.voucher_amount).toLocaleString()}` : ""}`);
+  if (l.housing_authority) bits.push(escapeHtml(l.housing_authority));
+  if (l.move_in_date) bits.push(`Move-in ${escapeHtml(l.move_in_date)}`);
+  if (l.budget_min || l.budget_max) bits.push(`Budget $${l.budget_min ?? "?"}–${l.budget_max ?? "?"}`);
+  if (bits.length) lines.push(bits.join(" · "));
+  lines.push(`🕐 Creado ${String(l.created_at || "").slice(0, 10)}${l.source ? ` · ${escapeHtml(l.source)}` : ""}${l.last_contact_at ? ` · últ. contacto ${String(l.last_contact_at).slice(0, 10)}` : " · sin contactar"}`);
+  if (lastNote?.content) lines.push(`📝 <i>${escapeHtml(String(lastNote.content).slice(0, 200))}</i>`);
+  const kb = [
+    [{ text: "📋 Registrar acción", callback_data: `act:menu:${l.id}` }],
+    [{ text: "💬 Enviar SMS", callback_data: `act:sms:${l.id}` },
+     { text: "🎯 Cambiar etapa", callback_data: `act:st:${l.id}` }],
+    [{ text: "🔍 Otro lead", callback_data: "fnl:find" }, { text: "🎯 Menú", callback_data: "fnl:menu" }],
+  ];
+  await editOrSend(ctx, messageId, lines.join("\n"), kb);
+}
+
+// ── Stage picker + set ─────────────────────────────────────────────────────────
+async function funnelStagePicker(ctx: Ctx, messageId: number | undefined, lead: any) {
+  const rows = FNL_STAGES.map((s) => [{ text: s.label, callback_data: `ast:${lead.id}:${s.code}` }]);
+  rows.push([{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]);
+  await send(ctx,
+    `🎯 <b>Mover de etapa</b> — ${escapeHtml(leadName(lead))}\nEtapa actual: <b>${FNL_STATUS_LABEL[lead.status] || escapeHtml(lead.status || "—")}</b>`,
+    rows);
+}
+async function handleStageSet(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, leadId = "", code = ""] = data.split(":");
+  const stage = FNL_STAGES.find((s) => s.code === code);
+  if (!leadId || !stage) { await answer(); return; }
+  const { data: lead } = await ctx.supabase.from("leads")
+    .select("id, full_name, first_name, last_name, status")
+    .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
+  if (!lead) { await answer("Lead no encontrado."); return; }
+  const prev = lead.status || "—";
+  if (prev === stage.status) { await answer("Ya estaba en esa etapa 👍"); return; }
+  const { error } = await ctx.supabase.from("leads").update({ status: stage.status })
+    .eq("organization_id", ctx.organizationId).eq("id", leadId);
+  if (error) {
+    await answer("Error");
+    await editOrSend(ctx, messageId, "❌ No pude cambiar la etapa. Probá de nuevo.");
+    return;
+  }
+  await answer("Etapa cambiada ✅");
+  await logLeadNote(ctx, leadId, "general", `🎯 Etapa: ${prev} → ${stage.status}`);
+  // A stage move counts as attention — stop the AUTO rollover only. An
+  // explicitly requested follow-up (act:fu, reason 'follow_up') survives.
+  await ctx.supabase.from("lead_reminders").update({ status: "cancelled" })
+    .eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
+    .eq("status", "pending").eq("reason", "follow_up_auto");
+  // fl:/fnl: buttons only work on the Funnel bot — legacy cards on other bots
+  // get the anywhere-allowed action-menu button instead.
+  const doneKb = ctx.bot === "funnel"
+    ? [[{ text: "👤 Ver lead", callback_data: `fl:${leadId}` }, { text: "🎯 Menú", callback_data: "fnl:menu" }]]
+    : [[{ text: "📋 Otra acción", callback_data: `act:menu:${leadId}` }]];
+  await editOrSend(ctx, messageId,
+    `✅ <b>${escapeHtml(leadName(lead))}</b>: ${escapeHtml(prev)} → <b>${escapeHtml(stage.status)}</b>`, doneKb);
+}
+
+// ── SMS picker + prefilled send ────────────────────────────────────────────────
+const FNL_SMS_TEMPLATES: { code: string; label: string; body: (first: string) => string }[] = [
+  { code: "in", label: "👋 Primer contacto", body: (f) => `Hi ${f}, this is Rent Finder Cleveland — we got your rental inquiry. When is a good time to chat?` },
+  { code: "fu", label: "🔁 Seguimiento", body: (f) => `Hi ${f}, following up on your rental inquiry with Rent Finder Cleveland. Are you still looking for a place?` },
+  { code: "sh", label: "📅 Ofrecer showing", body: (f) => `Hi ${f}, would you like to tour the property? Reply with a day and time that works and we'll schedule your showing.` },
+  { code: "ap", label: "📝 Link para aplicar", body: (f) => `Hi ${f}, ready to move forward? You can apply here: ${APPLY_LINK}` },
+];
+async function funnelSmsPicker(ctx: Ctx, messageId: number | undefined, lead: any) {
+  const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
+  if (!tel) { await editOrSend(ctx, messageId, `❌ ${escapeHtml(leadName(lead))} no tiene teléfono.`); return; }
+  const rows = FNL_SMS_TEMPLATES.map((t) => [{ text: t.label, callback_data: `asms:${lead.id}:${t.code}` }]);
+  rows.push([{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]);
+  await send(ctx, `💬 <b>Enviar SMS</b> — ${escapeHtml(leadName(lead))} · 📞 ${escapeHtml(tel)}\nElegí el mensaje:`, rows);
+}
+async function handleFunnelSms(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, leadId = "", code = ""] = data.split(":");
+  const tmpl = FNL_SMS_TEMPLATES.find((t) => t.code === code);
+  if (!leadId || !tmpl) { await answer(); return; }
+  const { data: lead } = await ctx.supabase.from("leads")
+    .select("id, full_name, first_name, last_name, phone")
+    .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
+  const tel = String(lead?.phone ?? "").replace(/[^\d+]/g, "");
+  if (!lead || !tel) { await answer("Sin teléfono"); return; }
+  await answer();
+  const first = String(leadName(lead)).split(/\s+/)[0];
+  const body = tmpl.body(first);
+  // Telegram rejects sms: URL buttons — route through the site redirect page,
+  // which fires the sms: deep link and opens Messages prefilled (same mechanism
+  // as the LeasingAgent agenda quick-SMS).
+  const url = `https://rentfindercleveland.com/sms-redirect.html?to=${encodeURIComponent(tel)}&body=${encodeURIComponent(body)}`;
+  await editOrSend(ctx, messageId,
+    `💬 <b>${escapeHtml(leadName(lead))}</b> · 📞 ${escapeHtml(tel)}\n\n<code>${escapeHtml(body)}</code>\n\nTocá el botón y se abre Mensajes con el texto listo:`,
+    [[{ text: "📲 Abrir Mensajes", url }], [{ text: "◀️ Volver", callback_data: `act:menu:${leadId}` }]]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Session helpers
 // ═══════════════════════════════════════════════════════════════════════════════
 // Session key is namespaced by bot: both bots DM the same chat id, so keying by
@@ -1453,6 +1750,8 @@ function actionMenuKeyboard(leadId: string) {
     [{ text: "📅 Quiere agendar showing", callback_data: `act:sch:${leadId}` }],
     [{ text: "👋 Ya lo contacté", callback_data: `act:done:${leadId}` }],
     [{ text: "❌ No interesado", callback_data: `act:lost:${leadId}` }],
+    [{ text: "💬 Enviar SMS", callback_data: `act:sms:${leadId}` },
+     { text: "🎯 Cambiar etapa", callback_data: `act:st:${leadId}` }],
   ];
 }
 // Insert a lead_notes row for a Telegram-logged action (created_by is null —
@@ -1536,6 +1835,12 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
       await logLeadNote(ctx, leadId, "objection", "❌ No interesado — marcado lost");
       await stopRollover();
       await editOrSend(ctx, messageId, `✅ Marcado <b>no interesado</b> (lost) — ${escapeHtml(name)}`, again);
+    } else if (verb === "sms") {
+      await answer();
+      await funnelSmsPicker(ctx, messageId, lead);
+    } else if (verb === "st") {
+      await answer();
+      await funnelStagePicker(ctx, messageId, lead);
     } else {
       await answer();
     }

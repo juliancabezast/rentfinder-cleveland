@@ -121,7 +121,7 @@ serve(async (req: Request) => {
     // ── Get Telegram credentials ──────────────────────────────────
     const { data: creds } = await supabase
       .from("organization_credentials")
-      .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
+      .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id, telegram_route_bot_token, telegram_route_chat_id")
       .eq("organization_id", organizationId)
       .single();
 
@@ -136,9 +136,10 @@ serve(async (req: Request) => {
     // and chat id are set; otherwise fall back to the general pair atomically
     // (never mix one bot's token with another bot's chat id).
     // LeasingAgent (route bot) token/chat live in organization_settings.
-    let leasingToken: string | undefined;
-    let leasingChat: string | undefined;
-    if (requestedBot === "leasing") {
+    let leasingToken: string | undefined = (creds?.telegram_route_bot_token as string) || undefined;
+    let leasingChat: string | undefined = (creds?.telegram_route_chat_id as string) || undefined;
+    if (requestedBot === "leasing" && (!leasingToken || !leasingChat)) {
+      // Legacy fallback — route creds moved into organization_credentials.
       const { data: rs } = await supabase
         .from("organization_settings").select("key, value")
         .eq("organization_id", organizationId)
@@ -149,8 +150,8 @@ serve(async (req: Request) => {
         catch { return String(v); }
       };
       const m = new Map((rs || []).map((s: any) => [s.key, unwrapVal(s.value)]));
-      leasingToken = m.get("telegram_route_bot_token");
-      leasingChat = m.get("telegram_route_chat_id");
+      leasingToken = leasingToken || m.get("telegram_route_bot_token");
+      leasingChat = leasingChat || m.get("telegram_route_chat_id");
     }
     // Route to the requested bot atomically (never mix one bot's token with
     // another's chat id). Fall back to the general pair if the target isn't set.

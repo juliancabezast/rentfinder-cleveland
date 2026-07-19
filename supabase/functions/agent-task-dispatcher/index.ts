@@ -884,7 +884,7 @@ async function handleNotificationDispatch(
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
       body: JSON.stringify({
         organization_id: task.organization_id,
-        channel: "showings",
+        channel: "funnel",
         event: "hot_lead",
         payload: {
           lead_id: lead.id,

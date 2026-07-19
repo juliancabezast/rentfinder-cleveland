@@ -860,9 +860,10 @@ serve(async (req: Request) => {
       const [{ data: creds }, { data: leasingSettings }] = await Promise.all([
         supabase
           .from("organization_credentials")
-          .select("telegram_bot_token, telegram_chat_id")
+          .select("telegram_bot_token, telegram_chat_id, telegram_route_bot_token, telegram_route_chat_id")
           .eq("organization_id", organization_id)
           .single(),
+        // Legacy fallback only — route creds moved into organization_credentials.
         supabase
           .from("organization_settings")
           .select("key, value")
@@ -879,8 +880,8 @@ serve(async (req: Request) => {
       // "New Showing Booked!" alerts go to LeasingAgent (the showings/scheduling
       // bot), NOT to the Hot Leads bot. Pair token+chat atomically; fall back to
       // the general (RFC) bot only if the route pair is missing.
-      const lTok = lm.get("telegram_route_bot_token");
-      const lChat = lm.get("telegram_route_chat_id");
+      const lTok = creds?.telegram_route_bot_token || lm.get("telegram_route_bot_token");
+      const lChat = creds?.telegram_route_chat_id || lm.get("telegram_route_chat_id");
       const useLeasing = !!lTok && !!lChat;
       const botToken = useLeasing ? lTok : creds?.telegram_bot_token;
       const chatId = useLeasing ? lChat : creds?.telegram_chat_id;
