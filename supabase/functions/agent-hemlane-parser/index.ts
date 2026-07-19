@@ -660,7 +660,21 @@ async function upsertLead(
       }
     }
 
-    return { leadId: existing.id, isNew: false, missingName: false, missingPhone: false };
+    // Signal the shell→contact transition: a name-only (or contactless) lead
+    // that just gained a phone via this email is only NOW actionable, so the
+    // caller fires a 🆕 new-lead alert even though this is technically an UPDATE
+    // (Hemlane's paired-email flow merges the phone in as isNew=false).
+    const gainedPhone = !!phone && !(existing as any).phone;
+    const finalName = (needsNameFix && lead.name)
+      ? lead.name
+      : ((existing as any).full_name || lead.name || null);
+    return {
+      leadId: existing.id, isNew: false, missingName: false, missingPhone: false,
+      gainedPhone,
+      finalName,
+      finalPhone: phone || (existing as any).phone || null,
+      finalProperty: lead.property || null,
+    };
   };
 
   // ── Dup check 1: by phone ──────────────────────────────────────────
@@ -1006,7 +1020,13 @@ async function upsertLead(
     }
   }
 
-  return { leadId, isNew: true, missingName: !lead.name, missingPhone: !phone };
+  return {
+    leadId, isNew: true, missingName: !lead.name, missingPhone: !phone,
+    gainedPhone: false,
+    finalName: fullName,
+    finalPhone: phone || null,
+    finalProperty: lead.property || null,
+  };
 }
 
 // ── Save lead note (handles missing created_by gracefully) ───────────
@@ -2092,12 +2112,40 @@ serve(async (req: Request) => {
 
     const result = await upsertLead(supabase, organizationId, leadInfo, emailId);
 
+    // Fire a 🆕 new-lead alert for a genuinely new insert OR a name-only shell
+    // that just gained a phone. Hemlane sends each inquiry as TWO emails ~20s
+    // apart (name-only "Rental Message" → shell, then "New inquiry" with the
+    // phone), so the actionable moment lands as an UPDATE (isNew=false) — gating
+    // only on isNew silently dropped every paired lead's alert. telegram-notify
+    // skips any phone-less payload, so a still-contactless lead makes no card
+    // until its phone arrives. Best-effort; never blocks parsing.
+    const notifyNewLead = async (r: any, li: any) => {
+      if (!r || !(r.isNew || r.gainedPhone)) return;
+      const name = (r.isNew ? (li.name || r.finalName) : (r.finalName || li.name)) || "Hemlane lead";
+      const ph = r.finalPhone || (li.phone ? formatPhoneE164(li.phone) : null);
+      const interest = li.property || r.finalProperty || null;
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+          body: JSON.stringify({
+            channel: "report", event: "new_lead",
+            payload: {
+              name,
+              source: `Hemlane${li.listingSource ? ` (${li.listingSource})` : ""}`,
+              phone: ph, interest,
+            },
+          }),
+        });
+      } catch (_) { /* best-effort */ }
+    };
+
     // Multi-lead email that slipped into the single path: process the rest (F11)
     let extrasProcessed = 0;
     for (const extra of extraLeads) {
       try {
         const r = await upsertLead(supabase, organizationId, extra, emailId);
-        if (r) extrasProcessed++;
+        if (r) { extrasProcessed++; await notifyNewLead(r, extra); }
       } catch (e) {
         console.error(`Esther: extra lead failed: ${(e as Error).message}`);
       }
@@ -2115,24 +2163,9 @@ serve(async (req: Request) => {
     const contactId = formattedPhone || leadInfo.email || "unknown";
     const followUpActions: string[] = [];
 
-    // ── Real-time new-lead alert (RFC Report bot) — single-email path only.
-    // Digest leads are summarized in one batch message instead (never per-lead). ──
-    if (result.isNew) {
-      try {
-        await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
-          body: JSON.stringify({
-            channel: "report", event: "new_lead",
-            payload: {
-              name: leadInfo.name || "Hemlane lead",
-              source: `Hemlane${leadInfo.listingSource ? ` (${leadInfo.listingSource})` : ""}`,
-              phone: formattedPhone, interest: leadInfo.property,
-            },
-          }),
-        });
-      } catch (_) { /* ignore */ }
-    }
+    // ── Real-time new-lead alert (single-email path). Digest leads are
+    // summarized in one batch message instead (never per-lead). ──
+    await notifyNewLead(result, leadInfo);
 
     // ── Schedule follow-up when data is incomplete ────────────────────
     if (result.isNew && (result.missingName || result.missingPhone)) {

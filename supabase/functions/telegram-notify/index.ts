@@ -134,7 +134,14 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
     const body = (await req.json().catch(() => ({}))) as NotifyBody;
 
-    const channel = body.channel === "showings" ? "showings" : "report";
+    // ALL per-lead alerts (new + hot + reminders) go to the Hot Leads bot — the
+    // RFC report bot must NOT receive individual leads (user request). Force the
+    // showings channel for these events regardless of the caller's `channel`
+    // (the new_lead senders still pass channel:"report"). Digests/reports keep
+    // their channel.
+    const LEAD_EVENTS = new Set(["new_lead", "hot_lead", "lead_reminder"]);
+    const channel = (body.channel === "showings" || LEAD_EVENTS.has(String(body.event || "")))
+      ? "showings" : "report";
 
     // Lead alerts only fire when a phone is on file — a name-only lead (e.g. the
     // first half of a Hemlane paired email) is not actionable. Hot-lead alerts

@@ -484,7 +484,10 @@ serve(async (req) => {
       .filter((s) => s.agent_report && String(s.agent_report).trim())
       .map((s) => ({
         id: s.id,
-        date: (s.completed_at as string | null) || (s.scheduled_at as string | null),
+        // Date the comment by when the showing actually happened (scheduled_at),
+        // not completed_at — a report filed days later sets completed_at=now(),
+        // which would mis-date + mis-sort the comment under the report day.
+        date: (s.scheduled_at as string | null) || (s.completed_at as string | null),
         interest_level: s.prospect_interest_level || null,
         unit_number: unitNumberById.get(s.property_id) || null,
         comment: redactPII(String(s.agent_report).trim()),

@@ -223,7 +223,7 @@ async function handleText(ctx: Ctx, rawText: string) {
     if (session.step === "sr_text") { await handleShowingReportText(ctx, session, raw); return; }
     if (session.step === "sr_photo") { await send(ctx, "📷 Enviá una <b>foto</b>, o tocá <b>Volver</b>."); return; }
     // Button-only steps: nudge instead of dumping the agenda on a stray text.
-    if (["choose_day", "choose_time", "confirm", "offer_schedule", "leasing_lang", "sr_pick", "sr_review"].includes(session.step)) {
+    if (["choose_day", "choose_time", "confirm", "offer_schedule", "leasing_lang", "sr_pick", "sr_attend", "sr_review"].includes(session.step)) {
       await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
       return;
     }
@@ -264,6 +264,8 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data === "m:lr")  { await answer(); await startLeasingReport(ctx, messageId); return; }
     if (data === "m:sr")  { await answer(); await startShowingReport(ctx, messageId); return; }
     if (data.startsWith("srx:")) { await answer(); await chooseShowingToReport(ctx, messageId, data.slice(4)); return; }
+    if (data === "sra:show") { await answer(); await setReportAttendance(ctx, messageId, true); return; }
+    if (data === "sra:no")   { await answer(); await setReportAttendance(ctx, messageId, false); return; }
     if (data === "sre")   { await answer("Enriqueciendo…"); await enrichReport(ctx, messageId); return; }
     if (data === "srp")   { await answer(); await askForPhoto(ctx, messageId); return; }
     if (data === "srb")   { await answer(); await showReportReview(ctx, messageId); return; }
@@ -1345,7 +1347,7 @@ async function startShowingReport(ctx: Ctx, messageId: number | undefined) {
   const nowIso = new Date().toISOString();
   const { data: shows } = await ctx.supabase
     .from("showings")
-    .select(`id, scheduled_at, status,
+    .select(`id, scheduled_at, status, lead_id,
       leads:lead_id ( full_name, first_name, last_name ),
       properties:property_id ( address, unit_number, city )`)
     .eq("organization_id", ctx.organizationId)
@@ -1357,26 +1359,49 @@ async function startShowingReport(ctx: Ctx, messageId: number | undefined) {
     const l = s.leads || {}; const p = s.properties || {};
     return {
       id: s.id,
+      lead_id: s.lead_id,
       name: l.full_name || [l.first_name, l.last_name].filter(Boolean).join(" ") || "Lead",
       addr: p.address ? `${p.address}${p.unit_number ? ` #${p.unit_number}` : ""}${p.city ? `, ${p.city}` : ""}` : "—",
-      when: `${new Date(s.scheduled_at).toLocaleDateString("en-US", { timeZone: NY, weekday: "short", month: "short", day: "numeric" })} ${new Date(s.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true })}`,
+      when: `${new Date(s.scheduled_at).toLocaleDateString("en-US", { timeZone: NY, month: "short", day: "numeric" })} ${new Date(s.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true })}`,
     };
   });
   if (!list.length) { await editOrSend(ctx, messageId, "📭 No hay showings previos para reportar."); return; }
   await setSession(ctx, "sr_pick", { sr_list: list });
-  // Carry the stable showing id (not a positional index) — the list is
-  // regenerated on every re-open, so an index could bind the wrong showing.
-  const rows = list.slice(0, 8).map((s: any) => [{ text: `${s.name} · ${s.when}`.slice(0, 62), callback_data: `srx:${s.id}` }]);
+  // A button chip truncates the address, so full details go in the TEXT and the
+  // buttons are just compact numbers (rows of 4). Address is always readable.
+  const nums = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣"];
+  const shown = list.slice(0, 8);
+  const lines = ["📝 <b>Reporte de showing</b> — elegí cuál (por número):"];
+  const rows: any[][] = [];
+  let btnRow: any[] = [];
+  shown.forEach((s: any, i: number) => {
+    lines.push("", `${nums[i]} 🏠 <b>${escapeHtml(s.addr)}</b>`, `      👤 ${escapeHtml(s.name)} · 📅 ${escapeHtml(s.when)}`);
+    btnRow.push({ text: nums[i], callback_data: `srx:${s.id}` });
+    if (btnRow.length === 4) { rows.push(btnRow); btnRow = []; }
+  });
+  if (btnRow.length) rows.push(btnRow);
   rows.push([{ text: "❌ Cancelar", callback_data: "m:x" }]);
-  await editOrSend(ctx, messageId, "📝 <b>Reporte de showing</b>\nElegí el showing a reportar:", rows);
+  await editOrSend(ctx, messageId, lines.join("\n"), rows);
 }
 async function chooseShowingToReport(ctx: Ctx, messageId: number | undefined, showingId: string) {
   const session = await getSession(ctx);
   const s = (session?.data?.sr_list || []).find((x: any) => x.id === showingId);
   if (!s) { await editOrSend(ctx, messageId, "⌛ Esa lista expiró. Mandá <b>menu</b> y probá de nuevo."); return; }
-  await setSession(ctx, "sr_text", { ...session.data, sr_id: s.id, sr_name: s.name, sr_addr: s.addr, sr_report: undefined, sr_photo: undefined });
+  await setSession(ctx, "sr_attend", { ...session.data, sr_id: s.id, sr_lead_id: s.lead_id, sr_name: s.name, sr_addr: s.addr, sr_report: undefined, sr_photo: undefined, sr_status: undefined });
   await editOrSend(ctx, messageId,
-    `📝 <b>${escapeHtml(s.name)}</b>\n🏠 ${escapeHtml(s.addr)}\n\n✍️ Escribí el reporte del showing (cómo estuvo, interés del prospecto, objeciones, próximos pasos…).`,
+    `📝 <b>${escapeHtml(s.name)}</b>\n🏠 ${escapeHtml(s.addr)}\n\n¿El prospecto <b>asistió</b> al showing?`,
+    [[{ text: "✅ Sí, asistió", callback_data: "sra:show" }], [{ text: "❌ No asistió (no-show)", callback_data: "sra:no" }], [{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+}
+async function setReportAttendance(ctx: Ctx, messageId: number | undefined, attended: boolean) {
+  const session = await getSession(ctx);
+  const d = session?.data || {};
+  if (!d.sr_id) { await editOrSend(ctx, messageId, "⌛ Se perdió la selección. Mandá <b>menu</b>."); return; }
+  await setSession(ctx, "sr_text", { ...d, sr_status: attended ? "completed" : "no_show" });
+  const prompt = attended
+    ? "✍️ Escribí cómo estuvo (interés del prospecto, objeciones, próximos pasos…)."
+    : "✍️ Escribí qué pasó (no-show, intentos de contacto, próximos pasos…).";
+  await editOrSend(ctx, messageId,
+    `📝 <b>${escapeHtml(d.sr_name)}</b> · ${attended ? "✅ Asistió" : "❌ No asistió"}\n\n${prompt}`,
     [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
 }
 async function handleShowingReportText(ctx: Ctx, session: Session, raw: string) {
@@ -1398,8 +1423,9 @@ async function showReportReview(ctx: Ctx, messageId: number | undefined) {
     [{ text: "💾 Guardar en el showing", callback_data: "srs" }],
     [{ text: "❌ Cancelar", callback_data: "m:x" }],
   ];
+  const attend = d.sr_status === "completed" ? "\n✅ Asistió" : d.sr_status === "no_show" ? "\n❌ No asistió (no-show)" : "";
   await editOrSend(ctx, messageId,
-    `📝 <b>Reporte — ${escapeHtml(d.sr_name)}</b>\n🏠 ${escapeHtml(d.sr_addr)}${d.sr_photo ? "\n📷 Foto adjunta ✓" : ""}\n\n${escapeHtml(d.sr_report)}`, rows);
+    `📝 <b>Reporte — ${escapeHtml(d.sr_name)}</b>\n🏠 ${escapeHtml(d.sr_addr)}${attend}${d.sr_photo ? "\n📷 Foto adjunta ✓" : ""}\n\n${escapeHtml(d.sr_report)}`, rows);
 }
 async function enrichReport(ctx: Ctx, messageId: number | undefined) {
   const session = await getSession(ctx);
@@ -1462,12 +1488,23 @@ async function saveShowingReport(ctx: Ctx, messageId: number | undefined) {
   if (!d.sr_id || !d.sr_report) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte. Mandá <b>menu</b>."); return; }
   const upd: Record<string, any> = { agent_report: d.sr_report };
   if (d.sr_photo) upd.agent_report_photo_url = d.sr_photo;
+  // Flip the showing status from 'scheduled' so it stops showing as "agendado"
+  // in the leasing tracker. Attended → completed (+ completed_at); else no_show.
+  if (d.sr_status === "completed") { upd.status = "completed"; upd.completed_at = new Date().toISOString(); }
+  else if (d.sr_status === "no_show") { upd.status = "no_show"; }
   const { error } = await ctx.supabase.from("showings").update(upd)
     .eq("organization_id", ctx.organizationId).eq("id", d.sr_id);
   if (error) { await editOrSend(ctx, messageId, `❌ No pude guardar: ${escapeHtml(error.message)}`); return; }
+  // When attended, advance the lead lifecycle out of showing_scheduled → showed.
+  if (d.sr_status === "completed") {
+    await ctx.supabase.from("leads").update({ status: "showed" })
+      .eq("organization_id", ctx.organizationId).eq("id", d.sr_lead_id ?? "00000000-0000-0000-0000-000000000000")
+      .eq("status", "showing_scheduled");
+  }
   await clearSession(ctx);
+  const statusLine = d.sr_status === "completed" ? " · marcado ✅ asistió" : d.sr_status === "no_show" ? " · marcado ❌ no-show" : "";
   await editOrSend(ctx, messageId,
-    `✅ <b>Reporte guardado</b> en el showing de ${escapeHtml(d.sr_name)}.${d.sr_photo ? "\n📷 Con foto." : ""}`,
+    `✅ <b>Reporte guardado</b> en el showing de ${escapeHtml(d.sr_name)}${statusLine}.${d.sr_photo ? "\n📷 Con foto." : ""}`,
     [[{ text: "📝 Otro reporte", callback_data: "m:sr" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
 }
 

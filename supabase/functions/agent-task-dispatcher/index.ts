@@ -836,20 +836,84 @@ async function handlePostShowing(
 }
 
 async function handleNotificationDispatch(
-  _supabase: SupabaseClient,
+  supabase: SupabaseClient,
   task: AgentTask
 ): Promise<string> {
-  // notification_dispatcher tasks (e.g. "human_review_needed" from the conversion
-  // predictor) are NOT wired to a real delivery channel yet: the standalone
-  // agent-notification-dispatcher function has no caller/cron and its
-  // NOTIFICATION_ROUTING does not cover the notification_type these tasks use.
-  // Until that routing is built, we throw so the task is marked failed rather
-  // than silently "completed" — which previously hid the gap (2,200+ tasks
-  // marked done without ever notifying anyone). Same precedent as handleCampaign.
+  const ctx = (task.context as Record<string, unknown>) || {};
+  const ntype = String(ctx.notification_type ?? "unknown");
+
+  // ── priority_lead → push a 🔥 "call now" card to the Hot Leads (showings) bot.
+  // These tasks are enqueued by the `lead_became_priority` DB trigger. The
+  // formatter + delivery live in telegram-notify (event:"hot_lead"); here we
+  // just gather the lead's current contact + top tagged property and post it.
+  if (ntype === "priority_lead" || ntype === "hot_lead") {
+    if (!task.lead_id) return "skipped: priority_lead task has no lead_id";
+
+    const { data: lead } = await supabase
+      .from("leads")
+      .select("id, full_name, phone, lead_score, source, has_voucher, voucher_amount, move_in_date")
+      .eq("id", task.lead_id)
+      .maybeSingle();
+    if (!lead) return "skipped: lead not found";
+
+    const phone = String((lead as Record<string, unknown>).phone ?? "").trim();
+    // A hot lead is a call-now opportunity — no phone, nothing to call. Skip
+    // gracefully (return, don't throw) so the task closes without retry churn.
+    if (!phone) return "skipped: hot lead has no phone (not callable)";
+
+    // Top (most-recent) tagged property; count the rest for the "+N more" hint.
+    let property: string | null = null;
+    let moreCount = 0;
+    const { data: tags } = await supabase
+      .from("lead_property_interests")
+      .select("created_at, properties(address, unit_number)")
+      .eq("lead_id", lead.id)
+      .order("created_at", { ascending: false });
+    if (tags && tags.length) {
+      const top = (tags[0] as Record<string, unknown>).properties as
+        | { address?: string; unit_number?: string }
+        | null;
+      if (top) property = [top.address, top.unit_number].filter(Boolean).join(", ") || null;
+      moreCount = Math.max(0, tags.length - 1);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({
+        organization_id: task.organization_id,
+        channel: "showings",
+        event: "hot_lead",
+        payload: {
+          lead_id: lead.id,
+          name: (lead as Record<string, unknown>).full_name || ctx.lead_name || "Lead",
+          phone,
+          property,
+          more_count: moreCount,
+          score: (lead as Record<string, unknown>).lead_score ?? ctx.lead_score ?? "",
+          source: (lead as Record<string, unknown>).source ?? null,
+          has_voucher: !!(lead as Record<string, unknown>).has_voucher,
+          voucher_amount: (lead as Record<string, unknown>).voucher_amount ?? null,
+          move_in: (lead as Record<string, unknown>).move_in_date ?? null,
+        },
+      }),
+    });
+    if (!resp.ok) {
+      throw new Error(`hot_lead telegram-notify HTTP ${resp.status}: ${(await resp.text().catch(() => "")).slice(0, 200)}`);
+    }
+    const r = (await resp.json().catch(() => ({}))) as Record<string, unknown>;
+    if (r?.ok === false) return `hot_lead not sent (${r.skipped || r.error || "unknown"})`;
+    return `Hot-lead alert sent for ${(lead as Record<string, unknown>).full_name || lead.id}`;
+  }
+
+  // Other notification_types (e.g. "human_review_needed" from the conversion
+  // predictor) are still NOT wired to a delivery channel. Throw so the task is
+  // marked failed rather than silently "completed" — which previously hid the
+  // gap (2,200+ tasks marked done without ever notifying anyone).
   const err = new Error(
-    `Notification dispatch not implemented for notification_type="${
-      (task.context as Record<string, unknown>)?.notification_type ?? "unknown"
-    }". Wire agent-notification-dispatcher (routing + invocation) before enabling.`,
+    `Notification dispatch not implemented for notification_type="${ntype}". Wire agent-notification-dispatcher (routing + invocation) before enabling.`,
   );
   console.error(err.message, { taskId: task.id, context: task.context });
   throw err;
