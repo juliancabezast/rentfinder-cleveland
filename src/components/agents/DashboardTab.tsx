@@ -284,20 +284,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
     refetchInterval: 30_000,
   });
 
-  // Real-time complete leads today count
-  const { data: completeLeadsToday } = useQuery({
-    queryKey: ["complete-leads-today-count", orgId],
-    queryFn: async () => {
-      if (!orgId) return 0;
-      const { data, error } = await supabase.rpc("count_complete_leads_today", {
-        p_organization_id: orgId,
-      });
-      if (error) return 0;
-      return data || 0;
-    },
-    enabled: !!orgId,
-    refetchInterval: 30_000,
-  });
+  // "Complete leads" sub-count removed 2026-07-19 (unified totals — the
+  // headline number is ALL leads; incomplete triage lives in Nurturing).
 
   // Real-time errors 24h count
   const { data: errorsRealtime } = useQuery({
@@ -667,9 +655,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ stats }) => {
           </div>
           <p className="text-xl font-bold text-purple-600">{newLeadsToday}</p>
           <p className="text-xs text-muted-foreground">Leads Today</p>
-          {completeLeadsToday != null && completeLeadsToday < newLeadsToday && (
-            <p className="text-[10px] text-muted-foreground">{completeLeadsToday} complete</p>
-          )}
         </Card>
       </div>
 

@@ -124,7 +124,7 @@ serve(async (req) => {
       for (let from = 0; from < 200000; from += PAGE) {
         const { data, error } = await supabase
           .from("leads").select(LEAD_COLS)
-          .eq("organization_id", organization_id).eq("is_demo", false)
+          .eq("organization_id", organization_id).not("is_demo", "is", true)
           .order("created_at", { ascending: true })
           .range(from, from + PAGE - 1);
         if (error) throw error;

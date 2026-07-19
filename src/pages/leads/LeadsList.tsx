@@ -238,25 +238,12 @@ const LeadsList: React.FC = () => {
     const in20Days = addDays(today, 20);
 
     try {
-      // Parallel count queries
-      // Base filter: only complete leads with clean data
+      // Parallel count queries — over ALL org leads (unified totals, 2026-07-19)
       const completeLeadBase = () =>
         supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId)
-          .not("full_name", "is", null)
-          .not("phone", "is", null)
-          .not("email", "is", null)
-          .not("full_name", "ilike", "%.com%")
-          .not("full_name", "ilike", "%http%")
-          .not("full_name", "ilike", "%@%")
-          .not("full_name", "ilike", "%comments%")
-          .not("full_name", "ilike", "%unsubscribe%")
-          .not("full_name", "ilike", "%click here%")
-          .not("full_name", "ilike", "%mailto:%")
-          .not("full_name", "ilike", "%subject:%")
-          .not("full_name", "ilike", "%reply%");
+          .eq("organization_id", orgId);
 
       const [priorityRes, humanRes, moveInRes, section8Res, showingsRes] = await Promise.all([
         // Priority count
@@ -352,20 +339,11 @@ const LeadsList: React.FC = () => {
         `,
           { count: "exact" }
         )
-        .eq("organization_id", userRecord.organization_id)
-        .not("full_name", "is", null)
-        .not("phone", "is", null)
-        .not("email", "is", null)
-        // Exclude leads with junk/parsing-artifact data (shown in For Review tab)
-        .not("full_name", "ilike", "%.com%")
-        .not("full_name", "ilike", "%http%")
-        .not("full_name", "ilike", "%@%")
-        .not("full_name", "ilike", "%comments%")
-        .not("full_name", "ilike", "%unsubscribe%")
-        .not("full_name", "ilike", "%click here%")
-        .not("full_name", "ilike", "%mailto:%")
-        .not("full_name", "ilike", "%subject:%")
-        .not("full_name", "ilike", "%reply%");
+        .eq("organization_id", userRecord.organization_id);
+      // 2026-07-19 (owner decision): the list counts ALL leads — the old
+      // completeness/junk filter hid 665 real leads and made this page disagree
+      // with every other count in the system. Incomplete leads are still
+      // triaged in Nurturing.
 
       // Apply dropdown filters
       if (statusFilter !== "all") {

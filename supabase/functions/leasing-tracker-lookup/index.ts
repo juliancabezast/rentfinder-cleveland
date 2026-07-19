@@ -184,7 +184,7 @@ serve(async (req) => {
     // they are excluded here and every mode inherits the exclusion.
     const { data: allProps, error: propErr } = await supabase
       .from("properties").select(propCols)
-      .eq("organization_id", orgId).eq("is_demo", false)
+      .eq("organization_id", orgId).not("is_demo", "is", true)
       .neq("status", "inactive");
     if (propErr) throw propErr;
     const catalog: Prop[] = allProps || [];
@@ -403,7 +403,7 @@ serve(async (req) => {
         .from("leads").select("status, source, created_at")
         .eq("organization_id", orgId)
         .in("id", leadIds.slice(i, i + CHUNK))
-        .eq("is_demo", false)
+        .not("is_demo", "is", true)
         .not("status", "in", `(${HIDDEN_LEAD_STATUSES.join(",")})`)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -454,7 +454,7 @@ serve(async (req) => {
       )
       .eq("organization_id", orgId)
       .in("property_id", unitIds)
-      .eq("is_demo", false)
+      .not("is_demo", "is", true)
       .order("scheduled_at", { ascending: false });
     const showings = showingsRaw || [];
     const unitNumberById = new Map(units.map((u) => [u.id, u.unit_number]));
@@ -543,7 +543,7 @@ serve(async (req) => {
       const leadCount = () =>
         supabase.from("leads")
           .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId).eq("is_demo", false);
+          .eq("organization_id", orgId).not("is_demo", "is", true);
       const d7 = new Date(nowMs - 7 * 86400000).toISOString();
       const d14 = new Date(nowMs - 14 * 86400000).toISOString();
       const [tot, wk, prev] = await Promise.all([

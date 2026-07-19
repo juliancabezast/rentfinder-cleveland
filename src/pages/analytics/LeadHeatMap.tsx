@@ -100,7 +100,7 @@ export const LeadHeatMap: React.FC = () => {
               "id, interested_zip_codes, budget_min, budget_max, has_voucher, status, voucher_amount, created_at"
             )
             .eq("organization_id", userRecord.organization_id)
-            .eq("is_demo", false)
+            .not("is_demo", "is", true)
             .order("id", { ascending: true })
             .range(from, from + PAGE - 1);
           if (error) throw error;
@@ -119,7 +119,7 @@ export const LeadHeatMap: React.FC = () => {
             .from("showings")
             .select("id, property_id, status, prospect_interest_level")
             .eq("organization_id", userRecord.organization_id)
-            .eq("is_demo", false)
+            .not("is_demo", "is", true)
             .order("id", { ascending: true })
             .range(from, from + PAGE - 1);
           if (error) throw error;

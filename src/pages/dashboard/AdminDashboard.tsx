@@ -170,26 +170,15 @@ export const AdminDashboard = () => {
   // toggle strip on the dashboard body.
   const statsPeriod: StatsPeriod = prefs.statsPeriod ?? 'total';
 
-  // Helper: base query for clean leads (complete + no junk names).
-  // is_demo guard future-proofs against seeded demo data (DemoDataTab).
+  // Helper: base count over ALL leads (unified totals, 2026-07-19 — the old
+  // completeness/junk filter made dashboard numbers disagree with the rest of
+  // the system). is_demo guard future-proofs against seeded demo data.
   const cleanLeadCount = () =>
     supabase
       .from("leads")
       .select("id", { count: "exact", head: true })
       .eq("organization_id", userRecord?.organization_id || "")
-      .not("is_demo", "is", true)
-      .not("full_name", "is", null)
-      .not("phone", "is", null)
-      .not("email", "is", null)
-      .not("full_name", "ilike", "%.com%")
-      .not("full_name", "ilike", "%http%")
-      .not("full_name", "ilike", "%@%")
-      .not("full_name", "ilike", "%comments%")
-      .not("full_name", "ilike", "%unsubscribe%")
-      .not("full_name", "ilike", "%click here%")
-      .not("full_name", "ilike", "%mailto:%")
-      .not("full_name", "ilike", "%subject:%")
-      .not("full_name", "ilike", "%reply%");
+      .not("is_demo", "is", true);
 
   // ── Summary + list data (runs once) ──
   useEffect(() => {

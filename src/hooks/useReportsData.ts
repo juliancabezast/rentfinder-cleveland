@@ -149,21 +149,9 @@ export function useReportsData(dateRange: DateRange | undefined) {
         return all;
       };
 
-      // Base lead filters (exclude incomplete / junk data — matches LeadsList.tsx)
-      const applyLeadFilters = (query: any) =>
-        query
-          .not("full_name", "is", null)
-          .not("phone", "is", null)
-          .not("email", "is", null)
-          .not("full_name", "ilike", "%.com%")
-          .not("full_name", "ilike", "%http%")
-          .not("full_name", "ilike", "%@%")
-          .not("full_name", "ilike", "%comments%")
-          .not("full_name", "ilike", "%unsubscribe%")
-          .not("full_name", "ilike", "%click here%")
-          .not("full_name", "ilike", "%mailto:%")
-          .not("full_name", "ilike", "%subject:%")
-          .not("full_name", "ilike", "%reply%");
+      // Unified totals (2026-07-19): reports count ALL leads in range — the old
+      // completeness filter made Reports disagree with the rest of the system.
+      const applyLeadFilters = (query: any) => query;
 
       // Parallel fetch all data
       const [

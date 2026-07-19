@@ -245,11 +245,23 @@ export function useDashboardAnalytics() {
           .select("id, address, rent_price, status, bedrooms")
           .eq("organization_id", orgId)
           .limit(1000),
-        supabase
-          .from("leads")
-          .select("id, status, source, lead_score, budget_max, created_at")
-          .eq("organization_id", orgId)
-          .limit(5000),
+        // Paginated full fetch — a .limit(5000) here silently undercounted the
+        // 18k-lead org (activeLeads KPI capped at 5,000). Unified totals 2026-07-19.
+        (async () => {
+          const all: unknown[] = [];
+          const PAGE = 1000;
+          for (let from = 0; from < 100000; from += PAGE) {
+            const { data: page } = await supabase
+              .from("leads")
+              .select("id, status, source, lead_score, budget_max, created_at")
+              .eq("organization_id", orgId)
+              .order("id", { ascending: true })
+              .range(from, from + PAGE - 1);
+            all.push(...(page || []));
+            if (!page || page.length < PAGE) break;
+          }
+          return { data: all };
+        })(),
         supabase
           .from("showings")
           .select("id, lead_id, property_id, status")

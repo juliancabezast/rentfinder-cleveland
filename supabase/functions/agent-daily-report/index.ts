@@ -279,7 +279,7 @@ serve(async (req: Request) => {
         // Source breakdown grouped in the DB (raw selects cap at 1000 rows silently).
         supabase.rpc("report_source_breakdown", { p_org: organizationId, p_since: ydayStartUtc, p_until: todayStartUtc, p_limit: 4 }),
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-          .eq("is_demo", false).gte("lead_score", 50).gte("created_at", ydayStartUtc).lt("created_at", todayStartUtc),
+          .not("is_demo", "is", true).gte("lead_score", 50).gte("created_at", ydayStartUtc).lt("created_at", todayStartUtc),
         supabase.from("showings").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
           .eq("status", "completed").gte("scheduled_at", ydayStartUtc).lt("scheduled_at", todayStartUtc),
         supabase.from("showings").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
@@ -289,15 +289,15 @@ serve(async (req: Request) => {
         supabase.from("communications").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
           .eq("channel", "sms").eq("direction", "outbound").gte("sent_at", ydayStartUtc).lt("sent_at", todayStartUtc),
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-          .eq("is_demo", false).gte("converted_at", ydayStartUtc).lt("converted_at", todayStartUtc),
+          .not("is_demo", "is", true).gte("converted_at", ydayStartUtc).lt("converted_at", todayStartUtc),
         supabase.rpc("report_costs_summary", { p_org: organizationId, p_since: ydayStartUtc, p_until: todayStartUtc }),
         // Needs-attention, bounded to actionable (same scoping as the on-demand report).
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-          .eq("is_demo", false).gte("lead_score", 50).not("status", "in", "(lost,converted)")
+          .not("is_demo", "is", true).gte("lead_score", 50).not("status", "in", "(lost,converted)")
           .or(`last_contact_at.is.null,last_contact_at.lt.${new Date(now.getTime() - 86400000).toISOString()}`)
           .gte("created_at", new Date(now.getTime() - 7 * 86400000).toISOString()),
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-          .eq("is_demo", false).eq("status", "new")
+          .not("is_demo", "is", true).eq("status", "new")
           .gte("created_at", new Date(now.getTime() - 2 * 86400000).toISOString()),
       ]);
 
@@ -404,10 +404,10 @@ serve(async (req: Request) => {
       todayEmailsRes, todaySmsRes, todayCostsRes] = await Promise.all([
       // Exact headline count (raw row selects cap at 1000 silently).
       supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-        .eq("is_demo", false).gte("created_at", todayStartUtc),
+        .not("is_demo", "is", true).gte("created_at", todayStartUtc),
       supabase.rpc("report_source_breakdown", { p_org: organizationId, p_since: todayStartUtc, p_until: tomorrowStartUtc, p_limit: 4 }),
       supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-        .eq("is_demo", false).gte("lead_score", 50).gte("created_at", todayStartUtc),
+        .not("is_demo", "is", true).gte("lead_score", 50).gte("created_at", todayStartUtc),
       // Hemlane digests processed today — the parser logs one row per digest email.
       supabase.from("system_logs").select("details").eq("organization_id", organizationId)
         .eq("event_type", "esther_digest_processed").gte("created_at", todayStartUtc).limit(100),
