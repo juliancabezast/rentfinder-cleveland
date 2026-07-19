@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { format, isBefore, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { CalendarIcon, Search, Loader2, UserPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import { getTimezoneForCity, buildScheduledAt } from "@/lib/cityTimezone";
+import { getTimezoneForCity, buildScheduledAt, todayInTimezone } from "@/lib/cityTimezone";
 
 import {
   Dialog,
@@ -43,6 +43,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { sendNotificationEmail } from "@/lib/notificationService";
 import { upsertLeadTag } from "@/lib/leadTags";
+import { searchLeads, leadDisplayName, type LeadSearchResult } from "@/lib/leadSearch";
 import {
   renderEmailHtml,
   DEFAULT_CONFIGS,
@@ -57,12 +58,7 @@ interface ScheduleShowingDialogProps {
   preselectedLeadName?: string;
 }
 
-interface LeadOption {
-  id: string;
-  full_name: string | null;
-  phone: string;
-  email: string | null;
-}
+type LeadOption = LeadSearchResult;
 
 interface PropertyOption {
   id: string;
@@ -114,10 +110,15 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
   const { getSetting } = useOrganizationSettings();
 
   // Options
-  const [leads, setLeads] = useState<LeadOption[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [agents, setAgents] = useState<AgentOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
+
+  // Lead search — server-side (the org has too many leads to load client-side)
+  const [leadResults, setLeadResults] = useState<LeadOption[]>([]);
+  const [leadQuery, setLeadQuery] = useState("");
+  const [searchingLeads, setSearchingLeads] = useState(false);
+  const [selectedLeadObj, setSelectedLeadObj] = useState<LeadOption | null>(null);
 
   // Available dates & slots from DB
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
@@ -155,6 +156,14 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       fetchOptions();
       if (preselectedLeadId) {
         setSelectedLeadId(preselectedLeadId);
+        // Load the preselected lead's details for the confirmation email / Telegram
+        // (with server-side search we no longer hold the whole lead list in memory).
+        supabase
+          .from("leads")
+          .select("id, first_name, last_name, full_name, phone, email")
+          .eq("id", preselectedLeadId)
+          .maybeSingle()
+          .then(({ data }) => { if (data) setSelectedLeadObj(data as LeadOption); });
       }
     }
   }, [open, userRecord?.organization_id, preselectedLeadId]);
@@ -181,23 +190,36 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     }
   }, [selectedPropertyId, selectedDate]);
 
+  // Debounced server-side lead search — replaces loading the entire lead table
+  // and filtering client-side (which silently dropped the alphabetical tail).
+  useEffect(() => {
+    if (!open || !userRecord?.organization_id) return;
+    const org = userRecord.organization_id;
+    if (leadQuery.trim().length < 2) {
+      setLeadResults([]);
+      setSearchingLeads(false);
+      return;
+    }
+    setSearchingLeads(true);
+    const handle = setTimeout(async () => {
+      try {
+        setLeadResults(await searchLeads(org, leadQuery));
+      } catch (err) {
+        console.error("Lead search failed:", err);
+        setLeadResults([]);
+      } finally {
+        setSearchingLeads(false);
+      }
+    }, 200);
+    return () => clearTimeout(handle);
+  }, [leadQuery, open, userRecord?.organization_id]);
+
   const fetchOptions = async () => {
     if (!userRecord?.organization_id) return;
 
     setLoadingOptions(true);
     try {
-      const [leadsRes, propertiesRes, agentsRes] = await Promise.all([
-        // Bump explicit limit well past the org lead count — PostgREST's
-        // default cap is 1000, which silently dropped Virginia (alphabetical
-        // tail) and made her search return "No leads found". 10000 covers
-        // multi-thousand-lead orgs without paying a server-side search
-        // refactor right now.
-        supabase
-          .from("leads")
-          .select("id, full_name, phone, email")
-          .eq("organization_id", userRecord.organization_id)
-          .order("full_name")
-          .limit(10000),
+      const [propertiesRes, agentsRes] = await Promise.all([
         supabase
           .from("properties")
           .select("id, address, unit_number, rent_price, city")
@@ -213,7 +235,6 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           .order("full_name"),
       ]);
 
-      setLeads(leadsRes.data || []);
       setProperties(propertiesRes.data || []);
       setAgents(agentsRes.data || []);
     } catch (error) {
@@ -228,7 +249,9 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
     setLoadingDates(true);
     try {
-      const today = format(new Date(), "yyyy-MM-dd");
+      // "today" must be the property's calendar day (Cleveland), not the browser's.
+      const propTz = getTimezoneForCity(properties.find((p) => p.id === selectedPropertyId)?.city);
+      const today = todayInTimezone(propTz);
       const { data, error } = await supabase
         .from("showing_available_slots")
         .select("slot_date")
@@ -316,7 +339,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           source: "manual",
           status: "new",
         })
-        .select("id, full_name, phone, email")
+        .select("id, first_name, last_name, full_name, phone, email")
         .single();
 
       if (error) throw error;
@@ -331,8 +354,9 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         }
       }
 
-      // Add to leads list and select it
-      setLeads((prev) => [data, ...prev]);
+      // Select the freshly-created lead (server search will also find it later).
+      setSelectedLeadObj(data);
+      setLeadResults([data]);
       setSelectedLeadId(data.id);
       setShowCreateLead(false);
       setNewLeadName("");
@@ -350,7 +374,10 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
   const resetForm = () => {
     if (!preselectedLeadId) {
       setSelectedLeadId("");
+      setSelectedLeadObj(null);
     }
+    setLeadQuery("");
+    setLeadResults([]);
     setSelectedPropertyId("");
     setSelectedDate(undefined);
     setSelectedTime("");
@@ -385,8 +412,10 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       return;
     }
 
-    const today = startOfDay(new Date());
-    if (isBefore(selectedDate, today)) {
+    // Compare against the property's Cleveland day, not the browser's local day,
+    // so a west-coast admin can't book an already-elapsed Cleveland date.
+    const todayStr = todayInTimezone(getTimezoneForCity(selectedProperty?.city));
+    if (format(selectedDate, "yyyy-MM-dd") < todayStr) {
       toast.error("Date must be in the future");
       return;
     }
@@ -477,7 +506,10 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           scheduled_at: scheduledAt,
           duration_minutes: durationMinutes,
           status: "scheduled",
-          booked_by: userRecord.id,
+          // booked_by FKs to auth.users(id); userRecord.id is public.users.id
+          // (disjoint id-spaces). Use auth_user_id or every admin booking fails
+          // with FK 23503 (this silently broke admin booking 2026-07-03 → 07-19).
+          booked_by: userRecord.auth_user_id,
           booked_by_name: userRecord.full_name || null,
           booking_source: "admin",
         })
@@ -558,7 +590,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
       const showingDate = new Date(scheduledAt);
       const propertyAddr = selectedProperty ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ''}` : "Property";
-      const lead = leads.find((l) => l.id === selectedLeadId);
+      const lead = selectedLeadObj;
 
       // Update lead status + boost score +30
       try {
@@ -692,7 +724,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           const templateConfig = templates.showing_confirmation || DEFAULT_CONFIGS.showing_confirmation;
 
           const displayDate = format(selectedDate, "EEEE, MMMM d, yyyy");
-          const firstName = (lead.full_name || "").split(" ")[0] || "there";
+          const firstName = lead.first_name?.trim() || (lead.full_name || "").trim().split(" ")[0] || "there";
 
           // Fetch org name for template variables
           const { data: org } = await supabase
@@ -703,7 +735,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
           const html = renderEmailHtml(templateConfig, {
             firstName,
-            fullName: lead.full_name || "Guest",
+            fullName: leadDisplayName(lead),
             propertyAddress: propertyAddr,
             showingDate: `${displayDate} at ${formatTimeDisplay(slotTime)}`,
             orgName: org?.name || "Our Team",
@@ -753,7 +785,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       // ── Telegram notification (server-side) ────────────────────────
       try {
         const displayDateFull = format(selectedDate, "EEEE, MMMM d, yyyy");
-        const leadName = lead?.full_name || "—";
+        const leadName = lead ? leadDisplayName(lead) : "—";
         const leadPhone = lead?.phone || "—";
         const leadEmailAddr = lead?.email || "—";
         const rentStr = selectedProperty?.rent_price ? `$${Number(selectedProperty.rent_price).toLocaleString()}/mo` : "";
@@ -790,14 +822,20 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       onSuccess?.();
     } catch (error: any) {
       console.error("Error scheduling showing:", error);
-      const detail = error?.message || error?.error?.message || error?.hint || "Unknown error";
-      toast.error(`Failed to schedule showing: ${detail}`);
+      if (error?.code === "23505") {
+        // Unique violation on showings_one_active_per_org_time — the agent's slot
+        // was taken at this exact instant by a concurrent booking.
+        toast.error("That time was just booked. Please pick another.");
+      } else {
+        const detail = error?.message || error?.error?.message || error?.hint || "Unknown error";
+        toast.error(`Failed to schedule showing: ${detail}`);
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const selectedLead = leads.find((l) => l.id === selectedLeadId);
+  const selectedLead = selectedLeadObj;
   const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
 
   const formatTimeDisplay = (time: string) => {
@@ -896,41 +934,59 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                       "w-full justify-between h-10 border-slate-200 hover:bg-slate-50 text-sm font-normal",
                       !selectedLead && "text-slate-400"
                     )}
-                    disabled={loadingOptions}
                   >
                     {selectedLead
-                      ? `${selectedLead.full_name || "Unknown"} — ${selectedLead.phone}`
+                      ? `${leadDisplayName(selectedLead)}${selectedLead.phone ? ` — ${selectedLead.phone}` : ""}`
                       : "Search leads..."}
                     <Search className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Type name or phone..." className="text-sm" />
+                  {/* shouldFilter=false: results already come filtered from the server */}
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Type name, phone, or email..."
+                      className="text-sm"
+                      value={leadQuery}
+                      onValueChange={setLeadQuery}
+                    />
                     <CommandList className="max-h-[40vh] sm:max-h-[200px] overflow-y-auto">
-                      <CommandEmpty>No leads found.</CommandEmpty>
-                      <CommandGroup>
-                        {leads.map((lead) => (
-                          <CommandItem
-                            key={lead.id}
-                            value={`${lead.full_name || ""} ${lead.phone}`}
-                            onSelect={() => {
-                              setSelectedLeadId(lead.id);
-                              setLeadOpen(false);
-                            }}
-                            className="cursor-pointer"
-                          >
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-slate-900">
-                                {lead.full_name || "Unknown"}
-                              </span>
-                              <span className="text-xs text-slate-500">
-                                {lead.phone}{lead.email ? ` · ${lead.email}` : ""}
-                              </span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
+                      {searchingLeads ? (
+                        <div className="flex items-center gap-2 px-3 py-3 text-sm text-slate-400">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Searching…
+                        </div>
+                      ) : leadQuery.trim().length < 2 ? (
+                        <div className="px-3 py-3 text-sm text-slate-400">
+                          Type at least 2 characters to search.
+                        </div>
+                      ) : (
+                        <>
+                          <CommandEmpty>No leads found.</CommandEmpty>
+                          <CommandGroup>
+                            {leadResults.map((lead) => (
+                              <CommandItem
+                                key={lead.id}
+                                value={lead.id}
+                                onSelect={() => {
+                                  setSelectedLeadId(lead.id);
+                                  setSelectedLeadObj(lead);
+                                  setLeadOpen(false);
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium text-slate-900">
+                                    {leadDisplayName(lead)}
+                                  </span>
+                                  <span className="text-xs text-slate-500">
+                                    {lead.phone || "no phone"}{lead.email ? ` · ${lead.email}` : ""}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </>
+                      )}
                     </CommandList>
                   </Command>
                 </PopoverContent>
@@ -1022,7 +1078,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                       onSelect={setSelectedDate}
                       // Admins can book on ANY future date (a slot is created on
                       // submit if the public grid has none) — only block the past.
-                      disabled={(date) => isBefore(date, startOfDay(new Date()))}
+                      disabled={(date) => format(date, "yyyy-MM-dd") < todayInTimezone(getTimezoneForCity(selectedProperty?.city))}
                       initialFocus
                       className="pointer-events-auto"
                     />

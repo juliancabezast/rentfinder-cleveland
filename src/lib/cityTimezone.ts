@@ -60,6 +60,13 @@ export function buildScheduledAt(dateStr: string, slotTime: string, timezone: st
   return `${dateStr}T${slotTime}${offsetSign}${offsetAbs}:00`;
 }
 
+/** Current calendar date ("yyyy-MM-dd") in the given IANA timezone.
+ *  Use this instead of `new Date()`/`startOfDay` for date-boundary guards so
+ *  "today" is the property/Cleveland day, not the browser's local day. */
+export function todayInTimezone(timezone: string): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: timezone });
+}
+
 /** Format a UTC/ISO timestamp in the given timezone as "h:mm AM/PM" */
 export function formatTimeInTimezone(isoString: string, timezone: string): string {
   const date = new Date(isoString);
