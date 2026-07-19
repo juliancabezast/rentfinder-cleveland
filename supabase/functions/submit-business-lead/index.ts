@@ -120,16 +120,21 @@ serve(async (req: Request) => {
         .maybeSingle();
       if (creds?.telegram_bot_token && creds?.telegram_chat_id) {
         const label = leadType === "housing_partner" ? "Housing Partner" : "Corporate Leasing";
+        // Big call-to-action card with the full form. Phone stays plain E.164-ish
+        // so Telegram mobile auto-detects a tappable call link.
+        const esc = (s: unknown) =>
+          String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const msg = [
-          `🤝 <b>New Business Lead — ${label}</b>`,
+          `🤝🚨 <b>NUEVO BUSINESS LEAD — ${label}</b>`,
           ``,
-          `👤 <b>${fullName}</b>${body.organization_name ? ` — ${clampStr(body.organization_name, 160)}` : ""}`,
-          `✉️ ${email || "—"}`,
-          `📞 ${phone || "—"}`,
-          body.message ? `📝 ${clampStr(body.message, 300)}` : ``,
-          `🔗 ${clampStr(body.source_detail, 120) || clampStr(body.source, 40) || "footer"}`,
-          `➡️ In Business tab.`,
-        ].filter(Boolean).join("\n");
+          phone ? `📞 <b>LLAMAR AHORA:</b> ${esc(phone)}` : null,
+          `👤 <b>${esc(fullName)}</b>${body.organization_name ? ` — ${esc(clampStr(body.organization_name, 160))}` : ""}`,
+          `✉️ ${esc(email || "—")}`,
+          body.message ? `📝 «${esc(clampStr(body.message, 900))}»` : null,
+          `🔗 Origen: ${esc(clampStr(body.source_detail, 120) || clampStr(body.source, 40) || "footer")}`,
+          ``,
+          `➡️ En la pestaña Business.`,
+        ].filter((l) => l !== null).join("\n");
         await fetch(`https://api.telegram.org/bot${creds.telegram_bot_token}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

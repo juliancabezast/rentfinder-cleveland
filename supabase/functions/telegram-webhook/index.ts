@@ -36,7 +36,7 @@ Comandos:
 • <b>report</b> — Reporte completo (leads, showings, costos, etc.)
 • <b>help</b> — Este mensaje
 
-El reporte automático se envía cada hora.`;
+El reporte diario llega a las 5:00 AM y el digest del día a las 9:00 PM (bot RFC).`;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Ctx {
@@ -193,9 +193,11 @@ serve(async (req: Request) => {
 // Text messages
 // ═══════════════════════════════════════════════════════════════════════════════
 async function handleText(ctx: Ctx, rawText: string) {
-  // Only the LeasingAgent bot is interactive. If someone messages the RFC or
-  // Showings bot, point them to LeasingAgent instead of driving the menu there.
-  if (ctx.bot !== "leasing") { await redirectToLeasing(ctx); return; }
+  // Showings (Hot Leads) stays push-only → redirect. The RFC (general) bot has
+  // its own reports menu. Everything else (scheduling, leads, agenda) lives in
+  // LeasingAgent.
+  if (ctx.bot === "showings") { await redirectToLeasing(ctx); return; }
+  if (ctx.bot === "general") { await handleRfcText(ctx, rawText); return; }
 
   const raw = String(rawText).trim();
   const t = raw.toLowerCase();
@@ -246,15 +248,16 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   const messageId: number | undefined = cbq.message?.message_id;
   const answer = (text?: string) => answerCbq(ctx, cbq.id, text);
 
-  // Only LeasingAgent is interactive — EXCEPT `act:*` (Registrar acción), which
-  // is the one flow allowed on the Hot Leads (showings) bot too. Everything else
-  // on RFC/Showings just redirects.
-  if (ctx.bot !== "leasing" && !data.startsWith("act:")) {
+  // LeasingAgent owns the operational menu. Two exceptions: `act:*` (Registrar
+  // acción) also works on the Hot Leads (showings) bot, and `rp:*` (reports
+  // menu) belongs to the RFC (general) bot. Everything else redirects.
+  if (ctx.bot !== "leasing" && !data.startsWith("act:") && !(ctx.bot === "general" && data.startsWith("rp:"))) {
     await answer(); await redirectToLeasing(ctx, messageId); return;
   }
 
   try {
     if (data.startsWith("act:")) { await handleAction(ctx, cbq, data); return; }
+    if (data.startsWith("rp:")) { await handleRfcCallback(ctx, cbq, data); return; }
     if (data.startsWith("msg:")) { await answer(); await chooseSmsLead(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("sms:")) { await answer(); await sendSmsTemplate(ctx, messageId, data.slice(4)); return; }
     if (data === "m:sch") { await answer(); await startSchedule(ctx, messageId); return; }
@@ -1006,6 +1009,287 @@ async function generateLeasingReport(ctx: Ctx, messageId: number | undefined, la
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// RFC (general) bot — interactive reports menu
+// ═══════════════════════════════════════════════════════════════════════════════
+function rfcMenuKeyboard() {
+  return [
+    [{ text: "📈 Hoy", callback_data: "rp:today" }, { text: "📅 Semana", callback_data: "rp:week" }, { text: "🗓️ Mes", callback_data: "rp:month" }],
+    [{ text: "🧭 Funnel + hot pendientes", callback_data: "rp:funnel" }],
+    [{ text: "🏠 Top propiedades + 💰 costos", callback_data: "rp:props" }],
+    [{ text: "🤖 Pregunta libre (IA)", callback_data: "rp:ai" }],
+    [{ text: "📊 Reporte completo", callback_data: "rp:full" }],
+  ];
+}
+const RFC_GREETING =
+  "📊 Soy <b>RFC Report</b>, tu bot de datos.\n" +
+  "Automático: reporte diario <b>5:00 AM</b> · digest del día <b>9:00 PM</b>.\n\n¿Qué querés ver ahora?";
+const RFC_BACK = [[{ text: "🏠 Menú", callback_data: "rp:menu" }]];
+
+async function handleRfcText(ctx: Ctx, rawText: string) {
+  const raw = String(rawText).trim();
+  const t = raw.toLowerCase();
+  if (CANCEL_TRIGGERS.has(t)) {
+    await clearSession(ctx);
+    await send(ctx, "❌ Listo, cancelado.\n\n" + RFC_GREETING, rfcMenuKeyboard());
+    return;
+  }
+  if (MENU_TRIGGERS.has(t)) {
+    await clearSession(ctx);
+    await send(ctx, RFC_GREETING, rfcMenuKeyboard());
+    return;
+  }
+  const session = await getSession(ctx);
+  if (session?.step === "rfc_ai") { await handleRfcAiQuestion(ctx, session, raw); return; }
+  if (REPORT_TRIGGERS.has(t)) { await typing(ctx); await runReport(ctx); return; }
+  // Anything else: show the menu (the agenda lives in LeasingAgent).
+  await send(ctx, RFC_GREETING, rfcMenuKeyboard());
+}
+
+async function handleRfcCallback(ctx: Ctx, cbq: any, data: string) {
+  const messageId: number | undefined = cbq.message?.message_id;
+  const answer = (text?: string) => answerCbq(ctx, cbq.id, text);
+  if (data === "rp:menu")  { await answer(); await clearSession(ctx); await editOrSend(ctx, messageId, RFC_GREETING, rfcMenuKeyboard()); return; }
+  if (data === "rp:today" || data === "rp:week" || data === "rp:month") {
+    await answer("Generando…"); await typing(ctx); await rfcPeriodReport(ctx, data.slice(3) as "today" | "week" | "month"); return;
+  }
+  if (data === "rp:funnel") { await answer("Generando…"); await typing(ctx); await rfcFunnelReport(ctx); return; }
+  if (data === "rp:props")  { await answer("Generando…"); await typing(ctx); await rfcPropsCostsReport(ctx); return; }
+  if (data === "rp:ai")     { await answer(); await startRfcAi(ctx, messageId); return; }
+  if (data === "rp:full")   { await answer("Generando reporte completo…"); await typing(ctx); await runReport(ctx); return; }
+  await answer();
+}
+
+// "YYYY-MM-DD" + n días (UTC-noon-safe, no day-shift).
+function shiftDay(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+// Cleveland midnight of a local date, as UTC ISO. NOT slotToUtcMs: that samples
+// the offset at noon, which is wrong for midnight on the two DST-transition
+// days (switch happens at 2 AM). Round-trip-verify the candidate instant.
+function nyMidnightUtcIso(dateStr: string): string {
+  const noon = new Date(`${dateStr}T12:00:00Z`);
+  const localNoon = new Date(noon.toLocaleString("en-US", { timeZone: NY }));
+  const guessOffset = noon.getTime() - localNoon.getTime();
+  const base = new Date(`${dateStr}T00:00:00Z`).getTime();
+  for (const off of [guessOffset, guessOffset - 3600000, guessOffset + 3600000]) {
+    const cand = new Date(base + off);
+    const rendered = cand.toLocaleString("sv-SE", { timeZone: NY }); // "YYYY-MM-DD HH:mm:ss"
+    if (rendered.startsWith(`${dateStr} 00:00`)) return cand.toISOString();
+  }
+  return new Date(base + guessOffset).toISOString(); // unreachable fallback
+}
+function rfcDelta(cur: number, prev: number): string {
+  if (prev === 0) return cur > 0 ? "🆙 nuevo" : "=";
+  const pct = Math.round(((cur - prev) / prev) * 100);
+  if (pct === 0) return "=";
+  return pct > 0 ? `▲ +${pct}%` : `▼ ${pct}%`;
+}
+const RFC_SOURCE_LABELS: Record<string, string> = {
+  inbound_call: "inbound call", hemlane_email: "Hemlane", hemlane: "Hemlane",
+  website: "website", referral: "referral", manual: "manual", sms: "SMS",
+  campaign: "campaign", csv_import: "CSV import",
+};
+// Renders a report_source_breakdown RPC result. Sources are lead-supplied via a
+// public endpoint → escaped (a stray "<" would make Telegram reject the message).
+function rfcRenderSources(rows: { source?: string | null; cnt?: number }[], n = 4): string {
+  return (rows || []).slice(0, n)
+    .map((r) => `${escapeHtml(RFC_SOURCE_LABELS[r.source || ""] || String(r.source || "otro").replace(/_/g, " "))} ${Number(r.cnt) || 0}`)
+    .join(" · ");
+}
+
+// 📈 Hoy / 📅 Semana / 🗓️ Mes — con comparación vs el período anterior.
+async function rfcPeriodReport(ctx: Ctx, period: "today" | "week" | "month") {
+  const today = todayNY();
+
+  // Period bounds (Cleveland-local, DST-aware).
+  let curStart: string, curEnd: string, prevStart: string, prevEnd: string, title: string, note: string;
+  if (period === "today") {
+    curStart = today; curEnd = shiftDay(today, 1);
+    prevStart = shiftDay(today, -1); prevEnd = today;
+    title = `📈 Hoy — ${slotDayLabel(today)}`; note = "vs ayer completo";
+  } else if (period === "week") {
+    curStart = shiftDay(today, -6); curEnd = shiftDay(today, 1);
+    prevStart = shiftDay(today, -13); prevEnd = curStart;
+    title = "📅 Semana — últimos 7 días"; note = "vs los 7 anteriores";
+  } else {
+    curStart = `${today.slice(0, 7)}-01`; curEnd = shiftDay(today, 1);
+    const prevAnchor = shiftDay(curStart, -3);
+    prevStart = `${prevAnchor.slice(0, 7)}-01`;
+    // Same day-span of the previous month, derived by LENGTH (never builds an
+    // invalid date like "06-31" when the previous month is shorter). Clamped to
+    // the current month start so a short previous month can't bleed into it
+    // (e.g. Jul 31 → prev would otherwise reach Jul 2).
+    prevEnd = shiftDay(prevStart, parseInt(today.slice(8, 10), 10));
+    if (prevEnd > curStart) prevEnd = curStart;
+    title = `🗓️ Mes — ${slotDayLabel(curStart).split(" ").slice(-1)[0]} (al día ${parseInt(today.slice(8, 10), 10)})`;
+    note = "vs mismo tramo del mes pasado";
+  }
+  const curStartUtc = nyMidnightUtcIso(curStart);
+  const curEndUtc = nyMidnightUtcIso(curEnd);
+  const prevStartUtc = nyMidnightUtcIso(prevStart);
+  const prevEndUtc = nyMidnightUtcIso(prevEnd);
+
+  const [seriesRes, curSourcesRes, hotRes, hotPrevRes, emailsRes, emailsPrevRes,
+    smsRes, smsPrevRes, convRes, convPrevRes, costsRes, costsPrevRes] = await Promise.all([
+    ctx.supabase.rpc("report_time_series", { p_org: ctx.organizationId, p_days: 70 }),
+    // Source breakdown grouped in the DB (raw selects cap at 1000 rows silently).
+    ctx.supabase.rpc("report_source_breakdown", { p_org: ctx.organizationId, p_since: curStartUtc, p_until: curEndUtc, p_limit: 4 }),
+    ctx.supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
+      .eq("is_demo", false).gte("lead_score", 85).gte("created_at", curStartUtc).lt("created_at", curEndUtc),
+    ctx.supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
+      .eq("is_demo", false).gte("lead_score", 85).gte("created_at", prevStartUtc).lt("created_at", prevEndUtc),
+    // Counts queue-drained sends too (event_type='sent' alone misses ~99%).
+    ctx.supabase.rpc("report_emails_sent", { p_org: ctx.organizationId, p_since: curStartUtc, p_until: curEndUtc }),
+    ctx.supabase.rpc("report_emails_sent", { p_org: ctx.organizationId, p_since: prevStartUtc, p_until: prevEndUtc }),
+    ctx.supabase.from("communications").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
+      .eq("channel", "sms").eq("direction", "outbound").gte("sent_at", curStartUtc).lt("sent_at", curEndUtc),
+    ctx.supabase.from("communications").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
+      .eq("channel", "sms").eq("direction", "outbound").gte("sent_at", prevStartUtc).lt("sent_at", prevEndUtc),
+    // converted_at = real conversion moment (updated_at re-counts old conversions).
+    ctx.supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
+      .eq("is_demo", false).gte("converted_at", curStartUtc).lt("converted_at", curEndUtc),
+    ctx.supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
+      .eq("is_demo", false).gte("converted_at", prevStartUtc).lt("converted_at", prevEndUtc),
+    ctx.supabase.rpc("report_costs_summary", { p_org: ctx.organizationId, p_since: curStartUtc, p_until: curEndUtc }),
+    ctx.supabase.rpc("report_costs_summary", { p_org: ctx.organizationId, p_since: prevStartUtc, p_until: prevEndUtc }),
+  ]);
+
+  const series = (seriesRes.data || []).map((r: any) => ({
+    day: String(r.day), leads: Number(r.leads) || 0, showings: Number(r.showings) || 0,
+  }));
+  const sumRange = (from: string, toExcl: string) => {
+    let l = 0, s = 0;
+    for (const r of series) if (r.day >= from && r.day < toExcl) { l += r.leads; s += r.showings; }
+    return { l, s };
+  };
+  const cur = sumRange(curStart, curEnd);
+  const prev = sumRange(prevStart, prevEnd);
+
+  const costSum = (rows: any[]) => (rows || []).reduce((s: number, r: any) => s + Number(r.total || 0), 0);
+  const curCost = costSum(costsRes.data);
+  const prevCost = costSum(costsPrevRes.data);
+  const costParts = ((costsRes.data || []) as any[])
+    .filter((r) => Number(r.total) > 0)
+    .map((r) => `${escapeHtml(r.service)} $${Number(r.total).toFixed(2)}`)
+    .join(" · ");
+  const srcLine = rfcRenderSources(curSourcesRes.data || []);
+  const curEmails = Number(emailsRes.data) || 0;
+  const prevEmails = Number(emailsPrevRes.data) || 0;
+
+  const lines = [
+    `<b>${title}</b> <i>(${note})</i>`,
+    ``,
+    `👥 <b>${cur.l} leads</b> (${rfcDelta(cur.l, prev.l)})${srcLine ? ` — ${srcLine}` : ""}`,
+    `🔥 ${hotRes.count || 0} hot 85+ (${rfcDelta(hotRes.count || 0, hotPrevRes.count || 0)})`,
+    `🏠 ${cur.s} showings (${rfcDelta(cur.s, prev.s)})`,
+    `✉️ ${curEmails} emails (${rfcDelta(curEmails, prevEmails)}) · 💬 ${smsRes.count || 0} SMS (${rfcDelta(smsRes.count || 0, smsPrevRes.count || 0)})`,
+    `🎉 ${convRes.count || 0} convertidos (${rfcDelta(convRes.count || 0, convPrevRes.count || 0)})`,
+    `💰 Costo: <b>$${curCost.toFixed(2)}</b> (${rfcDelta(Math.round(curCost * 100), Math.round(prevCost * 100))})${costParts ? `\n   ${costParts}` : ""}`,
+  ];
+  await send(ctx, lines.join("\n"), RFC_BACK);
+}
+
+// 🧭 Funnel + hot pendientes
+async function rfcFunnelReport(ctx: Ctx) {
+  const now = new Date();
+  const dayAgoIso = new Date(now.getTime() - 86400000).toISOString();
+  const sevenDaysAgoIso = new Date(now.getTime() - 7 * 86400000).toISOString();
+  const [funnelRes, hotListRes] = await Promise.all([
+    ctx.supabase.rpc("report_status_funnel", { p_org: ctx.organizationId }),
+    ctx.supabase.from("leads")
+      .select("id, full_name, first_name, last_name, phone, lead_score, source")
+      .eq("organization_id", ctx.organizationId).eq("is_demo", false)
+      .gte("lead_score", 85).not("status", "in", "(lost,converted)")
+      .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`)
+      .gte("created_at", sevenDaysAgoIso)
+      .not("phone", "is", null)
+      .order("lead_score", { ascending: false })
+      .limit(10),
+  ]);
+  const funnel = new Map<string, number>(
+    ((funnelRes.data || []) as any[]).map((r) => [String(r.status), Number(r.cnt) || 0])
+  );
+  const fn = (s: string) => funnel.get(s) || 0;
+  const FLOW: [string, string][] = [
+    ["🆕", "new"], ["📞", "contacted"], ["💬", "engaged"], ["🌱", "nurturing"], ["✅", "qualified"],
+    ["📅", "showing_scheduled"], ["🏠", "showed"], ["🧾", "in_application"], ["🎉", "converted"], ["❌", "lost"],
+  ];
+  const lines: string[] = [`🧭 <b>Funnel del pipeline</b> (histórico vivo)`, ``];
+  for (const [em, st] of FLOW) lines.push(`${em} ${st.replace(/_/g, " ")}: <b>${fn(st)}</b>`);
+
+  const hot = hotListRes.data || [];
+  lines.push(``, `━━ <b>🔥 HOT PENDIENTES</b> (7d, sin contactar) ━━`);
+  if (!hot.length) lines.push(`✅ Nada pendiente — todo contactado.`);
+  hot.forEach((l: any, i: number) => {
+    lines.push(`${i + 1}. <b>${escapeHtml(leadName(l))}</b> · ${l.lead_score} pts\n   📞 ${escapeHtml(l.phone || "—")}`);
+  });
+  await sendChunks(ctx, lines.join("\n"));
+  await send(ctx, "¿Algo más?", RFC_BACK);
+}
+
+// 🏠 Top propiedades + 💰 costos
+async function rfcPropsCostsReport(ctx: Ctx) {
+  const today = todayNY();
+  const monthStartUtc = nyMidnightUtcIso(`${today.slice(0, 7)}-01`);
+  const todayStartUtc = nyMidnightUtcIso(today);
+  const nowIso = new Date().toISOString();
+  const [topRes, costsMonthRes, costsTodayRes] = await Promise.all([
+    ctx.supabase.rpc("report_top_properties", { p_org: ctx.organizationId, p_since: monthStartUtc, p_limit: 10 }),
+    ctx.supabase.rpc("report_costs_summary", { p_org: ctx.organizationId, p_since: monthStartUtc, p_until: nowIso }),
+    ctx.supabase.rpc("report_costs_summary", { p_org: ctx.organizationId, p_since: todayStartUtc, p_until: nowIso }),
+  ]);
+  const top = (topRes.data || []) as any[];
+  const monthRows = (costsMonthRes.data || []) as any[];
+  const todayRows = (costsTodayRes.data || []) as any[];
+  const monthTotal = monthRows.reduce((s, r) => s + Number(r.total || 0), 0);
+  const todayTotal = todayRows.reduce((s, r) => s + Number(r.total || 0), 0);
+
+  const lines: string[] = [`🏠 <b>Top propiedades del mes</b> (por interés)`, ``];
+  if (!top.length) lines.push(`Sin datos este mes.`);
+  top.forEach((p: any, i: number) => lines.push(`${i + 1}. ${escapeHtml(p.address || "—")} — <b>${Number(p.cnt) || 0}</b> leads`));
+  lines.push(``, `━━ <b>💰 COSTOS</b> ━━`, `Hoy: <b>$${todayTotal.toFixed(2)}</b> · Mes: <b>$${monthTotal.toFixed(2)}</b>`);
+  monthRows.filter((r) => Number(r.total) > 0).forEach((r) => {
+    lines.push(`• ${escapeHtml(r.service)}: $${Number(r.total).toFixed(2)} (mes)`);
+  });
+  await send(ctx, lines.join("\n"), RFC_BACK);
+}
+
+// 🤖 Pregunta libre (IA) — free-text Q&A over real org data via ai-chat.
+async function startRfcAi(ctx: Ctx, messageId?: number) {
+  await setSession(ctx, "rfc_ai", { history: [] });
+  await editOrSend(ctx, messageId,
+    "🤖 <b>Pregunta libre</b>\n\nPreguntame lo que quieras sobre tus datos, en tu idioma. Ejemplos:\n" +
+    "• <i>¿Cuántos leads entraron esta semana y de dónde?</i>\n" +
+    "• <i>¿Qué propiedad tiene más interesados últimamente?</i>\n" +
+    "• <i>¿Cómo viene este mes vs el pasado?</i>\n\nEscribí tu pregunta 👇 (seguimos acá hasta que vuelvas al menú)",
+    RFC_BACK);
+}
+
+async function handleRfcAiQuestion(ctx: Ctx, session: Session, raw: string) {
+  if (raw.length < 3) { await send(ctx, "Contame un poco más 🙂", RFC_BACK); return; }
+  await typing(ctx);
+  const history = Array.isArray(session.data?.history) ? session.data.history : [];
+  const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/ai-chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
+    body: JSON.stringify({ organization_id: ctx.organizationId, question: raw, history, format: "telegram" }),
+  });
+  const result = await resp.json().catch(() => ({}));
+  const answer = String(result?.answer || result?.error || "No pude generar la respuesta — probá de nuevo.");
+  const newHistory = [...history, { role: "user", content: raw }, { role: "assistant", content: answer }].slice(-8);
+  await setSession(ctx, "rfc_ai", { history: newHistory });
+  const text = escapeHtml(answer);
+  if (text.length <= 3800) {
+    await send(ctx, `🤖 ${text}\n\n<i>Seguí preguntando, o volvé al menú.</i>`, RFC_BACK);
+  } else {
+    await sendChunks(ctx, `🤖 ${text}`);
+    await send(ctx, "<i>Seguí preguntando, o volvé al menú.</i>", RFC_BACK);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Session helpers
 // ═══════════════════════════════════════════════════════════════════════════════
 // Session key is namespaced by bot: both bots DM the same chat id, so keying by
@@ -1071,10 +1355,17 @@ async function typing(ctx: Ctx) {
 async function sendChunks(ctx: Ctx, text: string) {
   const LIMIT = 3800;
   if (text.length <= LIMIT) { await send(ctx, text); return; }
-  const lines = text.split("\n");
+  const lines: string[] = [];
+  // Hard-split any single line longer than LIMIT (an unbroken AI answer would
+  // otherwise produce an empty send + a >4096 chunk Telegram rejects silently).
+  for (const raw of text.split("\n")) {
+    let line = raw;
+    while (line.length > LIMIT) { lines.push(line.slice(0, LIMIT)); line = line.slice(LIMIT); }
+    lines.push(line);
+  }
   let buf = "";
   for (const line of lines) {
-    if (buf.length + line.length + 1 > LIMIT) { await send(ctx, buf); buf = ""; }
+    if (buf && buf.length + line.length + 1 > LIMIT) { await send(ctx, buf); buf = ""; }
     buf += (buf ? "\n" : "") + line;
   }
   if (buf) await send(ctx, buf);
@@ -1201,10 +1492,16 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
   }
 
   const again = [[{ text: "📋 Otra acción", callback_data: `act:menu:${leadId}` }]];
+  // Any registered action EXCEPT "quiere seguimiento" stops the daily rollover
+  // (the reminder cron re-arms a pending card every morning until acted on).
+  const stopRollover = () =>
+    ctx.supabase.from("lead_reminders").update({ status: "cancelled" })
+      .eq("organization_id", ctx.organizationId).eq("lead_id", leadId).eq("status", "pending");
   try {
     if (verb === "noans") {
       await answer("Anotado ✅");
       await logLeadNote(ctx, leadId, "call_summary", "📞 Llamé — no contestó");
+      await stopRollover();
       await editOrSend(ctx, messageId, `✅ Anotado: <b>no contestó</b> — ${escapeHtml(name)}`, again);
     } else if (verb === "fu") {
       await answer("Seguimiento agendado ✅");
@@ -1224,17 +1521,20 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
     } else if (verb === "sch") {
       await answer();
       await logLeadNote(ctx, leadId, "general", "📅 Quiere agendar showing");
+      await stopRollover();
       await editOrSend(ctx, messageId,
         `📅 Anotado. Abrí <b>LeasingAgent</b> → 📅 Agendar showing y pegá este teléfono para encontrarlo:\n📞 ${escapeHtml(tel)}`, again);
     } else if (verb === "done") {
       await answer("Anotado ✅");
       await logLeadNote(ctx, leadId, "call_summary", "👋 Ya contactado");
+      await stopRollover();
       await editOrSend(ctx, messageId, `✅ Anotado: <b>ya contactado</b> — ${escapeHtml(name)}`, again);
     } else if (verb === "lost") {
       await answer("Marcado ✅");
       await ctx.supabase.from("leads").update({ status: "lost" })
         .eq("organization_id", ctx.organizationId).eq("id", leadId);
       await logLeadNote(ctx, leadId, "objection", "❌ No interesado — marcado lost");
+      await stopRollover();
       await editOrSend(ctx, messageId, `✅ Marcado <b>no interesado</b> (lost) — ${escapeHtml(name)}`, again);
     } else {
       await answer();

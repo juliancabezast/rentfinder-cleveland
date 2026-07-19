@@ -522,7 +522,7 @@ serve(async (req: Request) => {
       lines.push(``, `━━ <b>⚡ NEEDS ATTENTION</b> ━━`);
       if (hotAwaiting > 0) lines.push(`🔥 ${hotAwaiting} new hot leads to call (last 7d, uncontacted)`);
       if (uncontactedBacklog > 0) lines.push(`📋 ${uncontactedBacklog} new leads awaiting first contact (48h)`);
-      lines.push(`<i>Escribe "update" para ver la agenda de showings</i>`);
+      lines.push(`<i>La agenda de showings vive en LeasingAgent (escribile "update")</i>`);
     }
 
     // ── WEEK / MONTH ────────────────────────────────────────────

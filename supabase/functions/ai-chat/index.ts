@@ -18,48 +18,65 @@ serve(async (req: Request) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    // ── Authenticate user ──────────────────────────────────────────
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get user record with organization_id
-    const { data: userRecord } = await supabase
-      .from("users")
-      .select("organization_id")
-      .eq("auth_user_id", user.id)
-      .eq("is_active", true)
-      .single();
-
-    if (!userRecord?.organization_id) {
-      return new Response(
-        JSON.stringify({ error: "User organization not found" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const orgId = userRecord.organization_id;
-
-    // ── Parse request ───────────────────────────────────────────────
-    const { question, history } = await req.json();
+    // ── Parse request (before auth: internal callers pass organization_id) ──
+    const body = await req.json().catch(() => ({}));
+    const { question, history, format } = body;
     if (!question || typeof question !== "string") {
       return new Response(
         JSON.stringify({ error: "Missing question" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // ── Authenticate ────────────────────────────────────────────────
+    // Two callers: (a) the frontend with a user JWT; (b) internal edge fns
+    // (telegram-webhook "Pregunta libre") with the service-role key — accepted
+    // from Authorization OR apikey (functions.invoke puts it in apikey; see the
+    // send-notification-email 401 outage). Check BOTH headers before rejecting.
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const apikeyHeader = req.headers.get("apikey") || "";
+
+    let orgId: string;
+    if (token === serviceRoleKey || apikeyHeader === serviceRoleKey) {
+      // Privileged internal caller — must name the org explicitly.
+      orgId = typeof body.organization_id === "string" ? body.organization_id : "";
+      if (!orgId) {
+        return new Response(
+          JSON.stringify({ error: "Missing organization_id for service-role caller" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      if (!token) {
+        return new Response(
+          JSON.stringify({ error: "Missing authorization header" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Get user record with organization_id
+      const { data: userRecord } = await supabase
+        .from("users")
+        .select("organization_id")
+        .eq("auth_user_id", user.id)
+        .eq("is_active", true)
+        .single();
+
+      if (!userRecord?.organization_id) {
+        return new Response(
+          JSON.stringify({ error: "User organization not found" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      orgId = userRecord.organization_id;
     }
 
     // ── Get OpenAI key ──────────────────────────────────────────────
@@ -80,11 +97,18 @@ serve(async (req: Request) => {
     }
 
     // ── Gather org data for context ─────────────────────────────────
+    // Row dumps are SAMPLES (newest N); authoritative totals and period numbers
+    // come from the reporting RPCs below — the model must never derive totals
+    // from the samples (18k+ leads vs a 200-row window).
     const [
       leadsResult,
       propertiesResult,
       callsResult,
       showingsResult,
+      totalLeadsResult,
+      seriesResult,
+      monthlyResult,
+      sources30Result,
     ] = await Promise.all([
       supabase
         .from("leads")
@@ -110,21 +134,42 @@ serve(async (req: Request) => {
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(100),
+      supabase
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .eq("is_demo", false),
+      supabase.rpc("report_time_series", { p_org: orgId, p_days: 70 }),
+      supabase.rpc("report_monthly_series", { p_org: orgId, p_months: 6 }),
+      supabase.rpc("report_source_breakdown", {
+        p_org: orgId,
+        p_since: new Date(Date.now() - 30 * 86400000).toISOString(),
+        p_until: new Date().toISOString(),
+        p_limit: 10,
+      }),
     ]);
 
     const leads = leadsResult.data || [];
     const properties = propertiesResult.data || [];
     const calls = callsResult.data || [];
     const showings = showingsResult.data || [];
+    const totalLeads = totalLeadsResult.count || 0;
+    const dailySeries = seriesResult.data || [];
+    const monthlySeries = monthlyResult.data || [];
+    const sources30 = sources30Result.data || [];
+    const oldestSampleDate = leads.length
+      ? String(leads[leads.length - 1].created_at || "").substring(0, 10)
+      : null;
 
     // ── Build data summary for context ──────────────────────────────
     const dataSummary = {
-      total_leads: leads.length,
-      leads_by_status: groupBy(leads, "status"),
-      leads_by_source: groupBy(leads, "source"),
-      leads_by_language: groupBy(leads, "preferred_language"),
-      leads_with_voucher: leads.filter((l) => l.has_voucher).length,
-      avg_lead_score: leads.length > 0
+      total_leads_ALL_TIME: totalLeads,
+      sample_size: leads.length,
+      sample_covers_since: oldestSampleDate,
+      sample_leads_by_status: groupBy(leads, "status"),
+      sample_leads_by_language: groupBy(leads, "preferred_language"),
+      sample_leads_with_voucher: leads.filter((l) => l.has_voucher).length,
+      sample_avg_lead_score: leads.length > 0
         ? Math.round(leads.reduce((sum, l) => sum + (l.lead_score || 0), 0) / leads.length)
         : 0,
       total_properties: properties.length,
@@ -140,7 +185,13 @@ serve(async (req: Request) => {
     // ── Build system prompt ─────────────────────────────────────────
     const systemPrompt = `You are PAIp, an AI data analyst assistant for a property management company. You help analyze leads, properties, calls, and showings data.
 
-CURRENT DATA SUMMARY:
+AUTHORITATIVE AGGREGATES (computed in the database over ALL data — ALWAYS use these for totals, per-day/week/month counts and comparisons; NEVER derive totals or period numbers from the samples below):
+- Total leads (all time, excl. demo): ${totalLeads}
+- Leads + showings per day, last 70 days (day / leads / showings): ${JSON.stringify(dailySeries)}
+- Leads + showings per month, last 6 months: ${JSON.stringify(monthlySeries)}
+- Lead sources, last 30 days: ${JSON.stringify(sources30)}
+
+CURRENT DATA SUMMARY (fields prefixed "sample_" cover ONLY the newest ${leads.length} leads${oldestSampleDate ? `, i.e. created since ${oldestSampleDate}` : ""} — use them for qualitative color, not totals):
 ${JSON.stringify(dataSummary, null, 2)}
 
 PROPERTIES (${properties.length}):
@@ -148,15 +199,15 @@ ${JSON.stringify(properties.map((p) => ({
   address: p.address,
   city: p.city,
   zip: p.zip_code,
-  rent: p.rent_amount,
+  rent: p.rent_price,
   beds: p.bedrooms,
   baths: p.bathrooms,
   status: p.status,
   type: p.property_type,
-  section8: p.is_section8_eligible,
+  section8: p.section_8_accepted,
 })), null, 2)}
 
-LEADS (${leads.length}):
+NEWEST ${leads.length} LEADS (sample only${oldestSampleDate ? ` — reaches back to ${oldestSampleDate}` : ""}; do NOT count totals from this list):
 ${JSON.stringify(leads.map((l) => ({
   name: l.full_name,
   status: l.status,
@@ -191,8 +242,11 @@ INSTRUCTIONS:
 - Be specific with numbers, names, and details.
 - If the data is insufficient to answer, say so clearly.
 - Respond in the same language as the user's question.
-- Format your response with markdown for readability.
-- Keep responses concise but complete.`;
+${format === "telegram"
+  ? `- PLAIN TEXT ONLY: no markdown of any kind (no **, no #, no tables, no backticks). Short lines, emojis for structure, numbers up front.
+- Keep it under ~1200 characters — this is delivered as a Telegram message.`
+  : `- Format your response with markdown for readability.
+- Keep responses concise but complete.`}`;
 
     // ── Build messages array ────────────────────────────────────────
     const chatMessages: { role: string; content: string }[] = [

@@ -106,8 +106,9 @@ function formatEvent(event: string, p: Record<string, unknown>): string {
       // never fires without a phone). Body shared with lead_reminder.
       return `📞🔥 <b>Hot lead — call now · ${escapeHtml(p.score ?? "")}</b>\n${hotLeadBody(p)}`;
     case "lead_reminder":
-      // Next-day follow-up: same card, re-surfaced by the reminder cron.
-      return `⏰🔁 <b>Follow-up de hoy · ${escapeHtml(p.score ?? "")}</b>\n${hotLeadBody(p)}`;
+      // Next-day follow-up: same card, re-surfaced by the reminder cron. Rolls
+      // over every morning until an action is registered (or the lead dies).
+      return `⏰🔁 <b>Follow-up de hoy · ${escapeHtml(p.score ?? "")}</b>\n${hotLeadBody(p)}\n<i>Se repite mañana 9am si no registrás una acción.</i>`;
     case "hemlane_digest": {
       const total = escapeHtml(p.total ?? 0);
       const created = escapeHtml(p.created ?? 0);

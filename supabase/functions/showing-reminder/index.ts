@@ -36,6 +36,20 @@ function formatDateShort(dateStr: string): string {
   });
 }
 
+// Next Cleveland day at 09:00, as UTC ISO. DST-safe: 9 AM is well past the
+// 2 AM switch, so the noon-sampled offset of that date is always correct.
+function nextDay9amET(): string {
+  const TZ = "America/New_York";
+  const todayNY = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+  const t = new Date(`${todayNY}T12:00:00Z`);
+  t.setUTCDate(t.getUTCDate() + 1);
+  const dateStr = t.toISOString().slice(0, 10);
+  const noon = new Date(`${dateStr}T12:00:00Z`);
+  const localNoon = new Date(noon.toLocaleString("en-US", { timeZone: TZ }));
+  const offsetMs = noon.getTime() - localNoon.getTime();
+  return new Date(new Date(`${dateStr}T09:00:00Z`).getTime() + offsetMs).toISOString();
+}
+
 // Dispatch due follow-up reminders (from the Telegram "quiere seguimiento"
 // action) as Hot Leads cards via telegram-notify. Independent of the showing
 // reminders — MUST run on every tick regardless of whether a showing is due.
@@ -98,7 +112,21 @@ async function dispatchLeadReminders(
       await supabase.from("lead_reminders")
         .update({ status: delivered ? "sent" : "failed", sent_at: new Date().toISOString() })
         .eq("id", r.id);
-      if (delivered) sent++;
+      if (delivered) {
+        sent++;
+        // AUTO-ROLLOVER: the card re-fires every morning until the user acts.
+        // Registering any action in Telegram cancels the pending row; "quiere
+        // seguimiento" keeps it. Idempotent — max one pending per lead.
+        const { data: existingPending } = await supabase.from("lead_reminders")
+          .select("id").eq("organization_id", r.organization_id).eq("lead_id", r.lead_id)
+          .eq("status", "pending").limit(1).maybeSingle();
+        if (!existingPending) {
+          await supabase.from("lead_reminders").insert({
+            organization_id: r.organization_id, lead_id: r.lead_id,
+            due_at: nextDay9amET(), reason: "follow_up_auto", status: "pending",
+          });
+        }
+      }
     }
   } catch (remErr) {
     console.error("lead_reminders dispatch error:", remErr);

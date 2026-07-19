@@ -470,18 +470,36 @@ serve(async (req: Request) => {
               .maybeSingle();
             if (p) propAddr = `${p.address}, ${p.city}${p.rent_price ? ` — $${Number(p.rent_price).toLocaleString()}/mo` : ""}`;
           }
+          // Big call-to-action card with ALL the form info. Phone stays plain
+          // E.164 so Telegram mobile auto-detects a tappable call link.
+          const esc = (s: unknown) =>
+            String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const merged: Record<string, any> = { ...lead, ...update };
           const msg = [
-            `🧾 <b>New Online Application</b>`,
+            `🧾🚨 <b>NUEVA APLICACIÓN ONLINE</b>`,
             ``,
-            `👤 <b>${(update.full_name || lead.full_name || "—")}</b>`,
-            `📞 ${e164 || "—"}`,
-            `✉️ ${update.email || lead.email || "—"}`,
-            propAddr ? `📍 ${propAddr}` : `📍 No specific property`,
-            update.has_voucher === true ? `🏷️ Section 8 / voucher` : ``,
+            `📞 <b>LLAMAR AHORA:</b> ${e164 || "—"}`,
+            `👤 <b>${esc(merged.full_name || "—")}</b>`,
+            `✉️ ${esc(merged.email || "—")}`,
+            propAddr ? `📍 ${esc(propAddr)}` : `📍 Sin propiedad específica`,
             ``,
-            `⚠️ Not formal until $50 fee paid. Needs ID + 3 paystubs (3× rent).`,
-            `➡️ Now in Applicants.`,
-          ].filter(Boolean).join("\n");
+            merged.has_voucher === true
+              ? `🎟️ Voucher Section 8${merged.housing_authority ? ` · ${esc(merged.housing_authority)}` : ""}`
+              : merged.has_voucher === false ? `💵 Self-pay (sin voucher)` : null,
+            merged.move_in_date ? `📅 Move-in: ${esc(merged.move_in_date)}` : null,
+            (merged.budget_min || merged.budget_max)
+              ? `💰 Budget: $${merged.budget_min ?? "?"}–$${merged.budget_max ?? "?"}` : null,
+            nextPrefs.household_size != null ? `👥 En el hogar: ${esc(nextPrefs.household_size)}` : null,
+            Array.isArray(nextPrefs.property_types) && nextPrefs.property_types.length
+              ? `🏘️ Busca: ${esc(nextPrefs.property_types.join(", "))}` : null,
+            nextPrefs.pets ? `🐾 Mascotas: ${esc(nextPrefs.pets)}` : null,
+            nextPrefs.income_source ? `💼 Ingreso: ${esc(nextPrefs.income_source)}` : null,
+            nextPrefs.move_urgency ? `⏱️ Urgencia: ${esc(nextPrefs.move_urgency)}` : null,
+            consent?.sms_consent ? `📱 Consintió SMS/llamadas ✅` : `📱 Sin consentimiento SMS`,
+            ``,
+            `⚠️ No es formal hasta pagar el fee de $50 · Necesita ID + 3 paystubs (3× renta).`,
+            `➡️ Ya está en Applicants.`,
+          ].filter((l) => l !== null).join("\n");
           await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

@@ -1829,21 +1829,9 @@ serve(async (req: Request) => {
         },
       });
 
-      // ── Batch summary to Telegram (RFC Report bot): one message per digest,
-      // "X leads complementados por ese correo" — replaces per-lead spam. ──
-      try {
-        const digestPropCount = new Set(
-          digestLeads.map((l) => (l.property || "").trim().toLowerCase()).filter(Boolean)
-        ).size;
-        await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
-          body: JSON.stringify({
-            channel: "report", event: "hemlane_digest",
-            payload: { total: digestLeads.length, created, updated, skipped, properties: digestPropCount },
-          }),
-        });
-      } catch (_) { /* ignore */ }
+      // Telegram: NO immediate per-digest message anymore. The 9:00 PM evening
+      // digest (agent-daily-report mode=evening) aggregates today's digests from
+      // the esther_digest_processed system_logs rows written above.
 
       await markInbound("processed", `digest:${created}c/${updated}u/${skipped}s of ${digestRawTotal} raw`);
 
