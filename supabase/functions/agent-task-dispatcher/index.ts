@@ -8,18 +8,31 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Processing limits
-const BATCH_SIZE = 20;
-const DELAY_MS = 500; // 500ms between tasks
+// Processing limits (2026-07-20: 20/500ms → 40/300ms, owner asked to accelerate
+// the legacy welcome_sequence drain; email queue at 14.4k/day absorbs it)
+const BATCH_SIZE = 40;
+const DELAY_MS = 300;
 const TASK_TIMEOUT_MS = 30_000; // 30s per task
+
+// Task types the product no longer supports — cancelled on sight so the queue
+// self-cleans instead of fail-looping (voice + SMS removed; these agent_types
+// have no handler and never will).
+const DEAD_AGENT_TYPES = new Set([
+  "recapture",
+  "campaign",
+  "campaign_voice",
+  "conversion_predictor",
+  "lead_scoring",
+  "doorloop_pull",
+  "sms_inbound",
+]);
+const ROUTABLE_NOTIFICATION_TYPES = new Set(["priority_lead", "hot_lead"]);
 
 // Exponential backoff schedule (minutes)
 const BACKOFF_MINUTES = [5, 15, 60, 240, 720, 1440, 2880];
 
 // Legacy agent_type → canonical agent_key mapping (mirrors frontend constants.ts)
 const LEGACY_TO_CANONICAL: Record<string, string> = {
-  main_inbound: "aaron",
-  bland_call_webhook: "aaron",
   hemlane_parser: "esther",
   scoring: "nehemiah",
   transcript_analyst: "nehemiah",
@@ -49,8 +62,6 @@ function resolveAgentKey(agentType: string): string {
 // Determine what action was actually performed by parsing the handler result
 function parseActualAction(result: string, fallbackAction: string): string {
   const lower = result.toLowerCase();
-  if (lower.includes("call initiated") || lower.includes("bland.ai") || lower.includes("call_id")) return "call";
-  if (lower.includes("sms sent") || lower.includes("sms fallback")) return "sms";
   if (lower.includes("email sent") || lower.includes("email fallback") || lower.includes("notification email")) return "email";
   if (lower.includes("lead status")) return "lead status changed";
   if (lower.includes("showing")) return "showing created";
@@ -58,14 +69,6 @@ function parseActualAction(result: string, fallbackAction: string): string {
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────
-
-interface OrgCreds {
-  bland_api_key: string | null;
-  twilio_phone_number: string | null;
-  twilio_account_sid: string | null;
-  twilio_auth_token: string | null;
-  resend_api_key: string | null;
-}
 
 interface EmailButton {
   text: string;
@@ -91,7 +94,6 @@ type EmailTemplatesMap = Record<string, any>;
 
 interface OrgSettings {
   sender_domain: string;
-  outbound_pathway_id: string | null;
   org_name: string;
   email_templates: EmailTemplatesMap | null;
 }
@@ -232,7 +234,6 @@ async function handleShowingConfirmation(
   supabase: SupabaseClient,
   task: AgentTask,
   lead: AgentTask,
-  creds: OrgCreds,
   settings: OrgSettings
 ): Promise<string> {
   const ctx = task.context || {};
@@ -255,111 +256,7 @@ async function handleShowingConfirmation(
     /* keep raw */
   }
 
-  // Try call first if lead has phone and Bland is configured
-  if (lead.phone && creds.bland_api_key && settings.outbound_pathway_id) {
-    // Compliance check
-    const { data: compliance, error: complianceErr } = await supabase.rpc(
-      "joseph_compliance_check",
-      {
-        p_organization_id: task.organization_id,
-        p_lead_id: task.lead_id,
-        p_action_type: "call",
-        p_agent_key: "samuel",
-      }
-    );
-
-    if (!complianceErr && compliance?.passed === true) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const callResp = await fetch("https://api.bland.ai/v1/calls", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${creds.bland_api_key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phone_number: lead.phone,
-          from: creds.twilio_phone_number,
-          pathway_id: settings.outbound_pathway_id,
-          voice: "maya",
-          language: "en",
-          timezone: "America/New_York",
-          max_duration: 5,
-          record: true,
-          wait_for_greeting: true,
-          request_data: {
-            lead_id: task.lead_id,
-            lead_first_name: lead.full_name?.split(" ")[0] || "",
-            lead_last_name: lead.full_name?.split(" ").slice(1).join(" ") || "",
-            lead_name: lead.full_name || "",
-            lead_email: lead.email || "",
-            lead_phone: lead.phone,
-            property_id: ctx.property_id || "",
-            property_address: propertyAddress,
-            property_rent: "",
-            property_bedrooms: "",
-            property_bathrooms: "",
-            organization_id: task.organization_id,
-            webhook_secret: Deno.env.get("BLAND_WEBHOOK_SECRET") || "",
-            task_type: "showing_confirmation",
-            showing_id: ctx.showing_id || "",
-            scheduled_at: scheduledAt,
-          },
-          webhook: `${supabaseUrl}/functions/v1/pathway-webhook`,
-          metadata: {
-            agent_key: "samuel",
-            call_type: "showing_confirmation",
-            lead_id: task.lead_id,
-            property_id: ctx.property_id || "",
-            organization_id: task.organization_id,
-            showing_id: ctx.showing_id || "",
-          },
-        }),
-      });
-
-      const callData = await callResp.json();
-      if (callResp.ok && callData.call_id) {
-        await supabase
-          .from("agent_tasks")
-          .update({ result_call_id: null })
-          .eq("id", task.id);
-
-        try {
-          await supabase.rpc("zacchaeus_record_cost", {
-            p_organization_id: task.organization_id,
-            p_service: "bland",
-            p_usage_quantity: 1,
-            p_usage_unit: "call",
-            p_unit_cost: 0.09,
-            p_total_cost: 0.09,
-            p_lead_id: task.lead_id,
-          });
-        } catch {
-          /* non-blocking */
-        }
-
-        return `Bland.ai confirmation call initiated (${callData.call_id})`;
-      }
-      // Fall through to SMS/email if call failed
-    }
-  }
-
-  // Fallback: SMS if lead has phone
-  if (lead.phone) {
-    const smsBody = `Hi ${lead.full_name?.split(" ")[0] || "there"}! This is a reminder about your showing at ${propertyAddress} on ${dateStr}. Reply YES to confirm or call us to reschedule.`;
-
-    const { error } = await supabase.functions.invoke("send-message", {
-      body: {
-        lead_id: task.lead_id,
-        channel: "sms",
-        body: smsBody,
-        organization_id: task.organization_id,
-      },
-    });
-
-    if (!error) return "Confirmation SMS sent";
-  }
-
-  // Fallback: Email
+  // Voice and SMS were removed from the product — confirmations are email-only.
   if (lead.email) {
     const firstName = lead.full_name?.split(" ")[0] || "there";
     const customConfig = settings.email_templates?.showing_confirmation as EmailTemplateConfig | undefined;
@@ -566,141 +463,7 @@ async function handleWelcomeSequence(
     if (!error) return "Welcome email queued";
   }
 
-  // Fallback: SMS
-  if (lead.phone || ctx.phone) {
-    const { error } = await supabase.functions.invoke("send-message", {
-      body: {
-        lead_id: task.lead_id,
-        channel: "sms",
-        body: `Hi ${firstName}! Welcome to ${settings.org_name}. We're excited to help you find your next home. Check out available properties at ${settings.sender_domain}. Reply with any questions!`,
-        organization_id: task.organization_id,
-      },
-    });
-
-    if (!error) return "Welcome SMS sent";
-  }
-
-  throw new Error("Lead has no email or phone for welcome sequence");
-}
-
-async function handleRecapture(
-  supabase: SupabaseClient,
-  task: AgentTask,
-  lead: AgentTask,
-  creds: OrgCreds,
-  settings: OrgSettings
-): Promise<string> {
-  const ctx = task.context || {};
-
-  if (task.action_type === "call") {
-    if (!lead.phone) throw new Error("Lead has no phone for recapture call");
-    if (!creds.bland_api_key || !settings.outbound_pathway_id) {
-      throw new Error("Bland.ai not configured for outbound calls");
-    }
-
-    const { data: compliance, error: complianceErr } = await supabase.rpc(
-      "joseph_compliance_check",
-      {
-        p_organization_id: task.organization_id,
-        p_lead_id: task.lead_id,
-        p_action_type: "call",
-        p_agent_key: "elijah",
-      }
-    );
-
-    if (complianceErr || compliance?.passed !== true) {
-      throw new Error("Compliance check failed for recapture call");
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const propertyAddress = ctx.property_address || "";
-
-    const callResp = await fetch("https://api.bland.ai/v1/calls", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${creds.bland_api_key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        phone_number: lead.phone,
-        from: creds.twilio_phone_number,
-        pathway_id: settings.outbound_pathway_id,
-        voice: "maya",
-        language: "en",
-        timezone: "America/New_York",
-        max_duration: 10,
-        record: true,
-        wait_for_greeting: true,
-        request_data: {
-          lead_id: task.lead_id,
-          lead_first_name: lead.full_name?.split(" ")[0] || "",
-          lead_last_name:
-            lead.full_name?.split(" ").slice(1).join(" ") || "",
-          lead_name: lead.full_name || "",
-          lead_email: lead.email || "",
-          lead_phone: lead.phone,
-          property_id: ctx.property_id || "",
-          property_address: propertyAddress,
-          property_rent: ctx.property_rent || "",
-          property_bedrooms: ctx.property_bedrooms || "",
-          property_bathrooms: ctx.property_bathrooms || "",
-          organization_id: task.organization_id,
-          webhook_secret: Deno.env.get("BLAND_WEBHOOK_SECRET") || "",
-        },
-        webhook: `${supabaseUrl}/functions/v1/pathway-webhook`,
-        metadata: {
-          agent_key: "elijah",
-          call_type: "outbound_recapture",
-          lead_id: task.lead_id,
-          property_id: ctx.property_id || "",
-          organization_id: task.organization_id,
-        },
-      }),
-    });
-
-    const callData = await callResp.json();
-    if (!callResp.ok) {
-      throw new Error(
-        `Bland.ai call failed: ${callData.message || callResp.status}`
-      );
-    }
-
-    try {
-      await supabase.rpc("zacchaeus_record_cost", {
-        p_organization_id: task.organization_id,
-        p_service: "bland",
-        p_usage_quantity: 1,
-        p_usage_unit: "call",
-        p_unit_cost: 0.09,
-        p_total_cost: 0.09,
-        p_lead_id: task.lead_id,
-      });
-    } catch {
-      /* non-blocking */
-    }
-
-    return `Recapture call initiated (${callData.call_id})`;
-  }
-
-  // SMS recapture
-  if (!lead.phone) throw new Error("Lead has no phone for recapture SMS");
-
-  const firstName = lead.full_name?.split(" ")[0] || "there";
-  const smsBody =
-    ctx.message ||
-    `Hi ${firstName}! We noticed you were looking at rentals in Cleveland. We have new properties available that might interest you. Reply STOP to opt out.`;
-
-  const { error } = await supabase.functions.invoke("send-message", {
-    body: {
-      lead_id: task.lead_id,
-      channel: "sms",
-      body: smsBody,
-      organization_id: task.organization_id,
-    },
-  });
-
-  if (error) throw new Error(`send-message failed: ${error.message}`);
-  return "Recapture SMS sent";
+  throw new Error("Lead has no email for welcome sequence (SMS removed)");
 }
 
 async function handleNoShowFollowup(
@@ -713,21 +476,7 @@ async function handleNoShowFollowup(
   const firstName = lead.full_name?.split(" ")[0] || "there";
   const propertyAddress = await resolvePropertyAddress(supabase, ctx, "the property");
 
-  if (lead.phone && task.action_type === "sms") {
-    const smsBody = `Hi ${firstName}, we missed you at the showing for ${propertyAddress}. Would you like to reschedule? We're happy to find a time that works better for you. Reply YES to reschedule.`;
-
-    const { error } = await supabase.functions.invoke("send-message", {
-      body: {
-        lead_id: task.lead_id,
-        channel: "sms",
-        body: smsBody,
-        organization_id: task.organization_id,
-      },
-    });
-
-    if (!error) return "No-show follow-up SMS sent";
-  }
-
+  // SMS removed — no-show follow-ups are email-only.
   if (lead.email) {
     const customConfig = settings.email_templates?.no_show as EmailTemplateConfig | undefined;
     let html: string;
@@ -817,22 +566,7 @@ async function handlePostShowing(
     if (!error) return "Post-showing email queued";
   }
 
-  if (lead.phone) {
-    const smsBody = `Hi ${firstName}! Thanks for visiting ${propertyAddress} today. If you'd like to move forward with an application, reply APPLY or visit ${settings.sender_domain}.`;
-
-    const { error } = await supabase.functions.invoke("send-message", {
-      body: {
-        lead_id: task.lead_id,
-        channel: "sms",
-        body: smsBody,
-        organization_id: task.organization_id,
-      },
-    });
-
-    if (!error) return "Post-showing SMS sent";
-  }
-
-  throw new Error("Lead has no email or phone for post-showing follow-up");
+  throw new Error("Lead has no email for post-showing follow-up (SMS removed)");
 }
 
 async function handleNotificationDispatch(
@@ -914,23 +648,6 @@ async function handleNotificationDispatch(
   // gap (2,200+ tasks marked done without ever notifying anyone).
   const err = new Error(
     `Notification dispatch not implemented for notification_type="${ntype}". Wire agent-notification-dispatcher (routing + invocation) before enabling.`,
-  );
-  console.error(err.message, { taskId: task.id, context: task.context });
-  throw err;
-}
-
-async function handleCampaign(
-  _supabase: SupabaseClient,
-  task: AgentTask,
-  _lead: AgentTask,
-): Promise<string> {
-  // Campaign agent_tasks are not actually executed by the dispatcher.
-  // Email campaigns flow through process-email-queue (via email_events queued
-  // rows), and there is no SMS/voice campaign UI yet. Until that exists, we
-  // throw so the task is marked failed rather than silently "completed",
-  // which previously hid the gap.
-  const err = new Error(
-    `Campaign execution not implemented for agent_type="${task.agent_type}", action_type="${task.action_type}". Use the Campaigns wizard for email blasts, or remove this task.`,
   );
   console.error(err.message, { taskId: task.id, context: task.context });
   throw err;
@@ -1203,7 +920,6 @@ async function handleSheetsBackup(task: AgentTask): Promise<string> {
 async function dispatchTask(
   supabase: SupabaseClient,
   task: AgentTask,
-  creds: OrgCreds,
   settings: OrgSettings
 ): Promise<string> {
   // Fetch lead info
@@ -1221,7 +937,7 @@ async function dispatchTask(
 
   switch (task.agent_type) {
     case "showing_confirmation":
-      return handleShowingConfirmation(supabase, task, lead, creds, settings);
+      return handleShowingConfirmation(supabase, task, lead, settings);
     case "welcome_sequence":
       return handleWelcomeSequence(supabase, task, lead, settings);
     case "esther":
@@ -1229,24 +945,15 @@ async function dispatchTask(
         return handleEnrichmentFollowup(supabase, task, lead, settings);
       }
       return `Auto-completed esther/${task.action_type} (no handler)`;
-    case "recapture":
-      return handleRecapture(supabase, task, lead, creds, settings);
     case "no_show_followup":
+    case "no_show_follow_up":
       return handleNoShowFollowup(supabase, task, lead, settings);
     case "post_showing":
       return handlePostShowing(supabase, task, lead, settings);
     case "notification_dispatcher":
       return handleNotificationDispatch(supabase, task);
-    case "campaign_voice":
-    case "campaign":
-      return handleCampaign(supabase, task, lead);
     case "sheets_backup":
       return handleSheetsBackup(task);
-    case "conversion_predictor":
-    case "lead_scoring":
-    case "doorloop_pull":
-      // No handler yet — auto-complete these task types
-      return `Auto-completed ${task.agent_type} (no handler)`;
     default:
       throw new Error(`Unknown agent_type: ${task.agent_type}`);
   }
@@ -1325,21 +1032,12 @@ serve(async (req: Request) => {
     }[] = [];
 
     for (const org of orgs) {
-      // Get credentials
-      const { data: creds } = await supabase
-        .from("organization_credentials")
-        .select(
-          "bland_api_key, twilio_phone_number, twilio_account_sid, twilio_auth_token, resend_api_key"
-        )
-        .eq("organization_id", org.id)
-        .single();
-
       // Get settings
       const { data: settingsRows } = await supabase
         .from("organization_settings")
         .select("key, value")
         .eq("organization_id", org.id)
-        .in("key", ["sender_domain", "outbound_pathway_id", "email_templates"]);
+        .in("key", ["sender_domain", "email_templates"]);
 
       // deno-lint-ignore no-explicit-any
       const settingsMap: Record<string, any> = {};
@@ -1347,13 +1045,6 @@ serve(async (req: Request) => {
         settingsMap[s.key] = s.value;
       }
 
-      const orgCreds: OrgCreds = {
-        bland_api_key: creds?.bland_api_key || null,
-        twilio_phone_number: creds?.twilio_phone_number || null,
-        twilio_account_sid: creds?.twilio_account_sid || null,
-        twilio_auth_token: creds?.twilio_auth_token || null,
-        resend_api_key: creds?.resend_api_key || null,
-      };
 
       // Parse email_templates: value is JSONB, may be an object or stringified JSON
       let emailTemplates: EmailTemplatesMap | null = null;
@@ -1369,7 +1060,6 @@ serve(async (req: Request) => {
       const orgSettings: OrgSettings = {
         sender_domain:
           String(settingsMap["sender_domain"] || "rentfindercleveland.com"),
-        outbound_pathway_id: settingsMap["outbound_pathway_id"] ? String(settingsMap["outbound_pathway_id"]) : null,
         org_name: org.name || "Rent Finder Cleveland",
         email_templates: emailTemplates,
       };
@@ -1392,6 +1082,21 @@ serve(async (req: Request) => {
       }
 
       if (!tasks || tasks.length === 0) continue;
+      const orgStartIdx = allResults.length;
+
+      // Nehemiah heartbeat — the dispatcher IS Nehemiah; without this row the
+      // agent looks dead in every liveness view even while executing thousands
+      // of tasks under other agents' names.
+      try {
+        await supabase.from("agent_activity_log").insert({
+          organization_id: org.id,
+          agent_key: "nehemiah",
+          action: "dispatch_run",
+          status: "success",
+          message: `Claimed ${tasks.length} task(s)`,
+          details: { claimed: tasks.length },
+        });
+      } catch { /* non-blocking */ }
 
       // ── Check which agents are disabled (toggles) ──────────────────────
       const { data: registryRows } = await supabase
@@ -1409,19 +1114,38 @@ serve(async (req: Request) => {
         const taskStart = Date.now();
         const canonicalAgent = resolveAgentKey(task.agent_type);
 
-        // ── Voice removed: auto-cancel any legacy 'call' tasks ───────────
-        // Voice/Bland was removed from the product; a 'call' task can never run.
-        // Cancel it (instead of letting it fail-loop) so the queue self-cleans.
-        if (task.action_type === "call") {
+        // ── Dead capability guard: cancel-on-sight ──────────────────────
+        // Voice + SMS were removed from the product, several agent_types have
+        // no handler, and only priority/hot notifications are routable. Cancel
+        // these instead of letting them fail-loop so the queue self-cleans.
+        const notifType =
+          task.agent_type === "notification_dispatcher"
+            ? String((task.context as Record<string, unknown> | null)?.notification_type ?? "unknown")
+            : null;
+        const deadReason =
+          task.action_type === "call"
+            ? "Voice/call capability removed — task auto-cancelled"
+            : task.action_type === "sms"
+              ? "SMS capability removed — task auto-cancelled"
+              : DEAD_AGENT_TYPES.has(task.agent_type)
+                ? `Dead agent_type "${task.agent_type}" — task auto-cancelled`
+                : notifType && !ROUTABLE_NOTIFICATION_TYPES.has(notifType)
+                  ? `Unroutable notification_type "${notifType}" — task auto-cancelled`
+                  : null;
+        if (deadReason) {
           await supabase
             .from("agent_tasks")
-            .update({ status: "cancelled" })
+            .update({
+              status: "cancelled",
+              completed_at: new Date().toISOString(),
+              context: { ...task.context, cancel_reason: deadReason },
+            })
             .eq("id", task.id);
           totalSkipped++;
           allResults.push({
             taskId: task.id,
             status: "cancelled",
-            reason: "Voice/call capability removed — task auto-cancelled",
+            reason: deadReason,
           });
           continue;
         }
@@ -1444,7 +1168,7 @@ serve(async (req: Request) => {
 
         try {
           const result = await withTimeout(
-            dispatchTask(supabase, task, orgCreds, orgSettings),
+            dispatchTask(supabase, task, orgSettings),
             TASK_TIMEOUT_MS
           );
 
@@ -1531,12 +1255,8 @@ serve(async (req: Request) => {
       }
 
       // System log per org
-      const orgDispatched = allResults.filter(
-        (r) => r.status === "completed"
-      ).length;
-      const orgFailed = allResults.filter(
-        (r) => r.status === "failed"
-      ).length;
+      const orgDispatched = allResults.slice(orgStartIdx).filter((r) => r.status === "completed").length;
+      const orgFailed = allResults.slice(orgStartIdx).filter((r) => r.status === "failed").length;
 
       if (orgDispatched > 0 || orgFailed > 0) {
         try {
@@ -1550,7 +1270,7 @@ serve(async (req: Request) => {
               dispatched: orgDispatched,
               failed: orgFailed,
               total: tasks.length,
-              results: allResults.slice(-20),
+              results: allResults.slice(orgStartIdx).slice(-20),
             },
           });
         } catch {

@@ -35,6 +35,8 @@ export default defineConfig(({ mode }) => ({
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
           'vendor-leaflet': ['leaflet', 'react-leaflet'],
+          // Only FunnelScene (lazy) imports these — the chunk loads on /agents only
+          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
         },
       },
     },

@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   Send,
   XCircle,
-  MessageSquare,
   Pause,
   Play,
   Loader2,
@@ -30,7 +29,6 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CampaignCreateWizard } from "@/components/campaigns/CampaignCreateWizard";
 import { CampaignProgressPanel } from "@/components/campaigns/CampaignProgressPanel";
-import { SmsHistoryTab } from "@/components/campaigns/SmsHistoryTab";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -267,10 +265,6 @@ const CampaignsPage = () => {
             <Mail className="h-4 w-4" />
             Email Campaigns
           </TabsTrigger>
-          <TabsTrigger value="sms" className="gap-1.5">
-            <MessageSquare className="h-4 w-4" />
-            SMS
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-4">
@@ -394,9 +388,6 @@ const CampaignsPage = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="sms" className="mt-4">
-          <SmsHistoryTab />
-        </TabsContent>
       </Tabs>
     </div>
   );

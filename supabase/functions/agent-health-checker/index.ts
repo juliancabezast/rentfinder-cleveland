@@ -10,13 +10,9 @@ const corsHeaders = {
 
 // External API services to check
 const API_SERVICES = [
-  "twilio",
-  "bland",
   "openai",
   "resend",
   "doorloop",
-  "persona",
-  "maxmind",
   "supabase",
 ];
 
@@ -35,7 +31,7 @@ const CRITICAL_CRONS = [
   "process-email-queue-every-minute",
   "nehemiah-dispatch-every-5min",
   "zacchaeus-health-check-1h",
-  "hourly-telegram-report",
+  "daily-report-morning-5am-et",
   "esther-doorloop-pull-15min",
 ];
 
@@ -190,31 +186,6 @@ serve(async (req: Request) => {
             );
             status = resp.ok ? "connected" : "error";
             message = resp.ok ? "OK" : `HTTP ${resp.status}`;
-            break;
-          }
-
-          case "persona": {
-            const apiKey = creds?.persona_api_key;
-            if (!apiKey) {
-              status = "not_configured";
-              message = "Not configured";
-              break;
-            }
-            status = "connected";
-            message = "Credentials saved";
-            break;
-          }
-
-          case "maxmind": {
-            const mAccountId = creds?.maxmind_account_id;
-            const mLicenseKey = creds?.maxmind_license_key;
-            if (!mAccountId || !mLicenseKey) {
-              status = "not_configured";
-              message = "Credentials not set";
-              break;
-            }
-            status = "connected";
-            message = "Credentials saved";
             break;
           }
 

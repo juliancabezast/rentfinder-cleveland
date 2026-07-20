@@ -2318,6 +2318,50 @@ export type Database = {
           },
         ]
       }
+      lead_reminders: {
+        Row: {
+          attempt: number
+          created_at: string
+          due_at: string
+          id: string
+          lead_id: string
+          organization_id: string
+          reason: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempt?: number
+          created_at?: string
+          due_at: string
+          id?: string
+          lead_id: string
+          organization_id: string
+          reason?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempt?: number
+          created_at?: string
+          due_at?: string
+          id?: string
+          lead_id?: string
+          organization_id?: string
+          reason?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_reminders_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_score_history: {
         Row: {
           change_amount: number
@@ -2418,7 +2462,9 @@ export type Database = {
           budget_min: number | null
           call_consent: boolean | null
           call_consent_at: string | null
+          city: string | null
           contact_preference: string | null
+          converted_at: string | null
           created_at: string | null
           do_not_contact: boolean | null
           doorloop_prospect_id: string | null
@@ -2445,10 +2491,10 @@ export type Database = {
           last_name: string | null
           lead_score: number | null
           lost_reason: string | null
+          managed_at: string | null
           move_in_date: string | null
           next_follow_up_at: string | null
           organization_id: string
-          persona_verification_id: string | null
           phone: string | null
           phone_verified: boolean | null
           preferred_language: string | null
@@ -2480,7 +2526,9 @@ export type Database = {
           budget_min?: number | null
           call_consent?: boolean | null
           call_consent_at?: string | null
+          city?: string | null
           contact_preference?: string | null
+          converted_at?: string | null
           created_at?: string | null
           do_not_contact?: boolean | null
           doorloop_prospect_id?: string | null
@@ -2507,10 +2555,10 @@ export type Database = {
           last_name?: string | null
           lead_score?: number | null
           lost_reason?: string | null
+          managed_at?: string | null
           move_in_date?: string | null
           next_follow_up_at?: string | null
           organization_id: string
-          persona_verification_id?: string | null
           phone?: string | null
           phone_verified?: boolean | null
           preferred_language?: string | null
@@ -2542,7 +2590,9 @@ export type Database = {
           budget_min?: number | null
           call_consent?: boolean | null
           call_consent_at?: string | null
+          city?: string | null
           contact_preference?: string | null
+          converted_at?: string | null
           created_at?: string | null
           do_not_contact?: boolean | null
           doorloop_prospect_id?: string | null
@@ -2569,10 +2619,10 @@ export type Database = {
           last_name?: string | null
           lead_score?: number | null
           lost_reason?: string | null
+          managed_at?: string | null
           move_in_date?: string | null
           next_follow_up_at?: string | null
           organization_id?: string
-          persona_verification_id?: string | null
           phone?: string | null
           phone_verified?: boolean | null
           preferred_language?: string | null
@@ -2796,14 +2846,15 @@ export type Database = {
           created_at: string | null
           doorloop_api_key: string | null
           id: string
-          maxmind_account_id: string | null
-          maxmind_license_key: string | null
           openai_api_key: string | null
           organization_id: string
-          persona_api_key: string | null
           resend_api_key: string | null
           telegram_bot_token: string | null
           telegram_chat_id: string | null
+          telegram_funnel_bot_token: string | null
+          telegram_funnel_chat_id: string | null
+          telegram_route_bot_token: string | null
+          telegram_route_chat_id: string | null
           telegram_showings_bot_token: string | null
           telegram_showings_chat_id: string | null
           twilio_account_sid: string | null
@@ -2817,14 +2868,15 @@ export type Database = {
           created_at?: string | null
           doorloop_api_key?: string | null
           id?: string
-          maxmind_account_id?: string | null
-          maxmind_license_key?: string | null
           openai_api_key?: string | null
           organization_id: string
-          persona_api_key?: string | null
           resend_api_key?: string | null
           telegram_bot_token?: string | null
           telegram_chat_id?: string | null
+          telegram_funnel_bot_token?: string | null
+          telegram_funnel_chat_id?: string | null
+          telegram_route_bot_token?: string | null
+          telegram_route_chat_id?: string | null
           telegram_showings_bot_token?: string | null
           telegram_showings_chat_id?: string | null
           twilio_account_sid?: string | null
@@ -2838,14 +2890,15 @@ export type Database = {
           created_at?: string | null
           doorloop_api_key?: string | null
           id?: string
-          maxmind_account_id?: string | null
-          maxmind_license_key?: string | null
           openai_api_key?: string | null
           organization_id?: string
-          persona_api_key?: string | null
           resend_api_key?: string | null
           telegram_bot_token?: string | null
           telegram_chat_id?: string | null
+          telegram_funnel_bot_token?: string | null
+          telegram_funnel_chat_id?: string | null
+          telegram_route_bot_token?: string | null
+          telegram_route_chat_id?: string | null
           telegram_showings_bot_token?: string | null
           telegram_showings_chat_id?: string | null
           twilio_account_sid?: string | null
@@ -4966,6 +5019,41 @@ export type Database = {
         Args: { p_lead_id: string; p_property_id: string; p_source?: string }
         Returns: string
       }
+      agents_live_status: { Args: never; Returns: Json }
+      analytics_email_campaigns: {
+        Args: { p_bucket?: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_overview: {
+        Args: {
+          p_from: string
+          p_property?: string[]
+          p_source?: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      analytics_time_series: {
+        Args: {
+          p_bucket?: string
+          p_from: string
+          p_property?: string[]
+          p_source?: string
+          p_to: string
+        }
+        Returns: {
+          bucket: string
+          leads: number
+          showings_cancelled: number
+          showings_completed: number
+          showings_no_show: number
+          showings_scheduled: number
+        }[]
+      }
+      apply_milestone_score: {
+        Args: { p_lead_id: string; p_trigger?: string }
+        Returns: undefined
+      }
       build_campaign_audience: {
         Args: { p_criteria: Json; p_organization_id: string }
         Returns: {
@@ -5033,6 +5121,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      compute_milestone_score: { Args: { p_lead_id: string }; Returns: number }
       count_complete_leads_today: {
         Args: { p_organization_id: string }
         Returns: number
@@ -5137,6 +5226,17 @@ export type Database = {
         }
         Returns: Json
       }
+      lead_counts: {
+        Args: { p_org: string }
+        Returns: {
+          active: number
+          applicants: number
+          hot: number
+          incomplete: number
+          lost: number
+          total: number
+        }[]
+      }
       leasing_tracker_response_stats: {
         Args: { p_organization_id: string }
         Returns: Json
@@ -5206,6 +5306,7 @@ export type Database = {
         }
         Returns: Json
       }
+      normalize_phone_e164: { Args: { p_phone: string }; Returns: string }
       nurturing_widget_stats: {
         Args: never
         Returns: {
@@ -5245,10 +5346,56 @@ export type Database = {
         Returns: Json
       }
       recalculate_lead_scores: {
-        Args: never
+        Args: { p_org?: string }
         Returns: {
           leads_checked: number
           leads_updated: number
+        }[]
+      }
+      report_costs_summary: {
+        Args: { p_org: string; p_since: string; p_until: string }
+        Returns: {
+          service: string
+          total: number
+        }[]
+      }
+      report_emails_sent: {
+        Args: { p_org: string; p_since: string; p_until: string }
+        Returns: number
+      }
+      report_monthly_series: {
+        Args: { p_months: number; p_org: string }
+        Returns: {
+          leads: number
+          month: string
+          showings: number
+        }[]
+      }
+      report_source_breakdown: {
+        Args: {
+          p_limit?: number
+          p_org: string
+          p_since: string
+          p_until: string
+        }
+        Returns: {
+          cnt: number
+          source: string
+        }[]
+      }
+      report_status_funnel: {
+        Args: { p_org: string }
+        Returns: {
+          cnt: number
+          status: string
+        }[]
+      }
+      report_time_series: {
+        Args: { p_days: number; p_org: string }
+        Returns: {
+          day: string
+          leads: number
+          showings: number
         }[]
       }
       report_top_properties: {
@@ -5270,14 +5417,12 @@ export type Database = {
         Returns: string
       }
       schedule_showing_confirmations: { Args: never; Returns: number }
-      schedule_stale_leads_for_recapture: { Args: never; Returns: number }
       seed_agents_for_organization: {
         Args: { p_org_id: string }
         Returns: undefined
       }
-      sync_cost_data: { Args: never; Returns: Json }
       top_properties_by_interest: {
-        Args: { p_limit?: number }
+        Args: { p_limit?: number; p_range?: string }
         Returns: {
           address: string
           city: string

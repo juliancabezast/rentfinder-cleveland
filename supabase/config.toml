@@ -24,9 +24,6 @@ verify_jwt = false
 [functions.predict-conversion]
 verify_jwt = false
 
-[functions.batch-predictions]
-verify_jwt = false
-
 [functions.generate-investor-report]
 verify_jwt = false
 
@@ -46,25 +43,6 @@ verify_jwt = false
 verify_jwt = false
 
 # Sprint 2 Edge Functions
-[functions.twilio-inbound-webhook]
-verify_jwt = false
-
-[functions.bland-call-webhook]
-verify_jwt = false
-
-[functions.agent-scoring]
-verify_jwt = false
-
-[functions.agent-welcome-sequence]
-verify_jwt = false
-
-[functions.agent-notification-dispatcher]
-verify_jwt = false
-
-# Sprint 3 Edge Functions
-[functions.agent-recapture]
-verify_jwt = false
-
 [functions.agent-showing-confirmation]
 verify_jwt = false
 
@@ -78,13 +56,6 @@ verify_jwt = false
 [functions.agent-transcript-analyst]
 verify_jwt = false
 
-[functions.agent-conversion-predictor]
-verify_jwt = false
-
-[functions.agent-paip-assistant]
-verify_jwt = false
-
-# Sprint 5 Edge Functions
 [functions.agent-persona-verification]
 verify_jwt = false
 
@@ -124,12 +95,6 @@ verify_jwt = false
 verify_jwt = false
 
 # Sprint 7 Edge Functions
-[functions.agent-insight-generator]
-verify_jwt = false
-
-[functions.agent-report-generator]
-verify_jwt = false
-
 [functions.generate-lead-brief]
 verify_jwt = false
 
@@ -137,10 +102,6 @@ verify_jwt = false
 verify_jwt = false
 
 # Bland.ai Pathway Webhooks
-[functions.pathway-webhook]
-verify_jwt = false
-
-# Public Showing Booking
 [functions.book-public-showing]
 verify_jwt = false
 

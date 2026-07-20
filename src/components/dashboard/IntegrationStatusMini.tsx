@@ -28,17 +28,14 @@ interface IntegrationHealth {
   updated_at: string | null;
 }
 
-// Services to display and their friendly names
+// Services to display and their friendly names (Twilio removed with SMS 2026-07-20)
 const SERVICE_DISPLAY_MAP: Record<string, string> = {
-  twilio: "Twilio",
   openai: "OpenAI",
-  persona: "Persona",
-  maxmind: "MaxMind",
   doorloop: "Doorloop",
   resend: "Email",
 };
 
-const SERVICE_ORDER = ["twilio", "openai", "persona", "maxmind", "doorloop", "resend"];
+const SERVICE_ORDER = ["openai", "doorloop", "resend"];
 
 type HealthStatus = "healthy" | "degraded" | "down" | "not_configured" | "unknown";
 
