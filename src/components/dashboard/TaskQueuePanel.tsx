@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,8 @@ import {
   RotateCcw,
   UserCheck,
   CheckCircle2,
+  Sparkles,
+  Hourglass,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,12 +54,42 @@ interface CompletedTask {
   leads: LeadNameRef | null;
 }
 
+interface TaskInsights {
+  pending_total: number;
+  due_next_hour: number;
+  due_next_15m: number;
+  overdue: number;
+  completed_1h: number;
+  completed_today: number;
+  next_at: string | null;
+  by_type: { type: string; count: number }[];
+}
+
 interface QueueSnapshot {
   tasks: QueuedTask[];
   totalPending: number;
   completedToday: number;
   recent: CompletedTask[];
+  insights: TaskInsights | null;
 }
+
+// Short, human labels for the queue-composition line
+const COMP_LABELS: Record<string, string> = {
+  welcome_sequence: "bienvenidas",
+  showing_confirmation: "confirmaciones",
+  no_show_followup: "seguimientos no-show",
+  no_show_follow_up: "seguimientos no-show",
+  post_showing: "post-showing",
+  notification_dispatcher: "notificaciones",
+  recapture: "recapturas",
+};
+
+const fmtEta = (h: number): string => {
+  if (h < 1 / 60) return "<1 min";
+  if (h < 1) return `~${Math.round(h * 60)} min`;
+  if (h < 24) return `~${h.toFixed(1)}h`;
+  return `~${Math.round(h / 24)}d`;
+};
 
 // ── Agent biblical names ─────────────────────────────────────────────
 
@@ -172,7 +204,7 @@ export const TaskQueuePanel = () => {
   const { data: snap, isLoading } = useQuery({
     queryKey,
     queryFn: async (): Promise<QueueSnapshot> => {
-      if (!orgId) return { tasks: [], totalPending: 0, completedToday: 0, recent: [] };
+      if (!orgId) return { tasks: [], totalPending: 0, completedToday: 0, recent: [], insights: null };
 
       // Cleveland midnight (DST-aware) for "completed today"
       const now = new Date();
@@ -181,7 +213,7 @@ export const TaskQueuePanel = () => {
       clevNow.setHours(0, 0, 0, 0);
       const todayStart = new Date(clevNow.getTime() + tzOffset).toISOString();
 
-      const [tasksRes, pendingRes, doneTodayRes, recentRes] = await Promise.all([
+      const [tasksRes, pendingRes, doneTodayRes, recentRes, insightsRes] = await Promise.all([
         supabase
           .from("agent_tasks")
           .select(`
@@ -216,6 +248,7 @@ export const TaskQueuePanel = () => {
           .not("completed_at", "is", null)
           .order("completed_at", { ascending: false })
           .limit(3),
+        supabase.rpc("task_queue_insights"),
       ]);
 
       if (tasksRes.error) throw tasksRes.error;
@@ -225,6 +258,7 @@ export const TaskQueuePanel = () => {
         totalPending: pendingRes.count || 0,
         completedToday: doneTodayRes.count || 0,
         recent: (recentRes.data as unknown as CompletedTask[]) || [],
+        insights: (insightsRes.data as unknown as TaskInsights) || null,
       };
     },
     enabled: !!orgId,
@@ -268,6 +302,37 @@ export const TaskQueuePanel = () => {
   const hiddenCount = Math.max(0, totalPending - tasks.length);
   const secondsSinceUpdate = Math.max(0, Math.floor((nowMs - lastUpdate.getTime()) / 1000));
 
+  // ── Smart forecast: what's about to go out, real throughput, drain ETA ──
+  const forecast = useMemo(() => {
+    const ins = snap?.insights;
+    if (!ins) return null;
+    const pending = ins.pending_total;
+    if (pending === 0) return { empty: true } as const;
+
+    // Cleveland midnight → hours elapsed today (fallback rate source)
+    const now = new Date(nowMs);
+    const clev = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    clev.setHours(0, 0, 0, 0);
+    const off = now.getTime() - new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" })).getTime();
+    const hoursElapsed = Math.max(0.25, (nowMs - (clev.getTime() + off)) / 3_600_000);
+
+    // Prefer the last-hour throughput; fall back to today's average.
+    const rate = ins.completed_1h > 0 ? ins.completed_1h : ins.completed_today / hoursElapsed;
+
+    // What actually fires in the next hour ≈ min(what's due, what throughput allows)
+    const nextHourOut = rate > 0 ? Math.min(ins.due_next_hour, Math.round(rate)) : ins.due_next_hour;
+    const etaLabel = rate >= 1 ? fmtEta(pending / rate) : null;
+
+    // Composition: top pending types, friendly-labeled
+    const composition = ins.by_type
+      .filter((b) => b.count > 0)
+      .slice(0, 3)
+      .map((b) => `${b.count.toLocaleString()} ${COMP_LABELS[b.type] || b.type.replace(/_/g, " ")}`)
+      .join(" · ");
+
+    return { empty: false as const, pending, rate: Math.round(rate), nextHourOut, etaLabel, composition };
+  }, [snap?.insights, nowMs]);
+
   // ── Render ───────────────────────────────────────────────────────────
 
   return (
@@ -302,7 +367,49 @@ export const TaskQueuePanel = () => {
             />
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground tabular-nums">
+        {/* ── Smart forecast strip ── */}
+        {forecast && (
+          <div className="mt-2 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 to-emerald-50/50 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-indigo-600">Pronóstico</span>
+            </div>
+            {forecast.empty ? (
+              <p className="flex items-center gap-1.5 text-[13px] text-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                Cola vacía — los agentes están al día
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {forecast.nextHourOut > 0 && (
+                  <p className="flex items-center gap-1.5 text-[13px] text-foreground leading-snug">
+                    <Send className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <span>
+                      <span className="font-bold tabular-nums">~{forecast.nextHourOut.toLocaleString()}</span>{" "}
+                      salen en la próxima hora
+                    </span>
+                  </p>
+                )}
+                {forecast.etaLabel && (
+                  <p className="flex items-center gap-1.5 text-[13px] text-foreground leading-snug">
+                    <Hourglass className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <span>
+                      cola vacía en <span className="font-bold">{forecast.etaLabel}</span>
+                      <span className="text-muted-foreground"> a ~{forecast.rate.toLocaleString()}/h</span>
+                    </span>
+                  </p>
+                )}
+                {forecast.composition && (
+                  <p className="text-[11px] text-muted-foreground pt-0.5 leading-snug break-words">
+                    {forecast.composition}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground tabular-nums mt-2">
           Updated {secondsSinceUpdate <= 1 ? "just now" : `${secondsSinceUpdate}s ago`}
         </p>
       </CardHeader>
