@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Bot, Boxes, Flame, Inbox, Mail, Radio, Square, Users, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,14 @@ class SceneBoundary extends React.Component<
 
 const VIEW_PREF_KEY = "agents-funnel-view";
 
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+interface TickerItem {
+  id: number;
+  text: string;
+  tone: "new" | "ok" | "fail";
+}
+
 const AgentsPage: React.FC = () => {
   const { snapshot, isLoading, error, live, lastEventAt, events } = useFunnelData();
   const reducedMotion = useReducedMotion();
@@ -45,6 +53,26 @@ const AgentsPage: React.FC = () => {
   );
 
   const use3D = viewPref === "3d" && supportsWebGL() && !reducedMotion;
+
+  // Live event ticker — the "it's really real-time" strip over the canvas
+  const [ticker, setTicker] = useState<TickerItem[]>([]);
+  useEffect(() => {
+    let id = 0;
+    return events.onEvent((ev) => {
+      const item: TickerItem =
+        ev.type === "lead_new"
+          ? { id: ++id, text: ev.magnitude > 1 ? `🆕 +${ev.magnitude} leads nuevos` : "🆕 Lead nuevo", tone: "new" }
+          : ev.type === "task_completed"
+            ? { id: ++id, text: `✓ ${cap(ev.agentKey)}${ev.magnitude > 1 ? ` +${ev.magnitude} tareas` : " completó una tarea"}`, tone: "ok" }
+            : { id: ++id, text: `${ev.failed ? "⚠️" : "⚡"} ${cap(ev.agentKey)} ${ev.failed ? "falló" : "en acción"}`, tone: ev.failed ? "fail" : "ok" };
+      setTicker((prev) => [item, ...prev].slice(0, 4));
+    });
+  }, [events]);
+  useEffect(() => {
+    if (ticker.length === 0) return;
+    const t = setTimeout(() => setTicker((prev) => prev.slice(0, -1)), 6_000);
+    return () => clearTimeout(t);
+  }, [ticker]);
 
   const setView = useCallback((v: "3d" | "2d") => {
     setViewPref(v);
@@ -244,6 +272,26 @@ const AgentsPage: React.FC = () => {
             animated={!reducedMotion}
             className="absolute inset-0"
           />
+        )}
+
+        {/* Live event ticker */}
+        {ticker.length > 0 && (
+          <div className="absolute bottom-3 left-3 z-10 flex flex-col-reverse gap-1.5 pointer-events-none">
+            {ticker.map((t) => (
+              <span
+                key={t.id}
+                className={cn(
+                  "text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm animate-fade-up",
+                  "bg-white/80 border",
+                  t.tone === "new" && "text-primary border-primary/30",
+                  t.tone === "ok" && "text-success border-success/30",
+                  t.tone === "fail" && "text-destructive border-destructive/30"
+                )}
+              >
+                {t.text}
+              </span>
+            ))}
+          </div>
         )}
 
         {/* Detail panels */}

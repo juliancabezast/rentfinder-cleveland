@@ -13,7 +13,7 @@ export class FunnelEventBus {
   private queue: FunnelEvent[] = [];
   private tokens = TOKENS_PER_SEC;
   private lastRefill = performance.now();
-  private listeners = new Set<() => void>();
+  private listeners = new Set<(event: FunnelEvent) => void>();
 
   emit(event: FunnelEvent) {
     const now = performance.now();
@@ -36,7 +36,7 @@ export class FunnelEventBus {
       if (last) last.magnitude += event.magnitude;
       else if (this.queue.length < MAX_QUEUE) this.queue.push(event);
     }
-    this.listeners.forEach((l) => l());
+    this.listeners.forEach((l) => l(event));
   }
 
   // Scene drains ≤n events per frame tick
@@ -44,7 +44,7 @@ export class FunnelEventBus {
     return this.queue.splice(0, n);
   }
 
-  onEvent(listener: () => void): () => void {
+  onEvent(listener: (event: FunnelEvent) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }

@@ -26,8 +26,8 @@ export function useFunnelData() {
       return data as unknown as FunnelSnapshot;
     },
     enabled: !!orgId,
-    refetchInterval: 15_000,
-    staleTime: 10_000,
+    refetchInterval: 10_000,
+    staleTime: 8_000,
     refetchOnWindowFocus: false,
   });
 

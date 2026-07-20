@@ -177,44 +177,49 @@ export function makeGalaxyTexture(): THREE.CanvasTexture {
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
 
-  ctx.fillStyle = "#070a18";
+  // LIGHT cosmos — matches the app's cool-gray canvas instead of deep space
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#f2f4fc");
+  bg.addColorStop(0.5, "#e9edfa");
+  bg.addColorStop(1, "#eef0f9");
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
   const bandY = H * 0.52;
 
-  // Wide diffuse glow of the galactic plane
+  // Lavender glow of the galactic plane
   let g = ctx.createLinearGradient(0, bandY - H * 0.3, 0, bandY + H * 0.3);
-  g.addColorStop(0, "rgba(120,130,220,0)");
-  g.addColorStop(0.5, "rgba(150,160,235,0.16)");
-  g.addColorStop(1, "rgba(120,130,220,0)");
+  g.addColorStop(0, "rgba(99,102,241,0)");
+  g.addColorStop(0.5, "rgba(99,102,241,0.10)");
+  g.addColorStop(1, "rgba(99,102,241,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, bandY - H * 0.3, W, H * 0.6);
 
-  // Bright milky core band
+  // Brighter core band
   g = ctx.createLinearGradient(0, bandY - H * 0.1, 0, bandY + H * 0.1);
-  g.addColorStop(0, "rgba(235,235,255,0)");
-  g.addColorStop(0.5, "rgba(240,238,255,0.22)");
-  g.addColorStop(1, "rgba(235,235,255,0)");
+  g.addColorStop(0, "rgba(139,92,246,0)");
+  g.addColorStop(0.5, "rgba(139,92,246,0.12)");
+  g.addColorStop(1, "rgba(139,92,246,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, bandY - H * 0.1, W, H * 0.2);
 
-  // Warm galactic-center bulge
+  // Warm golden bulge
   const bulge = ctx.createRadialGradient(W * 0.62, bandY, 0, W * 0.62, bandY, W * 0.2);
-  bulge.addColorStop(0, "rgba(255,214,150,0.28)");
-  bulge.addColorStop(0.5, "rgba(255,190,120,0.10)");
-  bulge.addColorStop(1, "rgba(255,190,120,0)");
+  bulge.addColorStop(0, "rgba(255,178,44,0.14)");
+  bulge.addColorStop(0.5, "rgba(255,178,44,0.05)");
+  bulge.addColorStop(1, "rgba(255,178,44,0)");
   ctx.fillStyle = bulge;
   ctx.fillRect(0, 0, W, H);
 
-  // Dust lanes: dark elongated blobs riding the band
-  ctx.globalAlpha = 0.5;
-  for (let i = 0; i < 90; i++) {
+  // Soft slate "dust" wisps along the band
+  ctx.globalAlpha = 0.35;
+  for (let i = 0; i < 70; i++) {
     const x = Math.random() * W;
     const y = bandY + (Math.random() - 0.5) * H * 0.09;
     const rx = 30 + Math.random() * 120;
     const dg = ctx.createRadialGradient(x, y, 0, x, y, rx);
-    dg.addColorStop(0, "rgba(6,7,16,0.5)");
-    dg.addColorStop(1, "rgba(6,7,16,0)");
+    dg.addColorStop(0, "rgba(148,163,184,0.16)");
+    dg.addColorStop(1, "rgba(148,163,184,0)");
     ctx.fillStyle = dg;
     ctx.save();
     ctx.translate(x, y);
@@ -226,17 +231,17 @@ export function makeGalaxyTexture(): THREE.CanvasTexture {
   }
   ctx.globalAlpha = 1;
 
-  // Star field: dense along the band, sparse elsewhere
-  for (let i = 0; i < 3200; i++) {
+  // Star specks: indigo/slate dots that read on light, dense along the band
+  for (let i = 0; i < 2400; i++) {
     const nearBand = Math.random() < 0.72;
     const y = nearBand
       ? bandY + (Math.random() + Math.random() + Math.random() - 1.5) * H * 0.12
       : Math.random() * H;
     const x = Math.random() * W;
-    const r = Math.random() < 0.94 ? 0.6 : 1.3;
-    const warm = Math.random() < 0.2;
-    ctx.globalAlpha = 0.35 + Math.random() * 0.6;
-    ctx.fillStyle = warm ? "#ffe1b0" : "#e8ecff";
+    const r = Math.random() < 0.94 ? 0.7 : 1.4;
+    const warm = Math.random() < 0.18;
+    ctx.globalAlpha = 0.15 + Math.random() * 0.3;
+    ctx.fillStyle = warm ? "#d99a2b" : "#6470c9";
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
