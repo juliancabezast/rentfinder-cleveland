@@ -86,7 +86,7 @@ export const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
 
   return (
     <aside
-      className="absolute top-0 right-0 h-full w-full sm:w-[380px] z-20 overflow-y-auto
+      className="absolute top-0 right-0 h-full w-full sm:w-[380px] z-30 overflow-y-auto
         bg-white/[0.82] dark:bg-card/90 backdrop-blur-[20px] border-l shadow-xl p-5 space-y-4"
       role="dialog"
       aria-label={`Detalle del agente ${agent.name}`}

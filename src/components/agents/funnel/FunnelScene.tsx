@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Html, Sparkles, AdaptiveDpr } from "@react-three/drei";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { OrbitControls, Html, Stars, Sparkles, AdaptiveDpr } from "@react-three/drei";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cn } from "@/lib/utils";
@@ -86,10 +86,10 @@ function Atmosphere({ radius, color, strength = 0.9 }: { radius: number; color: 
           varying vec3 vN; varying vec3 vV;
           void main() {
             float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.4);
-            gl_FragColor = vec4(uColor, f * uStrength * 0.8);
+            gl_FragColor = vec4(uColor, f * uStrength);
           }`,
         transparent: true,
-        blending: THREE.NormalBlending,
+        blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
     [color, strength]
@@ -139,7 +139,7 @@ type PulseMap = Map<string, { t: number; failed: boolean; magnitude: number }>;
 // ── Stage planet ─────────────────────────────────────────────────────
 
 function StageNode({
-  stageKey, label, position, count, selected, pulses, onSelect, cloudTex, seed,
+  stageKey, label, position, count, selected, pulses, onSelect, cloudTex, seed, showLabel,
 }: {
   stageKey: StageKey;
   label: string;
@@ -150,6 +150,7 @@ function StageNode({
   onSelect: (sel: Selection) => void;
   cloudTex: THREE.Texture;
   seed: number;
+  showLabel: boolean;
 }) {
   const mesh = useRef<THREE.Mesh>(null);
   const clouds = useRef<THREE.Mesh>(null);
@@ -218,16 +219,18 @@ function StageNode({
             />
           </mesh>
         )}
-        <Atmosphere radius={radius} color={color} strength={selected || hovered ? 1.1 : 0.75} />
+        <Atmosphere radius={radius} color={color} strength={selected || hovered ? 1.2 : 0.85} />
       </group>
-      <Html center distanceFactor={11} zIndexRange={[10, 0]} position={[0, radius + 0.62, 0]} style={{ pointerEvents: "none" }}>
-        <div className="flex flex-col items-center whitespace-nowrap select-none">
-          <span className="text-[16px] font-bold tabular-nums text-slate-900 drop-shadow-[0_1px_3px_rgba(255,255,255,0.95)]">
-            {fmtCount(count)}
-          </span>
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">{label}</span>
-        </div>
-      </Html>
+      {showLabel && (
+        <Html center distanceFactor={11} zIndexRange={[10, 0]} position={[0, radius + 0.62, 0]} style={{ pointerEvents: "none" }}>
+          <div className="flex flex-col items-center whitespace-nowrap select-none">
+            <span className="text-[16px] font-bold tabular-nums text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
+              {fmtCount(count)}
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-white/65">{label}</span>
+          </div>
+        </Html>
+      )}
     </group>
   );
 }
@@ -235,7 +238,7 @@ function StageNode({
 // ── Agent planet (small, ringed) ─────────────────────────────────────
 
 function AgentNode({
-  agentKey, label, position, color, health, tasksToday, selected, pulses, onSelect, statusColors,
+  agentKey, label, position, color, health, tasksToday, selected, pulses, onSelect, statusColors, showLabel,
 }: {
   agentKey: string;
   label: string;
@@ -247,6 +250,7 @@ function AgentNode({
   pulses: PulseMap;
   onSelect: (sel: Selection) => void;
   statusColors: { success: string; destructive: string; muted: string; accent: string };
+  showLabel: boolean;
 }) {
   const group = useRef<THREE.Group>(null);
   const mesh = useRef<THREE.Mesh>(null);
@@ -307,14 +311,16 @@ function AgentNode({
       </mesh>
       <Atmosphere radius={R} color={color} strength={0.8} />
       <PlanetRing radius={R} color={ringColor} />
-      <Html center distanceFactor={11} zIndexRange={[10, 0]} position={[0, 1.05, 0]} style={{ pointerEvents: "none" }}>
-        <div className="flex flex-col items-center whitespace-nowrap select-none">
-          <span className="text-[12px] font-bold text-slate-900 drop-shadow-[0_1px_3px_rgba(255,255,255,0.95)]">{label}</span>
-          <span className="text-[10px] tabular-nums text-slate-500">
-            {tasksToday > 0 ? `${fmtCount(tasksToday)} hoy` : health}
-          </span>
-        </div>
-      </Html>
+      {showLabel && (
+        <Html center distanceFactor={11} zIndexRange={[10, 0]} position={[0, 1.05, 0]} style={{ pointerEvents: "none" }}>
+          <div className="flex flex-col items-center whitespace-nowrap select-none">
+            <span className="text-[12px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">{label}</span>
+            <span className="text-[10px] tabular-nums text-white/60">
+              {tasksToday > 0 ? `${fmtCount(tasksToday)} hoy` : health}
+            </span>
+          </div>
+        </Html>
+      )}
     </group>
   );
 }
@@ -419,7 +425,7 @@ function FlowSystem({
     <instancedMesh ref={inst} args={[undefined, undefined, PARTICLE_BUDGET]} frustumCulled={false} raycast={() => null}>
       <sphereGeometry args={[1, 8, 8]} />
       {/* emissive-bright so Bloom picks the particles up as light streaks */}
-      <meshBasicMaterial color="#E8940F" transparent opacity={0.95} />
+      <meshBasicMaterial color={accent} toneMapped={false} transparent opacity={0.95} />
     </instancedMesh>
   );
 }
@@ -432,7 +438,7 @@ function Edge({ curve, weight, color }: { curve: THREE.CatmullRomCurve3; weight:
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
     <mesh geometry={geometry} raycast={() => null}>
-      <meshBasicMaterial color={color} transparent opacity={0.4} depthWrite={false} />
+      <meshBasicMaterial color={color} transparent opacity={0.28} blending={THREE.AdditiveBlending} depthWrite={false} />
     </mesh>
   );
 }
@@ -483,6 +489,9 @@ interface FunnelSceneProps {
 }
 
 const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, onSelect, className }) => {
+  // Floating labels hide while a detail panel is open — drei's Html portal
+  // otherwise bleeds the in-canvas labels in front of the DOM side panel.
+  const showLabels = selection === null;
   const statusColors = useStatusColors();
   const pulses = useMemo<PulseMap>(() => new Map(), []);
   const cloudTex = useMemo(() => makeCloudTexture(), []);
@@ -562,27 +571,27 @@ const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, 
           gl.domElement.addEventListener("webglcontextlost", () => setContextLost(true));
         }}
       >
-        {/* Light cosmos — matches the app canvas; the galaxy backdrop paints the sky */}
-        <color attach="background" args={["#edf0fa"]} />
-        <fog attach="fog" args={["#edf0fa", 26, 46]} />
+        {/* Deep-space backdrop — the funnel lives in its own cosmos, both themes */}
+        <color attach="background" args={["#0b0f22"]} />
+        <fog attach="fog" args={["#0b0f22", 24, 42]} />
 
         <AdaptiveDpr pixelated />
         <Env />
-        <ambientLight intensity={0.75} />
-        <directionalLight position={[7, 9, 5]} intensity={1.25} color="#FFFBF2" />
-        <pointLight position={[-10, 3, 5]} intensity={0.5} color="#6366F1" />
-        <pointLight position={[9, -2, -5]} intensity={0.35} color="#FFB22C" />
+        <ambientLight intensity={0.35} />
+        <directionalLight position={[7, 9, 5]} intensity={1.4} color="#FFF4E0" />
+        <pointLight position={[-10, 3, 5]} intensity={0.7} color="#6366F1" />
+        <pointLight position={[9, -2, -5]} intensity={0.5} color="#FFB22C" />
 
         <GalaxyBackdrop />
-        <Sparkles count={90} scale={[20, 8, 8]} size={2} speed={0.25} opacity={0.5} color="#6366F1" />
-        <Sparkles count={40} scale={[20, 8, 6]} size={1.4} speed={0.18} opacity={0.4} color="#FFB22C" />
+        <Stars radius={48} depth={25} count={1800} factor={2.8} saturation={0} fade speed={0.35} />
+        <Sparkles count={60} scale={[18, 6, 6]} size={1.6} speed={0.25} opacity={0.35} color="#9CA3FF" />
 
         {spineCurves.map((sc, i) => (
           <Edge
             key={i}
             curve={sc.curve}
             weight={statuses[sc.weightKey] || 0}
-            color={sc.weightKey === "lost" ? "#94A3B8" : "#6366F1"}
+            color={sc.weightKey === "lost" ? "#475569" : "#7C7CF8"}
           />
         ))}
 
@@ -598,6 +607,7 @@ const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, 
             onSelect={onSelect}
             cloudTex={cloudTex}
             seed={idx * 2.3 + 1}
+            showLabel={showLabels}
           />
         ))}
 
@@ -616,6 +626,7 @@ const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, 
               pulses={pulses}
               onSelect={onSelect}
               statusColors={statusColors}
+              showLabel={showLabels}
             />
           );
         })}
@@ -623,7 +634,8 @@ const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, 
         <FlowSystem curves={curves} events={events} pulses={pulses} accent={statusColors.accent} />
 
         <EffectComposer multisampling={0}>
-          <Bloom intensity={0.3} luminanceThreshold={0.72} luminanceSmoothing={0.6} mipmapBlur />
+          <Bloom intensity={0.85} luminanceThreshold={0.22} luminanceSmoothing={0.75} mipmapBlur />
+          <Vignette offset={0.22} darkness={0.6} />
         </EffectComposer>
 
         <CameraRig />
