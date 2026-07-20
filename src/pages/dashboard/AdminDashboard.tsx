@@ -12,7 +12,6 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { LiveKpiCard, SubStat } from "@/components/dashboard/LiveKpiCard";
 import { NextShowingsWidget } from "@/components/dashboard/NextShowingsWidget";
 import { TopPropertiesWidget } from "@/components/dashboard/TopPropertiesWidget";
@@ -78,9 +77,8 @@ export const AdminDashboard = () => {
   return (
     <div className="grid gap-6 grid-cols-1 xl:grid-cols-[1fr_360px]">
       <div className="min-w-0 space-y-6 xl:min-h-[500px]">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <DashboardGreeting />
+        {/* Greeting now lives in the top header bar; keep just the live pulse here */}
+        <div className="flex justify-end -mb-2">
           <LiveBadge live={live} pulseAt={pulseAt} />
         </div>
 

@@ -16,6 +16,7 @@ import {
 import { Menu, User, LogOut } from 'lucide-react';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { IntegrationStatusMini } from '@/components/dashboard/IntegrationStatusMini';
+import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting';
 
 const routeTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -93,7 +94,11 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-bold text-foreground truncate max-w-[50vw] sm:max-w-none">{getPageTitle()}</h1>
+        {location.pathname === '/dashboard' ? (
+          <DashboardGreeting compact />
+        ) : (
+          <h1 className="text-lg font-bold text-foreground truncate max-w-[50vw] sm:max-w-none">{getPageTitle()}</h1>
+        )}
       </div>
 
       {/* Right side - Integration Status + Notifications + User menu */}

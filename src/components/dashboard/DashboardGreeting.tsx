@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 
 interface DashboardGreetingProps {
   className?: string;
+  /** Header-bar variant: single tight two-line stack that fits the h-16 header */
+  compact?: boolean;
 }
 
 const getTimeOfDay = () => {
@@ -48,6 +50,7 @@ const getSubtitle = (timeOfDay: string) => {
 
 export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
   className,
+  compact,
 }) => {
   const { userRecord } = useAuth();
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay);
@@ -62,6 +65,20 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
   }, []);
 
   const firstName = userRecord?.full_name?.split(" ")[0] || "there";
+
+  if (compact) {
+    return (
+      <div className={cn("min-w-0 leading-tight", className)}>
+        <h1 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-1.5 truncate">
+          <span className="truncate">{getGreeting(timeOfDay)}, {firstName}</span>
+          <span aria-hidden>{getEmoji(timeOfDay)}</span>
+        </h1>
+        <p className="text-[11px] text-muted-foreground truncate hidden sm:block">
+          {getSubtitle(timeOfDay)}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("mb-6", className)}>
