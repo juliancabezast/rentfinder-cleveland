@@ -11,7 +11,6 @@ import {
   Phone,
   BarChart3,
   Settings,
-  DollarSign,
   MapPin,
   Target,
   Brain,
@@ -35,6 +34,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: keyof ReturnType<typeof usePermissions>;
+  end?: boolean;
 }
 
 // Main bottom bar items (pipeline core)
@@ -57,8 +57,7 @@ const pipelineMoreItems: NavItem[] = [
 
 // Admin items
 const adminNavItems: NavItem[] = [
-  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
-  { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
+  { title: 'Analytics', href: '/analytics', icon: BarChart3, permission: 'canViewAllReports', end: true },
   { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
 ];
@@ -159,6 +158,7 @@ export const MobileNav: React.FC = () => {
                         <NavLink
                           key={item.href}
                           to={item.href}
+                          end={item.end}
                           onClick={() => setMoreOpen(false)}
                           className={cn(
                             'flex flex-col items-center justify-center gap-2 p-3 rounded-lg text-sm font-medium transition-colors',

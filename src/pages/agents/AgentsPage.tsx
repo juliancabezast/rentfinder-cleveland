@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Calendar, Layers, LayoutDashboard, ScrollText, DollarSign, Mail } from "lucide-react";
+import { Bot, Calendar, Layers, LayoutDashboard, ScrollText, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { addHours } from "date-fns";
@@ -19,7 +19,6 @@ import { resolveAgentKey } from "@/components/agents/constants";
 import { Users } from "lucide-react";
 
 const SystemLogs = React.lazy(() => import("@/pages/SystemLogs"));
-const CostDashboard = React.lazy(() => import("@/pages/costs/CostDashboard"));
 
 const AgentsPage: React.FC = () => {
   const { userRecord } = useAuth();
@@ -219,10 +218,6 @@ const AgentsPage: React.FC = () => {
             <ScrollText className="h-4 w-4" />
             <span className="hidden sm:inline">Logs</span>
           </TabsTrigger>
-          <TabsTrigger value="costs" className="flex-1 sm:flex-initial gap-2 shrink-0">
-            <DollarSign className="h-4 w-4" />
-            <span className="hidden sm:inline">Costs</span>
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-4">
@@ -257,12 +252,6 @@ const AgentsPage: React.FC = () => {
         <TabsContent value="logs" className="mt-4">
           <React.Suspense fallback={<Skeleton className="h-[500px]" />}>
             <SystemLogs />
-          </React.Suspense>
-        </TabsContent>
-
-        <TabsContent value="costs" className="mt-4">
-          <React.Suspense fallback={<Skeleton className="h-[500px]" />}>
-            <CostDashboard />
           </React.Suspense>
         </TabsContent>
       </Tabs>

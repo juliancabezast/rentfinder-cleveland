@@ -26,12 +26,11 @@ const LeadsList = lazy(() => import("./pages/leads/LeadsList"));
 const LeadHygiene = lazy(() => import("./pages/leads/LeadHygiene"));
 const LeadDetail = lazy(() => import("./pages/leads/LeadDetail"));
 const ShowingsList = lazy(() => import("./pages/showings/ShowingsList"));
-const Reports = lazy(() => import("./pages/reports/Reports"));
+const Analytics = lazy(() => import("./pages/analytics/Analytics"));
 const KnowledgeHub = lazy(() => import("./pages/insights/KnowledgeHub"));
 const UsersList = lazy(() => import("./pages/users/UsersList"));
 const UserDetail = lazy(() => import("./pages/users/UserDetail"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
-const CostDashboard = lazy(() => import("./pages/costs/CostDashboard"));
 const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
 
 const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
@@ -286,15 +285,17 @@ const App = () => (
 
 
             <Route
-              path="/reports/*"
+              path="/analytics"
               element={
                 <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
                   <MainLayout>
-                    <Reports />
+                    <Analytics />
                   </MainLayout>
                 </ProtectedRoute>
               }
             />
+            {/* Legacy analytics routes (bookmarks / Telegram deep-links) */}
+            <Route path="/reports/*" element={<Navigate to="/analytics" replace />} />
 
             {/* Knowledge Hub (formerly Insight Generator + Documents) */}
             <Route
@@ -362,16 +363,7 @@ const App = () => (
               }
             />
 
-            <Route
-              path="/costs"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
-                  <MainLayout>
-                    <CostDashboard />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/costs" element={<Navigate to="/analytics?tab=costos" replace />} />
 
              <Route
                path="/demo-requests"

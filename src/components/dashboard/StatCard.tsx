@@ -100,9 +100,9 @@ export const StatCard: React.FC<StatCardProps> = ({
   const animatedValue = useCountUp(value);
 
   const impactConfig = {
-    high: { label: "High impact", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-    medium: { label: "Medium impact", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-    low: { label: "Needs attention", className: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+    high: { label: "OK", className: "bg-success/15 text-success" },
+    medium: { label: "Revisar", className: "bg-warning/15 text-warning" },
+    low: { label: "Atención", className: "bg-destructive/15 text-destructive" },
   };
 
   if (loading) {
@@ -150,13 +150,13 @@ export const StatCard: React.FC<StatCardProps> = ({
         </p>
 
         {/* Value and impact badge */}
-        <div className="flex items-baseline gap-2 mb-2">
+        <div className="flex flex-wrap items-baseline gap-2 mb-2">
           <span className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">
             {animatedValue}
           </span>
           {impact && (
             <span className={cn(
-              "text-[10px] font-medium px-2 py-0.5 rounded-full",
+              "text-xs font-medium px-2 py-0.5 rounded-full",
               impactConfig[impact].className
             )}>
               {impactConfig[impact].label}
@@ -165,12 +165,12 @@ export const StatCard: React.FC<StatCardProps> = ({
         </div>
 
         {/* Trend and subtitle */}
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
           {trend && (
             <span
               className={cn(
                 "flex items-center gap-0.5 font-medium whitespace-nowrap",
-                trend.isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                trend.isPositive ? "text-success" : "text-destructive"
               )}
             >
               {trend.isPositive ? (
@@ -182,7 +182,7 @@ export const StatCard: React.FC<StatCardProps> = ({
             </span>
           )}
           {subtitle && (
-            <span className="text-muted-foreground whitespace-nowrap">{subtitle}</span>
+            <span className="text-muted-foreground">{subtitle}</span>
           )}
         </div>
         {subtitle2 && (

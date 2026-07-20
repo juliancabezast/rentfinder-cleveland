@@ -23,11 +23,10 @@ const routeTitles: Record<string, string> = {
   '/leads': 'Leads',
   '/applicants': 'Applicants',
   '/showings': 'Showings',
-  '/reports': 'Reports',
+  '/analytics': 'Analytics',
   '/knowledge': 'Knowledge Hub',
   '/users': 'User Management',
   '/settings': 'Settings',
-  '/costs': 'Cost Dashboard',
 };
 
 interface HeaderProps {

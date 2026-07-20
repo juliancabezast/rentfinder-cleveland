@@ -18,7 +18,6 @@ import {
   Sparkles,
   UserCog,
   Settings,
-  DollarSign,
   MapPin,
   Target,
   Map,
@@ -31,6 +30,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: keyof ReturnType<typeof usePermissions>;
+  end?: boolean;
 }
 
 const mainNavItems: NavItem[] = [
@@ -45,7 +45,7 @@ const mainNavItems: NavItem[] = [
 const analyticsNavItems: NavItem[] = [
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
-  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
+  { title: 'Analytics', href: '/analytics', icon: BarChart3, permission: 'canViewAllReports', end: true },
   { title: 'Insight Generator', href: '/insights', icon: Sparkles, permission: 'canAccessInsightGenerator' },
 ];
 
@@ -53,7 +53,6 @@ const adminNavItems: NavItem[] = [
   { title: 'Referrals', href: '/settings', icon: Gift, permission: 'canViewReferrals' },
   { title: 'Users', href: '/users', icon: UserCog, permission: 'canCreateUsers' },
   { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
-  { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
 ];
 
 interface MainLayoutProps {
@@ -106,6 +105,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <NavLink
                   key={item.href}
                   to={item.href}
+                  end={item.end}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
                     'flex items-center gap-3 px-3 py-3 rounded-xl text-[13px] font-medium transition-all duration-200 min-h-[48px]',

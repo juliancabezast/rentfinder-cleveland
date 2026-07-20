@@ -10,7 +10,6 @@ import {
   CalendarDays,
   BarChart3,
   Settings,
-  DollarSign,
   ChevronLeft,
   ChevronRight,
   MapPin,
@@ -57,10 +56,9 @@ const commsNavItems: NavItem[] = [
   { title: 'Communications', href: '/communications', icon: Send, permission: 'canViewAllCallLogs' },
 ];
 
-// ANALYTICS — data & reports
+// ANALYTICS — data & reports (Reports + Costs merged into one page 2026-07-19)
 const analyticsNavItems: NavItem[] = [
-  { title: 'Reports', href: '/reports', icon: BarChart3, permission: 'canViewAllReports' },
-  { title: 'Costs', href: '/costs', icon: DollarSign, permission: 'canViewCostDashboard' },
+  { title: 'Analytics', href: '/analytics', icon: BarChart3, permission: 'canViewAllReports', end: true },
 ];
 
 // SYSTEM — config & technical
