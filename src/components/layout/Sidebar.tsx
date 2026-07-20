@@ -9,7 +9,6 @@ import {
   Users,
   CalendarDays,
   BarChart3,
-  Settings,
   ChevronLeft,
   ChevronRight,
   MapPin,
@@ -69,10 +68,9 @@ const analyticsNavItems: NavItem[] = [
   { title: 'Analytics', href: '/analytics', icon: BarChart3, permission: 'canViewAllReports', end: true },
 ];
 
-// SYSTEM — config & technical
+// SYSTEM — Settings lives in the top-right user menu, so it's dropped here.
 const systemNavItems: NavItem[] = [
   { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
-  { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
 ];
 
 // Knowledge Hub — pinned at bottom
@@ -205,26 +203,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
           {/* TOOLS Section */}
           {renderSection('Tools', filteredToolsItems)}
 
-          {/* COMMUNICATIONS — single hub entry (no redundant section label) */}
-          {filteredCommsItems.length > 0 && (
+          {/* MANAGEMENT — Communications, Business, Analytics, Agents */}
+          {(filteredCommsItems.length + filteredAnalyticsItems.length + filteredSystemItems.length) > 0 && (
             <>
               <div className="my-3 mx-3 h-px bg-slate-100" />
+              {!collapsed && (
+                <p className="px-3 py-1.5 text-[12px] font-bold text-slate-500 uppercase tracking-[0.08em]">
+                  Management
+                </p>
+              )}
               {filteredCommsItems.map(renderNavItem)}
-            </>
-          )}
-
-          {/* ANALYTICS — no section label */}
-          {filteredAnalyticsItems.length > 0 && (
-            <>
-              <div className="my-3 mx-3 h-px bg-slate-100" />
               {filteredAnalyticsItems.map(renderNavItem)}
-            </>
-          )}
-
-          {/* SYSTEM — no section label */}
-          {filteredSystemItems.length > 0 && (
-            <>
-              <div className="my-3 mx-3 h-px bg-slate-100" />
               {filteredSystemItems.map(renderNavItem)}
             </>
           )}

@@ -39,7 +39,7 @@ export const NextShowingsWidget: React.FC<Props> = ({ showings, loading }) => {
   return (
     <Card variant="glass">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="text-base flex items-center gap-2">
           <span className="p-1.5 rounded-lg bg-amber-500/10">
             <Calendar className="h-4 w-4 text-amber-500" />
           </span>
@@ -109,7 +109,7 @@ export const NextShowingsWidget: React.FC<Props> = ({ showings, loading }) => {
                       <Badge
                         variant="outline"
                         className={cn(
-                          "text-[10px]",
+                          "text-[11px]",
                           confirmed ? "border-success/40 text-success" : "border-primary/40 text-primary"
                         )}
                       >

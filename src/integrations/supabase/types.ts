@@ -5144,6 +5144,7 @@ export type Database = {
         Returns: undefined
       }
       dashboard_extra_stats: { Args: never; Returns: Json }
+      dashboard_lead_charts: { Args: { p_days?: number }; Returns: Json }
       dashboard_live: { Args: never; Returns: Json }
       execute_agent_task_now: {
         Args: { p_executed_by: string; p_task_id: string }

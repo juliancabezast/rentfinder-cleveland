@@ -16,22 +16,12 @@ import { LiveKpiCard, SubStat } from "@/components/dashboard/LiveKpiCard";
 import { NextShowingsWidget } from "@/components/dashboard/NextShowingsWidget";
 import { TopPropertiesWidget } from "@/components/dashboard/TopPropertiesWidget";
 import { TaskQueuePanel } from "@/components/dashboard/TaskQueuePanel";
+import { LeadsPulse } from "@/components/dashboard/LeadsPulse";
 import { useDashboardLive } from "@/hooks/useDashboardLive";
-import { cn } from "@/lib/utils";
-
-const LiveBadge: React.FC<{ live: boolean; pulseAt: number }> = ({ live, pulseAt }) => (
-  <div className="flex items-center gap-1.5 rounded-full border bg-white/70 dark:bg-card/70 backdrop-blur px-2.5 py-1 text-xs font-medium shrink-0">
-    <span
-      key={pulseAt}
-      className={cn("h-2 w-2 rounded-full", live ? "bg-success dash-live-ping" : "bg-muted-foreground")}
-    />
-    {live ? "En vivo" : "Conectando…"}
-  </div>
-);
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { data, isLoading, error, live, pulseAt, flashByKey } = useDashboardLive();
+  const { data, isLoading, error, flashByKey } = useDashboardLive();
 
   const leads = data?.leads;
   const showings = data?.showings;
@@ -77,16 +67,14 @@ export const AdminDashboard = () => {
   return (
     <div className="grid gap-6 grid-cols-1 xl:grid-cols-[1fr_360px]">
       <div className="min-w-0 space-y-6 xl:min-h-[500px]">
-        {/* Greeting now lives in the top header bar; keep just the live pulse here */}
-        <div className="flex justify-end -mb-2">
-          <LiveBadge live={live} pulseAt={pulseAt} />
-        </div>
-
         {error && !data && (
           <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             No se pudo cargar el dashboard en vivo. Reintentando automáticamente…
           </div>
         )}
+
+        {/* ── Leads pulse — animated realtime lead charts ── */}
+        <LeadsPulse />
 
         {/* ── Hero KPIs — merged live cards ── */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

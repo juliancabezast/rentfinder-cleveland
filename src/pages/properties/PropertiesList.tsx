@@ -16,6 +16,7 @@ import {
   Users,
   Eye,
   EyeOff,
+  ExternalLink,
   X,
   ChevronRight,
   ChevronDown,
@@ -84,7 +85,7 @@ const FILTER_OPTIONS = [
 // label soaks up slack so the row fills edge-to-edge — the Performance group now
 // occupies what used to be an empty right-hand spacer.
 const GRID_COLS =
-  "grid min-w-[1080px] grid-cols-[minmax(200px,1fr)_56px_56px_112px_56px_48px_140px_56px_52px_60px_96px_36px] items-center gap-x-2 px-3";
+  "grid min-w-[1108px] grid-cols-[minmax(200px,1fr)_56px_56px_112px_56px_48px_140px_56px_52px_60px_96px_64px] items-center gap-x-2 px-3";
 
 /** Short number: 1234 → "1.2k". */
 function fmtCompact(n: number): string {
@@ -516,7 +517,6 @@ const PropertiesList: React.FC = () => {
       map.get(key)!.push(g);
     }
     return [...map.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([city, buildings]) => ({
         city,
         buildings: [...buildings].sort(
@@ -524,7 +524,13 @@ const PropertiesList: React.FC = () => {
         ),
         doors: buildings.reduce((s, b) => s + b.units.length, 0),
         available: buildings.reduce((s, b) => s + b.units.filter((u) => u.status === "available").length, 0),
-      }));
+        // Cities with active (available / in-leasing) doors float to the top;
+        // cities with none (e.g. only rented/inactive) sink to the bottom.
+        activeCount: buildings.reduce((s, b) => s + b.units.filter((u) => ACTIVE_STATUSES.has(u.status)).length, 0),
+      }))
+      .sort((a, b) =>
+        (b.activeCount > 0 ? 1 : 0) - (a.activeCount > 0 ? 1 : 0) || a.city.localeCompare(b.city),
+      );
   }, [grouped]);
 
   const forceExpand = searchQuery.trim() !== "" || statusFilter !== "all";
@@ -842,10 +848,18 @@ const PropertiesList: React.FC = () => {
           viewsImpr={units.reduce((s, u) => s + ((u as any).impression_count || 0), 0)}
         />
 
-        {/* Edit */}
-        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+        {/* View public page · Edit */}
+        <div className="flex justify-center gap-0.5" onClick={(e) => e.stopPropagation()}>
           <Button
             variant="ghost" size="icon" className="h-7 w-7"
+            title="Open the public property page"
+            onClick={() => window.open(`${window.location.origin}/property/${u0.id}`, "_blank", "noopener,noreferrer")}
+          >
+            <ExternalLink className="h-3.5 w-3.5 text-indigo-500" />
+          </Button>
+          <Button
+            variant="ghost" size="icon" className="h-7 w-7"
+            title="Edit property"
             onClick={() => navigate(group.groupId ? `/properties/group/${group.groupId}` : `/properties/${u0.id}`)}
           >
             <Pencil className="h-3.5 w-3.5 text-muted-foreground" />

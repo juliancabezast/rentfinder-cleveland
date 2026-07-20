@@ -35,6 +35,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -141,6 +148,7 @@ const ShowingsList: React.FC = () => {
   // newly scheduled) so the calendar grid + missing-report chips refetch.
   const [calendarReload, setCalendarReload] = useState(0);
   const bumpCalendar = () => setCalendarReload((n) => n + 1);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Fetch slot totals for current week (available across all tabs)
   const fetchSlotTotals = useMemo(() => async () => {
@@ -523,6 +531,16 @@ const ShowingsList: React.FC = () => {
                 <ExternalLink className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Leasing Tracker</span>
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                title="Booking settings (lead time · Call Now button)"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings2 className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Ajustes</span>
+              </Button>
             </>
           )}
           {permissions.canScheduleShowing && (
@@ -563,118 +581,6 @@ const ShowingsList: React.FC = () => {
               setDetailDialogOpen(true);
             }}
           />
-
-          {/* Minimum Lead Time Config */}
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                  <Clock className="h-5 w-5 text-indigo-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-sm">Minimum Booking Lead Time</h3>
-                  <p className="text-xs text-muted-foreground">
-                    How many minutes before a time slot must the lead book? Slots closer than this to the current time won't be shown.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Select
-                  value={String(leadTimeMinutes)}
-                  onValueChange={(v) => setLeadTimeMinutes(parseInt(v))}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">No minimum</SelectItem>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                    <SelectItem value="45">45 minutes</SelectItem>
-                    <SelectItem value="60">1 hour</SelectItem>
-                    <SelectItem value="90">1.5 hours</SelectItem>
-                    <SelectItem value="120">2 hours</SelectItem>
-                    <SelectItem value="180">3 hours</SelectItem>
-                    <SelectItem value="240">4 hours</SelectItem>
-                    <SelectItem value="480">8 hours</SelectItem>
-                    <SelectItem value="1440">24 hours</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  size="sm"
-                  onClick={saveLeadTime}
-                  disabled={leadTimeSaving}
-                  className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
-                >
-                  {leadTimeSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                  Save
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Call Now Button Config */}
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                  <Phone className="h-5 w-5 text-emerald-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-sm">Call Now Button</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Floating button on the public booking page
-                  </p>
-                </div>
-                {callNowLoading ? (
-                  <Skeleton className="h-6 w-10 rounded-full" />
-                ) : (
-                  <Switch
-                    checked={callNowEnabled}
-                    onCheckedChange={(checked) => setCallNowEnabled(checked)}
-                  />
-                )}
-              </div>
-
-              {!callNowLoading && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="call-now-phone" className="text-xs">Phone Number</Label>
-                    <Input
-                      id="call-now-phone"
-                      placeholder="+1 (221) 220-29323"
-                      value={callNowPhone}
-                      onChange={(e) => setCallNowPhone(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="call-now-label" className="text-xs">Button Label</Label>
-                    <Input
-                      id="call-now-label"
-                      placeholder="Call Now"
-                      value={callNowLabel}
-                      onChange={(e) => setCallNowLabel(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {!callNowLoading && (
-                <Button
-                  size="sm"
-                  onClick={saveCallNowConfig}
-                  disabled={callNowSaving}
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                >
-                  {callNowSaving ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : null}
-                  Save
-                </Button>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
 
@@ -713,6 +619,129 @@ const ShowingsList: React.FC = () => {
           setReportDialogOpen(true);
         }}
       />
+
+      {/* Booking settings — compact popup (lead time · Call Now button) */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-indigo-600" />
+              Booking settings
+            </DialogTitle>
+            <DialogDescription>
+              Lead time and the public booking page's Call Now button.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 pt-1">
+            {/* Minimum lead time */}
+            <div className="space-y-2.5">
+              <div className="flex items-start gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                  <Clock className="h-4 w-4 text-indigo-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm">Minimum booking lead time</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Slots closer than this to the current time are hidden on the booking page.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pl-[42px]">
+                <Select
+                  value={String(leadTimeMinutes)}
+                  onValueChange={(v) => setLeadTimeMinutes(parseInt(v))}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">No minimum</SelectItem>
+                    <SelectItem value="15">15 minutes</SelectItem>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="45">45 minutes</SelectItem>
+                    <SelectItem value="60">1 hour</SelectItem>
+                    <SelectItem value="90">1.5 hours</SelectItem>
+                    <SelectItem value="120">2 hours</SelectItem>
+                    <SelectItem value="180">3 hours</SelectItem>
+                    <SelectItem value="240">4 hours</SelectItem>
+                    <SelectItem value="480">8 hours</SelectItem>
+                    <SelectItem value="1440">24 hours</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={saveLeadTime}
+                  disabled={leadTimeSaving}
+                  className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
+                >
+                  {leadTimeSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                  Save
+                </Button>
+              </div>
+            </div>
+
+            <div className="h-px bg-border" />
+
+            {/* Call Now button */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                  <Phone className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm">Call Now button</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Floating button on the public booking page.
+                  </p>
+                </div>
+                {callNowLoading ? (
+                  <Skeleton className="h-6 w-10 rounded-full" />
+                ) : (
+                  <Switch
+                    checked={callNowEnabled}
+                    onCheckedChange={(checked) => setCallNowEnabled(checked)}
+                  />
+                )}
+              </div>
+
+              {!callNowLoading && (
+                <div className="space-y-3 pl-[42px]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="call-now-phone" className="text-xs">Phone number</Label>
+                      <Input
+                        id="call-now-phone"
+                        placeholder="+1 (221) 220-29323"
+                        value={callNowPhone}
+                        onChange={(e) => setCallNowPhone(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="call-now-label" className="text-xs">Button label</Label>
+                      <Input
+                        id="call-now-label"
+                        placeholder="Call Now"
+                        value={callNowLabel}
+                        onChange={(e) => setCallNowLabel(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={saveCallNowConfig}
+                    disabled={callNowSaving}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {callNowSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                    Save
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

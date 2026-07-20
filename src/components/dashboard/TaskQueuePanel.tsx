@@ -349,7 +349,7 @@ export const TaskQueuePanel = () => {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 animate-ping opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
-              <span className="text-[10px] font-bold tracking-wider text-emerald-700">LIVE</span>
+              <span className="text-[11px] font-bold tracking-wider text-emerald-700">LIVE</span>
             </span>
           </CardTitle>
           <Button
@@ -372,39 +372,37 @@ export const TaskQueuePanel = () => {
           <div className="mt-2 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 to-emerald-50/50 px-3 py-2.5">
             <div className="flex items-center gap-1.5 mb-1.5">
               <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-indigo-600">Pronóstico</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-indigo-600">Pronóstico</span>
             </div>
             {forecast.empty ? (
-              <p className="flex items-center gap-1.5 text-[13px] text-foreground">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <p className="flex items-center gap-1.5 text-sm text-foreground">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                 Cola vacía — los agentes están al día
               </p>
             ) : (
-              <div className="space-y-1">
-                {forecast.nextHourOut > 0 && (
-                  <p className="flex items-center gap-1.5 text-[13px] text-foreground leading-snug">
-                    <Send className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    <span>
-                      <span className="font-bold tabular-nums">~{forecast.nextHourOut.toLocaleString()}</span>{" "}
-                      salen en la próxima hora
-                    </span>
-                  </p>
-                )}
-                {forecast.etaLabel && (
-                  <p className="flex items-center gap-1.5 text-[13px] text-foreground leading-snug">
-                    <Hourglass className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                    <span>
-                      cola vacía en <span className="font-bold">{forecast.etaLabel}</span>
-                      <span className="text-muted-foreground"> a ~{forecast.rate.toLocaleString()}/h</span>
-                    </span>
-                  </p>
-                )}
+              <>
+                <div className="space-y-1.5">
+                  {[
+                    { icon: Send, color: "text-emerald-500", label: "Próxima hora", value: `~${forecast.nextHourOut.toLocaleString()}`, unit: "salen" },
+                    { icon: Hourglass, color: "text-amber-500", label: "Cola vacía en", value: forecast.etaLabel ?? "—", unit: "" },
+                    { icon: Zap, color: "text-indigo-500", label: "Ritmo de envío", value: `~${forecast.rate.toLocaleString()}`, unit: "tareas/h" },
+                  ].map((r) => (
+                    <div key={r.label} className="flex items-center gap-2">
+                      <r.icon className={cn("h-4 w-4 shrink-0", r.color)} />
+                      <span className="flex-1 text-xs text-muted-foreground leading-tight">{r.label}</span>
+                      <span className="text-sm font-bold text-foreground tabular-nums whitespace-nowrap">
+                        {r.value}
+                        {r.unit && <span className="ml-1 text-[11px] font-medium text-muted-foreground">{r.unit}</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
                 {forecast.composition && (
-                  <p className="text-[11px] text-muted-foreground pt-0.5 leading-snug break-words">
-                    {forecast.composition}
+                  <p className="mt-2 border-t border-indigo-100/70 pt-1.5 text-[11px] text-muted-foreground leading-snug break-words">
+                    <span className="font-semibold text-foreground/70">En cola:</span> {forecast.composition}
                   </p>
                 )}
-              </div>
+              </>
             )}
           </div>
         )}
@@ -553,7 +551,7 @@ export const TaskQueuePanel = () => {
 
         {/* Footer: live totals */}
         {(totalPending > 0 || completedToday > 0) && (
-          <div className="pt-3 mt-2 border-t flex items-center justify-between text-[13px] text-muted-foreground">
+          <div className="pt-3 mt-2 border-t flex items-center justify-between text-sm text-muted-foreground">
             <span>
               {hiddenCount > 0
                 ? `+${hiddenCount} more queued`

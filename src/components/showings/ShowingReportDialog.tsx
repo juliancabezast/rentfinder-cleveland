@@ -289,13 +289,18 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
         }
       }
 
-      // Update showing
-      const { error: showingError } = await supabase
+      // Update showing — verify a row actually changed so a silent no-op
+      // (bad/stale showingId) surfaces as an error instead of a false success.
+      const { data: updatedRows, error: showingError } = await supabase
         .from("showings")
         .update(updateData)
-        .eq("id", showingId);
+        .eq("id", showingId)
+        .select("id");
 
       if (showingError) throw showingError;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error("The report didn't save — this showing may have been changed or removed. Refresh and try again.");
+      }
 
       // Update lead status if completed
       if (status === "completed") {
@@ -339,7 +344,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
       onSuccess?.();
     } catch (error) {
       console.error("Error submitting report:", error);
-      toast.error("Failed to submit report");
+      toast.error(error instanceof Error && error.message ? error.message : "Failed to submit report");
     } finally {
       setSubmitting(false);
     }

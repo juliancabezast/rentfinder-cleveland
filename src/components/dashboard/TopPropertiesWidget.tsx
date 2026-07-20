@@ -3,7 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Users } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Building2, Users, Calendar, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PropertyInterest {
@@ -23,9 +29,9 @@ const RANGE_OPTIONS: { value: InterestRange; label: string }[] = [
 ];
 
 const RANK_COLORS = [
-  "bg-amber-500 text-white",
-  "bg-gray-400 text-white",
-  "bg-amber-700 text-white",
+  "bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-sm ring-1 ring-amber-500/20", // gold
+  "bg-gradient-to-br from-slate-300 to-slate-400 text-white shadow-sm ring-1 ring-slate-400/20", // silver
+  "bg-gradient-to-br from-orange-400 to-amber-600 text-white shadow-sm ring-1 ring-amber-600/20", // bronze
 ];
 
 export const TopPropertiesWidget: React.FC = () => {
@@ -49,31 +55,48 @@ export const TopPropertiesWidget: React.FC = () => {
     staleTime: 60_000,
   });
 
+  const activeLabel = RANGE_OPTIONS.find((o) => o.value === range)?.label ?? "3 days";
+
   return (
     <Card variant="glass">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <CardTitle className="text-lg flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
             Top Properties by Interest
           </CardTitle>
-          <div className="flex items-center gap-1">
-            {RANGE_OPTIONS.map((opt) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <button
-                key={opt.value}
                 type="button"
-                onClick={() => setRange(opt.value)}
+                aria-label="Change time range"
                 className={cn(
-                  "px-2.5 py-1 rounded-full text-xs font-semibold transition-colors",
-                  range === opt.value
-                    ? "bg-primary text-white"
-                    : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                  "group inline-flex items-center gap-1.5 rounded-full border border-slate-200/70 bg-white/70 py-1 pl-2.5 pr-2 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur transition-all",
+                  "hover:border-primary/40 hover:bg-primary/10 hover:text-primary",
+                  "data-[state=open]:border-primary/50 data-[state=open]:bg-primary/10 data-[state=open]:text-primary"
                 )}
               >
-                {opt.label}
+                <Calendar className="h-3.5 w-3.5 opacity-70" />
+                {activeLabel}
+                <ChevronDown className="h-3.5 w-3.5 opacity-60 transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </button>
-            ))}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={6} className="min-w-[9rem]">
+              {RANGE_OPTIONS.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.value}
+                  onClick={() => setRange(opt.value)}
+                  className={cn(
+                    "cursor-pointer justify-between gap-4 text-sm",
+                    range === opt.value && "font-semibold text-primary"
+                  )}
+                >
+                  {opt.label}
+                  {range === opt.value && <Check className="h-4 w-4 text-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardHeader>
       <CardContent>
