@@ -3791,11 +3791,11 @@ export type Database = {
           cancellation_reason: string | null
           cancelled_at: string | null
           completed_at: string | null
-          followed_up_at: string | null
           confirmation_attempts: number | null
           confirmed_at: string | null
           created_at: string | null
           duration_minutes: number | null
+          followed_up_at: string | null
           id: string
           is_demo: boolean | null
           last_confirmation_attempt_at: string | null
@@ -3818,11 +3818,11 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
-          followed_up_at?: string | null
           confirmation_attempts?: number | null
           confirmed_at?: string | null
           created_at?: string | null
           duration_minutes?: number | null
+          followed_up_at?: string | null
           id?: string
           is_demo?: boolean | null
           last_confirmation_attempt_at?: string | null
@@ -3845,11 +3845,11 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
-          followed_up_at?: string | null
           confirmation_attempts?: number | null
           confirmed_at?: string | null
           created_at?: string | null
           duration_minutes?: number | null
+          followed_up_at?: string | null
           id?: string
           is_demo?: boolean | null
           last_confirmation_attempt_at?: string | null
@@ -5144,6 +5144,7 @@ export type Database = {
         Returns: undefined
       }
       dashboard_extra_stats: { Args: never; Returns: Json }
+      dashboard_live: { Args: never; Returns: Json }
       execute_agent_task_now: {
         Args: { p_executed_by: string; p_task_id: string }
         Returns: Json

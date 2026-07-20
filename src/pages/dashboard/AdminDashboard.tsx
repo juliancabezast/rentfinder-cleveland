@@ -32,7 +32,7 @@ const LiveBadge: React.FC<{ live: boolean; pulseAt: number }> = ({ live, pulseAt
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { data, isLoading, live, pulseAt, flashByKey } = useDashboardLive();
+  const { data, isLoading, error, live, pulseAt, flashByKey } = useDashboardLive();
 
   const leads = data?.leads;
   const showings = data?.showings;
@@ -83,6 +83,12 @@ export const AdminDashboard = () => {
           <DashboardGreeting />
           <LiveBadge live={live} pulseAt={pulseAt} />
         </div>
+
+        {error && !data && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            No se pudo cargar el dashboard en vivo. Reintentando automáticamente…
+          </div>
+        )}
 
         {/* ── Hero KPIs — merged live cards ── */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

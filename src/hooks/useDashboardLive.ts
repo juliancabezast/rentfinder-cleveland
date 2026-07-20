@@ -44,9 +44,24 @@ export function useDashboardLive() {
   const [pulseAt, setPulseAt] = useState<number>(0); // last realtime event (drives LIVE blink)
   const [flashes, setFlashes] = useState<Flash[]>([]);
   const prevRef = useRef<DashboardLive | null>(null);
+  const prevOrgRef = useRef<string | undefined>(undefined);
   const flashId = useRef(0);
   const invalidateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPulse = useRef(0);
+  const flashTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  // Reset the diff baseline + clear stale flashes when the org changes, so the
+  // first poll of a new org never diffs against the previous org's snapshot.
+  if (prevOrgRef.current !== orgId) {
+    prevOrgRef.current = orgId;
+    prevRef.current = null;
+  }
+
+  // Clear any pending flash timers on unmount (they call setState otherwise)
+  useEffect(() => () => {
+    flashTimers.current.forEach(clearTimeout);
+    flashTimers.current.clear();
+  }, []);
 
   const query = useQuery<DashboardLive>({
     queryKey: ["dashboard-live", orgId],
@@ -68,11 +83,12 @@ export function useDashboardLive() {
     if (!d) return;
     const prev = prevRef.current;
     if (prev) {
+      // Only metrics an actual card renders a flash for (keep in sync with
+      // AdminDashboard's flash props) — no dead flashes.
       const deltas: [string, number][] = [
         ["leads", d.leads.total - prev.leads.total],
         ["showings", d.showings.total - prev.showings.total],
         ["emails", d.comms.emails_sent_total - prev.comms.emails_sent_total],
-        ["applicants", d.leads.applicants - prev.leads.applicants],
       ];
       const fresh: Flash[] = [];
       for (const [key, delta] of deltas) {
@@ -84,9 +100,13 @@ export function useDashboardLive() {
         const keys = new Set(fresh.map((f) => f.key));
         // One flash per key (latest wins); each self-expires by id → bounded array
         setFlashes((cur) => [...cur.filter((f) => !keys.has(f.key)), ...fresh]);
-        fresh.forEach((f) =>
-          setTimeout(() => setFlashes((cur) => cur.filter((x) => x.id !== f.id)), 2_400)
-        );
+        fresh.forEach((f) => {
+          const t = setTimeout(() => {
+            flashTimers.current.delete(t);
+            setFlashes((cur) => cur.filter((x) => x.id !== f.id));
+          }, 2_400);
+          flashTimers.current.add(t);
+        });
       }
     }
     prevRef.current = d;
@@ -107,10 +127,10 @@ export function useDashboardLive() {
       invalidateTimer.current = setTimeout(() => {
         invalidateTimer.current = null;
         queryClient.invalidateQueries({ queryKey: ["dashboard-live", orgId] });
-      }, 2_500);
+      }, 4_000);
     };
     const channel = supabase
-      .channel("dashboard-live")
+      .channel(`dashboard-live-${orgId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "leads", filter: `organization_id=eq.${orgId}` }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "showings", filter: `organization_id=eq.${orgId}` }, bump)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "agent_activity_log", filter: `organization_id=eq.${orgId}` }, bump)
@@ -130,7 +150,10 @@ export function useDashboardLive() {
 
   return {
     data: query.data,
-    isLoading: query.isLoading || !query.data,
+    // Skeletons only until the FIRST successful load — a later RPC error keeps
+    // the last-good data visible rather than pinning the whole dashboard on
+    // skeletons forever.
+    isLoading: query.isLoading && !query.data,
     error: query.error,
     live,
     pulseAt,
