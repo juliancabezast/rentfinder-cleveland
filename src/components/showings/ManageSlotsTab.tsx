@@ -30,6 +30,7 @@ import {
   EyeOff,
   Check,
   X,
+  FileText,
 } from "lucide-react";
 import { format, addDays, parseISO, startOfDay, startOfWeek } from "date-fns";
 
@@ -71,6 +72,17 @@ interface CancelledShowing {
   property_address: string;
   status: string;
   lead_id: string;
+}
+
+// A past showing whose outcome report was never filed — surfaced as a chip so
+// the agent can file it in one click (they were previously inert dead-ends).
+interface MissingReport {
+  id: string;
+  leadId: string;
+  leadName: string;
+  address: string;
+  date: string; // Cleveland YYYY-MM-DD
+  status: string;
 }
 
 interface BookingInfo {
@@ -178,12 +190,19 @@ const CityPicker: React.FC<{
 interface ManageSlotsTabProps {
   onTotalsChange?: (totals: { available: number; booked: number }) => void;
   onShowingClick?: (showingId: string) => void;
+  // Open the report form for a specific showing (missing-report chips).
+  onOpenReport?: (showingId: string, leadId: string, propertyAddress: string) => void;
+  // Bumped by the parent when a report/detail action mutates showings, so the
+  // grid + missing-report list refetch without a manual reload.
+  reloadSignal?: number;
 }
 
 // ── Component ────────────────────────────────────────────────────────
 export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   onTotalsChange,
   onShowingClick,
+  onOpenReport,
+  reloadSignal = 0,
 }) => {
   const { userRecord } = useAuth();
   const { toast } = useToast();
@@ -193,7 +212,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [hideEmptyDays, setHideEmptyDays] = useState(false);
-  const [missingReportDates, setMissingReportDates] = useState<string[]>([]);
+  const [missingReports, setMissingReports] = useState<MissingReport[]>([]);
 
   // Drag-to-select range state (logic lives after allTimes/visibleDays exist)
   const [drag, setDrag] = useState<{ a: { d: number; t: number }; b: { d: number; t: number } } | null>(null);
@@ -221,30 +240,48 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     return parts[0] * 60 + parts[1];
   })();
 
-  // ── Missing report dates (unchanged behaviour) ──────────────────────
+  // ── Missing reports: past showings with no report filed. Each is now
+  // actionable (file the report in one click) instead of a bare date chip. ──
   useEffect(() => {
     if (!orgId) return;
     (async () => {
       const nowIso = new Date().toISOString();
+      // 'no_show' is a RECORDED outcome (the report notes are optional), so a
+      // no-show is not "missing a report" — only past showings still awaiting an
+      // outcome (scheduled/confirmed) or auto-completed with no write-up
+      // (completed + null report, e.g. DoorLoop) qualify. .limit caps the chip
+      // list (mirrors the paginated slot query's 1000-row PostgREST guard).
       const { data } = await supabase
         .from("showings")
-        .select("scheduled_at, status, agent_report")
+        .select("id, scheduled_at, status, lead_id, leads(full_name), properties(address)")
         .eq("organization_id", orgId)
         .lt("scheduled_at", nowIso)
-        .in("status", ["scheduled", "confirmed", "completed", "no_show"])
+        .in("status", ["scheduled", "confirmed", "completed"])
         .is("agent_report", null)
-        .order("scheduled_at", { ascending: true });
-      if (data && data.length > 0) {
-        const dates = new Set<string>();
-        for (const s of data) {
-          dates.add(new Date(s.scheduled_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" }));
-        }
-        setMissingReportDates([...dates].sort());
-      } else {
-        setMissingReportDates([]);
-      }
+        .order("scheduled_at", { ascending: true })
+        .limit(500);
+      setMissingReports(
+        (data || []).map((s: any) => ({
+          id: s.id,
+          leadId: s.lead_id,
+          leadName: s.leads?.full_name || "Unknown lead",
+          address: s.properties?.address || "Unknown property",
+          date: new Date(s.scheduled_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" }),
+          status: s.status,
+        })),
+      );
     })();
-  }, [orgId, weekOffset]);
+  }, [orgId, weekOffset, reloadSignal]);
+
+  // Group the missing reports by day for the chip row.
+  const missingByDate = useMemo(() => {
+    const m = new Map<string, MissingReport[]>();
+    for (const r of missingReports) {
+      if (!m.has(r.date)) m.set(r.date, []);
+      m.get(r.date)!.push(r);
+    }
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [missingReports]);
 
   const jumpToDate = (dateStr: string) => {
     const targetMon = startOfWeek(parseISO(dateStr), { weekStartsOn: 1 });
@@ -357,11 +394,14 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     const startInstant = clevelandBoundaryUTC(startStr, false);
     const endInstant = clevelandBoundaryUTC(endStr, true);
 
+    // 'rescheduled' is intentionally excluded: a rescheduled showing stays in
+    // the DB + Leasing Tracker but must NOT paint an orange cell on the agenda
+    // (the time was freed for rebooking). Only true dead-ends surface here.
     const { data: cancelledData } = await supabase
       .from("showings")
       .select("id, scheduled_at, status, lead_id, property_id, leads(full_name), properties(address)")
       .eq("organization_id", orgId)
-      .in("status", ["cancelled", "no_show", "rescheduled"])
+      .in("status", ["cancelled", "no_show"])
       .gte("scheduled_at", startInstant)
       .lte("scheduled_at", endInstant);
 
@@ -445,6 +485,14 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   }, [orgId, weekDates]);
 
   useEffect(() => { fetchSlots(); }, [fetchSlots]);
+
+  // External reload (report filed / showing rescheduled elsewhere) → refetch
+  // the grid. Skips the initial mount (fetchSlots already runs above).
+  const didMountReload = useRef(false);
+  useEffect(() => {
+    if (!didMountReload.current) { didMountReload.current = true; return; }
+    fetchSlots();
+  }, [reloadSignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Totals ──────────────────────────────────────────────────────────
   const totals = useMemo(() => {
@@ -645,17 +693,38 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
   // ── Now-line: measured from the real DOM (row heights vary, off-ladder
   // times create gaps — arithmetic on a fixed header/row height mispaints).
+  // The line is confined to TODAY's column only (both a vertical position and
+  // a horizontal span, both measured), never the full grid width.
   const gridRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  const todayColRef = useRef<HTMLTableCellElement>(null);
   const [nowTop, setNowTop] = useState<number | null>(null);
+  const [nowCol, setNowCol] = useState<{ left: number; width: number } | null>(null);
+  // Re-measure whenever the grid's box changes — window resize AND
+  // container-only changes (e.g. sidebar collapse) that fire no window resize.
+  const [measureTick, setMeasureTick] = useState(0);
+  useEffect(() => {
+    const onResize = () => setMeasureTick((t) => t + 1);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setMeasureTick((t) => t + 1));
+    ro.observe(grid);
+    return () => ro.disconnect();
+  }, [loading]);
   useLayoutEffect(() => {
     if (loading || !visibleDays.some((d) => d.date === todayStr) || allTimes.length === 0) {
       setNowTop(null);
+      setNowCol(null);
       return;
     }
     const grid = gridRef.current;
-    if (!grid) { setNowTop(null); return; }
-    const gridTop = grid.getBoundingClientRect().top - grid.scrollTop;
+    if (!grid) { setNowTop(null); setNowCol(null); return; }
+    const gridRect = grid.getBoundingClientRect();
+    const gridTop = gridRect.top - grid.scrollTop;
     let top: number | null = null;
     for (let i = 0; i < allTimes.length; i++) {
       const tMin = timeToMinutes(allTimes[i]);
@@ -671,7 +740,17 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       }
     }
     setNowTop(top);
-  }, [now, nowMinutes, loading, visibleDays, allTimes, todayStr, slotData]);
+
+    // Horizontal span = today's column (content-space X, scroll-invariant).
+    const colEl = todayColRef.current;
+    if (top != null && colEl) {
+      const colRect = colEl.getBoundingClientRect();
+      const gridLeft = gridRect.left - grid.scrollLeft;
+      setNowCol({ left: colRect.left - gridLeft, width: colRect.width });
+    } else {
+      setNowCol(null);
+    }
+  }, [now, nowMinutes, loading, visibleDays, allTimes, todayStr, slotData, measureTick]);
 
   // ── Drag-to-select a rectangular range of cells, then open in one shot ──
   // Press on a future cell, drag to another, release → a dialog asks which
@@ -800,18 +879,63 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Missing report alerts */}
-      {missingReportDates.length > 0 && (
+      {/* Missing report alerts — each chip opens that day's report-less
+          showings; one click files the report (was a dead-end before). */}
+      {missingReports.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-medium text-red-600 shrink-0">Missing reports:</span>
-          {missingReportDates.map((dateStr) => (
-            <button
-              key={dateStr}
-              onClick={() => jumpToDate(dateStr)}
-              className="text-xs px-2 py-1 rounded-md bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors"
-            >
-              {format(parseISO(dateStr), "MMM d")}
-            </button>
+          <span className="text-xs font-medium text-red-600 shrink-0">
+            Missing reports ({missingReports.length}):
+          </span>
+          {missingByDate.map(([dateStr, items]) => (
+            <Popover key={dateStr}>
+              <PopoverTrigger asChild>
+                <button className="text-xs px-2 py-1 rounded-md bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors font-medium">
+                  {format(parseISO(dateStr), "MMM d")} · {items.length}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-2" side="bottom" align="start">
+                <div className="flex items-center justify-between px-1 pb-2 mb-1 border-b">
+                  <span className="text-xs font-semibold">{format(parseISO(dateStr), "EEE, MMM d")}</span>
+                  <button
+                    onClick={() => jumpToDate(dateStr)}
+                    className="text-[11px] text-[#4F46E5] hover:underline"
+                  >
+                    Go to week
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  {items.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 bg-red-50/60 border border-red-100"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium truncate">{r.leadName}</div>
+                        <div className="text-[10px] text-muted-foreground truncate">{r.address}</div>
+                      </div>
+                      {onOpenReport ? (
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs bg-[#4F46E5] hover:bg-[#4F46E5]/90 shrink-0"
+                          onClick={() => onOpenReport(r.id, r.leadId, r.address)}
+                        >
+                          <FileText className="h-3 w-3 mr-1" /> Report
+                        </Button>
+                      ) : onShowingClick ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs shrink-0"
+                          onClick={() => onShowingClick(r.id)}
+                        >
+                          View
+                        </Button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           ))}
         </div>
       )}
@@ -880,6 +1004,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                       return (
                         <th
                           key={day.date}
+                          ref={isToday ? todayColRef : undefined}
                           className={`p-1.5 text-center font-medium min-w-[92px] ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
                         >
                           <div className="text-[10px] text-muted-foreground uppercase">{format(dateObj, "EEE")}</div>
@@ -973,8 +1098,11 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                 </tbody>
               </table>
 
-              {/* NOW-LINE — a red rule at the current time (measured position) */}
-              {nowTop != null && <NowLine top={nowTop} />}
+              {/* NOW-LINE — a red rule at the current time, confined to
+                  today's column only (measured position + span) */}
+              {nowTop != null && nowCol != null && (
+                <NowLine top={nowTop} left={nowCol.left} width={nowCol.width} />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1041,12 +1169,12 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   );
 };
 
-// ── Now-line overlay (absolute px position measured from the DOM) ──────
-const NowLine: React.FC<{ top: number }> = ({ top }) => (
-  <div aria-hidden className="pointer-events-none absolute left-0 right-0 z-10" style={{ top }}>
-    <div className="relative">
-      <div className="absolute left-14 right-0 border-t-2 border-red-500/70" />
-      <div className="absolute left-12 -top-[5px] h-2.5 w-2.5 rounded-full bg-red-500 shadow" />
+// ── Now-line overlay: a red rule spanning ONLY today's column (position and
+// width measured from the DOM), with a dot at the column's left edge. ──────
+const NowLine: React.FC<{ top: number; left: number; width: number }> = ({ top, left, width }) => (
+  <div aria-hidden className="pointer-events-none absolute z-10" style={{ top, left, width }}>
+    <div className="relative border-t-2 border-red-500">
+      <div className="absolute -left-1 -top-[5px] h-2.5 w-2.5 rounded-full bg-red-500 shadow" />
     </div>
   </div>
 );

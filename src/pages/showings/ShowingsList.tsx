@@ -137,6 +137,10 @@ const ShowingsList: React.FC = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedShowingId, setSelectedShowingId] = useState<string | null>(null);
   const [slotTotals, setSlotTotals] = useState({ available: 0, booked: 0 });
+  // Bumped whenever a showing is mutated (report filed, rescheduled, cancelled,
+  // newly scheduled) so the calendar grid + missing-report chips refetch.
+  const [calendarReload, setCalendarReload] = useState(0);
+  const bumpCalendar = () => setCalendarReload((n) => n + 1);
 
   // Fetch slot totals for current week (available across all tabs)
   const fetchSlotTotals = useMemo(() => async () => {
@@ -549,6 +553,11 @@ const ShowingsList: React.FC = () => {
         <TabsContent value="slots" className="space-y-6">
           <ManageSlotsTab
             onTotalsChange={setSlotTotals}
+            reloadSignal={calendarReload}
+            onOpenReport={(showingId, leadId, propertyAddress) => {
+              setSelectedShowingForReport({ id: showingId, leadId, propertyAddress });
+              setReportDialogOpen(true);
+            }}
             onShowingClick={(showingId) => {
               setSelectedShowingId(showingId);
               setDetailDialogOpen(true);
@@ -678,7 +687,7 @@ const ShowingsList: React.FC = () => {
       <ScheduleShowingDialog
         open={scheduleDialogOpen}
         onOpenChange={setScheduleDialogOpen}
-        onSuccess={fetchShowings}
+        onSuccess={() => { fetchShowings(); bumpCalendar(); }}
       />
 
       {/* Showing Report Dialog */}
@@ -689,7 +698,7 @@ const ShowingsList: React.FC = () => {
           showingId={selectedShowingForReport.id}
           leadId={selectedShowingForReport.leadId}
           propertyAddress={selectedShowingForReport.propertyAddress}
-          onSuccess={fetchShowings}
+          onSuccess={() => { fetchShowings(); bumpCalendar(); }}
         />
       )}
 
@@ -698,7 +707,7 @@ const ShowingsList: React.FC = () => {
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         showingId={selectedShowingId}
-        onSuccess={fetchShowings}
+        onSuccess={() => { fetchShowings(); bumpCalendar(); }}
         onOpenReport={(showingId, leadId, propertyAddress) => {
           setSelectedShowingForReport({ id: showingId, leadId, propertyAddress });
           setReportDialogOpen(true);

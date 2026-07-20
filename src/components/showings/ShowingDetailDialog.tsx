@@ -91,6 +91,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
   const [rescheduling, setRescheduling] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [rescheduleMode, setRescheduleMode] = useState(false);
+  const [rescheduleChooser, setRescheduleChooser] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
   const [editMode, setEditMode] = useState(false);
@@ -105,6 +106,8 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       setCancelMode(false);
       setCancelReason("");
       setEditMode(false);
+      setRescheduleMode(false);
+      setRescheduleChooser(false);
       return;
     }
 
@@ -313,10 +316,11 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         details: { rescheduled_by: userRecord.id },
       });
 
-      toast.success("Showing rescheduled", {
-        description: `${showing.leads?.full_name || "Lead"} has been notified to pick a new time.`,
+      toast.success("Reschedule link sent", {
+        description: `${showing.leads?.full_name || "Lead"} was emailed/texted a link to pick a new time.`,
       });
 
+      setRescheduleChooser(false);
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
@@ -346,8 +350,111 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
     try {
       const tz = getTimezoneForCity(showing.properties?.city);
       const newScheduledAt = buildScheduledAt(rescheduleDate, rescheduleTime, tz);
+      const slotTime = rescheduleTime.length === 5 ? `${rescheduleTime}:00` : rescheduleTime;
 
-      // 1. Set showing back to scheduled with new time
+      // Half-hour times this showing occupies. A >30-min showing spans several
+      // slots and the single agent can't be in two places, so every spanned
+      // time must be free and gets blocked — mirrors ScheduleShowingDialog
+      // (the exact-time unique index only guards the first).
+      const durationMinutes = showing.duration_minutes || 30;
+      const slotsSpanned = Math.max(1, Math.ceil(durationMinutes / 30));
+      const spannedTimes: string[] = [];
+      {
+        const [sH, sM] = slotTime.split(":").map(Number);
+        for (let i = 0; i < slotsSpanned; i++) {
+          const total = sH * 60 + sM + i * 30;
+          if (Math.floor(total / 60) >= 24) break;
+          spannedTimes.push(
+            `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}:00`,
+          );
+        }
+      }
+
+      // 0. Double-booking guard (load-bearing): refuse if ANY spanned time is
+      // already booked by anything other than THIS showing — including a
+      // null-owner manual block (is_booked=true, booked_showing_id=NULL).
+      const { data: conflictRows } = await supabase
+        .from("showing_available_slots")
+        .select("slot_time, booked_showing_id")
+        .eq("organization_id", userRecord.organization_id)
+        .eq("slot_date", rescheduleDate)
+        .in("slot_time", spannedTimes)
+        .eq("is_booked", true);
+      if ((conflictRows || []).some((r: any) => r.booked_showing_id !== showing.id)) {
+        toast.error("That time isn't free", { description: "The agent is already booked then — pick another time." });
+        setReactivating(false);
+        return;
+      }
+
+      // 1. Secure the PRIMARY slot FIRST (before touching the showing), the way
+      // ScheduleShowingDialog does: find-or-materialize the row, refuse an
+      // owner-off time, then book it ATOMICALLY (only if still free) so a
+      // concurrent booking or manual block is never clobbered. slotRowId lets
+      // the old-slot release below skip the new primary.
+      let slotRowId: string | null = null;
+      // True when the slot at the NEW time is already held by THIS showing
+      // (reschedule onto an overlapping time) — so the rollback below must not
+      // free a slot the still-active showing legitimately holds.
+      let alreadyOurs = false;
+      if (showing.property_id) {
+        const { data: existing } = await supabase
+          .from("showing_available_slots")
+          .select("id, is_booked, is_enabled, booked_showing_id")
+          .eq("organization_id", userRecord.organization_id)
+          .eq("property_id", showing.property_id)
+          .eq("slot_date", rescheduleDate)
+          .eq("slot_time", slotTime)
+          .maybeSingle();
+        if (existing && existing.is_enabled === false) {
+          toast.error("That time is turned off for this property", { description: "Enable it in the calendar first, or pick another." });
+          setReactivating(false);
+          return;
+        }
+        // Booked by a DIFFERENT showing → taken. Booked by THIS showing already
+        // (rescheduling onto a time it currently occupies) → reuse as-is.
+        alreadyOurs = !!(existing?.is_booked && existing.booked_showing_id === showing.id);
+        if (existing?.is_booked && existing.booked_showing_id !== showing.id) {
+          toast.error("That time was just taken", { description: "Pick another time." });
+          setReactivating(false);
+          return;
+        }
+        if (existing) {
+          slotRowId = existing.id;
+        } else {
+          const { data: created, error: createErr } = await supabase
+            .from("showing_available_slots")
+            .insert({
+              organization_id: userRecord.organization_id,
+              property_id: showing.property_id,
+              slot_date: rescheduleDate,
+              slot_time: slotTime,
+              duration_minutes: durationMinutes,
+              is_enabled: true,
+              is_booked: false,
+            })
+            .select("id")
+            .single();
+          if (createErr || !created) throw createErr || new Error("Could not create the time slot");
+          slotRowId = created.id;
+        }
+        if (!alreadyOurs) {
+          const { data: bookedSlot, error: bookErr } = await supabase
+            .from("showing_available_slots")
+            .update({ is_booked: true, booked_showing_id: showing.id, booked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq("id", slotRowId)
+            .eq("is_booked", false) // atomic — only if still free
+            .select("id")
+            .single();
+          if (bookErr || !bookedSlot) {
+            toast.error("That time was just taken", { description: "Pick another time." });
+            setReactivating(false);
+            return;
+          }
+        }
+      }
+
+      // 2. Move the showing to the new time. If this fails, ROLL BACK the slot
+      // booking so we never leave a booked slot with no showing (or vice-versa).
       const { error: updateErr } = await supabase
         .from("showings")
         .update({
@@ -355,24 +462,74 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
           scheduled_at: newScheduledAt,
           cancelled_at: null,
           cancellation_reason: null,
+          confirmed_at: null, // moved time needs re-confirmation; clear stale stamp
         })
         .eq("id", showing.id);
+      if (updateErr) {
+        // Roll back ONLY a slot we freshly booked — never a slot the still-active
+        // showing already held (alreadyOurs), which it legitimately keeps.
+        if (slotRowId && !alreadyOurs) {
+          await supabase
+            .from("showing_available_slots")
+            .update({ is_booked: false, booked_showing_id: null, booked_at: null })
+            .eq("id", slotRowId);
+        }
+        throw updateErr;
+      }
 
-      if (updateErr) throw updateErr;
+      // The showing + primary slot are now committed. Everything below is
+      // best-effort bookkeeping/side-effects — a failure here must NOT surface
+      // as "Failed" or skip onSuccess (mirrors ScheduleShowingDialog).
+      try {
 
-      // 2. Book the slot for this property at the new time
-      const slotTime = rescheduleTime + ":00";
-      if (showing.property_id) {
-        await supabase
+      // 3. Release every OTHER slot this showing held (old primary + old spanned
+      // + buffer), keeping the just-booked new primary. Error-checked so a stuck
+      // old slot is at least logged.
+      {
+        let rel = supabase
+          .from("showing_available_slots")
+          .update({ is_booked: false, booked_showing_id: null, booked_at: null })
+          .eq("booked_showing_id", showing.id);
+        if (slotRowId) rel = rel.neq("id", slotRowId);
+        const { error: relErr } = await rel;
+        if (relErr) console.error("Release old slots failed:", relErr);
+      }
+
+      // 4. Block EVERY spanned time across ALL homes (the single agent can't be
+      // in two places). For the primary property, materialize+book each tail
+      // half-hour (upsert — omitting is_enabled so an owner-off row stays off on
+      // conflict) so a tail with no slot row can't be silently double-booked
+      // later; for other homes, block their still-open rows. Best-effort — the
+      // showing + primary booking are already committed. (buffer_minutes is not
+      // applied on reschedule; the spanned guard is what prevents overlap.)
+      for (const t of spannedTimes) {
+        if (showing.property_id && t !== slotTime) {
+          const { error: tailErr } = await supabase
+            .from("showing_available_slots")
+            .upsert({
+              organization_id: userRecord.organization_id,
+              property_id: showing.property_id,
+              slot_date: rescheduleDate,
+              slot_time: t,
+              is_booked: true,
+              booked_showing_id: showing.id,
+              booked_at: new Date().toISOString(),
+            }, { onConflict: "organization_id,property_id,slot_date,slot_time" });
+          if (tailErr) console.error(`Book spanned tail ${t} failed:`, tailErr);
+        }
+        let blk = supabase
           .from("showing_available_slots")
           .update({ is_booked: true, booked_showing_id: showing.id, booked_at: new Date().toISOString() })
           .eq("organization_id", userRecord.organization_id)
-          .eq("property_id", showing.property_id)
           .eq("slot_date", rescheduleDate)
-          .eq("slot_time", slotTime);
+          .eq("slot_time", t)
+          .eq("is_booked", false);
+        if (showing.property_id) blk = blk.neq("property_id", showing.property_id);
+        const { error: blkErr } = await blk;
+        if (blkErr) console.error(`Block spanned slot ${t} (siblings) failed:`, blkErr);
       }
 
-      // 3. Send confirmation email to lead
+      // 5. Send confirmation email to lead
       if (showing.leads?.email) {
         const propertyAddr = showing.properties?.address || "the property";
         const showingDateStr = format(new Date(newScheduledAt), "EEEE, MMMM d") + " at " + formatTimeInTimezone(newScheduledAt, tz);
@@ -389,7 +546,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         });
       }
 
-      // 4. Log
+      // 6. Log
       await supabase.from("system_logs").insert({
         organization_id: userRecord.organization_id,
         level: "info",
@@ -405,8 +562,13 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         },
       });
 
+      } catch (postErr) {
+        console.error("Post-reschedule bookkeeping failed (reschedule already committed):", postErr);
+      }
+
       toast.success("Showing rescheduled", { description: `${showing.leads?.full_name || "Lead"} has been rescheduled and notified by email.` });
       setRescheduleMode(false);
+      setRescheduleChooser(false);
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
@@ -739,10 +901,10 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
               </div>
             )}
 
-            {/* Reschedule mode for cancelled/no-show/rescheduled */}
-            {rescheduleMode && (showing.status === "cancelled" || showing.status === "no_show" || showing.status === "rescheduled") && (
+            {/* Reschedule date/time picker (agent-assisted — any status) */}
+            {rescheduleMode && (
               <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-3">
-                <p className="text-sm font-medium text-indigo-800">Reschedule this showing</p>
+                <p className="text-sm font-medium text-indigo-800">Pick the new date &amp; time</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-indigo-700">Date</Label>
@@ -804,8 +966,51 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
               </div>
             )}
 
-            {/* Action buttons (only for active showings, hide when in cancel mode) */}
-            {isActive && !cancelMode && (
+            {/* Reschedule chooser (active showings): email a self-serve link, or
+                pick the new time now (agent has the renter on the phone). */}
+            {isActive && rescheduleChooser && !rescheduleMode && !cancelMode && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-2">
+                <p className="text-sm font-medium text-indigo-800">How do you want to reschedule?</p>
+                <button
+                  onClick={() => { setRescheduleChooser(false); enterRescheduleMode(); }}
+                  disabled={rescheduling}
+                  className="w-full text-left rounded-md border border-indigo-200 bg-white p-3 hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-colors disabled:opacity-60"
+                >
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-800">
+                    <CalendarDays className="h-4 w-4 text-[#4F46E5]" />
+                    Reschedule now (I'm helping them)
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 ml-6">
+                    Pick the new date &amp; time yourself — e.g. you have them on the phone. Books it and emails a confirmation.
+                  </p>
+                </button>
+                <button
+                  onClick={handleReschedule}
+                  disabled={rescheduling}
+                  className="w-full text-left rounded-md border border-indigo-200 bg-white p-3 hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-colors disabled:opacity-60"
+                >
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-800">
+                    {rescheduling ? <Loader2 className="h-4 w-4 animate-spin text-[#4F46E5]" /> : <MessageSquare className="h-4 w-4 text-[#4F46E5]" />}
+                    Email the renter a reschedule link
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 ml-6">
+                    Frees this time and sends them a link (email + SMS) to pick a new slot themselves.
+                  </p>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setRescheduleChooser(false)}
+                  disabled={rescheduling}
+                >
+                  Back
+                </Button>
+              </div>
+            )}
+
+            {/* Action buttons (only for active showings, hide when in a sub-mode) */}
+            {isActive && !cancelMode && !rescheduleChooser && !rescheduleMode && (
               <div className="flex flex-wrap gap-2 pt-2 border-t border-[#e5e7eb]">
                 {onOpenReport && (
                   <Button
@@ -827,10 +1032,9 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleReschedule}
-                  disabled={rescheduling}
+                  onClick={() => setRescheduleChooser(true)}
                 >
-                  {rescheduling ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
+                  <RefreshCw className="h-4 w-4 mr-1.5" />
                   Reschedule
                 </Button>
                 <Button
