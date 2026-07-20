@@ -7,6 +7,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cn } from "@/lib/utils";
 import { STAGES, AGENT_NODES, logRadius, fmtCount } from "./funnelLayout";
+import { makeGasGiantTexture, makeRockyTexture, makeCloudTexture, makeGalaxyTexture } from "./planetTextures";
 import type { FunnelEventBus } from "./funnelEvents";
 import type { FunnelSnapshot, Selection, StageKey } from "./types";
 
@@ -118,6 +119,19 @@ function PlanetRing({ radius, color }: { radius: number; color: string }) {
   );
 }
 
+// ── Milky Way backdrop (inside-out sphere, procedural band texture) ──
+
+function GalaxyBackdrop() {
+  const tex = useMemo(() => makeGalaxyTexture(), []);
+  useEffect(() => () => tex.dispose(), [tex]);
+  return (
+    <mesh rotation={[0.45, 1.15, 0.3]} raycast={() => null}>
+      <sphereGeometry args={[55, 48, 32]} />
+      <meshBasicMaterial map={tex} side={THREE.BackSide} fog={false} depthWrite={false} />
+    </mesh>
+  );
+}
+
 // ── Pulse registry ───────────────────────────────────────────────────
 
 type PulseMap = Map<string, { t: number; failed: boolean; magnitude: number }>;
@@ -125,7 +139,7 @@ type PulseMap = Map<string, { t: number; failed: boolean; magnitude: number }>;
 // ── Stage planet ─────────────────────────────────────────────────────
 
 function StageNode({
-  stageKey, label, position, count, selected, pulses, onSelect,
+  stageKey, label, position, count, selected, pulses, onSelect, cloudTex, seed,
 }: {
   stageKey: StageKey;
   label: string;
@@ -134,19 +148,31 @@ function StageNode({
   selected: boolean;
   pulses: PulseMap;
   onSelect: (sel: Selection) => void;
+  cloudTex: THREE.Texture;
+  seed: number;
 }) {
   const mesh = useRef<THREE.Mesh>(null);
+  const clouds = useRef<THREE.Mesh>(null);
   const group = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const radius = logRadius(count);
   const color = PLANET_COLORS[stageKey];
   const spinSpeed = useMemo(() => 0.05 + Math.random() * 0.08, []);
+  const tilt = useMemo(() => 0.18 + Math.random() * 0.2, []);
+
+  // Procedural surface: banded gas giant per stage; LOST is a cratered moon
+  const surfaceTex = useMemo(
+    () => (stageKey === "lost" ? makeRockyTexture("#8a93a5") : makeGasGiantTexture(color, seed)),
+    [stageKey, color, seed]
+  );
+  useEffect(() => () => surfaceTex.dispose(), [surfaceTex]);
 
   useFrame((_, delta) => {
     const m = mesh.current;
     const g = group.current;
     if (!m || !g) return;
     m.rotation.y += spinSpeed * delta; // slow self-spin — planets live
+    if (clouds.current) clouds.current.rotation.y += spinSpeed * 1.6 * delta;
     const pulse = pulses.get(`stage:${stageKey}`);
     let scale = 1;
     if (pulse) {
@@ -160,7 +186,7 @@ function StageNode({
 
   return (
     <group position={position}>
-      <group ref={group}>
+      <group ref={group} rotation={[0, 0, tilt]}>
         <mesh
           ref={mesh}
           onClick={(e) => { e.stopPropagation(); onSelect({ type: "stage", key: stageKey }); }}
@@ -169,17 +195,30 @@ function StageNode({
         >
           <sphereGeometry args={[radius, 48, 48]} />
           <meshPhysicalMaterial
-            color={color}
-            roughness={0.32}
-            metalness={0.05}
-            clearcoat={0.9}
-            clearcoatRoughness={0.3}
-            envMapIntensity={1.1}
+            map={surfaceTex}
+            color="#ffffff"
+            roughness={0.55}
+            metalness={0.02}
+            clearcoat={0.45}
+            clearcoatRoughness={0.4}
+            envMapIntensity={0.7}
             emissive={color}
-            emissiveIntensity={selected ? 0.35 : 0.12}
+            emissiveIntensity={selected ? 0.22 : 0.06}
           />
         </mesh>
-        <Atmosphere radius={radius} color={color} strength={selected || hovered ? 1.2 : 0.85} />
+        {stageKey !== "lost" && (
+          <mesh ref={clouds} raycast={() => null}>
+            <sphereGeometry args={[radius * 1.035, 40, 40]} />
+            <meshStandardMaterial
+              map={cloudTex}
+              transparent
+              opacity={0.5}
+              depthWrite={false}
+              roughness={1}
+            />
+          </mesh>
+        )}
+        <Atmosphere radius={radius} color={color} strength={selected || hovered ? 1.1 : 0.75} />
       </group>
       <Html center distanceFactor={11} position={[0, radius + 0.62, 0]} style={{ pointerEvents: "none" }}>
         <div className="flex flex-col items-center whitespace-nowrap select-none">
@@ -214,6 +253,8 @@ function AgentNode({
   const [hovered, setHovered] = useState(false);
   const phase = useMemo(() => Math.random() * Math.PI * 2, []);
   const R = 0.4;
+  const surfaceTex = useMemo(() => makeGasGiantTexture(color, agentKey.length * 3.7), [color, agentKey]);
+  useEffect(() => () => surfaceTex.dispose(), [surfaceTex]);
 
   const ringColor =
     health === "error" ? statusColors.destructive
@@ -253,14 +294,15 @@ function AgentNode({
       >
         <sphereGeometry args={[R, 40, 40]} />
         <meshPhysicalMaterial
-          color={color}
-          roughness={0.28}
-          metalness={0.15}
-          clearcoat={1}
-          clearcoatRoughness={0.2}
-          envMapIntensity={1.3}
+          map={surfaceTex}
+          color="#ffffff"
+          roughness={0.5}
+          metalness={0.05}
+          clearcoat={0.5}
+          clearcoatRoughness={0.35}
+          envMapIntensity={0.8}
           emissive={color}
-          emissiveIntensity={0.18}
+          emissiveIntensity={0.12}
         />
       </mesh>
       <Atmosphere radius={R} color={color} strength={0.8} />
@@ -439,6 +481,8 @@ interface FunnelSceneProps {
 const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, onSelect, className }) => {
   const statusColors = useStatusColors();
   const pulses = useMemo<PulseMap>(() => new Map(), []);
+  const cloudTex = useMemo(() => makeCloudTexture(), []);
+  useEffect(() => () => cloudTex.dispose(), [cloudTex]);
   const [contextLost, setContextLost] = useState(false);
 
   const statuses = snapshot.funnel.statuses;
@@ -525,7 +569,8 @@ const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, 
         <pointLight position={[-10, 3, 5]} intensity={0.7} color="#6366F1" />
         <pointLight position={[9, -2, -5]} intensity={0.5} color="#FFB22C" />
 
-        <Stars radius={70} depth={35} count={2600} factor={3.2} saturation={0} fade speed={0.35} />
+        <GalaxyBackdrop />
+        <Stars radius={48} depth={25} count={1800} factor={2.8} saturation={0} fade speed={0.35} />
         <Sparkles count={60} scale={[18, 6, 6]} size={1.6} speed={0.25} opacity={0.35} color="#9CA3FF" />
 
         {spineCurves.map((sc, i) => (
@@ -537,7 +582,7 @@ const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, 
           />
         ))}
 
-        {STAGES.map((s) => (
+        {STAGES.map((s, idx) => (
           <StageNode
             key={s.key}
             stageKey={s.key}
@@ -547,6 +592,8 @@ const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, 
             selected={selection?.type === "stage" && selection.key === s.key}
             pulses={pulses}
             onSelect={onSelect}
+            cloudTex={cloudTex}
+            seed={idx * 2.3 + 1}
           />
         ))}
 
