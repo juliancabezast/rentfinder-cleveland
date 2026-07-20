@@ -15,8 +15,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   BarChart3,
-  Zap,
-  Calendar,
   DollarSign,
   Activity,
   Bell,
@@ -42,24 +40,6 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     defaultOrder: 1,
     minRole: "editor",
     span: "full",
-  },
-  {
-    id: "priority_leads",
-    label: "Priority Leads",
-    icon: <Zap className="h-4 w-4" />,
-    defaultVisible: true,
-    defaultOrder: 4,
-    minRole: "editor",
-    span: "half",
-  },
-  {
-    id: "upcoming_showings",
-    label: "Upcoming Showings",
-    icon: <Calendar className="h-4 w-4" />,
-    defaultVisible: true,
-    defaultOrder: 5,
-    minRole: "editor",
-    span: "half",
   },
   {
     id: "agent_activity",

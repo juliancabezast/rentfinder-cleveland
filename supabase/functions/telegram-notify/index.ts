@@ -103,8 +103,13 @@ function formatEvent(event: string, p: Record<string, unknown>): string {
   const source = src ? ` · <i>${escapeHtml(src)}</i>` : "";
 
   switch (event) {
-    case "new_lead":
-      return `🆕 <b>New lead</b> — ${name}${source}${interest}${phone}${voucher}`;
+    case "new_lead": {
+      // The prospect's own words (Hemlane inquiry text) — Julian reads intent
+      // before dialing ("I would like to request an application…").
+      const msg = p.message
+        ? `\n💬 «${escapeHtml(String(p.message).slice(0, 220))}»` : "";
+      return `🆕 <b>New lead</b> — ${name}${source}${interest}${phone}${voucher}${msg}`;
+    }
     case "hot_lead":
       // A "call now" opportunity card for the showings bot (gated upstream —
       // never fires without a phone). Body shared with lead_reminder.
@@ -113,6 +118,21 @@ function formatEvent(event: string, p: Record<string, unknown>): string {
       // Next-day follow-up: same card, re-surfaced by the reminder cron. Rolls
       // over every morning until an action is registered (or the lead dies).
       return `⏰🔁 <b>Follow-up de hoy · ${escapeHtml(p.score ?? "")}</b>\n${hotLeadBody(p)}\n<i>Se repite mañana 9am si no registrás una acción.</i>`;
+    case "leads_batch": {
+      // Burst summary → one message instead of N cards. Two payload shapes:
+      // parser bursts {count, sources} and the 9 AM queue summary {reminders, fresh}.
+      const rem = Number(p.reminders ?? 0);
+      const fresh = Number(p.fresh ?? 0);
+      if (rem || fresh) {
+        const parts: string[] = [];
+        if (rem) parts.push(`⏰ ${rem} seguimiento${rem === 1 ? "" : "s"}`);
+        if (fresh) parts.push(`🆕 ${fresh} nuevo${fresh === 1 ? "" : "s"}`);
+        return `🗂️ <b>Pendientes de hoy</b> — ${parts.join(" + ")}\nTocá para gestionarlos uno por uno 👇`;
+      }
+      const count = Number(p.count ?? 0);
+      const sources = p.sources ? ` — <i>${escapeHtml(p.sources)}</i>` : "";
+      return `🆕 <b>${count} lead${count === 1 ? "" : "s"} completo${count === 1 ? "" : "s"} nuevo${count === 1 ? "" : "s"}</b>${sources}\nTocá para gestionarlos uno por uno 👇`;
+    }
     case "hemlane_digest": {
       const total = escapeHtml(p.total ?? 0);
       const created = escapeHtml(p.created ?? 0);
@@ -161,12 +181,20 @@ serve(async (req) => {
       : body.channel === "showings" ? "showings"
       : body.channel === "funnel" ? "funnel" : "report";
 
-    // Lead alerts only fire when a phone is on file — a name-only lead (e.g. the
-    // first half of a Hemlane paired email) is not actionable. Hot-lead alerts
-    // are call-now opportunities, so a phone is mandatory there too.
+    // Lead alerts only fire for COMPLETE leads: phone + a real name. A name-only
+    // or phone-only shell (e.g. half of a Hemlane paired email, or the parser's
+    // "Hemlane Lead (216)…" fallback) is not actionable yet.
     if (body.event === "new_lead" || body.event === "hot_lead" || body.event === "lead_reminder") {
-      const ph = String((body.payload as Record<string, unknown> | undefined)?.phone ?? "").trim();
+      const p = (body.payload as Record<string, unknown> | undefined) || {};
+      const ph = String(p.phone ?? "").trim();
       if (!ph) return json({ ok: false, skipped: "no_phone" });
+      if (body.event === "new_lead") {
+        const nm = String(p.name ?? p.full_name ?? "").trim();
+        const low = nm.toLowerCase(); // parser has emitted both casings
+        const shell = !nm || low.startsWith("hemlane lead") || nm.includes("{") ||
+          low.startsWith("detail") || /\d{7,}/.test(nm);
+        if (shell) return json({ ok: false, skipped: "no_real_name" });
+      }
     }
 
     // Resolve org (single tenant): explicit id → by slug → first org.
@@ -181,6 +209,22 @@ serve(async (req) => {
       }
     }
     if (!orgId) return json({ ok: false, skipped: "no_org" });
+
+    // new_lead enrichment: if the caller didn't pass the prospect's inquiry
+    // text (paired-email flow: the message arrived in the EARLIER name-only
+    // email and lives only in lead_notes), pull the latest one by lead_id.
+    if (body.event === "new_lead") {
+      const p = (body.payload || (body.payload = {})) as Record<string, unknown>;
+      if (!p.message && typeof p.lead_id === "string" && p.lead_id) {
+        const { data: note } = await supabase.from("lead_notes")
+          .select("content").eq("lead_id", p.lead_id)
+          .like("content", "[Hemlane inquiry]%")
+          .order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (note?.content) {
+          p.message = String(note.content).replace(/^\[Hemlane inquiry\]\s*/, "");
+        }
+      }
+    }
 
     // Build the message: preformatted `message` wins, else format the `event`.
     let message = typeof body.message === "string" ? body.message : "";
@@ -214,12 +258,14 @@ serve(async (req) => {
 
     let botToken: string | undefined;
     let chatId: string | undefined;
+    let sentViaFunnel = false; // gates the fnl:q button (dead on other bots)
     if (channel === "funnel") {
       // Lead-management bot. Pair token+chat ATOMICALLY — never mix one bot's
       // token with another bot's chat id under a partial config.
       const fTok = creds?.telegram_funnel_bot_token;
       const fChat = creds?.telegram_funnel_chat_id;
       const useFunnel = !!fTok && !!fChat;
+      sentViaFunnel = useFunnel;
       botToken = useFunnel ? fTok : creds?.telegram_bot_token;
       chatId = useFunnel ? fChat : creds?.telegram_chat_id;
     } else if (channel === "showings") {
@@ -236,10 +282,25 @@ serve(async (req) => {
 
     if (!botToken || !chatId) return json({ ok: false, skipped: "not_configured" });
 
-    // Hot-lead / follow-up cards carry a "Registrar acción" button (only when a
-    // lead_id is in the payload). Preformatted `message` payloads get no buttons.
-    const keyboard = (!body.message && (body.event === "hot_lead" || body.event === "lead_reminder"))
-      ? actionKeyboard(body.payload || {})
+    // Hot-lead / follow-up cards carry the action keyboard; new-lead cards and
+    // batch summaries carry a "Gestionar pendientes" button into the queue.
+    // Preformatted `message` payloads get no buttons.
+    const QUEUE_BTN = [{ text: "▶️ Gestionar pendientes", callback_data: "fnl:q" }];
+    // New-lead cards act on THAT lead first (Kiara's card must never route to
+    // the FIFO head): a per-lead card button, then the generic queue button.
+    const newLeadKeyboard = (p: Record<string, unknown>): any[][] => {
+      const rows: any[][] = [];
+      if (typeof p.lead_id === "string" && p.lead_id) {
+        rows.push([{ text: "📞 Gestionar este lead", callback_data: `fl:${p.lead_id}` }]);
+      }
+      rows.push(QUEUE_BTN);
+      return rows;
+    };
+    const keyboard = body.message ? undefined
+      : (body.event === "hot_lead" || body.event === "lead_reminder") ? actionKeyboard(body.payload || {})
+      // fnl:/fl: only work on the Funnel bot — omit when we fell back elsewhere.
+      : (body.event === "new_lead" && sentViaFunnel) ? newLeadKeyboard(body.payload || {})
+      : (body.event === "leads_batch" && sentViaFunnel) ? [QUEUE_BTN]
       : undefined;
 
     const tgResp = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {

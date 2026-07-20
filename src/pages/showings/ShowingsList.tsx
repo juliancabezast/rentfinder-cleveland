@@ -44,9 +44,8 @@ import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, addDays, parseI
 import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
 import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
-import { MyRouteTab } from "@/components/showings/MyRouteTab";
 import { ManageSlotsTab } from "@/components/showings/ManageSlotsTab";
-import { LandingPageTab } from "@/components/showings/LandingPageTab";
+import { BookingPageTab } from "@/components/showings/BookingPageTab";
 import { ShowingDetailDialog } from "@/components/showings/ShowingDetailDialog";
 
 interface ShowingWithDetails {
@@ -120,7 +119,9 @@ const ShowingsList: React.FC = () => {
   const [dateFilter, setDateFilter] = useState("week");
 
   // Tab state from URL
-  const activeTab = searchParams.get("tab") || "slots";
+  const rawTab = searchParams.get("tab") || "slots";
+  // "route" moved to Telegram; "landing" renamed to "booking"
+  const activeTab = rawTab === "route" ? "slots" : rawTab === "landing" ? "booking" : rawTab;
   const setActiveTab = (tab: string) => {
     setSearchParams({ tab });
   };
@@ -539,15 +540,9 @@ const ShowingsList: React.FC = () => {
             <CalendarDays className="h-4 w-4" />
             <span>Showing Schedule</span>
           </TabsTrigger>
-          {permissions.canViewOwnRoute && (
-            <TabsTrigger value="route" className="flex-1 sm:flex-initial gap-2">
-              <MapIcon className="h-4 w-4" />
-              <span>My Route</span>
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="landing" className="flex-1 sm:flex-initial gap-2">
+          <TabsTrigger value="booking" className="flex-1 sm:flex-initial gap-2">
             <Image className="h-4 w-4" />
-            <span>Landing Page</span>
+            <span>Booking Page</span>
           </TabsTrigger>
         </TabsList>
 
@@ -674,14 +669,8 @@ const ShowingsList: React.FC = () => {
         </TabsContent>
 
 
-        {permissions.canViewOwnRoute && (
-          <TabsContent value="route">
-            <MyRouteTab onRefresh={fetchShowings} />
-          </TabsContent>
-        )}
-
-        <TabsContent value="landing">
-          <LandingPageTab />
+        <TabsContent value="booking">
+          <BookingPageTab />
         </TabsContent>
       </Tabs>
 

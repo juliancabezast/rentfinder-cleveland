@@ -437,3 +437,19 @@
   background: #eef2ff !important;
   color: #4F46E5 !important;
 }
+
+/* Living-dashboard "+N" flash — floats up and fades on each metric bump */
+@keyframes dash-flash-up {
+  0% { opacity: 0; transform: translateY(8px) scale(0.85); }
+  18% { opacity: 1; transform: translateY(0) scale(1); }
+  72% { opacity: 1; transform: translateY(-12px) scale(1); }
+  100% { opacity: 0; transform: translateY(-26px) scale(0.92); }
+}
+.dash-flash { animation: dash-flash-up 2.2s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+
+/* Soft ring pulse when a realtime event lands */
+@keyframes dash-live-ping {
+  0% { box-shadow: 0 0 0 0 hsl(var(--success) / 0.5); }
+  100% { box-shadow: 0 0 0 8px hsl(var(--success) / 0); }
+}
+.dash-live-ping { animation: dash-live-ping 1.4s ease-out; }

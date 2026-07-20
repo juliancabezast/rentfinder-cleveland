@@ -36,100 +36,287 @@ function formatDateShort(dateStr: string): string {
   });
 }
 
-// Next Cleveland day at 09:00, as UTC ISO. DST-safe: 9 AM is well past the
+// N Cleveland days ahead at 09:00, as UTC ISO. DST-safe: 9 AM is well past the
 // 2 AM switch, so the noon-sampled offset of that date is always correct.
-function nextDay9amET(): string {
+function plusDays9amET(days: number): string {
   const TZ = "America/New_York";
   const todayNY = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
   const t = new Date(`${todayNY}T12:00:00Z`);
-  t.setUTCDate(t.getUTCDate() + 1);
+  t.setUTCDate(t.getUTCDate() + days);
   const dateStr = t.toISOString().slice(0, 10);
   const noon = new Date(`${dateStr}T12:00:00Z`);
   const localNoon = new Date(noon.toLocaleString("en-US", { timeZone: TZ }));
   const offsetMs = noon.getTime() - localNoon.getTime();
   return new Date(new Date(`${dateStr}T09:00:00Z`).getTime() + offsetMs).toISOString();
 }
+function nextDay9amET(): string { return plusDays9amET(1); }
 
-// Dispatch due follow-up reminders (from the Telegram "quiere seguimiento"
-// action) as Hot Leads cards via telegram-notify. Independent of the showing
-// reminders — MUST run on every tick regardless of whether a showing is due.
+// Cleveland midnight (today) as UTC ISO — dedup marker boundary for the daily
+// queue summary (noon-sampled offset; ±1h on the 2 DST days is harmless here).
+function todayMidnightET(): string {
+  const TZ = "America/New_York";
+  const dateStr = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+  const noon = new Date(`${dateStr}T12:00:00Z`);
+  const localNoon = new Date(noon.toLocaleString("en-US", { timeZone: TZ }));
+  const offsetMs = noon.getTime() - localNoon.getTime();
+  return new Date(new Date(`${dateStr}T00:00:00Z`).getTime() + offsetMs).toISOString();
+}
+// Case-insensitive (matches telegram-webhook's copy — the parser has emitted
+// both "Hemlane Lead" and "Hemlane lead").
+function isShellName(n: unknown): boolean {
+  const s = String(n ?? "").trim();
+  const low = s.toLowerCase();
+  return !s || low.startsWith("hemlane lead") || s.includes("{") ||
+    low.startsWith("detail") || /\d{7,}/.test(s);
+}
+
+// QUEUE MODEL (2026-07-19): due reminders STAY `pending` until the user works
+// them in the Funnel gestión queue — accumulation is inherent, so there are no
+// per-card sends and no auto-rollover re-arms anymore. This dispatcher:
+// (a) every tick: closes due reminders whose lead died;
+// (b) at/after 9 AM Cleveland, once per Cleveland day and per org: sends ONE
+//     "⏰ N seguimientos + 🆕 M nuevos → Gestionar" summary. The summary fires
+//     even with zero reminders (fresh-leads-only days count too).
 async function dispatchLeadReminders(
   supabase: any, supabaseUrl: string, serviceRoleKey: string,
 ): Promise<number> {
   let sent = 0;
   try {
+    const nowIso = new Date().toISOString();
+
+    // ── Cleanup pass (every tick) ──
     const { data: dueReminders } = await supabase
       .from("lead_reminders")
-      .select("id, organization_id, lead_id")
+      .select("id, organization_id, leads:lead_id(id, phone, status, is_demo)")
       .eq("status", "pending")
-      .lte("due_at", new Date().toISOString())
-      .limit(50);
-
+      .lte("due_at", nowIso)
+      .order("due_at", { ascending: true })
+      .limit(100);
     for (const r of dueReminders || []) {
-      const { data: lead } = await supabase
-        .from("leads")
-        .select("id, full_name, first_name, last_name, phone, lead_score, source, status, has_voucher, voucher_amount, move_in_date, is_demo")
-        .eq("id", r.lead_id)
-        .maybeSingle();
-
-      const phone = String(lead?.phone ?? "").trim();
-      // Skip dead/converted/demo/phoneless leads — just close the reminder.
-      if (!lead || !phone || ["lost", "converted"].includes(lead.status || "") || lead.is_demo) {
-        await supabase.from("lead_reminders").update({ status: "skipped", sent_at: new Date().toISOString() }).eq("id", r.id);
-        continue;
+      const l = (r as any).leads;
+      const phone = String(l?.phone ?? "").trim();
+      if (!l || !phone || ["lost", "converted"].includes(l.status || "") || l.is_demo) {
+        await supabase.from("lead_reminders").update({ status: "skipped", sent_at: nowIso }).eq("id", r.id);
       }
+    }
 
-      // Most-recent tagged property for the card (cosmetic).
-      const { data: tag } = await supabase
-        .from("lead_property_interests")
-        .select("properties:property_id(address, unit_number, city)")
-        .eq("lead_id", lead.id)
-        .order("created_at", { ascending: false })
-        .limit(1).maybeSingle();
-      const pr = (tag as any)?.properties;
-      const property = pr ? `${pr.address}${pr.unit_number ? ` ${pr.unit_number}` : ""}${pr.city ? ` · ${pr.city}` : ""}` : null;
-      const name = lead.full_name || [lead.first_name, lead.last_name].filter(Boolean).join(" ") || "Lead";
-      const moveIn = lead.move_in_date
-        ? new Date(lead.move_in_date + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" })
-        : null;
+    // ── Daily summary: only at/after 9 AM Cleveland (a due_at<=now filter with
+    // a midnight marker window would otherwise fire at ~00:00 whenever
+    // yesterday's reminders carried over) ──
+    const hourET = parseInt(new Date().toLocaleString("en-US", {
+      timeZone: "America/New_York", hour: "2-digit", hour12: false,
+    }), 10) % 24;
+    if (hourET < 9) return 0;
+
+    const todayStartUtc = todayMidnightET();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    // Org set independent of reminders (single tenant in practice).
+    const { data: orgs } = await supabase.from("organizations").select("id").limit(5);
+    for (const org of orgs || []) {
+      const orgId = org.id;
+      const { data: marker } = await supabase.from("system_logs").select("id")
+        .eq("organization_id", orgId).eq("event_type", "queue_summary_sent")
+        .gte("created_at", todayStartUtc).limit(1).maybeSingle();
+      if (marker) continue;
+
+      const [remCntRes, freshLeadsRes] = await Promise.all([
+        supabase.from("lead_reminders").select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId).eq("status", "pending").lte("due_at", nowIso)
+          .neq("reason", "closing"),
+        supabase.from("leads").select("id, full_name")
+          .eq("organization_id", orgId).eq("is_demo", false).eq("status", "new")
+          .is("managed_at", null).not("phone", "is", null)
+          .gte("created_at", sevenDaysAgo).limit(200),
+      ]);
+      const reminders = remCntRes.count || 0;
+      const fresh = ((freshLeadsRes.data || []) as any[]).filter((l) => !isShellName(l.full_name)).length;
+      if (reminders + fresh === 0) continue;
 
       const resp = await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
         body: JSON.stringify({
-          organization_id: r.organization_id,
+          organization_id: orgId,
           channel: "funnel",
-          event: "lead_reminder",
-          payload: {
-            lead_id: lead.id, name, score: lead.lead_score, phone, source: lead.source,
-            property, has_voucher: !!lead.has_voucher, voucher_amount: lead.voucher_amount, move_in: moveIn,
-          },
+          event: "leads_batch",
+          payload: { reminders, fresh },
         }),
       });
       // telegram-notify ALWAYS returns HTTP 200 — real success is the body {ok}.
       const jr = await resp.json().catch(() => ({}));
-      const delivered = resp.ok && jr?.ok === true;
-      await supabase.from("lead_reminders")
-        .update({ status: delivered ? "sent" : "failed", sent_at: new Date().toISOString() })
-        .eq("id", r.id);
-      if (delivered) {
+      if (resp.ok && jr?.ok === true) {
         sent++;
-        // AUTO-ROLLOVER: the card re-fires every morning until the user acts.
-        // Registering any action in Telegram cancels the pending row; "quiere
-        // seguimiento" keeps it. Idempotent — max one pending per lead.
-        const { data: existingPending } = await supabase.from("lead_reminders")
-          .select("id").eq("organization_id", r.organization_id).eq("lead_id", r.lead_id)
-          .eq("status", "pending").limit(1).maybeSingle();
-        if (!existingPending) {
-          await supabase.from("lead_reminders").insert({
-            organization_id: r.organization_id, lead_id: r.lead_id,
-            due_at: nextDay9amET(), reason: "follow_up_auto", status: "pending",
-          });
-        }
+        await supabase.from("system_logs").insert({
+          organization_id: orgId, level: "info", category: "general",
+          event_type: "queue_summary_sent",
+          message: `Queue summary: ${reminders} reminders + ${fresh} fresh leads`,
+          details: { reminders, fresh },
+        });
       }
     }
   } catch (remErr) {
     console.error("lead_reminders dispatch error:", remErr);
+  }
+
+  // ── 🚀 Closing cadence: toured-but-not-applied pushes (D+1 · D+3 · D+7) ───
+  // Chained 'closing' reminders → a push card on the Showings (field) bot with
+  // the apply toolkit. Self-cleaning: applied/lost/converted leads are skipped.
+  // Push 3 carries the archive-or-recapture decision.
+  try {
+    const nowIso2 = new Date().toISOString();
+    const { data: dueClosing } = await supabase.from("lead_reminders")
+      .select("id, organization_id, attempt, lead_id, leads:lead_id(id, full_name, first_name, last_name, phone, status)")
+      .eq("status", "pending").eq("reason", "closing")
+      .lte("due_at", nowIso2)
+      .order("due_at", { ascending: true }).limit(30);
+    const credsCache = new Map<string, { tok?: string; chat?: string }>();
+    for (const r of (dueClosing || []) as any[]) {
+      const l = r.leads;
+      const phone = String(l?.phone ?? "").trim();
+      // Exit conditions: applied, converted, lost, phoneless, gone.
+      if (!l || !phone || ["in_application", "converted", "lost"].includes(l.status || "")) {
+        await supabase.from("lead_reminders").update({ status: "skipped", sent_at: nowIso2 }).eq("id", r.id);
+        continue;
+      }
+      if (!credsCache.has(r.organization_id)) {
+        const { data: c } = await supabase.from("organization_credentials")
+          .select("telegram_showings_bot_token, telegram_showings_chat_id")
+          .eq("organization_id", r.organization_id).maybeSingle();
+        credsCache.set(r.organization_id, { tok: c?.telegram_showings_bot_token, chat: c?.telegram_showings_chat_id });
+      }
+      const cc = credsCache.get(r.organization_id)!;
+      if (!cc.tok || !cc.chat) continue;
+
+      const { data: sh } = await supabase.from("showings")
+        .select("scheduled_at, properties:property_id(address)")
+        .eq("lead_id", l.id).eq("status", "completed")
+        .order("scheduled_at", { ascending: false }).limit(1).maybeSingle();
+      const days = sh ? Math.max(1, Math.round((Date.now() - new Date(sh.scheduled_at).getTime()) / 86400000)) : Number(r.attempt) || 1;
+      const nm = (x: any) => x?.full_name || [x?.first_name, x?.last_name].filter(Boolean).join(" ") || "Lead";
+      const esc = (v: unknown) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const attempt = Number(r.attempt) || 1;
+      const lines = [
+        `🚀 <b>Cierre ${attempt}/3</b> — ${esc(nm(l))}`,
+        `Toureó${sh?.properties?.address ? ` ${esc(sh.properties.address)}` : ""} hace ${days} día${days === 1 ? "" : "s"} y todavía no aplica.`,
+        `📞 ${esc(phone)}`,
+      ];
+      if (attempt >= 3) lines.push(``, `Último push — si no responde, decidí abajo 👇`);
+      const kb: any[][] = [
+        [{ text: "✉️ Email para aplicar", callback_data: `aem:${l.id}:ap2` }],
+        [{ text: "💬 SMS para aplicar", callback_data: `asms:${l.id}:ap` }],
+        [{ text: "📋 Más acciones", callback_data: `act:menu:${l.id}` }],
+      ];
+      if (attempt >= 3) {
+        kb.push([{ text: "☠️ Archivar", callback_data: `cz:arch:${l.id}` },
+                 { text: "🔄 Devolver a 🎯", callback_data: `cz:back:${l.id}` }]);
+      }
+      const resp = await fetch(`https://api.telegram.org/bot${cc.tok}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: cc.chat, text: lines.join("\n"), parse_mode: "HTML",
+          disable_web_page_preview: true, reply_markup: { inline_keyboard: kb },
+        }),
+      }).catch(() => undefined);
+      if (resp?.ok) {
+        await supabase.from("lead_reminders").update({ status: "sent", sent_at: nowIso2 }).eq("id", r.id);
+        // Chain the next push: D+1 → D+3 (+2 days) → D+7 (+4 days). Push 3 ends
+        // the chain — the decision buttons take over.
+        if (attempt < 3) {
+          await supabase.from("lead_reminders").insert({
+            organization_id: r.organization_id, lead_id: l.id,
+            due_at: plusDays9amET(attempt === 1 ? 2 : 4), reason: "closing",
+            attempt: attempt + 1, status: "pending",
+          });
+        }
+      }
+    }
+  } catch (czErr) {
+    console.error("closing cadence error:", czErr);
+  }
+
+  // ── 8 PM day recap on the Showings (field-assistant) bot ──────────────────
+  // "Después de que acaba el día, cuenta qué pasó": today's showings with
+  // asistió/no-show/unresolved, plus one-tap resolution buttons (psw:) for the
+  // unresolved ones. Once per Cleveland day, only when there WERE showings.
+  try {
+    const hourET2 = parseInt(new Date().toLocaleString("en-US", {
+      timeZone: "America/New_York", hour: "2-digit", hour12: false,
+    }), 10) % 24;
+    if (hourET2 >= 20) {
+      const TZ2 = "America/New_York";
+      const dayStr = new Date().toLocaleDateString("en-CA", { timeZone: TZ2 });
+      const noon = new Date(`${dayStr}T12:00:00Z`);
+      const offsetMs = noon.getTime() - new Date(noon.toLocaleString("en-US", { timeZone: TZ2 })).getTime();
+      const dayStart = new Date(new Date(`${dayStr}T00:00:00Z`).getTime() + offsetMs).toISOString();
+      const dayEnd = new Date(new Date(`${dayStr}T00:00:00Z`).getTime() + offsetMs + 86400000).toISOString();
+
+      const { data: orgs2 } = await supabase.from("organizations").select("id").limit(5);
+      for (const org of orgs2 || []) {
+        const orgId = org.id;
+        const { data: marker } = await supabase.from("system_logs").select("id")
+          .eq("organization_id", orgId).eq("event_type", "day_recap_sent")
+          .gte("created_at", dayStart).limit(1).maybeSingle();
+        if (marker) continue;
+
+        const { data: shows } = await supabase.from("showings")
+          .select(`id, scheduled_at, status,
+            leads:lead_id ( id, full_name, first_name, last_name ),
+            properties:property_id ( address )`)
+          .eq("organization_id", orgId)
+          .gte("scheduled_at", dayStart).lt("scheduled_at", dayEnd)
+          .not("status", "in", "(cancelled,rescheduled)")
+          .order("scheduled_at", { ascending: true }).limit(15);
+        const rows = (shows || []) as any[];
+        if (!rows.length) continue; // no showings today → no recap
+
+        const { data: creds } = await supabase.from("organization_credentials")
+          .select("telegram_showings_bot_token, telegram_showings_chat_id")
+          .eq("organization_id", orgId).maybeSingle();
+        if (!creds?.telegram_showings_bot_token || !creds?.telegram_showings_chat_id) continue;
+
+        const nm = (l: any) => l?.full_name || [l?.first_name, l?.last_name].filter(Boolean).join(" ") || "Lead";
+        const esc = (v: unknown) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const done = rows.filter((r) => r.status === "completed").length;
+        const ghost = rows.filter((r) => r.status === "no_show").length;
+        const open = rows.filter((r) => !["completed", "no_show"].includes(r.status));
+        const lines = [
+          `📊 <b>Así terminó el día</b> — ${rows.length} showing${rows.length === 1 ? "" : "s"}`,
+          `✅ ${done} asistieron · 👻 ${ghost} no fueron${open.length ? ` · 🕒 ${open.length} sin resolver` : ""}`,
+          ``,
+        ];
+        for (const r of rows) {
+          const time = new Date(r.scheduled_at).toLocaleTimeString("en-US", { timeZone: TZ2, hour: "numeric", minute: "2-digit", hour12: true });
+          const st = r.status === "completed" ? "✅" : r.status === "no_show" ? "👻" : "🕒";
+          lines.push(`${st} <b>${time}</b> — ${esc(nm(r.leads))} · ${esc(r.properties?.address ?? "")}`);
+        }
+        if (open.length) lines.push(``, `👇 Resolvé los pendientes — un tap:`);
+        const kb: any[][] = open.slice(0, 8).map((r) => [{
+          text: `🕒 ${nm(r.leads)} · ¿asistió?`.slice(0, 62), callback_data: `psw:${r.id}`,
+        }]);
+        kb.push([{ text: "🏁 Showings recientes", callback_data: "m:ps" }]);
+
+        const resp = await fetch(`https://api.telegram.org/bot${creds.telegram_showings_bot_token}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: creds.telegram_showings_chat_id, text: lines.join("\n"),
+            parse_mode: "HTML", disable_web_page_preview: true,
+            reply_markup: { inline_keyboard: kb },
+          }),
+        }).catch(() => undefined);
+        if (resp?.ok) {
+          await supabase.from("system_logs").insert({
+            organization_id: orgId, level: "info", category: "general",
+            event_type: "day_recap_sent",
+            message: `Day recap: ${rows.length} showings (${done} ok, ${ghost} no-show, ${open.length} open)`,
+            details: { total: rows.length, completed: done, no_show: ghost, open: open.length },
+          });
+        }
+      }
+    }
+  } catch (recapErr) {
+    console.error("day recap error:", recapErr);
   }
   return sent;
 }

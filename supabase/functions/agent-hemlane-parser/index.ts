@@ -639,12 +639,16 @@ async function upsertLead(
     // caller fires a 🆕 new-lead alert even though this is technically an UPDATE
     // (Hemlane's paired-email flow merges the phone in as isNew=false).
     const gainedPhone = !!phone && !(existing as any).phone;
+    // A shell lead (fallback name) that just got its REAL name — if it already
+    // has (or is gaining) a phone, it just became complete → alert-worthy.
+    const gainedName = !!(needsNameFix && lead.name) && !!(phone || (existing as any).phone);
     const finalName = (needsNameFix && lead.name)
       ? lead.name
       : ((existing as any).full_name || lead.name || null);
     return {
       leadId: existing.id, isNew: false, missingName: false, missingPhone: false,
       gainedPhone,
+      gainedName,
       finalName,
       finalPhone: phone || (existing as any).phone || null,
       finalProperty: lead.property || null,
@@ -1592,6 +1596,14 @@ serve(async (req: Request) => {
       let skipped = 0;
       const digestFollowUps: string[] = [];
 
+      // Complete leads this digest actually created/completed → the batch card.
+      const isShellName = (n: unknown) => {
+        const s = String(n ?? "").trim();
+        const low = s.toLowerCase();
+        return !s || low.startsWith("hemlane lead") || s.includes("{") ||
+          low.startsWith("detail") || /\d{7,}/.test(s);
+      };
+      let queueEligible = 0;
       for (const lead of digestLeads) {
         try {
           const result = await upsertLead(supabase, organizationId, lead, emailId);
@@ -1602,6 +1614,10 @@ serve(async (req: Request) => {
 
           if (result.isNew) created++;
           else updated++;
+          if (result.finalPhone && !isShellName(result.finalName) &&
+              (result.isNew || (result as any).gainedPhone || (result as any).gainedName)) {
+            queueEligible++;
+          }
 
           // Schedule follow-up for incomplete new leads
           if (result.isNew && (result.missingName || result.missingPhone)) {
@@ -1697,9 +1713,22 @@ serve(async (req: Request) => {
         },
       });
 
-      // Telegram: NO immediate per-digest message anymore. The 9:00 PM evening
-      // digest (agent-daily-report mode=evening) aggregates today's digests from
-      // the esther_digest_processed system_logs rows written above.
+      // Telegram: ONE batch summary to the Funnel bot per digest email (no
+      // per-lead spam) — queueEligible counts COMPLETE leads (real name + phone)
+      // this digest actually created or completed, i.e. what lands in the
+      // gestión queue. The 9 PM digest still aggregates from system_logs.
+      try {
+        if (queueEligible > 0) {
+          await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+            body: JSON.stringify({
+              channel: "funnel", event: "leads_batch",
+              payload: { count: queueEligible, sources: "Hemlane" },
+            }),
+          });
+        }
+      } catch (_) { /* non-blocking */ }
 
       await markInbound("processed", `digest:${created}c/${updated}u/${skipped}s of ${digestRawTotal} raw`);
 
@@ -1965,8 +1994,11 @@ serve(async (req: Request) => {
     // skips any phone-less payload, so a still-contactless lead makes no card
     // until its phone arrives. Best-effort; never blocks parsing.
     const notifyNewLead = async (r: any, li: any) => {
-      if (!r || !(r.isNew || r.gainedPhone)) return;
-      const name = (r.isNew ? (li.name || r.finalName) : (r.finalName || li.name)) || "Hemlane lead";
+      // Fires when the lead is new, just gained its phone, OR just gained a real
+      // name (shell+phone completing later) — the "became complete" moments.
+      if (!r || !(r.isNew || r.gainedPhone || r.gainedName)) return;
+      // Canonical "Hemlane Lead" casing so telegram-notify's shell gate catches it.
+      const name = (r.isNew ? (li.name || r.finalName) : (r.finalName || li.name)) || "Hemlane Lead";
       const ph = r.finalPhone || (li.phone ? formatPhoneE164(li.phone) : null);
       const interest = li.property || r.finalProperty || null;
       try {
@@ -1979,6 +2011,11 @@ serve(async (req: Request) => {
               name,
               source: `Hemlane${li.listingSource ? ` (${li.listingSource})` : ""}`,
               phone: ph, interest,
+              // Per-lead card button + inquiry text on the alert. In the
+              // paired-email flow this email may carry no message — notify
+              // falls back to the latest "[Hemlane inquiry]" lead_note.
+              lead_id: r.leadId ?? null,
+              message: li.message ?? null,
             },
           }),
         });

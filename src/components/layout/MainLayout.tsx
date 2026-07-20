@@ -39,7 +39,6 @@ const mainNavItems: NavItem[] = [
   { title: 'Leads', href: '/leads', icon: Users },
   { title: 'Applicants', href: '/applicants', icon: UserCheck },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
-  { title: 'My Route', href: '/showings/route', icon: Map, permission: 'canViewOwnRoute' },
 ];
 
 const analyticsNavItems: NavItem[] = [
@@ -86,15 +85,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       {/* Mobile Sidebar Sheet */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetContent side="left" className="w-72 p-0 bg-white/90 backdrop-blur-xl text-slate-900">
-          {/* Organization Logo/Name */}
+          {/* Brand — favicon logo + "Rent Finder" */}
           <div className="h-16 flex items-center px-4 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-                <Building2 className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-semibold text-sm text-slate-900">
-                {organization?.name || 'Rent Finder'}
-              </span>
+            <div className="flex items-center gap-2.5">
+              <img src="/favicon-96.png" alt="Rent Finder" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
+              <span className="font-semibold text-[15px] text-slate-900">Rent Finder</span>
             </div>
           </div>
 

@@ -3,7 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { PriorityLeadCard, PriorityLeadCardSkeleton } from "@/components/dashboard/PriorityLeadCard";
-import { DailyRouteCard } from "@/components/showings/DailyRouteCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -314,13 +313,6 @@ export const AgentDashboard = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Today's Route */}
-        <DailyRouteCard
-          showings={todayShowings}
-          loading={loading}
-          onRefresh={refreshShowings}
-        />
-
         {/* Assigned Leads */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">

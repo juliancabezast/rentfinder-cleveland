@@ -208,10 +208,10 @@ const App = () => (
               }
             />
 
-            {/* Redirect old /showings/route to new tabbed location */}
+            {/* My Route moved to Telegram (LeasingAgent bot) — keep old links alive */}
             <Route
               path="/showings/route"
-              element={<Navigate to="/showings?tab=route" replace />}
+              element={<Navigate to="/showings" replace />}
             />
 
             <Route

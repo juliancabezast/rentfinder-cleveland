@@ -49,7 +49,7 @@ AI-powered lead management SaaS for property management. Automates the rental le
 
 ### Reorientation (2026-06-29)
 - **Single-domain focus**: only `rentfindercleveland.com`. HomeGuard & Portafolio removed from product scope (the legacy "3 apps / 3 domains" model is historical/aspirational). The 10DLC/SMS legal text referencing those brands is flagged for separate legal review; functional `homeguard.app.doorloop.com` DoorLoop URLs are retained because they are the live apply portal, not the brand.
-- **Single-tenant consolidation** (not a destructive collapse): exactly one organization ("Smart Leasing AI", slug `rent-finder-cleveland`). `organization_id` columns and RLS policies stay as defense-in-depth.
+- **Single-tenant consolidation** (not a destructive collapse): exactly one organization ("Rent Finder Cleveland", slug `rent-finder-cleveland`). `organization_id` columns and RLS policies stay as defense-in-depth.
 - **Doc drift corrected**: 6 canonical agents / 4 departments, voice fully removed, real DB counts (67 tables, 291 RLS, 77 functions, 33 triggers).
 - **Security hardening in progress**: users self-update privilege-escalation blocked via trigger; `recalculate_lead_scores`/`log_score_change` anon EXECUTE revoked; `send-message` now authenticates callers; `joseph_compliance_check()` calls fixed to fail-closed.
 
@@ -105,7 +105,7 @@ Leads can be taken under manual control, pausing all AI automation. Requires man
 
 ### Key Database Tables
 - `organizations` — Multi-tenant core with branding, subscription
-- `organization_credentials` — Per-org API keys (Twilio SMS, OpenAI, Resend, DoorLoop, Persona, Telegram)
+- `organization_credentials` — Per-org API keys (Twilio SMS, OpenAI, Resend, DoorLoop, Telegram ×4 bots)
 - `organization_settings` — Per-org config (key/value with category)
 - `leads` — Core records with scoring, status flow, human control flags
 - `agent_tasks` — Scheduled AI actions (columns: `agent_type`, `action_type`, `status`)
@@ -119,7 +119,6 @@ Leads can be taken under manual control, pausing all AI automation. Requires man
 - **OpenAI**: Scoring, analysis, insights (GPT-4o-mini for briefs, GPT-4o for vision)
 - **Resend**: Transactional email (webhook secret: RESEND_WEBHOOK_SECRET, queue via process-email-queue)
 - **DoorLoop**: Application/lease sync
-- **Persona**: Identity verification
 
 ### Timezone Handling (Cleveland = America/New_York)
 All date/time computations must be DST-aware. Never hardcode UTC offsets like `-05:00`.
@@ -151,4 +150,4 @@ const todayStart = new Date(clevelandNow.getTime() + offset).toISOString(); // U
 - `agent_tasks` table has NO `updated_at` column (trigger was removed) — don't add one
 
 ## Edge Functions Deployed from Local Repo (36)
-invite-user, send-notification-email, pathway-webhook, agent-hemlane-parser, import-zillow-property, book-public-showing, test-integration, send-message, match-properties, generate-lead-brief, predict-conversion, agent-health-checker, process-email-queue, sync-resend-history, sync-leads-to-doorloop, agent-hourly-report, agent-rent-benchmark, send-application-invite, delete-lead, delete-user, verify-identity, extract-property-from-image, ai-chat, telegram-webhook, agent-system-analysis, agent-task-dispatcher, enhance-report, fetch-twilio-messages, generate-property-description, process-sms-queue, recalculate-scores, resend-webhook, send-telegram-notification, showing-reminder, sync-resend-emails, unsubscribe, resolve-lead-token
+invite-user, send-notification-email, pathway-webhook, agent-hemlane-parser, import-zillow-property, book-public-showing, test-integration, send-message, match-properties, generate-lead-brief, predict-conversion, agent-health-checker, process-email-queue, sync-resend-history, sync-leads-to-doorloop, agent-hourly-report, agent-rent-benchmark, send-application-invite, delete-lead, delete-user, extract-property-from-image, ai-chat, telegram-webhook, agent-system-analysis, agent-task-dispatcher, enhance-report, fetch-twilio-messages, generate-property-description, process-sms-queue, recalculate-scores, resend-webhook, send-telegram-notification, showing-reminder, sync-resend-emails, unsubscribe, resolve-lead-token

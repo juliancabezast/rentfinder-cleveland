@@ -50,24 +50,6 @@ const INTEGRATION_KEYS: IntegrationKey[] = [
     testable: true,
   },
   {
-    key: 'persona_api_key',
-    label: 'Persona API Key',
-    description: 'API key for identity verification (primary)',
-    testable: true,
-  },
-  {
-    key: 'maxmind_account_id',
-    label: 'MaxMind Account ID',
-    description: 'MaxMind minFraud account identifier (fallback verification)',
-    testable: false,
-  },
-  {
-    key: 'maxmind_license_key',
-    label: 'MaxMind License Key',
-    description: 'MaxMind minFraud license key (used with Account ID)',
-    testable: true,
-  },
-  {
     key: 'doorloop_api_key',
     label: 'Doorloop API Key',
     description: 'API key for property management sync',
@@ -101,9 +83,6 @@ const mapKeyToService = (key: string): string => {
     twilio_phone_number: "twilio",
     twilio_whatsapp_number: "twilio",
     openai_api_key: "openai",
-    persona_api_key: "persona",
-    maxmind_account_id: "maxmind",
-    maxmind_license_key: "maxmind",
     doorloop_api_key: "doorloop",
     resend_api_key: "resend",
     telegram_bot_token: "telegram",
@@ -168,8 +147,6 @@ export const IntegrationKeysTab: React.FC = () => {
         const serviceToKeys: Record<string, string[]> = {
           twilio: ['twilio_account_sid', 'twilio_auth_token'],
           openai: ['openai_api_key'],
-          persona: ['persona_api_key'],
-          maxmind: ['maxmind_account_id', 'maxmind_license_key'],
           doorloop: ['doorloop_api_key'],
           resend: ['resend_api_key'],
           telegram: ['telegram_bot_token', 'telegram_chat_id'],

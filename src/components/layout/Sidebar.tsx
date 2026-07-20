@@ -33,19 +33,26 @@ interface NavItem {
   end?: boolean;
 }
 
+// TOP — standalone, above the Pipeline label
+const topNavItems: NavItem[] = [
+  { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+];
+
 // PIPELINE — core lead flow
 const pipelineNavItems: NavItem[] = [
-  { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Leads', href: '/leads', icon: Users, end: true },
   { title: 'Nurturing Leads', href: '/leads/nurturing', icon: Sparkles, permission: 'canEditLeadInfo' },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
   { title: 'Applicants', href: '/applicants', icon: UserCheck },
-  { title: 'Business', href: '/business', icon: Briefcase, permission: 'canEditLeadInfo' },
 ];
 
-// PROPERTIES — inventory
+// PROPERTIES — single entry, no section label
 const propertiesNavItems: NavItem[] = [
   { title: 'Properties', href: '/properties', icon: Building2 },
+];
+
+// TOOLS — market intelligence
+const toolsNavItems: NavItem[] = [
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
 ];
@@ -56,8 +63,9 @@ const commsNavItems: NavItem[] = [
   { title: 'Communications', href: '/communications', icon: Send, permission: 'canViewAllCallLogs' },
 ];
 
-// ANALYTICS — data & reports (Reports + Costs merged into one page 2026-07-19)
+// ANALYTICS — Business sits right above Analytics (Reports + Costs merged 2026-07-19)
 const analyticsNavItems: NavItem[] = [
+  { title: 'Business', href: '/business', icon: Briefcase, permission: 'canEditLeadInfo' },
   { title: 'Analytics', href: '/analytics', icon: BarChart3, permission: 'canViewAllReports', end: true },
 ];
 
@@ -88,8 +96,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
     (item) => !item.permission || permissions[item.permission]
   );
 
+  const filteredTopItems = filterItems(topNavItems);
   const filteredPipelineItems = filterItems(pipelineNavItems);
   const filteredPropertiesItems = filterItems(propertiesNavItems);
+  const filteredToolsItems = filterItems(toolsNavItems);
   const filteredCommsItems = filterItems(commsNavItems);
   const filteredAnalyticsItems = filterItems(analyticsNavItems);
   const filteredSystemItems = filterItems(systemNavItems);
@@ -156,31 +166,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         collapsed ? 'w-16' : 'w-64'
       )}
     >
-      {/* Organization Logo/Name */}
+      {/* Brand — favicon logo + "Rent Finder" */}
       <header className="h-16 flex items-center px-4 border-b border-slate-100 flex-shrink-0">
-        {organization?.logo_url ? (
+        <div className="flex items-center gap-2.5 overflow-hidden">
           <img
-            src={organization.logo_url}
-            alt={organization.name}
-            className={cn('h-8 object-contain', collapsed ? 'mx-auto' : '')}
+            src="/favicon-96.png"
+            alt="Rent Finder"
+            className={cn('h-8 w-8 rounded-xl object-contain shrink-0 shadow-sm', collapsed && 'mx-auto')}
           />
-        ) : (
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shrink-0 shadow-sm" aria-hidden="true">
-              <Building2 className="h-4 w-4 text-white" />
-            </div>
-            {!collapsed && (
-              <span className="font-semibold text-sm text-slate-900 truncate">
-                {organization?.name || 'Rent Finder'}
-              </span>
-            )}
-          </div>
-        )}
+          {!collapsed && (
+            <span className="font-semibold text-[15px] text-slate-900 truncate">Rent Finder</span>
+          )}
+        </div>
       </header>
 
       {/* Navigation - Scrollable */}
       <ScrollArea className="flex-1 py-4">
         <nav aria-label="Primary" className="px-2 space-y-0.5">
+          {/* DASHBOARD — standalone above Pipeline */}
+          {filteredTopItems.map(renderNavItem)}
+
           {/* PIPELINE Section */}
           {!collapsed && (
             <p className="px-3 py-1.5 text-[12px] font-bold text-slate-500 uppercase tracking-[0.08em]">
@@ -189,8 +194,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
           )}
           {filteredPipelineItems.map(renderNavItem)}
 
-          {/* PROPERTIES Section */}
-          {renderSection('Properties', filteredPropertiesItems)}
+          {/* PROPERTIES — no section label */}
+          {filteredPropertiesItems.length > 0 && (
+            <>
+              <div className="my-3 mx-3 h-px bg-slate-100" />
+              {filteredPropertiesItems.map(renderNavItem)}
+            </>
+          )}
+
+          {/* TOOLS Section */}
+          {renderSection('Tools', filteredToolsItems)}
 
           {/* COMMUNICATIONS — single hub entry (no redundant section label) */}
           {filteredCommsItems.length > 0 && (
@@ -200,11 +213,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             </>
           )}
 
-          {/* ANALYTICS Section */}
-          {renderSection('Analytics', filteredAnalyticsItems)}
+          {/* ANALYTICS — no section label */}
+          {filteredAnalyticsItems.length > 0 && (
+            <>
+              <div className="my-3 mx-3 h-px bg-slate-100" />
+              {filteredAnalyticsItems.map(renderNavItem)}
+            </>
+          )}
 
-          {/* SYSTEM Section */}
-          {renderSection('System', filteredSystemItems)}
+          {/* SYSTEM — no section label */}
+          {filteredSystemItems.length > 0 && (
+            <>
+              <div className="my-3 mx-3 h-px bg-slate-100" />
+              {filteredSystemItems.map(renderNavItem)}
+            </>
+          )}
         </nav>
       </ScrollArea>
 

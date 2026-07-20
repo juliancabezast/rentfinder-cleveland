@@ -59,7 +59,7 @@ export const NurturingWidget: React.FC<{ loading?: boolean }> = ({ loading: pare
 
   if (parentLoading || loading) {
     return (
-      <Card variant="glass" className="h-full">
+      <Card variant="glass">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-5 rounded" />
@@ -112,7 +112,7 @@ export const NurturingWidget: React.FC<{ loading?: boolean }> = ({ loading: pare
   ];
 
   return (
-    <Card variant="glass" className="h-full">
+    <Card variant="glass">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">

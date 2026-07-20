@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Mail,
   Zap,
-  AlertTriangle,
+  Clock,
   Calendar,
   Send,
   RotateCcw,
@@ -124,28 +124,31 @@ const AGENT_TYPE_ICONS: Record<string, React.ElementType> = {
 
 const VISIBLE_LIMIT = 10;
 
-// ── Live countdown formatting ────────────────────────────────────────
-// Driven by a 1-second ticker so times visibly move — that motion is what
-// makes the panel feel alive.
+// ── Live "fires in" countdown ────────────────────────────────────────
+// The dispatcher (nehemiah-dispatch-every-5min) runs on a */5 cron, so a task
+// actually goes out at the first 5-minute boundary AT/AFTER its scheduled time.
+// That's the honest answer to "in how many seconds does the action fire" — and
+// because it's always ≤ 5 min for a ready task, the seconds visibly tick every
+// second (the 1s heartbeat drives the re-render).
+const DISPATCH_INTERVAL_MS = 5 * 60 * 1000;
 
-function formatCountdown(scheduledIso: string, nowMs: number): { label: string; overdue: boolean; dueNow: boolean } {
-  const diff = new Date(scheduledIso).getTime() - nowMs;
-  const abs = Math.abs(diff);
-  const s = Math.floor(abs / 1000);
+function fireCountdown(scheduledIso: string, nowMs: number): { label: string; imminent: boolean; firing: boolean } {
+  const scheduledMs = new Date(scheduledIso).getTime();
+  // The dispatcher only picks tasks whose time has come; a future task waits
+  // until then. Either way it fires at the next cron tick after it's ready.
+  const readyMs = Math.max(scheduledMs, nowMs);
+  const fireMs = Math.ceil(readyMs / DISPATCH_INTERVAL_MS) * DISPATCH_INTERVAL_MS;
+  const diff = fireMs - nowMs;
+  const s = Math.max(0, Math.ceil(diff / 1000));
   const m = Math.floor(s / 60);
   const h = Math.floor(m / 60);
   const d = Math.floor(h / 24);
 
-  if (diff > 0) {
-    if (s < 60) return { label: `in ${s}s`, overdue: false, dueNow: true };
-    if (m < 60) return { label: `in ${m}m ${s % 60}s`, overdue: false, dueNow: false };
-    if (h < 24) return { label: `in ${h}h ${m % 60}m`, overdue: false, dueNow: false };
-    return { label: `in ${d}d ${h % 24}h`, overdue: false, dueNow: false };
-  }
-  if (s < 90) return { label: "due now", overdue: false, dueNow: true };
-  if (m < 60) return { label: `${m}m overdue`, overdue: true, dueNow: false };
-  if (h < 24) return { label: `${h}h ${m % 60}m overdue`, overdue: true, dueNow: false };
-  return { label: `${d}d ${h % 24}h overdue`, overdue: true, dueNow: false };
+  if (s <= 0) return { label: "firing now…", imminent: true, firing: true };
+  if (s < 60) return { label: `fires in ${s}s`, imminent: s <= 30, firing: false };
+  if (m < 60) return { label: `fires in ${m}m ${s % 60}s`, imminent: false, firing: false };
+  if (h < 24) return { label: `fires in ${h}h ${m % 60}m`, imminent: false, firing: false };
+  return { label: `fires in ${d}d ${h % 24}h`, imminent: false, firing: false };
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -268,7 +271,7 @@ export const TaskQueuePanel = () => {
   // ── Render ───────────────────────────────────────────────────────────
 
   return (
-    <Card variant="glass" className="flex flex-col border-l-2 border-l-emerald-400/50">
+    <Card variant="glass" className="flex flex-col border-l-2 border-l-emerald-400/50 max-h-[calc(100vh-2rem)] overflow-y-auto">
       {/* Header */}
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -363,7 +366,7 @@ export const TaskQueuePanel = () => {
                   const actionLabel = AGENT_TYPE_LABELS[task.agent_type] || ACTION_LABELS[task.action_type] || task.action_type.replace(/_/g, " ");
                   const ActionIcon = AGENT_TYPE_ICONS[task.agent_type] || ACTION_ICONS[task.action_type] || Zap;
                   const leadName = getLeadName(task.leads);
-                  const cd = formatCountdown(task.scheduled_for, nowMs);
+                  const cd = fireCountdown(task.scheduled_for, nowMs);
 
                   return (
                     <div
@@ -382,8 +385,8 @@ export const TaskQueuePanel = () => {
                             ? "bg-blue-100 text-blue-600"
                             : isUpNext
                               ? "bg-emerald-100 text-emerald-600"
-                              : cd.overdue
-                                ? "bg-amber-50 text-amber-500"
+                              : cd.imminent
+                                ? "bg-emerald-50 text-emerald-500"
                                 : "bg-muted text-muted-foreground"
                         )}
                       >
@@ -419,14 +422,16 @@ export const TaskQueuePanel = () => {
                           <p
                             className={cn(
                               "text-xs tabular-nums flex items-center gap-1 whitespace-nowrap shrink-0",
-                              cd.dueNow
-                                ? "text-emerald-600 font-semibold"
-                                : cd.overdue
-                                  ? "text-amber-600"
+                              cd.firing
+                                ? "text-emerald-600 font-bold animate-pulse"
+                                : cd.imminent
+                                  ? "text-emerald-600 font-semibold"
                                   : "text-muted-foreground"
                             )}
                           >
-                            {cd.overdue && <AlertTriangle className="h-3.5 w-3.5" />}
+                            {cd.firing
+                              ? <Zap className="h-3.5 w-3.5" />
+                              : <Clock className="h-3.5 w-3.5" />}
                             {cd.label}
                           </p>
                         </div>

@@ -3,8 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, MapPin, User, FileText, Navigation } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isToday, isTomorrow, isThisYear } from "date-fns";
 import { cn } from "@/lib/utils";
+
+// Friendly, scannable date label: "Today" / "Tomorrow" / "Mon, Jul 21".
+const dayLabel = (d: Date): string =>
+  isToday(d) ? "Today"
+  : isTomorrow(d) ? "Tomorrow"
+  : format(d, isThisYear(d) ? "EEE, MMM d" : "MMM d, yyyy");
 
 interface ShowingCardProps {
   showing: {
@@ -68,11 +74,14 @@ export const ShowingCard = ({
         <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="text-center">
-                <div className="text-lg font-bold text-primary">
+              <div className="text-center min-w-[3.25rem]">
+                <div className="text-[11px] font-semibold text-muted-foreground leading-tight">
+                  {dayLabel(scheduledDate)}
+                </div>
+                <div className="text-lg font-bold text-primary leading-tight">
                   {format(scheduledDate, "h:mm")}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground leading-tight">
                   {format(scheduledDate, "a")}
                 </div>
               </div>

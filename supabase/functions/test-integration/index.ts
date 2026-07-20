@@ -199,69 +199,6 @@ serve(async (req: Request) => {
         break;
       }
 
-      case "persona": {
-        const apiKey = creds?.persona_api_key;
-        if (!apiKey) {
-          message = "Persona API key not configured";
-          break;
-        }
-        try {
-          const resp = await fetch(
-            "https://withpersona.com/api/v1/inquiry-templates",
-            {
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                "Persona-Version": "2023-01-05",
-              },
-            }
-          );
-          if (resp.ok) {
-            success = true;
-            message = "Connected — Persona API key is valid";
-          } else {
-            message = `Authentication failed (${resp.status})`;
-          }
-        } catch (e) {
-          message = `Connection error: ${(e as Error).message}`;
-        }
-        break;
-      }
-
-      case "maxmind": {
-        const accountId = creds?.maxmind_account_id;
-        const licenseKey = creds?.maxmind_license_key;
-        if (!accountId || !licenseKey) {
-          message = "MaxMind credentials not configured (need Account ID + License Key)";
-          break;
-        }
-        try {
-          const resp = await fetch(
-            "https://minfraud.maxmind.com/minfraud/v2.0/score",
-            {
-              method: "POST",
-              headers: {
-                Authorization: "Basic " + btoa(`${accountId}:${licenseKey}`),
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                device: { ip_address: "81.2.69.160" },
-              }),
-            }
-          );
-          if (resp.ok) {
-            success = true;
-            message = "Connected — MaxMind minFraud credentials are valid";
-          } else if (resp.status === 401) {
-            message = "Authentication failed — check Account ID and License Key";
-          } else {
-            message = `API error (${resp.status})`;
-          }
-        } catch (e) {
-          message = `Connection error: ${(e as Error).message}`;
-        }
-        break;
-      }
-
       case "telegram": {
         const botToken = creds?.telegram_bot_token;
         const chatId = creds?.telegram_chat_id;

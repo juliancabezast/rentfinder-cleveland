@@ -1,4 +1,6 @@
 # PROJECT COMPLETE — Rent Finder Cleveland
+
+> **⚠️ 2026-07-20:** Persona y MaxMind fueron RETIRADOS por completo (funciones borradas, columnas dropeadas, UI depurada). Las menciones más abajo son históricas.
 ## Version 17 | July 19, 2026
 
 ---
@@ -22,7 +24,7 @@
 
 | Metric | MD16 (Jun 29) | MD17 (Jul 19) | Note |
 |--------|---------------|---------------|------|
-| Organizations | 1 | 1 | Single tenant ("Smart Leasing AI", `rent-finder-cleveland`) |
+| Organizations | 1 | 1 | Single tenant ("Rent Finder Cleveland", `rent-finder-cleveland`) |
 | **Leads** | ~4,066 | **18,836** | +14,768 from the Hemlane bulk load, city-tagged |
 | Properties (total / available) | — | **107 / 37** | multi-unit; `coming_soon` visible-not-bookable |
 | **Tables** | 67 | **71** | +business_leads, lead_reminders, telegram sessions, inbound_emails, etc. |
@@ -92,7 +94,7 @@ New Hemlane leads weren't reaching Telegram. A 3-agent diagnostic found two caus
 
 - **Single domain.** The product now targets **only `rentfindercleveland.com`**. The legacy "3 apps / 3 domains on 1 Supabase DB" model (which also listed `homeguardmanagement.com` and `portafoliodiversificado.com`) is historical/aspirational and out of product scope.
 - **Brands removed.** HomeGuard Management and Portafolio Diversificado are removed from product scope. The 10DLC / SMS legal copy that still references those brands is **flagged for separate legal review** (not silently deleted). The functional `homeguard.app.doorloop.com` DoorLoop URLs are **retained** — they are the live apply/portal endpoints, not brand identity.
-- **Single-tenant consolidation (non-destructive).** The database holds exactly **one organization**: "Smart Leasing AI", slug `rent-finder-cleveland`. This is a consolidation, not a collapse: every table keeps `organization_id` and all RLS policies remain active as defense-in-depth, so the multi-tenant plumbing can be re-activated later without a migration.
+- **Single-tenant consolidation (non-destructive).** The database holds exactly **one organization**: "Rent Finder Cleveland", slug `rent-finder-cleveland`. This is a consolidation, not a collapse: every table keeps `organization_id` and all RLS policies remain active as defense-in-depth, so the multi-tenant plumbing can be re-activated later without a migration.
 - **Voice is gone.** All Bland.ai / voice-call functionality is removed. Twilio remains for **SMS only** (plus `fetch-twilio-messages`).
 
 ## B. Audit Summary (June 2026)
@@ -177,7 +179,7 @@ Rent Finder Cleveland is an AI-powered lead management SaaS platform for propert
 ## 1.2 Architecture (Single-Domain Consolidation)
 
 The product runs as a **single tenant on a single domain**:
-- **rentfindercleveland.com** — the only active domain (organization "Smart Leasing AI", slug `rent-finder-cleveland`).
+- **rentfindercleveland.com** — the only active domain (organization "Rent Finder Cleveland", slug `rent-finder-cleveland`).
 
 **Historical note**: earlier snapshots described a multi-app model where three domains (rentfindercleveland.com, homeguardmanagement.com, portafoliodiversificado.com) shared one Supabase database. As of MD16 that model is **historical/aspirational** — HomeGuard and Portafolio have been removed from product scope. The multi-tenant plumbing (`organization_id` on every table + RLS scoping) is **retained as defense-in-depth**, so additional tenants/domains can be re-introduced later without a destructive migration.
 
@@ -265,7 +267,7 @@ English (primary) with Spanish language support for prospect-facing interactions
 | **SQL Migrations** | 28 (3,592 lines) |
 | **Edge Functions (deployed total)** | 66 (35 from local repo + 31 Lovable-only) |
 | **Edge Functions (local repo)** | 35 |
-| **Organizations (tenants)** | 1 (Smart Leasing AI / `rent-finder-cleveland`) |
+| **Organizations (tenants)** | 1 (Rent Finder Cleveland / `rent-finder-cleveland`) |
 | **Cron Jobs** | 2 (property alert check + samuel-showing-reminder-5min) |
 | **npm Dependencies** | 58 |
 | **npm devDependencies** | 21 |
@@ -1422,7 +1424,7 @@ The `SmsConsentCheckbox` component (`src/components/public/SmsConsentCheckbox.ts
 
 # 13. Multi-Tenancy
 
-> **Single-tenant consolidation (MD16)**: The system currently runs **one organization** ("Smart Leasing AI", slug `rent-finder-cleveland`) on **one domain** (`rentfindercleveland.com`). The multi-tenant model described in this section is **retained as defense-in-depth**, not actively used for multiple tenants — `organization_id` + RLS stay in place so additional tenants can be re-introduced without a destructive migration.
+> **Single-tenant consolidation (MD16)**: The system currently runs **one organization** ("Rent Finder Cleveland", slug `rent-finder-cleveland`) on **one domain** (`rentfindercleveland.com`). The multi-tenant model described in this section is **retained as defense-in-depth**, not actively used for multiple tenants — `organization_id` + RLS stay in place so additional tenants can be re-introduced without a destructive migration.
 
 ## 13.1 Data Isolation Model
 
@@ -1981,7 +1983,7 @@ Insights stored in `investor_insights` table with types:
 This session pivoted the product and kicked off a sequential remediation. Full detail is in the top **"MD16 — Reorientation to Single-Domain + System Saneamiento"** section; summary:
 
 - **Single-domain reorientation**: the product now targets **only `rentfindercleveland.com`**. **HomeGuard Management** and **Portafolio Diversificado** are removed from product scope. Their 10DLC/SMS legal copy is **flagged for separate legal review** (not auto-deleted); the functional `homeguard.app.doorloop.com` DoorLoop apply URLs are **retained** (live portal, not brand).
-- **Single-tenant consolidation**: the DB holds exactly one organization ("Smart Leasing AI", slug `rent-finder-cleveland`). `organization_id` + RLS retained as defense-in-depth.
+- **Single-tenant consolidation**: the DB holds exactly one organization ("Rent Finder Cleveland", slug `rent-finder-cleveland`). `organization_id` + RLS retained as defense-in-depth.
 - **Doc drift corrected**: agent model is **6 canonical agents in 4 English departments** (Qualification/Leasing/Closing/System), **voice/Bland.ai fully removed** (Twilio = SMS only), and real DB counts (**67 tables, 291 RLS, 77 functions, 33 triggers**) replace the stale 32/131/19/12 figures. Edge functions: **35 local + 31 Lovable = 66 deployed**.
 - **Security hardening in progress**: `users` self-update privilege-escalation blocked via trigger; `anon` EXECUTE revoked on `recalculate_lead_scores` / `log_score_change`; `send-message` now authenticates callers; `joseph_compliance_check()` call sites fixed to **fail-closed**.
 - **Remediation plan**: Phases 0–11 (secrets+branch → critical security → docs/MD16 → brand removal → single-tenant consolidation → high-sec+functional bugs → compliance/Fair-Housing → DB performance → source/schema drift → build hardening → UI/UX live test → final verify+deploy).

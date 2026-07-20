@@ -28,15 +28,14 @@ const MENU_TRIGGERS = new Set([
 // Abort an in-flight flow.
 const CANCEL_TRIGGERS = new Set(["cancel", "cancelar", "/cancel", "salir", "/salir"]);
 
-const HELP_TEXT = `<b>🤖 Rent Finder Bot</b>
+const HELP_TEXT = `<b>🗓️ Showing Setter</b>
 
 Comandos:
-• <b>menu</b> — Menú de acciones (agendar showing, crear lead, agenda, reporte)
+• <b>menu</b> — Menú de acciones (agendar showing)
 • <b>update</b> — Próximos showings agendados (con teléfono, propiedad e info del formulario)
-• <b>report</b> — Reporte completo (leads, showings, costos, etc.)
 • <b>help</b> — Este mensaje
 
-El reporte diario llega a las 5:00 AM y el digest del día a las 9:00 PM (bot RFC).`;
+Los reportes viven en el bot <b>📊 RFC</b> (diario 5:00 AM · digest 9:00 PM).`;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Ctx {
@@ -200,9 +199,8 @@ serve(async (req: Request) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 async function handleText(ctx: Ctx, rawText: string) {
   // Per-bot routing: Funnel = lead management, RFC (general) = reports menu,
-  // LeasingAgent = scheduling/agenda. The old Hot Leads (showings) bot is
-  // parked for a future purpose → redirect.
-  if (ctx.bot === "showings") { await redirectToLeasing(ctx); return; }
+  // Showings = field assistant (post-tour + day recap), LeasingAgent = the rest.
+  if (ctx.bot === "showings") { await handleShowingsText(ctx, rawText); return; }
   if (ctx.bot === "general") { await handleRfcText(ctx, rawText); return; }
   if (ctx.bot === "funnel") { await handleFunnelText(ctx, rawText); return; }
 
@@ -214,6 +212,24 @@ async function handleText(ctx: Ctx, rawText: string) {
     await clearSession(ctx);
     await sendMenu(ctx, "❌ Listo, cancelado.");
     return;
+  }
+  // Fixed "/" command menu (setMyCommands) — direct shortcuts that beat the
+  // word-trigger sets (e.g. /agendar starts the FLOW, the word "agendar" only
+  // opens the menu). Commands always override an in-flight session.
+  if (t.startsWith("/")) {
+    const cmd = t.slice(1).split("@")[0].split(/\s/)[0];
+    if (cmd === "agendar")   { await startSchedule(ctx); return; }
+    if (cmd === "ayuda" || cmd === "help") { await send(ctx, HELP_TEXT); return; }
+    // /start /menu + unknown slash → menu.
+    await setSession(ctx, "idle", {});
+    await sendMenu(ctx);
+    return;
+  }
+  // Persistent bottom-keyboard labels (fixed "home" menu) — override any
+  // in-flight flow, same as slash commands.
+  {
+    const kb = t.replace(/️/g, "");
+    if (kb === "📅 agendar")   { await startSchedule(ctx); return; }
   }
   if (MENU_TRIGGERS.has(t)) {
     await setSession(ctx, "idle", {});
@@ -238,13 +254,11 @@ async function handleText(ctx: Ctx, rawText: string) {
     }
   }
 
-  // Commands.
-  if (REPORT_TRIGGERS.has(t)) { await runReport(ctx); return; }
+  // Commands. (Reporte completo vive solo en el bot 📊 RFC — quitado del Setter.)
   if (HELP_TRIGGERS.has(t)) { await send(ctx, HELP_TEXT); return; }
 
-  // Default (incl. UPDATE_TRIGGERS and anything else): the upcoming agenda + the
-  // per-lead "enviar mensaje" picker.
-  await showAgenda(ctx);
+  // Default: the menu (agenda/ruta moved to the Showings field bot).
+  await sendMenu(ctx);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -259,12 +273,30 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   // `act:*`/`ast:*`/`asms:*` (lead actions) run anywhere a lead card lives —
   // the Funnel bot today, plus legacy cards on the old Hot Leads bot; `rp:*`
   // belongs to RFC; `fnl:*`/`fl:*` to the Funnel menu. Everything else redirects.
-  const LEAD_ACTION = data.startsWith("act:") || data.startsWith("ast:") || data.startsWith("asms:");
+  const LEAD_ACTION = data.startsWith("act:") || data.startsWith("ast:") || data.startsWith("asms:") || data.startsWith("aem");
+  // The scheduling + create-lead flow's callback vocabulary (shared Setter/Funnel).
+  const SCHED_CB =
+    data.startsWith("p:") || data.startsWith("dp:") || data.startsWith("d:") ||
+    data.startsWith("tp:") || data.startsWith("t:") || data.startsWith("l:") ||
+    data.startsWith("os:") ||
+    ["dx", "tx", "bk", "bk2", "nl", "ok", "no", "m:sch", "m:new", "m:x", "m:menu"].includes(data);
+  // The showing-report flow's vocabulary (now on the field-assistant bot).
+  const SR_CB =
+    data.startsWith("srx:") || ["m:sr", "sra:show", "sra:no", "sre", "srp", "srb", "srs", "m:x", "m:menu"].includes(data);
+  // The leasing-PDF flow's vocabulary (now on the RFC analytics bot).
+  const LR_CB =
+    data.startsWith("lr:") || data.startsWith("lrl:") || ["m:lr", "m:x", "m:menu"].includes(data);
+  // The agenda/route vocabulary (now on the field-assistant bot).
+  const AG_CB =
+    data.startsWith("msg:") || data.startsWith("sms:") || ["m:ag", "m:agf"].includes(data);
   const cbAllowed =
     ctx.bot === "leasing" ? true
     : LEAD_ACTION ? true
-    : ctx.bot === "general" ? data.startsWith("rp:")
-    : ctx.bot === "funnel" ? (data.startsWith("fnl:") || data.startsWith("fl:"))
+    : ctx.bot === "general" ? (data.startsWith("rp:") || LR_CB)
+    // Funnel can ALSO schedule + create leads ("estoy con alguien: agendame").
+    : ctx.bot === "funnel" ? (data.startsWith("fnl:") || data.startsWith("fl:") || data.startsWith("qa:") || SCHED_CB)
+    // Showings = field assistant: post-tour, recap, showing report, agenda/ruta.
+    : ctx.bot === "showings" ? (data.startsWith("psw:") || data.startsWith("psa:") || data === "m:ps" || data.startsWith("sd:") || data.startsWith("cz:") || SR_CB || AG_CB)
     : false;
   if (!cbAllowed) {
     await answer(); await redirectToLeasing(ctx, messageId); return;
@@ -274,15 +306,25 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data.startsWith("act:")) { await handleAction(ctx, cbq, data); return; }
     if (data.startsWith("ast:")) { await handleStageSet(ctx, cbq, data); return; }
     if (data.startsWith("asms:")) { await handleFunnelSms(ctx, cbq, data); return; }
+    if (data.startsWith("aems:")) { await handleEmailSend(ctx, cbq, data); return; }
+    if (data.startsWith("aem:")) { await handleEmailPick(ctx, cbq, data); return; }
+    if (data.startsWith("qa:")) { await handleQueueAction(ctx, cbq, data); return; }
     if (data.startsWith("fnl:")) { await handleFunnelMenuCb(ctx, cbq, data); return; }
     if (data.startsWith("fl:")) { await answer(); await funnelOpenFromList(ctx, cbq.message?.message_id, data.slice(3)); return; }
     if (data.startsWith("rp:")) { await handleRfcCallback(ctx, cbq, data); return; }
+    if (data === "sd:recap") { await answer("Armando el día…"); await sendDayRecap(ctx); return; }
+    if (data === "sd:menu")  { await answer(); await send(ctx, SHW_GREETING, shwMenuKeyboard()); return; }
+    if (data === "m:ps") { await answer(); await startRecentShowings(ctx, messageId); return; }
+    if (data.startsWith("psw:")) { await answer(); await postShowingCard(ctx, messageId, data.slice(4)); return; }
+    if (data.startsWith("psa:")) { await handleAttendance(ctx, cbq, data); return; }
+    if (data.startsWith("cz:")) { await handleClosing(ctx, cbq, data); return; }
+    if (data.startsWith("psl:")) { await answer(); await funnelLeadCard(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("msg:")) { await answer(); await chooseSmsLead(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("sms:")) { await answer(); await sendSmsTemplate(ctx, messageId, data.slice(4)); return; }
     if (data === "m:sch") { await answer(); await startSchedule(ctx, messageId); return; }
     if (data === "m:new") { await answer(); await startCreateLead(ctx, messageId, true); return; }
     if (data === "m:ag")  { await answer("Cargando agenda…"); await showAgenda(ctx); return; }
-    if (data === "m:rp")  { await answer("Generando reporte…"); await typing(ctx); await runReport(ctx); return; }
+    if (data === "m:agf") { await answer("Cargando agenda completa…"); await showFullAgenda(ctx); return; }
     if (data === "m:lr")  { await answer(); await startLeasingReport(ctx, messageId); return; }
     if (data === "m:sr")  { await answer(); await startShowingReport(ctx, messageId); return; }
     if (data.startsWith("srx:")) { await answer(); await chooseShowingToReport(ctx, messageId, data.slice(4)); return; }
@@ -325,17 +367,21 @@ async function handleCallback(ctx: Ctx, cbq: any) {
 function mainMenuKeyboard() {
   return [
     [{ text: "📅 Agendar showing", callback_data: "m:sch" }],
-    [{ text: "➕ Crear lead", callback_data: "m:new" }],
-    [{ text: "📄 Reporte de leasing", callback_data: "m:lr" }],
-    [{ text: "📝 Reporte de showing", callback_data: "m:sr" }],
-    [{ text: "📋 Ver agenda", callback_data: "m:ag" }, { text: "📊 Reporte", callback_data: "m:rp" }],
   ];
 }
-const MENU_GREETING = "👋 Soy <b>LeasingAgent</b>, tu asistente de agendas y reportes.\n¿Qué querés hacer?";
+const MENU_GREETING = "👋 Soy <b>Showing Setter</b>, tu asistente de agendas.\n¿Qué querés hacer?";
+// Shared flows (scheduling, create-lead, showing report) run on several bots —
+// their exits must land on the CALLING bot's menu, not always the Setter's.
+function menuFor(ctx: Ctx): { text: string; kb: any[][] } {
+  if (ctx.bot === "funnel") return { text: FNL_GREETING, kb: funnelMenuKeyboard() };
+  if (ctx.bot === "showings") return { text: SHW_GREETING, kb: shwMenuKeyboard() };
+  if (ctx.bot === "general") return { text: RFC_GREETING, kb: rfcMenuKeyboard() };
+  return { text: MENU_GREETING, kb: mainMenuKeyboard() };
+}
 // Wrong-bot nudge: "parked" wording only fits the old Hot Leads bot; on active
 // bots (a stale button, e.g.) route neutrally instead.
 async function redirectToLeasing(ctx: Ctx, messageId?: number) {
-  const routes = "👥 Leads → <b>FunnelRFC</b> · 📅 Agendas → <b>LeasingAgent</b> · 📊 Datos → <b>RFC Report</b>.";
+  const routes = "👥 Leads → <b>FunnelRFC</b> · 📅 Agendas → <b>Showing Setter</b> · 📊 Datos → <b>RFC Report</b>.";
   const msg = ctx.bot === "showings"
     ? `🤖 Este bot está en pausa.\n${routes}`
     : `🤖 Ese botón no funciona en este bot.\n${routes}`;
@@ -343,11 +389,13 @@ async function redirectToLeasing(ctx: Ctx, messageId?: number) {
   else await send(ctx, msg);
 }
 async function sendMenu(ctx: Ctx, prefix?: string) {
-  await send(ctx, (prefix ? `${prefix}\n\n` : "") + MENU_GREETING, mainMenuKeyboard());
+  const m = menuFor(ctx);
+  await send(ctx, (prefix ? `${prefix}\n\n` : "") + m.text, m.kb);
 }
 // Same menu, but edits the button's message in place (falls back to a new one).
 async function showMenu(ctx: Ctx, messageId: number | undefined, prefix?: string) {
-  await editOrSend(ctx, messageId, (prefix ? `${prefix}\n\n` : "") + MENU_GREETING, mainMenuKeyboard());
+  const m = menuFor(ctx);
+  await editOrSend(ctx, messageId, (prefix ? `${prefix}\n\n` : "") + m.text, m.kb);
 }
 
 // ── Step 1: choose property (type to filter) ─────────────────────────────────────
@@ -913,6 +961,17 @@ async function confirmBooking(ctx: Ctx, messageId?: number) {
   }
 
   if (resp.ok && result?.success) {
+    // Booking confirmed → NOW commit the queue exit for a lead that entered via
+    // qa:sh (which deliberately deferred these): mark managed + close pendings so
+    // the gestión queue drops it. Idempotent + scoped; harmless for web-booked
+    // leads not in the queue. book-public-showing already set status to
+    // showing_scheduled, so the fresh leg drops it regardless.
+    if (d.lead_id) {
+      await ctx.supabase.from("leads").update({ managed_at: new Date().toISOString() })
+        .eq("organization_id", ctx.organizationId).eq("id", d.lead_id);
+      await ctx.supabase.from("lead_reminders").update({ status: "done" })
+        .eq("organization_id", ctx.organizationId).eq("lead_id", d.lead_id).eq("status", "pending");
+    }
     await clearSession(ctx);
     const emailLine =
       result.email_status === "sent"
@@ -1039,6 +1098,7 @@ function rfcMenuKeyboard() {
     [{ text: "📈 Hoy", callback_data: "rp:today" }, { text: "📅 Semana", callback_data: "rp:week" }, { text: "🗓️ Mes", callback_data: "rp:month" }],
     [{ text: "🧭 Funnel + hot pendientes", callback_data: "rp:funnel" }],
     [{ text: "🏠 Top propiedades + 💰 costos", callback_data: "rp:props" }],
+    [{ text: "📄 Reporte de leasing (PDF)", callback_data: "m:lr" }],
     [{ text: "🤖 Pregunta libre (IA)", callback_data: "rp:ai" }],
     [{ text: "📊 Reporte completo", callback_data: "rp:full" }],
   ];
@@ -1055,6 +1115,42 @@ async function handleRfcText(ctx: Ctx, rawText: string) {
     await clearSession(ctx);
     await send(ctx, "❌ Listo, cancelado.\n\n" + RFC_GREETING, rfcMenuKeyboard());
     return;
+  }
+  // Fixed "/" command menu (setMyCommands) — commands win even in AI mode.
+  if (t.startsWith("/")) {
+    const cmd = t.slice(1).split("@")[0].split(/\s/)[0];
+    const fake = { id: "", message: {} };
+    if (cmd === "hoy")         { await handleRfcCallback(ctx, fake, "rp:today"); return; }
+    if (cmd === "semana")      { await handleRfcCallback(ctx, fake, "rp:week"); return; }
+    if (cmd === "mes")         { await handleRfcCallback(ctx, fake, "rp:month"); return; }
+    if (cmd === "funnel")      { await handleRfcCallback(ctx, fake, "rp:funnel"); return; }
+    if (cmd === "propiedades") { await handleRfcCallback(ctx, fake, "rp:props"); return; }
+    if (cmd === "ia")          { await handleRfcCallback(ctx, fake, "rp:ai"); return; }
+    if (cmd === "completo" || cmd === "report" || cmd === "reporte") { await typing(ctx); await runReport(ctx); return; }
+    if (cmd === "pdf") { await startLeasingReport(ctx); return; }
+    await clearSession(ctx); await send(ctx, RFC_GREETING, rfcMenuKeyboard()); return;
+  }
+  // Persistent bottom-keyboard labels (fixed "home" menu).
+  {
+    const kb = t.replace(/️/g, "");
+    const fake = { id: "", message: {} };
+    if (kb === "📈 hoy")    { await handleRfcCallback(ctx, fake, "rp:today"); return; }
+    if (kb === "📅 semana") { await handleRfcCallback(ctx, fake, "rp:week"); return; }
+    if (kb === "🗓 mes")    { await handleRfcCallback(ctx, fake, "rp:month"); return; }
+    if (kb === "🧭 funnel") { await handleRfcCallback(ctx, fake, "rp:funnel"); return; }
+    if (kb === "🏠 props")  { await handleRfcCallback(ctx, fake, "rp:props"); return; }
+    if (kb === "🤖 ia")     { await handleRfcCallback(ctx, fake, "rp:ai"); return; }
+    if (kb === "📄 pdf")    { await startLeasingReport(ctx); return; }
+    if (kb === "📊 completo") { await typing(ctx); await runReport(ctx); return; }
+  }
+  // In-flight leasing-PDF flow (moved here from the Setter): free-text step.
+  {
+    const session = await getSession(ctx);
+    if (session?.step === "leasing_search") { await handleLeasingSearch(ctx, session, raw); return; }
+    if (session?.step === "leasing_lang") {
+      await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
+      return;
+    }
   }
   if (MENU_TRIGGERS.has(t)) {
     await clearSession(ctx);
@@ -1318,8 +1414,10 @@ async function handleRfcAiQuestion(ctx: Ctx, session: Session, raw: string) {
 const FNL_GREETING =
   "🎯 Soy <b>Funnel</b>, tu gestor de leads.\n\n" +
   "Escribí un <b>nombre o teléfono</b> y te traigo el lead, o abrí una lista:";
-function funnelMenuKeyboard() {
+function funnelMenuKeyboard(queueN?: number) {
   return [
+    [{ text: `▶️ Gestionar pendientes${queueN != null ? ` (${queueN})` : ""}`, callback_data: "fnl:q" }],
+    [{ text: "📅 Agendar showing", callback_data: "m:sch" }, { text: "➕ Crear lead", callback_data: "m:new" }],
     [{ text: "🔥 Hot sin contactar", callback_data: "fnl:hot" }],
     [{ text: "⏰ Seguimientos de hoy", callback_data: "fnl:rem" }],
     [{ text: "🆕 Últimos leads", callback_data: "fnl:new" }],
@@ -1340,14 +1438,58 @@ const FNL_STATUS_LABEL: Record<string, string> = {
 };
 
 async function sendFunnelMenu(ctx: Ctx, prefix?: string) {
-  await send(ctx, (prefix ? `${prefix}\n\n` : "") + FNL_GREETING, funnelMenuKeyboard());
+  const n = await fnlQueueCount(ctx).catch(() => undefined);
+  await send(ctx, (prefix ? `${prefix}\n\n` : "") + FNL_GREETING, funnelMenuKeyboard(n));
 }
 
 async function handleFunnelText(ctx: Ctx, rawText: string) {
   const raw = String(rawText).trim();
   const t = raw.toLowerCase();
   if (CANCEL_TRIGGERS.has(t)) { await clearSession(ctx); await sendFunnelMenu(ctx, "❌ Listo, cancelado."); return; }
+  // Fixed "/" command menu (setMyCommands) — routes straight to each action.
+  if (t.startsWith("/")) {
+    const cmd = t.slice(1).split("@")[0].split(/\s/)[0];
+    const fake = { id: "", message: {} };
+    if (cmd === "gestionar") { await handleFunnelMenuCb(ctx, fake, "fnl:q"); return; }
+    if (cmd === "hot")       { await handleFunnelMenuCb(ctx, fake, "fnl:hot"); return; }
+    if (cmd === "hoy")       { await handleFunnelMenuCb(ctx, fake, "fnl:rem"); return; }
+    if (cmd === "nuevos")    { await handleFunnelMenuCb(ctx, fake, "fnl:new"); return; }
+    if (cmd === "buscar")    { await handleFunnelMenuCb(ctx, fake, "fnl:find"); return; }
+    if (cmd === "agendar")   { await startSchedule(ctx); return; }
+    if (cmd === "crear")     { await startCreateLead(ctx, undefined, true); return; }
+    // /start /menu /ayuda + any unknown slash → the menu (never a lead search).
+    await clearSession(ctx); await sendFunnelMenu(ctx); return;
+  }
+  // Persistent bottom-keyboard labels (fixed "home" menu) — route BEFORE the
+  // lead search. Compare with the emoji variation selector stripped so the
+  // match never depends on how the client encodes the emoji.
+  {
+    const kb = t.replace(/️/g, "");
+    const fake = { id: "", message: {} };
+    if (kb === "▶ gestionar") { await handleFunnelMenuCb(ctx, fake, "fnl:q"); return; }
+    if (kb === "🔥 hot")      { await handleFunnelMenuCb(ctx, fake, "fnl:hot"); return; }
+    if (kb === "⏰ hoy")      { await handleFunnelMenuCb(ctx, fake, "fnl:rem"); return; }
+    if (kb === "🆕 nuevos")   { await handleFunnelMenuCb(ctx, fake, "fnl:new"); return; }
+    if (kb === "📅 agendar")  { await startSchedule(ctx); return; }
+    if (kb === "➕ crear")    { await startCreateLead(ctx, undefined, true); return; }
+    if (kb === "🎯 menú" || kb === "🎯 menu") { await clearSession(ctx); await sendFunnelMenu(ctx); return; }
+  }
   if (MENU_TRIGGERS.has(t) || HELP_TRIGGERS.has(t)) { await clearSession(ctx); await sendFunnelMenu(ctx); return; }
+  // In-flight SHARED flows (scheduling / create-lead) — their free-text steps
+  // must win over the lead search.
+  {
+    const session = await getSession(ctx);
+    if (session) {
+      if (session.step === "choose_property") { await handlePropertyFilter(ctx, session, raw); return; }
+      if (session.step === "find_lead") { await handleLeadSearch(ctx, session, raw); return; }
+      if (session.step === "create_lead") { await handleCreateLeadInput(ctx, session, raw); return; }
+      if (session.step === "custom_time") { await handleCustomTime(ctx, session, raw); return; }
+      if (["choose_day", "choose_time", "confirm", "offer_schedule"].includes(session.step)) {
+        await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
+        return;
+      }
+    }
+  }
   // Anything else IS a lead search — that's the point: type a name or phone.
   await funnelSearchLeads(ctx, raw);
 }
@@ -1355,7 +1497,38 @@ async function handleFunnelText(ctx: Ctx, rawText: string) {
 async function handleFunnelMenuCb(ctx: Ctx, cbq: any, data: string) {
   const messageId: number | undefined = cbq.message?.message_id;
   const answer = (text?: string) => answerCbq(ctx, cbq.id, text);
-  if (data === "fnl:menu") { await answer(); await editOrSend(ctx, messageId, FNL_GREETING, funnelMenuKeyboard()); return; }
+  if (data === "fnl:menu") {
+    await answer();
+    const n = await fnlQueueCount(ctx).catch(() => undefined);
+    await editOrSend(ctx, messageId, FNL_GREETING, funnelMenuKeyboard(n));
+    return;
+  }
+  if (data === "fnl:q") {
+    await answer("Cargando cola…"); await typing(ctx);
+    // Fresh run: reset queue state (step→idle — the queue is button-only, so any
+    // in-flight scheduling/create step must not linger and hijack typed text).
+    const s = await getSession(ctx);
+    await setSession(ctx, "idle", {
+      ...(s?.data ?? {}), q_skip: [], q_mode: null, q_prop: null, q_prop_label: null, q_batch: [],
+    });
+    await showQueuePicker(ctx, messageId);
+    return;
+  }
+  if (data.startsWith("fnl:qp:")) {
+    await answer("Armando tanda…"); await typing(ctx);
+    await serveBatch(ctx, messageId, data.slice(7));
+    return;
+  }
+  if (data === "fnl:qr" || data === "fnl:qa") {
+    await answer("Cargando…"); await typing(ctx);
+    const mode = data === "fnl:qr" ? "rem" : "all";
+    const s = await getSession(ctx);
+    await setSession(ctx, "idle", {
+      ...(s?.data ?? {}), q_mode: mode, q_prop: null, q_prop_label: null, q_batch: [],
+    });
+    await showQueueCard(ctx, messageId, mode);
+    return;
+  }
   if (data === "fnl:find") { await answer(); await editOrSend(ctx, messageId, "🔍 Escribí el <b>nombre</b> o <b>teléfono</b> del lead 👇"); return; }
   if (data === "fnl:hot") {
     await answer("Buscando…"); await typing(ctx);
@@ -1379,6 +1552,7 @@ async function handleFunnelMenuCb(ctx: Ctx, cbq: any, data: string) {
     const { data: rems } = await ctx.supabase.from("lead_reminders")
       .select("lead_id, status, leads:lead_id(id, full_name, first_name, last_name, phone, lead_score, status)")
       .eq("organization_id", ctx.organizationId)
+      .neq("reason", "closing")
       .or(`and(status.eq.pending,due_at.lt.${tomorrowStartIso}),and(status.eq.sent,sent_at.gte.${todayStartIso})`)
       .limit(24);
     const seen = new Set<string>(); const rows: any[] = [];
@@ -1497,11 +1671,16 @@ async function funnelLeadCard(ctx: Ctx, messageId: number | undefined, leadId: s
   if (bits.length) lines.push(bits.join(" · "));
   lines.push(`🕐 Creado ${String(l.created_at || "").slice(0, 10)}${l.source ? ` · ${escapeHtml(l.source)}` : ""}${l.last_contact_at ? ` · últ. contacto ${String(l.last_contact_at).slice(0, 10)}` : " · sin contactar"}`);
   if (lastNote?.content) lines.push(`📝 <i>${escapeHtml(String(lastNote.content).slice(0, 200))}</i>`);
+  const nav = ctx.bot === "leasing"
+    ? [{ text: "🏁 Showings", callback_data: "m:ps" }, { text: "🏠 Menú", callback_data: "m:menu" }]
+    : [{ text: "🔍 Otro lead", callback_data: "fnl:find" }, { text: "🎯 Menú", callback_data: "fnl:menu" }];
   const kb = [
     [{ text: "📋 Registrar acción", callback_data: `act:menu:${l.id}` }],
     [{ text: "💬 Enviar SMS", callback_data: `act:sms:${l.id}` },
      { text: "🎯 Cambiar etapa", callback_data: `act:st:${l.id}` }],
-    [{ text: "🔍 Otro lead", callback_data: "fnl:find" }, { text: "🎯 Menú", callback_data: "fnl:menu" }],
+    [{ text: "✉️ Enviar email", callback_data: `act:em:${l.id}` },
+     { text: "👤 Guardar contacto", callback_data: `act:vc:${l.id}` }],
+    nav,
   ];
   await editOrSend(ctx, messageId, lines.join("\n"), kb);
 }
@@ -1534,12 +1713,13 @@ async function handleStageSet(ctx: Ctx, cbq: any, data: string) {
     return;
   }
   await answer("Etapa cambiada ✅");
+  await markManaged(ctx, leadId);
   await logLeadNote(ctx, leadId, "general", `🎯 Etapa: ${prev} → ${stage.status}`);
-  // A stage move counts as attention — stop the AUTO rollover only. An
-  // explicitly requested follow-up (act:fu, reason 'follow_up') survives.
+  // A stage move counts as attention — cancel auto reminders (call retries);
+  // an explicitly requested follow-up (reason 'follow_up') survives.
   await ctx.supabase.from("lead_reminders").update({ status: "cancelled" })
     .eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
-    .eq("status", "pending").eq("reason", "follow_up_auto");
+    .eq("status", "pending").neq("reason", "follow_up");
   // fl:/fnl: buttons only work on the Funnel bot — legacy cards on other bots
   // get the anywhere-allowed action-menu button instead.
   const doneKb = ctx.bot === "funnel"
@@ -1555,6 +1735,7 @@ const FNL_SMS_TEMPLATES: { code: string; label: string; body: (first: string) =>
   { code: "fu", label: "🔁 Seguimiento", body: (f) => `Hi ${f}, following up on your rental inquiry with Rent Finder Cleveland. Are you still looking for a place?` },
   { code: "sh", label: "📅 Ofrecer showing", body: (f) => `Hi ${f}, would you like to tour the property? Reply with a day and time that works and we'll schedule your showing.` },
   { code: "ap", label: "📝 Link para aplicar", body: (f) => `Hi ${f}, ready to move forward? You can apply here: ${APPLY_LINK}` },
+  { code: "rs", label: "🔄 Re-agendar showing", body: (f) => `Hi ${f}, sorry we missed each other at the showing! Want to pick a new time? Reply with a day and time that works, or book online: https://rentfindercleveland.com` },
 ];
 async function funnelSmsPicker(ctx: Ctx, messageId: number | undefined, lead: any) {
   const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
@@ -1584,6 +1765,854 @@ async function handleFunnelSms(ctx: Ctx, cbq: any, data: string) {
   await editOrSend(ctx, messageId,
     `💬 <b>${escapeHtml(leadName(lead))}</b> · 📞 ${escapeHtml(tel)}\n\n<code>${escapeHtml(body)}</code>\n\nTocá el botón y se abre Mensajes con el texto listo:`,
     [[{ text: "📲 Abrir Mensajes", url }], [{ text: "◀️ Volver", callback_data: `act:menu:${leadId}` }]]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Gestión queue — work complete leads one by one; every tap saves the gestión
+// ═══════════════════════════════════════════════════════════════════════════════
+// "A human worked this lead" — the queue's exit signal (last_contact_at is
+// polluted by automated sends + inbound events, so it can't be the marker).
+async function markManaged(ctx: Ctx, leadId: string) {
+  await ctx.supabase.from("leads").update({ managed_at: new Date().toISOString() })
+    .eq("organization_id", ctx.organizationId).eq("id", leadId);
+}
+
+// Hemlane shell-name detection (parser fallback names are not real names).
+// Case-insensitive: the parser has emitted both "Hemlane Lead" and "Hemlane lead".
+function isShellName(n: unknown): boolean {
+  const s = String(n ?? "").trim();
+  const low = s.toLowerCase();
+  return !s || low.startsWith("hemlane lead") || s.includes("{") ||
+    low.startsWith("detail") || /\d{7,}/.test(s);
+}
+
+const QUEUE_LEAD_FIELDS = "id, full_name, first_name, last_name, phone, email, status, lead_score, has_voucher, voucher_amount, move_in_date, source, created_at";
+
+// The queue: (a) due pending reminders (follow-ups + call retries — they STAY
+// pending until worked, so accumulation is inherent), then (b) complete
+// unmanaged NEW leads from the last 7 days, FIFO.
+async function fnlQueueItems(ctx: Ctx): Promise<{ lead: any; rem?: { id: string; reason: string; attempt: number } }[]> {
+  const nowIso = new Date().toISOString();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const [remRes, newRes] = await Promise.all([
+    ctx.supabase.from("lead_reminders")
+      .select(`id, reason, attempt, due_at, leads:lead_id(${QUEUE_LEAD_FIELDS})`)
+      .eq("organization_id", ctx.organizationId).eq("status", "pending").lte("due_at", nowIso)
+      .neq("reason", "closing")
+      .order("due_at", { ascending: true }).limit(30),
+    ctx.supabase.from("leads")
+      .select(QUEUE_LEAD_FIELDS)
+      .eq("organization_id", ctx.organizationId).eq("is_demo", false).eq("status", "new")
+      .is("managed_at", null).not("phone", "is", null)
+      .gte("created_at", sevenDaysAgo)
+      .order("created_at", { ascending: true }).limit(50),
+  ]);
+  const items: { lead: any; rem?: { id: string; reason: string; attempt: number } }[] = [];
+  const seen = new Set<string>();
+  for (const r of (remRes.data || []) as any[]) {
+    const l = r.leads;
+    if (!l || seen.has(l.id)) continue;
+    if (!String(l.phone ?? "").trim() || ["lost", "converted"].includes(l.status || "")) continue;
+    seen.add(l.id);
+    items.push({ lead: l, rem: { id: r.id, reason: r.reason, attempt: Number(r.attempt) || 0 } });
+  }
+  for (const l of (newRes.data || []) as any[]) {
+    if (seen.has(l.id) || isShellName(l.full_name)) continue;
+    seen.add(l.id);
+    items.push({ lead: l });
+  }
+  return items;
+}
+// Real (uncapped) queue size for the menu badge and card header — head counts,
+// with the shell filter pushed server-side (ilike is case-insensitive; imatch
+// is PostgREST's ~* regex for the digits-in-name shells).
+async function fnlQueueCount(ctx: Ctx): Promise<number> {
+  const nowIso = new Date().toISOString();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const [rem, fresh] = await Promise.all([
+    ctx.supabase.from("lead_reminders").select("id", { count: "exact", head: true })
+      .eq("organization_id", ctx.organizationId).eq("status", "pending").lte("due_at", nowIso)
+      .neq("reason", "closing"),
+    ctx.supabase.from("leads").select("id", { count: "exact", head: true })
+      .eq("organization_id", ctx.organizationId).eq("is_demo", false).eq("status", "new")
+      .is("managed_at", null).not("phone", "is", null).gte("created_at", sevenDaysAgo)
+      .not("full_name", "is", null)
+      .not("full_name", "ilike", "Hemlane Lead%")
+      .not("full_name", "like", "%{%")
+      .not("full_name", "ilike", "detail%")
+      .not("full_name", "imatch", "[0-9]{7,}"),
+  ]);
+  return (rem.count || 0) + (fresh.count || 0);
+}
+
+function queueKeyboard(id: string) {
+  return [
+    [{ text: "✅ Interesado", callback_data: `qa:ok:${id}` }, { text: "📵 No contestó", callback_data: `qa:na:${id}` }],
+    [{ text: "📅 Quiere showing", callback_data: `qa:sh:${id}` }, { text: "🔁 Llamar mañana", callback_data: `qa:fu:${id}` }],
+    [{ text: "❌ No interesado", callback_data: `qa:no:${id}` }, { text: "☠️ Número malo", callback_data: `qa:bad:${id}` }],
+    [{ text: "💬 SMS", callback_data: `act:sms:${id}` }, { text: "✉️ Email", callback_data: `act:em:${id}` },
+     { text: "🎯 Etapa", callback_data: `act:st:${id}` }, { text: "👤 Contacto", callback_data: `act:vc:${id}` }],
+    [{ text: "⏭️ Saltar", callback_data: `qa:skip:${id}` }, { text: "⏸️ Pausar", callback_data: "fnl:menu" }],
+  ];
+}
+
+// Shared card body: lead facts + latest Hemlane inquiry text ("quiero leer ese
+// texto cuando llega el lead"). Skips the property line when the batch header
+// already names the property.
+async function queueCardBody(
+  ctx: Ctx, l: any, rem: { reason: string; attempt: number } | undefined,
+  headerLines: string[], opts?: { skipPropertyLine?: boolean },
+): Promise<string> {
+  const tel = String(l.phone ?? "").replace(/[^\d+]/g, "");
+  const via = rem
+    ? (rem.reason === "call_retry"
+        ? (rem.attempt > 3 ? `📵 Reintento ${rem.attempt}` : `📵 Reintento ${rem.attempt}/3`)
+        : "⏰ Seguimiento pedido")
+    : "🆕 Nuevo";
+  const lines = [
+    ...headerLines,
+    `${via} — <b>${escapeHtml(leadName(l))}</b> · ${l.lead_score ?? "–"} pts`,
+    `📞 ${escapeHtml(tel)}`,
+  ];
+  if (l.email) lines.push(`✉️ ${escapeHtml(l.email)}`);
+  if (!opts?.skipPropertyLine) {
+    const { data: tag } = await ctx.supabase.from("lead_property_interests")
+      .select("properties:property_id(address, unit_number, city)")
+      .eq("lead_id", l.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const pr = (tag as any)?.properties;
+    if (pr) lines.push(`🏠 ${escapeHtml(propLabel(pr))}`);
+  }
+  const bits: string[] = [];
+  if (l.has_voucher) bits.push(`🎟️ Voucher${l.voucher_amount ? ` $${Number(l.voucher_amount).toLocaleString()}` : ""}`);
+  if (l.move_in_date) bits.push(`Move-in ${escapeHtml(l.move_in_date)}`);
+  if (l.source) bits.push(escapeHtml(String(l.source).replace(/_/g, " ")));
+  if (bits.length) lines.push(bits.join(" · "));
+  const { data: note } = await ctx.supabase.from("lead_notes")
+    .select("content").eq("lead_id", l.id)
+    .like("content", "[Hemlane inquiry]%")
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (note?.content) {
+    const msg = String(note.content).replace(/^\[Hemlane inquiry\]\s*/, "").slice(0, 220);
+    lines.push(`💬 «${escapeHtml(msg)}»`);
+  }
+  return lines.join("\n");
+}
+
+// The gestión entry point: top-5 AVAILABLE properties with queue leads waiting,
+// worked in tandas de 3, plus the reminders leg and the classic full FIFO.
+async function showQueuePicker(ctx: Ctx, messageId?: number) {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const nowIso = new Date().toISOString();
+  const [freshRes, remCountRes] = await Promise.all([
+    ctx.supabase.from("leads")
+      .select("id, full_name")
+      .eq("organization_id", ctx.organizationId).eq("is_demo", false).eq("status", "new")
+      .is("managed_at", null).not("phone", "is", null)
+      .gte("created_at", sevenDaysAgo)
+      .order("created_at", { ascending: true }).limit(200),
+    ctx.supabase.from("lead_reminders").select("id", { count: "exact", head: true })
+      .eq("organization_id", ctx.organizationId).eq("status", "pending").lte("due_at", nowIso)
+      .neq("reason", "closing"),
+  ]);
+  // Honor the session skip-list: a fully-skipped property must drop out of the
+  // picker (else it stays as a dead-end button with a stale count).
+  const session = await getSession(ctx);
+  const skip: string[] = Array.isArray(session?.data?.q_skip) ? session!.data.q_skip : [];
+  const freshIds = ((freshRes.data || []) as any[])
+    .filter((l) => !isShellName(l.full_name) && !skip.includes(l.id)).map((l) => l.id);
+  const remN = remCountRes.count || 0;
+  const rawTotal = await fnlQueueCount(ctx).catch(() => freshIds.length + remN);
+  const totalN = Math.max(rawTotal - skip.length, remN);
+
+  if (!totalN) {
+    await editOrSend(ctx, messageId, "🎉 <b>Cola vacía</b> — no hay leads pendientes de gestión.",
+      [[{ text: "🎯 Menú", callback_data: "fnl:menu" }]]);
+    return;
+  }
+
+  // Top available properties by waiting-lead count.
+  const byProp = new Map<string, { n: number; label: string }>();
+  if (freshIds.length) {
+    const { data: tags } = await ctx.supabase.from("lead_property_interests")
+      .select("lead_id, property_id, properties:property_id(address, unit_number, city, status)")
+      .eq("organization_id", ctx.organizationId)
+      .in("lead_id", freshIds);
+    const seenPair = new Set<string>();
+    for (const t of (tags || []) as any[]) {
+      const p = t.properties;
+      if (!p || p.status !== "available") continue;
+      const pair = `${t.property_id}:${t.lead_id}`;
+      if (seenPair.has(pair)) continue;
+      seenPair.add(pair);
+      const cur = byProp.get(t.property_id) || { n: 0, label: propLabel(p) };
+      cur.n += 1;
+      byProp.set(t.property_id, cur);
+    }
+  }
+  const top = [...byProp.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 5);
+
+  const rows: any[] = top.map(([pid, info]) => (
+    [{ text: `🏠 ${info.label} · ${info.n}`.slice(0, 62), callback_data: `fnl:qp:${pid}` }]
+  ));
+  if (remN > 0) rows.push([{ text: `⏰ Seguimientos del día (${remN})`, callback_data: "fnl:qr" }]);
+  rows.push([{ text: `🌊 Todos, uno por uno (${totalN})`, callback_data: "fnl:qa" }]);
+  rows.push([{ text: "🎯 Menú", callback_data: "fnl:menu" }]);
+
+  const header = top.length
+    ? `🗂️ <b>${totalN} por gestionar</b>\n\nElegí una propiedad y te doy los leads en tandas de 3 👇`
+    : `🗂️ <b>${totalN} por gestionar</b>\n\nSin propiedades disponibles con leads esperando — dale al clásico 👇`;
+  await editOrSend(ctx, messageId, header, rows);
+}
+
+// Serve the next tanda de 3 for a property: 3 cards at once, each stateless
+// (qa:*:<leadId>); when all 3 are worked queueAdvance() serves the next tanda.
+async function serveBatch(ctx: Ctx, messageId: number | undefined, propertyId: string) {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const session = await getSession(ctx);
+  const skip: string[] = Array.isArray(session?.data?.q_skip) ? session!.data.q_skip : [];
+
+  const { data: tags } = await ctx.supabase.from("lead_property_interests")
+    .select(`property_id, properties:property_id(address, unit_number, city), leads:lead_id(${QUEUE_LEAD_FIELDS}, is_demo, managed_at)`)
+    .eq("organization_id", ctx.organizationId)
+    .eq("property_id", propertyId);
+  const seen = new Set<string>();
+  const eligible: any[] = [];
+  // Only trust the cached label if it belongs to THIS property (two live picker
+  // messages could otherwise render B's leads under A's header).
+  let propLabelText = session?.data?.q_prop === propertyId
+    ? (session?.data?.q_prop_label || "") : "";
+  for (const t of (tags || []) as any[]) {
+    if (t.properties && !propLabelText) propLabelText = propLabel(t.properties);
+    const l = t.leads;
+    if (!l || seen.has(l.id)) continue;
+    seen.add(l.id);
+    if (l.is_demo || l.status !== "new" || l.managed_at) continue;
+    if (!String(l.phone ?? "").trim() || isShellName(l.full_name)) continue;
+    if (new Date(l.created_at).getTime() < new Date(sevenDaysAgo).getTime()) continue;
+    if (skip.includes(l.id)) continue;
+    eligible.push(l);
+  }
+  eligible.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+  if (!eligible.length) {
+    // Property worked dry — back to the picker with fresh counts.
+    const s = await getSession(ctx);
+    await setSession(ctx, "idle", {
+      ...(s?.data ?? {}), q_mode: null, q_prop: null, q_prop_label: null, q_batch: [],
+    });
+    await editOrSend(ctx, messageId, `✅ <b>${escapeHtml(propLabelText || "Esa propiedad")}</b> — al día. ¿Seguimos con otra?`);
+    await showQueuePicker(ctx, undefined);
+    return;
+  }
+
+  const batch = eligible.slice(0, 3);
+  const restN = eligible.length - batch.length;
+  const s = await getSession(ctx);
+  await setSession(ctx, "idle", {
+    ...(s?.data ?? {}),
+    q_mode: "prop", q_prop: propertyId, q_prop_label: propLabelText,
+    q_batch: batch.map((l) => l.id),
+  });
+
+  await editOrSend(ctx, messageId,
+    `🏠 <b>${escapeHtml(propLabelText)}</b> — tanda de ${batch.length}` +
+    (restN > 0 ? ` <i>(quedan ${restN} más después)</i>` : " <i>(los últimos de esta propiedad)</i>"));
+  for (let i = 0; i < batch.length; i++) {
+    const body = await queueCardBody(ctx, batch[i], undefined,
+      [`📦 <b>${i + 1}/${batch.length}</b> · ${escapeHtml(propLabelText)}`, ``],
+      { skipPropertyLine: true });
+    await send(ctx, body, queueKeyboard(batch[i].id));
+  }
+}
+
+// Mode-aware "what happens after a qa action": in tanda mode wait until the
+// whole batch is worked, then serve the next tanda; otherwise next FIFO card.
+async function queueAdvance(ctx: Ctx) {
+  const session = await getSession(ctx);
+  const d = session?.data ?? {};
+  if (d.q_mode === "prop" && d.q_prop) {
+    const batch: string[] = Array.isArray(d.q_batch) ? d.q_batch : [];
+    const skip: string[] = Array.isArray(d.q_skip) ? d.q_skip : [];
+    const active = batch.filter((id) => !skip.includes(id));
+    if (active.length) {
+      const { data: rows } = await ctx.supabase.from("leads")
+        .select("id, managed_at")
+        .eq("organization_id", ctx.organizationId).in("id", active);
+      const unworked = (rows || []).filter((r: any) => !r.managed_at);
+      if (unworked.length) return; // other cards of the tanda still on screen
+    }
+    await serveBatch(ctx, undefined, d.q_prop);
+    return;
+  }
+  if (d.q_mode === "rem" || d.q_mode === "all") {
+    await showQueueCard(ctx, undefined, d.q_mode);
+    return;
+  }
+  await showQueueCard(ctx, undefined);
+}
+
+// Stateless head-of-queue (classic + reminders-only modes): each render
+// recomputes; only the skip-list lives in the session.
+async function showQueueCard(ctx: Ctx, messageId?: number, mode: "all" | "rem" = "all") {
+  const allItems = await fnlQueueItems(ctx);
+  const items = mode === "rem" ? allItems.filter((it) => it.rem) : allItems;
+  const session = await getSession(ctx);
+  const skip: string[] = Array.isArray(session?.data?.q_skip) ? session!.data.q_skip : [];
+  const pending = items.filter((it) => !skip.includes(it.lead.id));
+  if (!pending.length) {
+    await editOrSend(ctx, messageId,
+      items.length
+        ? "🎉 <b>Cola al día</b> — solo quedan los que salteaste (volvé con ▶️ para reiniciarla)."
+        : (mode === "rem"
+            ? "🎉 <b>Seguimientos al día</b> — no queda ninguno pendiente."
+            : "🎉 <b>Cola vacía</b> — no hay leads pendientes de gestión."),
+      [[{ text: "🎯 Menú", callback_data: "fnl:menu" }]]);
+    return;
+  }
+  // Header shows the REAL backlog (fetch windows cap at 30+50) minus skips.
+  const totalN = mode === "rem"
+    ? pending.length
+    : await fnlQueueCount(ctx).catch(() => pending.length);
+  const remaining = Math.max(totalN - skip.length, pending.length);
+  const { lead: l, rem } = pending[0];
+  const body = await queueCardBody(ctx, l, rem, [`🗂️ <b>Quedan ${remaining} por gestionar</b>`, ``]);
+  await editOrSend(ctx, messageId, body, queueKeyboard(l.id));
+}
+
+async function handleQueueAction(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, verb = "", leadId = ""] = data.split(":");
+  if (!leadId) { await answer(); return; }
+
+  if (verb === "skip") {
+    await answer("Salteado");
+    const s = await getSession(ctx);
+    const skip: string[] = Array.isArray(s?.data?.q_skip) ? s!.data.q_skip : [];
+    if (!skip.includes(leadId)) skip.push(leadId);
+    await setSession(ctx, s?.step ?? "idle", { ...(s?.data ?? {}), q_skip: skip });
+    // Receipt in place + next as a NEW message — never morph the card the user
+    // is reading into a different lead (wrong-tap hazard).
+    await editOrSend(ctx, messageId, "⏭️ Salteado — no vuelve en esta ronda.");
+    await queueAdvance(ctx);
+    return;
+  }
+
+  const { data: lead } = await ctx.supabase.from("leads")
+    .select("id, full_name, first_name, last_name, phone, email, status, managed_at")
+    .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
+  if (!lead) { await answer("Lead no encontrado."); return; }
+  // Double-tap / Telegram-redelivery guard: an outcome registered seconds ago
+  // means this card was already processed (reminder-leg leads carry OLD
+  // managed_at values, so only a recent one counts).
+  if (lead.managed_at && Date.now() - new Date(lead.managed_at).getTime() < 90000) {
+    await answer("Ya gestionado 👍"); return;
+  }
+  const name = leadName(lead);
+  const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
+
+  const closeReminders = () =>
+    ctx.supabase.from("lead_reminders").update({ status: "done" })
+      .eq("organization_id", ctx.organizationId).eq("lead_id", leadId).eq("status", "pending");
+  const nextAttempt = async (): Promise<number> => {
+    const { data: prev } = await ctx.supabase.from("lead_reminders")
+      .select("attempt").eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
+      .eq("reason", "call_retry").order("attempt", { ascending: false }).limit(1).maybeSingle();
+    return (Number(prev?.attempt) || 0) + 1;
+  };
+  const queueRetry = (attempt: number, reason: string) =>
+    ctx.supabase.from("lead_reminders").insert({
+      organization_id: ctx.organizationId, lead_id: leadId,
+      due_at: nextDay9amET(), reason, attempt, status: "pending",
+    });
+  // Receipt replaces the worked card; the next card arrives as a NEW message so
+  // the chat keeps a visual log of the run.
+  const finish = async (receipt: string) => {
+    await markManaged(ctx, leadId);
+    await editOrSend(ctx, messageId, receipt);
+    await queueAdvance(ctx);
+  };
+
+  try {
+    if (verb === "ok") {
+      await answer("Guardado ✅");
+      await ctx.supabase.from("leads").update({ status: "contacted" })
+        .eq("organization_id", ctx.organizationId).eq("id", leadId);
+      await logLeadNote(ctx, leadId, "call_summary", "✅ Llamé — interesado");
+      await closeReminders();
+      await finish(`✅ <b>${escapeHtml(name)}</b> — interesado (→ contacted)`);
+    } else if (verb === "na") {
+      const attempt = await nextAttempt();
+      if (attempt >= 3) {
+        // Ask FIRST, commit later — qa:no / qa:retry do the writes. An abandoned
+        // question leaves the lead in the queue (it resurfaces next run).
+        await answer();
+        await editOrSend(ctx, messageId,
+          `📵 <b>${escapeHtml(name)}</b> — ${attempt}º intento sin respuesta.\n¿Lo damos por perdido?`,
+          [[{ text: "❌ Sí, perdido", callback_data: `qa:no:${leadId}` },
+            { text: "🔁 Intentar mañana igual", callback_data: `qa:retry:${leadId}` }]]);
+        return;
+      }
+      await answer("Anotado ✅");
+      await logLeadNote(ctx, leadId, "call_summary", `📵 Llamé — no contestó (intento ${attempt})`);
+      await closeReminders();
+      await markManaged(ctx, leadId);
+      await queueRetry(attempt, "call_retry");
+      await editOrSend(ctx, messageId, `📵 <b>${escapeHtml(name)}</b> — no contestó (intento ${attempt}) · vuelve mañana 9 AM`);
+      await queueAdvance(ctx);
+    } else if (verb === "retry") {
+      await answer("Reintento agendado ✅");
+      const attempt = await nextAttempt();
+      await logLeadNote(ctx, leadId, "call_summary", `📵 Llamé — no contestó (intento ${attempt}) · reintento mañana`);
+      await closeReminders();
+      await queueRetry(attempt, "call_retry");
+      await finish(`🔁 <b>${escapeHtml(name)}</b> — reintento mañana 9 AM (intento ${attempt})`);
+    } else if (verb === "sh") {
+      // "¡Sí, agendame!" — straight into the scheduling flow with the lead
+      // preloaded (startSchedule preserves session lead_id → skips find-lead).
+      // NOTE: do NOT markManaged / closeReminders here — that commits the queue
+      // exit before a showing is actually booked, so an abandoned scheduling
+      // flow (no slots, TTL expiry, distraction) would silently drop the lead
+      // out of the queue forever. Those side-effects run in confirmBooking only
+      // on booking success. "Ask/act first, commit on success."
+      await answer("¡Agendando! 📅");
+      await logLeadNote(ctx, leadId, "general", "📅 Quiere agendar showing");
+      const s0 = await getSession(ctx);
+      await setSession(ctx, "idle", {
+        ...(s0?.data ?? {}),
+        lead_id: leadId, lead_name: name, lead_phone: tel, lead_email: (lead as any).email ?? null,
+      });
+      await editOrSend(ctx, messageId, `📅 <b>${escapeHtml(name)}</b> quiere showing — agendémoslo ya 👇`);
+      await startSchedule(ctx);
+    } else if (verb === "fu") {
+      await answer("Seguimiento ✅");
+      await logLeadNote(ctx, leadId, "follow_up", "🔁 Pidió seguimiento");
+      await closeReminders();
+      await queueRetry(0, "follow_up");
+      await finish(`🔁 <b>${escapeHtml(name)}</b> — seguimiento mañana 9 AM`);
+    } else if (verb === "no") {
+      await answer("Marcado ✅");
+      await ctx.supabase.from("leads").update({ status: "lost" })
+        .eq("organization_id", ctx.organizationId).eq("id", leadId);
+      await logLeadNote(ctx, leadId, "objection", "❌ No interesado — marcado lost");
+      await closeReminders();
+      await finish(`❌ <b>${escapeHtml(name)}</b> — no interesado (lost)`);
+    } else if (verb === "bad") {
+      await answer("Marcado ✅");
+      await ctx.supabase.from("leads").update({ status: "lost" })
+        .eq("organization_id", ctx.organizationId).eq("id", leadId);
+      await logLeadNote(ctx, leadId, "objection", "☠️ Número inválido — marcado lost");
+      await closeReminders();
+      await finish(`☠️ <b>${escapeHtml(name)}</b> — número malo (lost)`);
+    } else {
+      await answer();
+    }
+  } catch (err) {
+    console.error("handleQueueAction error:", err);
+    try { await answer("Error"); } catch { /* ignore */ }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ✉️ System email — real sends via send-notification-email (queued, Resend)
+// ═══════════════════════════════════════════════════════════════════════════════
+const MARKETPLACE_URL = "https://rentfindercleveland.com";
+const APPLY_URL = "https://rentfindercleveland.com/apply"; // public redirect → DoorLoop
+const FNL_EMAIL_TEMPLATES: {
+  code: string; label: string; ntype: string; subject: string;
+  text: (f: string) => string; html: (f: string) => string;
+}[] = [
+  {
+    code: "ap1", label: "📝 Invitación a aplicar", ntype: "application_invite",
+    subject: "Apply Now — Rent Finder Cleveland",
+    text: (f) => `Hi ${f}, ready to move forward? Start your rental application here: ${APPLY_URL} — You'll need a valid ID, your last 3 paystubs (income 3× the rent) and the $50 application fee per household.`,
+    html: (f) => `<p>Hi ${f},</p><p>Ready to move forward? Start your rental application here:</p><p><a href="${APPLY_URL}">${APPLY_URL}</a></p><p>You'll need: a valid ID, your last 3 paystubs (income 3× the rent), and the $50 application fee per household.</p><p>— Rent Finder Cleveland</p>`,
+  },
+  {
+    code: "ap2", label: "📝 Aplicar + otras propiedades", ntype: "application_invite",
+    subject: "Apply Now — Rent Finder Cleveland",
+    text: (f) => `Hi ${f}, ready to move forward? Apply here: ${APPLY_URL} (ID + 3 paystubs + $50 fee). Not sure this home is the one? Browse all our available homes: ${MARKETPLACE_URL}`,
+    html: (f) => `<p>Hi ${f},</p><p>Ready to move forward? Start your rental application here:</p><p><a href="${APPLY_URL}">${APPLY_URL}</a></p><p>You'll need: a valid ID, your last 3 paystubs (income 3× the rent), and the $50 application fee per household.</p><p>Not sure this home is the one? Browse all our available homes at <a href="${MARKETPLACE_URL}">rentfindercleveland.com</a> — new listings every week.</p><p>— Rent Finder Cleveland</p>`,
+  },
+  {
+    code: "shw", label: "📅 Invitación a agendar showing", ntype: "showing_invite",
+    subject: "Schedule your showing — Rent Finder Cleveland",
+    text: (f) => `Hi ${f}, would you like to see one of our homes in person? Pick a property and schedule your showing online in under a minute: ${MARKETPLACE_URL}`,
+    html: (f) => `<p>Hi ${f},</p><p>Would you like to see one of our homes in person? Pick a property and schedule your showing online in under a minute:</p><p><a href="${MARKETPLACE_URL}">${MARKETPLACE_URL}</a></p><p>— Rent Finder Cleveland</p>`,
+  },
+  {
+    code: "rs", label: "🔄 Re-agendar showing", ntype: "showing_invite",
+    subject: "Let's reschedule your showing — Rent Finder Cleveland",
+    text: (f) => `Hi ${f}, sorry we missed each other at the showing! No problem — pick a new time that works for you and book online in under a minute: ${MARKETPLACE_URL}. You can also just reply to this email with a day and time.`,
+    html: (f) => `<p>Hi ${f},</p><p>Sorry we missed each other at the showing! No problem — pick a new time that works for you and book online in under a minute:</p><p><a href="${MARKETPLACE_URL}">${MARKETPLACE_URL}</a></p><p>You can also just reply to this email with a day and time that works.</p><p>— Rent Finder Cleveland</p>`,
+  },
+];
+
+async function funnelEmailPicker(ctx: Ctx, lead: any) {
+  if (!lead.email) {
+    await send(ctx, `❌ <b>${escapeHtml(leadName(lead))}</b> no tiene email — mandale 💬 SMS, o agregá su email desde la web.`);
+    return;
+  }
+  const rows = FNL_EMAIL_TEMPLATES.map((t) => [{ text: t.label, callback_data: `aem:${lead.id}:${t.code}` }]);
+  rows.push([{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]);
+  await send(ctx, `✉️ <b>Email para ${escapeHtml(leadName(lead))}</b> · ${escapeHtml(lead.email)}\nElegí la plantilla:`, rows);
+}
+
+async function handleEmailPick(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, leadId = "", code = ""] = data.split(":");
+  const t = FNL_EMAIL_TEMPLATES.find((x) => x.code === code);
+  if (!leadId || !t) { await answer(); return; }
+  const { data: lead } = await ctx.supabase.from("leads")
+    .select("id, full_name, first_name, last_name, email")
+    .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
+  if (!lead?.email) { await answer("Sin email"); return; }
+  await answer();
+  const first = String(leadName(lead)).split(/\s+/)[0];
+  await editOrSend(ctx, messageId,
+    `✉️ <b>Vista previa</b>\nPara: ${escapeHtml(lead.email)}\nAsunto: <b>${escapeHtml(t.subject)}</b>\n\n<i>${escapeHtml(t.text(first))}</i>`,
+    [[{ text: "✅ Enviar", callback_data: `aems:${leadId}:${t.code}` },
+      { text: "❌ Cancelar", callback_data: `act:menu:${leadId}` }]]);
+}
+
+async function handleEmailSend(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, leadId = "", code = ""] = data.split(":");
+  const t = FNL_EMAIL_TEMPLATES.find((x) => x.code === code);
+  if (!leadId || !t) { await answer(); return; }
+  const { data: lead } = await ctx.supabase.from("leads")
+    .select("id, full_name, first_name, last_name, email")
+    .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
+  if (!lead?.email) { await answer("Sin email"); return; }
+  await answer("Enviando…");
+  // Kill the ✅ button IMMEDIATELY (no keyboard) — closes the double-tap window
+  // that would otherwise queue the email twice.
+  await editOrSend(ctx, messageId, "⏳ <b>Enviando…</b>");
+  const first = escapeHtml(String(leadName(lead)).split(/\s+/)[0]);
+  // Transactional notification_type → no unsubscribe / no consent gate needed.
+  const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/send-notification-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
+    body: JSON.stringify({
+      to: lead.email,
+      subject: t.subject,
+      html: t.html(first),
+      notification_type: t.ntype,
+      organization_id: ctx.organizationId,
+      related_entity_id: leadId,
+      related_entity_type: "lead",
+      from_name: "Rent Finder Cleveland",
+      queue: true,
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.text().catch(() => "");
+    await editOrSend(ctx, messageId, `❌ No pude enviar el email (${resp.status}). Probá de nuevo.\n<i>${escapeHtml(err.slice(0, 120))}</i>`,
+      [[{ text: "🔁 Reintentar", callback_data: `aems:${leadId}:${t.code}` }]]);
+    return;
+  }
+  // note_type must satisfy lead_notes_note_type_check — "general" is allowed.
+  await logLeadNote(ctx, leadId, "general", `✉️ Email enviado: ${t.label.replace(/^[^\s]+\s/, "")}`);
+  await editOrSend(ctx, messageId,
+    `✉️ <b>Enviado</b> a ${escapeHtml(lead.email)} ✅\n<i>Sale en minutos desde support@rentfindercleveland.com — quedó en el historial del lead.</i>`,
+    [[{ text: "📋 Otra acción", callback_data: `act:menu:${leadId}` }]]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 👤 Save-contact — Telegram sendContact with a vCard (one tap → Add to Contacts)
+// ═══════════════════════════════════════════════════════════════════════════════
+async function sendLeadContact(ctx: Ctx, lead: any) {
+  const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
+  if (!tel) { await send(ctx, "❌ Este lead no tiene teléfono."); return; }
+  const clean = (s: unknown) => String(s ?? "").replace(/[;\n\r]/g, " ").trim();
+  const name = clean(leadName(lead));
+  const first = clean(lead.first_name) || name.split(/\s+/)[0] || "Lead";
+  const baseLast = clean(lead.last_name) || name.split(/\s+/).slice(1).join(" ");
+
+  // Tag the saved contact with the property of interest so it's identifiable in
+  // the phone book — e.g. "Kiara Green · RFC 3180 N 15th". Falls back to just
+  // "· RFC" (so leads still cluster) when there's no tagged property.
+  const { data: tag } = await ctx.supabase.from("lead_property_interests")
+    .select("properties:property_id(address, city)")
+    .eq("organization_id", ctx.organizationId).eq("lead_id", lead.id)
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const pr = (tag as any)?.properties;
+  const propShort = pr?.address ? clean(pr.address) : "";
+  const suffix = propShort ? `RFC ${propShort}` : "RFC";
+  // Keep the person's surname first, then the identifier — so the phone still
+  // sorts and searches by their real name.
+  const last = baseLast ? `${baseLast} · ${suffix}` : `· ${suffix}`;
+  const fn = `${name} · ${suffix}`;
+
+  const vcard = [
+    "BEGIN:VCARD", "VERSION:3.0",
+    `N:${last};${first};;;`,
+    `FN:${fn}`,
+    `TEL;TYPE=CELL:${tel}`,
+    ...(lead.email ? [`EMAIL:${clean(lead.email)}`] : []),
+    `ORG:Rent Finder Cleveland — Lead`,
+    ...(propShort ? [`NOTE:Interesado en ${propShort}${pr?.city ? `, ${clean(pr.city)}` : ""}`] : []),
+    "END:VCARD",
+  ].join("\n");
+  const r = await tg(ctx, "sendContact", {
+    chat_id: ctx.chatId, phone_number: tel, first_name: first,
+    last_name: last, vcard,
+  });
+  if (!r || !r.ok) {
+    await send(ctx, "❌ No pude enviar la tarjeta de contacto. Probá de nuevo.");
+    return;
+  }
+  await send(ctx, `👆 Tocá el contacto y <b>Add to Contacts</b> — lo guardás como <b>${escapeHtml(fn)}</b>.`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🏁 Recent showings (LeasingAgent) — reach a lead AFTER the showing passed
+// ═══════════════════════════════════════════════════════════════════════════════
+async function startRecentShowings(ctx: Ctx, messageId?: number) {
+  const nowIso = new Date().toISOString();
+  const since = new Date(Date.now() - 14 * 86400000).toISOString();
+  // Only PENDING showings: hide the ones already worked in Telegram
+  // (followed_up_at set by attendance-mark or report-save). A showing
+  // auto-completed by DoorLoop never sets followed_up_at, so it still surfaces.
+  const { data } = await ctx.supabase.from("showings")
+    .select("id, scheduled_at, status, lead_id, leads:lead_id(id, full_name, first_name, last_name), properties:property_id(address, unit_number)")
+    .eq("organization_id", ctx.organizationId)
+    .lt("scheduled_at", nowIso).gte("scheduled_at", since)
+    .not("status", "in", "(cancelled,rescheduled)")
+    .is("followed_up_at", null)
+    .order("scheduled_at", { ascending: false }).limit(10);
+  const rows = ((data || []) as any[])
+    .filter((s) => s.leads?.id)
+    .map((s) => {
+      const d = new Date(s.scheduled_at).toLocaleDateString("es-ES", { timeZone: NY, weekday: "short", day: "numeric" });
+      const label = `🕒 ${leadName(s.leads)} · ${d} · ${s.properties?.address ?? ""}`.slice(0, 62);
+      // Button carries the SHOWING id — attendance + follow-up need it.
+      return [{ text: label, callback_data: `psw:${s.id}` }];
+    });
+  const menuBtn = ctx.bot === "showings"
+    ? { text: "🗓️ Menú", callback_data: "sd:menu" }
+    : { text: "🏠 Menú", callback_data: "m:menu" };
+  if (!rows.length) {
+    await editOrSend(ctx, messageId, "🏁 <b>Todo al día</b> — no hay showings pendientes de resolver. 🎉", [[menuBtn]]);
+    return;
+  }
+  rows.push([menuBtn]);
+  await editOrSend(ctx, messageId, "🏁 <b>Showings pendientes de resolver</b> — marcá asistencia y hacé el seguimiento. Al terminar, salen de la lista.\nTocá uno:", rows);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🗓️ Showings bot — the LeasingAgent's FIELD ASSISTANT: resolves the after-tour
+// (asistió → push aplicar · no fue → re-agendar) and reports the day at 8 PM.
+// ═══════════════════════════════════════════════════════════════════════════════
+const SHW_GREETING =
+  "🗓️ Soy <b>Showings</b>, tu ayudante de calle.\n" +
+  "🏁 Resuelvo el después de cada tour y 📊 te cuento cómo fue el día.";
+function shwMenuKeyboard() {
+  return [
+    [{ text: "🗺️ Agenda / ruta de hoy", callback_data: "m:ag" }],
+    [{ text: "🏁 Showings recientes", callback_data: "m:ps" }],
+    [{ text: "📝 Reporte de showing", callback_data: "m:sr" }],
+    [{ text: "📊 ¿Qué pasó hoy?", callback_data: "sd:recap" }],
+  ];
+}
+
+async function handleShowingsText(ctx: Ctx, rawText: string) {
+  const raw = String(rawText).trim();
+  const t = raw.toLowerCase();
+  if (t.startsWith("/")) {
+    const cmd = t.slice(1).split("@")[0].split(/\s/)[0];
+    if (cmd === "recientes") { await startRecentShowings(ctx); return; }
+    if (cmd === "hoy" || cmd === "recap") { await sendDayRecap(ctx); return; }
+    if (cmd === "showing" || cmd === "reporte") { await startShowingReport(ctx, undefined); return; }
+    if (cmd === "agenda" || cmd === "ruta" || cmd === "update") { await showAgenda(ctx); return; }
+    await send(ctx, SHW_GREETING, shwMenuKeyboard()); return;
+  }
+  const kb = t.replace(/️/g, "");
+  if (kb === "🏁 recientes") { await startRecentShowings(ctx); return; }
+  if (kb === "📊 qué pasó hoy" || kb === "📊 que paso hoy" || kb === "📊 ¿qué pasó hoy?") { await sendDayRecap(ctx); return; }
+  if (kb === "📝 reporte") { await startShowingReport(ctx, undefined); return; }
+  if (kb === "🗺 agenda" || kb === "🗺 ruta") { await showAgenda(ctx); return; }
+  // In-flight showing-report steps (moved here from the Setter).
+  {
+    const session = await getSession(ctx);
+    if (session) {
+      if (session.step === "sr_text") { await handleShowingReportText(ctx, session, raw); return; }
+      if (session.step === "sr_photo") { await send(ctx, "📷 Enviá una <b>foto</b>, o tocá <b>Volver</b>."); return; }
+      if (["sr_pick", "sr_attend", "sr_review"].includes(session.step)) {
+        await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
+        return;
+      }
+    }
+  }
+  await send(ctx, SHW_GREETING, shwMenuKeyboard());
+}
+
+// The day, told at a glance — with one-tap resolution of unresolved showings.
+async function sendDayRecap(ctx: Ctx) {
+  await typing(ctx);
+  const dayStart = nyMidnightUtcIso(todayNY());
+  const dayEnd = nyMidnightUtcIso(shiftDay(todayNY(), 1));
+  const { data } = await ctx.supabase.from("showings")
+    .select(`id, scheduled_at, status,
+      leads:lead_id ( id, full_name, first_name, last_name ),
+      properties:property_id ( address, unit_number )`)
+    .eq("organization_id", ctx.organizationId)
+    .gte("scheduled_at", dayStart).lt("scheduled_at", dayEnd)
+    .not("status", "in", "(cancelled,rescheduled)")
+    .order("scheduled_at", { ascending: true }).limit(15);
+  const rows = (data || []) as any[];
+  if (!rows.length) {
+    await send(ctx, "📊 Hoy no hubo showings.", shwMenuKeyboard());
+    return;
+  }
+  const done = rows.filter((r) => r.status === "completed").length;
+  const ghost = rows.filter((r) => r.status === "no_show").length;
+  const open = rows.filter((r) => !["completed", "no_show"].includes(r.status));
+  const lines = [
+    `📊 <b>El día de hoy — ${slotDayLabel(todayNY())}</b>`,
+    `${rows.length} showing${rows.length === 1 ? "" : "s"} · ✅ ${done} asistieron · 👻 ${ghost} no fueron${open.length ? ` · 🕒 ${open.length} sin resolver` : ""}`,
+    ``,
+  ];
+  rows.forEach((r) => {
+    const time = new Date(r.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true });
+    const st = r.status === "completed" ? "✅" : r.status === "no_show" ? "👻" : "🕒";
+    lines.push(`${st} <b>${time}</b> — ${escapeHtml(leadName(r.leads || {}))} · ${escapeHtml(r.properties?.address ?? "")}`);
+  });
+  if (open.length) lines.push(``, `👇 Resolvé los pendientes — un tap y salen los siguientes pasos:`);
+  const kb: any[][] = open.slice(0, 8).map((r) => [{
+    text: `🕒 ${leadName(r.leads || {})} · ¿asistió?`.slice(0, 62),
+    callback_data: `psw:${r.id}`,
+  }]);
+  kb.push([{ text: "🏁 Showings recientes", callback_data: "m:ps" }]);
+  await send(ctx, lines.join("\n"), kb);
+}
+
+// 🚀 Closing cadence: a toured lead that hasn't applied gets pushed back to you
+// on D+1 / D+3 / D+7 (showing-reminder cron dispatches the cards). Chained
+// lead_reminders with reason 'closing'; idempotent — one pending per lead.
+async function startClosingCadence(ctx: Ctx, leadId: string) {
+  const { data: existing } = await ctx.supabase.from("lead_reminders")
+    .select("id").eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
+    .eq("reason", "closing").eq("status", "pending").limit(1).maybeSingle();
+  if (existing) return;
+  await ctx.supabase.from("lead_reminders").insert({
+    organization_id: ctx.organizationId, lead_id: leadId,
+    due_at: nextDay9amET(), reason: "closing", attempt: 1, status: "pending",
+  });
+}
+
+// Push 3 decision: archive, or send back to the Funnel queue for recapture.
+async function handleClosing(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, verb = "", leadId = ""] = data.split(":");
+  if (!leadId) { await answer(); return; }
+  const { data: lead } = await ctx.supabase.from("leads")
+    .select("id, full_name, first_name, last_name, status")
+    .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
+  if (!lead) { await answer("Lead no encontrado."); return; }
+  const name = leadName(lead);
+  const closeClosing = () =>
+    ctx.supabase.from("lead_reminders").update({ status: "done" })
+      .eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
+      .eq("reason", "closing").eq("status", "pending");
+  if (verb === "arch") {
+    await answer("Archivado");
+    await ctx.supabase.from("leads").update({ status: "lost" })
+      .eq("organization_id", ctx.organizationId).eq("id", leadId);
+    await logLeadNote(ctx, leadId, "objection", "🚀 Cierre agotado ×3 sin aplicar — archivado");
+    await closeClosing();
+    await markManaged(ctx, leadId);
+    await editOrSend(ctx, messageId, `☠️ <b>${escapeHtml(name)}</b> — archivado (3 pushes sin aplicar).`);
+  } else if (verb === "back") {
+    await answer("Devuelto al Funnel ✅");
+    await logLeadNote(ctx, leadId, "follow_up", "🔄 Cierre sin respuesta ×3 — devuelto al Funnel para recaptura");
+    await closeClosing();
+    await ctx.supabase.from("lead_reminders").insert({
+      organization_id: ctx.organizationId, lead_id: leadId,
+      due_at: nextDay9amET(), reason: "follow_up", attempt: 0, status: "pending",
+    });
+    await editOrSend(ctx, messageId, `🔄 <b>${escapeHtml(name)}</b> — mañana 9 AM vuelve a tu cola del 🎯 Funnel.`);
+  } else {
+    await answer();
+  }
+}
+
+// Post-showing card: attendance FIRST, then the right follow-up — apply if they
+// came, rebook if they no-showed. Everything lands in the lead's history.
+async function postShowingCard(ctx: Ctx, messageId: number | undefined, showingId: string) {
+  const { data: s } = await ctx.supabase.from("showings")
+    .select(`id, scheduled_at, status, lead_id,
+      leads:lead_id ( id, full_name, first_name, last_name, phone, email ),
+      properties:property_id ( address, unit_number, city )`)
+    .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
+  if (!s?.leads?.id) { await editOrSend(ctx, messageId, "❌ No encontré ese showing."); return; }
+  const l = s.leads; const p = s.properties || {};
+  const when = new Date(s.scheduled_at).toLocaleString("es-ES", {
+    timeZone: NY, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true,
+  });
+  const head = [
+    `🏁 <b>${escapeHtml(leadName(l))}</b> — ${escapeHtml(p.address ?? "")}${p.unit_number ? ` ${escapeHtml(p.unit_number)}` : ""}`,
+    `🕒 ${escapeHtml(when)}`,
+    `📞 ${escapeHtml(String(l.phone ?? "—"))}${l.email ? ` · ✉️ ${escapeHtml(l.email)}` : ""}`,
+  ];
+  if (s.status === "completed") {
+    await editOrSend(ctx, messageId, [...head, "", "✅ Ya marcado como <b>asistió</b> — ¿siguiente paso?"].join("\n"),
+      postShowingFollowUpKb(l.id, true));
+  } else if (s.status === "no_show") {
+    await editOrSend(ctx, messageId, [...head, "", "👻 Ya marcado como <b>no fue</b> — ¿lo recuperamos?"].join("\n"),
+      postShowingFollowUpKb(l.id, false));
+  } else {
+    await editOrSend(ctx, messageId, [...head, "", "¿<b>Asistió</b> al showing?"].join("\n"),
+      [[{ text: "✅ Sí, fue", callback_data: `psa:${s.id}:y` }, { text: "❌ No fue", callback_data: `psa:${s.id}:n` }],
+       [{ text: "📋 Más acciones", callback_data: `act:menu:${l.id}` }],
+       [{ text: "🏁 Otro showing", callback_data: "m:ps" }]]);
+  }
+}
+
+function postShowingFollowUpKb(leadId: string, attended: boolean) {
+  return attended
+    ? [[{ text: "✉️ Email para aplicar", callback_data: `aem:${leadId}:ap2` }],
+       [{ text: "💬 SMS para aplicar", callback_data: `asms:${leadId}:ap` }],
+       [{ text: "📋 Más acciones", callback_data: `act:menu:${leadId}` }, { text: "🏁 Otro", callback_data: "m:ps" }]]
+    : [[{ text: "✉️ Email para re-agendar", callback_data: `aem:${leadId}:rs` }],
+       [{ text: "💬 SMS para re-agendar", callback_data: `asms:${leadId}:rs` }],
+       [{ text: "📋 Más acciones", callback_data: `act:menu:${leadId}` }, { text: "🏁 Otro", callback_data: "m:ps" }]];
+}
+
+async function handleAttendance(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, showingId = "", yn = ""] = data.split(":");
+  const attended = yn === "y";
+  const { data: s } = await ctx.supabase.from("showings")
+    .select("id, status, lead_id, leads:lead_id(id, full_name, first_name, last_name, status)")
+    .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
+  if (!s?.leads?.id) { await answer("No encontrado"); return; }
+  const l = s.leads;
+  await answer(attended ? "✅ Asistió" : "👻 No-show");
+  // followed_up_at marks it handled → it drops off the "🏁 recientes" list.
+  await ctx.supabase.from("showings").update(
+    attended
+      ? { status: "completed", completed_at: new Date().toISOString(), followed_up_at: new Date().toISOString() }
+      : { status: "no_show", followed_up_at: new Date().toISOString() }
+  ).eq("organization_id", ctx.organizationId).eq("id", showingId);
+  // Attended advances the lead (milestone engine picks the score up from here)
+  // and starts the 🚀 closing cadence (D+1/3/7 pushes until they apply).
+  if (attended && l.status === "showing_scheduled") {
+    await ctx.supabase.from("leads").update({ status: "showed" })
+      .eq("organization_id", ctx.organizationId).eq("id", l.id);
+  }
+  if (attended) await startClosingCadence(ctx, l.id);
+  await logLeadNote(ctx, l.id, "general", attended ? "🏁 Asistió al showing" : "👻 No asistió al showing");
+  await markManaged(ctx, l.id);
+  await editOrSend(ctx, messageId,
+    attended
+      ? `✅ <b>${escapeHtml(leadName(l))}</b> fue al showing — ¿siguiente paso?`
+      : `👻 <b>${escapeHtml(leadName(l))}</b> no fue — ¿lo recuperamos?`,
+    postShowingFollowUpKb(l.id, attended));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1644,6 +2673,7 @@ async function editOrSend(ctx: Ctx, messageId: number | undefined, text: string,
   await edit(ctx, messageId, text, keyboard);
 }
 async function answerCbq(ctx: Ctx, cbqId: string, text?: string) {
+  if (!cbqId) return; // synthetic cbq from a "/" command — nothing to answer
   await tg(ctx, "answerCallbackQuery", { callback_query_id: cbqId, ...(text ? { text } : {}) });
 }
 async function typing(ctx: Ctx) {
@@ -1752,6 +2782,8 @@ function actionMenuKeyboard(leadId: string) {
     [{ text: "❌ No interesado", callback_data: `act:lost:${leadId}` }],
     [{ text: "💬 Enviar SMS", callback_data: `act:sms:${leadId}` },
      { text: "🎯 Cambiar etapa", callback_data: `act:st:${leadId}` }],
+    [{ text: "✉️ Enviar email", callback_data: `act:em:${leadId}` },
+     { text: "👤 Guardar contacto", callback_data: `act:vc:${leadId}` }],
   ];
 }
 // Insert a lead_notes row for a Telegram-logged action (created_by is null —
@@ -1777,7 +2809,7 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
 
   const { data: lead } = await ctx.supabase
     .from("leads")
-    .select("id, full_name, first_name, last_name, phone, status")
+    .select("id, full_name, first_name, last_name, phone, email, status")
     .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
   if (!lead) { await answer("Lead no encontrado."); return; }
   const name = leadName(lead);
@@ -1790,6 +2822,11 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
     return;
   }
 
+  // Any OUTCOME verb marks the lead as human-managed (the queue's exit signal).
+  if (["noans", "fu", "sch", "done", "lost"].includes(verb)) {
+    await markManaged(ctx, leadId);
+  }
+
   const again = [[{ text: "📋 Otra acción", callback_data: `act:menu:${leadId}` }]];
   // Any registered action EXCEPT "quiere seguimiento" stops the daily rollover
   // (the reminder cron re-arms a pending card every morning until acted on).
@@ -1798,31 +2835,57 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
       .eq("organization_id", ctx.organizationId).eq("lead_id", leadId).eq("status", "pending");
   try {
     if (verb === "noans") {
+      // Mirror the queue's retry chain: attempt++ and re-queue tomorrow (<3).
+      const { data: prevR } = await ctx.supabase.from("lead_reminders")
+        .select("attempt").eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
+        .eq("reason", "call_retry").order("attempt", { ascending: false }).limit(1).maybeSingle();
+      const attempt = (Number(prevR?.attempt) || 0) + 1;
       await answer("Anotado ✅");
-      await logLeadNote(ctx, leadId, "call_summary", "📞 Llamé — no contestó");
+      await logLeadNote(ctx, leadId, "call_summary", `📞 Llamé — no contestó (intento ${attempt})`);
       await stopRollover();
-      await editOrSend(ctx, messageId, `✅ Anotado: <b>no contestó</b> — ${escapeHtml(name)}`, again);
+      if (attempt < 3) {
+        await ctx.supabase.from("lead_reminders").insert({
+          organization_id: ctx.organizationId, lead_id: leadId,
+          due_at: nextDay9amET(), reason: "call_retry", attempt, status: "pending",
+        });
+        await editOrSend(ctx, messageId, `✅ <b>No contestó</b> (intento ${attempt}) — vuelve mañana 9am — ${escapeHtml(name)}`, again);
+      } else {
+        await editOrSend(ctx, messageId,
+          `📵 <b>${escapeHtml(name)}</b> — ${attempt}º intento sin respuesta.\n¿Lo damos por perdido?`,
+          [[{ text: "❌ Sí, perdido", callback_data: `act:lost:${leadId}` },
+            { text: "🔁 Reintentar mañana", callback_data: `act:fu:${leadId}` }]]);
+      }
     } else if (verb === "fu") {
       await answer("Seguimiento agendado ✅");
       await logLeadNote(ctx, leadId, "follow_up", "🔁 Llamé — pidió seguimiento");
-      // Idempotent: at most one pending reminder per lead (a double-tap, or the
-      // "Otra acción" re-tap path, must not create duplicate morning cards).
-      const { data: existingRem } = await ctx.supabase.from("lead_reminders")
-        .select("id").eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
-        .eq("status", "pending").limit(1).maybeSingle();
-      if (!existingRem) {
-        await ctx.supabase.from("lead_reminders").insert({
-          organization_id: ctx.organizationId, lead_id: leadId,
-          due_at: nextDay9amET(), reason: "follow_up", status: "pending",
-        });
-      }
+      // Close any pending reminder FIRST, then re-arm for tomorrow. An overdue
+      // pending row would otherwise make this a silent no-op and the lead would
+      // stay at the head of the gestión queue forever. Double-taps still end
+      // with exactly one pending row (close → insert).
+      await ctx.supabase.from("lead_reminders").update({ status: "done" })
+        .eq("organization_id", ctx.organizationId).eq("lead_id", leadId).eq("status", "pending");
+      await ctx.supabase.from("lead_reminders").insert({
+        organization_id: ctx.organizationId, lead_id: leadId,
+        due_at: nextDay9amET(), reason: "follow_up", attempt: 0, status: "pending",
+      });
       await editOrSend(ctx, messageId, `✅ <b>Seguimiento agendado</b> para mañana 9am ⏰ — ${escapeHtml(name)}`, again);
     } else if (verb === "sch") {
       await answer();
       await logLeadNote(ctx, leadId, "general", "📅 Quiere agendar showing");
       await stopRollover();
-      await editOrSend(ctx, messageId,
-        `📅 Anotado. Abrí <b>LeasingAgent</b> → 📅 Agendar showing y pegá este teléfono para encontrarlo:\n📞 ${escapeHtml(tel)}`, again);
+      if (ctx.bot === "funnel" || ctx.bot === "leasing") {
+        // Schedule right here, lead preloaded.
+        const s0 = await getSession(ctx);
+        await setSession(ctx, "idle", {
+          ...(s0?.data ?? {}),
+          lead_id: leadId, lead_name: name, lead_phone: tel, lead_email: (lead as any).email ?? null,
+        });
+        await editOrSend(ctx, messageId, `📅 <b>${escapeHtml(name)}</b> — agendémoslo ya 👇`);
+        await startSchedule(ctx);
+      } else {
+        await editOrSend(ctx, messageId,
+          `📅 Anotado. Abrí <b>Showing Setter</b> o <b>🎯 Funnel</b> → 📅 Agendar y pegá: 📞 ${escapeHtml(tel)}`, again);
+      }
     } else if (verb === "done") {
       await answer("Anotado ✅");
       await logLeadNote(ctx, leadId, "call_summary", "👋 Ya contactado");
@@ -1841,6 +2904,12 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
     } else if (verb === "st") {
       await answer();
       await funnelStagePicker(ctx, messageId, lead);
+    } else if (verb === "em") {
+      await answer();
+      await funnelEmailPicker(ctx, lead);
+    } else if (verb === "vc") {
+      await answer();
+      await sendLeadContact(ctx, lead);
     } else {
       await answer();
     }
@@ -1876,10 +2945,84 @@ async function upcomingTargets(ctx: Ctx): Promise<any[]> {
     };
   }).filter((t: any) => t.phone);
 }
+// "Ver agenda": if there are showings TODAY, show ONLY today's route (Google
+// Maps + property info + price) with a button to the full agenda; otherwise
+// fall straight through to the full upcoming agenda (old behavior).
 async function showAgenda(ctx: Ctx) {
+  await typing(ctx);
+  const shownToday = await sendTodayRoute(ctx);
+  if (shownToday) { await sendSmsPicker(ctx); return; }
+  await showFullAgenda(ctx);
+}
+
+async function showFullAgenda(ctx: Ctx) {
   await typing(ctx);
   const agenda = await buildShowingsAgenda(ctx.supabase, ctx.organizationId);
   await sendChunks(ctx, agenda);
+  await sendSmsPicker(ctx);
+}
+
+// Today's route (replaces the web "My Route" tab — moved into Telegram).
+async function sendTodayRoute(ctx: Ctx): Promise<boolean> {
+  const dayStart = nyMidnightUtcIso(todayNY());
+  const dayEnd = nyMidnightUtcIso(shiftDay(todayNY(), 1));
+  const { data } = await ctx.supabase.from("showings")
+    .select(`scheduled_at, status, lead_id,
+      leads:lead_id ( id, full_name, first_name, last_name, phone, has_voucher, voucher_amount ),
+      properties:property_id ( address, unit_number, city, rent_price, bedrooms, bathrooms )`)
+    .eq("organization_id", ctx.organizationId)
+    .gte("scheduled_at", dayStart).lt("scheduled_at", dayEnd)
+    .not("status", "in", "(cancelled,rescheduled)")
+    .order("scheduled_at", { ascending: true }).limit(12);
+  const rows = (data || []) as any[];
+  if (!rows.length) return false;
+
+  const nowMs = Date.now();
+  const gmapsAddr = (p: any) =>
+    encodeURIComponent(`${p?.address ?? ""}${p?.unit_number ? ` ${p.unit_number}` : ""}, ${p?.city ?? "Cleveland"}, OH`);
+  const NUM = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+  const lines: string[] = [
+    `🗺️ <b>Ruta de hoy — ${slotDayLabel(todayNY())}</b> · ${rows.length} parada${rows.length === 1 ? "" : "s"}`,
+    ``,
+  ];
+  rows.forEach((s, i) => {
+    const l = s.leads || {}; const p = s.properties || {};
+    const time = new Date(s.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true });
+    const done = new Date(s.scheduled_at).getTime() < nowMs ? " ✔️" : "";
+    const addr = `${p.address ?? "—"}${p.unit_number ? ` ${p.unit_number}` : ""}${p.city ? `, ${p.city}` : ""}`;
+    lines.push(`${NUM[i] ?? `${i + 1}.`} <b>${time}</b>${done} — ${escapeHtml(addr)}`);
+    const specs: string[] = [];
+    if (p.bedrooms != null) specs.push(`🛏 ${p.bedrooms}`);
+    if (p.bathrooms != null) specs.push(`🛁 ${p.bathrooms}`);
+    if (p.rent_price) specs.push(`💵 $${Number(p.rent_price).toLocaleString()}/mo`);
+    if (specs.length) lines.push(`   ${specs.join(" · ")}`);
+    const who: string[] = [`👤 ${escapeHtml(leadName(l))}`];
+    if (l.phone) who.push(`📞 ${escapeHtml(String(l.phone))}`);
+    if (l.has_voucher) who.push(`🎟️${l.voucher_amount ? ` $${Number(l.voucher_amount).toLocaleString()}` : " Voucher"}`);
+    lines.push(`   ${who.join(" · ")}`);
+    lines.push("");
+  });
+
+  // Full route: origin = current location; stops in order (| encoded as %7C).
+  const addrs = rows.map((s) => gmapsAddr(s.properties));
+  const routeUrl = addrs.length === 1
+    ? `https://www.google.com/maps/dir/?api=1&destination=${addrs[0]}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${addrs[addrs.length - 1]}&waypoints=${addrs.slice(0, -1).join("%7C")}`;
+
+  const kb: any[][] = rows.slice(0, 8).map((s, i) => {
+    const p = s.properties || {};
+    return [{
+      text: `🗺️ ${i + 1} · ${String(p.address ?? "parada").slice(0, 40)}`,
+      url: `https://www.google.com/maps/dir/?api=1&destination=${gmapsAddr(p)}`,
+    }];
+  });
+  kb.push([{ text: "🚗 Ruta completa en Google Maps", url: routeUrl }]);
+  kb.push([{ text: "📆 Agenda completa", callback_data: "m:agf" }]);
+  await send(ctx, lines.join("\n"), kb);
+  return true;
+}
+
+async function sendSmsPicker(ctx: Ctx) {
   const targets = await upcomingTargets(ctx);
   if (!targets.length) return;
   // Stash targets in the session — MERGE (don't wipe an in-flight booking flow;
@@ -2095,16 +3238,20 @@ async function saveShowingReport(ctx: Ctx, messageId: number | undefined) {
   if (d.sr_photo) upd.agent_report_photo_url = d.sr_photo;
   // Flip the showing status from 'scheduled' so it stops showing as "agendado"
   // in the leasing tracker. Attended → completed (+ completed_at); else no_show.
-  if (d.sr_status === "completed") { upd.status = "completed"; upd.completed_at = new Date().toISOString(); }
-  else if (d.sr_status === "no_show") { upd.status = "no_show"; }
+  // Either way it's resolved → followed_up_at drops it off "🏁 recientes".
+  if (d.sr_status === "completed") { upd.status = "completed"; upd.completed_at = new Date().toISOString(); upd.followed_up_at = new Date().toISOString(); }
+  else if (d.sr_status === "no_show") { upd.status = "no_show"; upd.followed_up_at = new Date().toISOString(); }
+  else { upd.followed_up_at = new Date().toISOString(); }
   const { error } = await ctx.supabase.from("showings").update(upd)
     .eq("organization_id", ctx.organizationId).eq("id", d.sr_id);
   if (error) { await editOrSend(ctx, messageId, `❌ No pude guardar: ${escapeHtml(error.message)}`); return; }
-  // When attended, advance the lead lifecycle out of showing_scheduled → showed.
+  // When attended, advance the lead lifecycle out of showing_scheduled → showed
+  // and start the 🚀 closing cadence (D+1/3/7 pushes until they apply).
   if (d.sr_status === "completed") {
     await ctx.supabase.from("leads").update({ status: "showed" })
       .eq("organization_id", ctx.organizationId).eq("id", d.sr_lead_id ?? "00000000-0000-0000-0000-000000000000")
       .eq("status", "showing_scheduled");
+    if (d.sr_lead_id) await startClosingCadence(ctx, d.sr_lead_id);
   }
   await clearSession(ctx);
   const statusLine = d.sr_status === "completed" ? " · marcado ✅ asistió" : d.sr_status === "no_show" ? " · marcado ❌ no-show" : "";
