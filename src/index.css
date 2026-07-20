@@ -189,7 +189,7 @@
 
   /* Focus visible styles for keyboard navigation (Phase 10.2) */
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply outline-none;
   }
 
   /* Safe areas for mobile devices with notches */
@@ -453,3 +453,14 @@
   100% { box-shadow: 0 0 0 8px hsl(var(--success) / 0); }
 }
 .dash-live-ping { animation: dash-live-ping 1.4s ease-out; }
+
+/* Owner request (2026-07-20): no focus ring anywhere in the app. The base
+   :focus-visible rule above no longer adds it, and this neutralizes the
+   per-component `focus-visible:ring-*` utilities (shadcn Button/Input/etc.)
+   by zeroing the Tailwind ring variables on every focus state. */
+*:focus,
+*:focus-visible {
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
