@@ -1,6 +1,101 @@
 # PROJECT COMPLETE — Rent Finder Cleveland
 
 > **⚠️ 2026-07-20:** Persona y MaxMind fueron RETIRADOS por completo (funciones borradas, columnas dropeadas, UI depurada). Las menciones más abajo son históricas.
+## Version 18 | July 20, 2026
+
+> Supersedes **MD17** (Jul 19, 2026 — renter marketplace pivot + Hemlane lead-gen + Telegram ops). This snapshot records the two-day arc that followed: the **scoring system was proven fake and replaced with a facts-only milestone engine**, lead-count definitions were unified, the **Reports + Costs pages were merged into one honest Analytics page**, the **Agents Control Center was purged of dead/fake infrastructure and rebuilt as a real-time 3D pipeline funnel**, **Persona + MaxMind were retired**, and the **admin dashboard was rebuilt as a live, animated dashboard**. MD17's product/schema/roles reference is retained below unchanged.
+
+---
+
+## A. Headline — what changed since MD17
+
+1. **Scoring was fake; now it's facts.** A 19-agent forensic audit confirmed the old `lead_score` was noise (a sawtooth cron, completeness echo, 87.8% of scores in 3 values, AUC 0.833). Replaced by a **milestone engine**: `lead_score ∈ {0,10,50,80,100}` = MAX of what actually happened (0 normal · 10 intentó · 50 agendó · 80 asistió · 100 aplicó). The DB is the only writer (triggers on `showings`/`leads.status`); `log_score_change` neutralized. The "Great Demotion" took 18,111 leads → **109 real hot** (`is_priority = score≥50 AND not lost`). Hot Telegram triggers DISABLED by owner decision.
+2. **One definition of "leads".** Six coexisting count definitions (17,446 "complete" / 18,111 total / 18,077 active / a 5,000-cap bug …) unified to **TOTAL everywhere** per owner; the hidden completeness filter was removed from LeadsList/Reports/funnel; `lead_counts()` RPC is the single source of truth.
+3. **Analytics = Reports + Costs merged.** One `/analytics` page (6 tabs, URL-synced global filters). Killed the fake metrics ($0.09 AI-spend was a 1000-row PostgREST cap of the real $0.40; $1,000 pipeline value = 1 lead; 0% conversion forever; snapshot-funnels). New honest panels: milestone funnel, per-campaign email performance, real bounce rate, first-response median, estimated channel costs. Backed by `analytics_*` RPCs.
+4. **Agents rebuilt.** Purged dead agents (Aaron, Ruth), ghost crons (isaiah/luke/sync-costs/boaz), and **all SMS**; deleted 12 edge functions; fixed Samuel's 100%-dead showing confirmations (`call`→`email`). `/agents` is now a **real-time 3D pipeline funnel** (react-three-fiber; planet-per-stage cosmos with the Milky Way, live particles + shockwaves on agent activity, 2D SVG fallback), fed by `agents_live_status()` + realtime.
+5. **Persona + MaxMind retired** (identity verification + geo-IP removed): edge functions deleted, columns dropped, UI/health/test surfaces cleaned.
+6. **Live admin dashboard.** `/dashboard` rebuilt: 4 merged KPI cards (Leads / Showings / Portafolio / Emails), a redesigned Next-Showings timeline, animated numbers + floating "+N" on realtime events, a Task-Queue **forecast** ("~N salen en la próxima hora · cola vacía en ~Xh"), the greeting moved into the top header, brand set to "Rent Finder" + favicon logo, and the global focus ring removed.
+
+---
+
+## B. Milestone scoring v1 (the truth)
+
+- **Model**: `compute_milestone_score(lead)` = GREATEST(status→100 for in_application/converted, MAX showing CASE). Showing CASE: completed→80, no_show→10, scheduled/confirmed→50, else→10; leads status ladder mirrored. `apply_milestone_score()` writes `lead_score`/`is_priority`/`priority_reason` + one honest history row (`triggered_by='milestone_engine'`, reasons `milestone_normal|intento|agendo|asistio|aplico`).
+- **Triggers**: `trg_milestone_showings` (AFTER INSERT/UPDATE OF status on showings), `trg_milestone_leads`, `trg_milestone_leads_ins`.
+- **Dead code removed**: scoring crons, regex/keyword boosts, `agent-scoring` edge fn (deleted — note it was **resurrected once by an external Lovable redeploy**; re-verify after every rebuild), `agent-hemlane-parser` intent boosts.
+- **The ladder is duplicated** in `compute_milestone_score`, `recalculate_lead_scores` LATERAL, `ScoreDisplay.getMilestoneLabel`, and ScoringTab `MILESTONES` — change all together.
+- Migrations `20260719190544_milestone_scoring_v1` + `20260719192422_v1_1_review_fixes` (the critical bug: `'confirmed'` showing status fell through ELSE→10, demoting 50→10 on confirm; caught by 3 independent review finders).
+
+## C. Unified lead counts
+
+- `lead_counts(p_org)` → `{total, active, applicants, hot, incomplete, lost}` = `{18111, 18077, 61, 109, 663, 34}` at ship. Predicates: `is_demo IS NOT TRUE`; active = NOT IN (lost, converted); hot = `is_priority`; incomplete = name/phone/email NULL.
+- Completeness filter removed from LeadsList, Reports, AdminDashboard, `get_lead_funnel`. `useDashboardAnalytics` `.limit(5000)` cap bug fixed. Demo predicate standardized `.eq("is_demo",false)` → `.not("is_demo","is",true)`. Migration `20260719201932_unified_lead_counts_total`. Commit `5b9f16c`.
+
+## D. Analytics page (Reports + Costs → `/analytics`)
+
+- **Route**: new `src/pages/analytics/Analytics.tsx` (editor+); `/reports/*` and `/costs` redirect in. Tabs: Resumen · Pipeline & Fuentes · Propiedades & Showings · Email & Campañas · **Costos & Sistema (admin+)** · Informes. Global filter bar (date presets in Cleveland TZ, source, property) URL-synced; `tab` param sanitized per-user perms.
+- **RPCs** (`SECURITY DEFINER`, org from `auth.uid()`, TZ NY, demo-excluded): `analytics_overview`, `analytics_time_series`, `analytics_email_campaigns` (email aggregated on `details->>'status'`, never the junk `event_type`; per-campaign join `campaigns.id::text = details->>'campaign_id'`). v1.1 fixes: first-response also matches `recipient_email` (lead_id sparse), avg-score scored-leads-only, `attempted` denominator.
+- **Deleted**: Reports.tsx, CostDashboard.tsx, useReportsData, useDashboardAnalytics, useCostData, LeadFunnelCard; the Costs tab inside `/agents`.
+- Design: zero purged `hsl(280…)`; indigo/gold tokens; charts `role="img"`. Migrations `20260720013237` + `20260720020054`. Commit `3978bf9`.
+
+## E. Agents v2 — purge + 3D funnel
+
+- **The real-vs-fake table (7-day evidence)**: alive = **Elijah** (welcome-email drain), **Esther** (inbound parser + reconcile + doorloop-pull), **Nehemiah** (the dispatcher; heartbeat added), **Samuel** (Telegram reminders; confirmations fixed), **Zacchaeus** (hourly health). Dead → removed: **Aaron** (0 execs ever), **Ruth** (SMS, last Mar 12), ghost crons (isaiah/luke → `investor_insights` 0 rows ever; sync-costs no-op; boaz inactive; habakkuk dormant).
+- **Purge** (mig `20260720055247` + `20260720062943`): 8 crons unscheduled (22→14); `habakkuk_check_alerts` rewritten to insert `notifications` with working dedup; **Samuel P1**: `schedule_showing_confirmations` `call`→`email` (291/291 were auto-cancelled); anti-wave dedup on the priority trigger; `claim_pending_tasks` claims notifications first + LEFT JOIN (lead-less tasks claimable); bulk-cancelled 566 pending + 494 failed notify tasks + dead-branch tasks; registry 7→5; `integration_health` minus bland/twilio; **realtime publication was empty for leads/agent_tasks/agent_activity_log** (every "live" panel in the app was silently dead) → ADD TABLE.
+- **Dispatcher/health-checker** redeployed: BATCH 40/DELAY 300 (drain accelerated), cancel-on-sight guard (call/sms/dead types/unroutable notifications), all Bland/Twilio/SMS paths removed, Nehemiah heartbeat, per-org counters.
+- **12 edge functions deleted** from prod: `agent-scoring` (zombie), `process-sms-queue`, `agent-sms-inbound`, `fetch-twilio-messages`, `pathway-webhook`, `agent-notification-dispatcher`, `agent-conversion-predictor`, `batch-predictions`, `agent-insight-generator`, `agent-report-generator`, `agent-paip-assistant`, `agent-system-analysis`. Repo dirs + 12 `config.toml` blocks purged. SMS tab removed from Campaigns.
+- **`agents_live_status()`** (mig `20260720060403`): one JSON — per-agent live health/tasks/activity, funnel stage counts, 24h flows, queue depths, integrations. Polled 15s.
+- **The page** (`src/pages/agents/AgentsPage.tsx` + `components/agents/funnel/*`): `three@0.171 + @react-three/fiber@8.18 + @react-three/drei@9.122` (**pinned for React 18 — v9/v10 need React 19; never `npm update` these majors**) + `@react-three/postprocessing@2`; lazy `vendor-three` chunk (~227KB gz, loads only on /agents). Cosmos: Milky Way backdrop + procedural gas-giant planet textures (canvas, zero CDN), fresnel atmospheres, Saturn rings, Bloom. On agent activity: expanding shockwave ring + elastic pop + emissive spike + fast particle burst down the edge (red on failure). Centered camera sway. 2D SVG fallback (no-WebGL / reduced-motion). Glass detail panels; labels hidden while a panel is open. Deleted 11 old agent components + `SystemLogs.tsx`. Commits `25f370f`, `a94c5f9`, `06ad972`, `0e9cba1`, `b667d85`, `f81799f`.
+
+## F. Persona + MaxMind retired
+
+- Edge functions deleted (`verify-identity`, `persona-webhook`); 4 columns dropped; UI/health-checker/test-integration/docs cleaned; types regenerated. `PERSONA_WEBHOOK_SECRET` pending item CANCELLED. Do not reintroduce. (Landed via the other session's Lovable auto-commit `0e43f8e`; documented in memory `persona-maxmind-retired`.)
+
+## G. Live admin dashboard + Task-Queue forecast
+
+- **`dashboard_live()`** (mig `20260720160921` + v1.1 `20260720162645`): one JSON `{leads, showings, portfolio, comms, next_showings}`, org from `auth.uid()`, TZ NY day/week, demo excluded; `ALTER PUBLICATION … ADD showings`.
+- **`useDashboardLive`**: poll 10s + realtime (leads INSERT, showings *, agent_activity_log INSERT, agent_tasks UPDATE) → debounced invalidate + LIVE blink. `LiveNumber` tweens on every change (starts from the currently-shown value); `LiveKpiCard` floats a "+N" (poll-delta as the single source, no double-count). 19-agent review fixes: isLoading gates first-load only (RPC error keeps last-good data + banner), channel topic per-org, prevRef reset on org change, per-flash timers cleared on unmount, throttled blink.
+- **4 merged hero cards**: Leads (⊕ this-week ⊕ hot), Showings (⊕ show-up% ⊕ applicants), Portafolio (Total Doors ⊕ Available), Emails. Removed: Hot-Awaiting-Contact, Uncontacted-Backlog, Lead-Response-Time, Leads-From-Email, SMS-Sent.
+- **Next Showings** timeline (Cleveland TZ Hoy/Mañana), replaces the Nurturing widget, capped at 5.
+- **Task Queue "Pronóstico"** (mig `20260720170134` `task_queue_insights()`): "~N salen en la próxima hora" (min of due & real throughput), "cola vacía en ~Xh a ~N/h" (ETA from last-hour throughput, fallback today's average), composition line; "al día" when empty.
+- **Brand**: Sidebar + MainLayout → `/favicon-96.png` + "Rent Finder" (dropped "Cleveland" / org name). Greeting moved into the top header (compact variant, replaces "Dashboard" title). **Global focus ring removed** system-wide. Commits `0e43f8e`, `42a55b2`, `dcc59cb`, `f81799f`, `0067c61`, `40b7cc7`.
+
+## H. Schedule-showing audit (why "Shawanda was invisible")
+
+- Root cause: `booked_by` FK pointed at `public.users.id` but the value was `auth.users.id` — admin bookings had been dead ~16 days; plus the lead picker capped at 10k while she ranked 15,772. Both fixed (`userRecord.auth_user_id`, uncapped search via `src/lib/leadSearch.ts` with sanitized `.or()` grammar). 726 duplicate leads merged (18,837→18,111) via `merge_leads`; 134 risky groups held for manual review. E.164 normalizer + normalized dedup trigger added. Commits `0977628`/`822044c`/`29f8db0`/`c190e43`.
+
+---
+
+## I. New / changed DB objects (this snapshot)
+
+**RPCs added**: `lead_counts`, `analytics_overview`, `analytics_time_series`, `analytics_email_campaigns`, `agents_live_status`, `dashboard_live`, `task_queue_insights`, `compute_milestone_score`, `apply_milestone_score`, `recalculate_lead_scores` (repurposed). **Rewritten**: `habakkuk_check_alerts`, `schedule_showing_confirmations`, `claim_pending_tasks`, `auto_task_priority_notification`, `get_lead_funnel`, `log_score_change` (no-op). **Realtime publication** now includes `leads, agent_tasks, agent_activity_log, showings`. **Migrations** (Jul 19–20): 154207, 154358, 190544, 192422, 201932, 055247, 060403, 062943, 013237, 020054, 160921, 162645, 170134.
+
+**Edge functions deleted (−12)**: agent-scoring, process-sms-queue, agent-sms-inbound, fetch-twilio-messages, pathway-webhook, agent-notification-dispatcher, agent-conversion-predictor, batch-predictions, agent-insight-generator, agent-report-generator, agent-paip-assistant, agent-system-analysis, verify-identity, persona-webhook (14 total incl. Persona/MaxMind). Registry 7→5. Crons 22→14.
+
+## J. Live statistics (2026-07-20)
+
+| Metric | Value |
+|---|---|
+| Leads (total, non-demo) | 18,112 |
+| Hot (is_priority, score≥50) | 109 |
+| Milestone dist {0,10,50,80,100} | 17,969 · 29 · 7 · 45 · 61 |
+| Applicants (in_application) | 61 |
+| Showings (resolved show-rate) | 78 · 80.7% |
+| Properties (doors / distinct) | 107 / 67 · 44% occupied |
+| Email events (bounce all-time) | 38.7k · 19.1% |
+| agent_tasks (completed/pending) | 18k+ / ~1.1k pending (draining) |
+| Edge functions | −14 deleted this arc |
+
+## K. Pending / follow-ups (owner-blocked)
+
+- **🔴 Lovable rebuild** — ALL of the above frontend only reaches the live site after a rebuild. **After the rebuild, re-verify the 14 deleted edge functions did not resurrect** (`agent-scoring` came back once via an external redeploy).
+- 134 duplicate-lead groups held for manual review.
+- Telegram funnel v3 (parallel session) — deployed, ownership shared.
+- Legal 10DLC "HomeGuard" review; n8n inbound-SMS confirmation.
+- The welcome-email backlog (~1.1k) drains itself at ~480/h (owner chose drain-accelerated over cancel).
+
+---
+
 ## Version 17 | July 19, 2026
 
 ---
