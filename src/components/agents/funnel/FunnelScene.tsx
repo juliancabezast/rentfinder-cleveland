@@ -266,23 +266,38 @@ function AgentNode({
     : health === "disabled" ? statusColors.muted
     : statusColors.accent;
 
+  const ring = useRef<THREE.Group>(null);
+
   useFrame(({ clock }, delta) => {
     const g = group.current;
     const m = mesh.current;
     if (!g || !m) return;
     g.position.y = position[1] + Math.sin(clock.elapsedTime * 1.2 + phase) * 0.09;
-    m.rotation.y += 0.25 * delta;
+
     const pulse = pulses.get(`agent:${agentKey}`);
     let scale = 1;
     let emissive = selected || hovered ? 0.5 : 0.18;
+    let spin = 0.25;
+
     if (pulse) {
       const k = Math.min(1, pulse.t);
-      scale = 1 + 0.18 * Math.sin(k * Math.PI) * Math.min(2, 1 + Math.log10(pulse.magnitude + 1));
-      emissive = 0.25 + 0.85 * Math.sin(k * Math.PI);
-      pulse.t += 0.04;
+      const mag = Math.min(1.8, 1 + Math.log10(pulse.magnitude + 1));
+      // Snappy elastic pop: fast overshoot then settle (easeOutBack-ish).
+      const s = Math.sin(k * Math.PI);
+      const overshoot = Math.sin(k * Math.PI * 1.5) * Math.exp(-k * 2.4);
+      scale = 1 + (0.34 * s + 0.14 * overshoot) * mag;
+      // Bright emissive spike that Bloom catches, with a quick front edge.
+      emissive = 0.2 + 1.7 * Math.pow(s, 0.6);
+      // A little spin kick that eases back to idle.
+      spin = 0.25 + 3.2 * (1 - k);
+      pulse.t += 0.028;
       if (pulse.t >= 1) pulses.delete(`agent:${agentKey}`);
     }
+
+    m.rotation.y += spin * delta;
     g.scale.setScalar(scale);
+    // The status ring flares with the pulse too.
+    if (ring.current) ring.current.scale.setScalar(1 + (scale - 1) * 0.6);
     const mat = m.material as THREE.MeshPhysicalMaterial;
     mat.emissiveIntensity = emissive;
     mat.emissive.set(pulse?.failed ? statusColors.destructive : color);
@@ -310,7 +325,9 @@ function AgentNode({
         />
       </mesh>
       <Atmosphere radius={R} color={color} strength={0.8} />
-      <PlanetRing radius={R} color={ringColor} />
+      <group ref={ring}>
+        <PlanetRing radius={R} color={ringColor} />
+      </group>
       {showLabel && (
         <Html center distanceFactor={11} zIndexRange={[10, 0]} position={[0, 1.05, 0]} style={{ pointerEvents: "none" }}>
           <div className="flex flex-col items-center whitespace-nowrap select-none">
@@ -335,14 +352,19 @@ interface RegisteredCurve {
 }
 
 const PARTICLE_BUDGET = 600;
+const SHOCK_POOL = 12;
+
+interface AgentMeta { pos: THREE.Vector3; color: string }
 
 function FlowSystem({
-  curves, events, pulses, accent,
+  curves, events, pulses, accent, agentMeta, destructive,
 }: {
   curves: RegisteredCurve[];
   events: FunnelEventBus;
   pulses: PulseMap;
   accent: string;
+  agentMeta: Record<string, AgentMeta>;
+  destructive: string;
 }) {
   const inst = useRef<THREE.InstancedMesh>(null);
   const state = useMemo(() => ({
@@ -354,24 +376,55 @@ function FlowSystem({
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const spawnAccumulator = useRef<number[]>([]);
 
+  // Shockwave ring pool — one expanding ring per agent "ping"
+  const shockMeshes = useRef<(THREE.Mesh | null)[]>([]);
+  const shockState = useMemo(
+    () => Array.from({ length: SHOCK_POOL }, () => ({ t: 1, active: false })),
+    []
+  );
+
   useEffect(() => {
     spawnAccumulator.current = curves.map(() => 0);
     state.curveIdx.fill(-1);
   }, [curves, state]);
 
-  const spawn = (curveIdx: number, big = false) => {
+  const spawn = (curveIdx: number, opts?: { big?: boolean; fast?: boolean }) => {
     for (let i = 0; i < PARTICLE_BUDGET; i++) {
       if (state.curveIdx[i] === -1) {
         state.curveIdx[i] = curveIdx;
         state.t[i] = 0;
-        state.speed[i] = 0.1 + Math.random() * 0.12;
-        state.scale[i] = big ? 0.1 : 0.045 + Math.random() * 0.03;
+        state.speed[i] = opts?.fast ? 0.34 + Math.random() * 0.2 : 0.1 + Math.random() * 0.12;
+        state.scale[i] = opts?.big ? 0.11 : 0.045 + Math.random() * 0.03;
         return;
       }
     }
   };
 
-  useFrame((_, delta) => {
+  // A fast, bright burst of energy racing down the agent's edge to its stage.
+  const spawnBurst = (agentKey: string, n: number) => {
+    const idx = curves.findIndex((c) => c.agentKey === agentKey);
+    if (idx < 0) return;
+    for (let i = 0; i < n; i++) spawn(idx, { big: true, fast: true });
+  };
+
+  const triggerShock = (agentKey: string, failed: boolean) => {
+    const meta = agentMeta[agentKey];
+    if (!meta) return;
+    for (let i = 0; i < SHOCK_POOL; i++) {
+      if (!shockState[i].active) {
+        shockState[i].active = true;
+        shockState[i].t = 0;
+        const m = shockMeshes.current[i];
+        if (m) {
+          m.position.copy(meta.pos);
+          (m.material as THREE.MeshBasicMaterial).color.set(failed ? destructive : meta.color);
+        }
+        return;
+      }
+    }
+  };
+
+  useFrame((frame, delta) => {
     const mesh = inst.current;
     if (!mesh) return;
 
@@ -379,15 +432,32 @@ function FlowSystem({
       if (ev.type === "lead_new") {
         pulses.set("agent:esther", { t: 0, failed: false, magnitude: ev.magnitude });
         pulses.set("stage:new", { t: 0, failed: false, magnitude: ev.magnitude });
-        const idx = curves.findIndex((c) => c.agentKey === "esther");
-        if (idx >= 0) for (let i = 0; i < Math.min(5, ev.magnitude); i++) spawn(idx, true);
+        triggerShock("esther", false);
+        spawnBurst("esther", Math.min(7, 3 + ev.magnitude));
       } else if (ev.type === "agent_activity") {
         pulses.set(`agent:${ev.agentKey}`, { t: 0, failed: ev.failed, magnitude: ev.magnitude });
+        triggerShock(ev.agentKey, ev.failed);
+        if (!ev.failed) spawnBurst(ev.agentKey, Math.min(8, 4 + ev.magnitude));
       } else if (ev.type === "task_completed") {
         pulses.set(`agent:${ev.agentKey}`, { t: 0, failed: false, magnitude: ev.magnitude });
-        const idx = curves.findIndex((c) => c.agentKey === ev.agentKey);
-        if (idx >= 0) for (let i = 0; i < Math.min(4, ev.magnitude); i++) spawn(idx, true);
+        triggerShock(ev.agentKey, false);
+        spawnBurst(ev.agentKey, Math.min(6, 3 + ev.magnitude));
       }
+    }
+
+    // Animate shockwave rings — expand + fade, always facing the camera
+    for (let i = 0; i < SHOCK_POOL; i++) {
+      const st = shockState[i];
+      const m = shockMeshes.current[i];
+      if (!m) continue;
+      if (!st.active) { m.visible = false; continue; }
+      st.t += delta * 1.5; // ~0.66s life
+      if (st.t >= 1) { st.active = false; m.visible = false; continue; }
+      m.visible = true;
+      const e = 1 - Math.pow(1 - st.t, 2); // easeOut expansion
+      m.scale.setScalar(0.45 + e * 1.9); // stays local to the agent planet
+      m.quaternion.copy(frame.camera.quaternion);
+      (m.material as THREE.MeshBasicMaterial).opacity = (1 - st.t) * 0.9;
     }
 
     curves.forEach((c, idx) => {
@@ -422,11 +492,32 @@ function FlowSystem({
   });
 
   return (
-    <instancedMesh ref={inst} args={[undefined, undefined, PARTICLE_BUDGET]} frustumCulled={false} raycast={() => null}>
-      <sphereGeometry args={[1, 8, 8]} />
-      {/* emissive-bright so Bloom picks the particles up as light streaks */}
-      <meshBasicMaterial color={accent} toneMapped={false} transparent opacity={0.95} />
-    </instancedMesh>
+    <>
+      <instancedMesh ref={inst} args={[undefined, undefined, PARTICLE_BUDGET]} frustumCulled={false} raycast={() => null}>
+        <sphereGeometry args={[1, 8, 8]} />
+        {/* emissive-bright so Bloom picks the particles up as light streaks */}
+        <meshBasicMaterial color={accent} toneMapped={false} transparent opacity={0.95} />
+      </instancedMesh>
+      {Array.from({ length: SHOCK_POOL }, (_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => { shockMeshes.current[i] = el; }}
+          visible={false}
+          raycast={() => null}
+        >
+          <ringGeometry args={[0.86, 1.0, 48]} />
+          <meshBasicMaterial
+            color={accent}
+            toneMapped={false}
+            transparent
+            opacity={0}
+            side={THREE.DoubleSide}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </>
   );
 }
 
@@ -502,6 +593,15 @@ const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, 
   const agentByKey = useMemo(
     () => Object.fromEntries(snapshot.agents.map((a) => [a.key, a])),
     [snapshot.agents]
+  );
+
+  // Static: where each agent lives + its color, for shockwaves/bursts
+  const agentMeta = useMemo(
+    () =>
+      Object.fromEntries(
+        AGENT_NODES.map((a) => [a.key, { pos: new THREE.Vector3(...a.position), color: a.color }])
+      ),
+    []
   );
 
   const spineCurves = useMemo(
@@ -631,7 +731,14 @@ const FunnelScene: React.FC<FunnelSceneProps> = ({ snapshot, events, selection, 
           );
         })}
 
-        <FlowSystem curves={curves} events={events} pulses={pulses} accent={statusColors.accent} />
+        <FlowSystem
+          curves={curves}
+          events={events}
+          pulses={pulses}
+          accent={statusColors.accent}
+          agentMeta={agentMeta}
+          destructive={statusColors.destructive}
+        />
 
         <EffectComposer multisampling={0}>
           <Bloom intensity={0.85} luminanceThreshold={0.22} luminanceSmoothing={0.75} mipmapBlur />

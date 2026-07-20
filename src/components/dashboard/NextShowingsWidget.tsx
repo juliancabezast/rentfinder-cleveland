@@ -34,7 +34,7 @@ interface Props {
 
 export const NextShowingsWidget: React.FC<Props> = ({ showings, loading }) => {
   const navigate = useNavigate();
-  const list = showings ?? [];
+  const list = (showings ?? []).slice(0, 5);
 
   return (
     <Card variant="glass">
