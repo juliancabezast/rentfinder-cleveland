@@ -298,7 +298,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     // Funnel can ALSO schedule + create leads ("estoy con alguien: agendame").
     : ctx.bot === "funnel" ? (data.startsWith("fnl:") || data.startsWith("fl:") || data.startsWith("qa:") || SCHED_CB)
     // Showings = field assistant: post-tour, recap, showing report, agenda/ruta.
-    : ctx.bot === "showings" ? (data.startsWith("psw:") || data.startsWith("psa:") || data === "m:ps" || data.startsWith("sd:") || data.startsWith("cz:") || SR_CB || AG_CB)
+    : ctx.bot === "showings" ? (data.startsWith("psw:") || data.startsWith("psa:") || data === "m:ps" || data.startsWith("sd:") || data.startsWith("cz:") || data.startsWith("rmd:") || SR_CB || AG_CB)
     : false;
   if (!cbAllowed) {
     await answer(); await redirectToLeasing(ctx, messageId); return;
@@ -319,6 +319,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data === "m:ps") { await answer(); await startRecentShowings(ctx, messageId); return; }
     if (data.startsWith("psw:")) { await answer(); await postShowingCard(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("psa:")) { await handleAttendance(ctx, cbq, data); return; }
+    if (data.startsWith("rmd:")) { await handleReminderAction(ctx, cbq, data); return; }
     if (data.startsWith("cz:")) { await handleClosing(ctx, cbq, data); return; }
     if (data.startsWith("psl:")) { await answer(); await funnelLeadCard(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("msg:")) { await answer(); await chooseSmsLead(ctx, messageId, data.slice(4)); return; }
@@ -1749,6 +1750,9 @@ const FNL_SMS_TEMPLATES: { code: string; label: string; body: (first: string) =>
   { code: "sh", label: "📅 Ofrecer showing", body: (f) => `Hi ${f}, would you like to tour the property? Reply with a day and time that works and we'll schedule your showing.` },
   { code: "ap", label: "📝 Link para aplicar", body: (f) => `Hi ${f}, ready to move forward? You can apply here: ${APPLY_LINK}` },
   { code: "rs", label: "🔄 Re-agendar showing", body: (f) => `Hi ${f}, sorry we missed each other at the showing! Want to pick a new time? Reply with a day and time that works, or book online: https://rentfindercleveland.com` },
+  // BEFORE the tour (the 30-min confirmation call said "I can't make it") — the
+  // "rs" copy apologizes for a no-show that hasn't happened yet.
+  { code: "rs2", label: "🔄 Mover el showing", body: (f) => `Hi ${f}, this is Rent Finder Cleveland about your showing today — no problem, let's find a new time. What day and time works best for you? You can also pick a new slot online: https://rentfindercleveland.com` },
 ];
 async function funnelSmsPicker(ctx: Ctx, messageId: number | undefined, lead: any) {
   const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
@@ -2259,6 +2263,14 @@ const FNL_EMAIL_TEMPLATES: {
     text: (f) => `Hi ${f}, sorry we missed each other at the showing! No problem — pick a new time that works for you and book online in under a minute: ${MARKETPLACE_URL}. You can also just reply to this email with a day and time.`,
     html: (f) => `<p>Hi ${f},</p><p>Sorry we missed each other at the showing! No problem — pick a new time that works for you and book online in under a minute:</p><p><a href="${MARKETPLACE_URL}">${MARKETPLACE_URL}</a></p><p>You can also just reply to this email with a day and time that works.</p><p>— Rent Finder Cleveland</p>`,
   },
+  {
+    // BEFORE the tour — paired with the 30-min reminder's 🔄 Reagendar button.
+    // "rs" apologizes for a missed showing; this one hasn't been missed yet.
+    code: "rs2", label: "🔄 Mover el showing", ntype: "showing_invite",
+    subject: "Let's find a new time for your showing — Rent Finder Cleveland",
+    text: (f) => `Hi ${f}, about your showing today — no problem, let's find a new time. Pick a new slot online in under a minute: ${MARKETPLACE_URL}. You can also just reply to this email with a day and time that works for you.`,
+    html: (f) => `<p>Hi ${f},</p><p>About your showing today — no problem, let's find a new time that works for you.</p><p>Pick a new slot online in under a minute:</p><p><a href="${MARKETPLACE_URL}">${MARKETPLACE_URL}</a></p><p>You can also just reply to this email with a day and time.</p><p>— Rent Finder Cleveland</p>`,
+  },
 ];
 
 async function funnelEmailPicker(ctx: Ctx, lead: any) {
@@ -2344,20 +2356,18 @@ async function sendLeadContact(ctx: Ctx, lead: any) {
   const first = clean(lead.first_name) || name.split(/\s+/)[0] || "Lead";
   const baseLast = clean(lead.last_name) || name.split(/\s+/).slice(1).join(" ");
 
-  // Tag the saved contact with the property of interest so it's identifiable in
-  // the phone book — e.g. "Kiara Green · RFC 3180 N 15th". Falls back to just
-  // "· RFC" (so leads still cluster) when there's no tagged property.
+  // The contact is saved under the person's REAL name and nothing else (owner
+  // decision 2026-07-21: the old "· RFC <address>" tag polluted the phone book).
+  // The property of interest still travels — in NOTE, where it doesn't touch
+  // how the contact sorts or searches.
   const { data: tag } = await ctx.supabase.from("lead_property_interests")
     .select("properties:property_id(address, city)")
     .eq("organization_id", ctx.organizationId).eq("lead_id", lead.id)
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
   const pr = (tag as any)?.properties;
   const propShort = pr?.address ? clean(pr.address) : "";
-  const suffix = propShort ? `RFC ${propShort}` : "RFC";
-  // Keep the person's surname first, then the identifier — so the phone still
-  // sorts and searches by their real name.
-  const last = baseLast ? `${baseLast} · ${suffix}` : `· ${suffix}`;
-  const fn = `${name} · ${suffix}`;
+  const last = baseLast;
+  const fn = name;
 
   const vcard = [
     "BEGIN:VCARD", "VERSION:3.0",
@@ -2626,6 +2636,76 @@ async function handleAttendance(ctx: Ctx, cbq: any, data: string) {
       ? `✅ <b>${escapeHtml(leadName(l))}</b> fue al showing — ¿siguiente paso?`
       : `👻 <b>${escapeHtml(leadName(l))}</b> no fue — ¿lo recuperamos?`,
     postShowingFollowUpKb(l.id, attended));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ⏰ 30-min reminder actions — the two outcomes of the confirmation call. This is
+// the PRE-tour counterpart of the post-showing card: `psa:` resolves what
+// happened, `rmd:` resolves what is about to happen.
+// ═══════════════════════════════════════════════════════════════════════════════
+async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, verb = "", showingId = ""] = data.split(":");
+  if (!showingId) { await answer(); return; }
+
+  const { data: s } = await ctx.supabase.from("showings")
+    .select(`id, scheduled_at, status, lead_id,
+      leads:lead_id ( id, full_name, first_name, last_name, phone, email ),
+      properties:property_id ( address, unit_number )`)
+    .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
+  if (!s?.leads?.id) { await answer("No encontré ese showing."); return; }
+  const l = s.leads;
+  const p: any = (s as any).properties || {};
+  const name = leadName(l);
+  const addr = p.address ? `${p.address}${p.unit_number ? ` ${p.unit_number}` : ""}` : "";
+  const where = addr ? ` · ${escapeHtml(addr)}` : "";
+  const when = new Date(s.scheduled_at).toLocaleTimeString("en-US", {
+    timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true,
+  });
+  const contactRow = [{ text: "👤 Agregar contacto", callback_data: `act:vc:${l.id}` }];
+  const moreRow = [{ text: "📋 Más acciones", callback_data: `act:menu:${l.id}` }];
+
+  try {
+    if (verb === "c") {
+      await answer("✅ Confirmado");
+      // 'confirmed' is a real showing status — it turns GREEN ("Confirmado") in
+      // the owner's Leasing Tracker. Milestone score is unchanged (scheduled and
+      // confirmed are both 50). Only advance from a live status: never resurrect
+      // a cancelled/completed/no-show row.
+      if (["scheduled", "rescheduled"].includes(String(s.status))) {
+        await ctx.supabase.from("showings").update({ status: "confirmed" })
+          .eq("organization_id", ctx.organizationId).eq("id", showingId);
+      }
+      await logLeadNote(ctx, l.id, "general",
+        `✅ Confirmó el showing de las ${when}${addr ? ` en ${addr}` : ""}`);
+      await editOrSend(ctx, messageId,
+        `✅ <b>${escapeHtml(name)} confirmó</b> — ${escapeHtml(when)}${where}\n` +
+        `<i>Queda en el historial del lead y como «Confirmado» en el Leasing Tracker.</i>`,
+        [contactRow, moreRow]);
+      return;
+    }
+    if (verb === "r") {
+      await answer();
+      await logLeadNote(ctx, l.id, "general", `🔄 Pidió re-agendar el showing de las ${when}`);
+      // The showing KEEPS its status on purpose: until a new slot is actually
+      // booked it must stay visible (8 PM recap / 🏁 recientes) instead of
+      // silently vanishing from the day.
+      const kb: any[][] = [[{ text: "💬 SMS para mover", callback_data: `asms:${l.id}:rs2` }]];
+      if (l.email) kb.push([{ text: "✉️ Email para mover", callback_data: `aem:${l.id}:rs2` }]);
+      kb.push(contactRow, moreRow);
+      await editOrSend(ctx, messageId,
+        `🔄 <b>Re-agendar</b> — ${escapeHtml(name)}${where}\n` +
+        `📞 ${escapeHtml(String(l.phone ?? "—"))}${l.email ? ` · ✉️ ${escapeHtml(l.email)}` : ""}\n\n` +
+        `Mandale el mensaje para elegir nuevo horario 👇`,
+        kb);
+      return;
+    }
+    await answer();
+  } catch (err) {
+    console.error("handleReminderAction error:", err);
+    await answer("Ocurrió un error.");
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

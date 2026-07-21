@@ -431,21 +431,23 @@ serve(async (req: Request) => {
         }
       }
 
-      // Resolve the LeasingAgent (route) bot — showing-day cards live with the
-      // showings operation (2026-07-19 restructure; the old Hot Leads bot is
-      // parked). Fall back to the general bot. Values may be JSON-encoded.
+      // Resolve the SHOWINGS (field-assistant) bot — the 30-min card belongs
+      // with the rest of the showing-day flow (closing cadence, 8 PM recap,
+      // post-tour resolution), not on the Setter, whose job is booking
+      // (owner decision 2026-07-21). Falls back to the general bot — never to
+      // the Setter. Values may be JSON-encoded.
       const [{ data: creds }, { data: settings }] = await Promise.all([
         supabase
           .from("organization_credentials")
-          .select("telegram_bot_token, telegram_chat_id, telegram_route_bot_token, telegram_route_chat_id")
+          .select("telegram_bot_token, telegram_chat_id, telegram_showings_bot_token, telegram_showings_chat_id")
           .eq("organization_id", orgId)
           .maybeSingle(),
-        // Legacy fallback only — route creds moved into organization_credentials.
+        // Legacy fallback only — bot creds moved into organization_credentials.
         supabase
           .from("organization_settings")
           .select("key, value")
           .eq("organization_id", orgId)
-          .in("key", ["telegram_route_bot_token", "telegram_route_chat_id"]),
+          .in("key", ["telegram_showings_bot_token", "telegram_showings_chat_id"]),
       ]);
 
       const unwrapVal = (v: unknown) => {
@@ -454,15 +456,18 @@ serve(async (req: Request) => {
         try { const p = JSON.parse(str); return typeof p === "string" ? p : str; } catch { return str; }
       };
       const settingsMap = new Map((settings || []).map((s: any) => [s.key, unwrapVal(s.value)]));
-      // Pair token+chat ATOMICALLY — never mix the route token with the general chat.
-      const routeTok = creds?.telegram_route_bot_token || settingsMap.get("telegram_route_bot_token");
-      const routeChat = creds?.telegram_route_chat_id || settingsMap.get("telegram_route_chat_id");
-      const useRoute = !!routeTok && !!routeChat;
-      const botToken = (useRoute ? routeTok : creds?.telegram_bot_token) as string;
-      const chatId = (useRoute ? routeChat : creds?.telegram_chat_id) as string;
+      // Pair token+chat ATOMICALLY — never mix one bot's token with another's chat.
+      const shwTok = creds?.telegram_showings_bot_token || settingsMap.get("telegram_showings_bot_token");
+      const shwChat = creds?.telegram_showings_chat_id || settingsMap.get("telegram_showings_chat_id");
+      const useShowings = !!shwTok && !!shwChat;
+      const botToken = (useShowings ? shwTok : creds?.telegram_bot_token) as string;
+      const chatId = (useShowings ? shwChat : creds?.telegram_chat_id) as string;
+      // rmd:/act: buttons are only wired on the Showings bot — omit them on the
+      // general-bot fallback rather than shipping taps that silently redirect.
+      const canAct = useShowings;
 
       if (!botToken || !chatId) {
-        console.log(`Showing reminder: org ${orgId} has no showings/route bot configured, skipping`);
+        console.log(`Showing reminder: org ${orgId} has no showings bot configured, skipping`);
         continue;
       }
 
@@ -519,6 +524,21 @@ serve(async (req: Request) => {
           .filter(Boolean)
           .join("\n");
 
+        // The confirmation call has two outcomes — resolve it with one tap.
+        // `rmd:` lives in telegram-webhook (Showings bot); `act:vc:` is the
+        // shared save-contact action, allowed on every bot.
+        const keyboard = canAct
+          ? [
+              [{ text: "✅ Confirmó", callback_data: `rmd:c:${showing.id}` },
+               { text: "🔄 Reagendar", callback_data: `rmd:r:${showing.id}` }],
+              // A lead-less showing (rare, but the FK is nullable) gets no
+              // save-contact row — the callback would be a dead tap.
+              ...(showing.lead_id
+                ? [[{ text: "👤 Agregar contacto", callback_data: `act:vc:${showing.lead_id}` }]]
+                : []),
+            ]
+          : undefined;
+
         const tgResp = await fetch(
           `https://api.telegram.org/bot${botToken}/sendMessage`,
           {
@@ -529,6 +549,7 @@ serve(async (req: Request) => {
               text: msg,
               parse_mode: "HTML",
               disable_web_page_preview: true,
+              ...(keyboard ? { reply_markup: { inline_keyboard: keyboard } } : {}),
             }),
           }
         );
@@ -543,7 +564,7 @@ serve(async (req: Request) => {
             level: "info",
             category: "general",
             event_type: "showing_reminder_sent",
-            message: `Route reminder sent: ${leadName} at ${address} (${timeStr})`,
+            message: `30-min reminder sent: ${leadName} at ${address} (${timeStr})`,
             related_lead_id: showing.lead_id,
             related_showing_id: showing.id,
             details: { showing_id: showing.id },
