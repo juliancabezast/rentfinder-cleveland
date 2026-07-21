@@ -1729,6 +1729,8 @@ async function handleStageSet(ctx: Ctx, cbq: any, data: string) {
   await answer("Etapa cambiada ✅");
   await markManaged(ctx, leadId);
   await logLeadNote(ctx, leadId, "general", `🎯 Etapa: ${prev} → ${stage.status}`);
+  // 'lost' is the meaningful one for the owner — the rest is pipeline movement.
+  await logActivity(ctx, stage.status === "lost" ? "lead_not_interested" : "stage_changed", { leadId });
   // A stage move counts as attention — cancel auto reminders (call retries);
   // an explicitly requested follow-up (reason 'follow_up') survives.
   await ctx.supabase.from("lead_reminders").update({ status: "cancelled" })
@@ -1779,6 +1781,11 @@ async function handleFunnelSms(ctx: Ctx, cbq: any, data: string) {
   // which fires the sms: deep link and opens Messages prefilled (same mechanism
   // as the LeasingAgent agenda quick-SMS).
   const url = `https://rentfindercleveland.com/sms-redirect.html?to=${encodeURIComponent(tel)}&body=${encodeURIComponent(body)}`;
+  // Until now an SMS left NO trace anywhere — not in the lead's history, not in
+  // the owner's feed. The tap is the send (the redirect opens Messages already
+  // filled in), so it's recorded on the same standard as "llamé, no contestó".
+  await logLeadNote(ctx, leadId, "general", `💬 SMS enviado: ${tmpl.label.replace(/^[^\s]+\s/, "")}`);
+  await logActivity(ctx, "message_sent_sms", { leadId });
   await editOrSend(ctx, messageId,
     `💬 <b>${escapeHtml(leadName(lead))}</b> · 📞 ${escapeHtml(tel)}\n\n<code>${escapeHtml(body)}</code>\n\nTocá el botón y se abre Mensajes con el texto listo:`,
     [[{ text: "📲 Abrir Mensajes", url }], [{ text: "◀️ Volver", callback_data: `act:menu:${leadId}` }]]);
@@ -2340,6 +2347,7 @@ async function handleEmailSend(ctx: Ctx, cbq: any, data: string) {
   }
   // note_type must satisfy lead_notes_note_type_check — "general" is allowed.
   await logLeadNote(ctx, leadId, "general", `✉️ Email enviado: ${t.label.replace(/^[^\s]+\s/, "")}`);
+  await logActivity(ctx, "message_sent_email", { leadId });
   await editOrSend(ctx, messageId,
     `✉️ <b>Enviado</b> a ${escapeHtml(lead.email)} ✅\n<i>Sale en minutos desde support@rentfindercleveland.com — quedó en el historial del lead.</i>`,
     [[{ text: "📋 Otra acción", callback_data: `act:menu:${leadId}` }]]);
@@ -2611,7 +2619,7 @@ async function handleAttendance(ctx: Ctx, cbq: any, data: string) {
   const [, showingId = "", yn = ""] = data.split(":");
   const attended = yn === "y";
   const { data: s } = await ctx.supabase.from("showings")
-    .select("id, status, lead_id, leads:lead_id(id, full_name, first_name, last_name, status)")
+    .select("id, status, lead_id, property_id, leads:lead_id(id, full_name, first_name, last_name, status)")
     .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
   if (!s?.leads?.id) { await answer("No encontrado"); return; }
   const l = s.leads;
@@ -2630,6 +2638,8 @@ async function handleAttendance(ctx: Ctx, cbq: any, data: string) {
   }
   if (attended) await startClosingCadence(ctx, l.id);
   await logLeadNote(ctx, l.id, "general", attended ? "🏁 Asistió al showing" : "👻 No asistió al showing");
+  await logActivity(ctx, attended ? "showing_attended" : "showing_no_show",
+    { leadId: l.id, propertyId: (s as any).property_id ?? null, showingId: s.id });
   await markManaged(ctx, l.id);
   await editOrSend(ctx, messageId,
     attended
@@ -2650,7 +2660,7 @@ async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
   if (!showingId) { await answer(); return; }
 
   const { data: s } = await ctx.supabase.from("showings")
-    .select(`id, scheduled_at, status, lead_id,
+    .select(`id, scheduled_at, status, lead_id, property_id,
       leads:lead_id ( id, full_name, first_name, last_name, phone, email ),
       properties:property_id ( address, unit_number )`)
     .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
@@ -2679,6 +2689,9 @@ async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
       }
       await logLeadNote(ctx, l.id, "general",
         `✅ Confirmó el showing de las ${when}${addr ? ` en ${addr}` : ""}`);
+      // property comes from the showing itself — no interest-tag lookup needed.
+      await logActivity(ctx, "contacted", { leadId: l.id, propertyId: (s as any).property_id ?? null, showingId: s.id });
+      await logActivity(ctx, "showing_confirmed", { leadId: l.id, propertyId: (s as any).property_id ?? null, showingId: s.id });
       await editOrSend(ctx, messageId,
         `✅ <b>${escapeHtml(name)} confirmó</b> — ${escapeHtml(when)}${where}\n` +
         `<i>Queda en el historial del lead y como «Confirmado» en el Leasing Tracker.</i>`,
@@ -2688,6 +2701,8 @@ async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
     if (verb === "r") {
       await answer();
       await logLeadNote(ctx, l.id, "general", `🔄 Pidió re-agendar el showing de las ${when}`);
+      await logActivity(ctx, "contacted", { leadId: l.id, propertyId: (s as any).property_id ?? null, showingId: s.id });
+      await logActivity(ctx, "showing_reschedule_requested", { leadId: l.id, propertyId: (s as any).property_id ?? null, showingId: s.id });
       // The showing KEEPS its status on purpose: until a new slot is actually
       // booked it must stay visible (8 PM recap / 🏁 recientes) instead of
       // silently vanishing from the day.
@@ -2887,6 +2902,41 @@ async function logLeadNote(ctx: Ctx, leadId: string, noteType: string, content: 
     content: `${content} · via Telegram`, note_type: noteType,
   });
 }
+
+// The building a lead's work counts toward — its most recent interest tag.
+async function leadPropertyId(ctx: Ctx, leadId: string): Promise<string | null> {
+  const { data } = await ctx.supabase.from("lead_property_interests")
+    .select("property_id")
+    .eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  return (data as any)?.property_id ?? null;
+}
+
+// Owner-facing twin of logLeadNote: `lead_notes` is the internal history (free
+// text, full of PII, never published); `leasing_activity` is the typed,
+// de-identified feed the property owner reads in the Leasing Tracker — proof
+// that their property is being worked. Best-effort: a failure here must never
+// break the action the user just tapped.
+async function logActivity(
+  ctx: Ctx, action: string,
+  opts: { leadId?: string; propertyId?: string | null; showingId?: string } = {},
+) {
+  try {
+    const propertyId = opts.propertyId !== undefined
+      ? opts.propertyId
+      : opts.leadId ? await leadPropertyId(ctx, opts.leadId) : null;
+    await ctx.supabase.from("leasing_activity").insert({
+      organization_id: ctx.organizationId,
+      action,
+      lead_id: opts.leadId ?? null,
+      property_id: propertyId,
+      showing_id: opts.showingId ?? null,
+      source: "telegram",
+    });
+  } catch (err) {
+    console.error("logActivity error:", err);
+  }
+}
 // Next day 09:00 America/New_York as a UTC ISO string (DST-aware via slotToUtcMs).
 function nextDay9amET(): string {
   const todayNy = todayNY();
@@ -2935,6 +2985,7 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
       const attempt = (Number(prevR?.attempt) || 0) + 1;
       await answer("Anotado ✅");
       await logLeadNote(ctx, leadId, "call_summary", `📞 Llamé — no contestó (intento ${attempt})`);
+      await logActivity(ctx, "contact_attempt", { leadId });
       await stopRollover();
       if (attempt < 3) {
         await ctx.supabase.from("lead_reminders").insert({
@@ -2951,6 +3002,9 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
     } else if (verb === "fu") {
       await answer("Seguimiento agendado ✅");
       await logLeadNote(ctx, leadId, "follow_up", "🔁 Llamé — pidió seguimiento");
+      // Reached them AND booked the next touch — two distinct signals of work.
+      await logActivity(ctx, "contacted", { leadId });
+      await logActivity(ctx, "follow_up_scheduled", { leadId });
       // Close any pending reminder FIRST, then re-arm for tomorrow. An overdue
       // pending row would otherwise make this a silent no-op and the lead would
       // stay at the head of the gestión queue forever. Double-taps still end
@@ -2965,6 +3019,7 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
     } else if (verb === "sch") {
       await answer();
       await logLeadNote(ctx, leadId, "general", "📅 Quiere agendar showing");
+      await logActivity(ctx, "contacted", { leadId });
       await stopRollover();
       if (ctx.bot === "funnel" || ctx.bot === "leasing") {
         // Schedule right here, lead preloaded.
@@ -2982,6 +3037,7 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
     } else if (verb === "done") {
       await answer("Anotado ✅");
       await logLeadNote(ctx, leadId, "call_summary", "👋 Ya contactado");
+      await logActivity(ctx, "contacted", { leadId });
       await stopRollover();
       await editOrSend(ctx, messageId, `✅ Anotado: <b>ya contactado</b> — ${escapeHtml(name)}`, again);
     } else if (verb === "lost") {
@@ -2989,6 +3045,7 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
       await ctx.supabase.from("leads").update({ status: "lost" })
         .eq("organization_id", ctx.organizationId).eq("id", leadId);
       await logLeadNote(ctx, leadId, "objection", "❌ No interesado — marcado lost");
+      await logActivity(ctx, "lead_not_interested", { leadId });
       await stopRollover();
       await editOrSend(ctx, messageId, `✅ Marcado <b>no interesado</b> (lost) — ${escapeHtml(name)}`, again);
     } else if (verb === "sms") {

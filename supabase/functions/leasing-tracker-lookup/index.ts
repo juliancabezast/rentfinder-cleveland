@@ -494,6 +494,44 @@ serve(async (req) => {
       }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
+    // ── Leasing effort (owner-facing) ───────────────────────────────────────
+    // The tracker used to show only OUTCOMES, so every call, follow-up, SMS and
+    // email was invisible and a worked property looked idle. `leasing_activity`
+    // holds typed action codes with no free-text field, so nothing here can
+    // carry a prospect's name — the labels are rendered client-side.
+    // Counts are exact head-counts, never a capped fetch counted in JS.
+    const act30d = new Date(nowMs - 30 * 86400000).toISOString();
+    const actCount = async (actions: string[]) => {
+      const { count } = await supabase
+        .from("leasing_activity").select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId).in("property_id", unitIds)
+        .in("action", actions).gte("created_at", act30d);
+      return count || 0;
+    };
+    const [
+      actContacts, actMessages, actFollowUps, actConfirmed, recentActivityRes,
+    ] = await Promise.all([
+      actCount(["contacted", "contact_attempt"]),
+      actCount(["message_sent_sms", "message_sent_email"]),
+      actCount(["follow_up_scheduled"]),
+      actCount(["showing_confirmed"]),
+      supabase
+        .from("leasing_activity").select("id, action, created_at")
+        .eq("organization_id", orgId).in("property_id", unitIds)
+        .order("created_at", { ascending: false }).limit(15),
+    ]);
+    const leasingActivity = {
+      last_30d: {
+        contacts: actContacts,
+        messages: actMessages,
+        follow_ups: actFollowUps,
+        showings_confirmed: actConfirmed,
+      },
+      recent: ((recentActivityRes.data || []) as any[]).map((a) => ({
+        id: a.id, action: a.action, created_at: a.created_at,
+      })),
+    };
+
     // Open agenda slots across all units (enabled & not booked). Use exact
     // counts (there can be thousands) + a bounded list of the next open slots.
     const today = orgToday();
@@ -618,6 +656,7 @@ serve(async (req) => {
       showings_by_status: showingsByStatus,
       showings_timeline: timeline,
       agent_comments: agentComments,
+      leasing_activity: leasingActivity,
       open_slots: {
         upcoming_count: openUpcoming,
         past_count: openPast,

@@ -51,6 +51,14 @@ import {
   Globe,
   Layers,
   MessageSquareQuote,
+  Activity,
+  PhoneCall,
+  PhoneMissed,
+  Send,
+  RotateCcw,
+  Flag,
+  Target,
+  XCircle,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -137,6 +145,17 @@ interface TrackerData {
     unit_number: string | null;
     comment: string;
   }[];
+  // Typed action codes only — the label is rendered here, so no prospect data
+  // ever reaches this page (see the leasing_activity migration).
+  leasing_activity?: {
+    last_30d: {
+      contacts: number;
+      messages: number;
+      follow_ups: number;
+      showings_confirmed: number;
+    };
+    recent: { id: string; action: string; created_at: string }[];
+  } | null;
   open_slots: {
     upcoming_count: number;
     past_count: number;
@@ -220,6 +239,30 @@ const STRINGS = {
     sourcesSub: "De dónde vinieron los prospectos",
     showingsByStatus: "Showings por estado",
     showingsByStatusSub: "Todos los tours agendados a la fecha",
+    activity: "Actividad de gestión",
+    activitySub: "El trabajo que nuestro equipo hizo sobre tu propiedad",
+    activity30d: "últimos 30 días",
+    activityContacts: "contactos",
+    activityMessages: "mensajes enviados",
+    activityFollowUps: "seguimientos agendados",
+    activityConfirmed: "showings confirmados",
+    activityRecent: "Últimos movimientos",
+    activityEmpty: "Todavía no hay actividad registrada para esta propiedad",
+    activityNow: "recién",
+    activityHoursAgo: (n: number) => `hace ${n} h`,
+    actionLabels: {
+      contacted: "Se contactó a un prospecto",
+      contact_attempt: "Llamada sin respuesta",
+      follow_up_scheduled: "Se agendó un seguimiento",
+      message_sent_sms: "Se envió un SMS",
+      message_sent_email: "Se envió un email",
+      showing_confirmed: "Se confirmó un showing",
+      showing_reschedule_requested: "Se gestionó una reprogramación",
+      showing_attended: "Un prospecto asistió a la visita",
+      showing_no_show: "Un prospecto no asistió",
+      lead_not_interested: "Prospecto no interesado",
+      stage_changed: "Se actualizó la etapa de un prospecto",
+    } as Record<string, string>,
     timeline: "Showings y notas del agente",
     timelineSub: "Próximas visitas e historial, con el comentario del agente de cada tour",
     upcoming: "Próximos",
@@ -334,6 +377,30 @@ const STRINGS = {
     sourcesSub: "Where prospects came from",
     showingsByStatus: "Showings by Status",
     showingsByStatusSub: "All tours booked to date",
+    activity: "Leasing Activity",
+    activitySub: "The work our team put into your property",
+    activity30d: "last 30 days",
+    activityContacts: "contacts",
+    activityMessages: "messages sent",
+    activityFollowUps: "follow-ups scheduled",
+    activityConfirmed: "showings confirmed",
+    activityRecent: "Latest moves",
+    activityEmpty: "No activity recorded for this property yet",
+    activityNow: "just now",
+    activityHoursAgo: (n: number) => `${n}h ago`,
+    actionLabels: {
+      contacted: "A prospect was contacted",
+      contact_attempt: "Call with no answer",
+      follow_up_scheduled: "A follow-up was scheduled",
+      message_sent_sms: "An SMS was sent",
+      message_sent_email: "An email was sent",
+      showing_confirmed: "A showing was confirmed",
+      showing_reschedule_requested: "A reschedule was handled",
+      showing_attended: "A prospect attended the tour",
+      showing_no_show: "A prospect did not attend",
+      lead_not_interested: "Prospect not interested",
+      stage_changed: "A prospect's stage was updated",
+    } as Record<string, string>,
     timeline: "Showings & Agent Notes",
     timelineSub: "Upcoming and past tours, with the agent's note for each",
     upcoming: "Upcoming",
@@ -491,6 +558,35 @@ function lastInquiryLabel(iso: string | null, tz: string, t: T): string {
   const diff = Math.round((Date.parse(today) - Date.parse(that)) / 86400000);
   return diff === 1 ? t.lastYesterday : t.lastDaysAgo(diff);
 }
+
+// Relative age for the activity feed: minutes → hours → the same calendar-day
+// wording the latest-inquiry line already uses, so both read alike.
+function activityAgo(iso: string, tz: string, t: T): string {
+  const ms = Date.now() - Date.parse(iso);
+  if (ms < 3_600_000) return t.activityNow;
+  const hours = Math.floor(ms / 3_600_000);
+  if (hours < 24) return t.activityHoursAgo(hours);
+  return lastInquiryLabel(iso, tz, t);
+}
+
+// One icon + tone per action code. Attempts that didn't land (no answer, not
+// interested) stay muted rather than red — they're effort, not failures.
+const ACTION_STYLE: Record<
+  string,
+  { icon: React.ComponentType<{ className?: string }>; tone: string }
+> = {
+  contacted: { icon: PhoneCall, tone: "text-[#4F46E5] bg-[#4F46E5]/10" },
+  contact_attempt: { icon: PhoneMissed, tone: "text-slate-500 bg-slate-500/10" },
+  follow_up_scheduled: { icon: RotateCcw, tone: "text-[#4F46E5] bg-[#4F46E5]/10" },
+  message_sent_sms: { icon: Send, tone: "text-sky-600 bg-sky-500/10" },
+  message_sent_email: { icon: Send, tone: "text-sky-600 bg-sky-500/10" },
+  showing_confirmed: { icon: CheckCircle2, tone: "text-emerald-600 bg-emerald-500/10" },
+  showing_reschedule_requested: { icon: CalendarClock, tone: "text-amber-600 bg-amber-500/10" },
+  showing_attended: { icon: Flag, tone: "text-emerald-600 bg-emerald-500/10" },
+  showing_no_show: { icon: XCircle, tone: "text-slate-500 bg-slate-500/10" },
+  lead_not_interested: { icon: XCircle, tone: "text-slate-500 bg-slate-500/10" },
+  stage_changed: { icon: Target, tone: "text-[#4F46E5] bg-[#4F46E5]/10" },
+};
 
 function formatSlot(slot: OpenSlot, locale: string): { date: string; time: string } {
   const [y, m, d] = slot.slot_date.split("-").map(Number);
@@ -990,6 +1086,11 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
   // Agent notes are keyed by showing id — rendered inline inside the timeline.
   const noteById = new Map(data.agent_comments.map((c) => [c.id, c]));
   const hasLeads = summary.total_leads > 0;
+  const act = data.leasing_activity;
+  const hasActivity =
+    !!act &&
+    (act.recent.length > 0 ||
+      Object.values(act.last_30d).some((n) => n > 0));
   const bedRange = numRange(property.bedrooms_min, property.bedrooms_max);
   const baRange = numRange(property.bathrooms_min, property.bathrooms_max);
 
@@ -1144,6 +1245,10 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
           subtitle2={t.recentLeadsSub2(lastInquiryLabel(summary.last_lead_at, tz, t))}
         />
       </div>
+
+      {/* Leasing activity — hidden entirely when there is none, rather than
+          advertising a row of zeros on a property nobody has worked yet. */}
+      {hasActivity && <LeasingActivityCard activity={data.leasing_activity!} tz={tz} t={t} />}
 
       {/* Charts row 1 */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -1314,6 +1419,84 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
 }
 
 // ── Small building blocks ─────────────────────────────────────────────
+// ── Leasing activity — the owner's proof that the property is being worked ───
+// Outcomes (showings, stages) only tell them what landed. This is the effort:
+// the calls, follow-ups and messages behind those outcomes. Every row is a
+// typed action code from the API — no prospect data reaches this component.
+function LeasingActivityCard({
+  activity,
+  tz,
+  t,
+}: {
+  activity: NonNullable<TrackerData["leasing_activity"]>;
+  tz: string;
+  t: T;
+}) {
+  const c = activity.last_30d;
+  const tiles = [
+    { value: c.contacts, label: t.activityContacts },
+    { value: c.messages, label: t.activityMessages },
+    { value: c.follow_ups, label: t.activityFollowUps },
+    { value: c.showings_confirmed, label: t.activityConfirmed },
+  ];
+
+  return (
+    <Card variant="glass">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Activity className="h-4 w-4 text-[#4F46E5]" />
+          {t.activity}
+          <span className="text-xs font-normal text-muted-foreground">· {t.activity30d}</span>
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">{t.activitySub}</p>
+      </CardHeader>
+      <CardContent className="pt-1 space-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {tiles.map((tile) => (
+            <div
+              key={tile.label}
+              className="rounded-xl border border-border/60 bg-white/50 px-3 py-2.5 text-center"
+            >
+              <p className="text-2xl font-bold text-[#4F46E5] leading-none">{tile.value}</p>
+              <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{tile.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {activity.recent.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">{t.activityRecent}</p>
+            <ul className="space-y-1.5">
+              {activity.recent.map((a) => {
+                const style = ACTION_STYLE[a.action];
+                const Icon = style?.icon ?? Activity;
+                return (
+                  <li key={a.id} className="flex items-center gap-2.5 text-sm">
+                    <span
+                      className={cn(
+                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg",
+                        style?.tone ?? "text-slate-500 bg-slate-500/10",
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {t.actionLabels[a.action] ?? prettifySource(a.action)}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {activityAgo(a.created_at, tz, t)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function ChartCard({
   title,
   subtitle,
