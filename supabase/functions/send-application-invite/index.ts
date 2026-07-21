@@ -169,60 +169,18 @@ serve(async (req: Request) => {
       ? `https://homeguard.app.doorloop.com/prospects/${doorloopProspectId}/rental-applications/new`
       : null;
 
-    // Get admin/editor emails for the org
+    // Instead of emailing the admin "Action Required" (that noise moved to the
+    // in-app Requests board), mark the lead as an application request so it
+    // shows up as "Pending" on the Kanban. Never downgrade a further-along
+    // stage — only stamp it the first time (request_stage IS NULL).
     try {
-      const { data: teamMembers } = await supabase
-        .from("users")
-        .select("email, role")
-        .eq("organization_id", organization_id)
-        .in("role", ["super_admin", "admin", "editor", "leasing_agent"]);
-
-      const adminEmails = (teamMembers || [])
-        .map((u: any) => u.email)
-        .filter(Boolean);
-
-      if (adminEmails.length > 0 && doorloopLink) {
-        for (const adminEmail of adminEmails) {
-          try {
-            await supabase.functions.invoke("send-notification-email", {
-              body: {
-                to: adminEmail,
-                subject: `🔔 Send Application: ${lead.full_name || "Lead"} — ${property?.address || "Property"}`,
-                html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-                  <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
-                    <h1 style="margin:0;color:#ffb22c;font-size:20px;">Action Required: Send Rental Application</h1>
-                  </div>
-                  <div style="background-color:#ffffff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;">
-                    <p><strong>${lead.full_name || "A lead"}</strong> requested a rental application for <strong>${propertyAddress}</strong>.</p>
-                    <p>Their prospect has been created in DoorLoop. Click the button below to send the application directly:</p>
-                    <div style="text-align:center;margin:24px 0;">
-                      <a href="${doorloopLink}" style="background-color:#ffb22c;color:#4F46E5;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">
-                        Send Application in DoorLoop
-                      </a>
-                    </div>
-                    <p style="font-size:14px;color:#666;">
-                      <strong>Lead:</strong> ${lead.full_name || "Unknown"}<br>
-                      <strong>Phone:</strong> ${lead.phone || "N/A"}<br>
-                      <strong>Email:</strong> ${lead.email || "N/A"}<br>
-                      <strong>Property:</strong> ${propertyAddress}
-                    </p>
-                    <p style="font-size:13px;color:#999;">This link opens DoorLoop's "Send Application Request" page for this prospect. Select the property/unit, choose the fee plan, and click Send.</p>
-                  </div>
-                </div>`,
-                notification_type: "application_action_required",
-                organization_id,
-                related_entity_id: lead_id,
-                related_entity_type: "lead",
-                queue: true,
-              },
-            });
-          } catch (teamEmailErr) {
-            console.error("Team notification email failed:", teamEmailErr);
-          }
-        }
-      }
-    } catch (teamErr) {
-      console.error("Failed to notify team:", teamErr);
+      await supabase
+        .from("leads")
+        .update({ application_requested_at: new Date().toISOString(), request_stage: "pending" })
+        .eq("id", lead_id)
+        .is("request_stage", null);
+    } catch (reqErr) {
+      console.error("Failed to flag application request on lead:", reqErr);
     }
 
     // ── Send notification email to lead ────────────────────────────────

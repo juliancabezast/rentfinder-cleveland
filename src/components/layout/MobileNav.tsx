@@ -47,7 +47,7 @@ const mainNavItems: NavItem[] = [
 
 // Pipeline + Properties items in the More sheet
 const pipelineMoreItems: NavItem[] = [
-  { title: 'Applicants', href: '/applicants', icon: UserCheck },
+  { title: 'Requests', href: '/requests', icon: UserCheck },
   { title: 'Business', href: '/business', icon: Briefcase, permission: 'canEditLeadInfo' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },

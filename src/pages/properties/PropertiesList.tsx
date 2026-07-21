@@ -309,7 +309,14 @@ const PropertiesList: React.FC = () => {
   // Collapsible tree: every property collapsed by default (one compact row),
   // cities expanded. Search/filter auto-expands so matches stay visible.
   const [expandedBuildings, setExpandedBuildings] = useState<Set<string>>(new Set());
-  const [collapsedCities, setCollapsedCities] = useState<Set<string>>(new Set());
+  const [collapsedCities, setCollapsedCities] = useState<Set<string>>(() => {
+    try {
+      const s = localStorage.getItem("rfc:props:collapsedCities");
+      return s ? new Set<string>(JSON.parse(s)) : new Set();
+    } catch { return new Set(); }
+  });
+  // Per-city "Rented / Inactive" sub-section — starts closed every session.
+  const [openArchived, setOpenArchived] = useState<Set<string>>(new Set());
   // Rows that just changed (own save or a remote realtime event) — flashed green
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
   const flashTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -542,6 +549,14 @@ const PropertiesList: React.FC = () => {
     });
   const toggleCity = (key: string) =>
     setCollapsedCities((prev) => {
+      const n = new Set(prev);
+      if (n.has(key)) n.delete(key); else n.add(key);
+      // Remember collapsed cities across sessions.
+      try { localStorage.setItem("rfc:props:collapsedCities", JSON.stringify([...n])); } catch { /* ignore */ }
+      return n;
+    });
+  const toggleArchived = (key: string) =>
+    setOpenArchived((prev) => {
       const n = new Set(prev);
       if (n.has(key)) n.delete(key); else n.add(key);
       return n;
@@ -1034,20 +1049,52 @@ const PropertiesList: React.FC = () => {
                   )}
                 </button>
 
-                {cityOpen && cg.buildings.map((group) => {
-                  const open = forceExpand || expandedBuildings.has(group.key);
+                {cityOpen && (() => {
+                  const isArchived = (b: (typeof cg.buildings)[number]) =>
+                    b.units.every((u) => u.status === "rented" || u.status === "inactive");
+                  const active = cg.buildings.filter((b) => !isArchived(b));
+                  const archived = cg.buildings.filter(isArchived);
+                  const archOpen = forceExpand || openArchived.has(cg.city);
+                  const renderB = (group: (typeof cg.buildings)[number]) => {
+                    const open = forceExpand || expandedBuildings.has(group.key);
+                    return (
+                      <React.Fragment key={group.key}>
+                        {renderBuildingRow(group, open)}
+                        {open && group.units.map((unit) =>
+                          renderUnitRow(unit, {
+                            label: unit.unit_number ? `Unit ${unit.unit_number}` : group.address,
+                            detail: unit.square_feet ? `${unit.square_feet} sqft` : undefined,
+                          }),
+                        )}
+                      </React.Fragment>
+                    );
+                  };
                   return (
-                    <React.Fragment key={group.key}>
-                      {renderBuildingRow(group, open)}
-                      {open && group.units.map((unit) =>
-                        renderUnitRow(unit, {
-                          label: unit.unit_number ? `Unit ${unit.unit_number}` : group.address,
-                          detail: unit.square_feet ? `${unit.square_feet} sqft` : undefined,
-                        }),
+                    <>
+                      {active.map(renderB)}
+                      {archived.length > 0 && (
+                        <React.Fragment key={`${cg.city}-archived`}>
+                          {/* Internal Rented / Inactive dropdown — closed by default */}
+                          <button
+                            type="button"
+                            onClick={() => toggleArchived(cg.city)}
+                            className="w-full flex items-center gap-2 bg-slate-50/70 hover:bg-slate-100/80 pl-8 pr-3 py-1.5 text-left transition-colors"
+                          >
+                            <ChevronDown
+                              className={cn("h-3 w-3 shrink-0 text-slate-400 transition-transform", !archOpen && "-rotate-90")}
+                            />
+                            <EyeOff className="h-3 w-3 shrink-0 text-slate-400" />
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                              Rented / Inactive
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">({archived.length})</span>
+                          </button>
+                          {archOpen && archived.map(renderB)}
+                        </React.Fragment>
                       )}
-                    </React.Fragment>
+                    </>
                   );
-                })}
+                })()}
               </React.Fragment>
             );
           })}

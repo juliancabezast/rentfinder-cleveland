@@ -1112,6 +1112,63 @@ async function createShellLead(
     return { leadId: existing.id, attached: true };
   }
 
+  // ── Attach a known prospect's name-only re-inquiry to their CONTACT lead ──
+  // The block above only merges among shells. A name-only "Rental Message" from
+  // someone already on file (contact present, e.g. "Euneckia Brown" who inquired
+  // months ago) used to spawn a brand-new shell → an un-nurturable duplicate the
+  // email/phone dedup can never reconcile. If EXACTLY ONE same-name lead in this
+  // org carries contact info, attach the message + property tag there instead of
+  // creating a shell. Guardrails that preserve the earlier cross-contamination
+  // fix: exact normalized-name match (re-checked in JS), and a SINGLE candidate
+  // only — ambiguous same-names ("Mary Phillips ×3") fall through to a shell.
+  // The DB name filter is skipped for names with LIKE/PostgREST-special chars
+  // ('*'→'%', '%', '_') so an email-supplied pattern can't wildcard-match.
+  const nameSafeForFilter = /^[\p{L}][\p{L} .'’\-]{0,80}$/u.test(name);
+  if (nameSafeForFilter) {
+    const { data: contactCandidates } = await supabase
+      .from("leads")
+      .select("id, full_name")
+      .eq("organization_id", organizationId)
+      .ilike("full_name", name)
+      .or("phone.not.is.null,email.not.is.null")
+      .limit(5);
+    const sameName = (contactCandidates || []).filter(
+      (c) => (c.full_name || "").toLowerCase().trim() === name.toLowerCase()
+    );
+    if (sameName.length === 1) {
+      const hit = sameName[0];
+      console.log(`Esther: shell — same-name contact lead ${hit.id} "${hit.full_name}" exists → attaching, not spawning a duplicate`);
+      if (lead.message) {
+        await saveLeadNote(supabase, organizationId, hit.id, `${lead.message}${lead.property ? ` [re: ${lead.property}]` : ""}`);
+      }
+      if (propertyId) {
+        const { error: tagErr } = await supabase.rpc("add_lead_property_tag", {
+          p_lead_id: hit.id,
+          p_property_id: propertyId,
+          p_source: "hemlane_email",
+        });
+        if (tagErr) console.error(`Esther: property tag failed for ${hit.id}: ${tagErr.message}`);
+      }
+      // Bump recency so the re-inquiry surfaces as fresh activity for nurture.
+      await supabase
+        .from("leads")
+        .update({ last_contact_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq("id", hit.id);
+      try {
+        await supabase.from("system_logs").insert({
+          organization_id: organizationId,
+          level: "info",
+          category: "deduplication",
+          event_type: "esther_lead_merged",
+          message: `Esther: name-only re-inquiry from known prospect "${name}" attached to existing contact lead (no duplicate created)`,
+          details: { lead_id: hit.id, name, property: lead.property || null, source: "name_only_attach", email_id: emailId },
+          related_lead_id: hit.id,
+        });
+      } catch { /* non-blocking */ }
+      return { leadId: hit.id, attached: true };
+    }
+  }
+
   const sourceVia = lead.listingSource ? ` (via ${lead.listingSource})` : "";
   const { data: shell, error } = await supabase
     .from("leads")

@@ -61,11 +61,12 @@ export const AdminDashboard = () => {
 
   const emailSubs: SubStat[] = [
     { value: (comms?.emails_sent_24h ?? 0).toLocaleString(), label: "últimas 24h", tone: "success", icon: TrendingUp },
-    { value: (comms?.queue_pending ?? 0).toLocaleString(), label: "en cola", tone: (comms?.queue_overdue ?? 0) > 0 ? "warning" : "default" },
+    // Real email queue (email_events awaiting send) — NOT the agent-task queue.
+    { value: (comms?.email_queue ?? 0).toLocaleString(), label: "en cola", tone: (comms?.email_queue ?? 0) > 500 ? "warning" : "default" },
   ];
 
   return (
-    <div className="grid gap-6 grid-cols-1 xl:grid-cols-[1fr_360px]">
+    <div className="grid gap-6 grid-cols-1 xl:grid-cols-[1fr_424px]">
       <div className="min-w-0 space-y-6 xl:min-h-[500px]">
         {error && !data && (
           <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">

@@ -21,7 +21,8 @@ export interface DashboardLive {
   };
   comms: {
     emails_sent_24h: number; emails_sent_total: number; inbound_24h: number;
-    queue_pending: number; queue_overdue: number;
+    email_queue: number;               // email_events awaiting send (the real email queue)
+    queue_pending: number; queue_overdue: number; // pending AGENT TASKS (Task Queue panel)
   };
   next_showings: {
     id: string; scheduled_at: string; status: string; duration_minutes: number | null;

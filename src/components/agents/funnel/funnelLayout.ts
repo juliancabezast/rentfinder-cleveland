@@ -29,11 +29,11 @@ export interface AgentDef {
 }
 
 export const AGENT_NODES: AgentDef[] = [
-  { key: "esther", label: "Esther", position: [-8.6, 0.9, 0.4], color: "#4F46E5", edge: [[-8.6, 0.9, 0.4], [-6, 0, 0]] },
-  { key: "elijah", label: "Elijah", position: [-4.5, 1.6, -0.4], color: "#FFB22C", edge: [[-6, 0, 0], [-3, 0, 0]] },
-  { key: "samuel", label: "Samuel", position: [1.5, 1.6, -0.4], color: "#10B981", edge: [[0, 0, 0], [3, 0, 0]] },
-  { key: "nehemiah", label: "Nehemiah", position: [0, 3.0, -1.6], color: "#8B5CF6", edge: [[0, 3.0, -1.6], [0, 0, 0]] },
-  { key: "zacchaeus", label: "Zacchaeus", position: [7.8, 2.4, -1.2], color: "#64748B", edge: [[7.8, 2.4, -1.2], [6, 0, 0]] },
+  { key: "esther", label: "Venus", position: [-8.6, 0.9, 0.4], color: "#4F46E5", edge: [[-8.6, 0.9, 0.4], [-6, 0, 0]] },
+  { key: "elijah", label: "Mars", position: [-4.5, 1.6, -0.4], color: "#FFB22C", edge: [[-6, 0, 0], [-3, 0, 0]] },
+  { key: "samuel", label: "Jupiter", position: [1.5, 1.6, -0.4], color: "#10B981", edge: [[0, 0, 0], [3, 0, 0]] },
+  { key: "nehemiah", label: "Neptune", position: [0, 3.0, -1.6], color: "#8B5CF6", edge: [[0, 3.0, -1.6], [0, 0, 0]] },
+  { key: "zacchaeus", label: "Saturn", position: [7.8, 2.4, -1.2], color: "#64748B", edge: [[7.8, 2.4, -1.2], [6, 0, 0]] },
 ];
 
 // Spine edges between consecutive stages + lost drains

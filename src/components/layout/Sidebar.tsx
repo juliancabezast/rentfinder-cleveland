@@ -19,6 +19,8 @@ import {
   UserCheck,
   Send,
   Briefcase,
+  ClipboardList,
+  MessageSquareText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,7 +44,7 @@ const pipelineNavItems: NavItem[] = [
   { title: 'Leads', href: '/leads', icon: Users, end: true },
   { title: 'Nurturing Leads', href: '/leads/nurturing', icon: Sparkles, permission: 'canEditLeadInfo' },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
-  { title: 'Applicants', href: '/applicants', icon: UserCheck },
+  { title: 'Requests', href: '/requests', icon: ClipboardList },
 ];
 
 // PROPERTIES — single entry, no section label
@@ -50,8 +52,9 @@ const propertiesNavItems: NavItem[] = [
   { title: 'Properties', href: '/properties', icon: Building2 },
 ];
 
-// TOOLS — market intelligence
+// TOOLS — market intelligence + playbooks
 const toolsNavItems: NavItem[] = [
+  { title: 'Playbook', href: '/playbook', icon: MessageSquareText, permission: 'canEditLeadInfo' },
   { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
   { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
 ];

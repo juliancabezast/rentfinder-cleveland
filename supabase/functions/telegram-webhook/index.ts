@@ -242,6 +242,8 @@ async function handleText(ctx: Ctx, rawText: string) {
   if (session) {
     if (session.step === "choose_property") { await handlePropertyFilter(ctx, session, raw); return; }
     if (session.step === "find_lead") { await handleLeadSearch(ctx, session, raw); return; }
+    // "Buscar lead" (Setter/Funnel): find by name/phone → full lead card w/ actions.
+    if (session.step === "find_lead_comm") { await funnelSearchLeads(ctx, raw); return; }
     if (session.step === "create_lead") { await handleCreateLeadInput(ctx, session, raw); return; }
     if (session.step === "leasing_search") { await handleLeasingSearch(ctx, session, raw); return; }
     if (session.step === "custom_time") { await handleCustomTime(ctx, session, raw); return; }
@@ -367,6 +369,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
 function mainMenuKeyboard() {
   return [
     [{ text: "📅 Agendar showing", callback_data: "m:sch" }],
+    [{ text: "🔍 Buscar lead", callback_data: "fnl:find" }],
   ];
 }
 const MENU_GREETING = "👋 Soy <b>Showing Setter</b>, tu asistente de agendas.\n¿Qué querés hacer?";
@@ -710,11 +713,12 @@ async function handleLeadSearch(ctx: Ctx, session: Session, rawQuery: string) {
   const email = extractEmail(rawQuery);
   const phone10 = extractPhone10(rawQuery);
 
+  // Don't require a phone — a name search must find email-only leads too (this
+  // is used to look someone up and communicate, not only to book).
   let query = ctx.supabase
     .from("leads")
     .select("id, full_name, first_name, last_name, phone, lead_score")
     .eq("organization_id", ctx.organizationId)
-    .not("phone", "is", null)
     .order("lead_score", { ascending: false })
     .limit(8);
 
@@ -732,9 +736,13 @@ async function handleLeadSearch(ctx: Ctx, session: Session, rawQuery: string) {
     if (onlyPhoneChars && digits.length >= 7) {
       query = query.ilike("phone", `%${digits}%`);
     } else {
-      const q = sanitizeLike(cleanNameQuery(rawQuery));
-      if (q.length < 2) { await send(ctx, "Escribí al menos 2 letras del nombre, o un teléfono."); return; }
-      query = query.or(`full_name.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+      // Tokenize: "Mary Phillips" must match a lead whose full name has BOTH
+      // words (AND), not every "Mary". A single word stays a broad match.
+      const tokens = sanitizeLike(cleanNameQuery(rawQuery))
+        .split(/\s+/)
+        .filter((t) => t.length >= 2);
+      if (tokens.length === 0) { await send(ctx, "Escribí al menos 2 letras del nombre, o un teléfono."); return; }
+      for (const tok of tokens) query = query.ilike("full_name", `%${tok}%`);
     }
   }
 
@@ -1529,7 +1537,7 @@ async function handleFunnelMenuCb(ctx: Ctx, cbq: any, data: string) {
     await showQueueCard(ctx, messageId, mode);
     return;
   }
-  if (data === "fnl:find") { await answer(); await editOrSend(ctx, messageId, "🔍 Escribí el <b>nombre</b> o <b>teléfono</b> del lead 👇"); return; }
+  if (data === "fnl:find") { await answer(); await setSession(ctx, "find_lead_comm", {}); await editOrSend(ctx, messageId, "🔍 Escribí el <b>nombre</b> o <b>teléfono</b> del lead 👇"); return; }
   if (data === "fnl:hot") {
     await answer("Buscando…"); await typing(ctx);
     const dayAgoIso = new Date(Date.now() - 86400000).toISOString();
@@ -1621,14 +1629,19 @@ async function funnelSearchLeads(ctx: Ctx, raw: string) {
     }
   }
   if (!rows.length) {
-    const nameQ = sanitizeLike(cleanNameQuery(raw));
-    if (nameQ.length >= 2) {
-      const { data } = await ctx.supabase.from("leads")
+    // Tokenize: "Mary Phillips" must match a lead whose full name contains BOTH
+    // words (AND) — not every "Mary". The old single `%mary phillips%` substring
+    // matched almost nothing (or the wrong rows) when the name wasn't stored as
+    // that exact contiguous string.
+    const tokens = sanitizeLike(cleanNameQuery(raw)).split(/\s+/).filter((t) => t.length >= 2);
+    if (tokens.length) {
+      let q = ctx.supabase.from("leads")
         .select("id, full_name, first_name, last_name, phone, lead_score, status")
         .eq("organization_id", ctx.organizationId)
-        .or(`full_name.ilike.%${nameQ}%,first_name.ilike.%${nameQ}%,last_name.ilike.%${nameQ}%`)
         .order("created_at", { ascending: false })
         .limit(8);
+      for (const tok of tokens) q = q.ilike("full_name", `%${tok}%`);
+      const { data } = await q;
       rows = data || [];
     }
   }

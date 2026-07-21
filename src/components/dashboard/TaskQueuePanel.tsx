@@ -34,7 +34,17 @@ interface LeadNameRef {
   full_name: string | null;
   first_name: string | null;
   last_name: string | null;
+  lead_property_interests?: { properties: { address: string | null; unit_number: string | null } | null }[] | null;
 }
+
+// Property the lead is interested in — street + unit only (no city / zip, and
+// drop the "(Down)/(Up)" parenthetical so the line stays short).
+const leadProperty = (leads: LeadNameRef | null): string => {
+  const p = leads?.lead_property_interests?.find((x) => x?.properties?.address)?.properties;
+  if (!p?.address) return "";
+  const unit = (p.unit_number || "").replace(/\s*\(.*\)\s*/g, "").trim();
+  return unit ? `${p.address} · ${unit}` : p.address;
+};
 
 interface QueuedTask {
   id: string;
@@ -94,18 +104,21 @@ const fmtEta = (h: number): string => {
 // ── Agent biblical names ─────────────────────────────────────────────
 
 const BIBLICAL_NAMES: Record<string, string> = {
-  aaron: "Aaron",
-  esther: "Esther",
-  nehemiah: "Nehemiah",
-  elijah: "Elijah",
-  samuel: "Samuel",
-  zacchaeus: "Zacchaeus",
+  aaron: "Mercury",
+  esther: "Venus",
+  nehemiah: "Neptune",
+  elijah: "Mars",
+  samuel: "Jupiter",
+  zacchaeus: "Saturn",
 };
 
 const getAgentName = (key: string) => {
   const canonical = resolveAgentKey(key);
   return BIBLICAL_NAMES[canonical] || canonical;
 };
+
+// Compact display: first name only (the queue column is narrow).
+const firstOnly = (s: string) => (s || "").trim().split(/\s+/)[0] || s;
 
 // ── Action labels & icons ────────────────────────────────────────────
 
@@ -176,11 +189,11 @@ function fireCountdown(scheduledIso: string, nowMs: number): { label: string; im
   const h = Math.floor(m / 60);
   const d = Math.floor(h / 24);
 
-  if (s <= 0) return { label: "firing now…", imminent: true, firing: true };
-  if (s < 60) return { label: `fires in ${s}s`, imminent: s <= 30, firing: false };
-  if (m < 60) return { label: `fires in ${m}m ${s % 60}s`, imminent: false, firing: false };
-  if (h < 24) return { label: `fires in ${h}h ${m % 60}m`, imminent: false, firing: false };
-  return { label: `fires in ${d}d ${h % 24}h`, imminent: false, firing: false };
+  if (s <= 0) return { label: "now…", imminent: true, firing: true };
+  if (s < 60) return { label: `in ${s}s`, imminent: s <= 30, firing: false };
+  if (m < 60) return { label: `in ${m}m ${s % 60}s`, imminent: false, firing: false };
+  if (h < 24) return { label: `in ${h}h ${m % 60}m`, imminent: false, firing: false };
+  return { label: `in ${d}d ${h % 24}h`, imminent: false, firing: false };
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -218,7 +231,7 @@ export const TaskQueuePanel = () => {
           .from("agent_tasks")
           .select(`
             id, agent_type, action_type, scheduled_for, status, lead_id,
-            leads:lead_id (full_name, first_name, last_name)
+            leads:lead_id (full_name, first_name, last_name, lead_property_interests(properties(address, unit_number)))
           `)
           .eq("organization_id", orgId)
           .in("status", ["pending", "in_progress"])
@@ -241,7 +254,7 @@ export const TaskQueuePanel = () => {
           .from("agent_tasks")
           .select(`
             id, agent_type, action_type, completed_at,
-            leads:lead_id (full_name, first_name, last_name)
+            leads:lead_id (full_name, first_name, last_name, lead_property_interests(properties(address, unit_number)))
           `)
           .eq("organization_id", orgId)
           .eq("status", "completed")
@@ -319,7 +332,7 @@ export const TaskQueuePanel = () => {
     // Prefer the last-hour throughput; fall back to today's average.
     const rate = ins.completed_1h > 0 ? ins.completed_1h : ins.completed_today / hoursElapsed;
 
-    // What actually fires in the next hour ≈ min(what's due, what throughput allows)
+    // What actually inthe next hour ≈ min(what's due, what throughput allows)
     const nextHourOut = rate > 0 ? Math.min(ins.due_next_hour, Math.round(rate)) : ins.due_next_hour;
     const etaLabel = rate >= 1 ? fmtEta(pending / rate) : null;
 
@@ -372,20 +385,20 @@ export const TaskQueuePanel = () => {
           <div className="mt-2 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 to-emerald-50/50 px-3 py-2.5">
             <div className="flex items-center gap-1.5 mb-1.5">
               <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-indigo-600">Pronóstico</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-indigo-600">Pronóstico de tareas</span>
             </div>
             {forecast.empty ? (
               <p className="flex items-center gap-1.5 text-sm text-foreground">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                Cola vacía — los agentes están al día
+                Cola de tareas vacía — los agentes están al día
               </p>
             ) : (
               <>
                 <div className="space-y-1.5">
                   {[
-                    { icon: Send, color: "text-emerald-500", label: "Próxima hora", value: `~${forecast.nextHourOut.toLocaleString()}`, unit: "salen" },
-                    { icon: Hourglass, color: "text-amber-500", label: "Cola vacía en", value: forecast.etaLabel ?? "—", unit: "" },
-                    { icon: Zap, color: "text-indigo-500", label: "Ritmo de envío", value: `~${forecast.rate.toLocaleString()}`, unit: "tareas/h" },
+                    { icon: ListChecks, color: "text-emerald-500", label: "Próxima hora", value: `~${forecast.nextHourOut.toLocaleString()}`, unit: "tareas" },
+                    { icon: Hourglass, color: "text-amber-500", label: "Cola de tareas vacía en", value: forecast.etaLabel ?? "—", unit: "" },
+                    { icon: Zap, color: "text-indigo-500", label: "Ritmo de ejecución", value: `~${forecast.rate.toLocaleString()}`, unit: "tareas/h" },
                   ].map((r) => (
                     <div key={r.label} className="flex items-center gap-2">
                       <r.icon className={cn("h-4 w-4 shrink-0", r.color)} />
@@ -399,7 +412,7 @@ export const TaskQueuePanel = () => {
                 </div>
                 {forecast.composition && (
                   <p className="mt-2 border-t border-indigo-100/70 pt-1.5 text-[11px] text-muted-foreground leading-snug break-words">
-                    <span className="font-semibold text-foreground/70">En cola:</span> {forecast.composition}
+                    <span className="font-semibold text-foreground/70">Tareas en cola:</span> {forecast.composition}
                   </p>
                 )}
               </>
@@ -429,7 +442,7 @@ export const TaskQueuePanel = () => {
                 <span className="min-w-0 flex-1 break-words">
                   <span className="font-semibold text-emerald-700">{getAgentName(r.agent_type)}</span>
                   <span className="text-muted-foreground"> {AGENT_TYPE_LABELS[r.agent_type] || ACTION_LABELS[r.action_type] || r.action_type.replace(/_/g, " ")} → </span>
-                  <span className="font-medium">{getLeadName(r.leads)}</span>
+                  <span className="font-medium">{firstOnly(getLeadName(r.leads))}</span>
                 </span>
                 <span className="shrink-0 whitespace-nowrap text-muted-foreground">
                   {formatDistanceToNow(new Date(r.completed_at), { addSuffix: true })}
@@ -470,7 +483,8 @@ export const TaskQueuePanel = () => {
                   const agentName = getAgentName(task.agent_type);
                   const actionLabel = AGENT_TYPE_LABELS[task.agent_type] || ACTION_LABELS[task.action_type] || task.action_type.replace(/_/g, " ");
                   const ActionIcon = AGENT_TYPE_ICONS[task.agent_type] || ACTION_ICONS[task.action_type] || Zap;
-                  const leadName = getLeadName(task.leads);
+                  const leadName = firstOnly(getLeadName(task.leads));
+                  const prop = leadProperty(task.leads);
                   const cd = fireCountdown(task.scheduled_for, nowMs);
 
                   return (
@@ -523,7 +537,10 @@ export const TaskQueuePanel = () => {
                           ) : null}
                         </div>
                         <div className="flex items-end justify-between gap-2 mt-0.5">
-                          <p className="text-sm font-medium text-foreground break-words min-w-0">{leadName}</p>
+                          <p className="text-sm font-medium text-foreground truncate min-w-0">
+                            {leadName}
+                            {prop && <span className="font-normal text-muted-foreground"> · {prop}</span>}
+                          </p>
                           <p
                             className={cn(
                               "text-xs tabular-nums flex items-center gap-1 whitespace-nowrap shrink-0",

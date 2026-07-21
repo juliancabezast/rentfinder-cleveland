@@ -31,12 +31,12 @@ interface ActivityEntry {
 // ── Agent biblical names ─────────────────────────────────────────────
 
 const BIBLICAL_NAMES: Record<string, string> = {
-  aaron: "Aaron",
-  esther: "Esther",
-  nehemiah: "Nehemiah",
-  elijah: "Elijah",
-  samuel: "Samuel",
-  zacchaeus: "Zacchaeus",
+  aaron: "Mercury",
+  esther: "Venus",
+  nehemiah: "Neptune",
+  elijah: "Mars",
+  samuel: "Jupiter",
+  zacchaeus: "Saturn",
 };
 
 const getAgentName = (key: string) => {

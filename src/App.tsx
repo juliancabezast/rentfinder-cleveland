@@ -34,7 +34,8 @@ const Settings = lazy(() => import("./pages/settings/Settings"));
 const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
 
 const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
-const ApplicantsPage = lazy(() => import("./pages/applicants/ApplicantsPage"));
+const RequestsKanban = lazy(() => import("./pages/requests/RequestsKanban"));
+const ResponsesPlaybook = lazy(() => import("./pages/playbook/ResponsesPlaybook"));
 const BusinessPage = lazy(() => import("./pages/business/BusinessPage"));
 const EmailsPage = lazy(() => import("./pages/emails/EmailsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -214,12 +215,24 @@ const App = () => (
               element={<Navigate to="/showings" replace />}
             />
 
+            {/* Applicants → replaced by the Requests Kanban */}
+            <Route path="/applicants" element={<Navigate to="/requests" replace />} />
             <Route
-              path="/applicants"
+              path="/requests"
               element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <ApplicantsPage />
+                    <RequestsKanban />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/playbook"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <ResponsesPlaybook />
                   </MainLayout>
                 </ProtectedRoute>
               }
