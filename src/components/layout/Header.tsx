@@ -84,9 +84,12 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="h-16 glass-card sticky top-0 z-30 flex items-center justify-between px-4 lg:px-6">
-      {/* Left side - Menu button (mobile) + Page title */}
-      <div className="flex items-center gap-3">
+    <header className="h-16 glass-card sticky top-0 z-30 flex items-center justify-between gap-2 px-4 lg:px-6">
+      {/* Left side - Menu button (mobile) + Page title.
+          min-w-0 so a long title truncates instead of widening the header —
+          without it a flex child refuses to shrink below its content and the
+          whole page picks up a horizontal scroll on a phone. */}
+      <div className="flex min-w-0 items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
@@ -103,11 +106,16 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       </div>
 
       {/* Right side - Integration Status + Notifications + User menu */}
-      <div className="flex items-center gap-3">
-        {/* Integration Status Mini (includes Live indicator) */}
+      <div className="flex shrink-0 items-center gap-3">
+        {/* Integration Status Mini (includes Live indicator) — desktop only */}
         <IntegrationStatusMini />
 
-        <NotificationsDropdown />
+        {/* Notifications are desktop-only (owner decision 2026-07-21): on a
+            phone the bell competed with the bottom nav for the same job and
+            just ate header width. */}
+        <div className="hidden lg:block">
+          <NotificationsDropdown />
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

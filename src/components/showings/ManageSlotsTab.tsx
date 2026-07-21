@@ -691,6 +691,16 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const isPastCell = (dateStr: string, time: string) =>
     dateStr < todayStr || (dateStr === todayStr && timeToMinutes(time) + 30 <= nowMinutes);
 
+  // Which day the phone view is showing. Follows the visible week: today when
+  // it's in range (the common case), otherwise the first day — so paging weeks
+  // or hiding empty days never leaves the list pointing at a day that is gone.
+  const [mobileDay, setMobileDay] = useState<string>(todayStr);
+  useEffect(() => {
+    if (!visibleDays.length) return;
+    if (visibleDays.some((d) => d.date === mobileDay)) return;
+    setMobileDay(visibleDays.find((d) => d.date === todayStr)?.date ?? visibleDays[0].date);
+  }, [visibleDays, mobileDay, todayStr]);
+
   // ── Now-line: measured from the real DOM (row heights vary, off-ladder
   // times create gaps — arithmetic on a fixed header/row height mispaints).
   // The line is confined to TODAY's column only (both a vertical position and
@@ -986,7 +996,136 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
           </CardContent>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
+        <>
+        {/* ── Phone: one day at a time ──────────────────────────────────────
+            The week grid below is 640px of table on a 390px screen — you had
+            to pan sideways to reach Thursday. Same data, same SlotCell, same
+            actions; just stacked, so every slot is a full-width tap target. */}
+        <div className="lg:hidden space-y-3">
+          {/* Day picker. Scrolls inside itself — never widens the page. */}
+          <div className="-mx-1 overflow-x-auto px-1 pb-1">
+            <div className="flex gap-2 w-max">
+              {visibleDays.map((day) => {
+                const dateObj = parseISO(day.date);
+                const isToday = todayStr === day.date;
+                const active = mobileDay === day.date;
+                const past = isPast(day.date);
+                const busy = dayHasContent(day);
+                return (
+                  <button
+                    key={day.date}
+                    onClick={() => setMobileDay(day.date)}
+                    className={`flex w-[62px] shrink-0 flex-col items-center rounded-xl border px-2 py-2 transition-colors ${
+                      active
+                        ? "border-[#4F46E5] bg-[#4F46E5] text-white"
+                        : isToday
+                        ? "border-[#4F46E5]/40 bg-[#4F46E5]/5"
+                        : "border-border bg-white"
+                    } ${past && !active ? "opacity-45" : ""}`}
+                  >
+                    <span className={`text-[10px] uppercase ${active ? "text-white/70" : "text-muted-foreground"}`}>
+                      {format(dateObj, "EEE")}
+                    </span>
+                    <span className="text-base font-bold leading-tight">{format(dateObj, "d")}</span>
+                    <span
+                      className={`mt-1 h-1.5 w-1.5 rounded-full ${
+                        busy ? (active ? "bg-white" : "bg-[#4F46E5]") : "bg-transparent"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {(() => {
+            const dIdx = visibleDays.findIndex((d) => d.date === mobileDay);
+            const day = dIdx >= 0 ? visibleDays[dIdx] : visibleDays[0];
+            if (!day) return null;
+            const dateObj = parseISO(day.date);
+            const past = isPast(day.date);
+            const dayBusy = busyKey === `day-${day.date}`;
+            return (
+              <Card>
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-bold">{format(dateObj, "EEEE, MMM d")}</p>
+                    {!past && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-7 text-xs">
+                            {dayBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Open / close day"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-56 p-3" side="bottom" align="end">
+                          <CityPicker
+                            cities={cityNames}
+                            counts={cityCounts}
+                            busy={dayBusy}
+                            defaultAll
+                            actionLabel="Open all day"
+                            onConfirm={(cities) => openDay(day.date, cities)}
+                          />
+                          {dayHasContent(day) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full h-7 text-xs mt-2 text-red-600 border-red-200 hover:bg-red-50"
+                              disabled={dayBusy}
+                              onClick={() => closeDay(day.date)}
+                            >
+                              <X className="h-3 w-3 mr-1" /> Close whole day
+                            </Button>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
+
+                  <div className="divide-y divide-border/60">
+                    {allTimes.map((time, tIdx) => {
+                      const ts = day.timeSlots.get(time);
+                      const cellPast = isPastCell(day.date, time);
+                      const cellBusy = busyKey === `${day.date}-${time}`;
+                      return (
+                        <div key={time} className="flex items-center gap-3 py-1.5">
+                          <span className="w-[68px] shrink-0 text-xs font-medium text-muted-foreground">
+                            {formatTime(time)}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <SlotCell
+                              day={day}
+                              time={time}
+                              ts={ts}
+                              past={cellPast}
+                              cellBusy={cellBusy}
+                              cityNames={cityNames}
+                              cityCounts={cityCounts}
+                              dayIdx={dIdx < 0 ? 0 : dIdx}
+                              timeIdx={tIdx}
+                              highlighted={false}
+                              movedRef={movedRef}
+                              /* Drag-to-select is a mouse gesture; on a phone it
+                                 would fight the scroll, so it is not wired up. */
+                              onDragBegin={() => {}}
+                              onOpen={(cities) => openSlot(day.date, time, cities)}
+                              onSetCities={(cities) => setSlotCities(day.date, time, cities)}
+                              onClose={() => closeSlot(day.date, time)}
+                              onShowingClick={onShowingClick}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+        </div>
+
+        {/* ── Desktop: the week grid, unchanged ─────────────────────────── */}
+        <Card className="hidden lg:block overflow-hidden">
           <CardContent className="p-0">
             <div className="relative overflow-x-auto" ref={gridRef}>
               <table className="w-full min-w-[640px] text-xs border-separate border-spacing-0 select-none">
@@ -1106,6 +1245,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* Legend */}

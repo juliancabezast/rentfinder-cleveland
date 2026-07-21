@@ -133,7 +133,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         />
 
         {/* Page Content */}
-        <main id="main-content" className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-auto">
+        {/* overflow-x-hidden below lg: `overflow-auto` let ANY too-wide child
+            pan the entire screen sideways on a phone, which is what it felt
+            like to use. Wide tables (the properties grid, the desktop week
+            calendar) each carry their own overflow-x-auto wrapper, so they
+            still scroll in place — only the page-level drift is gone. */}
+        <main
+          id="main-content"
+          className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-y-auto overflow-x-hidden lg:overflow-auto"
+        >
           {/* Animated background — floating gold orbs (hidden on mobile for performance) */}
           <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 hidden md:block" style={{ marginLeft: sidebarCollapsed ? '4rem' : '16rem' }}>
             <div className="absolute rounded-full w-[900px] h-[900px] top-[15%] -right-[100px] animate-float-fast" style={{ background: 'radial-gradient(circle, rgba(255,178,44,0.28) 0%, rgba(255,178,44,0.10) 35%, transparent 65%)' }} />
