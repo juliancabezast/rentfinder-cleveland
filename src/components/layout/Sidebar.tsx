@@ -3,86 +3,21 @@ import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard,
-  Building2,
-  Users,
-  CalendarDays,
-  BarChart3,
-  ChevronLeft,
-  ChevronRight,
-  MapPin,
-  Target,
-  Brain,
-  Bot,
-  Sparkles,
-  UserCheck,
-  Send,
-  Briefcase,
-  ClipboardList,
-  MessageSquareText,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
-interface NavItem {
-  title: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  permission?: keyof ReturnType<typeof usePermissions>;
-  end?: boolean;
-}
-
-// TOP — standalone, above the Pipeline label
-const topNavItems: NavItem[] = [
-  { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-];
-
-// PIPELINE — core lead flow
-const pipelineNavItems: NavItem[] = [
-  { title: 'Leads', href: '/leads', icon: Users, end: true },
-  { title: 'Nurturing Leads', href: '/leads/nurturing', icon: Sparkles, permission: 'canEditLeadInfo' },
-  { title: 'Showings', href: '/showings', icon: CalendarDays },
-  { title: 'Requests', href: '/requests', icon: ClipboardList },
-];
-
-// PROPERTIES — single entry, no section label
-const propertiesNavItems: NavItem[] = [
-  { title: 'Properties', href: '/properties', icon: Building2 },
-];
-
-// TOOLS — market intelligence + playbooks
-const toolsNavItems: NavItem[] = [
-  { title: 'Playbook', href: '/playbook', icon: MessageSquareText, permission: 'canEditLeadInfo' },
-  { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
-  { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
-];
-
-// COMMUNICATIONS — single hub entry; the /communications landing links out to
-// its modules (Property Spotlight, Campaigns, Emails).
-const commsNavItems: NavItem[] = [
-  { title: 'Communications', href: '/communications', icon: Send, permission: 'canViewAllCallLogs' },
-];
-
-// ANALYTICS — Business sits right above Analytics (Reports + Costs merged 2026-07-19)
-const analyticsNavItems: NavItem[] = [
-  { title: 'Business', href: '/business', icon: Briefcase, permission: 'canEditLeadInfo' },
-  { title: 'Analytics', href: '/analytics', icon: BarChart3, permission: 'canViewAllReports', end: true },
-];
-
-// SYSTEM — Settings lives in the top-right user menu, so it's dropped here.
-const systemNavItems: NavItem[] = [
-  { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
-];
-
-// Knowledge Hub — pinned at bottom
-const knowledgeHubItem: NavItem = {
-  title: 'Knowledge Hub',
-  href: '/knowledge',
-  icon: Brain,
-  permission: 'canAccessInsightGenerator',
-};
+import {
+  type NavItem,
+  NAV_TOP as topNavItems,
+  NAV_PIPELINE as pipelineNavItems,
+  NAV_PROPERTIES as propertiesNavItems,
+  NAV_TOOLS as toolsNavItems,
+  NAV_COMMS as commsNavItems,
+  NAV_ANALYTICS as analyticsNavItems,
+  NAV_SYSTEM as systemNavItems,
+  NAV_KNOWLEDGE as knowledgeHubItem,
+} from './navItems';
 
 interface SidebarProps {
   collapsed: boolean;

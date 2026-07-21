@@ -15,14 +15,13 @@ import { SiteFooter } from "@/components/public/SiteFooter";
  * a glance, then the full sequence chunked into four named phases. Thirteen
  * items is a wall; four phases is something you can hold in your head.
  *
- * Monospace carries the stamps and the program acronyms (RFTA / HQS / HAP)
- * because it is the vernacular of the paperwork this page absorbs.
+ * Type is Montserrat throughout (owner decision 2026-07-21). An earlier pass
+ * set the stamps and acronyms in monospace; letter-spacing now carries that
+ * job instead, so the page stays in one voice with the rest of the brand.
  */
 
 const PHONE_DISPLAY = "(440) 444-4737";
 const PHONE_HREF = "tel:+14404444737";
-
-const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 
 type Owner = "us" | "you" | "authority" | "tenant";
 
@@ -192,7 +191,7 @@ const Section8StressFree: React.FC = () => {
             style={{ background: "linear-gradient(115deg, rgba(30,27,75,0.90) 0%, rgba(30,27,75,0.78) 52%, rgba(49,42,120,0.62) 100%)" }}
           />
           <div className="relative mx-auto max-w-5xl px-6 py-20 sm:py-28">
-            <p style={{ fontFamily: MONO, color: "#FFB22C" }} className="mb-6 text-xs tracking-[0.25em]">
+            <p style={{ color: "#FFB22C" }} className="mb-6 text-xs tracking-[0.25em]">
               CLEVELAND · HOUSING CHOICE VOUCHER
             </p>
             <h1
@@ -208,7 +207,7 @@ const Section8StressFree: React.FC = () => {
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-5">
               <CallButton />
-              <span style={{ fontFamily: MONO, color: "rgba(255,255,255,0.45)" }} className="text-xs">
+              <span style={{ color: "rgba(255,255,255,0.45)" }} className="text-xs">
                 No placement, no fee.
               </span>
             </div>
@@ -217,7 +216,7 @@ const Section8StressFree: React.FC = () => {
 
         {/* ── The answer, before the evidence ───────────────────────────── */}
         <section className="mx-auto max-w-5xl px-6 py-20 sm:py-24">
-          <p style={{ fontFamily: MONO, color: "#4F46E5" }} className="mb-4 text-xs tracking-[0.25em]">
+          <p style={{ color: "#4F46E5" }} className="mb-4 text-xs tracking-[0.25em]">
             YOUR WHOLE JOB
           </p>
           <h2 className="max-w-2xl text-3xl font-extrabold leading-tight sm:text-4xl" style={{ letterSpacing: "-0.03em" }}>
@@ -238,7 +237,7 @@ const Section8StressFree: React.FC = () => {
                   >
                     {i + 1}
                   </span>
-                  <span style={{ fontFamily: MONO, color: "#8A5A00" }} className="text-[11px] tracking-[0.18em]">
+                  <span style={{ color: "#8A5A00" }} className="text-[11px] tracking-[0.18em]">
                     {j.time.toUpperCase()}
                   </span>
                 </div>
@@ -268,7 +267,7 @@ const Section8StressFree: React.FC = () => {
               {TALLY.map((t) => (
                 <li key={t.owner} className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: OWNER_META[t.owner].dot }} />
-                  <span style={{ fontFamily: MONO }} className="text-[11px] tracking-[0.12em]" >
+                  <span className="text-[11px] tracking-[0.12em]" >
                     <span style={{ color: "#1E1B4B", fontWeight: 700 }}>{t.n}</span>{" "}
                     <span style={{ color: "#8A90AE" }}>{OWNER_META[t.owner].label}</span>
                   </span>
@@ -281,7 +280,7 @@ const Section8StressFree: React.FC = () => {
         {/* ── The evidence, chunked ─────────────────────────────────────── */}
         <section style={{ background: "#fff", borderTop: "1px solid #E7EAF6", borderBottom: "1px solid #E7EAF6" }}>
           <div className="mx-auto max-w-5xl px-6 py-20 sm:py-24">
-            <p style={{ fontFamily: MONO, color: "#4F46E5" }} className="mb-4 text-xs tracking-[0.25em]">
+            <p style={{ color: "#4F46E5" }} className="mb-4 text-xs tracking-[0.25em]">
               EVERYTHING ELSE, IN ORDER
             </p>
             <h2 className="max-w-2xl text-3xl font-extrabold leading-tight sm:text-4xl" style={{ letterSpacing: "-0.03em" }}>
@@ -292,7 +291,7 @@ const Section8StressFree: React.FC = () => {
               {PHASES.map((phase, pi) => (
                 <div key={phase.label} className="rounded-3xl p-6 sm:p-7" style={{ background: "#F8F9FD", border: "1px solid #E7EAF6" }}>
                   <div className="flex items-baseline gap-3">
-                    <span style={{ fontFamily: MONO, color: "#8A90AE" }} className="text-xs">
+                    <span style={{ color: "#8A90AE" }} className="text-xs">
                       {String(pi + 1).padStart(2, "0")}
                     </span>
                     <h3 className="text-lg font-bold">{phase.label}</h3>
@@ -329,7 +328,7 @@ const Section8StressFree: React.FC = () => {
                           </div>
                           <span
                             className="shrink-0 self-start rounded-full px-2.5 py-1 text-[10px] font-bold tracking-[0.12em] sm:self-auto"
-                            style={{ fontFamily: MONO, background: m.bg, color: m.fg, border: `1px solid ${m.border}` }}
+                            style={{ background: m.bg, color: m.fg, border: `1px solid ${m.border}` }}
                           >
                             {m.label}
                           </span>
@@ -346,7 +345,7 @@ const Section8StressFree: React.FC = () => {
         {/* ── Services + real prices ────────────────────────────────────── */}
         <section className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
           <div className="mb-12 max-w-2xl">
-            <p style={{ fontFamily: MONO, color: "#4F46E5" }} className="mb-4 text-xs tracking-[0.25em]">
+            <p style={{ color: "#4F46E5" }} className="mb-4 text-xs tracking-[0.25em]">
               PICK WHERE YOU NEED US
             </p>
             <h2 className="text-3xl font-extrabold leading-tight sm:text-4xl" style={{ letterSpacing: "-0.03em" }}>
@@ -357,7 +356,7 @@ const Section8StressFree: React.FC = () => {
           <div className="grid gap-6 lg:grid-cols-3">
             {SERVICES.map((sv) => (
               <div key={sv.eyebrow} className="flex flex-col rounded-3xl p-7" style={{ background: "#fff", border: "1px solid #E7EAF6" }}>
-                <p style={{ fontFamily: MONO, color: "#8A90AE" }} className="text-[10px] tracking-[0.2em]">
+                <p style={{ color: "#8A90AE" }} className="text-[10px] tracking-[0.2em]">
                   {sv.eyebrow}
                 </p>
                 <p className="mt-5 text-3xl font-extrabold leading-none" style={{ letterSpacing: "-0.03em", color: "#4F46E5" }}>
@@ -389,7 +388,7 @@ const Section8StressFree: React.FC = () => {
           <div className="rounded-3xl px-7 py-10 sm:px-12 sm:py-12" style={{ background: "#fff", border: "1px solid #E7EAF6" }}>
             <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-xl">
-                <p style={{ fontFamily: MONO, color: "#4F46E5" }} className="mb-4 text-xs tracking-[0.25em]">
+                <p style={{ color: "#4F46E5" }} className="mb-4 text-xs tracking-[0.25em]">
                   IF THE INSPECTION FAILS
                 </p>
                 <h2 className="text-2xl font-extrabold leading-tight sm:text-3xl" style={{ letterSpacing: "-0.03em" }}>
@@ -405,7 +404,7 @@ const Section8StressFree: React.FC = () => {
                 <p className="text-6xl font-extrabold leading-none" style={{ letterSpacing: "-0.04em", color: "#FFB22C" }}>
                   24h
                 </p>
-                <p style={{ fontFamily: MONO, color: "#8A90AE" }} className="mt-3 text-[11px] tracking-[0.18em]">
+                <p style={{ color: "#8A90AE" }} className="mt-3 text-[11px] tracking-[0.18em]">
                   ESTIMATE, FREE
                 </p>
               </div>

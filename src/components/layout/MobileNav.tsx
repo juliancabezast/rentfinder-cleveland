@@ -2,23 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from '@/components/NavLink';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard,
-  Building2,
-  Users,
-  CalendarDays,
-  MoreHorizontal,
-  Phone,
-  BarChart3,
-  Settings,
-  MapPin,
-  Target,
-  Brain,
-  Bot,
-  UserCheck,
-  Mail,
-  Briefcase,
-} from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -28,39 +12,34 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import {
+  type NavItem,
+  NAV_ALL,
+  NAV_PIPELINE,
+  NAV_PROPERTIES,
+  NAV_TOOLS,
+  NAV_COMMS,
+  NAV_ANALYTICS,
+  NAV_SYSTEM,
+  NAV_KNOWLEDGE,
+  NAV_MOBILE_EXTRA,
+  MOBILE_BAR_HREFS,
+} from './navItems';
 
-interface NavItem {
-  title: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  permission?: keyof ReturnType<typeof usePermissions>;
-  end?: boolean;
-}
+// Derived from the shared nav, never hand-listed: the four pinned tabs, then
+// EVERYTHING else in the More sheet. That is what keeps a new page from
+// shipping to the sidebar and quietly skipping the phone.
+const mainNavItems: NavItem[] = MOBILE_BAR_HREFS
+  .map((href) => NAV_ALL.find((i) => i.href === href))
+  .filter((i): i is NavItem => !!i);
 
-// Main bottom bar items (pipeline core)
-const mainNavItems: NavItem[] = [
-  { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { title: 'Leads', href: '/leads', icon: Users },
-  { title: 'Showings', href: '/showings', icon: CalendarDays },
-  { title: 'Properties', href: '/properties', icon: Building2 },
-];
-
-// Pipeline + Properties items in the More sheet
+const inBar = new Set(MOBILE_BAR_HREFS);
 const pipelineMoreItems: NavItem[] = [
-  { title: 'Requests', href: '/requests', icon: UserCheck },
-  { title: 'Business', href: '/business', icon: Briefcase, permission: 'canEditLeadInfo' },
-  { title: 'Heat Map', href: '/analytics/heat-map', icon: MapPin, permission: 'canViewAllReports' },
-  { title: 'Rent Benchmark', href: '/analytics/competitor-radar', icon: Target, permission: 'canViewAllReports' },
-  { title: 'Knowledge Hub', href: '/knowledge', icon: Brain, permission: 'canAccessInsightGenerator' },
-  { title: 'Emails', href: '/emails', icon: Mail, permission: 'canViewAllCallLogs' },
-];
-
-// Admin items
+  ...NAV_PIPELINE, ...NAV_PROPERTIES, ...NAV_TOOLS, ...NAV_COMMS,
+].filter((i) => !inBar.has(i.href));
 const adminNavItems: NavItem[] = [
-  { title: 'Analytics', href: '/analytics', icon: BarChart3, permission: 'canViewAllReports', end: true },
-  { title: 'Agents', href: '/agents', icon: Bot, permission: 'canModifySettings' },
-  { title: 'Settings', href: '/settings', icon: Settings, permission: 'canModifySettings' },
-];
+  ...NAV_ANALYTICS, ...NAV_SYSTEM, NAV_KNOWLEDGE, ...NAV_MOBILE_EXTRA,
+].filter((i) => !inBar.has(i.href));
 
 export const MobileNav: React.FC = () => {
   const [moreOpen, setMoreOpen] = useState(false);
@@ -82,6 +61,7 @@ export const MobileNav: React.FC = () => {
           <NavLink
             key={item.href}
             to={item.href}
+            end={item.end}
             className={cn(
               'flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg text-xs font-medium transition-colors relative',
               'text-muted-foreground flex-1 min-h-[48px] active:bg-muted/50'
@@ -121,7 +101,7 @@ export const MobileNav: React.FC = () => {
                 {filteredPipelineMore.length > 0 && (
                   <div>
                     <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Pipeline & Comms
+                      Pipeline & Tools
                     </p>
                     <div className="grid grid-cols-3 gap-3">
                       {filteredPipelineMore.map((item) => (
