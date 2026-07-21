@@ -1745,6 +1745,11 @@ async function handleStageSet(ctx: Ctx, cbq: any, data: string) {
     `✅ <b>${escapeHtml(leadName(lead))}</b>: ${escapeHtml(prev)} → <b>${escapeHtml(stage.status)}</b>`, doneKb);
 }
 
+// Template codes that mean "this tour is being moved" — shared by the SMS and
+// email senders so both paths move the showing, whichever card they came from.
+// "rs" = after a no-show (nothing live left to move), "rs2" = before the tour.
+const RESCHEDULE_TEMPLATES = new Set(["rs", "rs2"]);
+
 // ── SMS picker + prefilled send ────────────────────────────────────────────────
 const FNL_SMS_TEMPLATES: { code: string; label: string; body: (first: string) => string }[] = [
   { code: "in", label: "👋 Primer contacto", body: (f) => `Hi ${f}, this is Rent Finder Cleveland — we got your rental inquiry. When is a good time to chat?` },
@@ -1786,8 +1791,14 @@ async function handleFunnelSms(ctx: Ctx, cbq: any, data: string) {
   // filled in), so it's recorded on the same standard as "llamé, no contestó".
   await logLeadNote(ctx, leadId, "general", `💬 SMS enviado: ${tmpl.label.replace(/^[^\s]+\s/, "")}`);
   await logActivity(ctx, "message_sent_sms", { leadId });
+  // Sending a reschedule message IS the reschedule — reaching this from a lead
+  // card (no showing id in the callback) must move the showing too, or the
+  // system keeps claiming a tour that both sides know is off.
+  const moved = RESCHEDULE_TEMPLATES.has(code) && await markShowingRescheduled(ctx, leadId);
   await editOrSend(ctx, messageId,
-    `💬 <b>${escapeHtml(leadName(lead))}</b> · 📞 ${escapeHtml(tel)}\n\n<code>${escapeHtml(body)}</code>\n\nTocá el botón y se abre Mensajes con el texto listo:`,
+    `💬 <b>${escapeHtml(leadName(lead))}</b> · 📞 ${escapeHtml(tel)}\n\n<code>${escapeHtml(body)}</code>\n\n` +
+    (moved ? `<i>Showing marcado <b>Reprogramado</b> ✅ — horario liberado.</i>\n\n` : "") +
+    `Tocá el botón y se abre Mensajes con el texto listo:`,
     [[{ text: "📲 Abrir Mensajes", url }], [{ text: "◀️ Volver", callback_data: `act:menu:${leadId}` }]]);
 }
 
@@ -1799,6 +1810,55 @@ async function handleFunnelSms(ctx: Ctx, cbq: any, data: string) {
 async function markManaged(ctx: Ctx, leadId: string) {
   await ctx.supabase.from("leads").update({ managed_at: new Date().toISOString() })
     .eq("organization_id", ctx.organizationId).eq("id", leadId);
+}
+
+// A rescheduled showing drops out of BOTH the 8 PM day recap and 🏁 recientes
+// (they exclude 'rescheduled'), so without a reminder the lead would silently
+// vanish between "let's find a new time" and an actual new booking.
+async function armRebookReminder(ctx: Ctx, leadId: string) {
+  // Close → insert, so a double tap still ends with exactly one pending row.
+  await ctx.supabase.from("lead_reminders").update({ status: "done" })
+    .eq("organization_id", ctx.organizationId).eq("lead_id", leadId).eq("status", "pending");
+  await ctx.supabase.from("lead_reminders").insert({
+    organization_id: ctx.organizationId, lead_id: leadId,
+    due_at: nextDay9amET(), reason: "rebook", attempt: 0, status: "pending",
+  });
+}
+
+// Re-agendar is a decision about a REAL showing, not just a message: the row
+// has to move so the system, the freed slot (sync_showing_slot_status) and the
+// owner's Leasing Tracker ("Reprogramado") all tell the same story.
+//
+// Idempotent and guarded: only a live ('scheduled'/'confirmed') showing moves,
+// so the post-tour "re-agendar" button on an already-resolved no_show is a
+// no-op, and tapping twice does nothing the second time.
+//
+// NOTE the score side effect: compute_milestone_score maps 'rescheduled' to the
+// ELSE branch (10), so a lead whose ONLY showing is rescheduled drops 50 → 10
+// until they rebook. That is the milestone engine being honest — the booking is
+// gone — and it self-heals: rebooking inserts a NEW showing row and MAX() takes
+// the lead back to 50.
+async function markShowingRescheduled(
+  ctx: Ctx, leadId: string, explicit?: { id: string; property_id?: string | null; status?: string },
+): Promise<boolean> {
+  let target = explicit;
+  if (target && !["scheduled", "confirmed"].includes(String(target.status))) return false;
+  if (!target) {
+    const { data } = await ctx.supabase.from("showings")
+      .select("id, property_id, status")
+      .eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
+      .in("status", ["scheduled", "confirmed"])
+      .order("scheduled_at", { ascending: false }).limit(1).maybeSingle();
+    target = (data as any) ?? undefined;
+  }
+  if (!target) return false;
+  const { error } = await ctx.supabase.from("showings").update({ status: "rescheduled" })
+    .eq("organization_id", ctx.organizationId).eq("id", target.id);
+  if (error) { console.error("markShowingRescheduled error:", error); return false; }
+  await logActivity(ctx, "showing_reschedule_requested",
+    { leadId, propertyId: target.property_id ?? null, showingId: target.id });
+  await armRebookReminder(ctx, leadId);
+  return true;
 }
 
 // Hemlane shell-name detection (parser fallback names are not real names).
@@ -2348,8 +2408,12 @@ async function handleEmailSend(ctx: Ctx, cbq: any, data: string) {
   // note_type must satisfy lead_notes_note_type_check — "general" is allowed.
   await logLeadNote(ctx, leadId, "general", `✉️ Email enviado: ${t.label.replace(/^[^\s]+\s/, "")}`);
   await logActivity(ctx, "message_sent_email", { leadId });
+  // Same rule as the SMS path — the reschedule email moves the showing.
+  const moved = RESCHEDULE_TEMPLATES.has(code) && await markShowingRescheduled(ctx, leadId);
   await editOrSend(ctx, messageId,
-    `✉️ <b>Enviado</b> a ${escapeHtml(lead.email)} ✅\n<i>Sale en minutos desde support@rentfindercleveland.com — quedó en el historial del lead.</i>`,
+    `✉️ <b>Enviado</b> a ${escapeHtml(lead.email)} ✅\n` +
+    (moved ? `<i>Showing marcado <b>Reprogramado</b> ✅ — horario liberado.</i>\n` : "") +
+    `<i>Sale en minutos desde support@rentfindercleveland.com — quedó en el historial del lead.</i>`,
     [[{ text: "📋 Otra acción", callback_data: `act:menu:${leadId}` }]]);
 }
 
@@ -2702,16 +2766,20 @@ async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
       await answer();
       await logLeadNote(ctx, l.id, "general", `🔄 Pidió re-agendar el showing de las ${when}`);
       await logActivity(ctx, "contacted", { leadId: l.id, propertyId: (s as any).property_id ?? null, showingId: s.id });
-      await logActivity(ctx, "showing_reschedule_requested", { leadId: l.id, propertyId: (s as any).property_id ?? null, showingId: s.id });
-      // The showing KEEPS its status on purpose: until a new slot is actually
-      // booked it must stay visible (8 PM recap / 🏁 recientes) instead of
-      // silently vanishing from the day.
+      // Move the showing itself — the card knows exactly which one, so pass it
+      // explicitly instead of re-deriving "the lead's latest live showing".
+      const moved = await markShowingRescheduled(ctx, l.id, {
+        id: s.id, property_id: (s as any).property_id ?? null, status: String(s.status),
+      });
       const kb: any[][] = [[{ text: "💬 SMS para mover", callback_data: `asms:${l.id}:rs2` }]];
       if (l.email) kb.push([{ text: "✉️ Email para mover", callback_data: `aem:${l.id}:rs2` }]);
       kb.push(contactRow, moreRow);
       await editOrSend(ctx, messageId,
         `🔄 <b>Re-agendar</b> — ${escapeHtml(name)}${where}\n` +
         `📞 ${escapeHtml(String(l.phone ?? "—"))}${l.email ? ` · ✉️ ${escapeHtml(l.email)}` : ""}\n\n` +
+        (moved
+          ? `<i>Showing marcado <b>Reprogramado</b> ✅ — horario liberado y te lo recuerdo mañana 9am si no se re-agenda.</i>\n\n`
+          : "") +
         `Mandale el mensaje para elegir nuevo horario 👇`,
         kb);
       return;
