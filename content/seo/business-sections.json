@@ -17,9 +17,18 @@
       "formSub": "Send your details and we'll set up a partner contact. Fair-housing compliant; we never screen by source of income.",
       "linkHeading": "Guides for housing partners",
       "faq": [
-        { "q": "Do you charge case managers or agencies to work with you?", "a": "No. There's no cost to partner with us or to refer a client. Standard tenant application steps still apply to the renter once they choose a home." },
-        { "q": "How fast can you place a voucher client?", "a": "It depends on current availability and the client's needs, but because every home we work with already accepts Housing Choice Vouchers and is HUD-inspection-ready, you skip the hardest step — finding a landlord who says yes. Send us the details and we'll tell you what's available now." },
-        { "q": "Do you screen out Housing Choice Voucher holders?", "a": "Never. We welcome voucher holders on every available home, and we follow the Fair Housing Act. Where local source-of-income protections apply (e.g. Cleveland Heights, South Euclid, University Heights, Warrensville Heights, Linndale), we comply fully; we welcome vouchers everywhere we operate regardless." }
+        {
+          "q": "Do you charge case managers or agencies to work with you?",
+          "a": "No. There's no cost to partner with us or to refer a client. Standard tenant application steps still apply to the renter once they choose a home."
+        },
+        {
+          "q": "How fast can you place a voucher client?",
+          "a": "It depends on current availability and the client's needs, but because every home we work with already accepts Housing Choice Vouchers and is HUD-inspection-ready, you skip the hardest step — finding a landlord who says yes. Send us the details and we'll tell you what's available now."
+        },
+        {
+          "q": "Do you screen out Housing Choice Voucher holders?",
+          "a": "Never. We welcome voucher holders on every available home, and we follow the Fair Housing Act. Where local source-of-income protections apply (e.g. Cleveland Heights, South Euclid, University Heights, Warrensville Heights, Linndale), we comply fully; we welcome vouchers everywhere we operate regardless."
+        }
       ]
     },
     {
@@ -39,9 +48,94 @@
       "formSub": "Share a few details and our team will follow up to see how we can help.",
       "linkHeading": "Corporate leasing guides",
       "faq": [
-        { "q": "Do you provide furnished or short-term corporate housing?", "a": "We're a local rental team, and availability varies. Rather than over-promise, tell us exactly what you need — furnished vs. unfurnished, length of stay, number of people, and neighborhoods — and we'll tell you honestly what our current selection can and can't cover." },
-        { "q": "Can you house multiple employees at once?", "a": "Sometimes, depending on current availability. Send us the headcount, timing, and preferred areas and we'll let you know what's realistic from the homes we work with right now." },
-        { "q": "What areas of Greater Cleveland do you cover?", "a": "Our selection is concentrated on Cleveland's East and Southeast sides, with additional homes in nearby suburbs and cities like Akron, Lorain, and Elyria. Tell us where your team needs to be and we'll tell you what's available nearby." }
+        {
+          "q": "Do you provide furnished or short-term corporate housing?",
+          "a": "We're a local rental team, and availability varies. Rather than over-promise, tell us exactly what you need — furnished vs. unfurnished, length of stay, number of people, and neighborhoods — and we'll tell you honestly what our current selection can and can't cover."
+        },
+        {
+          "q": "Can you house multiple employees at once?",
+          "a": "Sometimes, depending on current availability. Send us the headcount, timing, and preferred areas and we'll let you know what's realistic from the homes we work with right now."
+        },
+        {
+          "q": "What areas of Greater Cleveland do you cover?",
+          "a": "Our selection is concentrated on Cleveland's East and Southeast sides, with additional homes in nearby suburbs and cities like Akron, Lorain, and Elyria. Tell us where your team needs to be and we'll tell you what's available nearby."
+        }
+      ]
+    },
+    {
+      "slug": "section-8-landlords",
+      "leadType": "landlord_owner",
+      "eyebrow": "For Greater Cleveland property owners",
+      "title": "Section 8 Landlord Services in Cleveland, OH",
+      "metaTitle": "Section 8 Landlord Services in Cleveland, OH",
+      "metaDescription": "Own a rental in Greater Cleveland? We handle the Section 8 paperwork end to end — listing, showings, RFTA, inspection and HAP contract. You sign twice. No placement, no fee.",
+      "heroSub": "Section 8 pays on time, every month. The paperwork is why most owners never start — so we carry it, and you sign twice.",
+      "answerBox": "Rent Finder Cleveland handles the Housing Choice Voucher process for property owners in Greater Cleveland: we list the unit, screen inquiries, run showings in person, file the RFTA with CMHA, schedule and attend the inspection, and carry it through to a signed HAP contract. Placement costs one month's rent, charged only after a tenant is placed. Inspection attendance is $100. Ongoing management is 5% of monthly rent while the unit is rented.",
+      "serviceName": "Section 8 leasing and property management for owners",
+      "serviceType": "Property management",
+      "areaServed": [
+        "Cleveland",
+        "East Cleveland",
+        "Euclid",
+        "Parma",
+        "Lakewood",
+        "Cleveland Heights",
+        "Shaker Heights",
+        "Maple Heights",
+        "Garfield Heights",
+        "Warrensville Heights",
+        "Bedford"
+      ],
+      "offers": [
+        {
+          "name": "Tenant placement",
+          "description": "We list the unit, screen inquiries, run showings in person, and carry the voucher paperwork through to a signed HAP contract.",
+          "priceNote": "One month's rent, charged only once a tenant is placed. If no placement happens, there is no fee."
+        },
+        {
+          "name": "Inspection attendance and report",
+          "description": "We meet the inspector at the property and send you the written result. You can also attend yourself instead.",
+          "price": 100,
+          "priceNote": "$100 per inspection attended, report included."
+        },
+        {
+          "name": "Ongoing property management",
+          "description": "Tenant communication, rent collection or pass-through, work orders, and repair estimates back inside 24 hours.",
+          "priceNote": "5% of monthly rent, charged only while the unit is rented."
+        }
+      ],
+      "intro": [
+        "Housing Choice Voucher rent is paid by the housing authority on a set schedule, which is why owners who use it tend to keep using it. The reason most owners never start is the process in between: the Request for Tenancy Approval, the inspection, the HAP contract, and the waiting in between each one.",
+        "We do that part. You sign a leasing permit so we can act for you, and later you sign the lease and the HAP contract. Everything between those two signatures is ours — and if the placement never happens, there is no fee to pay."
+      ],
+      "formTitle": "Tell us about your property",
+      "formSub": "Send your details and our leasing team will call you back. We work across Greater Cleveland (Cuyahoga County, under CMHA).",
+      "linkHeading": "Guides for Section 8 landlords",
+      "faq": [
+        {
+          "q": "What does it cost to have you place a Section 8 tenant?",
+          "a": "One month's rent, and it is charged only after a tenant is actually placed and the HAP contract is signed. If the placement never happens, you pay nothing. The only thing you sign up front is a leasing permit, which is what lets us act for you with CMHA."
+        },
+        {
+          "q": "I already found a tenant. Can you just handle the paperwork?",
+          "a": "Yes. We can file the Request for Tenancy Approval, follow it through the housing authority, and schedule the inspection. Attending the inspection and sending you the written report is $100. If you would rather attend it yourself, you can — you only pay if we go."
+        },
+        {
+          "q": "What does ongoing management cover, and what does it cost?",
+          "a": "5% of monthly rent, charged only while the unit is rented. That covers tenant communication, collecting rent or routing it straight to you, taking work orders, and getting repair estimates back to you inside 24 hours."
+        },
+        {
+          "q": "What if the unit fails inspection?",
+          "a": "A failed inspection is a delay, not a dead end. Send us the report and we return a free, itemized estimate inside 24 hours. Nothing gets repaired without your approval first."
+        },
+        {
+          "q": "Where do you work?",
+          "a": "Greater Cleveland — Cuyahoga County, where CMHA is the housing authority. That includes Cleveland, East Cleveland, Euclid, Parma, Lakewood, Cleveland Heights, Shaker Heights and the surrounding suburbs."
+        },
+        {
+          "q": "Do I have to accept Housing Choice Vouchers?",
+          "a": "Whether an owner may decline a voucher depends on local law, and the rules differ between Ohio as a whole and individual cities. Check the current ordinance for the municipality your property sits in, or ask us and we will point you to it. What we can say is that owners who do participate get rent paid on a set schedule by the housing authority."
+        }
       ]
     }
   ]

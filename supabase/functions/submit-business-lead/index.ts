@@ -18,7 +18,15 @@ const corsHeaders = {
 };
 
 const ORG_SLUG = "rent-finder-cleveland";
-const VALID_TYPES = ["housing_partner", "corporate_leasing"];
+const VALID_TYPES = ["housing_partner", "corporate_leasing", "landlord_owner"];
+
+// Human labels for the Telegram alert. Keep in sync with VALID_TYPES and with
+// TYPE_META in src/pages/business/BusinessPage.tsx.
+const TYPE_LABELS: Record<string, string> = {
+  housing_partner: "Housing Partner",
+  corporate_leasing: "Corporate Leasing",
+  landlord_owner: "Landlord / Owner",
+};
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -119,7 +127,7 @@ serve(async (req: Request) => {
         .eq("organization_id", orgId)
         .maybeSingle();
       if (creds?.telegram_bot_token && creds?.telegram_chat_id) {
-        const label = leadType === "housing_partner" ? "Housing Partner" : "Corporate Leasing";
+        const label = TYPE_LABELS[leadType] ?? leadType;
         // Big call-to-action card with the full form. Phone stays plain E.164-ish
         // so Telegram mobile auto-detects a tappable call link.
         const esc = (s: unknown) =>

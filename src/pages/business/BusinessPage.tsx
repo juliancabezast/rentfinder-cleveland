@@ -15,6 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, Briefcase, Trash2, Loader2, Mail, Phone, Building2, HeartHandshake, Home as HomeIcon,
+  KeyRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +25,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 interface BusinessLead {
   id: string;
-  lead_type: "housing_partner" | "corporate_leasing";
+  lead_type: "housing_partner" | "corporate_leasing" | "landlord_owner";
   full_name: string | null;
   organization_name: string | null;
   email: string | null;
@@ -39,6 +40,8 @@ interface BusinessLead {
 const TYPE_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; cls: string }> = {
   housing_partner: { label: "Housing Partner", icon: HeartHandshake, cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   corporate_leasing: { label: "Corporate Leasing", icon: Building2, cls: "bg-indigo-100 text-indigo-700 border-indigo-200" },
+  // Owners arriving from the /section-8-landlords/ hub and its articles.
+  landlord_owner: { label: "Landlord / Owner", icon: KeyRound, cls: "bg-amber-100 text-amber-800 border-amber-200" },
 };
 
 const STATUSES = [

@@ -20,6 +20,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..", "..");
 const CONTENT = join(ROOT, "content", "seo");
 const ARTICLES_DIR = join(CONTENT, "articles");
+const BUSINESS_DIR = join(CONTENT, "business-articles");
 
 // ── Fair Housing: forbidden language (case-insensitive, word-ish boundaries) ──
 // These describe or steer by protected class or use loaded proxies. HUD ad guidance.
@@ -31,7 +32,8 @@ const FAIR_HOUSING_BANNED = [
   "bachelor pad", "singles only", "couples only", "mature", "empty nester",
   "christian", "catholic", "jewish", "muslim", "church", "synagogue", "mosque", "gentile",
   "white", "black neighborhood", "hispanic", "latino community", "asian", "ethnic", "integrated",
-  "exclusive neighborhood", "exclusive community", "restricted", "traditional neighborhood",
+  "exclusive neighborhood", "exclusive community", "traditional neighborhood",
+  "restricted community", "restricted neighborhood", "restricted area", "restricted building",
   "able-bodied", "handicap", "no wheelchairs", "not handicap", "healthy only", "no disabled",
   "english speaking", "english-speaking only", "americans only", "no immigrants",
   "male only", "female only", "men only", "women only",
@@ -41,6 +43,13 @@ const FAIR_HOUSING_BANNED = [
 // Softer proxies → warnings (allowed in some contexts but flag for human eyes)
 const FAIR_HOUSING_WARN = [
   "walkable", "young professional", "vibrant", "desirable", "trendy", "prestigious", "nice area",
+  // "restricted" was a blanket hard error until 2026-07-21. It fired on
+  // "age-restricted community" (a lawful HOPA housing category, and our articles
+  // were steering AWAY from it) and on "portability is not restricted" (pure
+  // program mechanics). The exclusionary senses — restricted community /
+  // neighborhood / area / building — stay hard errors above; the bare word is
+  // now a warning so a human still reads every occurrence.
+  "restricted",
 ];
 
 // ── Honesty: false PROMISES we must never make (hard errors) ──
@@ -88,6 +97,23 @@ export function loadArticles() {
     .map((f) => ({ file: f, data: JSON.parse(readFileSync(join(ARTICLES_DIR, f), "utf8")) }));
 }
 
+// B2B articles (/housing-partners/, /corporate-leasing/, /section-8-landlords/).
+// These went ungated until 2026-07-21 — the Fair Housing and honesty checks below
+// had only ever seen the renter-facing hub. They are the same shape minus
+// `cluster`/`cta`, plus a `section`.
+export function loadBusinessArticles() {
+  if (!existsSync(BUSINESS_DIR)) return [];
+  return readdirSync(BUSINESS_DIR)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => ({ file: f, data: JSON.parse(readFileSync(join(BUSINESS_DIR, f), "utf8")) }));
+}
+
+export function loadBusinessSections() {
+  const p = join(CONTENT, "business-sections.json");
+  if (!existsSync(p)) return [];
+  return JSON.parse(readFileSync(p, "utf8")).sections || [];
+}
+
 // Build the full set of valid internal routes from taxonomy + app routes.
 export function buildRouteSet(taxonomy) {
   const cfg = taxonomy.config;
@@ -96,6 +122,11 @@ export function buildRouteSet(taxonomy) {
   for (const key of Object.keys(taxonomy.clusters || {})) routes.add(`${cfg.hubBase}/${key}/`);
   for (const p of taxonomy.pillars || []) routes.add(`/${p.slug}/`);
   for (const a of taxonomy.articles || []) routes.add(`${cfg.hubBase}/${a.cluster}/${a.slug}/`);
+  // B2B sections live at the root, not under the hub base.
+  for (const s of loadBusinessSections()) routes.add(`/${s.slug}/`);
+  for (const { data } of loadBusinessArticles()) {
+    if (data.section && data.slug) routes.add(`/${data.section}/${data.slug}/`);
+  }
   return routes;
 }
 
@@ -125,14 +156,18 @@ function countWords(article) {
   return scanText(article).split(/\s+/).filter(Boolean).length;
 }
 
-export function validateArticle(article, { file, routes, taxonomySlugs, cfg }) {
+export function validateArticle(article, { file, routes, taxonomySlugs, cfg, kind = "hub", sectionSlugs }) {
   const errors = [];
   const warnings = [];
   const err = (m) => errors.push(m);
   const warn = (m) => warnings.push(m);
+  const isBiz = kind === "business";
 
-  // 1. Schema
-  const required = ["slug", "cluster", "title", "metaTitle", "metaDescription", "primaryKeyword", "sections", "cta", "lastUpdated"];
+  // 1. Schema. B2B articles are keyed by `section` and carry no `cta` (the hub
+  // page owns the lead form), so the required set differs by kind.
+  const required = isBiz
+    ? ["slug", "section", "title", "metaTitle", "metaDescription", "primaryKeyword", "sections", "lastUpdated"]
+    : ["slug", "cluster", "title", "metaTitle", "metaDescription", "primaryKeyword", "sections", "cta", "lastUpdated"];
   for (const k of required) {
     if (article[k] === undefined || article[k] === null || (typeof article[k] === "string" && !article[k].trim())) {
       err(`missing required field "${k}"`);
@@ -141,7 +176,14 @@ export function validateArticle(article, { file, routes, taxonomySlugs, cfg }) {
   if (file && article.slug && file !== `${article.slug}.json`) {
     err(`filename "${file}" does not match slug "${article.slug}"`);
   }
-  if (taxonomySlugs && article.slug && !taxonomySlugs.has(article.slug)) {
+  if (isBiz) {
+    // B2B articles are discovered by directory scan, so there is no taxonomy
+    // entry to match — but the section they claim must actually exist, or the
+    // generator silently drops the file on the floor.
+    if (sectionSlugs && article.section && !sectionSlugs.has(article.section)) {
+      err(`unknown section "${article.section}" (valid: ${[...sectionSlugs].join(", ")})`);
+    }
+  } else if (taxonomySlugs && article.slug && !taxonomySlugs.has(article.slug)) {
     err(`slug "${article.slug}" not present in taxonomy.articles`);
   }
   if (cfg && article.cta && !cfg.cta[article.cta]) {
@@ -234,6 +276,8 @@ export function validateAll() {
   const routes = buildRouteSet(taxonomy);
   const taxonomySlugs = new Set((taxonomy.articles || []).map((a) => a.slug));
   const loaded = loadArticles();
+  const business = loadBusinessArticles();
+  const sectionSlugs = new Set(loadBusinessSections().map((s) => s.slug));
 
   let totalErrors = 0;
   let totalWarnings = 0;
@@ -246,13 +290,22 @@ export function validateAll() {
     if (errors.length || warnings.length) perFile.push({ file, errors, warnings, words });
   }
 
+  for (const { file, data } of business) {
+    const { errors, warnings, words } = validateArticle(data, {
+      file, routes, cfg, kind: "business", sectionSlugs,
+    });
+    totalErrors += errors.length;
+    totalWarnings += warnings.length;
+    if (errors.length || warnings.length) perFile.push({ file: `business/${file}`, errors, warnings, words });
+  }
+
   // Coverage: taxonomy slugs with no article file yet
   const haveSlugs = new Set(loaded.map((l) => l.data.slug));
   const missing = [...taxonomySlugs].filter((s) => !haveSlugs.has(s));
 
   return {
     taxonomy, cfg, routes,
-    counts: { articles: loaded.length, taxonomy: taxonomySlugs.size, missing: missing.length, errors: totalErrors, warnings: totalWarnings },
+    counts: { articles: loaded.length, business: business.length, taxonomy: taxonomySlugs.size, missing: missing.length, errors: totalErrors, warnings: totalWarnings },
     missing, perFile,
   };
 }

@@ -115,6 +115,42 @@ function faqNode(faq) {
   return { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) };
 }
 
+// Service + Offer, emitted only for sections that declare `offers`.
+//
+// This is the GEO play: an answer engine asked "how much does Section 8
+// property management cost in Cleveland" can lift a real, attributed price
+// instead of guessing. Prices come from the section JSON — never hardcoded
+// here — so the page and the structured data can't drift apart.
+function serviceNode(cfg, section) {
+  if (!section.offers || !section.offers.length) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: section.serviceName || section.title,
+    serviceType: section.serviceType || section.title,
+    description: section.metaDescription,
+    provider: {
+      "@type": "RealEstateAgent",
+      name: cfg.brandName,
+      telephone: cfg.phoneE164,
+      email: cfg.email,
+      url: cfg.domain + "/",
+      ...(cfg.logo ? { image: cfg.logo } : {}),
+    },
+    areaServed: (section.areaServed || []).map((n) => ({ "@type": "City", name: n })),
+    url: absUrl(cfg, `/${section.slug}/`),
+    offers: section.offers.map((o) => ({
+      "@type": "Offer",
+      name: o.name,
+      description: o.description,
+      priceCurrency: "USD",
+      ...(o.price != null ? { price: String(o.price) } : {}),
+      ...(o.priceNote ? { priceSpecification: { "@type": "PriceSpecification", description: o.priceNote } } : {}),
+      availability: "https://schema.org/InStock",
+    })),
+  };
+}
+
 function pageHeader() {
   return `<header class="site-header"><div class="hdr-inner">
     <a class="brand" href="/"><span class="brand-mark"></span>${E(cfg.brandName)}</a>
@@ -178,7 +214,8 @@ for (const section of sections) {
   const itemList = links.length
     ? { "@context": "https://schema.org", "@type": "ItemList", itemListElement: links.map((l, i) => ({ "@type": "ListItem", position: i + 1, name: l.title, url: absUrl(cfg, l.path) })) }
     : null;
-  const ldBlocks = [orgNode(cfg), breadcrumb(trail), faqNode(section.faq), itemList].filter(Boolean).map(ld).join("\n  ");
+  const ldBlocks = [orgNode(cfg), breadcrumb(trail), faqNode(section.faq), itemList, serviceNode(cfg, section)]
+    .filter(Boolean).map(ld).join("\n  ");
 
   const body = `${pageHeader()}
   <main class="wrap">
