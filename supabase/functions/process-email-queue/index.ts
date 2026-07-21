@@ -23,6 +23,9 @@ const MARKETING_NOTIFICATION_TYPES = new Set([
   "featured_property",
   "newsletter",
   "promotion",
+  // Elijah's showing nurture — needs the unsubscribe link injected at drain
+  // time, same as any campaign send.
+  "showing_nurture",
 ]);
 
 // ── CAN-SPAM unsubscribe (per-recipient, HMAC-signed) ──────────────────────

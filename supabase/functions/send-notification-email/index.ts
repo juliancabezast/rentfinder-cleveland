@@ -19,6 +19,10 @@ const MARKETING_NOTIFICATION_TYPES = new Set([
   "featured_property",
   "newsletter",
   "promotion",
+  // Elijah's 7-step showing nurture. Marketing by any honest reading of
+  // CAN-SPAM (most recipients inquired 90+ days ago), so it MUST carry the
+  // consent gate, the {{unsubscribe_url}} substitution and List-Unsubscribe.
+  "showing_nurture",
 ]);
 
 // Decode a JWT's `role` claim WITHOUT verifying the signature. Diagnostics

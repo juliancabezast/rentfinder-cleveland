@@ -46,6 +46,7 @@ const LEGACY_TO_CANONICAL: Record<string, string> = {
   campaign: "elijah",
   campaign_voice: "elijah",
   welcome_sequence: "elijah",
+  showing_nurture: "elijah",
   showing_confirmation: "samuel",
   doorloop_pull: "samuel",
   no_show_followup: "samuel",
@@ -464,6 +465,256 @@ async function handleWelcomeSequence(
   }
 
   throw new Error("Lead has no email for welcome sequence (SMS removed)");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Elijah — showing-nurture sequence (2026-07-21)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Replaces the 9 AM Telegram pile-up of "leads que no agendaron" with an email
+// cadence that does the chasing: one email every 3 days, 7 max, every CTA
+// pointing at the public site so the prospect books themselves.
+//
+// The lead is NEVER deleted or lost. After 7 with no reaction it is tagged
+// (nurture_outcome='exhausted') and goes quiet permanently.
+
+const NURTURE_INTERVAL_DAYS = 3;
+const NURTURE_MAX_STEPS = 7;
+
+// Each step earns its place — a different angle, not the same nag 7 times.
+// No property is ever named (city-only comms policy, and a specific unit is
+// usually gone by the time step 5 lands).
+const NURTURE_STEPS: {
+  subject: (city: string) => string;
+  heading: string;
+  body: (first: string, city: string) => string;
+  cta: string;
+}[] = [
+  {
+    subject: (c) => `Ready to see a home${c ? ` in ${c}` : ""}?`,
+    heading: "Let's get you inside a home",
+    body: (f, c) => `Hi ${f}, thanks for reaching out about our rentals${c ? ` in ${c}` : ""}. The fastest way forward is to see one in person — you can pick a day and time yourself, it takes under a minute.`,
+    cta: "Pick a time to tour",
+  },
+  {
+    subject: () => `Tours are booking up this week`,
+    heading: "Still looking?",
+    body: (f, c) => `Hi ${f}, our tour slots${c ? ` in ${c}` : ""} tend to fill a few days out. If you're still searching, grabbing a time now keeps your options open — and it costs you nothing to hold one.`,
+    cta: "See available times",
+  },
+  {
+    subject: () => `A few things worth knowing before you tour`,
+    heading: "What to expect",
+    body: (f) => `Hi ${f}, a quick heads-up so there are no surprises: tours take about 15 minutes, you don't need to bring anything, and there's no obligation. If you like the place, we'll walk you through applying right there.`,
+    cta: "Book a tour",
+  },
+  {
+    subject: () => `New homes just came available`,
+    heading: "Fresh listings",
+    body: (f, c) => `Hi ${f}, our availability${c ? ` around ${c}` : ""} changes every week. If nothing fit before, it's worth another look — and you can book a tour on anything you like right from the listing.`,
+    cta: "Browse what's available",
+  },
+  {
+    subject: () => `Do you accept Section 8? (and other common questions)`,
+    heading: "The questions we get most",
+    body: (f) => `Hi ${f}, in case it's what's holding you back: yes, many of our homes accept Section 8 vouchers. Applying takes a valid ID, your last 3 paystubs, and a $50 fee per household. Nothing else.`,
+    cta: "Find a home and tour it",
+  },
+  {
+    subject: () => `Still interested in renting with us?`,
+    heading: "Checking in",
+    body: (f) => `Hi ${f}, we don't want to keep filling your inbox if the timing isn't right. If you're still looking, one tour is all it takes to move forward. If not, no hard feelings — you can unsubscribe below and we'll stop.`,
+    cta: "Book my tour",
+  },
+  {
+    subject: () => `Last note from us`,
+    heading: "We'll leave you to it",
+    body: (f) => `Hi ${f}, this is the last email we'll send about your search. If you ever want to look again, our listings stay open to you any time — no need to re-register. Thanks for considering us.`,
+    cta: "See our homes",
+  },
+];
+
+function buildNurtureEmail(
+  step: number, firstName: string, city: string, senderDomain: string, orgName: string,
+): string {
+  const s = NURTURE_STEPS[step - 1];
+  const site = `https://${senderDomain}`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(s.heading)}</title></head>
+<body style="margin:0;padding:0;background-color:#f3eef8;font-family:'Montserrat','Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f3eef8;">
+<tr><td style="padding:24px 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;">
+
+  <tr><td style="background:linear-gradient(135deg,#4F46E5 0%,#6366F1 100%);padding:32px 32px 24px;border-radius:16px 16px 0 0;text-align:center;">
+    <h1 style="margin:0 0 4px;color:#ffb22c;font-size:24px;font-weight:700;letter-spacing:-0.5px;">${escapeHtml(orgName)}</h1>
+    <p style="margin:0;color:rgba(255,255,255,0.7);font-size:13px;">Quality Rental Homes in Cleveland</p>
+  </td></tr>
+
+  <tr><td style="background-color:#ffffff;padding:32px;border-left:1px solid #e5e5e5;border-right:1px solid #e5e5e5;">
+    <h2 style="color:#4F46E5;margin:0 0 16px;font-size:22px;font-weight:700;">${escapeHtml(s.heading)}</h2>
+    <p style="color:#444;font-size:15px;line-height:1.6;margin:0 0 24px;">${escapeHtml(s.body(firstName, city))}</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 8px;">
+      <tr><td align="center">
+        <a href="${site}" style="display:inline-block;background:linear-gradient(135deg,#4F46E5 0%,#6366F1 100%);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;">${escapeHtml(s.cta)}</a>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <tr><td style="background-color:#ffffff;padding:0 32px 28px;border-left:1px solid #e5e5e5;border-right:1px solid #e5e5e5;border-radius:0 0 16px 16px;border-bottom:1px solid #e5e5e5;text-align:center;">
+    <p style="margin:16px 0 0;color:#999;font-size:12px;line-height:1.5;">
+      ${escapeHtml(orgName)} · Cleveland, OH<br>
+      <a href="{{unsubscribe_url}}" style="color:#999;text-decoration:underline;">Unsubscribe from these emails</a>
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+async function handleShowingNurture(
+  supabase: SupabaseClient,
+  task: AgentTask,
+  lead: AgentTask,
+  settings: OrgSettings
+): Promise<string> {
+  const leadId = task.lead_id;
+  const step = Number((task.context || {}).step) || 1;
+
+  // ── Exit conditions, re-checked before EVERY send ────────────────────────
+  // A task scheduled 3 days ago knows nothing about what happened since, so the
+  // decision to send is made now, not when it was queued.
+  const stop = async (outcome: string, why: string) => {
+    await supabase.from("leads")
+      .update({ nurture_outcome: outcome, nurture_completed_at: new Date().toISOString() })
+      .eq("id", leadId);
+    return `Nurture stopped (${outcome}): ${why}`;
+  };
+
+  if (!lead.email) return stop("stopped", "no email");
+  if (lead.unsubscribed_at) return stop("stopped", "unsubscribed");
+  if (["converted", "lost", "in_application"].includes(String(lead.status || ""))) {
+    return stop("stopped", `lead status ${lead.status}`);
+  }
+
+  // Won: they booked. The confirmation flow owns them from here — the owner
+  // asked for exactly this handoff ("si agendan se pausa y pasa a confirmación").
+  {
+    const { data: sh } = await supabase.from("showings")
+      .select("id").eq("lead_id", leadId)
+      .in("status", ["scheduled", "confirmed", "completed"]).limit(1).maybeSingle();
+    if (sh) return stop("booked", "lead booked a showing");
+  }
+
+  // Replied: a human conversation beats an automated cadence.
+  {
+    const { data: reply } = await supabase.from("inbound_emails")
+      .select("id").eq("lead_id", leadId)
+      .gte("created_at", String(lead.nurture_started_at || task.created_at || ""))
+      .limit(1).maybeSingle();
+    if (reply) return stop("replied", "lead replied by email");
+  }
+
+  // Deliverability circuit breaker. Bounces are already suppressed at the send
+  // boundary; COMPLAINTS are what get a domain blacklisted, and 90% of this
+  // list inquired 90+ days ago. Stand down before the damage, not after.
+  {
+    const { data: health } = await supabase
+      .rpc("nurture_health_check", { p_organization_id: task.organization_id })
+      .maybeSingle();
+    if (health && health.is_healthy === false) {
+      throw new Error(
+        `Nurture paused: complaint rate ${health.complaint_rate}% over ${health.recent_sends} sends`,
+      );
+    }
+  }
+
+  // ── Send ─────────────────────────────────────────────────────────────────
+  const firstName = String(lead.full_name || lead.email.split("@")[0] || "there").split(" ")[0];
+  let city = "";
+  {
+    const { data: tagRows } = await supabase
+      .from("lead_property_interests")
+      .select("properties:property_id(city)")
+      .eq("lead_id", leadId)
+      .order("last_interest_at", { ascending: false })
+      .limit(5);
+    city = ((tagRows as { properties: { city: string | null } | null }[] | null) || [])
+      .map((r) => r.properties?.city).find((c): c is string => !!c) || "";
+  }
+
+  const tmpl = NURTURE_STEPS[step - 1];
+  const html = buildNurtureEmail(step, firstName, city, settings.sender_domain, settings.org_name);
+
+  // Raw fetch, not functions.invoke: invoke sends the service key in `apikey`
+  // rather than Bearer, which is what broke confirmations for 7 days.
+  const resp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-notification-email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+    },
+    body: JSON.stringify({
+      to: lead.email,
+      subject: tmpl.subject(city),
+      html,
+      notification_type: "showing_nurture",
+      organization_id: task.organization_id,
+      related_entity_id: leadId,
+      related_entity_type: "lead",
+      from_name: settings.org_name,
+      queue: true,
+    }),
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => "");
+    // 403 = consent gate (opted out). That is a permanent answer, not a retry.
+    if (resp.status === 403) return stop("stopped", "consent gate declined");
+    throw new Error(`Nurture email ${step}/7 failed (${resp.status}): ${body.slice(0, 160)}`);
+  }
+
+  const nowIso = new Date().toISOString();
+  await supabase.from("leads").update({
+    nurture_emails_sent: step,
+    nurture_last_sent_at: nowIso,
+    nurture_outcome: step >= NURTURE_MAX_STEPS ? "exhausted" : "active",
+    ...(step >= NURTURE_MAX_STEPS ? { nurture_completed_at: nowIso } : {}),
+  }).eq("id", leadId);
+
+  // The owner asked for these to show in the Leasing Tracker. Own action code —
+  // folding ~6k automated sends/day into the human-effort counter would bury
+  // the fact that a person actually worked the lead.
+  {
+    const { data: tag } = await supabase.from("lead_property_interests")
+      .select("property_id").eq("lead_id", leadId)
+      .order("last_interest_at", { ascending: false }).limit(1).maybeSingle();
+    await supabase.from("leasing_activity").insert({
+      organization_id: task.organization_id,
+      property_id: (tag as { property_id?: string } | null)?.property_id ?? null,
+      lead_id: leadId,
+      action: "nurture_email_sent",
+      source: "elijah",
+    });
+  }
+
+  // Chain the next step. Step 7 ends the chain — the lead stays alive, tagged.
+  if (step < NURTURE_MAX_STEPS) {
+    await supabase.from("agent_tasks").insert({
+      organization_id: task.organization_id,
+      lead_id: leadId,
+      agent_type: "showing_nurture",
+      action_type: "email",
+      status: "pending",
+      scheduled_for: new Date(Date.now() + NURTURE_INTERVAL_DAYS * 86400000).toISOString(),
+      context: { step: step + 1 },
+    });
+    return `Nurture email ${step}/7 queued; next in ${NURTURE_INTERVAL_DAYS}d`;
+  }
+  return `Nurture email 7/7 queued — sequence exhausted, lead tagged`;
 }
 
 async function handleNoShowFollowup(
@@ -926,7 +1177,7 @@ async function dispatchTask(
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, email, sms_consent, call_consent, status, unsubscribed_at"
+      "id, full_name, phone, email, sms_consent, call_consent, status, unsubscribed_at, nurture_started_at"
     )
     .eq("id", task.lead_id)
     .single();
@@ -940,6 +1191,8 @@ async function dispatchTask(
       return handleShowingConfirmation(supabase, task, lead, settings);
     case "welcome_sequence":
       return handleWelcomeSequence(supabase, task, lead, settings);
+    case "showing_nurture":
+      return handleShowingNurture(supabase, task, lead, settings);
     case "esther":
       if (task.action_type === "enrichment_followup") {
         return handleEnrichmentFollowup(supabase, task, lead, settings);

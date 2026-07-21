@@ -49,26 +49,9 @@ function plusDays9amET(days: number): string {
   const offsetMs = noon.getTime() - localNoon.getTime();
   return new Date(new Date(`${dateStr}T09:00:00Z`).getTime() + offsetMs).toISOString();
 }
-function nextDay9amET(): string { return plusDays9amET(1); }
-
-// Cleveland midnight (today) as UTC ISO — dedup marker boundary for the daily
-// queue summary (noon-sampled offset; ±1h on the 2 DST days is harmless here).
-function todayMidnightET(): string {
-  const TZ = "America/New_York";
-  const dateStr = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
-  const noon = new Date(`${dateStr}T12:00:00Z`);
-  const localNoon = new Date(noon.toLocaleString("en-US", { timeZone: TZ }));
-  const offsetMs = noon.getTime() - localNoon.getTime();
-  return new Date(new Date(`${dateStr}T00:00:00Z`).getTime() + offsetMs).toISOString();
-}
-// Case-insensitive (matches telegram-webhook's copy — the parser has emitted
-// both "Hemlane Lead" and "Hemlane lead").
-function isShellName(n: unknown): boolean {
-  const s = String(n ?? "").trim();
-  const low = s.toLowerCase();
-  return !s || low.startsWith("hemlane lead") || s.includes("{") ||
-    low.startsWith("detail") || /\d{7,}/.test(s);
-}
+// (nextDay9amET / todayMidnightET / isShellName removed 2026-07-21 — they only
+// served the retired 9 AM queue summary. plusDays9amET stays: the closing
+// cadence still chains D+1/D+3/D+7 with it.)
 
 // QUEUE MODEL (2026-07-19): due reminders STAY `pending` until the user works
 // them in the Funnel gestión queue — accumulation is inherent, so there are no
@@ -100,60 +83,14 @@ async function dispatchLeadReminders(
       }
     }
 
-    // ── Daily summary: only at/after 9 AM Cleveland (a due_at<=now filter with
-    // a midnight marker window would otherwise fire at ~00:00 whenever
-    // yesterday's reminders carried over) ──
-    const hourET = parseInt(new Date().toLocaleString("en-US", {
-      timeZone: "America/New_York", hour: "2-digit", hour12: false,
-    }), 10) % 24;
-    if (hourET < 9) return 0;
-
-    const todayStartUtc = todayMidnightET();
-    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-    // Org set independent of reminders (single tenant in practice).
-    const { data: orgs } = await supabase.from("organizations").select("id").limit(5);
-    for (const org of orgs || []) {
-      const orgId = org.id;
-      const { data: marker } = await supabase.from("system_logs").select("id")
-        .eq("organization_id", orgId).eq("event_type", "queue_summary_sent")
-        .gte("created_at", todayStartUtc).limit(1).maybeSingle();
-      if (marker) continue;
-
-      const [remCntRes, freshLeadsRes] = await Promise.all([
-        supabase.from("lead_reminders").select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId).eq("status", "pending").lte("due_at", nowIso)
-          .neq("reason", "closing"),
-        supabase.from("leads").select("id, full_name")
-          .eq("organization_id", orgId).eq("is_demo", false).eq("status", "new")
-          .is("managed_at", null).not("phone", "is", null)
-          .gte("created_at", sevenDaysAgo).limit(200),
-      ]);
-      const reminders = remCntRes.count || 0;
-      const fresh = ((freshLeadsRes.data || []) as any[]).filter((l) => !isShellName(l.full_name)).length;
-      if (reminders + fresh === 0) continue;
-
-      const resp = await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
-        body: JSON.stringify({
-          organization_id: orgId,
-          channel: "funnel",
-          event: "leads_batch",
-          payload: { reminders, fresh },
-        }),
-      });
-      // telegram-notify ALWAYS returns HTTP 200 — real success is the body {ok}.
-      const jr = await resp.json().catch(() => ({}));
-      if (resp.ok && jr?.ok === true) {
-        sent++;
-        await supabase.from("system_logs").insert({
-          organization_id: orgId, level: "info", category: "general",
-          event_type: "queue_summary_sent",
-          message: `Queue summary: ${reminders} reminders + ${fresh} fresh leads`,
-          details: { reminders, fresh },
-        });
-      }
-    }
+    // ── The 9 AM queue summary is RETIRED (owner decision 2026-07-21) ────────
+    // "ya no quiero que me estés recordando a las nueve de la mañana" — chasing
+    // leads who never booked is Elijah's job now, by email (agent_type
+    // 'showing_nurture'), because the volume stopped being workable by hand.
+    //
+    // The reminder ROWS still accumulate and the ▶️ Gestionar queue still works
+    // on demand in the Funnel bot — what's gone is the unsolicited daily push.
+    // Deleting the rows instead would have silently emptied that queue too.
   } catch (remErr) {
     console.error("lead_reminders dispatch error:", remErr);
   }

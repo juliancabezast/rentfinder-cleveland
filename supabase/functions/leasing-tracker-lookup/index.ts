@@ -509,27 +509,51 @@ serve(async (req) => {
       return count || 0;
     };
     const [
-      actContacts, actMessages, actFollowUps, actConfirmed, recentActivityRes,
+      actContacts, actMessages, actFollowUps, actConfirmed, actNurture, recentActivityRes,
     ] = await Promise.all([
       actCount(["contacted", "contact_attempt"]),
       actCount(["message_sent_sms", "message_sent_email"]),
       actCount(["follow_up_scheduled"]),
       actCount(["showing_confirmed"]),
+      actCount(["nurture_email_sent"]),
+      // Elijah's nurture runs at thousands of sends a day, so it is EXCLUDED
+      // from the timeline — otherwise the last 15 rows would be nothing but
+      // automated email and the human work would be invisible, which is the
+      // exact problem this feed was built to fix. It gets its own counter
+      // above, and a per-day roll-up below.
       supabase
         .from("leasing_activity").select("id, action, created_at")
         .eq("organization_id", orgId).in("property_id", unitIds)
+        .neq("action", "nurture_email_sent")
         .order("created_at", { ascending: false }).limit(15),
     ]);
+    // Per-day roll-up so the owner still sees the automated cadence working
+    // ("14 correos de seguimiento hoy") without it burying everything else.
+    const { data: nurtureDaysRaw } = await supabase
+      .from("leasing_activity").select("created_at")
+      .eq("organization_id", orgId).in("property_id", unitIds)
+      .eq("action", "nurture_email_sent")
+      .gte("created_at", act30d)
+      .order("created_at", { ascending: false }).limit(1000);
+    const nurtureByDay = new Map<string, number>();
+    for (const r of (nurtureDaysRaw || []) as { created_at: string }[]) {
+      const day = new Date(r.created_at).toLocaleDateString("en-CA", { timeZone: ORG_TZ });
+      nurtureByDay.set(day, (nurtureByDay.get(day) || 0) + 1);
+    }
     const leasingActivity = {
       last_30d: {
         contacts: actContacts,
         messages: actMessages,
         follow_ups: actFollowUps,
         showings_confirmed: actConfirmed,
+        nurture_emails: actNurture,
       },
       recent: ((recentActivityRes.data || []) as any[]).map((a) => ({
         id: a.id, action: a.action, created_at: a.created_at,
       })),
+      nurture_by_day: [...nurtureByDay.entries()]
+        .sort((a, b) => b[0].localeCompare(a[0])).slice(0, 7)
+        .map(([day, count]) => ({ day, count })),
     };
 
     // Open agenda slots across all units (enabled & not booked). Use exact

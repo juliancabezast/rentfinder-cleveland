@@ -153,8 +153,12 @@ interface TrackerData {
       messages: number;
       follow_ups: number;
       showings_confirmed: number;
+      nurture_emails?: number;
     };
     recent: { id: string; action: string; created_at: string }[];
+    // Automated nurture rolled up per day — kept out of `recent` so thousands
+    // of daily sends don't bury the human moves.
+    nurture_by_day?: { day: string; count: number }[];
   } | null;
   open_slots: {
     upcoming_count: number;
@@ -246,6 +250,9 @@ const STRINGS = {
     activityMessages: "mensajes enviados",
     activityFollowUps: "seguimientos agendados",
     activityConfirmed: "showings confirmados",
+    activityNurture: "correos de seguimiento",
+    activityNurtureDay: (n: number) =>
+      `${n} correo${n === 1 ? "" : "s"} de seguimiento automático`,
     activityRecent: "Últimos movimientos",
     activityEmpty: "Todavía no hay actividad registrada para esta propiedad",
     activityNow: "recién",
@@ -384,6 +391,9 @@ const STRINGS = {
     activityMessages: "messages sent",
     activityFollowUps: "follow-ups scheduled",
     activityConfirmed: "showings confirmed",
+    activityNurture: "follow-up emails",
+    activityNurtureDay: (n: number) =>
+      `${n} automated follow-up email${n === 1 ? "" : "s"}`,
     activityRecent: "Latest moves",
     activityEmpty: "No activity recorded for this property yet",
     activityNow: "just now",
@@ -1438,7 +1448,12 @@ function LeasingActivityCard({
     { value: c.messages, label: t.activityMessages },
     { value: c.follow_ups, label: t.activityFollowUps },
     { value: c.showings_confirmed, label: t.activityConfirmed },
+    // Elijah's automated cadence — only shown once it has actually run.
+    ...(c.nurture_emails ? [{ value: c.nurture_emails, label: t.activityNurture }] : []),
   ];
+  // Nurture is rolled up per day and merged into the timeline by date, so the
+  // automated volume is visible without displacing what a person did.
+  const nurtureDays = activity.nurture_by_day ?? [];
 
   return (
     <Card variant="glass">
@@ -1451,7 +1466,7 @@ function LeasingActivityCard({
         <p className="text-xs text-muted-foreground">{t.activitySub}</p>
       </CardHeader>
       <CardContent className="pt-1 space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2">
           {tiles.map((tile) => (
             <div
               key={tile.label}
@@ -1462,6 +1477,22 @@ function LeasingActivityCard({
             </div>
           ))}
         </div>
+
+        {nurtureDays.length > 0 && (
+          <ul className="space-y-1.5">
+            {nurtureDays.slice(0, 3).map((d) => (
+              <li key={d.day} className="flex items-center gap-2.5 text-sm">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-sky-600 bg-sky-500/10">
+                  <Send className="h-3.5 w-3.5" />
+                </span>
+                <span className="min-w-0 flex-1 truncate">{t.activityNurtureDay(d.count)}</span>
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  {activityAgo(`${d.day}T12:00:00Z`, tz, t)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {activity.recent.length > 0 && (
           <div>
