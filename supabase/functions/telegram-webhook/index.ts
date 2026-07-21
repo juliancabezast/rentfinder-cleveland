@@ -2430,16 +2430,26 @@ async function sendLeadContact(ctx: Ctx, lead: any) {
 
   // The contact is saved under the person's REAL name and nothing else (owner
   // decision 2026-07-21: the old "· RFC <address>" tag polluted the phone book).
-  // The property of interest still travels — in NOTE, where it doesn't touch
-  // how the contact sorts or searches.
+  // The property of interest travels in the ADR + NOTE fields instead, where it
+  // never touches how the contact sorts or searches — and never as "RFC …".
   const { data: tag } = await ctx.supabase.from("lead_property_interests")
-    .select("properties:property_id(address, city)")
+    .select("properties:property_id(address, unit_number, city, state, zip_code)")
     .eq("organization_id", ctx.organizationId).eq("lead_id", lead.id)
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
   const pr = (tag as any)?.properties;
-  const propShort = pr?.address ? clean(pr.address) : "";
+  // Unit belongs ON the street line — a multi-unit building without it points
+  // the phone's Maps at the wrong door.
+  const street = pr?.address
+    ? `${clean(pr.address)}${pr.unit_number ? ` #${clean(pr.unit_number)}` : ""}`
+    : "";
+  const propShort = street;
   const last = baseLast;
   const fn = name;
+
+  // vCard escaping: backslash, semicolon and comma are structural characters.
+  // An unescaped comma in a street would silently split the field into two.
+  const vc = (s: unknown) =>
+    String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,");
 
   const vcard = [
     "BEGIN:VCARD", "VERSION:3.0",
@@ -2448,7 +2458,17 @@ async function sendLeadContact(ctx: Ctx, lead: any) {
     `TEL;TYPE=CELL:${tel}`,
     ...(lead.email ? [`EMAIL:${clean(lead.email)}`] : []),
     `ORG:Rent Finder Cleveland — Lead`,
-    ...(propShort ? [`NOTE:Interesado en ${propShort}${pr?.city ? `, ${clean(pr.city)}` : ""}`] : []),
+    // The property of interest as a REAL address field, so the phone files it
+    // under Address (tappable → Maps) instead of burying it in Notes.
+    // ADR components: po-box;extended;street;city;state;zip;country
+    ...(street
+      ? [`ADR;TYPE=WORK:;;${vc(street)};${vc(pr?.city ?? "")};${vc(pr?.state ?? "")};${vc(pr?.zip_code ?? "")};`]
+      : []),
+    // Kept as well: Notes is what shows in the contact list preview on some
+    // clients, and it carries the "why" that a bare address doesn't.
+    ...(street
+      ? [`NOTE:Interesado en ${vc(street)}${pr?.city ? `\\, ${vc(pr.city)}` : ""}`]
+      : []),
     "END:VCARD",
   ].join("\n");
   const r = await tg(ctx, "sendContact", {
@@ -2459,7 +2479,9 @@ async function sendLeadContact(ctx: Ctx, lead: any) {
     await send(ctx, "❌ No pude enviar la tarjeta de contacto. Probá de nuevo.");
     return;
   }
-  await send(ctx, `👆 Tocá el contacto y <b>Add to Contacts</b> — lo guardás como <b>${escapeHtml(fn)}</b>.`);
+  await send(ctx,
+    `👆 Tocá el contacto y <b>Add to Contacts</b> — lo guardás como <b>${escapeHtml(fn)}</b>` +
+    (street ? `, con la dirección <b>${escapeHtml(street)}</b> adentro.` : "."));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
