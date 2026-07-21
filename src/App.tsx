@@ -56,6 +56,7 @@ const PropertyDetailPublic = lazy(() => import("./pages/public/PropertyDetailPub
 const ApplyRedirect = lazy(() => import("./pages/public/ApplyRedirect"));
 const ApplicationStarted = lazy(() => import("./pages/public/ApplicationStarted"));
 const LeasingTracker = lazy(() => import("./pages/public/LeasingTracker"));
+const Section8StressFree = lazy(() => import("./pages/public/Section8StressFree"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -109,6 +110,9 @@ const App = () => (
                 <Route path="/apply" element={<ApplyRedirect />} />
                 <Route path="/apply/started" element={<ApplicationStarted />} />
                 <Route path="/leasingtracker" element={<LeasingTracker />} />
+                <Route path="/section8stressfree" element={<Section8StressFree />} />
+                {/* Same page, hyphenated — the shape people actually type. */}
+                <Route path="/section-8-stress-free" element={<Section8StressFree />} />
 
                 {/* Public auth routes */}
                 <Route path="/auth/login" element={<Login />} />
