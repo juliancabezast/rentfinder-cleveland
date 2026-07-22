@@ -136,7 +136,8 @@
           "q": "Do I have to accept Housing Choice Vouchers?",
           "a": "Whether an owner may decline a voucher depends on local law, and the rules differ between Ohio as a whole and individual cities. Check the current ordinance for the municipality your property sits in, or ask us and we will point you to it. What we can say is that owners who do participate get rent paid on a set schedule by the housing authority."
         }
-      ]
+      ],
+      "rootLevel": true
     }
   ]
 }

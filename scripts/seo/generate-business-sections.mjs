@@ -43,6 +43,43 @@ if (existsSync(ARTICLE_DIR)) {
 }
 for (const k of Object.keys(bySection)) bySection[k].sort((a, b) => (a.title || "").localeCompare(b.title || ""));
 
+// ── Root-level collision guard ───────────────────────────────────────────────
+// Sections with `rootLevel` publish articles at `/<slug>/`. A static
+// `public/<slug>/index.html` SHADOWS the SPA route of the same name, so a slug
+// like "dashboard" or "apply" would silently take down a page of the app. Fail
+// the build loudly instead of shipping that.
+const RESERVED = new Set([
+  // SPA first-path segments (src/App.tsx)
+  "agents", "analytics", "applicants", "apply", "auth", "business", "campaigns",
+  "communications", "costs", "dashboard", "demo-requests", "documents", "emails",
+  "insights", "knowledge", "leads", "leasingtracker", "p", "playbook",
+  "privacy-policy", "properties", "property", "reports", "requests", "saas",
+  "section-8-stress-free", "section8stressfree", "settings", "showings",
+  "sms-signup", "starktank", "terms-and-conditions", "users",
+  // existing static trees + root assets
+  "apartments-for-rent-cleveland-oh", "cleveland-rentals", "corporate-leasing",
+  "houses-for-rent-cleveland-oh", "housing-partners", "section-8-housing-cleveland-oh",
+  "assets", "sitemap.xml", "robots.txt", "llms.txt", "index.html",
+]);
+{
+  const collisions = [];
+  const seen = new Map();
+  for (const s of sections) {
+    if (s.rootLevel !== true) continue;
+    RESERVED.add(s.slug); // the hub itself owns its path
+    for (const a of bySection[s.slug] || []) {
+      if (RESERVED.has(a.slug)) collisions.push(`"${a.slug}" collides with a reserved app route`);
+      if (seen.has(a.slug)) collisions.push(`"${a.slug}" duplicated across sections`);
+      seen.set(a.slug, s.slug);
+    }
+  }
+  if (collisions.length) {
+    console.error("✗ Root-level slug collisions — refusing to generate:");
+    for (const c of collisions) console.error("   " + c);
+    process.exit(1);
+  }
+}
+
 // ── escapers ──
 const E = (s = "") => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const A = (s = "") => E(s).replace(/"/g, "&quot;");
@@ -210,7 +247,7 @@ for (const section of sections) {
   const path = `/${section.slug}/`;
   const arts = bySection[section.slug] || [];
   const trail = [{ name: "Home", path: "/" }, { name: section.title, path }];
-  const links = arts.map((a) => ({ title: a.title, path: `/${section.slug}/${a.slug}/` }));
+  const links = arts.map((a) => ({ title: a.title, path: section.rootLevel === true ? `/${a.slug}/` : `/${section.slug}/${a.slug}/` }));
   const itemList = links.length
     ? { "@context": "https://schema.org", "@type": "ItemList", itemListElement: links.map((l, i) => ({ "@type": "ListItem", position: i + 1, name: l.title, url: absUrl(cfg, l.path) })) }
     : null;
@@ -234,8 +271,16 @@ for (const section of sections) {
   smUrls.push({ loc: absUrl(cfg, path), lastmod: LAUNCH });
 
   // ── Child article pages ──
+  // A section may publish its articles at the ROOT (`/<slug>/`) instead of under
+  // the section (`/<section>/<slug>/`) — owner decision 2026-07-21, matching how
+  // the money pillars already sit at the root. The hub stays put and still lists
+  // them, so the topical center survives the flat URLs.
+  const atRoot = section.rootLevel === true;
+  const artPath = (slug) => (atRoot ? `/${slug}/` : `/${section.slug}/${slug}/`);
+  const artDir = (slug) => (atRoot ? slug : join(section.slug, slug));
+
   for (const a of arts) {
-    const apath = `/${section.slug}/${a.slug}/`;
+    const apath = artPath(a.slug);
     const atrail = [{ name: "Home", path: "/" }, { name: section.title, path }, { name: a.title, path: apath }];
     const articleLd = {
       "@context": "https://schema.org", "@type": "Article",
@@ -247,7 +292,7 @@ for (const section of sections) {
       ...(a.primaryKeyword ? { about: a.primaryKeyword } : {}),
     };
     const aLd = [orgNode(cfg), breadcrumb(atrail), articleLd, faqNode(a.faq)].filter(Boolean).map(ld).join("\n  ");
-    const related = arts.filter((x) => x.slug !== a.slug).slice(0, 6).map((x) => ({ title: x.title, path: `/${section.slug}/${x.slug}/` }));
+    const related = arts.filter((x) => x.slug !== a.slug).slice(0, 6).map((x) => ({ title: x.title, path: artPath(x.slug) }));
     const body = `${pageHeader()}
   <main class="wrap">
     <nav class="crumb"><ol><li><a href="/">Home</a></li><li><a href="${A(path)}">${E(section.title)}</a></li><li>${E(a.title)}</li></ol></nav>
@@ -261,7 +306,7 @@ for (const section of sections) {
   </main>
   ${pageFooter()}
 </body></html>`;
-    writeFile(join(section.slug, a.slug, "index.html"), head({ title: a.title, metaTitle: a.metaTitle, description: a.metaDescription, canonicalPath: apath, ldBlocks: aLd }) + "\n<body>\n" + body);
+    writeFile(join(artDir(a.slug), "index.html"), head({ title: a.title, metaTitle: a.metaTitle, description: a.metaDescription, canonicalPath: apath, ldBlocks: aLd }) + "\n<body>\n" + body);
     smUrls.push({ loc: absUrl(cfg, apath), lastmod: a.lastUpdated || LAUNCH });
   }
 }
