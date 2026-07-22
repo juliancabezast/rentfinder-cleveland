@@ -1,0 +1,148 @@
+{
+  "slug": "does-section-8-pay-less-than-market-rent-cleveland",
+  "section": "section-8-landlords",
+  "title": "Does Section 8 Pay Less Than Market Rent in Greater Cleveland?",
+  "metaTitle": "Does Section 8 Pay Market Rent in Cleveland?",
+  "metaDescription": "Does Section 8 pay market rent in Greater Cleveland? CMHA's FY2026 payment standards by ZIP, what rent reasonableness caps, and where the ceiling clears it.",
+  "primaryKeyword": "does section 8 pay market rent",
+  "secondaryKeywords": [
+    "cmha payment standard vs market rent",
+    "section 8 rent by cleveland zip code",
+    "does section 8 pay less than market rent",
+    "cmha rent reasonableness cleveland",
+    "fair market rent cleveland 2026"
+  ],
+  "answerBox": "Not exactly. CMHA's payment standard is the subsidy ceiling, not your rent — federal rent reasonableness ties what you charge to comparable unassisted units, so voucher rent tracks the market rather than beating it. The ceiling itself varies enormously by ZIP: FY2026 two-bedroom standards run $1,096 to $2,169.",
+  "sections": [
+    {
+      "h2": "The payment standard is a ceiling on the subsidy, not a price for your unit",
+      "body": [
+        "Almost all the confusion here is one substitution. The number owners look up — CMHA's payment standard for their ZIP — is not an offer for the unit. CMHA says so itself: **\"The payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\"**",
+        "What sets your rent is rent reasonableness. Under 24 CFR 982.507(b) the housing authority must decide whether the rent to owner is reasonable **in comparison to rent for other comparable unassisted units**, weighing location, quality, size, unit type and age, plus the amenities, services, maintenance and utilities the lease puts on you. CMHA runs that determination after the RFTA is submitted; a unit that is not rent reasonable is ineligible.",
+        "So the program is built to pay the market, not to beat or undercut it. Section 982.507(a) holds the rent to that determination for the life of the tenancy, and under 982.507(d) accepting each monthly payment certifies the rent is no higher than you charge for comparable unassisted units in the same premises."
+      ]
+    },
+    {
+      "h2": "What CMHA's ceiling is, ZIP by ZIP",
+      "body": [
+        "Where the answer turns local is that ceiling. Since January 1, 2025 CMHA has set payment standards using Small Area Fair Market Rents — per ZIP code, not one countywide figure — and its Rent Determination tool publishes FY2026 standards effective January 1, 2026 for 53 ZIP codes. CMHA states they are based on HUD Fair Market Rents, set between 90% and 110% of them or approved exceptions as applicable.",
+        "The full spread, next to HUD's FY2026 Fair Market Rent for the Cleveland, OH HUD Metro FMR Area (Cuyahoga, Geauga, Lake, Lorain, Medina):"
+      ],
+      "table": {
+        "headers": ["Bedrooms", "Lowest ZIP (44127)", "Highest ZIPs (44113 / 44040)", "Median of 53 ZIPs", "HUD FY2026 metro FMR"],
+        "rows": [
+          ["Studio", "$802", "$1,582", "$1,118", "$933"],
+          ["1 bedroom", "$915", "$1,796", "$1,265", "$1,058"],
+          ["2 bedroom", "$1,096", "$2,169", "$1,525", "$1,279"],
+          ["3 bedroom", "$1,412", "$2,791", "$1,966", "$1,646"],
+          ["4 bedroom", "$1,514", "$2,983", "$2,101", "$1,760"]
+        ]
+      }
+    },
+    {
+      "h2": "Where the ceiling clears the market, and where it binds",
+      "body": [
+        "The two-bedroom standard varies by roughly 98% across those ZIPs, so any \"CMHA payment standard\" quoted without a ZIP attached is worthless — including the table the tool shows before you select one ($881 / $1,005 / $1,209 / $1,559 / $1,661), which corresponds only to ZIPs 44103 and 44105. [Payment Standards by ZIP Code](/cmha-payment-standards-by-zip-code/) has the lookup. Four ZIPs show the shape:"
+      ],
+      "table": {
+        "headers": ["ZIP", "FY2026 2-bedroom standard", "FY2026 3-bedroom standard"],
+        "rows": [
+          ["44113 (Tremont / Ohio City)", "$2,169", "$2,791"],
+          ["44118 (Cleveland Heights)", "$1,683", "$2,169"],
+          ["44105", "$1,209", "$1,559"],
+          ["44127", "$1,096", "$1,412"]
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "Against the market numbers we can actually cite",
+          "body": [
+            "No reachable source publishes a ZIP-level asking-rent series for Cleveland, so the market figures here are metro-wide across those five counties — not your street. Yardi Matrix put average advertised asking rents at **$1,246** in February 2026, with 94.5% stabilized occupancy; Colliers data reported in April 2026 put Q1 2026 average rent at **$1,419**.",
+            "CMHA's median FY2026 two-bedroom standard, $1,525, sits above both — so across much of the service area **the ceiling is not what stops you.** In 44113 it is nowhere near binding: $2,169, against HUD's own FY2026 Small Area FMR of $1,920 for that same ZIP. At the other end, 44127's $1,096 sits below HUD's $1,279 metro two-bedroom FMR, and if comparable unassisted units there rent above the standard, the difference lands on the tenant — where the 40% test below usually kills it."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "Four mechanics that move your number down",
+      "body": [
+        "Whatever the ceiling allows, these decide what you bank:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Gross rent, not asking rent.** CMHA tests rent plus tenant-paid utilities, or the utility allowance — your listing price is not the number under review. Ask for the current HCVP Utility Allowance chart first",
+          "**The 40% test.** On an initial contract the tenant's portion paid directly to you can be no more than 40% of household monthly income; above that, CMHA negotiates with the owner to reduce the rent",
+          "**The smaller-of rule.** Lease a unit larger than the voucher's bedroom size and CMHA applies the standard and allowance for the smaller of the two — a three-bedroom on a two-bedroom voucher prices at the two-bedroom ceiling",
+          "**No side deals.** A household may not pay more than the share CMHA sets; CMHA calls side deals illegal and says they can get the household terminated and the landlord barred"
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "Increases run on CMHA's clock",
+          "body": [
+            "An adjustment needs the HAP contract to be a year old, a passed annual inspection within 12 months of the effective date, a current recertification, 12 months since the last approved adjustment, and a rent-reasonable amount — then takes effect \"the 1st of the month after 60 days of receiving the request.\" [How Much Rent Can You Charge?](/how-much-rent-can-i-charge-section-8-cleveland/) covers pricing, [Rent Reasonableness](/cmha-rent-reasonableness-explained/) approval."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "How to answer this for your actual address",
+      "body": [
+        "Three steps. Look up your ZIP in CMHA's Rent Determination tool, reading the standard for the bedroom count on the voucher, not on your building. Pull genuinely comparable unassisted units — same location, size, unit type, age, amenities, and the same split of who pays which utility. Price against gross rent. (How many comparables CMHA uses is unsettled: its Rent page says two, its Landlord Participation Guide three.)",
+        "Land under the ceiling and the voucher pays what the market pays; the difference is who sends the money, and the vacancy you avoid against a pool CMHA markets as over 15,000 voucher holders. Land above it and you choose between a lower approved rent and an open-market tenant.",
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and we have completed CMHA's Virtual Landlord Orientation — the live 90-minute session that, since January 1, 2026, the owner or designated managing agent must complete every 24 months before CMHA can execute a HAP contract on a new tenancy."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Section 8 does not pay above market, because rent reasonableness is defined against the market. Whether it pays less comes down to one number you can look up in ten minutes: if your ZIP's standard sits above what comparable unassisted units nearby rent for, the ceiling never binds. Source of income is not a protected class in the City of Cleveland, so nobody is telling you that you have to. Call **(440) 444-4737** or start at [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does Section 8 pay more or less than market rent in Cleveland?",
+      "a": "Structurally it pays market. Under 24 CFR 982.507(b) the housing authority must find the rent reasonable in comparison to comparable unassisted units before approving the lease, and the rent may never exceed that determination. The payment standard for your ZIP is only the subsidy ceiling — CMHA says plainly it \"is NOT the maximum amount that the landlord can charge.\""
+    },
+    {
+      "q": "Which Cleveland-area ZIP codes have the highest CMHA payment standards?",
+      "a": "For FY2026, effective January 1, 2026, ZIPs 44113 and 44040 carry the top tier: $1,582 studio, $1,796 one-bedroom, $2,169 two-bedroom, $2,791 three-bedroom, $2,983 four-bedroom. ZIP 44127 is lowest at $802, $915, $1,096, $1,412 and $1,514. The median two-bedroom across CMHA's 53 service-area ZIPs is $1,525."
+    },
+    {
+      "q": "How does CMHA's ceiling compare with what Cleveland apartments rent for?",
+      "a": "The only citable market figures are metro-wide across five counties. Yardi Matrix put average advertised asking rent at $1,246 in February 2026; Colliers data reported in April 2026 put Q1 2026 average rent at $1,419. CMHA's median FY2026 two-bedroom standard of $1,525 sits above both — but a metro average is not your street."
+    },
+    {
+      "q": "Does a higher payment standard mean CMHA pays me more?",
+      "a": "Only if your comparables support it. Per CMHA's Landlord Participation Guide the Housing Assistance Payment is the lesser of the payment standard minus the household's Total Tenant Payment, or gross rent minus that same payment — so the ceiling matters only once your approved rent reaches it. CMHA also tests gross rent, meaning rent plus tenant-paid utilities."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/fy2026_safmrs_revised.xlsx",
+    "https://www.yardimatrix.com/blog/cleveland-multifamily-market-report/",
+    "https://neo-trans.blog/2026/04/28/cleveland-has-ohios-highest-apartment-rents/",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

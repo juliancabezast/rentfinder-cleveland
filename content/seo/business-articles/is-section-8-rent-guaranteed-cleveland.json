@@ -1,0 +1,120 @@
+{
+  "slug": "is-section-8-rent-guaranteed-cleveland",
+  "section": "section-8-landlords",
+  "title": "Is Section 8 Rent Really Guaranteed? What CMHA Pays and What It Doesn't",
+  "metaTitle": "Is Section 8 Rent Guaranteed? What CMHA Pays",
+  "metaDescription": "Is Section 8 rent guaranteed? CMHA's payment covers only its own share, the tenant owes the rest, and a failed inspection can stop the money permanently.",
+  "primaryKeyword": "is section 8 rent guaranteed",
+  "secondaryKeywords": [
+    "does cmha pay all the rent",
+    "housing assistance payment cleveland",
+    "cmha hap abatement",
+    "section 8 tenant portion of rent",
+    "cmha guaranteed rent landlord"
+  ],
+  "answerBox": "CMHA's marketing promises \"stable, guaranteed rent payments deposited directly into your account.\" That covers only CMHA's share — the housing assistance payment. The tenant still owes their own portion directly to you, and CMHA can withhold its share after a failed inspection, or abate it permanently if repairs miss the cure period.",
+  "sections": [
+    {
+      "h2": "CMHA Says \"Guaranteed.\" Here Is What the Word Covers",
+      "body": [
+        "CMHA's landlord page lists among the program's benefits **\"stable, guaranteed rent payments deposited directly into your account.\"** That is CMHA's sentence, not ours, and worth reading narrowly. It describes the **housing assistance payment (HAP)** — CMHA's share of the rent — and how that share is delivered. It does not describe the whole rent, and it is not unconditional.",
+        "The same list adds that the subsidy increases if the tenant loses income, that you may use your own lease, and that the tenancy can go month-to-month after the initial term. CMHA's homepage counter puts $8,666,666 distributed to local landlords monthly, published with no date or methodology — scale, not an audited statistic."
+      ]
+    },
+    {
+      "h2": "The Split: What CMHA Pays and What the Tenant Owes You",
+      "body": [
+        "Two formulas decide the division, both from CMHA's Landlord Participation Guide (undated — confirm current figures with CMHA).",
+        "CMHA works from **gross rent**, not from your advertised rent. And the payment standard caps subsidy, not rent — CMHA states it \"is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" Standards are set per ZIP code: CMHA's FY2026 two-bedroom standard runs from $1,096 in 44127 to $2,169 in 44113.",
+        "What is left after CMHA's share is the tenant's portion, paid to you directly. No part of the program guarantees it. CMHA caps it at move-in — on an initial contract it cannot exceed 40% of the family's monthly income, and above that CMHA negotiates the rent down — and forbids private adjustment: side deals \"are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\""
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Total Tenant Payment** = the greater of 30% of monthly adjusted income, 10% of gross monthly income, or CMHA's $50 minimum rent.",
+          "**Housing assistance payment** = the lesser of (payment standard − Total Tenant Payment) or (gross rent − Total Tenant Payment).",
+          "**Gross rent** = rent charged plus tenant-paid utilities or the utility allowance — the figure CMHA actually tests.",
+          "Rent a family a unit **larger** than its voucher bedroom size and CMHA applies the payment standard and utility allowance for the smaller of the two."
+        ]
+      }
+    },
+    {
+      "h2": "The Mechanics: How and When CMHA's Share Lands",
+      "body": [
+        "Direct deposit is mandatory: \"All owners are required to go on direct deposit to receive HAP payments.\" CMHA states payment dates are generally the 3rd and 16th of each month, and its 2026 HAP Payment Calendar runs a primary disbursement plus a mid-month run for approved adjustments — new admissions, contract changes, corrections and other qualifying updates that land after the primary run. In July 2026 those dates are the 3rd and the 15th, subject to change for holidays or operational needs.",
+        "The first payment is event-driven: CMHA pays \"on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and occupancy permit, when applicable.\" It will not execute the HAP contract until you submit an IRS Form W-9, and a lease starting after the first of the month is prorated. Detail: [When Does CMHA Pay?](/when-does-cmha-pay-landlords/)"
+      ]
+    },
+    {
+      "h2": "Seven Ways the Payment Stops, Shrinks, or Never Starts",
+      "body": [
+        "CMHA's share moves on schedule while the contract is in force and the unit is compliant. Outside those conditions, money can be **held** — or **lost**."
+      ],
+      "table": {
+        "headers": ["What happens", "Effect on CMHA's payment", "Can you recover it?"],
+        "rows": [
+          ["Tenant moves in before CMHA's approved date", "No HAP for that period", "No — CMHA will not pay the back amount retroactively"],
+          ["HAP contract executed more than 60 calendar days after the lease term begins", "Contract is void", "No"],
+          ["Deficiency cited, cure period still running", "CMHA may withhold payments", "Yes — on timely compliance the PHA must resume payments and cover the withheld period"],
+          ["Cure period missed; CMHA abates after two consecutive failed inspections", "HAP abated from the 1st of the following month, including amounts withheld", "No — abatement carries \"no potential for retroactive payment\""],
+          ["Unit still non-compliant after the abatement window", "HAP contract terminated; the family must move", "No"],
+          ["Tenant damages the unit", "\"HCVP does not pay for tenant caused damages\"", "No"],
+          ["Eviction filed, tenant in place, unit not in abatement", "CMHA holds HAP at the landlord's request", "Yes — CMHA states the landlord may receive all withheld HAP, win or lose"]
+        ]
+      }
+    },
+    {
+      "h2": "Withholding Versus Abatement: The Distinction That Costs Money",
+      "body": [
+        "Under 24 CFR 982.404(d)(1), an authority that withholds payments after a written deficiency notice must resume them *and* cover the withheld period once the unit complies in time. Abatement under 982.404(d)(2)(i) is mandatory when the owner misses the cure period, sweeps in the amounts already withheld, and is defined at 24 CFR 982.4 as stopping payments with no potential for retroactive payment. CMHA adds that the family still owes its own share throughout.",
+        "How long before the contract itself goes away is where CMHA and the federal rule differ: CMHA's FAQ says a unit in abatement more than 30 days may have its HAP contract terminated, while 24 CFR 982.404(d)(2)(ii) sets 60 days after the determination of non-compliance. Do not plan around the more generous number — full sequence in [Failed Inspection, Withheld Rent, Abatement](/what-happens-if-your-unit-fails-a-cmha-inspection/).",
+        "One rule cuts hard against owners: \"[a]n owner may not terminate the tenancy of any family due to the withholding or abatement of assistance\" (24 CFR 982.404(d)(3)). At the front end, the contract must be executed inside 60 calendar days of the lease start or it is void — see [What Is a HAP Contract](/what-is-a-hap-contract-cmha/)."
+      ]
+    },
+    {
+      "h2": "What This Changes About How You Run the Property",
+      "body": [
+        "Almost every way the money stops is a **missed clock or a missing signature**: an early move-in nobody flagged, a contract executed on day 61, a repair that outran its cure period. That is the part we take over. Placement is **one month's rent, charged only after the tenant is placed**. Management is **5% of monthly rent, only while the unit is rented**. We attend the CMHA inspection and send a written report for a flat **$100**, or you attend yourself. Repair estimates come back **free, itemized, within 24 hours**, and nothing starts without your approval.",
+        "One item decides whether your payment ever starts. Since **January 1, 2026**, submitting an RFTA requires the owner or the designated managing agent to complete CMHA's Virtual Landlord Orientation — about 90 minutes, live and virtual, once every 24 months — and CMHA verifies attendance before executing a HAP contract for a new tenancy. **We have completed it.** (CMHA states existing HAP contracts and current HAP payments are not affected.)",
+        "We work Greater Cleveland and Cuyahoga County, under CMHA. To have the arithmetic run on a specific unit, see [how we handle voucher tenancies](/section8stressfree) or call **(440) 444-4737**."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is Section 8 rent guaranteed in Cleveland?",
+      "a": "CMHA's own marketing says \"stable, guaranteed rent payments deposited directly into your account.\" That describes CMHA's share, sent by direct deposit on published dates. It is not a promise that the whole rent arrives, that the tenant's portion is covered, or that payment survives a failed inspection."
+    },
+    {
+      "q": "What share of the rent does CMHA actually pay?",
+      "a": "It depends on household income and ZIP code. CMHA's Landlord Participation Guide sets Total Tenant Payment at the greater of 30% of monthly adjusted income, 10% of gross monthly income, or a $50 minimum, then pays the lesser of the payment standard or gross rent, minus that amount. CMHA publishes no typical split."
+    },
+    {
+      "q": "Who collects the tenant's portion?",
+      "a": "You do, directly from the tenant, as in any tenancy. CMHA sets the amount and prohibits side deals: a family paying more than its CMHA-determined share can be terminated, and the landlord disbarred, suspended, or subject to a limited denial of participation. On an initial contract that portion cannot exceed 40% of monthly income."
+    },
+    {
+      "q": "Under what circumstances does CMHA stop paying?",
+      "a": "CMHA may withhold payments after a deficiency notice, recoverable if you cure in time. Abatement becomes mandatory once the cure period is missed and carries no potential for retroactive payment. CMHA abates after two consecutive failed inspections, from the first of the following month, and the contract can be terminated from there."
+    },
+    {
+      "q": "Does CMHA cover tenant damage?",
+      "a": "No. CMHA states that \"HCVP does not pay for tenant caused damages\" — your remedies are the deposit, billing the tenant, or court. A separate program, the Cuyahoga Community Choice Demonstration, advertises a damage mitigation fund of up to $2,000 for its own clients in designated Opportunity Areas — not a CMHA benefit."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cuyahogamobility.org/property-owners/"
+  ],
+  "lastUpdated": "2026-07-21"
+}

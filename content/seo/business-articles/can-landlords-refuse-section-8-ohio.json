@@ -1,0 +1,155 @@
+{
+  "slug": "can-landlords-refuse-section-8-ohio",
+  "section": "section-8-landlords",
+  "title": "Can a Landlord Legally Say No to a Housing Voucher in Ohio?",
+  "metaTitle": "Can a Landlord Refuse Section 8 in Ohio? (2026)",
+  "metaDescription": "Can a landlord refuse Section 8 in Ohio? Across most of the state and inside the City of Cleveland, yes — but five Cuyahoga County suburbs have their own rules.",
+  "primaryKeyword": "can a landlord refuse section 8 in ohio",
+  "secondaryKeywords": [
+    "source of income discrimination ohio",
+    "do landlords have to accept section 8 in cleveland",
+    "cleveland heights source of income ordinance",
+    "cuyahoga county voucher ordinance"
+  ],
+  "answerBox": "In most of Ohio, including the City of Cleveland, a landlord may lawfully decline a Housing Choice Voucher. Source of income is not a protected class under the federal Fair Housing Act or Ohio's R.C. 4112.02(H). Five Cuyahoga County suburbs, led by Cleveland Heights, have passed their own source-of-income ordinances. Check your municipality.",
+  "sections": [
+    {
+      "h2": "The answer has three layers, and only one of them varies",
+      "body": [
+        "Whether you may decline a Housing Choice Voucher in Ohio is really three questions stacked: federal law, Ohio law, and the ordinance of the municipality where the property sits. The first two are settled and identical statewide. The third is where owners get caught.",
+        "**Federal law does not protect source of income.** The Fair Housing Act covers race, color, national origin, sex, religion, disability and familial status. As the U.S. Commission on Civil Rights' Ohio Advisory Committee summarized it, the Act \"does not prohibit landlords from refusing to accept tenant applications based on a tenant's lawful income source.\"",
+        "**Ohio law does not protect it either.** R.C. 4112.02(H), the state's fair housing statute, names nine protected classes, and source of income, public assistance and housing vouchers appear nowhere in the section. The same Ohio Advisory Committee brief puts it flatly: \"Source-of-income discrimination is legal in most of Ohio.\"",
+        "**Local ordinances are the whole game.** PRRAC's national compilation of source-of-income laws, updated March 2026, lists 23 Ohio municipalities with local protections. If your property sits in one of them, the analysis changes. If it doesn't, federal and state law leave the decision to you."
+      ],
+      "table": {
+        "headers": ["Layer of law", "Classes it protects", "Reaches housing vouchers?"],
+        "rows": [
+          ["Federal Fair Housing Act", "Race, color, national origin, sex, religion, disability, familial status", "No"],
+          ["Ohio R.C. 4112.02(H)", "Race, color, religion, sex, military status, familial status, ancestry, disability, national origin", "No"],
+          ["Your municipality", "Varies — 23 Ohio cities have source-of-income laws (PRRAC, March 2026)", "Depends on the city"]
+        ]
+      }
+    },
+    {
+      "h2": "The City of Cleveland: lawful to decline, as of July 2026",
+      "body": [
+        "The City of Cleveland has not passed a source-of-income ordinance. The City's own Office of Fair Housing publishes a list of 13 protected classes, running from age and ancestry through race, religion, sex and sexual orientation. Source of income, housing vouchers and Section 8 do not appear on it. PRRAC's March 2026 roster of 23 Ohio municipalities with source-of-income protections likewise does not include the City of Cleveland.",
+        "So as of July 2026, an owner inside Cleveland city limits may lawfully refuse a Housing Choice Voucher solely because it is a voucher. No federal statute, no Ohio statute and no Cleveland ordinance makes source of income a protected class in the city.",
+        "Two caveats before you build a policy on that. This is our reading of public sources — the City's fair housing page, PRRAC, Signal Cleveland and the U.S. Commission on Civil Rights all describe the same absence — and it is not legal advice; have your attorney confirm the current text of Cleveland's fair housing chapter. And municipal codes change: treat this as accurate on the date at the foot of the page, not as permanent."
+      ]
+    },
+    {
+      "h2": "The five Cuyahoga County suburbs with their own ordinances",
+      "body": [
+        "Five municipalities inside Cuyahoga County have source-of-income ordinances on the books, according to PRRAC's March 2026 compilation."
+      ],
+      "table": {
+        "headers": ["Municipality", "Ordinance", "Enacted", "Voucher language"],
+        "rows": [
+          ["Cleveland Heights", "Ord. 25-2021 (Codified Ord. § 749.03(ii))", "April 19, 2021", "Expressly names housing vouchers"],
+          ["University Heights", "Ch. 820, amended April 15, 2019", "April 2, 2012", "Reported to include voucher protections"],
+          ["South Euclid", "Ch. 1408", "April 9, 2018", "Reported to include voucher protections"],
+          ["Warrensville Heights", "Ch. 113", "May 15, 2012", "Not confirmed to reach vouchers"],
+          ["Linndale", "Ch. 515", "May 1, 2012", "Not confirmed to reach vouchers"]
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "Cleveland Heights is the clearest case",
+          "body": [
+            "Ordinance No. 25-2021, enacted April 19, 2021, amended the city's codified ordinances to define \"Source of Income\" as expressly \"including but not limited to housing vouchers, emergency rental assistance, disability benefits, and military or veterans benefits.\" Enforcement runs through the Cleveland Heights Fair Practices Board, and Codified Ordinance § 749.19 allows injunctive relief, actual damages, civil penalties up to $10,000 and reasonable attorney's fees.",
+            "That is a materially different risk profile from an address three miles away in Cleveland. If you own there, start with [the Cleveland Heights breakdown](/section-8-landlords-cleveland-heights-ohio/)."
+          ]
+        },
+        {
+          "h3": "The other four are less tidy than a list makes them look",
+          "body": [
+            "Signal Cleveland reports that of the five, only three — Cleveland Heights, South Euclid and University Heights — specifically include voucher protections. That leaves Warrensville Heights and Linndale genuinely unresolved: PRRAC classifies both as source-of-income jurisdictions, but we could not verify that their ordinance text reaches Housing Choice Vouchers. Read the live ordinance, or have counsel read it, before you decide either way.",
+            "University Heights carries a live legal question of its own. Crain's Cleveland Business reported on October 31, 2025 that the city's \"housing voucher ordinance may face a constitutional challenge,\" tied to a discrimination suit over the Huntington Green apartments. We are not going to tell you those protections are secure, and we are not going to tell you they have been struck down. Neither claim is supportable."
+          ]
+        }
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "There is **no Cuyahoga County-wide** source-of-income protection — only five of the county's roughly 40 municipalities have passed one, and a 2021 county-level proposal never reached council.",
+          "For every other address in the county, declining a voucher is a business decision, not a legal one.",
+          "Ordinance coverage follows the **property's** municipality, not where the owner lives or where the management company is based."
+        ]
+      }
+    },
+    {
+      "h2": "What Ohio's preemption statute does and doesn't do",
+      "body": [
+        "Owners sometimes hear that HB 430 wiped out local voucher ordinances. It did not, at least not on its face. R.C. 5321.19, as amended by HB 430 effective September 23, 2022, bars a political subdivision from enacting or enforcing a measure \"that is in conflict with this chapter, or that regulates the rights and obligations of parties to a rental agreement that are regulated by this chapter\" — with rent control and rent stabilization named expressly. The statute does not mention source of income.",
+        "PRRAC identifies seven states with preemptive bans on local source-of-income protections — Florida, Idaho, Indiana, Iowa, Kentucky, Missouri and Texas. Ohio is not among them, so existing Ohio municipal ordinances remain in force.",
+        "Pushing the other direction, Ohio House Bill 135 in the 136th General Assembly would amend R.C. 4112.01 and 4112.02 to make \"lawful source of income\" a protected class statewide. It was introduced February 25, 2025 and referred to the Community Revitalization Committee on March 5, 2025, with no further action as of July 2026. Bill status changes without notice, so check the legislature's page before treating today's map as next year's."
+      ]
+    },
+    {
+      "h2": "Lawful to decline is not the same as safe to advertise",
+      "body": [
+        "These two questions get run together constantly. Even where source-of-income discrimination is legal, how you express a no can create federal Fair Housing Act exposure.",
+        "A 2017 Cuyahoga County audit, cited in the U.S. Commission on Civil Rights' October 2024 Ohio report, found that housing providers advertising \"No section 8\" were 26% more likely to deliver unfavorable treatment to Black prospective tenants. The same report notes that 89% of Housing Choice Voucher recipients in Cuyahoga County are Black, against 13% of Ohio's population. That gap is the statistical foundation on which a blanket voucher policy can be challenged as racial disparate impact under federal law, in a city where refusing the voucher itself is lawful.",
+        "The takeaway is narrow: if you decide not to participate, decline on written, uniformly applied criteria rather than publishing a category ban. [We wrote that one out separately](/no-section-8-advertising-fair-housing-risk/)."
+      ]
+    },
+    {
+      "h2": "So the real question is whether you want to, not whether you have to",
+      "body": [
+        "Outside those five suburbs, no Cuyahoga County ordinance requires you to accept a voucher. So the honest version of this ends in economics, not law.",
+        "CMHA markets the program to owners on the size of the applicant pool — \"[a] large pool of prospective applicants,\" because the agency \"serves over 15,000 voucher holders.\" CMHA testimony to the U.S. Commission on Civil Rights puts roughly 15,000 voucher holders in Cuyahoga County with another 20,000 households on the waiting list. On the other side of that ledger, CMHA told the Commission that only about 50% of admitted households found housing before their voucher expired, and Signal Cleveland separately reported that about 40% of CMHA voucher holders find housing within six months. Those two figures measure different things and should not be averaged, but they point the same direction: voucher holders outnumber the units whose owners will take them.",
+        "CMHA's own owner-facing benefit list describes \"stable, guaranteed rent payments deposited directly into your account,\" along with a subsidy that increases if the tenant loses income. That word is CMHA's, not ours. Nothing here is automatic: the unit has to pass inspection, the rent has to be found reasonable, and no executed HAP contract means no payment. Whether the trade is worth it for your specific building is the subject of [our decision guide](/should-i-accept-section-8-cleveland/)."
+      ]
+    },
+    {
+      "h2": "If you decide to say yes, here is what we handle",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County, under CMHA, and our terms fit in a paragraph. Tenant placement is one month's rent, charged only after the tenant is actually placed — no placement, no fee. Ongoing management is 5% of monthly rent, billed only while the unit is rented. If you want us at the CMHA inspection, that is $100 and includes a written report; you are equally welcome to attend yourself and skip it. Repair estimates come back free, itemized, inside 24 hours, and nothing starts without your approval.",
+        "One item matters if you are new to the program. Since January 1, 2026, submitting an RFTA triggers a requirement that the property owner or designated managing agent complete CMHA's Virtual Landlord Orientation — a live virtual session of about 90 minutes, required once every 24 months — and CMHA verifies attendance before executing a HAP contract for a new tenancy. Existing HAP contracts and current HAP payments are not affected. **We have already completed it**, so when we are the designated managing agent on your RFTA, that box is checked before it can delay anything.",
+        "If you want this worked through for a specific address — including whether it falls inside one of the five suburbs above — call **(440) 444-4737** or start at [Section 8 Stress-Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can a landlord legally refuse Section 8 in Ohio?",
+      "a": "In most of Ohio, yes. Source of income is not a protected class under the federal Fair Housing Act, and Ohio's fair housing statute, R.C. 4112.02(H), lists only race, color, religion, sex, military status, familial status, ancestry, disability and national origin. The U.S. Commission on Civil Rights' Ohio Advisory Committee states that source-of-income discrimination is legal in most of Ohio. Local ordinances are the exception."
+    },
+    {
+      "q": "Do landlords in the City of Cleveland have to accept housing vouchers?",
+      "a": "No. The City of Cleveland's Office of Fair Housing lists 13 protected classes and source of income is not among them, and PRRAC's March 2026 compilation of 23 Ohio municipalities with source-of-income laws does not include Cleveland. As of July 2026 an owner inside city limits may lawfully decline a voucher. Confirm the current ordinance text with your attorney before relying on it."
+    },
+    {
+      "q": "Which Cuyahoga County suburbs ban source-of-income discrimination?",
+      "a": "Five, per PRRAC's March 2026 compilation: Cleveland Heights (Ord. 25-2021), University Heights (Ch. 820), South Euclid (Ch. 1408), Warrensville Heights (Ch. 113) and Linndale (Ch. 515). Signal Cleveland reports that only three of them — Cleveland Heights, South Euclid and University Heights — specifically include voucher protections, so do not assume all five require voucher acceptance without reading the ordinance."
+    },
+    {
+      "q": "What happens if I refuse a voucher in Cleveland Heights?",
+      "a": "Cleveland Heights defines source of income to expressly include housing vouchers under Ordinance No. 25-2021, effective April 19, 2021. Enforcement runs through the city's Fair Practices Board, and Codified Ordinance § 749.19 allows injunctive relief, actual damages, civil penalties up to $10,000 and reasonable attorney's fees. Verify the live ordinance text and talk to counsel before setting policy for a Cleveland Heights property."
+    },
+    {
+      "q": "Did Ohio's HB 430 preemption law cancel these local ordinances?",
+      "a": "Not on its face. R.C. 5321.19, as amended by HB 430 effective September 23, 2022, bars local measures that conflict with Ohio's landlord-tenant chapter or regulate rights the chapter already regulates, including rent control. It does not mention source of income. PRRAC does not list Ohio among the seven states with preemptive bans, so existing municipal ordinances remain in force."
+    },
+    {
+      "q": "Is a statewide Ohio source-of-income law coming?",
+      "a": "Nothing has passed. Ohio House Bill 135 in the 136th General Assembly would make lawful source of income a protected class statewide by amending R.C. 4112.01 and 4112.02. It was introduced February 25, 2025 and referred to the Community Revitalization Committee on March 5, 2025, with no further action as of July 2026. Legislative status can change without notice."
+    }
+  ],
+  "sources": [
+    "https://www.usccr.gov/files/2025-08/soi-pb-ohio_july-2025.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-4112.02",
+    "https://www.prrac.org/pdf/AppendixB.pdf",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://signalcleveland.org/source-of-income-discrimination-section-8-housing-vouchers-cuyahoga-county/",
+    "https://www.crainscleveland.com/real-estate/university-heights-ordinance-may-be-cusp-constitutional-battle/",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.19",
+    "https://ohiohouse.gov/legislation/136/hb135/status",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://signalcleveland.org/section-8-cleveland-lutheran-metropolitan-ministry/",
+    "https://www.cmha.net/housing/landlords/training.php"
+  ],
+  "lastUpdated": "2026-07-21"
+}

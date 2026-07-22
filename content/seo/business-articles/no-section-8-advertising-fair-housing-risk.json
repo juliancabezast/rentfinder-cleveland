@@ -1,0 +1,134 @@
+{
+  "slug": "no-section-8-advertising-fair-housing-risk",
+  "section": "section-8-landlords",
+  "title": "\"No Section 8\" in Your Listing: Legal in Cleveland, Still Risky",
+  "metaTitle": "Can You Put \"No Section 8\" in a Cleveland Ad?",
+  "metaDescription": "Can you put \"No Section 8\" in a rental ad? In the City of Cleveland, yes — but here is the federal fair-housing exposure the sentence creates for owners.",
+  "primaryKeyword": "can you put no section 8 in a rental ad",
+  "secondaryKeywords": [
+    "no section 8 advertising fair housing",
+    "is it legal to say no section 8 in ohio",
+    "voucher discrimination cleveland landlord",
+    "rental ad wording section 8 cleveland"
+  ],
+  "answerBox": "Yes. As of July 2026, no federal law, no Ohio statute and no City of Cleveland ordinance makes source of income a protected class, so the sentence is lawful there. The exposure is racial: a 2017 Cuyahoga County audit found providers advertising \"No section 8\" were 26% more likely to deliver unfavorable treatment to Black prospective tenants.",
+  "sections": [
+    {
+      "h2": "Yes, the sentence is legal in the City of Cleveland",
+      "body": [
+        "Start with the part that is not in dispute. The federal Fair Housing Act, in the words of the U.S. Commission on Civil Rights' Ohio Advisory Committee, \"does not prohibit landlords from refusing to accept tenant applications based on a tenant's lawful income source.\" Ohio's fair housing statute, R.C. 4112.02(H), lists nine protected classes, and source of income is not one of them. The Commission's July 2025 brief is blunt: \"Source-of-income discrimination is legal in most of Ohio.\"",
+        "Cleveland has not closed that gap. The City's own Office of Fair Housing publishes thirteen protected classes, and source of income is absent from the list. PRRAC's compilation of source-of-income laws, updated March 2026, names 23 Ohio municipalities with local protections; the City of Cleveland is not one.",
+        "So a Cleveland owner who declines a voucher solely because it is a voucher is, as of July 2026, acting lawfully. Nothing below argues otherwise. [Whether a landlord can legally say no](/can-landlords-refuse-section-8-ohio/) is settled here; whether to print it in the listing is a different question."
+      ]
+    },
+    {
+      "h2": "The exposure isn't source of income. It's race.",
+      "body": [
+        "An advertisement is not the same act as a decision. A decision is private, about one applicant, and your screening file explains it. A published line sits on the listing for weeks, carries a date, and describes a category of people rather than a person.",
+        "That difference is not academic in this county. A 2017 Cuyahoga County audit, cited in the U.S. Commission on Civil Rights' Ohio Advisory Committee report of October 2024, found that housing providers advertising \"No section 8\" were **26% more likely to deliver unfavorable treatment to Black prospective tenants**. The ad wording and the treatment at the door were not independent.",
+        "The same report sets out who holds the vouchers here: **89% of Housing Choice Voucher recipients in Cuyahoga County are Black**, against 60% of Ohio's HCV participants statewide and 13% of Ohio's population. That is the report's stated basis for why voucher-based screening rules can create racial disparate-impact liability — and race is protected federally, by R.C. 4112.02(H), and by the City of Cleveland.",
+        "We are a leasing team, not a law firm, and none of this is legal advice. But the practical reading is plain: the line buys you nothing a written screening standard cannot."
+      ]
+    },
+    {
+      "h2": "The same sentence is unlawful a few streets away",
+      "body": [
+        "The second reason is geographic. A saved listing template travels across a portfolio; a city line does not. Five Cuyahoga County municipalities ban source-of-income discrimination."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Cleveland Heights** — Ordinance No. 25-2021, enacted April 19, 2021; defines source of income to expressly include housing vouchers.",
+          "**University Heights** — Chapter 820, enacted April 2, 2012, amended April 15, 2019. Crain's Cleveland Business reported on October 31, 2025 that the ordinance may face a constitutional challenge; that is unresolved.",
+          "**South Euclid** — Chapter 1408, April 9, 2018.",
+          "**Warrensville Heights** — Chapter 113, May 15, 2012.",
+          "**Linndale** — Chapter 515, May 1, 2012.",
+          "**City of Cleveland** — no ordinance, so the refusal itself stays lawful as of July 2026."
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "What those ordinances reach, and what they cost",
+          "body": [
+            "Signal Cleveland reports that only three of the five — Cleveland Heights, South Euclid and University Heights — specifically include voucher protections, so do not assume all five reach a voucher the same way. Where they do, enforcement is named and priced: Cleveland Heights routes complaints to its Fair Practices Board, and Codified Ordinance § 749.19 allows injunctive relief, actual damages, civil penalties up to $10,000 and reasonable attorney's fees.",
+            "No county-wide protection exists — only five of Cuyahoga's roughly forty municipalities have one — and Ohio HB 135, which would protect source of income statewide, has had no action since it was referred to committee on March 5, 2025. Ad copy outlives ordinances: if you own in Cleveland Heights, [read the local rules](/section-8-landlords-cleveland-heights-ohio/) first."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "What the line costs you anyway",
+      "body": [
+        "Price the sentence before you keep it. CMHA testimony to the Commission put roughly 15,000 voucher holders in Cuyahoga County and about 20,000 more households on the waiting list, and only about 50% of admitted households found housing before their voucher expired. Meanwhile, at the Cleveland metro area's FY2026 two-bedroom Fair Market Rent of $1,279, a vacant day costs about $42 in gross rent ($1,279 ÷ 30 = $42.63) — our arithmetic on HUD's rent, not an industry statistic."
+      ]
+    },
+    {
+      "h2": "What to write instead",
+      "body": [
+        "The alternative is not \"take everyone.\" It is to move the filtering out of the ad and into a written standard you apply to every applicant."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Describe the unit, not the category: rent, bedrooms, utilities, parking, availability date, and what you require of every applicant.",
+          "Put your criteria in writing and run them on everyone. CMHA is explicit that this stays with you: \"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\"",
+          "Decide applicant by applicant and keep the notes. A documented standard is defensible in a way a category line in an ad is not.",
+          "If you do want voucher inquiries, say so: CMHA asks that ads placed elsewhere say \"vouchers are welcome,\" and points owners to free listing through affordablehousing.com or OhioHousingLocator.org.",
+          "Audit every saved template, then have a fair housing attorney read your standing copy. One reused description is how a Cleveland-legal sentence lands in a city where it is not."
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "Where the ad goes matters too",
+          "body": [
+            "Advertising is step one of the seven-step path CMHA publishes for landlords. [Where you advertise](/where-to-list-a-rental-for-section-8-tenants-cleveland/) does more work than any sentence you add or remove."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "How we handle listings for owners",
+      "body": [
+        "Rent Finder Cleveland works Greater Cleveland — Cuyahoga County, under CMHA. We write and place the listing, screen inquiries, show the unit in person, and carry the paperwork to a signed HAP contract. Placement is one month's rent, charged only after a tenant is placed: no placement, no fee. Inspection attendance with a written report is $100, or you attend yourself. Management is 5% of monthly rent while rented, and repair estimates come back free and itemized inside 24 hours, with nothing starting without your approval.",
+        "We have also completed CMHA's Virtual Landlord Orientation — the roughly 90-minute session that, since January 1, 2026, an owner or designated managing agent must complete every 24 months before CMHA can execute a HAP contract for a new tenancy. See [what we handle for owners](/section-8-landlords/) or call (440) 444-4737."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can you put \"No Section 8\" in a rental ad in Cleveland?",
+      "a": "In the City of Cleveland, yes. Source of income is not protected under the federal Fair Housing Act, under R.C. 4112.02(H), or under any Cleveland ordinance, and PRRAC's March 2026 compilation does not list the city. That makes the refusal lawful as of July 2026 — it does not make the published sentence risk-free."
+    },
+    {
+      "q": "If source of income isn't protected, what is the federal risk?",
+      "a": "Race, which is protected everywhere. A 2017 Cuyahoga County audit cited by the U.S. Commission on Civil Rights in October 2024 found providers advertising \"No section 8\" were 26% more likely to deliver unfavorable treatment to Black prospective tenants. The same report puts 89% of the county's voucher recipients as Black — its stated basis for disparate-impact exposure."
+    },
+    {
+      "q": "Which Greater Cleveland cities make the line unlawful?",
+      "a": "Five Cuyahoga County municipalities ban source-of-income discrimination: Cleveland Heights, University Heights, South Euclid, Warrensville Heights and Linndale. Signal Cleveland reports only three — Cleveland Heights, South Euclid and University Heights — specifically include voucher protections. Cleveland Heights allows civil penalties up to $10,000 plus attorney's fees. No county-wide protection exists elsewhere in Cuyahoga County."
+    },
+    {
+      "q": "If I take the line out, do I have to accept every voucher holder?",
+      "a": "No. Removing a line from an ad changes nothing about your screening. CMHA states it is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant, and it provides the family's current address and prior landlord information. Your written criteria still apply to everyone who inquires."
+    },
+    {
+      "q": "Does CMHA tell owners what to put in a listing?",
+      "a": "It asks. If you advertise somewhere other than CMHA's free listing partners, CMHA asks that the ad say \"vouchers are welcome.\" It points owners to free listing through affordablehousing.com or OhioHousingLocator.org, and does not market units for you — advertising is step one of its seven-step path."
+    }
+  ],
+  "sources": [
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://www.usccr.gov/files/2025-08/soi-pb-ohio_july-2025.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-4112.02",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://www.prrac.org/pdf/AppendixB.pdf",
+    "https://signalcleveland.org/source-of-income-discrimination-section-8-housing-vouchers-cuyahoga-county/",
+    "https://www.crainscleveland.com/real-estate/university-heights-ordinance-may-be-cusp-constitutional-battle/",
+    "https://ohiohouse.gov/legislation/136/hb135/status",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx"
+  ],
+  "lastUpdated": "2026-07-21"
+}

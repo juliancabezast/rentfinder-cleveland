@@ -1,0 +1,144 @@
+{
+  "slug": "section-8-vs-market-rate-tenants-cleveland",
+  "section": "section-8-landlords",
+  "title": "Section 8 vs. Market-Rate Tenants: A Side-by-Side for Cleveland Owners",
+  "metaTitle": "Section 8 vs. Regular Tenants: Cleveland Owner Guide",
+  "metaDescription": "Section 8 vs regular tenants in Greater Cleveland: how CMHA voucher and market-rate tenancies differ on rent collection, lease length, turnover and paperwork.",
+  "primaryKeyword": "section 8 vs regular tenants",
+  "secondaryKeywords": [
+    "section 8 vs market rate tenants",
+    "cmha voucher tenancy vs regular lease",
+    "voucher tenant rent collection cleveland",
+    "section 8 landlord paperwork cuyahoga county"
+  ],
+  "answerBox": "The differences are structural, not personal. With a CMHA voucher, part of the rent arrives by required direct deposit on a published calendar, the initial lease runs at least a year, rent increases need CMHA approval, and the paperwork is front-loaded around the RFTA and inspection. Screening, damage and Ohio landlord duties are identical.",
+  "sections": [
+    {
+      "h2": "The comparison that actually matters",
+      "body": [
+        "Owners ask this as though it were a question about two kinds of people. It is not — screening a voucher applicant is your job exactly as with anyone else, and CMHA says so: it is \"the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\" What changes is the structure: who sends the rent, how long the first term runs, and how much paperwork precedes a first check.",
+        "Source of income is not a protected class in the City of Cleveland: its Office of Fair Housing lists thirteen protected classes, none income-related, and no federal or Ohio law fills the gap. Declining a voucher there is lawful — this is a business comparison, not a compliance lecture."
+      ],
+      "table": {
+        "headers": [
+          "Where it shows up",
+          "Market-rate tenancy",
+          "CMHA voucher tenancy"
+        ],
+        "rows": [
+          [
+            "Who pays",
+            "One household",
+            "CMHA's assistance payment plus the family's portion"
+          ],
+          [
+            "How it arrives",
+            "However your lease says",
+            "Direct deposit, required of all owners, \"generally on the 3rd and 16th\""
+          ],
+          [
+            "Initial term",
+            "Your choice",
+            "At least a year, no CMHA-authorized move in year one"
+          ],
+          [
+            "Rent increases",
+            "Your call at renewal",
+            "Signed request, 12-month gap, effective the 1st after 60 days"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "Rent collection: two payers instead of one",
+      "body": [
+        "The rent splits: the family pays a calculated share and CMHA's assistance payment covers the balance, up to the payment standard. The family's portion reaches you like any tenant's rent; CMHA's arrives by ACH, since direct deposit is mandatory for all owners, on dates it says are \"generally on the 3rd and 16th,\" with a primary and a mid-month run on its 2026 calendar.",
+        "CMHA markets that half as \"[s]table, guaranteed rent payments deposited directly into your account.\" That is CMHA's word, not ours. Nothing is paid before the HAP contract is executed, and a contract signed more than **60 calendar days** after the lease term begins is void. Hand over keys before CMHA's approved date and the tenant owes the full rent — no retroactive payment.",
+        "The subsidy can also stop later. CMHA abates rent when a unit fails two consecutive inspections, effective the first of the month after the failure to comply. Federal rules draw the line that matters: HAP *withheld* during a cure period comes back if you fix the problem in time, while *abated* HAP stops \"with no potential for retroactive payment\" — and you may not evict over it. Running the other way, CMHA holds HAP during an eviction at your request, and if the tenant stays and the unit is not in abatement you may receive those payments whether or not you won. [More on the guarantee question](/is-section-8-rent-guaranteed-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Tenancy length and turnover",
+      "body": [
+        "Start with the gap: CMHA publishes no tenancy-length or turnover statistics, and no Cleveland days-on-market figure exists in any reachable source. An average voucher tenancy is not knowable.",
+        "What rule does fix is the front end. Per CMHA's Landlord Participation Guide the initial lease term runs at least one year, the HAP contract runs concurrently, and CMHA will not authorize the family to move during that year. Afterward, CMHA's owner-benefits list includes using your own lease and going month-to-month. The first twelve months are contractually stickier than a market-rate lease you would have to enforce yourself.",
+        "The renewal difference is price, not duration. An increase needs a form signed by both parties, a HAP contract at least a year old, a passed inspection within 12 months, a current recertification, 12 months since the last adjustment, and a rent-reasonable amount — then it starts \"the 1st of the month after 60 days of receiving the request.\" File 60–90 days out.",
+        "Re-letting is where the voucher side has depth. Testimony to the U.S. Commission on Civil Rights put Cuyahoga County near 15,000 voucher holders with 20,000 more waitlisted — but the pool moves slowly. That testimony says roughly 50% of admitted households leased up before their voucher expired; Signal Cleveland reports about 40% find housing within six months. Different measures — do not blend them."
+      ]
+    },
+    {
+      "h2": "Paperwork: front-loaded, not ongoing",
+      "body": [
+        "This is the real divergence. There is no landlord application: **\"CMHA does not have a pre-approval process for landlords or units.\"** What exists is a published seven-step sequence, from advertising the unit to signing the HAP contract and lease.",
+        "Since January 1, 2026, submitting an RFTA requires the owner or managing agent to complete CMHA's Virtual Landlord Orientation — about 90 minutes, live and virtual, once every 24 months, verified before the HAP contract is executed. Existing contracts and payments are unaffected. **We have already completed it.**"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**The packet comes from the tenant.** The voucher holder brings you the RFTA, both of you sign, and CMHA lets the owner file it — by email to rfta@cmha.net or at the Kinsman Road kiosks. Nine documents sit inside.",
+          "**Two things stall it.** A family may hold only one live RFTA at a time, and CMHA takes no corrections by phone; deficiencies must be fixed in writing. The voucher expires 180 days from issue.",
+          "**The clocks are policy targets, not measured turnaround.** CMHA aims to inspect within 15 days of the RFTA, decide tenancy within 10 business days of having all it needs, and reinspect within five. Initial inspections get two attempts.",
+          "**The standard is HQS today**, with NSPIRE due no later than February 1, 2027. Frequency afterward is unsettled — CMHA describes annual inspections and says it is looking to move to biennial; the federal floor is \"at least biennially.\"",
+          "**Some of it is city paperwork you already owe.** CMHA collects a Certificate of Occupancy or Rental Registration in 17 named suburbs and checks Cleveland registrations through the City's portal — but Cleveland's Residents First rules already require registration regardless of tenant."
+        ]
+      }
+    },
+    {
+      "h2": "What does not change",
+      "body": [
+        "Ohio law does not care which tenancy you signed. R.C. 5321.04(A)'s ten non-waivable duties — code compliance, habitability, working plumbing and heating, running water and heat — apply either way, as does the itemized 30-day security-deposit return, whose penalty is double the sum wrongfully withheld plus attorney fees. Damage is unchanged too: CMHA states \"HCVP does not pay for tenant caused damages.\" Whether it happens more often is [a separate argument](/do-section-8-tenants-damage-property-cleveland/).",
+        "Eviction is the one place a voucher tenancy is measurably harder. Cleveland Housing Court warns that subsidized tenants \"are afforded special protection under Federal law,\" that most are entitled to correct their conduct before a filing, and that its under-five-weeks estimate for simple non-payment does not transfer — subsidy cases \"may take longer.\""
+      ]
+    },
+    {
+      "h2": "Running the comparison on your unit",
+      "body": [
+        "Whether the money is better is a different question; your ZIP decides it: CMHA's FY2026 two-bedroom payment standard runs from $1,096 in 44127 to $2,169 in 44113 — a subsidy ceiling, not a rent cap. Start with the [full decision guide](/should-i-accept-section-8-cleveland/).",
+        "Want the front-loaded part handled? **Tenant placement is one month's rent, charged only after a tenant is placed** — no placement, no fee. Inspection attendance with a written report is **$100**, or attend yourself. Management is **5% of monthly rent**, billed only while rented. Repair estimates come back free and itemized inside 24 hours; nothing starts without your approval. We work Greater Cleveland and Cuyahoga County under CMHA, orientation done. Call **(440) 444-4737**, or see our [owner page](/section-8-landlords/) and the [stress-free walkthrough](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do voucher tenants stay longer than market-rate tenants?",
+      "a": "Nobody can answer that honestly with data — CMHA publishes no tenancy-length or turnover statistics. What rule fixes is the first year: CMHA's Landlord Participation Guide says the initial lease term runs at least one year, the HAP contract runs concurrently, and CMHA will not authorize a move during it."
+    },
+    {
+      "q": "Is CMHA's portion of the rent really guaranteed?",
+      "a": "CMHA's own marketing calls it \"stable, guaranteed rent payments deposited directly into your account.\" We do not repeat that in our voice. Nothing is paid before the HAP contract is executed, a contract signed more than 60 calendar days after the lease term begins is void, and abated payments stop with no retroactive recovery."
+    },
+    {
+      "q": "How much extra paperwork is a voucher tenancy?",
+      "a": "It is front-loaded. CMHA's Virtual Landlord Orientation runs about 90 minutes, once every 24 months. The RFTA packet holds nine documents, and CMHA takes no corrections by phone. Afterward the Landlord Portal carries the ledger, 1099s, inspection history and the HAP payment calendar."
+    },
+    {
+      "q": "Do I still get to screen a voucher applicant?",
+      "a": "Entirely. CMHA's instruction is that screening prospective HCV tenants is the landlord's responsibility, just as with any other tenant, and CMHA has no pre-approval process for landlords or units. CMHA will provide the family's current address and, where known, the landlord's name and address at the current and prior address."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.federalregister.gov/documents/2025/09/30/2025-19070/economic-growth-regulatory-relief-and-consumer-protection-act-implementation-of-national-standards",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://signalcleveland.org/section-8-cleveland-lutheran-metropolitan-ministry/",
+    "https://codes.ohio.gov/ohio-revised-code/section-4112.02",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.04",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://www.clevelandhousingcourt.org/sites/default/files/faq-evictions---2020.pdf",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

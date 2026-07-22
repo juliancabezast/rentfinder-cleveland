@@ -1,0 +1,148 @@
+{
+  "slug": "benefits-of-renting-to-section-8-tenants-cleveland",
+  "section": "section-8-landlords",
+  "title": "The Real Benefits of Renting to Voucher Tenants in Greater Cleveland",
+  "metaTitle": "Benefits of Renting to Section 8 Tenants in Cleveland",
+  "metaDescription": "The real benefits of renting to Section 8 tenants in Greater Cleveland: CMHA direct-deposit HAP payments, a 15,000-holder applicant pool, and the limits.",
+  "primaryKeyword": "benefits of renting to section 8 tenants",
+  "secondaryKeywords": [
+    "section 8 landlord benefits cleveland",
+    "cmha hap direct deposit",
+    "advantages of renting to voucher holders cuyahoga county",
+    "cmha landlord program benefits"
+  ],
+  "answerBox": "In Greater Cleveland the concrete benefits are mechanical: CMHA pays its share by mandatory direct deposit on a calendar published a year ahead, CMHA says the subsidy increases if the tenant loses income, and it markets a pool of over 15,000 voucher holders. You still screen the applicant and still collect the tenant's portion.",
+  "sections": [
+    {
+      "h2": "The subsidy arrives by direct deposit, on a calendar published a year ahead",
+      "body": [
+        "CMHA's landlord page sells the program with the phrase **\"[s]table, guaranteed rent payments deposited directly into your account.\"** That is CMHA's word, not ours — [Is Section 8 Rent Really Guaranteed?](/is-section-8-rent-guaranteed-cleveland/) takes it apart. The plumbing underneath is real, and it is the first benefit.",
+        "Direct deposit is not optional: \"[a]ll owners are required to go on direct deposit to receive HAP payments.\" Dates are \"generally on the 3rd and 16th of each month,\" and CMHA's 2026 HAP Payment Calendar sets two runs a month — a Primary HAP Disbursement plus a Mid-Month run for \"approved adjustments such as new admissions, contract changes, corrections.\" Each is published a year ahead, subject to holiday changes.",
+        "You are paid on the next scheduled date after CMHA has the signed contracts, executed lease and occupancy permit; a mid-month start is prorated. See [When Does CMHA Pay?](/when-does-cmha-pay-landlords/)"
+      ]
+    },
+    {
+      "h2": "Over 15,000 voucher holders, and a lease-up shortage that favors you",
+      "body": [
+        "CMHA markets the program on pool size — \"[a] large pool of prospective applicants,\" serving over 15,000 voucher holders. Its testimony to the U.S. Commission on Civil Rights matches: roughly 15,000 holders in Cuyahoga County, plus 20,000 households on the waiting list.",
+        "What happens to those vouchers matters more. That testimony reported only about 50% of admitted households found housing before the voucher expired; Signal Cleveland, measuring a different thing, put it at about 40% finding housing within six months. Two metrics, one conclusion: more subsidy is in circulation than owners are taking.",
+        "Listing costs nothing — CMHA points owners to affordablehousing.com and OhioHousingLocator.org for \"free listing options.\" At HUD's FY2026 two-bedroom Fair Market Rent of $1,279 for the Cleveland metro, a vacant day costs about $43 ($1,279 ÷ 30). More in [How many voucher holders are looking?](/how-many-section-8-tenants-are-looking-cleveland/)"
+      ]
+    },
+    {
+      "h2": "When the tenant's income drops, CMHA's share is what moves",
+      "body": [
+        "CMHA's owner benefit list includes subsidy that **increases if the tenant loses income**. Your contract rent does not change when your tenant's paycheck does — the split between CMHA and the tenant changes. There is no private-market equivalent.",
+        "The arithmetic, per CMHA's Landlord Participation Guide: Total Tenant Payment is computed from income (the greater of 30% of monthly adjusted income or 10% of gross monthly income, subject to a minimum), and the Housing Assistance Payment is the lesser of the payment standard or the gross rent, minus that tenant payment. Income falls, the tenant's share falls, CMHA's rises into the gap.",
+        "Two limits: the rise is capped by the payment standard for your ZIP code, which CMHA sets per ZIP rather than countywide; and that guide carries no revision date, so confirm the mechanics with CMHA."
+      ]
+    },
+    {
+      "h2": "A twelve-month floor on the tenancy, and your own lease",
+      "body": [
+        "CMHA's benefit list also includes using your own lease and going month-to-month after the initial term, with the tenant's obligations set out in the Lease Addendum.",
+        "The initial term must be at least one year, the HAP contract runs concurrently with it, and CMHA will not authorize the household to move during that first year. If turnover is your real enemy, a twelve-month floor beats a slightly higher asking rent: three weeks of vacancy on that same two-bedroom is roughly $900 (21 × $43)."
+      ]
+    },
+    {
+      "h2": "The back office you get for free",
+      "body": [
+        "None of this requires approval first: CMHA \"does not have a pre-approval process for landlords or units,\" and its FAQ says \"No application process is required.\" What you get instead:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "A RENTCafé-based Landlord Portal with 24-hour access to HAP payment information, a ledger exportable to Excel and PDF, 1099s, inspection history, and failed-inspection photos within 72 hours",
+          "A 16-document forms library: Automatic Deposit, Change of Ownership, Rent Adjustment Request and the 2026 HAP Payment Calendar",
+          "Free unit listings through affordablehousing.com or OhioHousingLocator.org",
+          "An eviction backstop: CMHA holds HAP at the landlord's request during an eviction, and if the tenant remains and the unit is not in abatement, the landlord may receive all withheld HAP — win or lose"
+        ]
+      }
+    },
+    {
+      "h2": "One local program pays a cash bonus, at certain addresses only",
+      "body": [
+        "The one publicly advertised cash incentive for owners in Cuyahoga County is not CMHA's. The Cuyahoga Community Choice Demonstration, which serves CMHA voucher holders, tells owners they \"will receive a bonus in the amount of 50% of one month's rent\" for leasing up with a program client, plus \"a Damage Mitigation Fund of up to $2,000\" if a tenant leaves the unit damaged.",
+        "It covers only units in designated \"Opportunity Areas\" and publishes no list of qualifying ZIPs — eligibility is checked one address at a time, via its Address Locator Tool or at (216) 770-4048. And none of it comes from CMHA, which advertises no signing bonus, vacancy payment or damage fund."
+      ]
+    },
+    {
+      "h2": "What the program does not do",
+      "body": [
+        "This is a business case, not an obligation: in the City of Cleveland source of income is not a protected class, so declining a voucher is lawful there. The gaps:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**No damage coverage.** \"HCVP does not pay for tenant caused damages.\" You bill the tenant, use the deposit, or go to court",
+          "**No screening.** \"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\" CMHA supplies the current address and, if known, prior landlord contacts",
+          "**Nothing before the contract exists.** Let a tenant move in early and CMHA says the tenant owes the full rent, with no retroactive back payment",
+          "**Payment stops if repairs don't.** Under abatement the household still owes its share, CMHA pays nothing, and nothing is paid retroactively",
+          "**No side deals.** A household may not pay more than the share CMHA sets; side arrangements are illegal and can get the household terminated and the landlord barred"
+        ]
+      }
+    },
+    {
+      "h2": "What it costs to have us run it",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and we have completed CMHA's Virtual Landlord Orientation — a live 90-minute session that, since January 1, 2026, the owner or designated managing agent must complete every 24 months before CMHA will execute a HAP contract on a new tenancy. Existing contracts and payments are not affected. Name us as managing agent and it is already handled."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back within 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "No guarantee, no screening service, no damage coverage — but a payer that deposits on dates published a year out, a pool of over 15,000 households, a subsidy that absorbs an income drop, and a twelve-month floor. Read [Should You Accept Section 8 in Cleveland?](/should-i-accept-section-8-cleveland/) for the colder version, or call **(440) 444-4737**. Our voucher service: [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does CMHA guarantee my rent?",
+      "a": "CMHA's landlord page uses the phrase \"stable, guaranteed rent payments deposited directly into your account.\" We quote it; we do not assert it. CMHA pays only its Housing Assistance Payment share, only after the HAP contract is executed, and it can abate payments when cited repairs go unmade, with nothing paid retroactively."
+    },
+    {
+      "q": "How much of the rent does CMHA actually pay?",
+      "a": "Per CMHA's Landlord Participation Guide, the Housing Assistance Payment is the lesser of the payment standard or the gross rent, minus the household's Total Tenant Payment. The household's share is income-based, and CMHA is explicit that the payment standard \"is NOT the maximum amount that the landlord can charge\" — only the maximum subsidy."
+    },
+    {
+      "q": "What happens if my tenant loses their job?",
+      "a": "CMHA lists subsidy that increases if the tenant loses income among its owner benefits. Your contract rent does not change; the split does. Because the tenant's payment is computed from income, a drop lowers their share and raises CMHA's, bounded by the payment standard for your ZIP code."
+    },
+    {
+      "q": "How large is the voucher applicant pool in Cuyahoga County?",
+      "a": "CMHA markets \"a large pool of prospective applicants,\" serving over 15,000 voucher holders. CMHA testimony to the U.S. Commission on Civil Rights put roughly 15,000 holders in the county plus 20,000 waitlisted households, and reported only about 50% of admitted households found housing before their voucher expired."
+    },
+    {
+      "q": "Will CMHA cover tenant damage or a vacancy?",
+      "a": "No. CMHA states plainly that \"HCVP does not pay for tenant caused damages,\" and advertises no vacancy payment or damage fund for the regular voucher program. The only Cuyahoga County damage fund we can source — up to $2,000 — belongs to the Cuyahoga Community Choice Demonstration, in designated Opportunity Areas only."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/forms___documents.php",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://signalcleveland.org/section-8-cleveland-lutheran-metropolitan-ministry/",
+    "https://cuyahogamobility.org/property-owners/",
+    "https://cuyahogamobility.org/about/",
+    "https://www.prrac.org/pdf/AppendixB.pdf",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx"
+  ],
+  "lastUpdated": "2026-07-21"
+}

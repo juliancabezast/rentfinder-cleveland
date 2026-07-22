@@ -1,0 +1,167 @@
+{
+  "slug": "section-8-for-small-landlords-1-4-units-cleveland",
+  "section": "section-8-landlords",
+  "title": "Does Section 8 Work for a 1–4 Unit Owner in Greater Cleveland?",
+  "metaTitle": "Section 8 for Small Landlords in Greater Cleveland",
+  "metaDescription": "Small landlord Section 8 math for Greater Cleveland: what a 1-4 unit owner really owes CMHA, the deadlines that cost real money, and what handing it off costs.",
+  "primaryKeyword": "small landlord section 8",
+  "secondaryKeywords": [
+    "section 8 for small landlords cleveland",
+    "cmha landlord requirements single family",
+    "is section 8 worth it for one rental property",
+    "1-4 unit landlord cuyahoga county voucher"
+  ],
+  "answerBox": "Yes, with conditions. For a one- to four-unit owner the CMHA work is front-loaded per tenancy, not monthly: a 90-minute orientation every 24 months, a W-9, direct deposit, a portal login, an inspection. The recurring exposure is response time — a missed 24-hour or 30-day repair deadline abates rent you never get back.",
+  "sections": [
+    {
+      "h2": "The work is front-loaded per tenancy, not monthly",
+      "body": [
+        "The fear behind this question is that a housing authority bolts a permanent clerical job onto a property that currently takes an hour a month. Mostly it doesn't. Nearly everything CMHA asks of an owner happens once, at lease-up, and repeats only when you sign a new household.",
+        "You are not applying to anything. CMHA's leasing page states, **\"Please note that CMHA does not have a pre-approval process for landlords or units,\"** and its FAQ answers \"How do I qualify as an HCVP Landlord?\" with \"No application process is required.\" Its Administrative Plan agrees: \"The PHA does not formally approve an owner to participate in the HCV program\" — though it may deny a specific tenancy over owner-related issues under 24 CFR 982.306(e). What you do once, before the first check:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Mandatory Landlord Orientation** — a live virtual session of about 90 minutes, booked through Eventbrite. Since January 1, 2026 an RFTA submission triggers it, the owner or designated managing agent must have completed one within 24 months, and CMHA verifies attendance before executing a HAP contract on a new tenancy. Existing contracts and payments are unaffected",
+          "**IRS Form W-9** — CMHA \"will not execute the HAP contract until the owner has submitted IRS form W-9\"",
+          "**Direct deposit** — not optional: \"[a]ll owners are required to go on direct deposit to receive HAP payments,\" by ACH form plus a voided check to HCVP Finance, 8120 Kinsman Road",
+          "**Landlord Portal** — CMHA issues new vendors a registration code, and the Tax ID or SSN you enter must match its vendor record",
+          "**Local paperwork** — a Certificate of Occupancy and/or Rental Registration goes in with the RFTA in 17 named suburbs, and since October 1, 2025 CMHA verifies City of Cleveland rental registrations through the City's Citizen Access Portal"
+        ]
+      }
+    },
+    {
+      "h2": "The clocks are the real overhead",
+      "body": [
+        "None of that is hard. What is hard, with a day job and one building, is answering fast — these deadlines start whether or not you opened the mail.",
+        "Getting in is clock-driven too. CMHA reviews the RFTA for completeness and consistency with the proposed lease and will not take corrections by phone; deficiencies must be fixed in writing. Your applicant cannot hedge either — \"The family may not submit, and the PHA will not process, more than one (1) RTA at a time\" — and the voucher expires 180 days from its issue date. CMHA's stated targets are 15 days to inspect and notify after an RFTA, 10 business days for the tenancy determination once it has everything, and 5 business days to reinspect once you report corrections. It publishes no statistics on actual turnaround."
+      ],
+      "table": {
+        "headers": ["What triggers it", "Your deadline"],
+        "rows": [
+          ["Emergency item cited: detector missing or inoperable, no water, no electricity, no heat October 15–April 15, gas leak, sewer back-up, broken entry locks", "24 hours"],
+          ["Any other cited deficiency", "30 calendar days, or an approved extension"],
+          ["Defective paint in a pre-1978 unit where a child under six will reside, at the initial inspection", "10 days to a passed lead clearance test (30 days from an annual)"],
+          ["Second failed initial inspection", "No third try — the applicant is told in writing to find another unit"],
+          ["Lease term begins", "HAP contract executed within 60 calendar days; executed later, it is \"void\""],
+          ["Rent increase request", "Takes effect the 1st of the month after 60 days from receipt"]
+        ]
+      }
+    },
+    {
+      "h2": "One unit has no averaging, and abated money never comes back",
+      "body": [
+        "CMHA's FAQ states that \"[r]ent is abated when the unit fails to pass on two consecutive inspections,\" abating \"on the first of the month following the failure to comply,\" with the household still owing its share, CMHA paying nothing, and no retroactive payments.",
+        "Federal rules draw the line most owners miss. Money **withheld** during a cure period is recoverable — fix it in time and the PHA must resume payments and cover the withheld period. Money **abated** is not: 24 CFR 982.4 defines abatement as \"[s]topping HAP payments to an owner with no potential for retroactive payment.\" You cannot exit through the tenant either: \"An owner may not terminate the tenancy of any family due to the withholding or abatement of assistance.\" How long until the contract itself ends is unsettled — the federal rule allows 60 days after the noncompliance determination, while CMHA publishes 30 days of abatement as its threshold.",
+        "For a fourplex owner, one abated unit is a quarter of the subsidy. For the owner of one house, it is all of it. That asymmetry — not the forms — is the argument for having someone whose job is to answer the notice; [what happens if your unit fails](/what-happens-if-your-unit-fails-a-cmha-inspection/) walks the sequence through.",
+        "Two rules cut your way. Voucher landlords are exempt from the self-inspection duty that applies to other HUD programs under 24 CFR 5.707, and to verify a correction a PHA \"may accept photographic evidence or other reliable evidence from the owner\" instead of a second visit. Frequency, though, is not settled: CMHA's index page markets biennial inspections while its inspections page describes annual ones \"within twelve months of the previous inspection.\" The federal floor is \"at least biennially.\" Units are inspected to HQS today, with NSPIRE arriving no later than February 1, 2027."
+      ]
+    },
+    {
+      "h2": "Whether it pencils is mostly your ZIP code",
+      "body": [
+        "CMHA sets payment standards per ZIP code under Small Area Fair Market Rents, with FY2026 figures effective 1/1/2026 across 53 ZIP codes. The two-bedroom standard runs from $1,096 in ZIP 44127 to $2,169 in 44113 and 44040 — a spread of roughly 98%, which makes any \"CMHA pays X\" figure quoted without a ZIP code useless. Look yours up: [payment standards by ZIP code](/cmha-payment-standards-by-zip-code/).",
+        "The standard caps subsidy, not rent. CMHA is explicit: \"The payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" What limits your asking rent is rent reasonableness — under 24 CFR 982.507(b) the authority weighs location, quality, size, unit type, age, amenities, services, maintenance and utilities against comparable unassisted units — and CMHA applies it to **gross rent**, rent plus tenant-paid utilities, so your advertised number is not the number tested.",
+        "On an initial contract the tenant portion paid directly to you can be no more than 40% of the household's monthly income, or CMHA negotiates the rent down. Later increases need both signatures, a HAP contract at least a year old, a passed annual inspection within 12 months of the effective date, and 12 months since the last approved adjustment."
+      ]
+    },
+    {
+      "h2": "Vacancy is what actually eats a small owner",
+      "body": [
+        "With one to four units there is no portfolio to average across, so an empty month lands at full weight. The program's structural answer is length: the initial lease term must be at least one year, the HAP contract runs concurrently, and CMHA will not authorize the household to move during that first year.",
+        "Put a number on it. At HUD's FY2026 two-bedroom Fair Market Rent of $1,279 for the Cleveland metro, one vacant day costs about $43 ($1,279 ÷ 30). One Cleveland manager's published guide estimates two to four weeks of vacancy a year on single-family rentals — one company's estimate, not a survey — which at that rate is roughly $600 to $1,200.",
+        "Demand is there: CMHA markets \"[a] large pool of prospective applicants,\" serving over 15,000 voucher holders, and its testimony to the U.S. Commission on Civil Rights reported that only about 50% of admitted households found housing before their voucher expired. Listing costs nothing through affordablehousing.com or OhioHousingLocator.org. One trap worth naming: hand over keys before CMHA's approved date and CMHA says the tenant owes the full rent, with no back payment made retroactively."
+      ]
+    },
+    {
+      "h2": "The compliance that isn't CMHA's",
+      "body": [
+        "Much of what small owners experience as \"Section 8 hassle\" is municipal and applies either way — the voucher just makes it visible, because CMHA checks. In Cleveland, Residents First requires owners of non-owner-occupied property to register and pay fees per property, file an affidavit naming a local agent in charge, show current taxes or a payment plan, and hold lead-safe certification, to obtain a Certificate Approving Rental Occupancy. Failure to register \"may result in penalties, fines, and possible criminal prosecution,\" and the local-agent rule is enforced with $200 civil tickets whose unpaid fines are added to the property tax bill. Lead Safe Certification runs two years before re-application; the City states owner-occupied properties do not need to be certified, so check your own case if you live in half of a double.",
+        "Ohio law adds one threshold at exactly this size: R.C. 5321.04(A) makes arranging waste removal a landlord duty **for buildings with four or more units**, so a fourplex crosses a line a double does not. The same section presumes 24 hours is reasonable notice before entering a unit."
+      ]
+    },
+    {
+      "h2": "What handing it over costs",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and we have **completed CMHA's Virtual Landlord Orientation** — the session an owner or designated managing agent must have on file before CMHA will execute a HAP contract on a new tenancy. Name us as managing agent and that is already done. Our terms:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The break-even, on one number",
+      "body": [
+        "For comparison, as published in July 2026: two local firms put Cleveland management fees at 8% to 12% of collected monthly rent. Progressive Urban Property Management publishes 10% per month ($80 minimum) for single-family and 1–3 unit properties versus 8% ($60 minimum) for 4–9 units, a leasing fee of one full month's rent, an additional **$250 for voucher tenants**, and a $100–$150 setup fee. Published renewal fees elsewhere run $195, $199, $250 and $149–$295.",
+        "CMHA's median FY2026 two-bedroom payment standard across its 53 service-area ZIP codes is $1,525. Five percent of that is about $76 a month; 10% is about $153 — roughly $920 a year apart, or about two vacant weeks at $43 a day. Compare a management fee against the vacancy and abatement it exists to prevent, not against zero. If you would rather offload only the CMHA-facing half, [can you self-manage a voucher rental?](/can-i-manage-a-section-8-rental-myself/) sets out what stays on your desk either way."
+      ]
+    },
+    {
+      "h2": "So: does it pencil out?",
+      "body": [
+        "It is a business decision, not an obligation — source of income is not a protected class in the City of Cleveland, so declining a voucher is lawful there and nobody can tell you that you must participate.",
+        "It pencils for a 1–4 unit owner when three things are true: the unit already meets the detector rules and has no deteriorated paint, the payment standard in your ZIP is at or above what you would ask anyway, and somebody can answer a 24-hour notice on a Tuesday. It does not when the unit needs work you are not going to do, or when nobody is watching the mail — because the penalty for slow is abatement, and abated money is gone. Call **(440) 444-4737**, or see [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is Section 8 worth it if I only own one house?",
+      "a": "It can be, but the risk profile differs from a large portfolio. There is no landlord application, listings are free, and the initial lease term is at least a year with no CMHA-authorized move during it. The concentration risk is abatement: after two consecutive failed inspections CMHA stops paying, and abated money is never paid retroactively."
+    },
+    {
+      "q": "How much of my time does a CMHA tenancy really take?",
+      "a": "Most of it is front-loaded. Once per tenancy you complete the orientation if yours has lapsed, submit a W-9, enroll in direct deposit, register for the portal, gather local registration paperwork and pass an inspection. After that the recurring demands are periodic inspections and answering repair notices within 24 hours or 30 days, depending on severity."
+    },
+    {
+      "q": "Do I need CMHA's approval to rent out one unit?",
+      "a": "No. CMHA states that it \"does not have a pre-approval process for landlords or units,\" and its FAQ says \"No application process is required.\" Its Administrative Plan adds that the PHA \"does not formally approve an owner to participate in the HCV program\" — though it may deny a specific tenancy over owner-related issues under 24 CFR 982.306(e)."
+    },
+    {
+      "q": "What happens if I miss a repair deadline on my only rental?",
+      "a": "Emergency items — a missing or inoperable detector, no heat between October 15 and April 15, a gas leak, no water or electricity — carry a 24-hour deadline; other cited items get 30 days or an approved extension. CMHA abates the subsidy after two consecutive failed inspections, effective the first of the following month, and abated payments are not recoverable."
+    },
+    {
+      "q": "Does a fourplex get treated differently than a single house?",
+      "a": "Not by CMHA — the process runs per unit and per tenancy, so four units means four RFTA packets and four inspections. Ohio law draws one line: R.C. 5321.04(A) makes arranging waste removal a landlord duty for buildings with four or more units. One local firm also publishes a lower management rate above three units."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordPortalUserGuide.pdf",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://www.prrac.org/pdf/AppendixB.pdf",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners",
+    "https://signalcleveland.org/cleveland-residents-first-local-agent-landlord-law-bibb/",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.04",
+    "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+    "https://www.b2brealty.com/",
+    "https://www.iip-management.com/property-management-fees/",
+    "https://clevelandpupm.com/pricing/",
+    "https://propertymanagementoh.com/pricing-public",
+    "https://www.cleveland-property-management.com/pricing",
+    "https://hightechpropertymanagement.com/pricing/"
+  ],
+  "lastUpdated": "2026-07-21"
+}

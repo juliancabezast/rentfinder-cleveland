@@ -1,0 +1,144 @@
+{
+  "slug": "are-section-8-inspections-worth-it-cleveland",
+  "section": "section-8-landlords",
+  "title": "Are CMHA Inspections a Dealbreaker? What Owners Are Really Signing Up For",
+  "metaTitle": "Are Section 8 Inspections Strict? A CMHA Owner's Guide",
+  "metaDescription": "Are Section 8 inspections strict? Every CMHA inspection a Cleveland owner faces, the 24-hour and 30-day repair clocks, and what a failure actually costs.",
+  "primaryKeyword": "are section 8 inspections strict",
+  "secondaryKeywords": [
+    "cmha inspection requirements",
+    "how often does cmha inspect",
+    "hqs inspection cleveland landlord",
+    "cmha hap abatement"
+  ],
+  "answerBox": "Strict is the wrong measure — measure the clocks. CMHA inspects to HQS today, with NSPIRE arriving no later than February 1, 2027. Expect one initial inspection, a recurring cycle, and complaint-driven visits. Life-threatening items get 24 hours; everything else 30 days. Missing those deadlines, not the inspection itself, is what costs money.",
+  "sections": [
+    {
+      "h2": "\"Strict\" is not the question. Three other things are",
+      "body": [
+        "Strictness is not measurable. Three things are: **how often someone comes, how long you get to fix what they find, and what it costs if you miss.**",
+        "Voucher units are still inspected under Housing Quality Standards. CMHA says NSPIRE's \"final transition deadline has been moved from October 1, 2025 to February 1, 2027\" — HUD's third extension of that date. CMHA's HQS inspections are run by an outside firm against the 13 key housing quality aspects.",
+        "One burden does not exist: between visits you file nothing. HUD Notice PIH 2024-26 REV-1 confirms that \"24 CFR 5.707 exempts landlords participating in HCV, PBV, and Section 8 Mod Rehab programs from any self-inspection requirements.\""
+      ]
+    },
+    {
+      "h2": "Every visit you can be asked to open the door for",
+      "body": [
+        "CMHA describes four inspection types, and the recurring cadence is not settled. The page describing annual inspections says CMHA is looking to move to biennial, while its landlord index page already markets \"Biennial inspections.\" The federal floor at 24 CFR 982.405(b) is \"at least biennially\" — a minimum, not a cap. Budget for annual and confirm the cycle at 216.478.9680.",
+        "Access is its own cost: R.C. 5321.04(A)(8) requires reasonable notice before entry, and \"[t]wenty-four hours is presumed to be a reasonable notice.\""
+      ],
+      "table": {
+        "headers": ["Type", "Trigger"],
+        "rows": [
+          ["Initial", "The RFTA packet, before any HAP is paid"],
+          ["Annual", "\"Within twelve months of the previous inspection\""],
+          ["Special", "\"Complaints registered with the PHA\""],
+          ["Emergency", "A condition on CMHA's 24-hour list"],
+          ["Interim (federal)", "A reported deficiency — 24 hours if life-threatening, 15 days if not"]
+        ]
+      }
+    },
+    {
+      "h2": "The move-in clocks, in order",
+      "body": [
+        "CMHA policy is to inspect, decide and notify **within 15 days of RFTA submission**, with the clock suspended for any period the unit is not available. If it is not ready when the inspector comes, that delay is yours.",
+        "On a fail, CMHA reinspects \"within five business days of the date the owner notifies the PHA that the required corrections have been made\" — the clock starts when **you** report the work done. The initial inspection gets two attempts and no more: on a second failure the family \"is provided with written notice to find another unit,\" which costs them too, since CMHA puts voucher expiration at \"180 days from the issue date.\" After move-in the margin widens — CMHA's Landlord Participation Guide says up to three inspections are allowed for periodic, emergency and special visits.",
+        "There is no fast lane; CMHA publishes no expedited or self-certification option. And these are **policy targets**, not measured turnarounds. CMHA publishes no statistics, and the \"2 business days / 10 calendar days\" timeline circulating online belongs to the Columbus housing authority — a different agency sharing the acronym."
+      ],
+      "table": {
+        "headers": ["Step", "Published target"],
+        "rows": [
+          ["Initial inspection, decision, notice", "15 days from RFTA (suspended while unit unavailable)"],
+          ["Tenancy-approval determination", "10 business days after all required information"],
+          ["Reinspection once you report corrections", "5 business days"],
+          ["Second initial inspection", "Rescheduled within 7–10 days"],
+          ["Life-threatening deficiency", "Owner corrects within 24 hours"],
+          ["Any other deficiency", "Owner corrects within 30 calendar days, or approved extension"]
+        ]
+      }
+    },
+    {
+      "h2": "What gets a unit failed — and what nobody can tell you",
+      "body": [
+        "**Neither CMHA nor HUD publishes deficiency-frequency data or pass rates for Cleveland-area voucher inspections.** Any \"top five reasons units fail here\" list is one contractor's anecdote or another authority's page. What CMHA publishes is severity — the conditions below stop the process cold.",
+        "Two carry dated rules and are the cheapest failures to prevent. Since **December 29, 2024** CMHA requires a smoke detector on each level, inside each sleeping area, within 21 feet of each bedroom door, and in any living area separated from bedrooms by a door — battery units 10-year sealed and tamper-resistant, or hardwired. Carbon monoxide detectors have been required since **December 27, 2022** wherever there is a gas-fueled appliance, attached garage or wood-burning fireplace, and lacking one is \"an emergency fail subject to correction within 24 hours.\"",
+        "Paint punishes older stock. HUD treats \"any deteriorated paint in target housing\" as a violation of both HQS and NSPIRE, and for a pre-1978 unit cited for defective paint where a child under six will reside, CMHA allows 10 days from the initial inspection — 30 from an annual — to produce a passed lead clearance test and proof of work by a certified lead abatement contractor. Cleveland separately requires Lead Safe Certification for pre-1978 rentals, valid two years."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "A smoke or carbon monoxide detector missing or inoperable",
+          "Range burners that do not ignite, or a gas hook-up with a strong smell of gas",
+          "No water; no electricity; no heat (October 15 to April 15)",
+          "Sewer back-up; gas leak",
+          "Unlockable windows within six feet of ground level, or entry doors with broken locks",
+          "Anything deemed life-threatening"
+        ]
+      }
+    },
+    {
+      "h2": "What a failure actually costs",
+      "body": [
+        "Under 24 CFR 982.404(a)(3) a life-threatening deficiency must be corrected \"within 24 hours of notification\" and any other \"within 30 calendar days.\" Miss that and one distinction decides your loss: **withholding versus abatement.** Withheld payments resume and cover the withheld period once the unit complies. Abatement is defined at 24 CFR 982.4 as \"[s]topping HAP payments to an owner with no potential for retroactive payment.\" Withheld money can come back; abated money is gone.",
+        "CMHA uses the same language, adds that the family still owes its share, and states \"[t]here will be no retroactive payments made during that period.\" Its FAQ puts abatement after two consecutive failed inspections, from the first of the month following the failure to comply. How long abatement runs before the contract ends is unsettled — the federal rule allows 60 days after the determination of noncompliance, CMHA's FAQ publishes 30 — so assume the shorter. [What happens when a unit fails](/what-happens-if-your-unit-fails-a-cmha-inspection/) walks the sequence.",
+        "You cannot cure an abatement by removing the tenant: 24 CFR 982.404(d)(3) bars terminating a tenancy \"due to the withholding or abatement of assistance.\" A reinspection fee is permitted but \"may not\" be passed to the family, and CMHA does not publish the amount. In your favor, 24 CFR 982.405(i) lets an authority \"accept photographic evidence\" of a correction, which can spare you a second visit."
+      ]
+    },
+    {
+      "h2": "So is the inspection burden a good enough reason to say no?",
+      "body": [
+        "It can be a reason; it is rarely the strongest, because most of what an inspector checks you already owe your tenant. R.C. 5321.04(A) imposes ten non-waivable duties — health and safety codes, all repairs keeping the premises \"in a fit and habitable condition,\" electrical, plumbing, heating and ventilating fixtures in good working order, running water, reasonable hot water and reasonable heat. A unit that cannot pass HQS is usually already out of compliance with a statute binding you anyway.",
+        "The honest delta is not the standard. It is three things: **an independent party verifies condition on a schedule you do not control; the correction windows are short; and money stops when you miss them.** If your maintenance response is measured in weeks, price that. If you fix things quickly, you are being audited on work you were going to do.",
+        "Against that, CMHA markets the program on the size of its tenant pool — \"over 15,000 voucher holders\" — and leads its owner benefit list with \"[s]table, guaranteed rent payments deposited directly into your account.\" Those are CMHA's words; the abatement rules above are the fine print, because payments continue only while the unit keeps passing.",
+        "The choice stays yours. Source of income is not a protected class in the City of Cleveland, so declining is lawful here — which is exactly why the case has to be made on merits. [The full decision guide](/should-i-accept-section-8-cleveland/) sets this beside the rent math."
+      ]
+    },
+    {
+      "h2": "How we take the inspection off your desk",
+      "body": [
+        "We place and manage voucher tenancies across Greater Cleveland and Cuyahoga County, under CMHA. **We attend the CMHA inspection and send you a written report for $100** — or you attend yourself and pay nothing. **Repair estimates come back free, itemized, inside 24 hours, and nothing starts without your approval**: a 24-hour deadline leaves no room to wait three days for a quote.",
+        "**Placement is one month's rent, charged only after the tenant is placed** — no placement, no fee — and **management is 5% of monthly rent, billed only while the unit is rented.** We have completed CMHA's Virtual Landlord Orientation: since January 1, 2026, an RFTA triggers a requirement that the owner or managing agent complete it — about 90 minutes, virtual, once every 24 months — before CMHA can execute a HAP contract for a new tenancy.",
+        "To check a unit against the standard first, see [how to pass the first time](/how-to-prepare-a-rental-to-pass-a-section-8-inspection-cleveland/). To hand it over, call **(440) 444-4737** or see [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Are Section 8 inspections stricter than a normal city inspection?",
+      "a": "No comparative data exists for Cuyahoga County, so we will not claim one is harder. CMHA inspects to HQS through an outside firm against 13 key housing quality aspects, while R.C. 5321.04(A) already obliges every Ohio landlord to keep a unit fit and habitable. The difference is verification on a schedule, plus short repair deadlines."
+    },
+    {
+      "q": "How often will CMHA inspect after the tenant moves in?",
+      "a": "Treat the frequency as unsettled. CMHA's inspections page describes annual inspections \"within twelve months of the previous inspection\" and says it is looking to transition to biennial, while its landlord index page markets biennial. The federal minimum under 24 CFR 982.405(b) is at least biennially. Special and emergency inspections sit on top of that cycle."
+    },
+    {
+      "q": "What happens if my unit fails the initial inspection?",
+      "a": "You get one more attempt. CMHA reschedules within 7 to 10 days and reinspects within five business days of the date you notify the agency that corrections are done. When a unit fails an initial inspection a second time, CMHA policy is that the family receives written notice to find another unit."
+    },
+    {
+      "q": "Does NSPIRE change what I will have to fix?",
+      "a": "Not yet. HUD's September 30, 2025 notice extended NSPIRE compliance for voucher programs through January 31, 2027, so HQS governs today. NSPIRE swaps the 13 performance requirements for three inspectable areas and adds affirmative items: smoke detection on each level, carbon monoxide detection, GFCI protection within 6 feet of a water source, guardrails at 30-inch drop-offs, and no unvented space heaters."
+    },
+    {
+      "q": "Can CMHA charge me for a reinspection?",
+      "a": "Possibly. Under 24 CFR 982.405(h) an authority may not charge for the initial inspection or the first inspection during occupancy, but may set \"a reasonable fee to owners for a reinspection\" when a cited deficiency was not corrected — and the owner \"may not pass this fee along to the family.\" CMHA does not publish the amount."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.federalregister.gov/documents/2025/09/30/2025-19070/economic-growth-regulatory-relief-and-consumer-protection-act-implementation-of-national-standards",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://www.ecfr.gov/current/title-24/subtitle-A/part-5/subpart-G/section-5.703",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.04",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+  ],
+  "lastUpdated": "2026-07-21"
+}

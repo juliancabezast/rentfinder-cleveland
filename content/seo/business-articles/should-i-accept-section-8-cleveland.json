@@ -1,0 +1,202 @@
+{
+  "slug": "should-i-accept-section-8-cleveland",
+  "section": "section-8-landlords",
+  "title": "Should You Accept Section 8 in Cleveland? An Owner's Honest Decision Guide",
+  "metaTitle": "Should I Accept Section 8 in Cleveland? Owner's Guide",
+  "metaDescription": "Should I accept Section 8 in Cleveland? An owner's straight answer: what CMHA pays by ZIP code, what you give up in control, and the two checks that decide it.",
+  "primaryKeyword": "should i accept section 8 cleveland",
+  "secondaryKeywords": [
+    "accepting housing choice vouchers cleveland",
+    "cmha landlord pros and cons",
+    "is section 8 worth it for landlords cleveland",
+    "renting to voucher tenants cuyahoga county"
+  ],
+  "answerBox": "Accept a voucher when CMHA's payment standard for your ZIP code supports your rent and your unit can pass inspection. You gain a large pool of funded renters and direct-deposit subsidy; you give up control of the calendar and of the rent number. In Cleveland, refusing is lawful — this is a business call.",
+  "sections": [
+    {
+      "h2": "The short answer: two checks",
+      "body": [
+        "An owner asking **should I accept Section 8 in Cleveland** is really asking two questions. Does CMHA's payment standard for my ZIP code and bedroom count support my rent? Can my unit pass inspection without a scramble?",
+        "Nobody in the City of Cleveland has to take a voucher. Source of income is not protected by the federal Fair Housing Act, by Ohio's R.C. 4112.02(H), or by the City, whose fair housing program lists thirteen protected classes and no income-based one. So this is about whether it pays — not whether you are obliged."
+      ]
+    },
+    {
+      "h2": "What you gain",
+      "body": [
+        "Demand, first. CMHA testimony to the U.S. Commission on Civil Rights put roughly 15,000 voucher holders in Cuyahoga County and about 20,000 households on the waiting list, and reported only about 50% of admitted households found housing before their voucher expired. A unit that welcomes vouchers competes in a thinner field."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Direct deposit is mandatory, and CMHA says payment dates are generally the 3rd and 16th of each month.",
+          "If the tenant loses income the subsidy increases, per CMHA's benefits list — the household's share is recalculated, not your rent.",
+          "You use your own lease and can go month-to-month after the initial term, which must run at least a year; CMHA will not authorize a move during it."
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "About the word \"guaranteed\"",
+          "body": [
+            "CMHA's landlord page advertises \"[s]table, guaranteed rent payments deposited directly into your account.\" That is CMHA's word, not ours. The subsidy is predictable — public agency, published calendar — but it is only a portion of the rent, it can be abated, and nothing is approved in advance. [What the guarantee actually covers](/is-section-8-rent-guaranteed-cleveland/) is the honest version."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "What you give up",
+      "body": [
+        "Mostly control, not money. These are CMHA's policy targets — it publishes no data on real turnaround times."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "CMHA policy is to inspect, decide and notify **within 15 days** of the Request for Tenancy Approval; the tenancy determination targets **10 business days**.",
+          "**No early move-in.** If you let the tenant in first, CMHA says the tenant owes the full rent and the program will not pay the back amount retroactively.",
+          "The HAP contract must be executed **within 60 calendar days** of the lease start or it is void — and never before your W-9 is in.",
+          "Since **January 1, 2026**, filing an RFTA requires the owner or designated managing agent to complete CMHA's Virtual Landlord Orientation: about 90 minutes, live, every 24 months, verified before a new HAP contract is executed. Existing contracts are unaffected.",
+          "**Damage stays your problem** — CMHA does not pay for tenant-caused damages."
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "The rent stops being purely yours",
+          "body": [
+            "You propose a rent; CMHA tests it. Under 24 CFR 982.507(b) it must be reasonable against comparable unassisted units, weighing location, quality, size, type, age, amenities and utilities — and the test is applied to **gross rent**, meaning rent plus tenant-paid utilities or the allowance. On an initial contract the tenant's share cannot exceed 40% of monthly income, or CMHA negotiates down. Increases need a contract at least a year old and start the 1st of the month after 60 days."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "The money test: your ZIP code, not the county",
+      "body": [
+        "CMHA sets payment standards per ZIP code under Small Area Fair Market Rents, and the spread across its 53 service-area ZIPs is enormous. FY2026, effective January 1, 2026:"
+      ],
+      "table": {
+        "headers": [
+          "Bedroom size",
+          "Lowest standard",
+          "Highest standard",
+          "Median of 53 ZIPs"
+        ],
+        "rows": [
+          [
+            "Studio",
+            "$802",
+            "$1,582",
+            "$1,118"
+          ],
+          [
+            "1 bedroom",
+            "$915",
+            "$1,796",
+            "$1,265"
+          ],
+          [
+            "2 bedroom",
+            "$1,096",
+            "$2,169",
+            "$1,525"
+          ],
+          [
+            "3 bedroom",
+            "$1,412",
+            "$2,791",
+            "$1,966"
+          ],
+          [
+            "4 bedroom",
+            "$1,514",
+            "$2,983",
+            "$2,101"
+          ]
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "How to read that",
+          "body": [
+            "The low column is ZIP 44127 at every size; the high is shared by 44113 and 44040. A two-bedroom runs $1,096 to $2,169 — roughly a 98% spread inside one county, so any \"CMHA pays X\" claim without a ZIP code is misleading. CMHA's tool shows a default table covering only 44103 and 44105, so [look your own ZIP up](/cmha-payment-standards-by-zip-code/).",
+            "The standard is not a cap on your rent: CMHA calls it the maximum subsidy toward the tenant's rent, not the maximum you may charge. If your rent sits comfortably under it, this likely fits; well above, and rent reasonableness and the 40% test are where the deal breaks."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "The condition test, and the clock behind it",
+      "body": [
+        "An initial inspection gets two attempts. CMHA reinspects within five business days of your notice that corrections are done, and a second failure sends the applicant written notice to find another unit — your vacancy restarts. CMHA lists ten conditions that must be corrected within 24 hours, among them missing or inoperable smoke and carbon monoxide detectors, no water, no heat between October 15 and April 15, and gas leaks. That is a severity list, not a ranking of common failures.",
+        "After move-in, CMHA says rent is abated when a unit fails two consecutive inspections: the family still owes its share and CMHA pays nothing, with no retroactive payment. Federal rule separates money **withheld** during a cure period, which you get back if you fix the problem in time, from **abated** money, which stops permanently."
+      ]
+    },
+    {
+      "h2": "The paperwork test: your city comes first",
+      "body": [
+        "CMHA must collect a Certificate of Occupancy and/or Rental Registration with the RFTA in 17 named suburbs — Bedford, Bedford Heights, Brook Park, Cleveland Heights, Cuyahoga Heights, East Cleveland, Euclid, Fairview Park, Garfield Heights, Lakewood, Lyndhurst, Maple Heights, Parma, Shaker Heights, South Euclid, University Heights and Warrensville Heights — and since October 1, 2025 it verifies City of Cleveland rental registrations through the City's Citizen Access Portal. Inside Cleveland, Residents First registration and lead-safe certification apply too. A lapse stalls the file before the unit is seen."
+      ]
+    },
+    {
+      "h2": "What this decision is not",
+      "body": [
+        "It is not a legal duty. Five Cuyahoga County municipalities ban source-of-income discrimination — Cleveland Heights, University Heights, South Euclid, Warrensville Heights and Linndale — though reporting indicates only three specifically include voucher protections, and University Heights' ordinance has been reported to face a constitutional challenge. Read the current text if you own there.",
+        "One caution applies even where refusal is legal: how you say no matters more than whether you say no. A 2017 Cuyahoga County audit found providers advertising \"No section 8\" were 26% more likely to deliver unfavorable treatment to Black prospective tenants — that is how a lawful policy becomes a federal Fair Housing problem. [Understand it](/no-section-8-advertising-fair-housing-risk/) first."
+      ]
+    },
+    {
+      "h2": "If you decide yes",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and we have completed CMHA's mandatory Landlord Orientation. Because that requirement falls on the owner **or the designated managing agent**, it is already met if we manage your unit. Screening stays yours — CMHA is clear that is the landlord's job."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement: one month's rent**, charged only after the tenant is placed. No placement, no fee.",
+          "**Inspection attendance and written report: $100** — or attend yourself and pay nothing.",
+          "**Ongoing management: 5% of monthly rent**, only while the unit is rented.",
+          "**Repair estimates: free, itemized, inside 24 hours** — nothing starts without your approval.",
+          "Call **(440) 444-4737** with your ZIP code and bedroom count, or see [how the service works](/section8stressfree)."
+        ]
+      }
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is Section 8 rent guaranteed for Cleveland landlords?",
+      "a": "CMHA's landlord page advertises \"stable, guaranteed rent payments deposited directly into your account.\" That is CMHA's characterization, not ours. The subsidy is one portion of the rent; the tenant still owes their share directly to you, and payments can be abated after failed inspections with no retroactive payment."
+    },
+    {
+      "q": "Can I legally refuse a housing voucher in Cleveland?",
+      "a": "In the City of Cleveland, yes. Source of income is not protected by the federal Fair Housing Act, by Ohio's R.C. 4112.02(H), or by the City, whose fair housing program lists thirteen protected classes and no income-based one. Five Cuyahoga County suburbs do ban it — check your municipality."
+    },
+    {
+      "q": "How much rent will CMHA support?",
+      "a": "It depends entirely on the ZIP code. FY2026 two-bedroom payment standards run from $1,096 in ZIP 44127 to $2,169 in 44113, a median of $1,525 across CMHA's 53 service-area ZIPs. The payment standard is the maximum subsidy, not a cap on your rent."
+    },
+    {
+      "q": "Do I need CMHA training before renting to a voucher holder?",
+      "a": "Since January 1, 2026, filing an RFTA requires the property owner or designated managing agent to complete CMHA's Virtual Landlord Orientation — about 90 minutes, live and virtual, required every 24 months and verified before a HAP contract is executed on a new tenancy. We have completed it."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.usccr.gov/files/2025-08/soi-pb-ohio_july-2025.pdf",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://signalcleveland.org/source-of-income-discrimination-section-8-housing-vouchers-cuyahoga-county/",
+    "https://www.prrac.org/pdf/AppendixB.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-4112.02",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners",
+    "https://www.crainscleveland.com/real-estate/university-heights-ordinance-may-be-cusp-constitutional-battle/"
+  ],
+  "lastUpdated": "2026-07-21"
+}

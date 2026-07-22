@@ -1,0 +1,119 @@
+{
+  "slug": "do-section-8-tenants-damage-property-cleveland",
+  "section": "section-8-landlords",
+  "title": "Do Section 8 Tenants Damage Property More? The Damage Question, Answered",
+  "metaTitle": "Do Section 8 Tenants Damage Property? A Cleveland Answer",
+  "metaDescription": "Do Section 8 tenants damage property? CMHA pays nothing for tenant damage. Who pays in Cleveland, what the deposit covers, and the one $2,000 exception.",
+  "primaryKeyword": "do section 8 tenants damage property",
+  "secondaryKeywords": [
+    "who pays for section 8 tenant damage",
+    "cmha tenant damage",
+    "section 8 security deposit ohio",
+    "cmha damage mitigation fund"
+  ],
+  "answerBox": "CMHA does not cover tenant damage. Its Landlord FAQ says plainly: \"HCVP does not pay for tenant caused damages.\" Recovery runs through the security deposit, a bill to the tenant, or court — the same routes as any Ohio tenancy. One Cuyahoga County program offers up to $2,000, in designated Opportunity Areas only.",
+  "sections": [
+    {
+      "h2": "Who pays: the answer in one line",
+      "body": [
+        "If a voucher tenant damages your unit, **you recover from the tenant, not from CMHA**. The agency's Landlord FAQ puts it in six words: \"HCVP does not pay for tenant caused damages.\" Its stated remedies are to bill the tenant, apply the deposit, or sue — the same three you have with any tenant.",
+        "You cannot charge extra to self-insure. Families \"may not pay a rent share greater than the amount determined by the CMHA,\" and side deals \"are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\""
+      ]
+    },
+    {
+      "h2": "Is the damage risk actually different?",
+      "body": [
+        "We will not hand you a percentage. We have not found a damage-rate comparison for Cuyahoga County from a primary source, and an invented number is worse than none. What follows is what is structurally different about a voucher tenancy — published rules, not folklore.",
+        "**Screening is still entirely yours.** CMHA is explicit: \"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\" What the agency adds is the family's current address and, where known, the name and address of the landlord at their current and prior address — a call list from the agency, not from the applicant. See [how to screen a voucher applicant](/how-to-screen-section-8-tenants-cleveland/).",
+        "**Someone other than you inspects the unit.** CMHA describes four inspection types — initial, annual, special and emergency — run by an outside firm against the 13 key housing quality aspects, and tenant obligations are also defined in the Lease Addendum on top of your lease. Treat the frequency as unsettled: the page describing annual inspections also says CMHA is looking to move to biennial ones.",
+        "**A damage assumption makes a poor category-wide rule.** Source of income is not a protected class under R.C. 4112.02(H) or the City of Cleveland's fair housing rules, so declining a voucher is lawful here. But 89% of Cuyahoga County voucher recipients are Black, against 13% of Ohio's population, so voucher-based screening rules can carry racial disparate-impact exposure."
+      ]
+    },
+    {
+      "h2": "The deposit is your instrument, and Ohio law cuts both ways",
+      "body": [
+        "With no agency money behind the damage, the deposit does the work — and Ohio's statute is unforgiving about process. R.C. 5321.16(B) requires every deduction to be itemized in a written notice delivered to the tenant with the amount due \"within thirty days after termination of the rental agreement and delivery of possession.\" Miss it and R.C. 5321.16(C) adds \"damages in an amount equal to the amount wrongfully withheld, and reasonable attorneys fees.\"",
+        "A large deposit carries its own cost: under R.C. 5321.16(A) a deposit above the greater of $50 or one month's rent bears five percent annual interest on the excess once the tenant stays six months or more. That is an interest rule, not a ceiling; the amount is a question for your attorney. More in [security deposits and tenant damage](/security-deposits-and-tenant-damage-ohio/)."
+      ],
+      "table": {
+        "headers": ["The cost", "Who carries it"],
+        "rows": [
+          ["Habitable-condition repairs", "Owner — R.C. 5321.04(A) imposes ten non-waivable duties"],
+          ["Tenant-caused damage", "Tenant — \"HCVP does not pay for tenant caused damages\""],
+          ["A cited deficiency left uncorrected", "Owner — CMHA abates HAP, no retroactive payment"],
+          ["A reinspection fee", "Owner — \"may not pass this fee along to the family\" (24 CFR 982.405(h))"]
+        ]
+      }
+    },
+    {
+      "h2": "The bigger money risk is condition, not the tenant",
+      "body": [
+        "Owners who lose real money on voucher units usually lose it to the inspection clock. Under 24 CFR 982.404(a)(3), a life-threatening deficiency must be corrected by the owner \"within 24 hours of notification\" and any other deficiency \"within 30 calendar days.\" Recovering that cost from the tenant is the separate question answered above.",
+        "Miss the clock and the money stops. CMHA states it \"may abate HAP Payments to owners who do not comply with notifications to correct HQS deficiencies within the specified timeframe,\" that the family still owes its share, and that \"[t]here will be no retroactive payments made during that period.\" Rent is abated after two consecutive failed inspections.",
+        "The distinction that matters is **withholding versus abatement**. An authority that withholds must resume payments and cover the withheld period once the unit complies; abatement is defined at 24 CFR 982.4 as \"Stopping HAP payments to an owner with no potential for retroactive payment.\" Do not plan around a single deadline for how long abatement runs before the contract ends: the federal rule gives 60 days after the determination of noncompliance, and CMHA publishes a 30-day threshold. [What happens when a unit fails](/what-happens-if-your-unit-fails-a-cmha-inspection/) walks the sequence."
+      ]
+    },
+    {
+      "h2": "If damage happens mid-lease",
+      "body": [
+        "You cannot let yourself in to look: R.C. 5321.04(A)(8) requires reasonable notice before entry, and \"[t]wenty-four hours is presumed to be a reasonable notice\" absent an emergency. Schedule it in writing and photograph what you find.",
+        "You cannot shortcut the exit either. Cleveland Housing Court is blunt that a landlord \"cannot physically remove the tenant from the premises, terminate utilities, or change the locks,\" and warns that subsidized tenants \"are afforded special protection under Federal law.\" One consolation: CMHA holds HAP at the landlord's request during an eviction, and if the tenant remains and the unit is not in abatement, the landlord \"may receive all withheld HAP payments, whether or not the landlord won or lost the eviction.\""
+      ]
+    },
+    {
+      "h2": "The one damage fund in Cuyahoga County",
+      "body": [
+        "Real damage money exists here, but not from CMHA. The Cuyahoga Community Choice Demonstration tells owners it offers \"a Damage Mitigation Fund of up to $2,000 in the rare event that a tenant leaves their unit damaged,\" plus deposit assistance and moving coaching for the family. Owners who lease up with one of its clients \"will receive a bonus in the amount of 50% of one month's rent.\"",
+        "The limits matter as much as the offer: it serves CMHA voucher holders, but only in designated Opportunity Areas, checked address by address through the program's Address Locator Tool or at (216) 770-4048."
+      ]
+    },
+    {
+      "h2": "How we handle the damage question",
+      "body": [
+        "We place and manage voucher tenancies across Greater Cleveland and Cuyahoga County, under CMHA. **Placement is one month's rent, charged only after the tenant is placed** — no placement, no fee — and **management is 5% of monthly rent, billed only while the unit is rented**. **We attend the CMHA inspection and send you a written report for $100**, or you attend yourself for nothing. **Repair estimates come back free, itemized, inside 24 hours, and nothing starts without your approval** — which matters when a deficiency carries a 24-hour or 30-day clock.",
+        "We have also completed CMHA's Virtual Landlord Orientation. Since January 1, 2026, submitting an RFTA triggers a requirement that the owner or managing agent complete it — about 90 minutes, virtual, once every 24 months — before CMHA can execute a HAP contract for a new tenancy. Call **(440) 444-4737** or see [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does CMHA pay for damage a voucher tenant causes?",
+      "a": "No. CMHA's Landlord FAQ states that \"HCVP does not pay for tenant caused damages.\" Bill the tenant, apply the deposit, or go to court. The only damage money in the county comes from the Community Choice Demonstration, which offers up to $2,000 in designated Opportunity Areas."
+    },
+    {
+      "q": "Can I charge a voucher tenant a larger security deposit?",
+      "a": "Ohio's deposit statute regulates interest and return rather than publishing a maximum, so treat the amount as a question for your attorney. R.C. 5321.16(A) does say a deposit above the greater of $50 or one month's rent bears five percent annual interest on the excess after six months."
+    },
+    {
+      "q": "Do voucher tenants damage units more than market-rate tenants?",
+      "a": "We will not quote a figure we cannot source for Cuyahoga County. What is documented is structural: screening remains entirely the owner's job, CMHA supplies the family's current address and prior landlord contacts, and an outside firm inspects the unit on CMHA's schedule."
+    },
+    {
+      "q": "If damage makes the unit fail an inspection, do I lose rent?",
+      "a": "You can. Under 24 CFR 982.404(a)(3) the owner must correct a life-threatening deficiency within 24 hours and other deficiencies within 30 calendar days. CMHA states it may abate HAP when those timeframes are missed, that the family still owes its share, and that no retroactive payments are made."
+    },
+    {
+      "q": "Can I evict a voucher tenant for damaging the unit?",
+      "a": "Through court — self-help is illegal in Ohio. Cleveland Housing Court notes subsidized tenants have federal protections and that such cases may take longer than a standard filing. CMHA will hold HAP during an eviction on request, and may release it if the tenant remains and the unit is not in abatement."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cuyahogamobility.org/property-owners/",
+    "https://cuyahogamobility.org/about/",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.04",
+    "https://codes.ohio.gov/ohio-revised-code/section-4112.02",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.clevelandhousingcourt.org/sites/default/files/faq-evictions---2020.pdf",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://www.prrac.org/pdf/AppendixB.pdf",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+  ],
+  "lastUpdated": "2026-07-21"
+}
