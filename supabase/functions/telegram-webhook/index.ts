@@ -180,8 +180,12 @@ serve(async (req: Request) => {
 
     if (cbq) {
       await handleCallback(ctx, cbq);
-    } else if (message?.photo) {
+    } else if (message?.photo || message?.document) {
       await handlePhoto(ctx, message);
+    } else if ((message?.voice || message?.audio) && ctx.bot === "funnel") {
+      await captureFromVoice(ctx, message);
+    } else if (message?.contact && ctx.bot === "funnel") {
+      await captureFromContact(ctx, message);
     } else if (message?.text) {
       await handleText(ctx, message.text);
     }
@@ -245,6 +249,7 @@ async function handleText(ctx: Ctx, rawText: string) {
     // "Buscar lead" (Setter/Funnel): find by name/phone → full lead card w/ actions.
     if (session.step === "find_lead_comm") { await funnelSearchLeads(ctx, raw); return; }
     if (session.step === "create_lead") { await handleCreateLeadInput(ctx, session, raw); return; }
+    if (session.step === "nl_edit") { await handleNlEdit(ctx, session, raw); return; }
     if (session.step === "leasing_search") { await handleLeasingSearch(ctx, session, raw); return; }
     if (session.step === "custom_time") { await handleCustomTime(ctx, session, raw); return; }
     if (session.step === "sr_text") { await handleShowingReportText(ctx, session, raw); return; }
@@ -296,7 +301,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     : LEAD_ACTION ? true
     : ctx.bot === "general" ? (data.startsWith("rp:") || LR_CB)
     // Funnel can ALSO schedule + create leads ("estoy con alguien: agendame").
-    : ctx.bot === "funnel" ? (data.startsWith("fnl:") || data.startsWith("fl:") || data.startsWith("qa:") || SCHED_CB)
+    : ctx.bot === "funnel" ? (data.startsWith("fnl:") || data.startsWith("fl:") || data.startsWith("qa:") || data.startsWith("cap:") || SCHED_CB)
     // Showings = field assistant: post-tour, recap, showing report, agenda/ruta.
     : ctx.bot === "showings" ? (data.startsWith("psw:") || data.startsWith("psa:") || data === "m:ps" || data.startsWith("sd:") || data.startsWith("cz:") || data.startsWith("rmd:") || SR_CB || AG_CB)
     : false;
@@ -311,6 +316,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data.startsWith("aems:")) { await handleEmailSend(ctx, cbq, data); return; }
     if (data.startsWith("aem:")) { await handleEmailPick(ctx, cbq, data); return; }
     if (data.startsWith("qa:")) { await handleQueueAction(ctx, cbq, data); return; }
+    if (data.startsWith("cap:")) { await handleCapture(ctx, cbq, data); return; }
     if (data.startsWith("fnl:")) { await handleFunnelMenuCb(ctx, cbq, data); return; }
     if (data.startsWith("fl:")) { await answer(); await funnelOpenFromList(ctx, cbq.message?.message_id, data.slice(3)); return; }
     if (data.startsWith("rp:")) { await handleRfcCallback(ctx, cbq, data); return; }
@@ -1492,6 +1498,8 @@ async function handleFunnelText(ctx: Ctx, rawText: string) {
       if (session.step === "choose_property") { await handlePropertyFilter(ctx, session, raw); return; }
       if (session.step === "find_lead") { await handleLeadSearch(ctx, session, raw); return; }
       if (session.step === "create_lead") { await handleCreateLeadInput(ctx, session, raw); return; }
+      if (session.step === "cl_edit") { await handleCaptureEditInput(ctx, session, raw); return; }
+      if (session.step === "nl_edit") { await handleNlEdit(ctx, session, raw); return; }
       if (session.step === "custom_time") { await handleCustomTime(ctx, session, raw); return; }
       if (["choose_day", "choose_time", "confirm", "offer_schedule"].includes(session.step)) {
         await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
@@ -1694,6 +1702,7 @@ async function funnelLeadCard(ctx: Ctx, messageId: number | undefined, leadId: s
      { text: "🎯 Cambiar etapa", callback_data: `act:st:${l.id}` }],
     [{ text: "✉️ Enviar email", callback_data: `act:em:${l.id}` },
      { text: "👤 Guardar contacto", callback_data: `act:vc:${l.id}` }],
+    [{ text: "🗣️ Editar por texto", callback_data: `act:nl:${l.id}` }],
     nav,
   ];
   await editOrSend(ctx, messageId, lines.join("\n"), kb);
@@ -2993,6 +3002,344 @@ async function logLeadNote(ctx: Ctx, leadId: string, noteType: string, content: 
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🧑‍💼 Street-capture kit (Funnel bot): create a lead from a 📸 screenshot/photo,
+// a 📇 shared Telegram contact, or a 🎙️ voice note — extract → confirm → create.
+// Plus 🗣️ natural-language edits on an open lead. Every entry point converges on a
+// single "cl_confirm" draft the user reviews before anything is written.
+// ═══════════════════════════════════════════════════════════════════════════════
+interface LeadDraft { name?: string; phone?: string; email?: string; property?: string; message?: string; origin?: string; }
+
+// Bytes → base64 (chunked; String.fromCharCode(...bigArray) overflows the stack).
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  return btoa(bin);
+}
+
+async function getOpenAIKey(ctx: Ctx): Promise<string | null> {
+  const { data } = await ctx.supabase.from("organization_credentials")
+    .select("openai_api_key").eq("organization_id", ctx.organizationId).maybeSingle();
+  return (data?.openai_api_key as string) || null;
+}
+
+// Download a Telegram file (photo/document/voice/audio) → bytes.
+async function tgDownload(ctx: Ctx, fileId: string): Promise<Uint8Array | null> {
+  try {
+    const gf = await fetch(`https://api.telegram.org/bot${ctx.botToken}/getFile?file_id=${fileId}`);
+    const filePath = (await gf.json())?.result?.file_path;
+    if (!filePath) return null;
+    const dl = await fetch(`https://api.telegram.org/file/bot${ctx.botToken}/${filePath}`);
+    return new Uint8Array(await dl.arrayBuffer());
+  } catch (e) { console.error("tgDownload", e); return null; }
+}
+
+const LEAD_EXTRACT_SYSTEM = `You are a lead-intake assistant for a Cleveland property-management company. The input is something an agent captured in the field — a rental inquiry (Zillow, Apartments.com, Facebook Marketplace, Hemlane), a text-message conversation, a business card, a handwritten note, or a paper rental application (image), OR a short spoken note (text). Extract the PROSPECTIVE TENANT's contact info. Return ONLY a JSON object with the fields you can identify with confidence. Do NOT guess or invent values; omit any field you cannot read.
+
+Return format (include only fields found):
+{
+  "name": "full name of the prospective tenant",
+  "phone": "phone number as written",
+  "email": "email address",
+  "property": "the address, unit, or listing they're asking about",
+  "message": "one short sentence summarizing what they want"
+}`;
+
+function parseLeadJson(content: string): LeadDraft {
+  try {
+    const m = content.match(/\`\`\`(?:json)?\s*([\s\S]*?)\`\`\`/) || [null, content];
+    const o = JSON.parse((m[1] || content).trim());
+    const clean = (v: any) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+    return { name: clean(o.name), phone: clean(o.phone), email: clean(o.email), property: clean(o.property), message: clean(o.message) };
+  } catch { return {}; }
+}
+
+// GPT-4o vision (image) or GPT-4o-mini (text) → LeadDraft. Cost logged best-effort.
+async function extractLead(ctx: Ctx, input: { imageB64?: string; text?: string }): Promise<LeadDraft | null> {
+  const key = await getOpenAIKey(ctx);
+  if (!key) return null;
+  const userContent: any = input.imageB64
+    ? [{ type: "text", text: "Extract the prospective tenant's contact info from this image. Return only a JSON object." },
+       { type: "image_url", image_url: { url: `data:image/jpeg;base64,${input.imageB64}`, detail: "high" } }]
+    : `Extract the prospective tenant's contact info from this note. Return only a JSON object.\n\n"${input.text}"`;
+  const model = input.imageB64 ? "gpt-4o" : "gpt-4o-mini";
+  try {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model, max_tokens: 500, messages: [
+        { role: "system", content: LEAD_EXTRACT_SYSTEM }, { role: "user", content: userContent },
+      ] }),
+    });
+    if (!r.ok) { console.error("extractLead openai", r.status, await r.text()); return null; }
+    const j = await r.json();
+    const content = j.choices?.[0]?.message?.content || "";
+    try {
+      const inTok = j.usage?.prompt_tokens || 0, outTok = j.usage?.completion_tokens || 0;
+      const cost = input.imageB64 ? (inTok * 0.0025 + outTok * 0.01) / 1000 : (inTok * 0.00015 + outTok * 0.0006) / 1000;
+      await ctx.supabase.rpc("zacchaeus_record_cost", {
+        p_organization_id: ctx.organizationId, p_service: "openai", p_usage_quantity: 1,
+        p_usage_unit: input.imageB64 ? "vision_lead_extract" : "text_lead_extract",
+        p_unit_cost: cost, p_total_cost: cost, p_lead_id: null,
+      });
+    } catch { /* non-blocking */ }
+    return parseLeadJson(content);
+  } catch (e) { console.error("extractLead", e); return null; }
+}
+
+// Normalize a raw phone to E.164 (US default). Returns null if too short.
+function draftPhoneE164(raw?: string): string | null {
+  const digits = String(raw || "").replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (digits.length >= 10) return `+${digits}`;
+  return null;
+}
+
+// The confirm card: review the extracted fields, edit any, then create.
+async function showCaptureConfirm(ctx: Ctx, messageId?: number) {
+  const s = await getSession(ctx);
+  const d: LeadDraft = s?.data?.cl || {};
+  const line = (icon: string, v?: string) => `${icon} ${v ? escapeHtml(v) : "<i>—</i>"}`;
+  const body = [
+    `🆕 <b>Nuevo lead</b> ${d.origin ? `<i>(${escapeHtml(d.origin)})</i>` : ""}`,
+    line("👤", d.name),
+    line("📞", d.phone ? prettyPhone(d.phone) : undefined),
+    line("✉️", d.email),
+    line("🏠", d.property),
+    d.message ? `💬 <i>${escapeHtml(String(d.message).slice(0, 200))}</i>` : "",
+  ].filter(Boolean).join("\n");
+  const kb = [
+    [{ text: "✅ Crear lead", callback_data: "cap:save" }],
+    [{ text: "✏️ Nombre", callback_data: "cap:edit:name" }, { text: "✏️ Teléfono", callback_data: "cap:edit:phone" }],
+    [{ text: "✏️ Email", callback_data: "cap:edit:email" }, { text: "✏️ Propiedad", callback_data: "cap:edit:prop" }],
+    [{ text: "❌ Cancelar", callback_data: "m:x" }],
+  ];
+  await editOrSend(ctx, messageId, body, kb);
+}
+
+async function startCaptureDraft(ctx: Ctx, draft: LeadDraft) {
+  const s = await getSession(ctx);
+  await setSession(ctx, "cl_confirm", { ...(s?.data || {}), cl: draft });
+  await showCaptureConfirm(ctx, undefined);
+}
+
+// 📸 Photo / image-document → vision → draft → confirm.
+async function captureFromImage(ctx: Ctx, message: any) {
+  let fileId: string | undefined;
+  const doc = message.document;
+  if (message.photo?.length) fileId = message.photo[message.photo.length - 1].file_id;
+  else if (doc?.file_id) {
+    if (!String(doc.mime_type || "").startsWith("image/")) {
+      await send(ctx, "📄 Por ahora leo <b>imágenes</b> (capturas o fotos). Mandá una captura de pantalla o foto del inquiry/contacto.");
+      return;
+    }
+    fileId = doc.file_id;
+  }
+  if (!fileId) return;
+  await send(ctx, "🔍 Leyendo la imagen…"); await typing(ctx);
+  const bytes = await tgDownload(ctx, fileId);
+  if (!bytes) { await send(ctx, "❌ No pude descargar la imagen. Probá de nuevo."); return; }
+  const draft = await extractLead(ctx, { imageB64: bytesToBase64(bytes) });
+  if (!draft || (!draft.name && !draft.phone && !draft.email)) {
+    await send(ctx, "🤔 No pude sacar datos claros de esa imagen. Probá otra captura, o mandá los datos como texto: <code>Nombre, teléfono, email</code>.");
+    return;
+  }
+  draft.origin = "📸 screenshot";
+  await startCaptureDraft(ctx, draft);
+}
+
+// 🎙️ Voice / audio note → Whisper → text extract → draft → confirm.
+async function captureFromVoice(ctx: Ctx, message: any) {
+  const fileId = message.voice?.file_id || message.audio?.file_id;
+  if (!fileId) return;
+  await send(ctx, "🎧 Escuchando la nota…"); await typing(ctx);
+  const bytes = await tgDownload(ctx, fileId);
+  if (!bytes) { await send(ctx, "❌ No pude descargar el audio. Probá de nuevo."); return; }
+  const key = await getOpenAIKey(ctx);
+  if (!key) { await send(ctx, "❌ Falta la API key de OpenAI (Settings → Integrations)."); return; }
+  let transcript = "";
+  try {
+    const form = new FormData();
+    form.append("file", new Blob([bytes], { type: "audio/ogg" }), "voice.ogg");
+    form.append("model", "whisper-1");
+    const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form,
+    });
+    if (!r.ok) { console.error("whisper", r.status, await r.text()); await send(ctx, "❌ No pude transcribir el audio."); return; }
+    transcript = (await r.json())?.text || "";
+  } catch (e) { console.error("captureFromVoice", e); await send(ctx, "❌ No pude transcribir el audio."); return; }
+  if (!transcript.trim()) { await send(ctx, "🤔 No entendí el audio. Probá de nuevo, más claro."); return; }
+  const draft = await extractLead(ctx, { text: transcript });
+  if (!draft || (!draft.name && !draft.phone && !draft.email)) {
+    await send(ctx, `🤔 Escuché «${escapeHtml(transcript.slice(0, 150))}» pero no saqué datos de contacto claros. Probá diciendo nombre y teléfono.`);
+    return;
+  }
+  if (!draft.message) draft.message = transcript.slice(0, 200);
+  draft.origin = "🎙️ voz";
+  await startCaptureDraft(ctx, draft);
+}
+
+// 📇 Shared Telegram contact → draft (no LLM).
+async function captureFromContact(ctx: Ctx, message: any) {
+  const c = message.contact;
+  if (!c) return;
+  const name = [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
+  await startCaptureDraft(ctx, {
+    name: name || undefined,
+    phone: draftPhoneE164(c.phone_number) || c.phone_number || undefined,
+    origin: "📇 contacto",
+  });
+}
+
+// cap:edit:<field> → ask for the new value (step cl_edit).
+async function startCaptureEdit(ctx: Ctx, cbq: any, field: string) {
+  await answerCbq(ctx, cbq.id);
+  const s = await getSession(ctx);
+  await setSession(ctx, "cl_edit", { ...(s?.data || {}), cl_edit: field });
+  const label = field === "name" ? "nombre" : field === "phone" ? "teléfono" : field === "email" ? "email" : "propiedad";
+  await send(ctx, `✏️ Escribí el nuevo <b>${label}</b>:`);
+}
+
+// The typed value for cl_edit → update the draft field → re-show the confirm card.
+async function handleCaptureEditInput(ctx: Ctx, session: Session, raw: string) {
+  const field = session.data?.cl_edit;
+  const d: LeadDraft = { ...(session.data?.cl || {}) };
+  const val = raw.trim();
+  if (field === "name") d.name = val;
+  else if (field === "phone") d.phone = draftPhoneE164(val) || val;
+  else if (field === "email") d.email = val;
+  else if (field === "prop") d.property = val;
+  await setSession(ctx, "cl_confirm", { ...(session.data || {}), cl: d, cl_edit: null });
+  await showCaptureConfirm(ctx, undefined);
+}
+
+// cap:save → find-or-create (dedup-safe), tag property, notes, then show the card.
+async function createLeadFromDraft(ctx: Ctx, cbq: any) {
+  const s = await getSession(ctx);
+  const d: LeadDraft = s?.data?.cl || {};
+  await answerCbq(ctx, cbq.id);
+  const messageId = cbq.message?.message_id;
+  const phone = draftPhoneE164(d.phone);
+  const email = d.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email) ? d.email : null;
+  const name = (d.name || "").trim();
+  if (!name) { await send(ctx, "⚠️ Falta el <b>nombre</b>. Tocá ✏️ Nombre para agregarlo."); await showCaptureConfirm(ctx, undefined); return; }
+  if (!phone && !email) { await send(ctx, "⚠️ Necesito un <b>teléfono</b> o <b>email</b>. Tocá ✏️ para agregarlo."); await showCaptureConfirm(ctx, undefined); return; }
+  await editOrSend(ctx, messageId, "⏳ Creando el lead…", undefined);
+
+  // Find-or-create (the noah_deduplicate trigger merges/cancels a duplicate
+  // insert, so resolve the canonical row by phone/email afterwards).
+  let leadId: string | null = null; let existed = false; let resolvedName = name;
+  const findBy = phone ? { col: "phone", val: phone } : { col: "email", val: email! };
+  const { data: existing } = await ctx.supabase.from("leads")
+    .select("id, full_name, phone, email").eq("organization_id", ctx.organizationId)
+    .eq(findBy.col, findBy.val).maybeSingle();
+  if (existing) {
+    leadId = existing.id; existed = true; resolvedName = existing.full_name || name;
+    const patch: Record<string, any> = {};
+    if (email && !existing.email) patch.email = email;
+    if (phone && !existing.phone) patch.phone = phone;
+    if (Object.keys(patch).length) await ctx.supabase.from("leads").update(patch).eq("id", leadId);
+  } else {
+    await ctx.supabase.from("leads").insert({
+      organization_id: ctx.organizationId, full_name: name,
+      phone: phone || null, email: email || null,
+      source: "manual", status: "new", sms_consent: false, call_consent: false,
+    });
+    const { data: after } = await ctx.supabase.from("leads")
+      .select("id, full_name").eq("organization_id", ctx.organizationId)
+      .eq(findBy.col, findBy.val).maybeSingle();
+    leadId = after?.id ?? null; resolvedName = after?.full_name || name;
+  }
+  if (!leadId) { await send(ctx, "❌ No pude crear el lead. Probá de nuevo."); return; }
+
+  // Provenance + the prospect's message + the property (all best-effort).
+  await logLeadNote(ctx, leadId, "general", `${d.origin || "📥 captura"} — lead capturado en la calle`).catch(() => {});
+  if (d.message) await logLeadNote(ctx, leadId, "general", `💬 ${d.message}`).catch(() => {});
+  if (d.property) {
+    await logLeadNote(ctx, leadId, "general", `🏠 Interesado en: ${d.property}`).catch(() => {});
+    try {
+      const { data: prop } = await ctx.supabase.from("properties")
+        .select("id").eq("organization_id", ctx.organizationId)
+        .ilike("address", `%${d.property.split(",")[0].trim()}%`).limit(1).maybeSingle();
+      if (prop?.id) await ctx.supabase.from("lead_property_interests")
+        .insert({ organization_id: ctx.organizationId, lead_id: leadId, property_id: prop.id })
+        .then(() => {}, () => {});
+    } catch { /* best-effort */ }
+  }
+
+  await clearSession(ctx);
+  await send(ctx, existed
+    ? `ℹ️ Ese contacto ya existía — actualicé <b>${escapeHtml(resolvedName)}</b>.`
+    : `✅ Lead creado: <b>${escapeHtml(resolvedName)}</b>.`);
+  await funnelLeadCard(ctx, undefined, leadId);
+}
+
+// Router for cap:* callbacks (funnel bot only).
+async function handleCapture(ctx: Ctx, cbq: any, data: string) {
+  if (data === "cap:save") { await createLeadFromDraft(ctx, cbq); return; }
+  if (data.startsWith("cap:edit:")) { await startCaptureEdit(ctx, cbq, data.slice(9)); return; }
+  await answerCbq(ctx, cbq.id);
+}
+
+// ── 🗣️ Natural-language edit on an OPEN lead ──
+// Reached from the lead card's "🗣️ Editar" button (act:nl:<leadId>). The next
+// typed message is parsed by an LLM into a command and applied — a stage change
+// (never lead_score; the DB milestone engine owns it), a note, or nothing.
+const NL_STATUSES = ["new","contacted","engaged","nurturing","qualified","showing_scheduled","showed","in_application","converted","lost"];
+async function nlParse(ctx: Ctx, text: string): Promise<{ action: string; status?: string; note?: string }> {
+  const key = await getOpenAIKey(ctx);
+  if (!key) return { action: "none" };
+  try {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gpt-4o-mini", max_tokens: 120, messages: [
+        { role: "system", content: `Convert a short instruction (Spanish or English) about a real-estate lead into a JSON command. Allowed actions:
+- "stage": move the lead's pipeline stage. "status" MUST be one of: ${NL_STATUSES.join(", ")}.
+- "note": log a free-text note ("note" = the text to log).
+- "none": if it is not a clear command.
+Return ONLY JSON: {"action":"stage|note|none","status":"<if stage>","note":"<if note>"}
+Examples:
+"marca a John como showed" -> {"action":"stage","status":"showed"}
+"nota: vino con la esposa" -> {"action":"note","note":"vino con la esposa"}
+"llame y no contesto" -> {"action":"note","note":"llame y no contesto"}
+"perdido, se fue a otro lado" -> {"action":"stage","status":"lost"}` },
+        { role: "user", content: text },
+      ] }),
+    });
+    if (!r.ok) return { action: "none" };
+    const c = (await r.json())?.choices?.[0]?.message?.content || "";
+    const m = c.match(/\`\`\`(?:json)?\s*([\s\S]*?)\`\`\`/) || [null, c];
+    const o = JSON.parse((m[1] || c).trim());
+    return { action: o.action || "none", status: o.status, note: o.note };
+  } catch { return { action: "none" }; }
+}
+async function handleNlEdit(ctx: Ctx, session: Session, raw: string) {
+  const leadId = session.data?.nl_lead;
+  if (!leadId) { await clearSession(ctx); await send(ctx, "Se perdió el lead. Buscalo de nuevo."); return; }
+  await typing(ctx);
+  const parsed = await nlParse(ctx, raw.trim());
+  await setSession(ctx, "idle", { ...(session.data || {}), nl_lead: null });
+  if (parsed.action === "stage" && parsed.status && NL_STATUSES.includes(parsed.status)) {
+    const { data: lead } = await ctx.supabase.from("leads").select("status").eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
+    const prev = lead?.status || "—";
+    if (prev !== parsed.status) {
+      await ctx.supabase.from("leads").update({ status: parsed.status }).eq("organization_id", ctx.organizationId).eq("id", leadId);
+      await logLeadNote(ctx, leadId, "general", `🎯 Etapa: ${prev} → ${parsed.status} (por texto)`).catch(() => {});
+      await ctx.supabase.from("lead_reminders").update({ status: "cancelled" })
+        .eq("organization_id", ctx.organizationId).eq("lead_id", leadId).eq("status", "pending").neq("reason", "follow_up");
+    }
+    await send(ctx, `✅ Etapa → <b>${escapeHtml(parsed.status)}</b>`);
+  } else if (parsed.action === "note" && parsed.note) {
+    await logLeadNote(ctx, leadId, "general", `📝 ${parsed.note}`).catch(() => {});
+    await send(ctx, "📝 Nota agregada.");
+  } else {
+    await send(ctx, "🤔 No lo tomé como comando. Probá: <i>«marcá como showed»</i>, <i>«nota: no contestó»</i>, o usá los botones.");
+  }
+  await funnelLeadCard(ctx, undefined, leadId);
+}
+
 // The building a lead's work counts toward — its most recent interest tag.
 async function leadPropertyId(ctx: Ctx, leadId: string): Promise<string | null> {
   const { data } = await ctx.supabase.from("lead_property_interests")
@@ -3052,6 +3399,15 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
   if (verb === "menu") {
     await answer();
     await send(ctx, `📋 <b>Registrar acción</b> — ${escapeHtml(name)}`, actionMenuKeyboard(leadId));
+    return;
+  }
+
+  // 🗣️ Natural-language edit: the next typed message becomes a command on THIS lead.
+  if (verb === "nl") {
+    await answer();
+    const s0 = await getSession(ctx);
+    await setSession(ctx, "nl_edit", { ...(s0?.data || {}), nl_lead: leadId });
+    await send(ctx, `🗣️ <b>${escapeHtml(name)}</b> — escribí el cambio en tus palabras:\n<i>«marcá como showed» · «nota: no contestó» · «subilo a qualified»</i>`);
     return;
   }
 
@@ -3445,6 +3801,10 @@ async function askForPhoto(ctx: Ctx, messageId: number | undefined) {
 }
 async function handlePhoto(ctx: Ctx, message: any) {
   const session = await getSession(ctx);
+  // Funnel bot: a photo / image-document outside the report flow = capture a lead.
+  if ((!session || session.step !== "sr_photo" || !session?.data?.sr_id) && ctx.bot === "funnel") {
+    await captureFromImage(ctx, message); return;
+  }
   if (session?.step !== "sr_photo" || !session?.data?.sr_id) return; // only during the report flow
   const photos = message.photo || [];
   const largest = photos[photos.length - 1];
