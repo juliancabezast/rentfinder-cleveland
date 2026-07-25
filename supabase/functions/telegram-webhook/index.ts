@@ -1500,6 +1500,7 @@ async function handleFunnelText(ctx: Ctx, rawText: string) {
       if (session.step === "create_lead") { await handleCreateLeadInput(ctx, session, raw); return; }
       if (session.step === "cl_edit") { await handleCaptureEditInput(ctx, session, raw); return; }
       if (session.step === "nl_edit") { await handleNlEdit(ctx, session, raw); return; }
+      if (session.step === "cl_confirm") { await send(ctx, "👆 Usá los botones: <b>✅ Crear</b>, <b>✏️</b> para editar un campo, o <b>❌ Cancelar</b>."); return; }
       if (session.step === "custom_time") { await handleCustomTime(ctx, session, raw); return; }
       if (["choose_day", "choose_time", "confirm", "offer_schedule"].includes(session.step)) {
         await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
@@ -1696,15 +1697,17 @@ async function funnelLeadCard(ctx: Ctx, messageId: number | undefined, leadId: s
   const nav = ctx.bot === "leasing"
     ? [{ text: "🏁 Showings", callback_data: "m:ps" }, { text: "🏠 Menú", callback_data: "m:menu" }]
     : [{ text: "🔍 Otro lead", callback_data: "fnl:find" }, { text: "🎯 Menú", callback_data: "fnl:menu" }];
-  const kb = [
+  const kb: any[][] = [
     [{ text: "📋 Registrar acción", callback_data: `act:menu:${l.id}` }],
     [{ text: "💬 Enviar SMS", callback_data: `act:sms:${l.id}` },
      { text: "🎯 Cambiar etapa", callback_data: `act:st:${l.id}` }],
     [{ text: "✉️ Enviar email", callback_data: `act:em:${l.id}` },
      { text: "👤 Guardar contacto", callback_data: `act:vc:${l.id}` }],
-    [{ text: "🗣️ Editar por texto", callback_data: `act:nl:${l.id}` }],
-    nav,
   ];
+  // 🗣️ NL edit's follow-up text is only routed on funnel + leasing, so only offer
+  // it there (a showings-bot card via psl: would otherwise no-op the next message).
+  if (ctx.bot === "funnel" || ctx.bot === "leasing") kb.push([{ text: "🗣️ Editar por texto", callback_data: `act:nl:${l.id}` }]);
+  kb.push(nav);
   await editOrSend(ctx, messageId, lines.join("\n"), kb);
 }
 
@@ -3056,12 +3059,12 @@ function parseLeadJson(content: string): LeadDraft {
 }
 
 // GPT-4o vision (image) or GPT-4o-mini (text) → LeadDraft. Cost logged best-effort.
-async function extractLead(ctx: Ctx, input: { imageB64?: string; text?: string }): Promise<LeadDraft | null> {
+async function extractLead(ctx: Ctx, input: { imageB64?: string; imageMime?: string; text?: string }): Promise<LeadDraft | null> {
   const key = await getOpenAIKey(ctx);
   if (!key) return null;
   const userContent: any = input.imageB64
     ? [{ type: "text", text: "Extract the prospective tenant's contact info from this image. Return only a JSON object." },
-       { type: "image_url", image_url: { url: `data:image/jpeg;base64,${input.imageB64}`, detail: "high" } }]
+       { type: "image_url", image_url: { url: `data:${input.imageMime || "image/jpeg"};base64,${input.imageB64}`, detail: "high" } }]
     : `Extract the prospective tenant's contact info from this note. Return only a JSON object.\n\n"${input.text}"`;
   const model = input.imageB64 ? "gpt-4o" : "gpt-4o-mini";
   try {
@@ -3125,9 +3128,27 @@ async function startCaptureDraft(ctx: Ctx, draft: LeadDraft) {
   await showCaptureConfirm(ctx, undefined);
 }
 
+// If the operator is mid-flow (scheduling / create / edit), a stray photo/voice/
+// contact must NOT hijack it — nudge to finish or cancel first. (cl_confirm is
+// NOT blocked: sending another capture there just starts a fresh draft.)
+const CAPTURE_FLOW_STEPS = new Set([
+  "choose_property", "find_lead", "find_lead_comm", "create_lead", "cl_edit", "nl_edit",
+  "custom_time", "choose_day", "choose_time", "confirm", "offer_schedule",
+]);
+async function captureBusy(ctx: Ctx): Promise<boolean> {
+  const s = await getSession(ctx);
+  if (s && CAPTURE_FLOW_STEPS.has(s.step)) {
+    await send(ctx, "✋ Estás en medio de otra cosa. Terminala o mandá <b>menu</b> para cancelar, y después mandame la captura / voz / contacto.");
+    return true;
+  }
+  return false;
+}
+
 // 📸 Photo / image-document → vision → draft → confirm.
 async function captureFromImage(ctx: Ctx, message: any) {
+  if (await captureBusy(ctx)) return;
   let fileId: string | undefined;
+  let imageMime = "image/jpeg";
   const doc = message.document;
   if (message.photo?.length) fileId = message.photo[message.photo.length - 1].file_id;
   else if (doc?.file_id) {
@@ -3135,13 +3156,13 @@ async function captureFromImage(ctx: Ctx, message: any) {
       await send(ctx, "📄 Por ahora leo <b>imágenes</b> (capturas o fotos). Mandá una captura de pantalla o foto del inquiry/contacto.");
       return;
     }
-    fileId = doc.file_id;
+    fileId = doc.file_id; imageMime = doc.mime_type;
   }
   if (!fileId) return;
   await send(ctx, "🔍 Leyendo la imagen…"); await typing(ctx);
   const bytes = await tgDownload(ctx, fileId);
   if (!bytes) { await send(ctx, "❌ No pude descargar la imagen. Probá de nuevo."); return; }
-  const draft = await extractLead(ctx, { imageB64: bytesToBase64(bytes) });
+  const draft = await extractLead(ctx, { imageB64: bytesToBase64(bytes), imageMime });
   if (!draft || (!draft.name && !draft.phone && !draft.email)) {
     await send(ctx, "🤔 No pude sacar datos claros de esa imagen. Probá otra captura, o mandá los datos como texto: <code>Nombre, teléfono, email</code>.");
     return;
@@ -3152,6 +3173,7 @@ async function captureFromImage(ctx: Ctx, message: any) {
 
 // 🎙️ Voice / audio note → Whisper → text extract → draft → confirm.
 async function captureFromVoice(ctx: Ctx, message: any) {
+  if (await captureBusy(ctx)) return;
   const fileId = message.voice?.file_id || message.audio?.file_id;
   if (!fileId) return;
   await send(ctx, "🎧 Escuchando la nota…"); await typing(ctx);
@@ -3161,8 +3183,14 @@ async function captureFromVoice(ctx: Ctx, message: any) {
   if (!key) { await send(ctx, "❌ Falta la API key de OpenAI (Settings → Integrations)."); return; }
   let transcript = "";
   try {
+    // Telegram voice notes are OGG/Opus; a forwarded audio file keeps its own
+    // mime/extension so Whisper's decoder picks the right one (mislabeling an
+    // mp3 as .ogg makes it fail to decode).
+    const isVoice = !!message.voice;
+    const mime = isVoice ? "audio/ogg" : (message.audio?.mime_type || "audio/mpeg");
+    const fname = isVoice ? "voice.ogg" : (message.audio?.file_name || "audio.mp3");
     const form = new FormData();
-    form.append("file", new Blob([bytes], { type: "audio/ogg" }), "voice.ogg");
+    form.append("file", new Blob([bytes], { type: mime }), fname);
     form.append("model", "whisper-1");
     const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form,
@@ -3183,6 +3211,7 @@ async function captureFromVoice(ctx: Ctx, message: any) {
 
 // 📇 Shared Telegram contact → draft (no LLM).
 async function captureFromContact(ctx: Ctx, message: any) {
+  if (await captureBusy(ctx)) return;
   const c = message.contact;
   if (!c) return;
   const name = [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
@@ -3228,13 +3257,28 @@ async function createLeadFromDraft(ctx: Ctx, cbq: any) {
   if (!phone && !email) { await send(ctx, "⚠️ Necesito un <b>teléfono</b> o <b>email</b>. Tocá ✏️ para agregarlo."); await showCaptureConfirm(ctx, undefined); return; }
   await editOrSend(ctx, messageId, "⏳ Creando el lead…", undefined);
 
-  // Find-or-create (the noah_deduplicate trigger merges/cancels a duplicate
-  // insert, so resolve the canonical row by phone/email afterwards).
+  // Find-or-create. The noah_deduplicate trigger merges/cancels a duplicate
+  // insert matched by phone OR email, so resolve the canonical row by BOTH keys
+  // (phone-first, mirroring the trigger's precedence) newest-first — otherwise an
+  // insert merged into a row matched by the OTHER key looks like a failure and we
+  // drop the capture notes. .limit(1) also survives legacy same-phone duplicates.
+  const resolveLead = async () => {
+    if (phone) {
+      const { data } = await ctx.supabase.from("leads")
+        .select("id, full_name, phone, email").eq("organization_id", ctx.organizationId)
+        .eq("phone", phone).order("created_at", { ascending: false }).limit(1);
+      if (data && data[0]) return data[0];
+    }
+    if (email) {
+      const { data } = await ctx.supabase.from("leads")
+        .select("id, full_name, phone, email").eq("organization_id", ctx.organizationId)
+        .eq("email", email).order("created_at", { ascending: false }).limit(1);
+      if (data && data[0]) return data[0];
+    }
+    return null;
+  };
   let leadId: string | null = null; let existed = false; let resolvedName = name;
-  const findBy = phone ? { col: "phone", val: phone } : { col: "email", val: email! };
-  const { data: existing } = await ctx.supabase.from("leads")
-    .select("id, full_name, phone, email").eq("organization_id", ctx.organizationId)
-    .eq(findBy.col, findBy.val).maybeSingle();
+  const existing = await resolveLead();
   if (existing) {
     leadId = existing.id; existed = true; resolvedName = existing.full_name || name;
     const patch: Record<string, any> = {};
@@ -3247,9 +3291,7 @@ async function createLeadFromDraft(ctx: Ctx, cbq: any) {
       phone: phone || null, email: email || null,
       source: "manual", status: "new", sms_consent: false, call_consent: false,
     });
-    const { data: after } = await ctx.supabase.from("leads")
-      .select("id, full_name").eq("organization_id", ctx.organizationId)
-      .eq(findBy.col, findBy.val).maybeSingle();
+    const after = await resolveLead();
     leadId = after?.id ?? null; resolvedName = after?.full_name || name;
   }
   if (!leadId) { await send(ctx, "❌ No pude crear el lead. Probá de nuevo."); return; }
