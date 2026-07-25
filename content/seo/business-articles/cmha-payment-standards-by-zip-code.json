@@ -1,0 +1,561 @@
+{
+  "slug": "cmha-payment-standards-by-zip-code",
+  "section": "section-8-landlords",
+  "title": "CMHA Payment Standards by ZIP Code: What the Subsidy Ceiling Is Where You Own",
+  "metaTitle": "CMHA Payment Standards by ZIP Code, FY2026",
+  "metaDescription": "CMHA payment standards 2026: the FY2026 subsidy ceiling by ZIP code and bedroom size across all 53 service-area ZIPs, and why no countywide number exists.",
+  "primaryKeyword": "cmha payment standards 2026",
+  "secondaryKeywords": [
+    "cmha payment standards by zip code",
+    "cmha payment standard 2 bedroom",
+    "small area fair market rent cleveland",
+    "cmha rent determination tool",
+    "section 8 payment standard cuyahoga county"
+  ],
+  "answerBox": "There isn't one countywide number. CMHA sets Housing Choice Voucher payment standards per ZIP code, because HUD requires it to use Small Area Fair Market Rents. For FY2026, effective January 1, 2026, the two-bedroom ceiling runs from $1,096 in ZIP 44127 to $2,169 in 44113 and 44040 across 53 service-area ZIP codes.",
+  "sections": [
+    {
+      "h2": "Why there is no countywide number",
+      "body": [
+        "HUD removed the option. CMHA appears on HUD's Mandatory SAFMR PHA list as PHA code OH003, designation year 2024 — **required**, not merely permitted, to set voucher payment standards from Small Area Fair Market Rents. HUD's Federal Register FY2025 notice names the Cleveland-Elyria, OH MSA among the metros added to that requirement beginning in FY2025. CMHA puts it plainly: **\"Effective January 1, 2025, CMHA is required to Implement Small Area Fair Market Rent Payment Standards.\"** Small Area FMRs are published by ZIP, so the ceiling went from one figure to 53.",
+        "A region-wide Fair Market Rent still exists — HUD's FY2026 two-bedroom FMR for the Cleveland, OH HUD Metro FMR Area is $1,279 — but that area spans Cuyahoga, Geauga, Lake, Lorain and Medina counties, and it is not what CMHA applies to your address. CMHA's own two-bedroom standard varies by roughly **98%** across its service area: $1,096 in ZIP 44127 against $2,169 in 44113."
+      ]
+    },
+    {
+      "h2": "CMHA's FY2026 payment standards, ZIP by ZIP",
+      "body": [
+        "Effective January 1, 2026, for all 53 ZIP codes in CMHA's service area. Read across to the bedroom count on the tenant's **voucher**, which is not always your unit's — see the smaller-of rule below.",
+        "One caveat about the source. CMHA publishes no static PDF of this schedule: the interactive Rent Determination tool at apps.cmha.net is the only publication, it carries no dated permalink, and the schedule is revised annually. These figures were read on July 21, 2026 — re-check your own ZIP before you price a unit. The tool also returns five- through nine-bedroom standards, which CMHA does not explain how it derives; look those up directly."
+      ],
+      "table": {
+        "headers": [
+          "ZIP",
+          "Studio",
+          "1 BR",
+          "2 BR",
+          "3 BR",
+          "4 BR"
+        ],
+        "rows": [
+          [
+            "44017",
+            "$1,050",
+            "$1,197",
+            "$1,446",
+            "$1,864",
+            "$1,988"
+          ],
+          [
+            "44022",
+            "$1,525",
+            "$1,728",
+            "$2,090",
+            "$2,689",
+            "$2,881"
+          ],
+          [
+            "44040",
+            "$1,582",
+            "$1,796",
+            "$2,169",
+            "$2,791",
+            "$2,983"
+          ],
+          [
+            "44070",
+            "$1,118",
+            "$1,265",
+            "$1,525",
+            "$1,966",
+            "$2,101"
+          ],
+          [
+            "44101",
+            "$1,322",
+            "$1,502",
+            "$1,819",
+            "$2,350",
+            "$2,508"
+          ],
+          [
+            "44102",
+            "$926",
+            "$1,062",
+            "$1,276",
+            "$1,638",
+            "$1,751"
+          ],
+          [
+            "44103",
+            "$881",
+            "$1,005",
+            "$1,209",
+            "$1,559",
+            "$1,661"
+          ],
+          [
+            "44104",
+            "$813",
+            "$915",
+            "$1,107",
+            "$1,423",
+            "$1,525"
+          ],
+          [
+            "44105",
+            "$881",
+            "$1,005",
+            "$1,209",
+            "$1,559",
+            "$1,661"
+          ],
+          [
+            "44106",
+            "$1,197",
+            "$1,356",
+            "$1,638",
+            "$2,113",
+            "$2,260"
+          ],
+          [
+            "44107",
+            "$1,118",
+            "$1,276",
+            "$1,536",
+            "$1,977",
+            "$2,113"
+          ],
+          [
+            "44108",
+            "$960",
+            "$1,084",
+            "$1,310",
+            "$1,683",
+            "$1,808"
+          ],
+          [
+            "44109",
+            "$892",
+            "$1,005",
+            "$1,220",
+            "$1,570",
+            "$1,683"
+          ],
+          [
+            "44110",
+            "$904",
+            "$1,028",
+            "$1,243",
+            "$1,604",
+            "$1,706"
+          ],
+          [
+            "44111",
+            "$971",
+            "$1,107",
+            "$1,333",
+            "$1,717",
+            "$1,830"
+          ],
+          [
+            "44112",
+            "$892",
+            "$1,005",
+            "$1,220",
+            "$1,570",
+            "$1,683"
+          ],
+          [
+            "44113",
+            "$1,582",
+            "$1,796",
+            "$2,169",
+            "$2,791",
+            "$2,983"
+          ],
+          [
+            "44114",
+            "$1,469",
+            "$1,661",
+            "$2,011",
+            "$2,587",
+            "$2,768"
+          ],
+          [
+            "44115",
+            "$1,265",
+            "$1,435",
+            "$1,740",
+            "$2,237",
+            "$2,395"
+          ],
+          [
+            "44116",
+            "$1,163",
+            "$1,322",
+            "$1,593",
+            "$2,045",
+            "$2,192"
+          ],
+          [
+            "44117",
+            "$892",
+            "$1,005",
+            "$1,220",
+            "$1,570",
+            "$1,683"
+          ],
+          [
+            "44118",
+            "$1,231",
+            "$1,389",
+            "$1,683",
+            "$2,169",
+            "$2,316"
+          ],
+          [
+            "44119",
+            "$971",
+            "$1,107",
+            "$1,333",
+            "$1,717",
+            "$1,830"
+          ],
+          [
+            "44120",
+            "$994",
+            "$1,130",
+            "$1,367",
+            "$1,762",
+            "$1,875"
+          ],
+          [
+            "44121",
+            "$1,175",
+            "$1,333",
+            "$1,604",
+            "$2,067",
+            "$2,203"
+          ],
+          [
+            "44122",
+            "$1,514",
+            "$1,717",
+            "$2,079",
+            "$2,678",
+            "$2,858"
+          ],
+          [
+            "44123",
+            "$1,050",
+            "$1,197",
+            "$1,446",
+            "$1,864",
+            "$1,988"
+          ],
+          [
+            "44124",
+            "$1,220",
+            "$1,378",
+            "$1,672",
+            "$2,147",
+            "$2,305"
+          ],
+          [
+            "44125",
+            "$1,141",
+            "$1,299",
+            "$1,570",
+            "$2,022",
+            "$2,158"
+          ],
+          [
+            "44126",
+            "$994",
+            "$1,130",
+            "$1,367",
+            "$1,762",
+            "$1,875"
+          ],
+          [
+            "44127",
+            "$802",
+            "$915",
+            "$1,096",
+            "$1,412",
+            "$1,514"
+          ],
+          [
+            "44128",
+            "$1,028",
+            "$1,163",
+            "$1,412",
+            "$1,819",
+            "$1,943"
+          ],
+          [
+            "44129",
+            "$1,028",
+            "$1,163",
+            "$1,412",
+            "$1,819",
+            "$1,943"
+          ],
+          [
+            "44130",
+            "$1,141",
+            "$1,288",
+            "$1,559",
+            "$2,011",
+            "$2,147"
+          ],
+          [
+            "44131",
+            "$1,514",
+            "$1,717",
+            "$2,079",
+            "$2,678",
+            "$2,858"
+          ],
+          [
+            "44132",
+            "$1,050",
+            "$1,186",
+            "$1,435",
+            "$1,841",
+            "$1,977"
+          ],
+          [
+            "44133",
+            "$1,084",
+            "$1,231",
+            "$1,491",
+            "$1,921",
+            "$2,056"
+          ],
+          [
+            "44134",
+            "$1,163",
+            "$1,322",
+            "$1,593",
+            "$2,045",
+            "$2,192"
+          ],
+          [
+            "44135",
+            "$1,050",
+            "$1,197",
+            "$1,446",
+            "$1,864",
+            "$1,988"
+          ],
+          [
+            "44136",
+            "$1,231",
+            "$1,401",
+            "$1,695",
+            "$2,180",
+            "$2,327"
+          ],
+          [
+            "44137",
+            "$1,322",
+            "$1,502",
+            "$1,819",
+            "$2,339",
+            "$2,508"
+          ],
+          [
+            "44138",
+            "$1,231",
+            "$1,401",
+            "$1,695",
+            "$2,180",
+            "$2,327"
+          ],
+          [
+            "44139",
+            "$1,469",
+            "$1,661",
+            "$2,011",
+            "$2,587",
+            "$2,768"
+          ],
+          [
+            "44140",
+            "$1,446",
+            "$1,638",
+            "$1,977",
+            "$2,542",
+            "$2,723"
+          ],
+          [
+            "44141",
+            "$1,446",
+            "$1,638",
+            "$1,988",
+            "$2,553",
+            "$2,734"
+          ],
+          [
+            "44142",
+            "$1,118",
+            "$1,265",
+            "$1,525",
+            "$1,966",
+            "$2,101"
+          ],
+          [
+            "44143",
+            "$994",
+            "$1,118",
+            "$1,356",
+            "$1,740",
+            "$1,864"
+          ],
+          [
+            "44144",
+            "$949",
+            "$1,073",
+            "$1,299",
+            "$1,672",
+            "$1,785"
+          ],
+          [
+            "44145",
+            "$1,446",
+            "$1,649",
+            "$1,988",
+            "$2,553",
+            "$2,734"
+          ],
+          [
+            "44146",
+            "$1,017",
+            "$1,163",
+            "$1,401",
+            "$1,808",
+            "$1,932"
+          ],
+          [
+            "44147",
+            "$1,118",
+            "$1,265",
+            "$1,525",
+            "$1,966",
+            "$2,101"
+          ],
+          [
+            "44149",
+            "$1,299",
+            "$1,469",
+            "$1,774",
+            "$2,282",
+            "$2,440"
+          ],
+          [
+            "44181",
+            "$1,050",
+            "$1,197",
+            "$1,446",
+            "$1,864",
+            "$1,988"
+          ]
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "Two traps inside that tool",
+          "body": [
+            "Before you pick a ZIP, the tool shows a default table — $881 / $1,005 / $1,209 / $1,559 / $1,661, studio through four-bedroom — that reads like a countywide standard and is not: it is a placeholder identical to ZIPs 44103 and 44105. And the heading on CMHA's rent page still says \"Fiscal Year 2025\" while the tool embedded below it serves FY2026 figures. Trust the tool, not the page."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "What the ceiling governs, and what it doesn't",
+      "body": [
+        "CMHA is blunt about the expensive misreading: **\"The payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\"** What you may charge is set separately, by [rent reasonableness](/cmha-rent-reasonableness-explained/) against comparable unassisted units. Four mechanics govern how much of the ceiling you ever see:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**It applies to gross rent** — rent plus tenant-paid utilities, or the utility allowance — not your contract rent alone. Get the current HCVP Utility Allowance chart, also effective January 1, 2026",
+          "**It follows the smaller bedroom count.** Per CMHA's Landlord Participation Guide, a family leasing a unit larger than its voucher gets the payment standard and allowance for the smaller of the two",
+          "**It is half a formula.** The same guide puts the Housing Assistance Payment at the lesser of (payment standard minus Total Tenant Payment) or (gross rent minus Total Tenant Payment)",
+          "**A 40% test sits on top.** On an initial contract the tenant portion may be no more than 40% of the family's monthly adjusted income; above that, CMHA negotiates the rent down"
+        ]
+      }
+    },
+    {
+      "h2": "What CMHA does not publish",
+      "body": [
+        "Its stated basis is one sentence: **\"CMHA has established payment standards between 90% and 110% of the FMRs or approved exceptions as applicable.\"** No per-ZIP derivation appears anywhere, and the FY2026 dollars sit above HUD's ZIP-level Small Area FMRs for the same year — in 44113, HUD's two-bedroom SAFMR is $1,920 against CMHA's $2,169. CMHA offers no explanation, and we will not invent one.",
+        "No date is announced for the next revision and no year-over-year comparison is published, so treat the table above as good only until you re-open the tool. CMHA also participates in the Cuyahoga Community Choice Demonstration, where the payment standard depends on where the unit sits inside the county; no list of qualifying ZIPs exists, so its Address Locator Tool or (216) 770-4048 is the only way to check an address."
+      ]
+    },
+    {
+      "h2": "Getting the right number for your address",
+      "body": [
+        "Four steps, about ten minutes:"
+      ],
+      "list": {
+        "type": "ol",
+        "items": [
+          "Open CMHA's Rent Determination tool and select your ZIP — never read the default table",
+          "Take the row for the voucher's bedroom count, applying the smaller-of rule",
+          "Subtract tenant-paid utilities using the current allowance chart; the test is on gross rent",
+          "Price against comparable unassisted units — same location, size, unit type, age, amenities and utility split"
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "What we charge to run it for you",
+          "body": [
+            "We work Greater Cleveland and Cuyahoga County under CMHA, and we have completed CMHA's Virtual Landlord Orientation — required since January 1, 2026 of the owner or a designated agent before CMHA can execute a HAP contract on a new tenancy. Placement is **one month's rent, charged only after the tenant is placed**. Inspection attendance with a written report is **$100**, or attend yourself for nothing. Management is **5% of monthly rent**, only while rented. Repair estimates come back free and itemized inside 24 hours."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Your ceiling is a ZIP-code fact, not a county fact, and has been since January 1, 2025. Read the row for the voucher's bedroom count, and remember it is a subsidy ceiling measured against gross rent, not a price for your unit — [How Much Rent Can You Charge?](/how-much-rent-can-i-charge-section-8-cleveland/) covers that side. Source of income is not a protected class in the City of Cleveland, so nobody is telling you that you must accept a voucher; only that the number you were probably quoted is the wrong one. Call **(440) 444-4737** or start at [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is there one CMHA payment standard for all of Cuyahoga County?",
+      "a": "No. CMHA is on HUD's Mandatory SAFMR PHA list as OH003, designated 2024, so it must set payment standards from Small Area Fair Market Rents, which HUD publishes by ZIP code. Its Rent Determination tool carries FY2026 standards effective January 1, 2026 for 53 service-area ZIPs, and the two-bedroom figure varies by roughly 98% across them."
+    },
+    {
+      "q": "What are CMHA's highest and lowest payment standards for 2026?",
+      "a": "ZIPs 44113 and 44040 hold the top tier effective January 1, 2026: $1,582 studio, $1,796 one-bedroom, $2,169 two-bedroom, $2,791 three-bedroom, $2,983 four-bedroom. ZIP 44127 is lowest at $802, $915, $1,096, $1,412 and $1,514. Medians across the 53 ZIPs run $1,118, $1,265, $1,525, $1,966 and $2,101."
+    },
+    {
+      "q": "Does the payment standard cap the rent I can charge?",
+      "a": "No. CMHA says so directly: \"The payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" Rent is set by rent reasonableness against comparable unassisted units, and the standard is measured against gross rent — rent plus tenant-paid utilities."
+    },
+    {
+      "q": "My unit has more bedrooms than the tenant's voucher. Which standard applies?",
+      "a": "The smaller one. CMHA's Landlord Participation Guide states that when a family selects a unit larger than the bedroom size on its voucher, CMHA applies the payment standard and utility allowance for the smaller of the two. A three-bedroom house on a two-bedroom voucher prices at that ZIP's two-bedroom line."
+    }
+  ],
+  "sources": [
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/Document%20Center/Housing/Landlords/Rent/UA%202026.pdf",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.hud.gov/sites/dfiles/PIH/documents/Mandatory-SAFMR-PHAs.pdf",
+    "https://www.govinfo.gov/content/pkg/FR-2024-08-14/html/2024-18002.htm",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/fy2026_safmrs_revised.xlsx",
+    "https://cuyahogamobility.org/frequently-asked-questions/",
+    "https://cuyahogamobility.org/about/",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+  ],
+  "lastUpdated": "2026-07-21"
+}

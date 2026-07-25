@@ -1,0 +1,92 @@
+{
+  "slug": "hap-abatement-vs-termination-cleveland",
+  "section": "section-8-landlords",
+  "title": "Withholding vs. Abatement vs. Termination: What CMHA Does to Your HAP After a Failed Inspection",
+  "metaTitle": "HAP Abatement vs Termination: CMHA Failed Inspection",
+  "metaDescription": "CMHA can withhold, abate, or terminate your HAP after a failed inspection. HAP abatement vs termination in Cleveland — and which of that money you get back.",
+  "primaryKeyword": "hap abatement vs termination cmha cleveland",
+  "secondaryKeywords": [
+    "cmha hap withholding vs abatement",
+    "failed section 8 inspection cleveland hap",
+    "does cmha pay back withheld hap",
+    "hap contract termination cmha"
+  ],
+  "answerBox": "Withholding pauses your HAP during the repair window — CMHA must pay it back if you cure in time. Abatement stops payments permanently, including any withheld amount, with no retroactive pay. Termination ends the HAP contract entirely. Only withheld money is recoverable; abated money is gone.",
+  "sections": [
+    {
+      "h2": "The three stages, and the one that costs you money",
+      "body": [
+        "After a failed Housing Choice Voucher inspection, CMHA does not jump straight to cutting off your check. Federal rules that bind every housing authority — CMHA included — set up a ladder with three steps: **withholding**, then **abatement**, then **termination** of the HAP contract. They sound similar, but only one is reversible, and the question a landlord should ask is: *which of this money do I ever see again?*",
+        "The short version: **withheld** money is a pause you get back if you fix the problem in time; **abated** money is gone for good; and once abatement runs long enough the contract itself is **terminated**, ending assistance on that unit and sending the tenant off with a voucher to move. Here is how the three compare on the axis that matters to your bank account."
+      ],
+      "table": {
+        "headers": ["Stage", "What CMHA does to your HAP", "Do you get that money back?"],
+        "rows": [
+          ["Withholding", "Pauses the assistance payment after written notice of deficiencies, during the cure window", "Yes — resumed and paid for the withheld period if you cure in time"],
+          ["Abatement", "Stops the assistance payment, including any amount that had been withheld", "No — abatement carries no potential for retroactive payment"],
+          ["Termination", "Ends the HAP contract; the tenant is issued a voucher to move", "No assistance payment at all going forward"]
+        ]
+      }
+    },
+    {
+      "h2": "Withholding: a pause, not a loss — if you move fast",
+      "body": [
+        "Under **24 CFR 982.404(d)(1)**, after written notice of deficiencies a housing authority may withhold the assistance payment. Crucially, if the unit is brought into compliance during the cure period, the authority **\"Must resume assistance payments\"** and **\"Must provide assistance payments to cover the time period for which the assistance payments were withheld.\"** In plain terms: fix it in time and CMHA owes you every withheld dollar. Nothing is forfeited at this stage.",
+        "How long is \"in time\"? Under **24 CFR 982.404(a)(3)**, a life-threatening deficiency must be corrected within **24 hours** of notification; any other deficiency must be corrected within **30 calendar days** (or a reasonable authority-approved extension). CMHA's own inspections page repeats the same **\"24 hours or 30 days depending on the nature of the deficiency.\"** CMHA also publishes a list of emergency items that fall under the 24-hour rule — among them a missing or inoperable smoke or carbon monoxide detector, no water, no electricity, no heat between October 15 and April 15, and a gas leak.",
+        "The withheld amount is only the **assistance (HAP) portion** of the rent. Your tenant's share is a separate stream — see [tenant portion vs. HAP portion](/tenant-portion-vs-hap-portion-cleveland/) for how those two pieces split — so a withholding event freezes one part of your rent roll on that unit, not all of it."
+      ]
+    },
+    {
+      "h2": "Abatement: the money you don't get back",
+      "body": [
+        "This is the line that turns recoverable money into a permanent loss. Under **24 CFR 982.404(d)(2)(i)**, the authority **\"must abate the HAP, including amounts that had been withheld, if the owner fails to make the repairs within the applicable cure period.\"** And **24 CFR 982.4** defines abatement as **\"Stopping HAP payments to an owner with no potential for retroactive payment.\"** Read those two together: the moment you blow the cure deadline, money that was merely *withheld* converts to *abated*, and it is gone.",
+        "CMHA's Landlord FAQ states that **\"Rent is abated when the unit fails to pass on two consecutive inspections,\"** that if the violation is uncorrected at the second inspection **\"the HAP will abate on the first of the month following the failure to comply,\"** and that during abatement the family still owes its portion while CMHA pays nothing, **with no retroactive payments.** CMHA's inspections page says the same: **\"There will be no retroactive payments made during that period.\"**",
+        "Two protections still hold even when your HAP is abated. First, you keep collecting the **tenant's share** — CMHA is explicit that \"the family is still responsible for providing their share of the rent.\" Second, you **cannot evict the tenant over the abatement itself**: 24 CFR 982.404(d)(3) states \"An owner may not terminate the tenancy of any family due to the withholding or abatement of assistance.\" The remedy CMHA wants is the repair, not a displaced tenant."
+      ]
+    },
+    {
+      "h2": "Termination: when the contract itself ends",
+      "body": [
+        "If abatement drags on, the contract can be cancelled outright — the final rung. Under **24 CFR 982.404(d)(2)(ii)**, once payments are abated the authority must notify the family and owner that if the unit does not meet HQS **within 60 days** (or a reasonable longer period the authority sets) after the determination of noncompliance, it **\"will terminate the HAP contract for the unit, and the family will have to move,\"** and the family must be issued its voucher to move **at least 30 days prior** to termination.",
+        "CMHA publishes a shorter threshold of its own: its Landlord FAQ states that **\"[i]f a unit is in abatement for more than 30 days, the HAP Contract may be terminated.\"** We flag this honestly rather than pick one number — CMHA's own materials name a **30-day** abatement threshold, while the governing federal rule sets **60 days** after the noncompliance determination. Confirm your specific timeline with CMHA in writing; do not assume you have the longer window.",
+        "Termination is the worst case: no assistance payment going forward, and the tenant is issued a voucher to relocate. If it reaches that point, the mechanics of a departing voucher tenant are covered in our [tenant move-out guide](/voucher-tenant-moving-out-landlord-guide-cleveland/)."
+      ]
+    },
+    {
+      "h2": "How to keep withheld money from becoming abated money",
+      "body": [
+        "The entire difference between a temporary pause and a permanent loss is whether you cure the deficiency inside the window — a logistics problem, and a winnable one. CMHA's Landlord Portal posts the **failed inspection items with photos within 72 hours** of a failed inspection. When corrections are made, CMHA's policy target is to **reinspect within five business days** of your notice — and under **24 CFR 982.405(i)** the authority \"may accept photographic evidence or other reliable evidence from the owner to verify that a deficiency has been corrected.\"",
+        "This is where a manager who lives in the CMHA process earns their keep. We have **completed CMHA's mandatory Virtual Landlord Orientation** — required since January 1, 2026 before a HAP contract can be executed for a new tenancy — so we know your standards. When a unit fails, our repair estimates are **free, itemized, and back in your hands within 24 hours**, and nothing starts without your written approval. On a 24-hour or 30-day cure clock, that turnaround is what keeps withheld money recoverable instead of abated.",
+        "Our pricing is built so it only costs you when it earns: **inspection attendance plus a written report is a flat $100** (you may attend yourself instead), **ongoing management is 5% of monthly rent, charged only while the unit is rented**, and **tenant placement is one month's rent, billed only after a tenant is actually placed**. If you would rather never see the word \"abatement\" on your ledger, that is the point of [stress-free Section 8 management](/section8stressfree). Call **(440) 444-4737** and we will walk your unit before CMHA's inspector does."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "If CMHA withholds my HAP, do I ever get it back?",
+      "a": "Yes — if you correct the deficiencies during the cure period. Under 24 CFR 982.404(d)(1) the housing authority must resume payments and cover the entire period the money was withheld. Withholding is a pause, not a penalty; it becomes unrecoverable only if you miss the deadline and CMHA moves to abatement."
+    },
+    {
+      "q": "Can I evict the tenant if CMHA abates my HAP?",
+      "a": "No. 24 CFR 982.404(d)(3) states an owner \"may not terminate the tenancy of any family due to the withholding or abatement of assistance.\" You keep collecting the tenant's share of the rent during abatement, and the way to restore the HAP is to correct the deficiency, not to remove the tenant. Abatement is CMHA's leverage to get repairs done."
+    },
+    {
+      "q": "How long after abatement before CMHA terminates the HAP contract?",
+      "a": "CMHA's Landlord FAQ says a unit in abatement more than 30 days may have its HAP contract terminated. The federal rule, 24 CFR 982.404(d)(2)(ii), sets 60 days after the noncompliance determination, with the family issued a voucher at least 30 days before termination. The figures differ — confirm your window with CMHA rather than assuming the longer one."
+    },
+    {
+      "q": "Can CMHA charge me a fee to reinspect a failed unit?",
+      "a": "Federal rules allow it. Under 24 CFR 982.405(h), a housing authority may not charge for the initial inspection but may set a reasonable reinspection fee for a deficiency you failed to correct — and you cannot pass that fee to the tenant. CMHA does not publish a dollar amount, so treat a reinspection fee as possible rather than a known figure."
+    }
+  ],
+  "sources": [
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.cmha.net/housing/landlords/training.php"
+  ],
+  "lastUpdated": "2026-07-22"
+}

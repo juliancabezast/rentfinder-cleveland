@@ -1,0 +1,107 @@
+{
+  "slug": "renting-to-eden-supportive-housing-tenants-cleveland",
+  "section": "section-8-landlords",
+  "title": "Renting to EDEN Supportive-Housing Tenants: Rent, Inspections, and Getting Paid",
+  "metaTitle": "EDEN Tenants in Cleveland: Rent & Payment Guide",
+  "metaDescription": "Renting to an EDEN tenant in Cleveland: how EDEN prices rent to FMR, runs HQS inspections, pays your subsidy the 1st-4th, and splits the tenant portion.",
+  "primaryKeyword": "renting to eden tenant cleveland rent payment",
+  "secondaryKeywords": ["eden rent determination fmr cleveland", "eden hqs inspection landlord", "eden hap payment timing", "eden tenant portion rent"],
+  "answerBox": "EDEN, a Cleveland supportive-housing nonprofit separate from CMHA, prices approved rent to HUD Fair Market Rent, with discretion up to 120% of FMR on management approval. Units pass an HQS inspection before move-in and yearly. EDEN's subsidy reaches landlords between the 1st and 4th monthly; the tenant pays their portion directly to you.",
+  "sections": [
+    {
+      "h2": "EDEN is a separate nonprofit, and it pays landlords its own way",
+      "body": [
+        "**EDEN, Emerald Development and Economic Network, Inc.,** is a Cleveland 501(c)(3) nonprofit, not a housing authority. It is not CMHA: EDEN's own FAQ tells applicants to also contact CMHA for that agency's separate voucher and public-housing waitlists. If you already rent to a CMHA voucher holder, expect a different rulebook. The two organizations run different rent bases, different paperwork, and different payment calendars, so learn EDEN's mechanics before you sign.",
+        "This guide covers the four things a landlord actually feels: how EDEN sets your rent, how the inspection works, when the money lands, and who pays which share. For the fuller picture of EDEN's programs, see our [EDEN landlord guide](/eden-inc-landlord-guide-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Rent basis: EDEN prices to FMR, with discretion up to 120%",
+      "body": [
+        "CMHA sets its ceilings from ZIP-level Small Area Fair Market Rents. EDEN does not. EDEN's published **Rent Determination Policy (dated November 2023)** states that, as a recipient of HUD funding, EDEN is required to keep approved rents, as much as possible, at or below the established **Fair Market Rent (FMR)** for the jurisdiction. That FMR is a metro-wide figure, not a per-ZIP number, a real difference from CMHA's approach that we unpack in [what SAFMR means for landlords](/what-is-safmr-cleveland-landlords/).",
+        "The policy does allow discretion to approve rent **up to 120% of the FMR**, but every one of those must be reviewed by management first. EDEN also runs a rent-reasonableness check through Go Section 8 against comparable units, and its Mainstream Housing Choice Voucher program adds an affordability calculation before approving a number. Because that policy PDF is dated November 2023, confirm the current FMR basis and the 120% discretion with EDEN's Property Owner Information Line (216-503-6369) before you count on it.",
+        "On increases, EDEN's policy is strict and worth planning around:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "One rent increase per year, per tenant housed",
+          "Request submitted on EDEN's website at least 60 days before the proposed effective date",
+          "Increases capped at 10% (with discretion to exceed 10% only if you skipped increases in prior years)",
+          "The Rent Determination Policy applies to EDEN's long-term programs and does not apply to its Rapid Re-Housing Program"
+        ]
+      }
+    },
+    {
+      "h2": "The inspection: pass before move-in, then every year",
+      "body": [
+        "EDEN will not contract on a unit that fails inspection. Its **Housing Provider Welcome Packet describes a Housing Quality Standards (HQS) inspection** before move-in and annually thereafter, with the initial inspection scheduled and completed within **3 to 10 business days** of EDEN receiving your Request for Lease Approval. EDEN's Housing Providers page also references a transition to HUD's newer NSPIRE standard, so ask which standard applies when you onboard.",
+        "If a unit fails, you get **30 days to make repairs**, and **24 hours** for life-threatening conditions. EDEN may withhold rental-assistance payments during that window, and while payments are withheld the tenant is not responsible for EDEN's portion. In short, a failed inspection stops your subsidy until you fix and re-pass; the inspection is the gate to getting paid, not a formality.",
+        "This is where an extra set of eyes earns its keep. Our team attends the inspection and hands you a **written report for a flat $100** (you are welcome to attend yourself instead), and our repair estimates are free, itemized, and back to you within 24 hours. Nothing starts without your approval, so you decide what is worth fixing to clear the gate."
+      ]
+    },
+    {
+      "h2": "Payment timing: your subsidy lands the 1st through the 4th",
+      "body": [
+        "Once a tenancy is live, EDEN's monthly subsidy to the landlord arrives **between the 1st and the 4th of each month**. The **first** payment is different: it is sent within **3 to 4 business days of EDEN receiving the passed inspection report**, but no initial payment is made until EDEN has the **signed lease agreement** in hand.",
+        "Two documents gate that first check. EDEN generates a **HAP (Housing Assistance Program) contract** once a move-in date is confirmed; Part A covers the unit, utility responsibilities, total rent, and EDEN's rental-assistance amount, and you must sign and return it to receive payment. HAP contracts do not apply to EDEN's short-term programs. So the sequence to money is: pass inspection, return the signed lease, return the signed HAP contract, then the first payment follows in three to four business days. Every payment after that rides the 1st-to-4th calendar."
+      ]
+    },
+    {
+      "h2": "Who pays what: the tenant portion comes straight to you",
+      "body": [
+        "EDEN pays only its subsidy portion. The **tenant pays their share of the rent directly to you** (or your designated agent); EDEN does not collect it and pass it through. Your monthly rent arrives in two streams: EDEN's part on the 1st-to-4th calendar, and the tenant's part on whatever schedule your lease sets. We break down that split in [tenant portion vs. HAP portion](/tenant-portion-vs-hap-portion-cleveland/) and in [who actually pays landlords across CMHA, EDEN and the CoC](/who-pays-landlords-cmha-eden-coc-cleveland/).",
+        "How big the tenant's share is depends on the program. EDEN's housing-provider packet lays it out:"
+      ],
+      "table": {
+        "headers": ["EDEN program", "Tenant pays"],
+        "rows": [
+          ["Continuum of Care (long-term supportive)", "30% of income"],
+          ["H-TBRA (long-term)", "30% of income"],
+          ["Rapid Re-Housing (both programs, 12 months)", "0%"],
+          ["Re-Entry", "30% of income"],
+          ["Housing Assistance Program (HAP)", "30% of income"],
+          ["Mainstream Housing Choice Voucher", "30-40% of income"]
+        ]
+      }
+    },
+    {
+      "h2": "Getting started, and where we fit",
+      "body": [
+        "Renting to an EDEN client starts with a **six-step onboarding**: review the Housing Provider Welcome Packet, submit a direct deposit form, a Property Owner/Manager Disclosure Form, and a W-9, list your property with EDEN, and complete the **Request for Lease Approval (RFLA)** once a tenant is identified. The RFLA must arrive with a W-9, a direct deposit form, a Certificate of Occupancy or rental registration (for long-term vouchers), and county-auditor proof that your property taxes are current (or a payback agreement if they are not).",
+        "After EDEN has a complete RFLA, rent determination happens within 3 to 4 business days, and full processing runs about **3 weeks for long-term voucher programs** and about **1 week for short-term** ones. Source of income is not a protected class in the City of Cleveland, so this is your choice to make. The case for saying yes is a steady, HUD-anchored subsidy that lands early each month.",
+        "We handle the paperwork, attend the HQS inspection with a $100 written report, and manage the tenancy for **5% of monthly rent, billed only while the unit is rented**. Placement is one month's rent, charged only after we place a tenant, so no placement means no fee. We have also completed CMHA's mandatory Virtual Landlord Orientation (required since January 1, 2026 for a CMHA HAP contract), so we run subsidized tenancies by the book across Cuyahoga County. Reach EDEN's landlord line at 216-503-6369, or call us at **(440) 444-4737** to walk it together. Start at [Section 8, stress-free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does EDEN pay landlords more than CMHA?",
+      "a": "Not necessarily; they price differently. EDEN's Rent Determination Policy anchors approved rent to HUD's metro-wide Fair Market Rent, with discretion up to 120% of FMR on management approval, while CMHA uses ZIP-level payment standards. Neither guarantees a number for your unit. Confirm EDEN's current basis with its Property Owner line, 216-503-6369."
+    },
+    {
+      "q": "When does EDEN's rent payment arrive each month?",
+      "a": "EDEN's monthly subsidy reaches landlords between the 1st and the 4th. The first payment is different: it goes out within three to four business days of EDEN receiving your passed inspection report, but only after EDEN has your signed lease and signed HAP contract. Every payment after that follows the 1st-to-4th calendar."
+    },
+    {
+      "q": "Does the EDEN tenant pay part of the rent?",
+      "a": "Yes. The tenant pays their portion directly to you or your agent, and EDEN pays only its subsidy portion. The share depends on the program: roughly 30% of income on long-term supportive and HAP programs, 30-40% on the Mainstream voucher, and 0% on Rapid Re-Housing for its 12 months. EDEN never collects the tenant's share for you."
+    },
+    {
+      "q": "What happens if my unit fails EDEN's inspection?",
+      "a": "EDEN will not contract on a unit that fails. You get 30 days to make repairs, and 24 hours for life-threatening conditions. EDEN can withhold rental-assistance payments during that window, and while withheld the tenant is not responsible for EDEN's portion. Re-pass and payment resumes. EDEN's Welcome Packet describes an HQS inspection; confirm whether HQS or NSPIRE applies when you onboard."
+    },
+    {
+      "q": "Is EDEN the same as CMHA or Section 8?",
+      "a": "No. EDEN, Emerald Development and Economic Network, Inc., is a separate Cleveland nonprofit, not a housing authority. Its own FAQ points applicants to CMHA's separate waitlists. EDEN administers several subsidy programs with their own paperwork, rent basis, and payment calendar, so do not assume your CMHA voucher experience carries over. Ask which EDEN program your tenant is on."
+    }
+  ],
+  "sources": [
+    "https://www.edencle.org/about",
+    "https://www.edencle.org/faq",
+    "https://www.edencle.org/owner/RentDetermination.pdf",
+    "https://www.edencle.org/owner/Welcome.pdf",
+    "https://www.edencle.org/owners"
+  ],
+  "lastUpdated": "2026-07-22"
+}

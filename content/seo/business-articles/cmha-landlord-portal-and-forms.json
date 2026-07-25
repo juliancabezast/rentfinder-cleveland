@@ -1,0 +1,187 @@
+{
+  "slug": "cmha-landlord-portal-and-forms",
+  "section": "section-8-landlords",
+  "title": "The CMHA Landlord Portal and Forms Library: Everything You Can Do Without Calling",
+  "metaTitle": "CMHA Landlord Portal and Forms: What You Can Do Online",
+  "metaDescription": "The CMHA landlord portal explained: how to get a registration code, what payments, 1099s and inspection photos you can see, and which forms still go by email.",
+  "primaryKeyword": "cmha landlord portal",
+  "secondaryKeywords": [
+    "cmha landlord portal login",
+    "cmha landlord forms",
+    "cmha forms and documents landlords",
+    "cmha landlord registration code"
+  ],
+  "answerBox": "CMHA's Landlord Portal is a RentCafe site reached from applications.cmha.net. Registration takes a unique code CMHA issues to new vendors after the first HAP contract. Inside: HAP payment information and calendar, a ledger exportable to Excel and PDF, 1099s, bank updates, document upload, caseworker contacts, inspection history, and failed-inspection photos within 72 hours.",
+  "sections": [
+    {
+      "h2": "What the portal is, and where it lives",
+      "body": [
+        "CMHA runs its owner portal on RentCafe. Two doors reach it: the **\"Landlord Login\"** on applications.cmha.net, or **applications-cmha.securecafe.com/landlord/cuyahoga-metropolitan-housing-authority/login.aspx**. CMHA's summary is that landlords \"view information related to payments and inspections, update contact information, request Electronic Fund Transfer changes and more.\" The manual is CMHA's Landlord Portal Guidebook, revised 8/18/2022.",
+        "Check the domain first. **cmha.net is the Cuyahoga Metropolitan Housing Authority**, PHA code OH003, 8120 Kinsman Road. **cmhanet.com is the Columbus Metropolitan Housing Authority** — a different agency sharing the acronym, whose rules do not apply here."
+      ]
+    },
+    {
+      "h2": "You cannot register without a code CMHA sends you",
+      "body": [
+        "This is where most first-time owners stop. The account requires **a unique vendor/landlord registration code**, issued to new vendors after their first HAP contract in a welcome letter from the Director of the Housing Choice Voucher Program. The **Tax ID or SSN must match CMHA's vendor record**, so a personal SSN on an account CMHA holds under an LLC will not open.",
+        "So the portal is a post-contract tool, not a way in — and it need not be, because CMHA **\"does not have a pre-approval process for landlords or units,\"** and answers the qualification question with **\"No application process is required.\"** Before a first contract, the published front door is CMHA's online intake form for prospective landlord partners."
+      ]
+    },
+    {
+      "h2": "What you can do once you are inside",
+      "body": [
+        "Per CMHA's Landlord Participation Guide, the portal gives owners 24-hour access to:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**HAP payment information** and the HAP payment calendar",
+          "**A ledger you can export** to Excel and PDF",
+          "**Bank-account updates** — CMHA's channel for Electronic Fund Transfer changes",
+          "**1099s**",
+          "**Document upload**",
+          "**Tenant caseworker information** — who at CMHA holds your tenancy",
+          "**Inspection history**",
+          "**Failed inspection items with photos, within 72 hours** of a failed inspection"
+        ]
+      }
+    },
+    {
+      "h2": "The 72-hour item is the one that pays for the login",
+      "body": [
+        "A failed inspection starts a clock, and the portal is where it becomes legible: the failed items, with photographs, inside 72 hours — your repair scope before any letter arrives.",
+        "The money at stake is unrecoverable. CMHA states that **\"Rent is abated when the unit fails to pass on two consecutive inspections,\"** that the family still owes its share while CMHA pays nothing with no retroactive payments, and that a unit in abatement more than 30 days may have its contract terminated. Our answer to that window: **repair estimates back free and itemized inside 24 hours**, nothing starting without your approval."
+      ]
+    },
+    {
+      "h2": "What CMHA routes somewhere other than the portal",
+      "body": [
+        "Plenty of the work still leaves by email, phone or post. In each row, the right column is the channel CMHA publishes."
+      ],
+      "table": {
+        "headers": ["Task", "Where CMHA says it goes"],
+        "rows": [
+          ["Submit an RFTA packet", "Email rfta@cmha.net, or the kiosks in CMHA's Main Campus lobby, 8120 Kinsman Road"],
+          ["Request a rent increase", "A form signed by both landlord and tenant, emailed to RentAdjustment@cmha.net"],
+          ["Schedule or request an inspection", "216.478.9680 (inspection help: 216.271.2116)"],
+          ["Enroll in direct deposit", "Automatic Deposit form plus a voided check, mailed to HCVP Finance"],
+          ["Transfer a contract after a sale", "CMHA's Change of Ownership packet"],
+          ["Get a blank RFTA or HAP contract", "HUD.gov — HUD-52517, HUD-52641, HUD-52641-A, HUD-52580, HUD-52646. CMHA publishes none"]
+        ]
+      }
+    },
+    {
+      "h2": "The forms library: 16 documents",
+      "body": [
+        "CMHA's Forms & Documents index for landlords publishes 16 items, all live as of July 21, 2026:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Landlord Participation Guide (owner handbook)",
+          "Landlord Portal Guidebook",
+          "HQS Inspection Checklist",
+          "Rent Adjustment Request Form (2026)",
+          "Change of Ownership Packet",
+          "Automatic Deposit Form",
+          "2026 HAP Payment Calendar",
+          "Revision of Utility Payment Responsibility (2026)",
+          "Agent/Payee Form (2025)",
+          "Change of Agent/Payee Packet",
+          "Request for HAP Hold",
+          "Request to Release Payment Hold",
+          "Forged Endorsement Affidavit",
+          "Housing Court Judgements and HCVP",
+          "Landlord Change of Address",
+          "Moderate Rehabilitation Claim Request"
+        ]
+      }
+    },
+    {
+      "h2": "The four forms with published rules attached",
+      "body": [
+        "Most of the library is a blank you fill in. Four carry rules CMHA states publicly — rules that decide whether the filing works first time."
+      ],
+      "table": {
+        "headers": ["Form", "The rule CMHA publishes"],
+        "rows": [
+          ["Automatic Deposit Form", "Not optional: \"All owners are required to go on direct deposit to receive HAP payments.\" ACH authorization plus a voided check"],
+          ["Rent Adjustment Request (2026)", "Both signatures, to RentAdjustment@cmha.net. Needs a HAP contract at least a year old, a passed annual inspection within 12 months of the effective date, a current recertification, 12 months since the last approved adjustment, and a rent-reasonable amount. Increases start \"the 1st of the month after 60 days\" from receipt"],
+          ["Change of Ownership Packet", "For a buyer taking on an active HAP contract: \"The new owner will begin receiving payments when the packet has been completed and processed\""],
+          ["2026 HAP Payment Calendar", "Two runs a month — a Primary HAP Disbursement plus a Mid-Month HAP Disbursement for \"approved adjustments such as new admissions, contract changes, corrections.\" Primary dates run January 5 to December 3, mid-month January 20 to December 15"]
+        ]
+      }
+    },
+    {
+      "h2": "Three rules the calendar does not show",
+      "body": [
+        "The calendar says when CMHA pays, not what must be on file first. On a new contract, **\"you will be paid on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and occupancy permit, when applicable\"** — return the signed set late and payment moves to the next run. CMHA also **\"will not execute the HAP contract until the owner has submitted IRS form W-9.\"** And file a rent increase 60 to 90 days ahead: [How to Request a Rent Increase](/how-to-request-a-rent-increase-cmha/) and [Setting Up Direct Deposit](/cmha-direct-deposit-hap-payments/).",
+        "The two hold forms carry a rule: CMHA will hold HAP at the landlord's request during an eviction, and if the tenant stays and the unit is not in abatement, **\"the landlord may receive all withheld HAP payments, whether or not the landlord won or lost the eviction.\"**"
+      ]
+    },
+    {
+      "h2": "The one login that is not the portal",
+      "body": [
+        "Since **January 1, 2026**, submitting an RFTA triggers a requirement that the owner or designated managing agent complete CMHA's **Virtual Landlord Orientation** — once every 24 months, before CMHA can execute a HAP contract for a new tenancy. A live virtual session of about 90 minutes, booked through Eventbrite, attendance verified by CMHA. Register with the same name and email you use for CMHA correspondence. Existing contracts and payments are not affected. Where the packet goes: [How to Submit an RFTA to CMHA](/how-to-submit-an-rfta-to-cmha/)."
+      ]
+    },
+    {
+      "h2": "None of this is compulsory — which is the point",
+      "body": [
+        "In the City of Cleveland, source of income is not a protected class — the City's Office of Fair Housing lists thirteen, and housing vouchers are not among them — so an owner there may lawfully decline. The case for the portal is narrow and practical, not obligatory.",
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and **we have completed CMHA's Virtual Landlord Orientation**:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "The portal is your record: payments, ledger, 1099s, caseworker, inspection history, failed items with photos in 72 hours. The library is your filing cabinet: 16 documents, four carrying rules that decide whether a filing lands. Anything that starts or changes a tenancy still moves by email. Call **(440) 444-4737** or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I get access to the CMHA landlord portal?",
+      "a": "You need a unique vendor/landlord registration code. CMHA issues one to new vendors after their first HAP contract, in a welcome letter from the Director of the Housing Choice Voucher Program. Register from the Landlord Login at applications.cmha.net with a Tax ID or SSN matching CMHA's vendor record."
+    },
+    {
+      "q": "What can I see in the CMHA landlord portal?",
+      "a": "CMHA's Landlord Participation Guide lists 24-hour access to HAP payment information and the payment calendar, a ledger exportable to Excel and PDF, bank-account updates, 1099s, document upload, tenant caseworker information, inspection history, and failed inspection items with photos within 72 hours of a failed inspection."
+    },
+    {
+      "q": "Can I submit an RFTA or a rent increase through the portal?",
+      "a": "Those are not the channels CMHA publishes. An RFTA packet goes by email to rfta@cmha.net or through the kiosks in CMHA's Main Campus lobby at 8120 Kinsman Road. A rent increase goes to RentAdjustment@cmha.net, signed by both landlord and tenant. Inspections are scheduled at 216.478.9680."
+    },
+    {
+      "q": "Where are the blank RFTA and HAP contract forms?",
+      "a": "Not on CMHA's site. CMHA publishes no blank RFTA or HAP contract — those are standard HUD forms that travel inside the tenant's voucher packet, readable in advance on HUD.gov as HUD-52517 (Request for Tenancy Approval), HUD-52641 (HAP Contract) and HUD-52641-A (Tenancy Addendum)."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordPortalUserGuide.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.cmha.net/housing/landlords/forms___documents.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/online_inquiries.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/ownership.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-landlord-forms",
+    "https://www.hud.gov/sites/dfiles/PIH/documents/PHA_Contact_Report_OH.pdf",
+    "https://cmhanet.com/housing-choice-voucher",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+  ],
+  "lastUpdated": "2026-07-21"
+}

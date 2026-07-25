@@ -1,0 +1,232 @@
+{
+  "slug": "is-my-house-a-good-fit-for-section-8-cleveland",
+  "section": "section-8-landlords",
+  "title": "Is Your Property a Good Fit for a Voucher Tenant? A Cleveland Owner's Test",
+  "metaTitle": "Is My House a Good Fit for Section 8? A Cleveland Test",
+  "metaDescription": "What kind of house qualifies for Section 8 in Cleveland? Test your unit on four inputs: ZIP payment standard, bedroom count, age and condition.",
+  "primaryKeyword": "what kind of house qualifies for section 8",
+  "secondaryKeywords": [
+    "is my house a good fit for section 8",
+    "section 8 property requirements cleveland",
+    "does my rental qualify for section 8 cleveland",
+    "cmha payment standard by zip code",
+    "section 8 housing quality standards cleveland"
+  ],
+  "answerBox": "Four inputs decide it: your ZIP code's CMHA payment standard, the bedroom count, the building's age, and its condition. If your gross rent sits at or under the standard for the voucher's bedroom size and the unit clears CMHA's inspection items, it is a strong voucher property. Otherwise, price it against the open market.",
+  "sections": [
+    {
+      "h2": "Nobody will answer this for you in advance",
+      "body": [
+        "CMHA does not vet properties ahead of time. **\"Please note that CMHA does not have a pre-approval process for landlords or units,\"** its Leasing with CMHA page says. So you run this test yourself, on **ZIP code, bedroom count, age and condition** — plus your municipality's paperwork.",
+        "It is a business decision, not an obligation: source of income is not a protected class in the City of Cleveland, whose fair housing page lists thirteen classes, none of them vouchers. [Should You Accept Section 8?](/should-i-accept-section-8-cleveland/) covers whether to."
+      ]
+    },
+    {
+      "h2": "Input one: the ceiling in your ZIP code",
+      "body": [
+        "Since January 1, 2025 CMHA has set payment standards from Small Area Fair Market Rents — per ZIP, not countywide. Its Rent Determination tool publishes FY2026 standards effective January 1, 2026 for 53 ZIPs, against HUD's FY2026 Fair Market Rent for the Cleveland, OH HUD Metro FMR Area:"
+      ],
+      "table": {
+        "headers": [
+          "Bedrooms",
+          "Lowest ZIP (44127)",
+          "Highest ZIPs (44113 / 44040)",
+          "Median of 53 ZIPs",
+          "HUD FY2026 metro FMR"
+        ],
+        "rows": [
+          [
+            "Studio",
+            "$802",
+            "$1,582",
+            "$1,118",
+            "$933"
+          ],
+          [
+            "1 bedroom",
+            "$915",
+            "$1,796",
+            "$1,265",
+            "$1,058"
+          ],
+          [
+            "2 bedroom",
+            "$1,096",
+            "$2,169",
+            "$1,525",
+            "$1,279"
+          ],
+          [
+            "3 bedroom",
+            "$1,412",
+            "$2,791",
+            "$1,966",
+            "$1,646"
+          ],
+          [
+            "4 bedroom",
+            "$1,514",
+            "$2,983",
+            "$2,101",
+            "$1,760"
+          ]
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "How to read your own number",
+          "body": [
+            "The two-bedroom standard varies by roughly 98% across those ZIPs, so a figure without a ZIP is worthless — including the table CMHA's tool shows before you pick one, which is ZIPs 44103 and 44105 only. [Look yours up](/cmha-payment-standards-by-zip-code/).",
+            "Compare it against **gross rent** — rent plus tenant-paid utilities or the allowance. The standard is not a cap; CMHA says it \"is NOT the maximum amount that the landlord can charge.\" Rent reasonableness caps you instead, under 24 CFR 982.507(b), against comparable unassisted units, weighing location, quality, size, unit type and **age**. Above the standard the gap falls on the household, capped at 40% of monthly adjusted income initially."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "Input two: bedroom count, and the rule that overrides it",
+      "body": [
+        "Bedrooms move the ceiling more than anything you can do to the unit: the median standard across those 53 ZIPs climbs from $1,118 for a studio to $1,525 for a two-bedroom and $1,966 for a three-bedroom. But the count that governs is the one on the **voucher** — CMHA's Landlord Participation Guide prices a household in a unit larger than its voucher size at the smaller of the two. Check the voucher's size and expiration, 180 days from issue.",
+        "Demand is not the constraint: CMHA markets \"over 15,000 voucher holders,\" and testimony compiled by the U.S. Commission on Civil Rights counts about 20,000 more households waitlisted."
+      ]
+    },
+    {
+      "h2": "Input three: age, where 1978 is the line",
+      "body": [
+        "Age is a rent-reasonableness factor and, for older stock, a clock. HUD Notice PIH 2024-26 REV-1 says \"any deteriorated paint in target housing\" is \"considered a violation of HQS and the NSPIRE Standards,\" with 24 CFR Part 35 Subpart M applying where a child under 6 will reside.",
+        "CMHA sets the deadline: a pre-1978 unit cited for defective paint gives the owner **10 days from the move-in inspection** (30 from an annual) to produce a passed lead clearance test and proof a certified lead abatement contractor did the work. Cleveland separately requires pre-1978 rentals to hold a Lead Safe Certification or exemption, valid two years. Flaking paint with no contractor lined up is what stalls a property."
+      ]
+    },
+    {
+      "h2": "Input four: condition, against a list you can read today",
+      "body": [
+        "Inspections still run to Housing Quality Standards; CMHA says HUD moved the HCV transition to NSPIRE to February 1, 2027. An outside firm inspects against 13 key housing quality aspects. Three checks:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**CMHA's 24-hour list**: smoke or CO detectors missing or inoperable; range burners that won't ignite; a gas hook-up smelling strongly of gas; no water; no electricity; no heat from October 15 to April 15; sewer back-up; gas leak; unlockable windows within six feet of ground level or broken entry-door locks; anything life-threatening. A severity list, not a frequency ranking",
+          "**Detectors, per CMHA's December 29, 2024 rule**: one per level, one in each bedroom or sleeping area, one within 21 feet of each bedroom door, all 10-year sealed and tamper-resistant or hardwired. Carbon monoxide required since December 27, 2022 where there is a gas appliance, attached garage or wood-burning fireplace",
+          "**Two strikes**: a failed move-in inspection is rescheduled within 7 to 10 days, and on a second failure the applicant is told in writing to find another unit — see [Are CMHA Inspections a Dealbreaker?](/are-section-8-inspections-worth-it-cleveland/)"
+        ]
+      }
+    },
+    {
+      "h2": "Input five: your municipality and your tax bill",
+      "body": [
+        "This one disqualifies units quietly. CMHA must collect a Certificate of Occupancy and/or Rental Registration with the RFTA in 17 suburbs: Bedford, Bedford Heights, Brook Park, Cleveland Heights, Cuyahoga Heights, East Cleveland, Euclid, Fairview Park, Garfield Heights, Lakewood, Lyndhurst, Maple Heights, Parma, Shaker Heights, South Euclid, University Heights and Warrensville Heights. **Effective October 1, 2025 it verifies City of Cleveland registrations through the City's Citizen Access Portal.**",
+        "Inside Cleveland, Residents First requires registration and fees per property, an affidavit naming a local agent in charge, current taxes or a payment plan, and lead-safe certification before a Certificate Approving Rental Occupancy issues. CMHA also verifies ownership through the County Auditor — no foreclosure, taxes current."
+      ]
+    },
+    {
+      "h2": "The scorecard",
+      "body": [
+        "Mostly left column, it is a strong voucher property; anything on the right means fix first, or price at market."
+      ],
+      "table": {
+        "headers": [
+          "Check",
+          "Strong fit",
+          "Fix before listing",
+          "Better at market"
+        ],
+        "rows": [
+          [
+            "Gross rent vs. ZIP standard",
+            "At or under it",
+            "Above it — the 40% test decides",
+            "Above what comparables get"
+          ],
+          [
+            "Building age",
+            "1978 or later",
+            "Pre-1978, paint intact, certified",
+            "Pre-1978, deteriorated paint"
+          ],
+          [
+            "24-hour list and detectors",
+            "Nothing on it",
+            "One or two items, estimates in hand",
+            "No heat, water or gas hook-up"
+          ],
+          [
+            "Municipal registration",
+            "In hand",
+            "Lapsed — renew before the RFTA",
+            "—"
+          ],
+          [
+            "Ownership record",
+            "Taxes current, no foreclosure",
+            "Payment plan established",
+            "In foreclosure"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "What it costs to run, and what we handle",
+      "body": [
+        "Vacancy is the real cost: at HUD's $1,279 two-bedroom metro FMR, a vacant day is about $43. Note CMHA's own wording — its benefits list promises \"[s]table, guaranteed rent payments deposited directly into your account.\" That is CMHA's phrasing, not a promise of ours. Flat fact: direct deposit is mandatory and payments generally run the 3rd and 16th.",
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and **we have completed CMHA's Virtual Landlord Orientation** — the live, roughly 90-minute session the owner or managing agent must complete every 24 months, since January 1, 2026, before a HAP contract can be executed."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed",
+          "**Inspection attendance with a written report — $100**, or attend yourself for nothing",
+          "**Ongoing management — 5% of monthly rent**, only while rented",
+          "**Repair estimates free and itemized inside 24 hours** — nothing starts without approval"
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "The short version",
+          "body": [
+            "Two inputs you can change this month: condition and paperwork. Two you cannot: ZIP and bedroom count. Run the ZIP first — no renovation moves a $1,096 two-bedroom standard. Call **(440) 444-4737** or start at [Section 8 Stress Free](/section8stressfree)."
+          ]
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What kind of house qualifies for Section 8 in Cleveland?",
+      "a": "There is no qualifying list — CMHA \"does not have a pre-approval process for landlords or units.\" A unit becomes eligible when its rent passes rent reasonableness against comparable unassisted units, it passes a Housing Quality Standards inspection, and any municipal registration is in hand."
+    },
+    {
+      "q": "Does the age of my house matter?",
+      "a": "Twice over. Age is an explicit factor in the rent reasonableness comparison under 24 CFR 982.507(b). And pre-1978 buildings carry lead rules: deteriorated paint is an automatic HQS violation, and where a child under 6 will reside CMHA allows 10 days from the move-in inspection to produce a passed clearance test."
+    },
+    {
+      "q": "Is a three-bedroom better than a one-bedroom here?",
+      "a": "The ceiling is higher — the median FY2026 standard across CMHA's 53 ZIPs runs $1,265 for a one-bedroom against $1,966 for a three-bedroom. But the voucher's bedroom count governs, not your listing's: CMHA prices a unit larger than the voucher at the smaller of the two."
+    },
+    {
+      "q": "Will CMHA approve my property before I find a tenant?",
+      "a": "No. CMHA publishes no expedited, pre-inspection or self-certification option, and its Administrative Plan confirms the agency \"does not formally approve an owner to participate in the HCV program.\" The initial inspection is triggered by the RFTA packet the voucher holder brings you; CMHA targets 15 days."
+    },
+    {
+      "q": "What disqualifies a Cleveland property fastest?",
+      "a": "Three things. Foreclosure or unpaid property taxes, which CMHA verifies through the County Auditor after the RFTA. A lapsed City of Cleveland rental registration, verified through the City's Citizen Access Portal since October 1, 2025. And failing the move-in inspection twice, after which the applicant must move on."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+  ],
+  "lastUpdated": "2026-07-21"
+}

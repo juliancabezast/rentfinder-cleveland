@@ -1,0 +1,161 @@
+{
+  "slug": "how-to-submit-an-rfta-to-cmha",
+  "section": "section-8-landlords",
+  "title": "How to Submit an RFTA to CMHA (and Why the Owner Should Do It)",
+  "metaTitle": "How to Submit an RFTA to CMHA: Where It Goes, Who Files",
+  "metaDescription": "How to submit an RFTA to CMHA: email rfta@cmha.net or the kiosks at 8120 Kinsman Road, and why CMHA policy lets the owner file it on the family's behalf.",
+  "primaryKeyword": "how to submit rfta cmha",
+  "secondaryKeywords": [
+    "rfta@cmha.net",
+    "cmha rfta submission",
+    "submit request for tenancy approval cmha",
+    "can a landlord submit the rfta"
+  ],
+  "answerBox": "A completed RFTA packet goes to CMHA one of two ways: by email to rfta@cmha.net, or through the kiosks in CMHA's Main Campus lobby at 8120 Kinsman Road, Cleveland. You do not have to wait on the tenant. CMHA policy requires both signatures, but states the owner may submit the RTA on the family's behalf.",
+  "sections": [
+    {
+      "h2": "Where a completed packet goes",
+      "body": [
+        "CMHA publishes two channels for a completed Request for Tenancy Approval packet: **email to rfta@cmha.net**, or **the kiosks in CMHA's Main Campus lobby at 8120 Kinsman Road, Cleveland, OH 44104**. There is no landlord application to clear first — CMHA states it **\"does not have a pre-approval process for landlords or units,\"** and its Landlord FAQ says **\"No application process is required.\"** Filing the RFTA is the entry point.",
+        "Use email: it timestamps the submission and leaves you holding a copy of exactly what you sent. CMHA does not publish hours for the lobby kiosks; its general office hours are Monday through Friday, 8 a.m. to 5 p.m. Check the domain, too: cmha.net is the Cuyahoga agency, while **cmhanet.com is the Columbus Metropolitan Housing Authority**, whose programs and timelines do not apply here."
+      ]
+    },
+    {
+      "h2": "Yes, you can file it yourself",
+      "body": [
+        "CMHA's HCV Administrative Plan answers this directly. The RFTA **\"must be signed by both the family and the owner,\"** and **\"[t]he owner may submit the RTA on behalf of the family.\"** You need the household's signature. You do not need the household's mailbox.",
+        "Why do it yourself: CMHA reviews the RFTA for completeness and for consistency with the proposed lease, and **will not accept missing information or corrections by phone.** Deficiencies must be corrected in writing — so an incomplete packet is not fixable in a two-minute call, and whoever assembled it answers that letter fastest.",
+        "One constraint first: **a family may have only one live RFTA at a time** — \"[t]he family may not submit, and the PHA will not process, more than one (1) RTA at a time.\" If your applicant has a packet in on another unit, ask before you take yours off the market."
+      ]
+    },
+    {
+      "h2": "The packet comes from the tenant, not from CMHA",
+      "body": [
+        "There is no blank RFTA on cmha.net. CMHA's step 4 reads: \"Submit Request for Tenancy Approval Packet (RFTA) **provided to you by HCV Family**.\" The packet travels with the voucher holder. CMHA publishes no blank RFTA or HAP forms of its own — they are standard HUD forms inside the tenant's voucher packet, readable in advance on HUD.gov as **HUD-52517** and **HUD-52641-A**. Which side fills out which box: [What Is the RFTA Packet](/what-is-an-rfta-packet-cmha/).",
+        "Check two things before you sign. CMHA's Landlord Participation Guide tells owners to check **the voucher's expiration date** — the guide describes it as 180 days from the issue date — and **the unit size on the voucher**, because the RFTA and proposed lease must be in no later than that expiration date. Screening stays yours: \"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\""
+      ]
+    },
+    {
+      "h2": "What goes in the packet",
+      "body": [
+        "CMHA's Landlord Participation Guide lists the packet as containing:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Request for Tenancy Approval",
+          "HUD Tenancy Addendum",
+          "Landlord Fraud Letter",
+          "Landlord Certification",
+          "Drug-Free Housing Lease Addendum",
+          "Lead-based Paint Disclosure",
+          "Direct Deposit Form (if applicable)",
+          "W-9 (new vendors only)",
+          "Agent Form (if applicable)"
+        ]
+      }
+    },
+    {
+      "h2": "Two requirements decided by your address",
+      "body": [
+        "The guide carries no revision date; CMHA's live pages govern. Two more requirements turn on where the unit sits.",
+        "**In 17 named suburbs** — Bedford, Bedford Heights, Brook Park, Cleveland Heights, Cuyahoga Heights, East Cleveland, Euclid, Fairview Park, Garfield Heights, Lakewood, Lyndhurst, Maple Heights, Parma, Shaker Heights, South Euclid, University Heights and Warrensville Heights — CMHA must collect a Certificate of Occupancy and/or Rental Registration **with** the RFTA. Part of the submission, not a follow-up.",
+        "**In the City of Cleveland** you attach nothing, because CMHA looks it up: \"Effective October 1, 2025, CMHA will verify active City of Cleveland rental registrations through the City's Citizen Access Portal.\" A lapsed registration now stalls an otherwise perfect file."
+      ]
+    },
+    {
+      "h2": "What your submission sets in motion",
+      "body": [
+        "Submission is a trigger, not a filing. Five things start the day CMHA has your packet."
+      ],
+      "table": {
+        "headers": ["What happens next", "CMHA's published rule"],
+        "rows": [
+          ["The orientation requirement fires", "Effective January 1, 2026, an RFTA triggers CMHA's Virtual Landlord Orientation requirement for the owner or designated managing agent — once every 24 months, before a HAP contract can be executed"],
+          ["Ownership is verified", "CMHA verifies ownership through the County Auditor's website and confirms the unit is not in foreclosure and is current on property taxes"],
+          ["Rent is determined", "Rent reasonableness is determined after the RFTA is submitted and reviewed"],
+          ["The unit is inspected", "CMHA policy is to inspect, decide and notify owner and family \"within 15 days of submission of the Request for Tenancy Approval (RTA)\""],
+          ["Tenancy is approved", "\"The PHA will complete its determination within 10 business days of receiving all required information\""]
+        ]
+      }
+    },
+    {
+      "h2": "Read the last two rows twice",
+      "body": [
+        "The 15-day inspection clock is suspended for any period the unit is not available for inspection, and the 10-business-day determination runs from the moment CMHA has **all required information** — not from the moment your email arrived. Both are policy targets from CMHA's Administrative Plan, not promises: CMHA publishes no turnaround statistics. What actually stalls a file: [Why Your RFTA Is Stuck](/why-your-rfta-is-taking-so-long-cmha/)."
+      ]
+    },
+    {
+      "h2": "Have these ready before contract stage",
+      "body": [
+        "Three items stand between an approved tenancy and an executed HAP contract — all yours to produce."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**The orientation.** RFTA submission triggers it, and CMHA verifies attendance before executing the contract — the one step you can finish before you have a tenant. [What changed January 1, 2026](/cmha-landlord-orientation-requirement/)",
+          "**The W-9.** CMHA \"will not execute the HAP contract until the owner has submitted IRS form W-9\"",
+          "**Direct deposit.** Not optional: \"All owners are required to go on direct deposit to receive HAP payments\" — the Automatic Deposit form plus a voided check"
+        ]
+      }
+    },
+    {
+      "h2": "Do not hand over keys early",
+      "body": [
+        "CMHA's warning is blunt: **\"If the owner permits the tenant to move into the unit, the tenant will be responsible for the full amount of the rent and HCVP will not pay the back amount retroactively.\"** Bridging the gap with keys turns a subsidized month into a bill the household took a voucher to avoid."
+      ]
+    },
+    {
+      "h2": "Why it should be you who files",
+      "body": [
+        "None of this is compulsory. In the City of Cleveland, source of income is not a protected class — the City's Office of Fair Housing lists thirteen protected classes, and housing vouchers are not among them — so an owner there may lawfully decline. Filing the RFTA yourself is not an obligation; it is control over what goes in the packet and how fast a deficiency gets answered.",
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and **we have completed CMHA's Virtual Landlord Orientation** — the requirement your submission triggers:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Email the packet to rfta@cmha.net, or use the kiosks at 8120 Kinsman Road. Both signatures belong on the form; yours can be the hand that sends it. Call **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can a landlord submit the RFTA instead of the tenant?",
+      "a": "Yes. CMHA's HCV Administrative Plan states the RFTA must be signed by both the family and the owner, and that the owner may submit the RTA on behalf of the family. You need the household's signature, not the household's mailbox. Filing it yourself also makes you the one who answers if CMHA writes back."
+    },
+    {
+      "q": "What is CMHA's email address for RFTA submissions?",
+      "a": "Completed packets go to rfta@cmha.net, or to the kiosks in CMHA's Main Campus lobby at 8120 Kinsman Road, Cleveland, OH 44104. CMHA publishes no hours for those kiosks. Check the domain first: cmha.net is the Cuyahoga agency, while cmhanet.com is the Columbus Metropolitan Housing Authority, whose rules do not apply here."
+    },
+    {
+      "q": "Can I file an RFTA if my applicant has one in on another unit?",
+      "a": "No. CMHA policy is that the family may not submit, and CMHA will not process, more than one RTA at a time. A second packet does not queue usefully behind the first, so ask the applicant whether another RFTA is live before you take the unit off the market."
+    },
+    {
+      "q": "What happens if my packet is missing a document?",
+      "a": "CMHA reviews the RFTA for completeness and for consistency with the proposed lease, and will not accept missing information or corrections by phone — deficiencies must be corrected in writing. That written round trip is a common source of delay, and it runs against the voucher's expiration date."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/Automatic%20Deposit%20Form.pdf",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-landlord-forms",
+    "https://cmhanet.com/housing-choice-voucher",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+  ],
+  "lastUpdated": "2026-07-21"
+}

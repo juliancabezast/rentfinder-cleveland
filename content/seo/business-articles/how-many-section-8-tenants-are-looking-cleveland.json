@@ -1,0 +1,160 @@
+{
+  "slug": "how-many-section-8-tenants-are-looking-cleveland",
+  "section": "section-8-landlords",
+  "title": "How Many Voucher Holders Are Looking for a Rental in Cuyahoga County Right Now?",
+  "metaTitle": "How Many Section 8 Voucher Holders Are in Cleveland?",
+  "metaDescription": "How many Section 8 voucher holders in Cleveland? About 15,000 in Cuyahoga County, 20,000 more households waiting, and only about half lease up in time.",
+  "primaryKeyword": "how many section 8 voucher holders in cleveland",
+  "secondaryKeywords": [
+    "cmha voucher holders cuyahoga county",
+    "cmha waiting list size",
+    "section 8 demand cleveland landlords",
+    "how fast will my rental lease cleveland"
+  ],
+  "answerBox": "CMHA testimony to the U.S. Commission on Civil Rights put roughly 15,000 voucher holders in Cuyahoga County and about 20,000 more households on the waiting list. The same testimony reported only about 50% of admitted households found a unit before their voucher expired — the scarce side of this market is participating landlords, not tenants.",
+  "sections": [
+    {
+      "h2": "The count: about 15,000 holders, about 20,000 households waiting",
+      "body": [
+        "Two numbers frame **how many Section 8 voucher holders in Cleveland** are searching at any given moment. CMHA's testimony to the U.S. Commission on Civil Rights put approximately 15,000 voucher holders in Cuyahoga County, plus another 20,000 households on CMHA's waiting list. CMHA pitches the same scale to owners, advertising \"[a] large pool of prospective applicants, as CMHA ... serves over 15,000 voucher holders.\"",
+        "That list does not drain and close. CMHA runs its Housing Choice Voucher waiting list as an ongoing lottery with no closing date, and preliminary applications stay active for 18 months — the queue behind the 15,000 is a standing one."
+      ],
+      "h3s": [
+        {
+          "h3": "The number nobody publishes",
+          "body": [
+            "The other half of the ratio is missing. CMHA does not publish how many landlords participate or how many units sit under an active HAP contract — neither appears on cmha.net. So nobody, ourselves included, can honestly say how many voucher holders compete for each available unit. What **is** documented is how often the search fails."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "Most of those searches do not end in a lease",
+      "body": [
+        "Two published statistics measure how hard it is for a funded renter to find a landlord here. They count different things and must never be averaged into one headline:"
+      ],
+      "table": {
+        "headers": ["What was measured", "Figure", "Source"],
+        "rows": [
+          [
+            "Households admitted to the program who found housing with their voucher before it expired",
+            "About 50%",
+            "CMHA testimony to the U.S. Commission on Civil Rights"
+          ],
+          [
+            "CMHA voucher holders who find housing within six months of getting the subsidy",
+            "About 40%",
+            "Signal Cleveland, citing the agency"
+          ]
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "The 180-day clock behind those percentages",
+          "body": [
+            "The voucher runs on a timer. CMHA's Landlord Participation Guide tells owners to check the voucher's expiration date — described there as **180 days from the issue date** — and states that the RFTA and proposed lease must be submitted no later than that date. A household that reaches you in month five is not shopping casually."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "So how fast would your unit get interest?",
+      "body": [
+        "The honest answer is that no one can give you a Cleveland number. No Cleveland days-on-market or time-to-lease figure is published — RentCafe's Rental Competitiveness Index ranks 139 U.S. markets and Cleveland is not among them — and CMHA publishes no statistics on its own turnaround, only policy targets. Three benchmarks get quoted here, each usable only with its label attached:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**46 days** — RentCafe's average time to fill a U.S. apartment in early 2026, with occupancy at 92.7%. A **national** figure; Cleveland is not in the ranked set.",
+          "**39 days** — a Cleveland-area property manager's advertised placement guarantee. A **marketing promise**, not a measured average.",
+          "**Two to four weeks a year** — one Cleveland property manager's published vacancy estimate for single-family homes. **One company's estimate**, not a survey."
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "The market those benchmarks sit in",
+          "body": [
+            "Yardi Matrix put metro occupancy for stabilized assets at 94.5% as of February 2026, with average advertised asking rents of $1,246, up 2.8% year over year. Colliers data reported in April 2026 put Q1 2026 apartment occupancy at 95.8%, with roughly 7,533 vacant units. Both are metro-wide rather than Cuyahoga-County-only, and neither is voucher-specific: they describe the weather, not your unit."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "Why the pool is this large and the search is still this hard",
+      "body": [
+        "Because declining a voucher is lawful across most of this county. The U.S. Commission on Civil Rights states the federal Fair Housing Act \"does not prohibit landlords from refusing to accept tenant applications based on a tenant's lawful income source.\" Ohio's R.C. 4112.02(H) protects nine classes and income is not one of them. Cleveland's own Office of Fair Housing lists thirteen protected classes, and source of income is absent.",
+        "Five Cuyahoga County municipalities do ban it — Cleveland Heights, University Heights, South Euclid, Warrensville Heights and Linndale — and PRRAC's compilation, updated March 2026, names 23 Ohio municipalities with local protections, Cleveland not among them. [Which reasons for refusing hold up](/why-landlords-dont-accept-section-8-cleveland/) is a separate argument; the market effect is arithmetic. A household with a voucher shops a fraction of the listings, which is why the ones that welcome vouchers get looked at.",
+        "The second filter is money, set per ZIP code rather than per county. CMHA sets payment standards under Small Area Fair Market Rents across 53 service-area ZIP codes for FY2026, effective January 1, 2026; the two-bedroom standard runs from $1,096 in ZIP 44127 to $2,169 in 44113, roughly a 98% spread inside one county. How much subsidy sits behind your asking rent depends on which side of it you own on, so [look up your ZIP code](/cmha-payment-standards-by-zip-code/) first."
+      ]
+    },
+    {
+      "h2": "How that demand actually reaches your door",
+      "body": [
+        "CMHA does not market your unit for you. It asks that ads placed elsewhere state that \"vouchers are welcome,\" and it points owners to no-cost channels: \"CMHA has partnered with affordablehousing.com or OhioHousingLocator.org to provide free listing options for owners and landlords.\" Listing costs nothing, so [where you advertise](/where-to-list-a-rental-for-section-8-tenants-cleveland/) does most of the work of turning 15,000 into inquiries about your specific address.",
+        "One CMHA rule changes what \"interest\" means here. A voucher household may hold only one live Request for Tenancy Approval: \"The family may not submit, and the PHA will not process, more than one (1) RTA at a time.\" Once a household files on your unit they are not running parallel applications across town — which is also why they are deliberate about where they spend that one filing.",
+        "Volume is not qualification. CMHA is explicit that \"[i]t is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\" It supplies the household's current address and, if known, the landlord at the current and prior address; every other check is yours, on written criteria applied the same way to everyone."
+      ]
+    },
+    {
+      "h2": "Turning interest into an executed contract",
+      "body": [
+        "Demand only pays once a HAP contract exists, and since **January 1, 2026** there is a gate in front of that. Submitting an RFTA triggers a requirement that the property owner **or the designated managing agent** complete CMHA's Virtual Landlord Orientation: a live virtual session of about 90 minutes, required once every 24 months, with attendance verified before CMHA executes a HAP contract on a new tenancy. Existing HAP contracts and current HAP payments are not affected.",
+        "We have completed it. Because the requirement can be met by the designated managing agent, an owner working with us does not have to sit the session or wait for the next one — it never becomes the thing standing between a household on a 180-day clock and a signed contract. We work Greater Cleveland and Cuyahoga County, under CMHA."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement: one month's rent**, charged only after the tenant is placed. No placement, no fee.",
+          "**Inspection attendance and written report: $100** — or attend yourself and pay nothing.",
+          "**Ongoing management: 5% of monthly rent**, only while the unit is rented.",
+          "**Repair estimates: free, itemized, inside 24 hours** — nothing starts without your approval.",
+          "Call **(440) 444-4737** with your ZIP code and bedroom count, or read [how the service works](/section8stressfree)."
+        ]
+      }
+    }
+  ],
+  "faq": [
+    {
+      "q": "How many Section 8 voucher holders are there in Cleveland?",
+      "a": "CMHA's testimony to the U.S. Commission on Civil Rights put approximately 15,000 voucher holders in Cuyahoga County, with about 20,000 more households on CMHA's waiting list. CMHA's landlord page separately says it serves over 15,000 voucher holders. CMHA does not publish how many landlords participate, so no holders-per-unit ratio exists."
+    },
+    {
+      "q": "How long does a voucher holder have to find a unit?",
+      "a": "CMHA's Landlord Participation Guide tells owners to check the voucher's expiration date, described there as 180 days from the issue date, and states the RFTA and proposed lease must be submitted no later than that date. CMHA testimony reported only about 50% of admitted households found housing with their voucher before it expired."
+    },
+    {
+      "q": "How fast will my unit rent if I welcome vouchers?",
+      "a": "No one can answer that with Cleveland data. There is no published Cleveland days-on-market figure, and CMHA publishes no turnaround statistics for its own process. The nearest benchmarks are a 46-day national average time to fill an apartment, one local manager's advertised 39-day placement guarantee, and another's two-to-four-weeks-a-year single-family vacancy estimate."
+    },
+    {
+      "q": "Can a voucher holder apply to several units at the same time?",
+      "a": "Not through CMHA's approval process. CMHA policy states the family may not submit, and the agency will not process, more than one Request for Tenancy Approval at a time. Once a household files on your unit, that filing is committed to you until it is resolved — which is also why households are careful about where they spend it."
+    },
+    {
+      "q": "If demand is that high, do I have to accept a voucher?",
+      "a": "No. In the City of Cleveland, source of income is not protected by the federal Fair Housing Act, by Ohio's R.C. 4112.02(H), or by the City, whose fair housing office lists thirteen protected classes and no income-based one. Five Cuyahoga County municipalities do ban it: Cleveland Heights, University Heights, South Euclid, Warrensville Heights and Linndale."
+    }
+  ],
+  "sources": [
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://cmha.net/housing/applicants/housing_choice_vouchers.php",
+    "https://signalcleveland.org/section-8-cleveland-lutheran-metropolitan-ministry/",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.rentcafe.com/blog/rental-market/rental-competitiveness-index/us-hottest-rental-markets/",
+    "https://www.iip-management.com/",
+    "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+    "https://www.yardimatrix.com/blog/cleveland-multifamily-market-report/",
+    "https://neo-trans.blog/2026/04/28/cleveland-has-ohios-highest-apartment-rents/",
+    "https://www.usccr.gov/files/2025-08/soi-pb-ohio_july-2025.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-4112.02",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://www.prrac.org/pdf/AppendixB.pdf",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/training.php"
+  ],
+  "lastUpdated": "2026-07-21"
+}

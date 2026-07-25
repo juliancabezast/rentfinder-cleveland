@@ -1,0 +1,191 @@
+{
+  "slug": "when-does-cmha-pay-landlords",
+  "section": "section-8-landlords",
+  "title": "When Does CMHA Pay? HAP Payment Dates and Your First Check",
+  "metaTitle": "When Does CMHA Pay Landlords? HAP Dates & First Check",
+  "metaDescription": "When does CMHA pay landlords? Two HAP runs a month on the published 2026 calendar, what triggers your first check, and how a mid-month lease start prorates.",
+  "primaryKeyword": "when does cmha pay landlords",
+  "secondaryKeywords": [
+    "cmha hap payment dates",
+    "cmha hap payment calendar 2026",
+    "first hap payment new contract",
+    "cmha prorated first month hap"
+  ],
+  "answerBox": "CMHA pays HAP twice a month. Its Landlord FAQ says payment dates typically fall on the 3rd and the 16th; the published 2026 HAP Payment Calendar gives the actual dates, such as July 3 and July 15. On a new contract you are paid on the next scheduled date after CMHA has your signed contracts, executed lease and occupancy permit.",
+  "sections": [
+    {
+      "h2": "Two runs a month, and the dates that actually govern",
+      "body": [
+        "There are two published answers to \"what day does CMHA pay\" — a rule of thumb and a calendar. The rule of thumb is CMHA's Landlord FAQ: **HAP payment dates typically occur on the 3rd and the 16th of each month.**",
+        "Work from the calendar. CMHA's **2026 HAP Payment Calendar**, published in its landlord Forms & Documents library, splits the month into a **Primary HAP Disbursement** and a **Mid-Month HAP Disbursement** — the second covering \"approved adjustments such as new admissions, contract changes, corrections, or other qualifying payment updates that occur after the primary payment has been processed.\"",
+        "The published dates are also not literally the 3rd and the 16th:"
+      ],
+      "table": {
+        "headers": [
+          "Month (2026)",
+          "Primary HAP disbursement",
+          "Mid-month disbursement"
+        ],
+        "rows": [
+          [
+            "January",
+            "Jan 5",
+            "Jan 20"
+          ],
+          [
+            "February",
+            "Feb 3",
+            "Feb 17"
+          ],
+          [
+            "March",
+            "Mar 3",
+            "Mar 16"
+          ],
+          [
+            "April",
+            "Apr 3",
+            "Apr 16"
+          ],
+          [
+            "May",
+            "May 4",
+            "May 15"
+          ],
+          [
+            "June",
+            "Jun 3",
+            "Jun 15"
+          ],
+          [
+            "July",
+            "Jul 3",
+            "Jul 15"
+          ],
+          [
+            "August",
+            "Aug 4",
+            "Aug 17"
+          ],
+          [
+            "September",
+            "Sep 3",
+            "Sep 15"
+          ],
+          [
+            "October",
+            "Oct 2",
+            "Oct 15"
+          ],
+          [
+            "November",
+            "Nov 3",
+            "Nov 16"
+          ],
+          [
+            "December",
+            "Dec 3",
+            "Dec 15"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "What triggers the very first payment",
+      "body": [
+        "All 24 dates carry one caveat: they are **\"subject to change due to holidays or operational needs.\"** Scheduled runs, not a promise about the hour money lands.",
+        "For a new contract, the Landlord FAQ says what starts the money: **\"you will be paid on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and occupancy permit, when applicable.\"**",
+        "That is a document trigger, not a clock. It counts from the moment HCVP holds a complete set, not from your inspection or lease start. A slow signature costs you a run, not a few days. Nothing is payable before the contract is executed, and execution needs:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Three copies of the signed contracts, the executed lease, and the occupancy permit where applicable** — the FAQ's own list",
+          "**IRS Form W-9.** CMHA \"will not execute the HAP contract until the owner has submitted IRS form W-9\"",
+          "**Mandatory Landlord Orientation** — since January 1, 2026, completed by the owner or designated managing agent within the prior 24 months, before a HAP contract can be executed for a new tenancy"
+        ]
+      }
+    },
+    {
+      "h2": "The 60-day window is why a first check is rarely one month",
+      "body": [
+        "One honest limit: CMHA publishes no turnaround statistic — none from RFTA to executed contract, none from execution to first deposit. Anyone quoting a typical number is estimating.",
+        "The rule that makes a first payment larger than owners expect: the HAP contract **\"must be executed no later than 60 calendar days from the beginning of the lease term.\"** CMHA may not pay before execution — but executed inside that window, it pays for **the portion of the lease term that ran before execution, up to 60 days.**",
+        "A lease that started three weeks before signing is not three lost weeks; it is a retroactive amount that appears when the contract clears. Past the window, nothing is left: **\"Any HAP contract executed after the 60-day period is void.\"** See [What Is a HAP Contract](/what-is-a-hap-contract-cmha/).",
+        "One way to lose that retroactive coverage without missing a deadline is handing over keys early. CMHA's warning: **\"If the owner permits the tenant to move into the unit, the tenant will be responsible for the full amount of the rent and HCVP will not pay the back amount retroactively.\"** Early occupancy moves that month's rent onto the tenant."
+      ]
+    },
+    {
+      "h2": "A mid-month lease start is prorated",
+      "body": [
+        "The Administrative Plan handles this in one line: HAP is paid at the beginning of each month, and **\"[i]f a lease term begins after the first of the month, the HAP payment for the first month is prorated for a partial month.\"**",
+        "A term beginning on the 12th produces a first HAP covering the partial month, then full monthly payments after. CMHA does not publish the arithmetic it uses, so check the figure against your Landlord Portal ledger or with HCVP Finance rather than a formula of your own.",
+        "Two things the calendar never shows. HAP is only CMHA's share — on an initial contract the **total tenant portion is paid directly to the landlord**, no more than 40% of the family's monthly adjusted income. And a prorated month can arrive in the same deposit as a retroactive stretch, so a first payment rarely matches later ones."
+      ]
+    },
+    {
+      "h2": "Direct deposit is mandatory, and the portal comes after",
+      "body": [
+        "There is no paper-check fallback: **\"All owners are required to go on direct deposit to receive HAP payments.\"** Enrollment is CMHA's Automatic Deposit form — an ACH credit authorization — plus a voided check, mailed to HCVP Finance, 8120 Kinsman Road, Cleveland, Ohio 44104. CMHA lists a Direct Deposit Form among the RFTA packet contents — file it there. [Setting Up Direct Deposit](/cmha-direct-deposit-hap-payments/).",
+        "The Landlord Portal answers most payment questions afterward. CMHA's landlord guide describes 24-hour access to HAP payment information and the payment calendar, a ledger exportable to Excel and PDF, bank-account updates, 1099s and inspection history. Registration needs a vendor code mailed by the HCVP Director, issued after your first HAP contract — the portal follows the first payment. Payment questions: **216.271.2495**, **financehcvp@cmha.net**.",
+        "CMHA's own landlord page promises \"[s]table, guaranteed rent payments deposited directly into your account.\" That is CMHA's wording, not ours — CMHA also states rent is abated after two consecutive failed inspections, with no retroactive payments for the abated period. [Is Section 8 Rent Really Guaranteed?](/is-section-8-rent-guaranteed-cleveland/)"
+      ]
+    },
+    {
+      "h2": "Where we come in",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and **we have completed CMHA's Virtual Landlord Orientation** — the step gating HAP contract execution for new tenancies since January 1, 2026. On a first payment, what usually goes wrong is paperwork landing after a disbursement was processed. What it costs:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back within 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Two runs a month on a published 2026 calendar, subject to change for holidays or operational needs. The first that includes you is the next scheduled date after CMHA holds the signed contracts, executed lease and occupancy permit — with up to 60 days payable retroactively and a partial first month prorated. Call **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What day of the month does CMHA pay landlords?",
+      "a": "CMHA's Landlord FAQ says HAP payment dates typically occur on the 3rd and the 16th of each month. The published 2026 HAP Payment Calendar is more precise — a primary run and a mid-month run, with dates such as October 2 and October 15, all subject to change due to holidays or operational needs."
+    },
+    {
+      "q": "When will I get my first HAP payment on a new contract?",
+      "a": "CMHA pays on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and the occupancy permit, when applicable. It is a document trigger, not a countdown, and CMHA publishes no average turnaround: miss a disbursement date and you wait for the next run."
+    },
+    {
+      "q": "Does CMHA pay a full month if the lease starts mid-month?",
+      "a": "No. CMHA's Administrative Plan states that if a lease term begins after the first of the month, the first month's HAP payment is prorated for a partial month, with full payments after. CMHA does not publish the arithmetic it uses, so check the figure against your portal ledger or with HCVP Finance."
+    },
+    {
+      "q": "Will CMHA pay for the weeks before the HAP contract was signed?",
+      "a": "If the contract is executed within 60 calendar days of the beginning of the lease term, yes — CMHA may not pay before execution, but then covers the portion of the term that ran beforehand, up to 60 days. Executed later, the contract is void. And if you let the tenant move in before the approved date, CMHA states it will not pay retroactively."
+    },
+    {
+      "q": "Can I get a paper check instead of direct deposit?",
+      "a": "No. CMHA states that all owners are required to go on direct deposit to receive HAP payments. You enroll with the Automatic Deposit form — an ACH credit authorization — plus a voided check, mailed to HCVP Finance at 8120 Kinsman Road, Cleveland, Ohio 44104. Bank-account changes can later be requested through the Landlord Portal."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.cmha.net/housing/landlords/forms___documents.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20%26%20Documents/LandlordPortalUserGuide.pdf",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/about_us/contact_us.php"
+  ],
+  "lastUpdated": "2026-07-21"
+}

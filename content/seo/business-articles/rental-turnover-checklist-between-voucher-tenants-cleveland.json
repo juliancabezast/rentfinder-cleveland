@@ -1,0 +1,165 @@
+{
+  "slug": "rental-turnover-checklist-between-voucher-tenants-cleveland",
+  "section": "section-8-landlords",
+  "title": "Turning Over a Unit Between Voucher Tenants Without Losing a Month",
+  "metaTitle": "Rental Turnover Checklist: Voucher Tenants, Cleveland",
+  "metaDescription": "A rental turnover checklist for Cleveland voucher units: what to do in what order so the next RFTA, CMHA inspection and HAP contract cost you fewer vacant days.",
+  "primaryKeyword": "rental turnover checklist",
+  "secondaryKeywords": [
+    "section 8 turnover checklist cleveland",
+    "reduce vacancy between voucher tenants",
+    "cmha rfta timeline turnover",
+    "turning over a voucher unit cuyahoga county"
+  ],
+  "answerBox": "Start before you have possession: serve notice, scope repairs on 24 hours' entry notice, list the unit, and refresh your registrations and landlord orientation. Nothing at CMHA moves until the RFTA is filed — the 15-day inspection clock and the 10-business-day tenancy decision both run from it. Then execute the HAP contract inside 60 calendar days of the lease start.",
+  "sections": [
+    {
+      "h2": "Every CMHA clock starts at the RFTA. The days before it are yours",
+      "body": [
+        "CMHA's clocks all begin at the Request for Tenancy Approval: inspection, decision and notice **\"within 15 days of submission of the Request for Tenancy Approval (RTA),\"** the tenancy determination **\"within 10 business days of receiving all required information.\"**",
+        "The lost month is rarely the inspection; it is the stretch between the move-out notice and a complete RFTA. Every deadline here is a published target, not an average — **CMHA publishes no turnaround statistics.**",
+        "Derived, not published: at HUD's FY2026 two-bedroom Fair Market Rent of **$1,279** for the Cleveland metro, a vacant day costs roughly **$42** ($1,279 ÷ 30 = $42.63) — see [what one vacant day costs](/what-a-vacant-rental-day-costs-cleveland/). Applicants are not scarce: about **15,000 voucher holders** in Cuyahoga County, **20,000 households** waiting."
+      ]
+    },
+    {
+      "h2": "Start the turn before you have possession",
+      "body": [
+        "R.C. 5321.17 requires at least **30 days' notice before the periodic rental date** to end a month-to-month tenancy; CMHA's undated Landlord Participation Guide says the HAP contract **runs concurrently with the lease.** [Ending a voucher tenancy](/how-to-end-a-tenancy-with-a-voucher-tenant-ohio/) covers the notices.",
+        "You do not need the keys to begin: under **R.C. 5321.04(A)(8)** **\"[t]wenty-four hours is presumed to be a reasonable notice\"** before entry — price repairs and show the unit before the vacancy starts. List it that week on CMHA's free partner channels, AffordableHousing.com and OhioHousingLocator.org.",
+        "**Effective January 1, 2026,** submitting an RFTA triggers a requirement that the owner or designated managing agent complete CMHA's **Virtual Landlord Orientation — once every 24 months — before CMHA can execute a HAP contract for a new tenancy.** Because **\"[e]xisting HAP contracts and current HAP payments are not affected,\"** a lapsed orientation goes unnoticed until it blocks the contract.",
+        "**Since October 1, 2025 CMHA verifies active City of Cleveland rental registrations through the City's Citizen Access Portal,** and for units in **17 named suburbs** it collects a **Certificate of Occupancy and/or Rental Registration with the RFTA.** Cleveland's **Lead Safe Certification** for pre-1978 rentals runs **two years,** and CMHA **\"will not execute the HAP contract until the owner has submitted IRS form W-9.\"**"
+      ]
+    },
+    {
+      "h2": "Scope the turn against CMHA's fail list",
+      "body": [
+        "Work the unit in the order an inspector will, starting with CMHA's **24-hour emergency list** — detectors, range burners that will not ignite, hazardous gas hook-ups, no water, no electricity, no heat between October 15 and April 15, sewer back-up, gas leak and ground-level security.",
+        "**Effective December 29, 2024,** CMHA requires a smoke detector on each level, inside each bedroom, within **21 feet** of each bedroom door, and in any living area separated by a door — **10-year sealed batteries, or hardwired.** Carbon monoxide detectors are required where there is a gas appliance, attached garage or wood-burning fireplace.",
+        "Leave the utilities on: the 15-day clock is **suspended for any period the unit is not available for inspection.** On a pre-1978 unit cited for defective paint where a child under six will reside, the owner gets **10 days from the initial inspection** for a passed lead clearance test and proof of a **certified lead abatement contractor.**",
+        "The initial inspection gets **two attempts** — a second failure means the applicant is given written notice to find another unit. **CMHA publishes no expedited or pre-inspection option.**"
+      ]
+    },
+    {
+      "h2": "File one complete RFTA — and file it yourself",
+      "body": [
+        "The family brings the packet, but you can file it: the RFTA **\"must be signed by both the family and the owner,\"** and **\"[t]he owner may submit the RTA on behalf of the family\"** — to **rfta@cmha.net** or the kiosks at 8120 Kinsman Road.",
+        "File it complete: CMHA reviews the packet against the proposed lease and **will not accept missing information or corrections by phone.** Ask the applicant two things — a family **\"may not submit ... more than one (1) RTA at a time,\"** and CMHA's guide puts voucher expiration at **\"180 days from the issue date.\"** [Why an RFTA gets stuck](/why-your-rfta-is-taking-so-long-cmha/) has more.",
+        "**Screening is entirely yours:** \"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\" And the rent is re-tested — under **24 CFR 982.507(a)** no lease may be approved until the initial rent to owner is found reasonable, measured on **gross rent.** **\"The payment standard is NOT the maximum amount that the landlord can charge,\"** though the tenant's portion on an initial contract may not exceed **40% of monthly adjusted income.**"
+      ]
+    },
+    {
+      "h2": "Every clock in a turnover, and what starts it",
+      "body": [
+        "Stack these; several run in parallel."
+      ],
+      "table": {
+        "headers": [
+          "Step",
+          "Deadline",
+          "Clock starts"
+        ],
+        "rows": [
+          [
+            "End a month-to-month tenancy",
+            "30 days before the periodic rental date",
+            "You serve notice"
+          ],
+          [
+            "Landlord orientation, if over 24 months",
+            "Before CMHA executes a HAP contract",
+            "RFTA submission"
+          ],
+          [
+            "Inspection, decision and notice",
+            "15 days; paused while the unit is unavailable",
+            "RFTA filed"
+          ],
+          [
+            "Tenancy-approval determination",
+            "10 business days",
+            "Complete file arrives"
+          ],
+          [
+            "Second inspection after a failure",
+            "7 to 10 days",
+            "The unit fails"
+          ],
+          [
+            "Reinspection after repairs",
+            "5 business days",
+            "You notify CMHA"
+          ],
+          [
+            "Lead clearance: cited pre-1978 paint, child under six",
+            "10 days",
+            "Initial inspection"
+          ],
+          [
+            "HAP contract execution",
+            "60 calendar days; void after",
+            "Lease term begins"
+          ],
+          [
+            "Itemized security-deposit notice",
+            "30 days",
+            "Possession returns"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "From a passed inspection to the first deposit",
+      "body": [
+        "The HAP contract **\"must be executed no later than 60 calendar days from the beginning of the lease term,\"** and **\"[a]ny HAP contract executed after the 60-day period is void.\"** Signed inside that window it still covers the term before execution.",
+        "Payment then keys off documents, not the move-in: you are paid **\"on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and occupancy permit, when applicable,\"** and **\"[p]ayment dates are generally on the 3rd and 16th of each month.\"** A term beginning after the first of the month is **prorated;** keys handed over early leave the tenant **\"responsible for the full amount of the rent.\"**",
+        "Close the old tenancy on its own clock: **R.C. 5321.16(B)** requires deposit deductions to be **itemized in writing with the amount due within 30 days after termination of the rental agreement and delivery of possession.** And **\"HCVP does not pay for tenant caused damages.\"**"
+      ]
+    },
+    {
+      "h2": "How we run a turnover",
+      "body": [
+        "We place and manage voucher tenancies across Greater Cleveland and Cuyahoga County, under CMHA, and most of what we charge only bills when the unit is producing: **tenant placement is one month's rent, charged only after the tenant is placed** — no placement, no fee — and **management is 5% of monthly rent, only while the unit is rented.** **Repair estimates come back free, itemized, inside 24 hours, and nothing starts without your approval.** **We attend the CMHA inspection and send a written report for $100,** or you attend yourself and pay nothing.",
+        "**We have completed CMHA's Virtual Landlord Orientation,** required since January 1, 2026 before a HAP contract can be executed for a new tenancy. Call **(440) 444-4737** or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "A voucher tenant gave notice. What do I do first?",
+      "a": "Confirm the termination date in writing, then use your entry right — R.C. 5321.04(A)(8) presumes 24 hours to be reasonable notice — and price the repair list while the unit is still occupied. Then list it, and check that your CMHA orientation is inside 24 months."
+    },
+    {
+      "q": "Can I file the next RFTA before the old tenant moves out?",
+      "a": "CMHA publishes nothing about filing early, and the family has to bring you the packet. What is published is that the 15-day inspection clock is suspended for any period the unit is not available, so filing before it can be entered buys nothing."
+    },
+    {
+      "q": "Do I redo the landlord orientation for every new tenant?",
+      "a": "Not every tenant — CMHA requires it once every 24 months. Since January 1, 2026, submitting an RFTA triggers the requirement for the owner or designated managing agent, and it must be completed before CMHA can execute a HAP contract for a new tenancy."
+    },
+    {
+      "q": "How long does a turnover take from move-out to first check?",
+      "a": "CMHA publishes no turnaround statistics, so no honest total exists — only targets: inspection, decision and notice within 15 days of RFTA submission; a tenancy determination within 10 business days of all required information; contract execution within 60 calendar days of the lease start."
+    },
+    {
+      "q": "Will CMHA pay for what the last tenant damaged?",
+      "a": "No. CMHA's landlord FAQ states that \"HCVP does not pay for tenant caused damages,\" and directs owners to bill the tenant, use the security deposit, or go to court. R.C. 5321.16(B) requires deductions itemized in writing within 30 days of termination and delivery of possession."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.17",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.04",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners"
+  ],
+  "lastUpdated": "2026-07-21"
+}

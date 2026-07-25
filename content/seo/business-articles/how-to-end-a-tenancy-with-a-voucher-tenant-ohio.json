@@ -1,0 +1,128 @@
+{
+  "slug": "how-to-end-a-tenancy-with-a-voucher-tenant-ohio",
+  "section": "section-8-landlords",
+  "title": "Ending a Voucher Tenancy in Ohio: Notices, Court and What CMHA Needs",
+  "metaTitle": "How to Evict a Section 8 Tenant in Ohio (2026)",
+  "metaDescription": "How to evict a Section 8 tenant in Ohio: the R.C. 1923 notice and court steps, what Cleveland Housing Court says is different, and what CMHA does with your HAP.",
+  "primaryKeyword": "how to evict a section 8 tenant ohio",
+  "secondaryKeywords": [
+    "evicting a section 8 tenant in cleveland",
+    "ohio three day notice to leave the premises",
+    "does cmha pay hap during an eviction",
+    "end a voucher lease ohio",
+    "cmha hap contract termination"
+  ],
+  "answerBox": "Evicting a voucher tenant in Ohio runs through the same R.C. Chapter 1923 process as any other tenancy: a three-day notice, then a forcible entry and detainer complaint. What differs is the federal layer Cleveland Housing Court warns about before you file, and the fact that CMHA will hold your HAP payments on request while the case runs.",
+  "sections": [
+    {
+      "h2": "The court process is Ohio's ordinary eviction",
+      "body": [
+        "There is no separate Section 8 eviction court and no separate Section 8 statute. A voucher tenancy in Cuyahoga County ends the way any Ohio tenancy ends: written notice, a forcible entry and detainer complaint under R.C. Chapter 1923, a hearing, a writ of restitution.",
+        "You cannot do it yourself. Cleveland Municipal Court's Housing Division puts it plainly: a landlord \"cannot physically remove the tenant from the premises, terminate utilities, or change the locks to encourage a tenant to move from the premises,\" and must file, obtain a judgment and follow the court's move-out procedure.",
+        "Then the notice to leave the premises. R.C. 1923.04 requires service \"three or more days before beginning the action,\" and the residential notice must conspicuously carry the statutory paragraph opening \"You are being asked to leave the premises. If you do not leave, an eviction action may be initiated against you\" and closing by recommending the tenant seek legal assistance. A notice missing it is defective."
+      ],
+      "table": {
+        "headers": ["Step", "Clock", "Source"],
+        "rows": [
+          ["Notice to leave the premises", "Three or more days before the action begins", "R.C. 1923.04"],
+          ["Ending a periodic tenancy", "30 days before the rental date; 7 days week-to-week", "R.C. 5321.17"],
+          ["Service of the summons", "At least seven days before trial", "R.C. 1923.06"],
+          ["Continuance", "No longer than eight days", "R.C. 1923.08"],
+          ["Writ of restitution", "Executed within ten days of receipt", "R.C. 1923.14(A)"],
+          ["Move-out after judgment", "Seven to ten days", "Cleveland Housing Court FAQ"]
+        ]
+      }
+    },
+    {
+      "h2": "What is different when the tenant holds a voucher",
+      "body": [
+        "Cleveland Housing Court answers this directly, and its answer is the most useful passage a Cuyahoga County owner can read. Subsidized tenants \"are afforded special protection under Federal law.\" Some are entitled to written notice of an opportunity to meet with management before a filing; \"[m]ost also are entitled to an opportunity to correct their conduct before the landlord may file an eviction action.\" The court's advice to subsidized landlords is to consult an attorney first.",
+        "So the sequence a market-rate owner runs from memory — problem, three-day notice, file — may not be the sequence your paperwork requires. The governing terms sit in your lease together with the **HUD Tenancy Addendum**, form HUD-52641-A, which arrives inside the family's RFTA packet and is published on HUD.gov. Which document controls when they conflict is [its own question](/section-8-lease-and-hud-tenancy-addendum/).",
+        "One CMHA step is easy to miss: landlords and tenants must give the Housing Choice Voucher Program a copy of any eviction notice. HCVP is at (216) 431-1471, 8120 Kinsman Road, Cleveland."
+      ]
+    },
+    {
+      "h2": "What happens to your HAP while the case runs",
+      "body": [
+        "This is the question owners actually call about, and CMHA answers it in its Landlord FAQ. During an eviction CMHA will hold HAP at the landlord's request, and \"[i]f the tenant remains in the unit during the eviction process, and the unit is not in abatement, the landlord may receive all withheld HAP payments, whether or not the landlord won or lost the eviction.\" Both conditions do work: held HAP tracks occupancy, and abatement is the state where money stops being recoverable.",
+        "Under 24 CFR 982.404(d)(1), a PHA that withholds after written notice of deficiencies \"must provide assistance payments to cover the time period for which the assistance payments were withheld\" once the unit complies inside the cure period. Abatement is the opposite — 24 CFR 982.4 calls it \"Stopping HAP payments to an owner with no potential for retroactive payment.\"",
+        "CMHA abates after two consecutive failed inspections, on \"the first of the month following the failure to comply,\" and \"[i]f a unit is in abatement for more than 30 days, the HAP Contract may be terminated.\" Fix the repair before the tenancy fight — [that is the one that destroys money permanently](/what-happens-if-your-unit-fails-a-cmha-inspection/). And 24 CFR 982.404(d)(3) closes the loop: \"An owner may not terminate the tenancy of any family due to the withholding or abatement of assistance.\""
+      ]
+    },
+    {
+      "h2": "Ending a tenancy that isn't a breach",
+      "body": [
+        "Not every exit is an eviction. CMHA's owner page says you may use your own lease and go month-to-month after the initial term, and its Landlord Participation Guide adds that the initial term must be at least one year and that the HAP contract runs concurrently with the lease — when one ends, so does the other. That guide carries no revision date, so confirm it with CMHA rather than relying on it.",
+        "Once the tenancy is periodic, R.C. 5321.17 sets the notice: at least 30 days before the periodic rental date month-to-month, seven days week-to-week. Terminating and evicting are different acts — if the household stays past the date, you are back at the three-day notice.",
+        "Expect longer than the textbook case. Cleveland Housing Court sketches a simple non-payment eviction at under five weeks, while warning in the same answer that cases involving termination of a periodic tenancy or \"tenants on whose behalf the landlord receives a rent subsidy may take longer.\" Five weeks is not the voucher number, and nobody publishes the voucher number."
+      ]
+    },
+    {
+      "h2": "After possession: deposits, damage, and where owners slip",
+      "body": [
+        "R.C. 5321.16(B) requires any deposit deduction to \"be itemized and identified by the landlord in a written notice delivered to the tenant together with the amount due, within thirty days after termination of the rental agreement and delivery of possession.\" Miss it and R.C. 5321.16(C) adds \"damages in an amount equal to the amount wrongfully withheld, and reasonable attorneys fees.\" The clock runs from possession, not judgment.",
+        "On damage CMHA is unambiguous: \"HCVP does not pay for tenant caused damages.\" Bill the tenant, deduct from the deposit, or pursue them in court. [More on deposits and damage](/security-deposits-and-tenant-damage-ohio/)."
+      ],
+      "list": {
+        "type": "ol",
+        "items": [
+          "**Self-help.** Locks, utilities and removals are prohibited, whatever the lease says.",
+          "**A defective notice.** R.C. 1923.04's paragraph must appear conspicuously, word for word.",
+          "**Skipping the federal step.** Most subsidized tenants get a chance to correct their conduct first.",
+          "**Filing over an abatement.** Barred by 24 CFR 982.404(d)(3), and an abated unit forfeits held HAP.",
+          "**Treating escrowed rent as unpaid rent.** A tenant who reports a defect in writing and deposits rent with the court under R.C. 5321.07 has not withheld it.",
+          "**Showing the unit without notice.** R.C. 5321.04(A)(8) presumes 24 hours is reasonable, absent an emergency."
+        ]
+      }
+    },
+    {
+      "h2": "Where we fit, and what we don't do",
+      "body": [
+        "We manage rentals in Greater Cleveland and Cuyahoga County under CMHA. We do not practice law and do not represent owners in court — the Housing Division tells subsidized landlords to consult an attorney before filing, and so do we.",
+        "We handle the rest: the paper trail, communication with CMHA including HCVP's copy of the eviction notice, inspection attendance so a repair item never becomes the abatement that costs you the held HAP, and the turnover once you have possession. Placement is one month's rent, charged only after the tenant is placed — no placement, no fee. Management is 5% of monthly rent, only while rented. Inspection attendance with a written report is $100, or attend yourself. Repair estimates come back free, itemized, inside 24 hours, and nothing starts without your approval.",
+        "One item matters at the end of a tenancy. Re-renting to another voucher holder means a new HAP contract, and since January 1, 2026 submitting an RFTA triggers a requirement that the owner or designated managing agent complete CMHA's Virtual Landlord Orientation — once every 24 months — before CMHA can execute a HAP contract for a new tenancy. Existing HAP contracts and payments are not affected, so this touches the next tenancy, not the one you are ending. **We have already completed it.**",
+        "If you need a voucher tenancy ended, call **(440) 444-4737** or start at [Section 8 Stress-Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How long does it take to evict a Section 8 tenant in Ohio?",
+      "a": "Nobody publishes a figure for voucher cases. Cleveland Housing Court puts a simple non-payment eviction at under five weeks, then warns in the same answer that cases where the landlord receives a rent subsidy may take longer. The statutory floors are fixed: service seven days before trial, continuances capped at eight days, the writ executed within ten days."
+    },
+    {
+      "q": "Does CMHA keep paying HAP during an eviction?",
+      "a": "CMHA will hold HAP at the landlord's request during an eviction. Its Landlord FAQ says that if the tenant remains in the unit and the unit is not in abatement, the landlord may receive all withheld HAP payments, whether or not the landlord won or lost the eviction. Both conditions matter, and CMHA's word is \"may.\""
+    },
+    {
+      "q": "Do I need CMHA's permission to evict a voucher tenant?",
+      "a": "CMHA's published guidance covers two things: landlords and tenants must give the Housing Choice Voucher Program a copy of any eviction notice, and CMHA will hold HAP on request while the case runs. The case itself is a court matter under R.C. Chapter 1923, and the court encourages subsidized landlords to consult an attorney before filing."
+    },
+    {
+      "q": "Can I evict because CMHA abated my rent?",
+      "a": "No. 24 CFR 982.404(d)(3) states that an owner may not terminate the tenancy of any family due to the withholding or abatement of assistance. CMHA abates after two consecutive failed inspections and may terminate the HAP contract after 30 days of abatement. The fix is the repair, not the courthouse."
+    },
+    {
+      "q": "What notice ends a month-to-month voucher tenancy in Ohio?",
+      "a": "R.C. 5321.17 requires at least 30 days' notice before the periodic rental date for a month-to-month tenancy, and at least seven days for week-to-week. That notice ends the tenancy; it is not an eviction. If the household stays past the termination date, R.C. 1923.04's three-day notice and a court complaint still come next."
+    }
+  ],
+  "sources": [
+    "https://www.clevelandhousingcourt.org/sites/default/files/faq-evictions---2020.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-1923.04",
+    "https://codes.ohio.gov/ohio-revised-code/section-1923.06",
+    "https://codes.ohio.gov/ohio-revised-code/section-1923.08",
+    "https://codes.ohio.gov/ohio-revised-code/section-1923.14",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.17",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.04",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-landlord-forms",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/Automatic%20Deposit%20Form.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

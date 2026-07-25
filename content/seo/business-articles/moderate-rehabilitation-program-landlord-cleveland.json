@@ -1,0 +1,120 @@
+{
+  "slug": "moderate-rehabilitation-program-landlord-cleveland",
+  "section": "section-8-landlords",
+  "title": "CMHA Moderate Rehabilitation (Mod Rehab): The Other Project-Based Subsidy",
+  "metaTitle": "Section 8 Mod Rehab vs PBV: Cleveland Landlords",
+  "metaDescription": "CMHA's Section 8 Moderate Rehabilitation program is a project-based subsidy under 24 CFR Part 882. How Mod Rehab differs from a PBV for Cleveland landlords.",
+  "primaryKeyword": "section 8 moderate rehabilitation program landlord",
+  "secondaryKeywords": ["mod rehab vs project-based voucher", "24 CFR Part 882 landlord", "CMHA project-based subsidy Cleveland"],
+  "answerBox": "The Section 8 Moderate Rehabilitation (Mod Rehab) program is a project-based rental subsidy codified at 24 CFR Part 882, separate from tenant-based vouchers (Part 982) and Project-Based Vouchers (Part 983). Like a PBV, the subsidy attaches to the unit rather than the tenant, so it stays with the building when a renter leaves.",
+  "sections": [
+    {
+      "h2": "What the Section 8 Moderate Rehabilitation program is",
+      "body": [
+        "Moderate Rehabilitation - almost always written **Mod Rehab** - is a Section 8 rental-assistance program that lives in its own corner of federal law. It is codified at **24 CFR Part 882**, a separate regulatory part from the tenant-based Housing Choice Voucher rules (Part 982) and the [Project-Based Voucher](/project-based-vouchers-landlords-cleveland/) rules (Part 983).",
+        "CMHA runs it. On its own combined property page, CMHA describes \"Project-Based Vouchers (PBVs) and Moderate Rehabilitation (Mod/Rehab)\" as \"two programs that provide vouchers that are for specific units in a privately-owned rental property.\" The subsidy is tied to the **unit**, not to a household - so when the assisted tenant moves out, the assistance stays with the building for the next eligible occupant.",
+        "Both programs share one list: EDEN's supportive-housing building The Lotus (1417 E 45th Street) appears on CMHA's PBV & Mod/Rehab property list. If you rent to that kind of tenant, our guide to [renting to EDEN supportive-housing tenants](/renting-to-eden-supportive-housing-tenants-cleveland/) covers the mechanics."
+      ]
+    },
+    {
+      "h2": "How Mod Rehab and a PBV look alike to an owner",
+      "body": [
+        "From an owner's chair, Mod Rehab and a PBV rhyme. Both are \"project-based\" in the plain sense - the money follows the unit - and both run through the same Section 8 plumbing you already know: a Housing Assistance Payment (HAP) contract with CMHA, an inspection, and CMHA paying a share of the rent directly to you each month.",
+        "CMHA spells out the tenant economics most clearly on the PBV side: \"Tenants with PBVs pay 30% of their income for rent and utilities and the rest of their housing costs are paid by CMHA,\" and they \"are assisted as long as they live in the unit and continue to qualify.\""
+      ]
+    },
+    {
+      "h2": "Where the two programs differ",
+      "body": [
+        "The honest answer: less is published about Mod Rehab than about PBV, and that gap is itself the practical difference for an owner.",
+        "PBV terms are documented and long. Under 24 CFR 983.205 a PHA \"may enter into a HAP contract with an owner for an initial term of up to 20 years for each contract unit,\" each extension \"must have a term that does not exceed 20 years,\" and the total remaining term with extensions \"[may never] exceed 40 years\" - versus the typically one-year HAP term of a standard tenant-based voucher (see our [PBV vs. tenant-based voucher](/pbv-vs-tenant-based-voucher-cleveland/) comparison). HUD also notes a PHA \"can generally project-base up to 20 percent of its authorized voucher units,\" and many core Part 982 rules still apply on top of the Part 983 PBV rules.",
+        "Mod Rehab's owner-facing contract mechanics - term length, renewal, who signs - are **not published by CMHA**, and it is not publicly stated whether new Mod Rehab contracts are being written. Treat the specifics of any Mod Rehab arrangement as something to confirm directly with CMHA (or with us) before you sign, rather than assuming they match PBV."
+      ],
+      "table": {
+        "headers": ["Feature", "Project-Based Voucher (Part 983)", "Moderate Rehabilitation (Part 882)"],
+        "rows": [
+          ["Subsidy attaches to", "The unit - stays with the building", "The unit - stays with the building"],
+          ["HAP contract term", "Up to 20 years initial; 40-year cap with extensions", "Not published by CMHA - confirm directly"],
+          ["Share of a PHA's vouchers", "Generally up to 20% project-based", "Not published"],
+          ["Inspection standard", "HQS today; NSPIRE mandatory Feb 1, 2027", "HQS today; NSPIRE mandatory Feb 1, 2027"],
+          ["On CMHA's property list", "Yes - PBV & Mod/Rehab list", "Yes - PBV & Mod/Rehab list"]
+        ]
+      }
+    },
+    {
+      "h2": "What's identical either way - the inspection",
+      "body": [
+        "One thing you don't have to guess about: Mod Rehab and PBV units are inspected on the same footing as regular vouchers. Housing Quality Standards (HQS), not NSPIRE, still govern today - HUD's third extension pushes the NSPIRE compliance date for the Housing Choice Voucher, Project-Based Voucher and Section 8 Moderate Rehabilitation programs to **February 1, 2027**."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "HQS applies now; NSPIRE becomes mandatory for these units on February 1, 2027.",
+          "NSPIRE scores pass/fail across three areas - Unit, Inside, Outside.",
+          "Life-threatening items: fix within 24 hours. Severe/Moderate: 30 days. Low: passes.",
+          "A real perk: 24 CFR 5.707 exempts HCV, PBV and Section 8 Mod Rehab landlords from any self-inspection requirement."
+        ]
+      }
+    },
+    {
+      "h2": "The Mod Rehab \"SRO\" variant, and where it went",
+      "body": [
+        "If you've come across \"Mod Rehab SRO,\" that is the Moderate Rehabilitation Single Room Occupancy program for homeless individuals, historically part of the same Part 882 family.",
+        "It is largely a historical label now. The HEARTH Act of 2009 consolidated three McKinney-Vento programs - the Supportive Housing Program, Shelter Plus Care, and the Section 8 Moderate Rehabilitation SRO program - into the single **Continuum of Care (CoC)** Program, so \"Shelter Plus Care\" no longer exists as a standalone funding stream. If a nonprofit approaches you about a homeless-set-aside unit, you're most likely looking at CoC leasing, not classic Mod Rehab - our [Continuum of Care leasing guide](/continuum-of-care-leasing-landlord-cleveland/) explains how those contracts pay."
+      ]
+    },
+    {
+      "h2": "Renting a unit to CMHA under any of these programs",
+      "body": [
+        "Whichever Section 8 subsidy is on the table, the path in is the same CMHA machinery: advertise the property, attend Mandatory Landlord Orientation, screen the tenant, submit the RFTA packet, accept the rent offer, pass the inspection, then sign the HAP contract and lease.",
+        "That orientation is now a gate. Effective **January 1, 2026**, submitting an RFTA triggers a requirement that the owner or managing agent complete CMHA's Virtual Landlord Orientation - a roughly 90-minute live session, required once every 24 months and booked through Eventbrite - before CMHA can execute a HAP contract for a new tenancy. Existing HAP contracts and current payments are not affected.",
+        "And a point of law worth stating plainly: in the City of Cleveland, source of income is not a protected class, so an owner may lawfully decline vouchers. Nothing here says you must say yes to Mod Rehab or PBV - but a unit-anchored subsidy that stays with the building is worth understanding before you decide."
+      ]
+    },
+    {
+      "h2": "How we help",
+      "body": [
+        "We have already completed CMHA's mandatory Virtual Landlord Orientation, so a HAP contract for a new tenancy won't stall on the training step, and we can help you get the Mod Rehab specifics straight from CMHA before you commit.",
+        "Our terms are simple: **tenant placement is one month's rent, charged only after we place a tenant** - no placement, no fee. We attend the CMHA inspection and send a written report for **$100** (or you attend yourself), and ongoing management is **5% of monthly rent, only while rented**. Repair estimates are free, itemized, and back within 24 hours - nothing starts without your approval.",
+        "Call **(440) 444-4737** or start with our [stress-free Section 8 overview](/section8stressfree). We serve Greater Cleveland and Cuyahoga County under CMHA."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is Moderate Rehabilitation the same as a Project-Based Voucher?",
+      "a": "No. Both are Section 8 subsidies that attach to a specific unit rather than the tenant, and CMHA lists both on one PBV & Mod/Rehab property list. But they sit under different federal rules - PBV under 24 CFR Part 983, Mod Rehab under 24 CFR Part 882 - and CMHA does not publish the same owner-facing contract terms for Mod Rehab."
+    },
+    {
+      "q": "How long does a Mod Rehab HAP contract run?",
+      "a": "CMHA does not publish owner-facing Mod Rehab contract terms - length, renewal, or who signs - so we can't state a number. For comparison, a PBV HAP contract can run up to 20 years initially, capped at 40 years with extensions. Confirm any Mod Rehab specifics directly with CMHA before you sign."
+    },
+    {
+      "q": "Which inspection standard applies to a Mod Rehab unit?",
+      "a": "The same one as regular vouchers. Housing Quality Standards govern today; HUD extended the NSPIRE compliance date for the HCV, PBV and Section 8 Mod Rehab programs to February 1, 2027. Under NSPIRE, inspections are pass/fail across three areas, with life-threatening items due in 24 hours and severe or moderate items in 30 days."
+    },
+    {
+      "q": "Does CMHA still sign new Moderate Rehabilitation contracts?",
+      "a": "CMHA's own materials present both PBV and Mod Rehab as programs it operates for specific units in privately owned property, but CMHA does not publish whether new Mod Rehab contracts are currently being written or what their owner terms are. Ask CMHA directly, or call us at (440) 444-4737 for help."
+    },
+    {
+      "q": "Do I have to accept a voucher or Mod Rehab tenant in Cleveland?",
+      "a": "No. The City of Cleveland's protected classes do not include source of income, so an owner may lawfully decline vouchers. We think a unit-anchored Section 8 subsidy is worth considering because the assistance stays with the building - but the decision is yours, and we're happy to walk you through it first."
+    }
+  ],
+  "sources": [
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-VIII/part-882",
+    "https://www.cmha.net/housing/voucher_holders/pbv_mod_rehab_property_map_.php",
+    "https://www.cmha.net/housing/applicants/project_based_vouchers.php",
+    "https://www.law.cornell.edu/cfr/text/24/983.205",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-project",
+    "https://www.federalregister.gov/documents/2025/09/30/2025-19070/economic-growth-regulatory-relief-and-consumer-protection-act-implementation-of-national-standards",
+    "https://www.ecfr.gov/current/title-24/subtitle-A/part-5/subpart-G/section-5.703",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://www.hudexchange.info/homelessness-assistance/hearth-act/",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+  ],
+  "lastUpdated": "2026-07-22"
+}

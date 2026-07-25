@@ -3,7 +3,7 @@
   "section": "section-8-landlords",
   "title": "Is Section 8 Rent Really Guaranteed? What CMHA Pays and What It Doesn't",
   "metaTitle": "Is Section 8 Rent Guaranteed? What CMHA Pays",
-  "metaDescription": "Is Section 8 rent guaranteed? CMHA's payment covers only its own share, the tenant owes the rest, and a failed inspection can stop the money permanently.",
+  "metaDescription": "Is Section 8 rent guaranteed? CMHA's payment covers only its share, the tenant owes the rest, and a failed inspection can cost money you never get back.",
   "primaryKeyword": "is section 8 rent guaranteed",
   "secondaryKeywords": [
     "does cmha pay all the rent",
@@ -12,7 +12,7 @@
     "section 8 tenant portion of rent",
     "cmha guaranteed rent landlord"
   ],
-  "answerBox": "CMHA's marketing promises \"stable, guaranteed rent payments deposited directly into your account.\" That covers only CMHA's share — the housing assistance payment. The tenant still owes their own portion directly to you, and CMHA can withhold its share after a failed inspection, or abate it permanently if repairs miss the cure period.",
+  "answerBox": "CMHA's marketing promises \"stable, guaranteed rent payments deposited directly into your account.\" That covers only CMHA's share — the housing assistance payment. The tenant still owes their own portion directly to you, and CMHA can withhold its share after a failed inspection, or abate it — money you never get back — once repairs miss the cure period.",
   "sections": [
     {
       "h2": "CMHA Says \"Guaranteed.\" Here Is What the Word Covers",
@@ -26,7 +26,7 @@
       "body": [
         "Two formulas decide the division, both from CMHA's Landlord Participation Guide (undated — confirm current figures with CMHA).",
         "CMHA works from **gross rent**, not from your advertised rent. And the payment standard caps subsidy, not rent — CMHA states it \"is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" Standards are set per ZIP code: CMHA's FY2026 two-bedroom standard runs from $1,096 in 44127 to $2,169 in 44113.",
-        "What is left after CMHA's share is the tenant's portion, paid to you directly. No part of the program guarantees it. CMHA caps it at move-in — on an initial contract it cannot exceed 40% of the family's monthly income, and above that CMHA negotiates the rent down — and forbids private adjustment: side deals \"are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\""
+        "What is left after CMHA's share is the tenant's portion, paid to you directly. No part of the program guarantees it. CMHA caps it at move-in — on an initial contract it cannot exceed 40% of the family's monthly adjusted income, and above that CMHA negotiates the rent down — and forbids private adjustment: side deals \"are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\""
       ],
       "list": {
         "type": "ul",
@@ -48,7 +48,7 @@
     {
       "h2": "Seven Ways the Payment Stops, Shrinks, or Never Starts",
       "body": [
-        "CMHA's share moves on schedule while the contract is in force and the unit is compliant. Outside those conditions, money can be **held** — or **lost**."
+        "CMHA's share lands on those published dates only while the contract is in force and the unit is compliant. Outside those conditions, money can be **held** — or **lost**."
       ],
       "table": {
         "headers": ["What happens", "Effect on CMHA's payment", "Can you recover it?"],
@@ -91,7 +91,7 @@
     },
     {
       "q": "Who collects the tenant's portion?",
-      "a": "You do, directly from the tenant, as in any tenancy. CMHA sets the amount and prohibits side deals: a family paying more than its CMHA-determined share can be terminated, and the landlord disbarred, suspended, or subject to a limited denial of participation. On an initial contract that portion cannot exceed 40% of monthly income."
+      "a": "You do, directly from the tenant, as in any tenancy. CMHA sets the amount and prohibits side deals: a family paying more than its CMHA-determined share can be terminated, and the landlord disbarred, suspended, or subject to a limited denial of participation. On an initial contract that portion cannot exceed 40% of monthly adjusted income."
     },
     {
       "q": "Under what circumstances does CMHA stop paying?",

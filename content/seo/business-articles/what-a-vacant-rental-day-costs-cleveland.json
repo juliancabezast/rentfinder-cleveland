@@ -1,0 +1,182 @@
+{
+ "slug": "what-a-vacant-rental-day-costs-cleveland",
+ "section": "section-8-landlords",
+ "title": "What One Vacant Day Costs a Cleveland Landlord",
+ "metaTitle": "What a Vacant Day Costs a Cleveland Landlord",
+ "metaDescription": "The cost of a vacant rental property in Cleveland, worked out day by day from published rents — plus how much vacancy is actually normal in this metro.",
+ "primaryKeyword": "cost of a vacant rental property",
+ "secondaryKeywords": [
+  "cleveland rental vacancy rate",
+  "how much does vacancy cost a landlord",
+  "days on market cleveland rental",
+  "vacancy loss cuyahoga county rental"
+ ],
+ "answerBox": "Nobody publishes a cost-per-vacant-day for Cleveland, so you derive it: monthly rent divided by 30. At HUD's FY2026 two-bedroom Fair Market Rent of $1,279 for the Cleveland metro, that is $42.63 a day. At Yardi Matrix's February 2026 average asking rent of $1,246, it is $41.53.",
+ "sections": [
+  {
+   "h2": "The number nobody publishes, and how to get it anyway",
+   "body": [
+    "No one publishes a cost-per-vacant-day figure for Cleveland — or, as far as we can find, for anywhere. The only honest way to hold the number is to derive it, and the derivation is dull on purpose: take the rent the unit would collect in a month, divide by 30.",
+    "Use your own contract rent. If you do not have one, HUD's Fair Market Rent is a published anchor: for FY2026 the Cleveland, OH HUD Metro FMR Area — Cuyahoga, Geauga, Lake, Lorain and Medina counties — is $933 efficiency, $1,058 one-bedroom, $1,279 two-bedroom, $1,646 three-bedroom and $1,760 four-bedroom, effective October 1, 2025 and revised May 21, 2026.",
+    "That daily column is **our arithmetic on HUD's rents**, not a measured statistic, and Fair Market Rent is a five-county benchmark, not a market rent for your street. A second anchor: Yardi Matrix put the metro's average advertised asking rent at $1,246 in February 2026, up 2.8% year over year."
+   ],
+   "table": {
+    "headers": [
+     "Unit size",
+     "FY2026 Cleveland metro Fair Market Rent",
+     "Lost per vacant day (our arithmetic: rent ÷ 30)"
+    ],
+    "rows": [
+     [
+      "Efficiency",
+      "$933",
+      "$31.10"
+     ],
+     [
+      "One-bedroom",
+      "$1,058",
+      "$35.27"
+     ],
+     [
+      "Two-bedroom",
+      "$1,279",
+      "$42.63"
+     ],
+     [
+      "Three-bedroom",
+      "$1,646",
+      "$54.87"
+     ],
+     [
+      "Four-bedroom",
+      "$1,760",
+      "$58.67"
+     ]
+    ]
+   }
+  },
+  {
+   "h2": "What the daily number leaves out",
+   "body": [
+    "That figure is gross rent never collected — the floor of the loss, not all of it. The mortgage, taxes and insurance keep their schedule, utilities revert to your name, and turnover labor lands on top. Nothing offsets it from the housing authority's side: CMHA publishes no vacancy-loss payment, signing bonus or damage-mitigation fund for ordinary voucher landlords, and the word \"vacancy\" appears nowhere in its Landlord Participation Guide.",
+    "Nor is the last vacant day always the first paid day. CMHA states that HAP \"[p]ayment dates are generally on the 3rd and 16th of each month,\" and pays a new contract on the next scheduled date after HCVP has the signed contracts, the executed lease and the occupancy permit where applicable."
+   ]
+  },
+  {
+   "h2": "So how much vacancy is normal in Greater Cleveland?",
+   "body": [
+    "Less settled than you would hope, and the first thing to know is what does not exist: there is no published Cleveland days-on-market figure. RentCafe's Rental Competitiveness Index ranks 139 markets and Cleveland is not among them; its **46 days** to fill at 92.7% occupancy in early 2026 is a national average.",
+    "Vacancy rate is measured, but the readings disagree — and all are metro-wide, not county or city."
+   ],
+   "table": {
+    "headers": [
+     "Source (all metro-wide)",
+     "Reading",
+     "What it is"
+    ],
+    "rows": [
+     [
+      "Census Bureau Housing Vacancy Survey, Q1 2026",
+      "8.1% rental vacancy, ±4.0 points",
+      "Government survey, wide error band"
+     ],
+     [
+      "Census HVS, 2025 quarters",
+      "6.0% / 3.3% / 4.4% / 11.7%",
+      "Same survey, 8+ point swing in a year"
+     ],
+     [
+      "Yardi Matrix, February 2026",
+      "94.5% occupancy, stabilized assets",
+      "Private tracker, apartments"
+     ],
+     [
+      "Colliers, Q1 2026",
+      "95.8% occupancy, ~7,533 vacant units",
+      "Private data, reported April 2026"
+     ]
+    ]
+   }
+  },
+  {
+   "h2": "Two local time-to-lease benchmarks, and what they are worth",
+   "body": [
+    "Read that table sideways rather than picking a winner. The government survey's error band is wider than the gap between a tight market and a soft one — its 2025 quarters carried margins of error of ±3.0 to ±5.5 points. The private trackers are steadier, and both measure apartments only.",
+    "For time on market, Greater Cleveland offers two published reference points, neither a survey. One local manager advertises a **\"39-Day Guarantee\"** on placement — a marketing promise. Another's published fee guide estimates \"a realistic vacancy estimate for most single-family properties is two to four weeks annually\" here — one company's estimate.",
+    "The second prices out cleanly: 14 to 28 days at the two-bedroom figure of $42.63 is roughly **$597 to $1,194 a year**. Our arithmetic on one firm's estimate — a planning band, not a forecast."
+   ]
+  },
+  {
+   "h2": "Where vacant days go on a voucher deal",
+   "body": [
+    "Vacancy has three buckets: turnover work, marketing and showing time, and — on a voucher deal — the clocks between an accepted applicant and an executed contract. Only the third is published, and only as policy targets; CMHA publishes no statistics on actual turnaround."
+   ],
+   "list": {
+    "type": "ul",
+    "items": [
+     "**Inspection and decision: 15 days.** CMHA policy is to inspect, decide and notify owner and family within 15 days of the RFTA being submitted — with the clock suspended while the unit is unavailable for inspection.",
+     "**Tenancy determination: 10 business days** from CMHA receiving all required information.",
+     "**Re-inspection after a fail: 5 business days** from the date the owner reports corrections are made.",
+     "**Outer limit: 60 calendar days.** The HAP contract must be executed no later than 60 calendar days from the beginning of the lease term; any contract executed later is void."
+    ]
+   }
+  },
+  {
+   "h2": "The vacant days you can actually control",
+   "body": [
+    "Those are targets on paper, from CMHA's FY2025 Administrative Plan. The days you genuinely govern come before any clock starts. Since **January 1, 2026**, submitting an RFTA triggers a requirement that the owner or designated managing agent complete CMHA's Virtual Landlord Orientation — once every 24 months, and before CMHA can execute a HAP contract for a new tenancy. It is a live virtual session of about 90 minutes; existing contracts and payments are unaffected. Discovering it with an applicant already waiting costs empty days. **We have completed ours.**",
+    "The rest is mundane. CMHA will not accept missing RFTA information or corrections by phone — deficiencies must be fixed in writing. A Certificate of Occupancy or Rental Registration is collected with the RFTA in 17 named suburbs, and since October 1, 2025 CMHA verifies City of Cleveland registrations through the City's Citizen Access Portal. [Why RFTAs stall](/why-your-rfta-is-taking-so-long-cmha/) has the rest."
+   ]
+  },
+  {
+   "h2": "Break-even, priced in vacant days",
+   "body": [
+    "Convert every quote into vacant days and the decisions get simpler. A placement fee of one month's rent is about 30 vacant days at that rent, so it earns its keep only if it removes roughly a month of empty time. A Cleveland manager's guide puts local placement fees at \"fifty to one hundred percent of one month's rent,\" so the same test runs from 15 days to 30. [The break-even math](/is-a-property-manager-worth-it-cleveland/) covers the ongoing side.",
+    "Voucher demand is one lever — CMHA testimony to the U.S. Commission on Civil Rights put roughly 15,000 voucher holders in Cuyahoga County — and nothing obliges you to pull it. Source of income is not a protected class in the City of Cleveland, so declining a voucher is lawful here; whether the extra steps pay is [our decision guide](/should-i-accept-section-8-cleveland/).",
+    "Ours, plainly: **placement is one month's rent, charged only after the tenant is placed** — no placement, no fee. Management is **5% of monthly rent**, only while rented. Inspection attendance with a written report is **$100**, or attend yourself for nothing. Repair estimates come back free and itemized inside 24 hours, and nothing starts without your approval — a repair sitting unpriced is a vacant day. Greater Cleveland and Cuyahoga County only. Call **(440) 444-4737**, or see [Section 8, stress free](/section8stressfree)."
+   ]
+  }
+ ],
+ "faq": [
+  {
+   "q": "How do I calculate what one vacant day costs me?",
+   "a": "Divide the monthly rent by 30. No agency publishes a cost-per-vacant-day for Cleveland, so this is arithmetic, not a statistic. On HUD's FY2026 Cleveland metro Fair Market Rents, a vacant day runs $31.10 on an efficiency, $42.63 on a two-bedroom, $58.67 on a four-bedroom."
+  },
+  {
+   "q": "What is a normal vacancy rate for a Cleveland rental?",
+   "a": "There is no single trustworthy answer. The Census Bureau put the Cleveland metro rental vacancy rate at 8.1% in Q1 2026, with a margin of error of plus or minus 4.0 points, and its 2025 quarters ran 6.0%, 3.3%, 4.4% and 11.7%. Private trackers are steadier: Yardi Matrix reported 94.5% occupancy in February 2026, Colliers 95.8%."
+  },
+  {
+   "q": "How many days does a Cleveland rental sit empty?",
+   "a": "Nobody publishes that figure for this market — RentCafe's index ranks 139 markets and Cleveland is not one of them, and its 46-day average is national. Locally there are two reference points, neither a survey: one manager advertises a 39-day placement guarantee, another estimates two to four weeks of vacancy a year on single-family properties."
+  },
+  {
+   "q": "Does CMHA pay a landlord anything for a vacant unit?",
+   "a": "No. CMHA publishes no vacancy-loss payment, no signing bonus and no damage-mitigation fund for ordinary voucher landlords, and the word vacancy does not appear once in its Landlord Participation Guide. The only advertised cash bonus in the county — 50% of one month's rent at lease-up — belongs to the separate Cuyahoga Community Choice Demonstration, for its own clients in designated Opportunity Areas."
+  },
+  {
+   "q": "Do voucher tenancies add vacant days?",
+   "a": "They add published clocks: 15 days from RFTA submission to inspection and decision, 10 business days for the tenancy determination, 5 business days for a re-inspection once corrections are made. CMHA publishes no actual turnaround statistics. The bigger risk is self-inflicted — an incomplete RFTA, a lapsed rental registration, or a skipped landlord orientation."
+  }
+ ],
+ "sources": [
+  "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+  "https://www.huduser.gov/portal/datasets/fmr.html",
+  "https://www.yardimatrix.com/blog/cleveland-multifamily-market-report/",
+  "https://neo-trans.blog/2026/04/28/cleveland-has-ohios-highest-apartment-rents/",
+  "https://www.census.gov/housing/hvs/data/rates/tab4_msa_26_rvr.xlsx",
+  "https://www.census.gov/housing/hvs/data/rates/tab4b_msa_15_25_rvr.xlsx",
+  "https://www.rentcafe.com/blog/rental-market/rental-competitiveness-index/us-hottest-rental-markets/",
+  "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+  "https://www.iip-management.com/",
+  "https://www.cmha.net/housing/landlords/landlord_faq.php",
+  "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+  "https://www.cmha.net/housing/landlords/training.php",
+  "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+  "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+  "https://cuyahogamobility.org/property-owners/",
+  "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+  "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+ ],
+ "lastUpdated": "2026-07-21"
+}

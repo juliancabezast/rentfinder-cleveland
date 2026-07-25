@@ -1,0 +1,117 @@
+{
+  "slug": "first-hap-payment-proration-cleveland",
+  "section": "section-8-landlords",
+  "title": "Your First HAP Check: How CMHA Prorates the First Month",
+  "metaTitle": "Your First HAP Check: CMHA First-Month Proration",
+  "metaDescription": "First HAP payment proration in Cleveland: how CMHA times your first check, prorates the partial first month, and pays back to your lease-start date.",
+  "primaryKeyword": "first hap payment proration cmha cleveland",
+  "secondaryKeywords": ["cmha hap payment dates", "when does first section 8 check come cleveland", "cmha hap disbursement calendar 2026", "prorated first month hap"],
+  "answerBox": "CMHA cannot pay any HAP until your HAP contract is executed, then pays on its scheduled runs — generally the 3rd and 16th. A new tenancy is a \"new admission,\" so the first check often lands on a mid-month disbursement, and if your lease began after the 1st, that first payment is prorated for a partial month.",
+  "sections": [
+    {
+      "h2": "When your first HAP check actually lands",
+      "body": [
+        "One rule governs everything else: **CMHA may not pay any HAP before your HAP contract is executed.** Signing the HAP contract and lease is step 7 of CMHA's seven-step landlord path — until you and CMHA sign it, there is no payment, however long the tenant has occupied the unit. Once executed, payment moves on the normal schedule.",
+        "CMHA makes monthly HAP payments at the beginning of each month and states its payment dates are \"generally on the 3rd and 16th of each month.\" Its 2026 HAP Payment Calendar splits each month into two runs: a **Primary HAP Disbursement** and a **Mid-Month HAP Disbursement**, the latter for \"approved adjustments such as new admissions, contract changes, corrections, or other qualifying payment updates that occur after the primary payment has been processed.\"",
+        "That matters for a first check. A brand-new tenancy is a **new admission**, so if your contract is executed after a month's primary run has processed, the first HAP commonly lands on the following mid-month disbursement rather than the next primary run. All 2026 dates are \"subject to change due to holidays or operational needs\":"
+      ],
+      "table": {
+        "headers": ["Month (2026)", "Primary disbursement", "Mid-month disbursement"],
+        "rows": [
+          ["January", "Jan 5", "Jan 20"],
+          ["February", "Feb 3", "Feb 17"],
+          ["March", "Mar 3", "Mar 16"],
+          ["April", "Apr 3", "Apr 16"],
+          ["May", "May 4", "May 15"],
+          ["June", "Jun 3", "Jun 15"],
+          ["July", "Jul 3", "Jul 15"],
+          ["August", "Aug 4", "Aug 17"],
+          ["September", "Sep 3", "Sep 15"],
+          ["October", "Oct 2", "Oct 15"],
+          ["November", "Nov 3", "Nov 16"],
+          ["December", "Dec 3", "Dec 15"]
+        ]
+      }
+    },
+    {
+      "h2": "There is no promised \"first check in X days\"",
+      "body": [
+        "CMHA publishes no average elapsed time from RFTA to a first deposit — be skeptical of anyone who quotes one, since some circulating timelines belong to a different agency. What CMHA does publish are **policy targets**: it aims to inspect the unit, decide whether it passes, and notify you \"within 15 days of submission of the Request for Tenancy Approval,\" and to \"complete its determination within 10 business days of receiving all required information.\" Those are targets, not a guaranteed deposit date."
+      ]
+    },
+    {
+      "h2": "How CMHA prorates that first partial month",
+      "body": [
+        "CMHA's rule is short: it makes monthly HAP payments at the beginning of each month, and \"[i]f a lease term begins after the first of the month, the HAP payment for the first month is prorated for a partial month.\"",
+        "A full month's HAP applies only to a full calendar month. If your lease starts mid-month, the first payment covers only the days from your start date through month-end, and full monthly HAP begins the following month. For illustration only: on a $1,200 monthly HAP with a lease beginning the 16th of a 30-day month, roughly half the month is covered, so the first payment is a partial amount, with the full $1,200 the next month.",
+        "A first deposit also looks small because the check is only the **HAP portion** — your tenant pays their own share directly to you. With a partial month on top of that split, it can be a fraction of what you will see later; see [tenant portion vs. HAP portion](/tenant-portion-vs-hap-portion-cleveland/)."
+      ]
+    },
+    {
+      "h2": "You don't lose the weeks before the contract is signed",
+      "body": [
+        "Often the unit passed and the lease started, but the HAP contract is still moving through CMHA. Do you eat those days? Generally no.",
+        "The HAP contract \"must be executed no later than 60 calendar days from the beginning of the lease term.\" CMHA may not pay before execution, **but if the contract is executed inside that 60-day window, it will pay for the portion of the lease term before execution** — back to your lease-start date, including that prorated first month. The catch is a hard cliff: \"Any HAP contract executed after the 60-day period is void,\" so a contract executed on day 61 is not merely late — the assistance for that tenancy is lost.",
+        "This retroactive protection assumes the tenant moved in on the **CMHA-approved date.** If you hand over keys early, CMHA is explicit: \"If the owner permits the tenant to move into the unit, the tenant will be responsible for the full amount of the rent and HCVP will not pay the back amount retroactively.\" Wait for the approved date."
+      ]
+    },
+    {
+      "h2": "What has to be in place before any money moves",
+      "body": [
+        "Even a signed lease will not trigger a deposit until each of these is done — a missing item here is the most common reason a first check stalls:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Mandatory Landlord Orientation completed.** Since January 1, 2026, an owner or managing agent who has not trained with CMHA in the prior 24 months must complete CMHA's Virtual Landlord Orientation, and it must be completed before CMHA can execute a HAP contract for a new tenancy.",
+          "**W-9 on file.** CMHA \"will not execute the HAP contract until the owner has submitted IRS form W-9.\" This is also what generates your 1099 — see [Section 8 rental income and taxes](/section-8-rental-income-taxes-cleveland/).",
+          "**Direct deposit enrolled.** \"All owners are required to go on direct deposit to receive HAP payments.\" You enroll with the Automatic Deposit form (ACH credit authorization) plus a voided check, mailed to HCVP Finance, 8120 Kinsman Road, Cleveland, Ohio 44104.",
+          "**HAP contract executed.** Signing the HAP contract and lease is the event that unlocks payment — nothing is paid before it."
+        ]
+      }
+    },
+    {
+      "h2": "Reading your first check — and who to call",
+      "body": [
+        "Because it is prorated and may land on a mid-month run, the first deposit can look smaller than expected. The **Landlord Portal** gives owners 24-hour access to HAP payment information and the HAP payment calendar plus a ledger you can export to Excel or PDF.",
+        "A small first check is usually just the prorated period, not an error; pricing right at the offer stage sets the HAP amount — see [how to price your rental to the CMHA payment standard](/how-to-price-your-rental-to-cmha-payment-standard-cleveland/). HAP payment questions go to CMHA HCVP Finance at 216.271.2495 or financehcvp@cmha.net. Once payments flow, the usual thing that interrupts them later is an uncorrected failed inspection — see [HAP abatement vs. termination](/hap-abatement-vs-termination-cleveland/)."
+      ]
+    },
+    {
+      "h2": "How Rent Finder Cleveland gets your first check moving",
+      "body": [
+        "We have already completed CMHA's mandatory Virtual Landlord Orientation. Because that training now gates every new HAP contract, having it done before your tenant's RFTA goes in removes one prerequisite between lease-up and your first deposit.",
+        "Our terms are paid on results: tenant placement is **one month's rent, charged only after the tenant is placed** — no placement, no fee. Inspection attendance with a written report is **$100** (or you attend yourself), and ongoing management is **5% of monthly rent, only while the unit is rented.** Repair estimates are free, itemized, and back within 24 hours, with nothing starting without your approval.",
+        "See how the process works on [Section 8, stress-free](/section8stressfree), read the rest of our [Section 8 landlord guides](/section-8-landlords/), or call **(440) 444-4737**."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When will I get my first HAP check after the lease starts?",
+      "a": "Not until your HAP contract is executed — CMHA cannot pay any HAP before that. Once it is executed, payment moves on CMHA's runs, generally the 3rd and 16th. Because a new tenancy is a \"new admission,\" the first check often lands on a mid-month disbursement. CMHA publishes no guaranteed elapsed time from RFTA to first check."
+    },
+    {
+      "q": "How is the first month prorated?",
+      "a": "CMHA's rule is that \"if a lease term begins after the first of the month, the HAP payment for the first month is prorated for a partial month.\" You are paid for the days from your lease-start date through the end of that month, not a full month. Full monthly HAP then begins the following month."
+    },
+    {
+      "q": "Do I lose the rent for the weeks before the contract was signed?",
+      "a": "Generally no. The HAP contract must be executed within 60 calendar days of the lease start; if it is, CMHA pays for the portion of the lease term before execution, back to your lease-start date, including the prorated first month. But a contract executed after the 60-day window is void, and the assistance for that tenancy is lost."
+    },
+    {
+      "q": "The tenant wants to move in before CMHA's approved date — is that okay?",
+      "a": "No. CMHA states that if the owner permits early move-in, \"the tenant will be responsible for the full amount of the rent and HCVP will not pay the back amount retroactively.\" Early move-in forfeits the retroactive coverage you would otherwise get for the pre-execution period. Wait for the CMHA-approved date."
+    }
+  ],
+  "sources": [
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/about_us/contact_us.php"
+  ],
+  "lastUpdated": "2026-07-22"
+}

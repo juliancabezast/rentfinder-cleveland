@@ -1,0 +1,180 @@
+{
+  "slug": "how-much-time-does-managing-a-rental-take",
+  "section": "section-8-landlords",
+  "title": "What Self-Managing a Rental Actually Costs You in Hours",
+  "metaTitle": "How Much Time Does Managing a Rental Take?",
+  "metaDescription": "How much time does managing a rental take? A Cleveland owner's honest breakdown of where the hours go: showings, screening, CMHA paperwork, repairs and rent.",
+  "primaryKeyword": "how much time does managing a rental take",
+  "secondaryKeywords": [
+    "self managing a rental cleveland",
+    "landlord hours per month",
+    "cmha landlord paperwork deadlines",
+    "is self managing a rental worth it cleveland"
+  ],
+  "answerBox": "There is no honest hours-per-month average — the work arrives in bursts around lease-up, inspections, repairs and turnover. What is countable are the deadlines: 24 hours on emergency repair items, 30 days on other deficiencies, five business days for a CMHA reinspection, and 60 days to execute a HAP contract.",
+  "sections": [
+    {
+      "h2": "Count the clocks, not the calendar",
+      "body": [
+        "Anyone answering **how much time does managing a rental take** with one tidy monthly number is selling something. On a Cuyahoga County voucher rental the hours arrive in bursts, because nearly every task is triggered by an event carrying a deadline somebody else set. Count those instead: the jobs CMHA and Ohio law assign to the owner, and the clocks attached."
+      ]
+    },
+    {
+      "h2": "Lease-up: the biggest block, and the one with no ceiling",
+      "body": [
+        "Filling the unit takes the most hours and carries the fewest deadlines, which is why it expands. CMHA does not market units for you — it points owners to free listings through affordablehousing.com or OhioHousingLocator.org and asks that any advertising you run say vouchers are welcome. After that, it is your phone."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Showings.** Inquiries, scheduling, no-shows, second trips across town — the only task with no clock on it, which is why it absorbs whatever time you have.",
+          "**Screening.** CMHA is blunt: \"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\" It supplies the family's current address and, if known, the landlord at the current and prior address.",
+          "**The voucher check.** Confirm the expiration date — 180 days from issue, per CMHA's landlord guide — and the unit size first; a family may have only one Request for Tenancy Approval in process at a time.",
+          "**Orientation.** Since **January 1, 2026**, filing an RFTA triggers CMHA's Virtual Landlord Orientation: about **90 minutes**, live and virtual, once every 24 months, verified before a HAP contract is executed on a new tenancy."
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "The hours spent here are the expensive ones",
+          "body": [
+            "A vacant day accrues while you decide. At HUD's FY2026 two-bedroom Fair Market Rent of **$1,279** for the Cleveland metro, that is roughly **$43 a day** in gross rent ($1,279 ÷ 30) — our arithmetic, not a published statistic. No Cleveland days-on-market figure exists to pair with it; the 46-day average fill time is national. [What a vacant day costs](/what-a-vacant-rental-day-costs-cleveland/)."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "Paperwork: the packet and the round trips",
+      "body": [
+        "The RFTA comes from the voucher holder, not from CMHA. Both family and owner sign it, and CMHA policy lets the owner file it on the family's behalf. The packet, nine documents per CMHA's landlord guide, goes to rfta@cmha.net or the kiosks at 8120 Kinsman Road.",
+        "Two details turn a form into a lost week. CMHA will not take missing information or corrections **by phone**, so every deficiency becomes a written round trip. And in 17 named suburbs — Parma, Lakewood and Cleveland Heights among them — a Certificate of Occupancy or Rental Registration must arrive with the packet. Since **October 1, 2025** CMHA also verifies City of Cleveland registrations through the City's Citizen Access Portal, and Residents First adds registration, a local agent based in Cuyahoga County and lead-safe certification valid two years."
+      ],
+      "table": {
+        "headers": [
+          "Clock",
+          "Length",
+          "Miss it and…"
+        ],
+        "rows": [
+          [
+            "Initial inspection and notice",
+            "15 days from the RFTA (CMHA target)",
+            "Paused while the unit is unavailable to inspect"
+          ],
+          [
+            "Tenancy determination",
+            "10 business days after all information",
+            "Incomplete information restarts the wait"
+          ],
+          [
+            "Reinspection after repairs",
+            "5 business days from your notice",
+            "Nothing moves until you send the notice"
+          ],
+          [
+            "Second initial inspection",
+            "7–10 days; two attempts total",
+            "A second failure sends the applicant elsewhere"
+          ],
+          [
+            "HAP contract execution",
+            "60 calendar days from lease start",
+            "Executed later, the contract is void"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "Repairs and inspections: hours you do not get to schedule",
+      "body": [
+        "Ohio's ten non-waivable landlord duties apply regardless of the voucher — habitable condition, working heating and plumbing fixtures, running water, safe common areas — and 24 hours is presumed reasonable notice before entry, so every contractor visit is also a scheduling task.",
+        "CMHA lists ten conditions to be corrected **within 24 hours**: among them a missing or inoperable smoke or carbon monoxide detector, no water, no heat between October 15 and April 15, and gas leak. Federal rule reads the same — 24 hours for life-threatening deficiencies, 30 calendar days for the rest — and when a tenant reports a problem the housing authority must inspect within 24 hours if life-threatening, 15 days if not. One mercy: verifying a fix can accept photographic evidence rather than a second visit."
+      ],
+      "h3s": [
+        {
+          "h3": "Missing the cure window changes the money",
+          "body": [
+            "Withheld payments come back once the unit complies. Abated payments do not — HUD defines abatement as stopping payments with no potential for retroactive payment. CMHA abates after two consecutive failed inspections, effective the first of the month after the second, while the family still owes its share. Federal rule then allows 60 days before the contract is terminated; CMHA separately publishes 30, so treat neither as settled. [Are CMHA inspections a dealbreaker?](/are-section-8-inspections-worth-it-cleveland/)"
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "Rent, and the part that ends up in court",
+      "body": [
+        "Collections are the easy half: direct deposit is mandatory and CMHA says payment dates are generally the 3rd and 16th. What you chase is the tenant's share, paid directly to you, which on an initial contract may be no more than 40% of the family's monthly adjusted income. When that breaks down, the hours stop being yours:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "A three-day notice to leave carrying Ohio's exact statutory language, before anything is filed.",
+          "Service at least seven days before trial, continuances capped at eight days, the writ of restitution executed within ten days of receipt.",
+          "Cleveland Housing Court describes a simple non-payment eviction as under five weeks — then warns that cases where the landlord receives a rent subsidy may take longer and that subsidized landlords should consult an attorney first. Never plan a voucher eviction on five weeks.",
+          "Ohio prohibits self-help eviction — no lockouts, no cutting utilities. CMHA will hold HAP during an eviction on request.",
+          "After move-out, itemize deposit deductions in writing within 30 days of termination and delivery of possession. CMHA pays nothing for tenant damage."
+        ]
+      }
+    },
+    {
+      "h2": "What those hours are worth",
+      "body": [
+        "Price your time two ways. First, what the market charges to take the work off your desk: as published in July 2026, Cleveland-area firms describe monthly management at **8% to 12% of collected rent** and tenant placement at **50% to 100% of one month's rent**. A national 80-metro survey, last updated in 2022, put the average management fee at 8.49%.",
+        "Second, what a missed clock costs: a HAP contract void at 60 days, abated rent that never comes back, a second failed inspection that restarts the vacancy at roughly $43 a day. Some of it is not delegable — see [what stays on your desk either way](/can-i-manage-a-section-8-rental-myself/). Our side, in Greater Cleveland and Cuyahoga County under CMHA:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement: one month's rent**, charged only after the tenant is placed. No placement, no fee.",
+          "**Inspection attendance with a written report: $100** — or attend yourself and pay nothing.",
+          "**Ongoing management: 5% of monthly rent**, only while the unit is rented — under the 8%–12% those firms publish.",
+          "**Repair estimates: free, itemized, back inside 24 hours.** Nothing starts without your approval.",
+          "We have completed CMHA's mandatory Virtual Landlord Orientation. The requirement falls on the owner **or the designated managing agent**, so it is already satisfied when we manage the unit.",
+          "Call **(440) 444-4737**, or see [how the service works](/section8stressfree)."
+        ]
+      }
+    }
+  ],
+  "faq": [
+    {
+      "q": "How much time does managing a rental take each month?",
+      "a": "There is no flat monthly figure — the work arrives in bursts around lease-up, inspections, repairs and turnover. The fixed part is deadlines rather than hours: 24 hours to correct an emergency item, 30 calendar days for other deficiencies, five business days for a CMHA reinspection, and 60 calendar days to execute a HAP contract."
+    },
+    {
+      "q": "Which parts of a voucher rental can nobody do for me?",
+      "a": "CMHA will not screen for you. It states that screening prospective voucher tenants is the landlord's responsibility, just as with any other tenant, and supplies only the family's current address and, if known, the landlord at the current and prior addresses. Someone on your side makes those calls."
+    },
+    {
+      "q": "Do I have to attend the CMHA inspection myself?",
+      "a": "Someone must provide access and then report the corrections, because CMHA's five-business-day reinspection clock starts when you notify it repairs are done. Verification does not always need a second visit — federal rule lets the housing authority accept photographic evidence instead. We attend and write it up for $100, or you attend and pay nothing."
+    },
+    {
+      "q": "How long does it take to evict a voucher tenant in Cleveland?",
+      "a": "Longer than the headline number. Cleveland Housing Court describes a simple non-payment eviction as under five weeks, with a court date about three weeks after filing. The same FAQ warns that cases where the landlord receives a rent subsidy may take longer, and that subsidized landlords should consult an attorney first."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.04",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://codes.ohio.gov/ohio-revised-code/section-1923.04",
+    "https://codes.ohio.gov/ohio-revised-code/section-1923.06",
+    "https://codes.ohio.gov/ohio-revised-code/section-1923.08",
+    "https://codes.ohio.gov/ohio-revised-code/section-1923.14",
+    "https://www.clevelandhousingcourt.org/sites/default/files/faq-evictions---2020.pdf",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners",
+    "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+    "https://www.iip-management.com/property-management-fees/",
+    "https://ipropertymanagement.com/research/average-property-management-fees",
+    "https://www.rentcafe.com/blog/rental-market/rental-competitiveness-index/us-hottest-rental-markets/",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx"
+  ],
+  "lastUpdated": "2026-07-21"
+}

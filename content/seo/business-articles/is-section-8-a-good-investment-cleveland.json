@@ -1,0 +1,167 @@
+{
+  "slug": "is-section-8-a-good-investment-cleveland",
+  "section": "section-8-landlords",
+  "title": "Is Section 8 a Good Investment Strategy in Greater Cleveland?",
+  "metaTitle": "Is Section 8 a Good Investment in Cleveland?",
+  "metaDescription": "Is Section 8 a good investment in Greater Cleveland? What CMHA's FY2026 ceilings, rent-growth rules and abatement risk actually do to returns on a rental.",
+  "primaryKeyword": "is section 8 a good investment",
+  "secondaryKeywords": [
+    "section 8 investment strategy cleveland",
+    "section 8 roi cleveland",
+    "cmha voucher rental returns",
+    "is section 8 worth it for landlords",
+    "buying rental property with section 8 tenants cleveland"
+  ],
+  "answerBox": "It is a stability play, not a premium one. Federal rent reasonableness ties voucher rent to comparable unassisted units, so the program pays the market rather than above it. The return improves through occupancy and a direct-deposit payer, and erodes through abatement, capped rent growth and inspection-driven repairs.",
+  "sections": [
+    {
+      "h2": "The rent line barely moves",
+      "body": [
+        "Underwriting a Cleveland voucher deal on \"Section 8 pays more\" is the first mistake. Under **24 CFR 982.507(b)** the housing authority must find the rent to owner reasonable in comparison to rent for comparable unassisted units, and 982.507(a) holds it there for the life of the tenancy. The payment standard is not your price either: CMHA calls it **\"NOT the maximum amount that the landlord can charge\"** but the ceiling on subsidy. It tells you only whether that ceiling clears local comps."
+      ],
+      "table": {
+        "headers": [
+          "Two-bedroom benchmark",
+          "Amount"
+        ],
+        "rows": [
+          [
+            "CMHA standard, lowest ZIP 44127 (eff. 1/1/2026)",
+            "$1,096"
+          ],
+          [
+            "CMHA standard, median of 53 ZIPs",
+            "$1,525"
+          ],
+          [
+            "CMHA standard, highest ZIPs 44113 and 44040",
+            "$2,169"
+          ],
+          [
+            "HUD FY2026 FMR, Cleveland metro area",
+            "$1,279"
+          ],
+          [
+            "Yardi Matrix asking rent, metro, Feb 2026",
+            "$1,246"
+          ],
+          [
+            "Colliers apartment rent, metro, Q1 2026",
+            "$1,419"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "That is a ZIP question, not a countywide one",
+      "body": [
+        "CMHA sets standards per ZIP across 53 service-area ZIP codes, and the two-bedroom standard varies by roughly 98% bottom to top. The last three rows are metro-wide across five counties, not your street. Across much of the service area the ceiling sits above those averages; in 44127 it sits below HUD's own metro FMR. [Section 8 vs. market-rate tenants](/section-8-vs-market-rate-tenants-cleveland/) covers the rest."
+      ]
+    },
+    {
+      "h2": "What a voucher actually buys you is occupancy",
+      "body": [
+        "If rent is the market, the return comes from empty days, collection and compliance cost. CMHA markets the program on volume — \"[a] large pool of prospective applicants, as CMHA is serves over 15,000 voucher holders\" — with another 20,000 households waitlisted per its testimony to the U.S. Commission on Civil Rights. Listing is free through AffordableHousing.com and OhioHousingLocator.org.",
+        "Two figures describe the placement problem, and they measure different things: CMHA testified that about **50%** of admitted Cuyahoga County households found housing before their voucher expired; Signal Cleveland, citing the agency, reported only about **40%** find housing within six months. No source publishes a Cleveland days-on-market figure, but at HUD's FY2026 two-bedroom FMR of $1,279 a vacant day costs about **$42.63** ($1,279 ÷ 30). [Monthly cash flow, line by line](/section-8-rental-cash-flow-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Rent growth is throttled, and models miss it",
+      "body": [
+        "A voucher tenancy cannot be marked to market on your schedule. CMHA approves a rent adjustment only if the HAP contract is a year old, a passed annual inspection sits within 12 months of the effective date, the recertification is current, 12 months have passed since the last adjustment, and the amount is rent reasonable — then it takes effect \"the 1st of the month after 60 days of receiving the request.\"",
+        "The counterparty is federally funded. On August 14, 2025 CMHA asked Greater Cleveland landlords to forgo rent increases over a projected voucher budget shortfall, its chief of policy, planning and voucher administration writing that CMHA was \"implementing various cost-saving measures\" to \"preserve subsidy payment to landlords like you and prevent the termination of Housing Assistance Payment (HAP) contracts.\""
+      ]
+    },
+    {
+      "h2": "Where the strategy breaks down",
+      "body": [
+        "Five failure modes, worst first."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Abatement is asymmetric.** Money withheld under 24 CFR 982.404(d)(1) comes back once the unit complies; abated money does not — 24 CFR 982.4 defines abatement as stopping payments \"with no potential for retroactive payment.\" CMHA abates after two consecutive failed inspections and publishes a 30-day threshold for terminating the contract, while the federal rule sets 60 days from the determination of noncompliance. [What a failed inspection costs](/what-happens-if-your-unit-fails-a-cmha-inspection/)",
+          "**A move-in inspection gets two tries.** CMHA reschedules a failed initial inspection within 7 to 10 days; a second failure sends the applicant off to find another unit. You lose the tenant, not the date.",
+          "**Emergency items run on a 24-hour clock.** CMHA's list includes missing or inoperable smoke and carbon monoxide detectors, no water, no electricity, no heat between October 15 and April 15, and gas leaks.",
+          "**Older stock carries a lead clock.** For pre-1978 units cited for defective paint where a child under six will reside, the owner has 10 days from a move-in inspection (30 from an annual) to produce a passed lead clearance test and proof of certified abatement work.",
+          "**Damage stays yours.** CMHA states \"HCVP does not pay for tenant caused damages,\" and publishes no signing bonus, damage fund or vacancy payment. The lone exception is the Community Choice Demonstration — 50% of a month's rent on lease-up plus up to $2,000 for damage — only for its clients in designated Opportunity Areas."
+        ]
+      }
+    },
+    {
+      "h2": "Buying and holding voucher-occupied property",
+      "body": [
+        "The compliance floor is an acquisition cost whether or not you take a voucher. Cleveland's Residents First rules require owners of non-owner-occupied property to register, name a local agent in charge, show current taxes or a payment plan, and hold lead-safe certification before the city issues a Certificate Approving Rental Occupancy, enforced with $200 civil tickets. CMHA has verified those registrations through the city's Citizen Access Portal since October 1, 2025, and requires a Certificate of Occupancy or rental registration with the RFTA in 17 named suburbs.",
+        "At closing, a buyer taking on an active HAP contract must submit CMHA's Change of Ownership packet; the new owner \"will begin receiving payments when the packet has been completed and processed.\" Direct deposit is mandatory and no contract is executed without a W-9. Since January 1, 2026, submitting an RFTA also requires the owner or agent to have completed CMHA's Virtual Landlord Orientation — a live 90-minute session, every 24 months — before a HAP contract can be executed for a new tenancy. Existing contracts are unaffected.",
+        "CMHA's own pitch promises \"[s]table, guaranteed rent payments deposited directly into your account,\" on dates it states are generally the 3rd and 16th. That word is CMHA's, not ours: the household's portion is still collected from the household, and abatement stops the subsidy with no back payment. [What CMHA pays and what it doesn't](/is-section-8-rent-guaranteed-cleveland/)."
+      ]
+    },
+    {
+      "h2": "The fee drag, and what we charge",
+      "body": [
+        "Management pricing is unregulated and moves a yield. Two Northeast Ohio firms publish 8% to 12% of monthly rent as the regional norm; one Cleveland firm adds **$250 specifically for voucher tenants** on top of a full month's leasing fee. Our terms, Greater Cleveland and Cuyahoga County under CMHA:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee, no voucher surcharge",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Section 8 in Greater Cleveland is a yield-stability strategy, not a premium one. Rent reasonableness keeps rent at the market; what changes is who sends most of the money, how slowly it grows, and how fast a maintenance failure becomes permanently lost revenue. It underwrites best where the ZIP's ceiling clears local comps, the building is lead-safe and registered, and repairs move on a 24-hour clock — worst on an uncertified pre-1978 house in a thin-ceiling ZIP managed from a distance. Source of income is not a protected class in the City of Cleveland, so this is a returns question. We have completed CMHA's Virtual Landlord Orientation. Call **(440) 444-4737** or start at [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is Section 8 a good investment strategy in Greater Cleveland?",
+      "a": "It is a stability play rather than a premium one. Under 24 CFR 982.507(b) rent must be reasonable against comparable unassisted units, so the program pays the market. Returns improve through occupancy against a pool CMHA markets as over 15,000 voucher holders, and erode through abatement and capped rent growth."
+    },
+    {
+      "q": "What is the biggest financial risk in a CMHA voucher rental?",
+      "a": "Abatement. Withheld payments are recoverable under 24 CFR 982.404(d)(1) once the unit complies, but 24 CFR 982.4 defines abatement as stopping payments with no potential for retroactive payment. CMHA abates after two consecutive failed inspections and publishes a 30-day threshold for terminating the HAP contract."
+    },
+    {
+      "q": "How often can I raise rent on a voucher tenancy?",
+      "a": "CMHA requires the HAP contract to be at least a year old, a passed annual inspection within 12 months of the effective date, a current recertification, 12 months since the last approved adjustment, and a rent-reasonable amount. Approved increases take effect the first of the month after 60 days from receipt."
+    },
+    {
+      "q": "I am buying a Cleveland building that already has a HAP contract. What happens at closing?",
+      "a": "CMHA requires the new owner to submit a Change of Ownership packet, and payments begin once it has been processed. Direct deposit is mandatory and CMHA will not execute a HAP contract without a W-9. Existing contracts are unaffected by the 2026 orientation mandate, but your first new tenancy needs it."
+    }
+  ],
+  "sources": [
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.yardimatrix.com/blog/cleveland-multifamily-market-report/",
+    "https://neo-trans.blog/2026/04/28/cleveland-has-ohios-highest-apartment-rents/",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://signalcleveland.org/section-8-cleveland-lutheran-metropolitan-ministry/",
+    "https://signalcleveland.org/cmha-asks-greater-cleveland-landlords-not-to-raise-rent-on-section-8-tenants/",
+    "https://signalcleveland.org/cleveland-residents-first-local-agent-landlord-law-bibb/",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://www.prrac.org/pdf/AppendixB.pdf",
+    "https://cuyahogamobility.org/property-owners/",
+    "https://cuyahogamobility.org/about/",
+    "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+    "https://www.iip-management.com/property-management-fees/",
+    "https://clevelandpupm.com/pricing/"
+  ],
+  "lastUpdated": "2026-07-21"
+}

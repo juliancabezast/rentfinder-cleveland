@@ -135,6 +135,13 @@ function head({ title, metaTitle, description, canonicalPath, ldBlocks }) {
     .biz-faq details>div{margin-top:8px;color:#4b5563}
     .sources{margin-top:28px;font-size:.9rem}
     .sources a{word-break:break-all}
+    /* Table styling — rentals.css scopes tables to the article element, but
+       these pages use main.wrap, so the ZIP payment tables need their own rules
+       here. .tbl-wrap (overflow-x:auto) comes from rentals.css and handles the
+       mobile horizontal scroll for wide multi-column tables. */
+    .wrap table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:480px;margin:0 0 20px}
+    .wrap th,.wrap td{border:1px solid #e6e6ef;padding:9px 12px;text-align:left;vertical-align:top}
+    .wrap thead th{background:#f6f7fb;font-weight:600;color:#1f2430}
   </style>
   ${ldBlocks}
 </head>`;
@@ -219,6 +226,21 @@ function leadForm(section) {
   <script>(function(){var f=document.getElementById(${JSON.stringify(id)});if(!f)return;f.addEventListener("submit",function(e){e.preventDefault();var m=f.querySelector(".biz-msg"),b=f.querySelector("button");if(f.company_website.value)return;if(!f.full_name.value.trim()||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(f.email.value)){m.hidden=false;m.style.color="#b91c1c";m.textContent="Please enter your name and a valid email.";return;}b.disabled=true;b.textContent="Sending…";fetch(${JSON.stringify(SUPABASE_URL + "/functions/v1/submit-business-lead")},{method:"POST",headers:{"Content-Type":"application/json","apikey":${JSON.stringify(SUPABASE_ANON)},"Authorization":"Bearer "+${JSON.stringify(SUPABASE_ANON)}},body:JSON.stringify({lead_type:${JSON.stringify(section.leadType)},full_name:f.full_name.value,email:f.email.value,phone:f.phone.value,source:"article",source_detail:location.pathname,user_agent:navigator.userAgent})}).then(function(r){return r.json();}).then(function(d){if(d&&d.success){f.querySelectorAll("input,button").forEach(function(el){el.style.display="none";});m.hidden=false;m.style.color="#166534";m.textContent="Thanks — our team will reach out shortly.";}else{b.disabled=false;b.textContent="Get in touch";m.hidden=false;m.style.color="#b91c1c";m.textContent=(d&&d.error)||"Something went wrong — email ${cfg.email}";}}).catch(function(){b.disabled=false;b.textContent="Get in touch";m.hidden=false;m.style.color="#b91c1c";m.textContent="Something went wrong — email ${cfg.email}";});});})();</script>`;
 }
 
+// Tables were SILENTLY DROPPED by the B2B generator until 2026-07-22 — every
+// `section.table` (the CMHA payment-standards-by-ZIP tables are the whole point
+// of several articles) passed validation, sat in the JSON, and never reached
+// the page. Matches the renter generator's markup; .tbl-wrap (overflow-x:auto,
+// from rentals.css, already linked) keeps a wide 11-column ZIP table from
+// forcing the page to scroll sideways on a phone.
+function renderTable(table) {
+  if (!table || !table.headers || !table.rows) return "";
+  const head = `<tr>${table.headers.map((h) => `<th>${renderInline(h)}</th>`).join("")}</tr>`;
+  const body = table.rows
+    .map((r) => `<tr>${r.map((c) => `<td>${renderInline(c)}</td>`).join("")}</tr>`)
+    .join("");
+  return `<div class="tbl-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
 function renderSection(s) {
   let html = `<h2>${renderInline(s.h2)}</h2>`;
   for (const p of s.body || []) html += `<p>${renderInline(p)}</p>`;
@@ -226,9 +248,11 @@ function renderSection(s) {
     const tag = s.list.type === "ol" ? "ol" : "ul";
     html += `<${tag}>${s.list.items.map((i) => `<li>${renderInline(i)}</li>`).join("")}</${tag}>`;
   }
+  html += renderTable(s.table);
   for (const h of s.h3s || []) {
     html += `<h3>${renderInline(h.h3)}</h3>`;
     for (const p of h.body || []) html += `<p>${renderInline(p)}</p>`;
+    html += renderTable(h.table);
   }
   return html;
 }

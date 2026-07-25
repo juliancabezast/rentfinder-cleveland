@@ -1,0 +1,122 @@
+{
+  "slug": "renting-duplex-multifamily-to-voucher-tenants-cleveland",
+  "section": "section-8-landlords",
+  "title": "Putting a Duplex or Multifamily on Section 8 in Cleveland",
+  "metaTitle": "Duplex & Multifamily Section 8 Landlord Cleveland",
+  "metaDescription": "Renting a duplex or small multifamily to Section 8 in Cleveland? Each unit needs its own RFTA and inspection. A landlord's guide to CMHA's per-unit process.",
+  "primaryKeyword": "section 8 duplex multifamily landlord cleveland",
+  "secondaryKeywords": [
+    "rent multiple units section 8 cleveland",
+    "does each unit need its own rfta",
+    "section 8 inspection per unit cleveland",
+    "cmha duplex voucher landlord"
+  ],
+  "answerBox": "Yes. You can put more than one unit of a duplex or small multifamily on Section 8 in Cleveland. CMHA processes each voucher tenancy on its own, so every assisted unit needs its own RFTA packet, its own HQS inspection, and its own HAP contract — the seven-step path simply runs once per unit.",
+  "sections": [
+    {
+      "h2": "Yes — but you run the process once per unit",
+      "body": [
+        "You can absolutely put more than one unit of a duplex or a small multifamily building on Section 8, and many Cleveland owners do. The key thing to understand is that a Housing Choice Voucher attaches to a **tenant**, not to your building. CMHA processes each voucher tenancy separately, so putting two units on Section 8 means running the same steps twice — once for each unit and each tenant.",
+        "CMHA requires no landlord application and has no pre-approval process, and its published seven-step path — advertise, complete the Mandatory Landlord Orientation, screen the tenant, submit the RFTA, accept the rent offer, pass inspection, sign the HAP contract and lease — is defined per tenancy. Nothing in CMHA's landlord materials caps how many of your units can be assisted."
+      ]
+    },
+    {
+      "h2": "Each unit needs its own RFTA",
+      "body": [
+        "The Request for Tenancy Approval (RFTA) does not come from you — the voucher holder brings it, and CMHA's own policy limits a family to **one live RFTA at a time** (\"The family may not submit, and the PHA will not process, more than one (1) RTA at a time\"). Because the packet is tied to a specific tenant and a specific unit, two assisted units in your duplex mean two separate RFTA packets, each signed by both you and that tenant.",
+        "You (or your managing agent) may submit the RFTA on the family's behalf by email to rfta@cmha.net. After each packet lands, CMHA verifies ownership through the County Auditor's website and confirms the unit is not in foreclosure and is current on property taxes — so plan to have that clean for the whole property. Watch each tenant's voucher expiration, too: CMHA issues vouchers good for 180 days from issue, and the RFTA and proposed lease must be in before that date."
+      ]
+    },
+    {
+      "h2": "Each unit gets its own inspection",
+      "body": [
+        "Yes — inspection is per unit, not per building. CMHA's **initial inspection is triggered by the submission of each RFTA packet**, and CMHA's policy is to inspect, decide, and notify the owner and family within 15 days of that submission. Two RFTAs means two initial inspections, each on its own clock.",
+        "Voucher units are inspected under Housing Quality Standards (HQS) today; CMHA has said NSPIRE, HUD's newer standard, will not be mandatory for voucher units until February 1, 2027. Either way, federal inspection scope (24 CFR 5.703(a)) limits the review to the assisted unit itself plus egress routes, shared common features, and the building systems that directly serve that unit. An inspector is not walking through your other tenants' units — but a shared porch, roof, furnace, or electrical panel that serves the assisted unit is fair game.",
+        "If a unit fails, CMHA reinspects within five business days of your notice that repairs are done, and an initial inspection gets two attempts before the tenant is told to find another unit. A reinspection fee, where charged, is the owner's — you may not pass it to the tenant."
+      ]
+    },
+    {
+      "h2": "What repeats per unit, and what you do once",
+      "body": [
+        "Some of the Section 8 process is unit-by-unit; some is done once for you or once for the property. Here is how a duplex or small multifamily breaks down."
+      ],
+      "table": {
+        "headers": ["Step", "How often"],
+        "rows": [
+          ["RFTA packet", "Once per assisted unit (one per tenant)"],
+          ["HQS inspection", "Once per assisted unit (triggered by each RFTA)"],
+          ["HAP contract", "Once per assisted unit"],
+          ["Rent-reasonableness review", "Once per assisted unit"],
+          ["Rent-increase request", "Once per unit, no more than every 12 months"],
+          ["Mandatory Landlord Orientation", "Once every 24 months — covers all your new tenancies"],
+          ["Landlord Portal account", "One account for all your units"],
+          ["Local rental registration / Certificate of Occupancy", "At the property level, where your city requires it"]
+        ]
+      }
+    },
+    {
+      "h2": "The rent on each unit has to stand on its own",
+      "body": [
+        "Rent reasonableness is checked per unit. After each RFTA, CMHA compares the proposed rent to comparable unassisted units in the market area; a unit that is not rent-reasonable can't be assisted, because no federal money can pay for rent that is not reasonable.",
+        "Multifamily owners have one extra rule to respect. Under 24 CFR 982.507(d), by accepting each monthly housing assistance payment you certify that the rent to owner is **not more than the rent you charge for comparable unassisted units in the same premises.** In plain terms: if you rent one side of your duplex at market and put the other on Section 8, you can't charge the voucher unit more than a comparable market unit in your own building. Price each unit as if the other had no subsidy behind it — see [how to price your rental to CMHA's payment standard](/how-to-price-your-rental-to-cmha-payment-standard-cleveland/) and, if one side is currently market-rate, [converting a market rental to Section 8](/converting-market-rental-to-section-8-cleveland/).",
+        "Rent increases are also handled per unit, and each requires a HAP contract at least a year old, a passed annual inspection within 12 months of the effective date, and at least 12 months since the last approved adjustment."
+      ]
+    },
+    {
+      "h2": "Want the subsidy to stay with the units? Ask about project-based options",
+      "body": [
+        "Everything above describes tenant-based vouchers, where the assistance belongs to the tenant and leaves when they do. If you'd rather have the subsidy attached to the units themselves — so that when one assisted tenant moves out, the assistance stays with the unit for the next eligible household — that is a different structure. CMHA operates both **Project-Based Vouchers and Moderate Rehabilitation**, which tie the subsidy to specific units in privately owned rental property.",
+        "For a small multifamily owner weighing stability against flexibility, it's worth understanding both models. Start with [Project-Based Vouchers for Cleveland landlords](/project-based-vouchers-landlords-cleveland/) and [PBV vs. tenant-based vouchers](/pbv-vs-tenant-based-voucher-cleveland/)."
+      ]
+    },
+    {
+      "h2": "How we lease up a duplex or multifamily on Section 8",
+      "body": [
+        "Running the seven-step path two or three times over is where a duplex or small multifamily gets tedious — separate RFTAs, separate inspections, separate move-in timing. That's the part we handle. We have completed CMHA's Virtual Landlord Orientation, which since January 1, 2026 must be done before a HAP contract can be executed for a new tenancy — and because it's required only once every 24 months, one completed orientation covers every unit we lease up for you in that window.",
+        "For each unit, tenant placement is one month's rent, billed only when a tenant is actually placed — no placement, no fee. We attend that unit's HQS inspection and send you a written report for $100 (or you can attend yourself). Ongoing management is 5% of that unit's monthly rent, charged only while it's rented, and repair estimates are free, itemized, and back to you within 24 hours — nothing starts without your approval.",
+        "One caution we enforce on every unit: never let a tenant move in before that unit has passed inspection and its HAP contract is signed. CMHA is explicit that if you do, the tenant becomes responsible for the full amount of the rent — and you've lost the subsidy on that tenancy. We serve Greater Cleveland and Cuyahoga County under CMHA. Call us at (440) 444-4737, or start with [our stress-free Section 8 service](/section8stressfree). More landlord guides live on our [Section 8 landlord hub](/section-8-landlords/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I put both units of my duplex on Section 8?",
+      "a": "Yes. Nothing in CMHA's published process limits you to a single unit, and there is no landlord application or pre-approval. Each unit simply runs the seven-step path on its own — its own RFTA packet, its own inspection, and its own HAP contract. Two assisted units means running the process twice."
+    },
+    {
+      "q": "Does each unit need a separate inspection?",
+      "a": "Yes. CMHA's initial inspection is triggered by each RFTA packet, and its policy is to inspect and decide within 15 days of submission. The review covers that unit plus the egress routes, shared common features, and building systems serving it — not your other tenants' units. Voucher inspections use HQS today, with NSPIRE due by February 1, 2027."
+    },
+    {
+      "q": "Can my two voucher tenants share one RFTA?",
+      "a": "No. The RFTA comes from each voucher holder, and CMHA policy limits a family to one live RFTA at a time. Two tenancies in the same building mean two separate packets, each signed by both you and that individual tenant. You or your agent may submit each one on the family's behalf to rfta@cmha.net."
+    },
+    {
+      "q": "If one unit is market-rate, can I charge more for the voucher unit?",
+      "a": "No. Under 24 CFR 982.507(d), by accepting each housing assistance payment you certify the rent is not more than what you charge for comparable unassisted units in the same premises. CMHA also runs a rent-reasonableness review on every assisted unit, so price the voucher unit like a comparable market unit in your own building."
+    },
+    {
+      "q": "Do I have to take CMHA's landlord orientation for every unit?",
+      "a": "No. CMHA's Mandatory Landlord Orientation is required once every 24 months, not per unit — completing it once covers all your new tenancies in that window before a HAP contract can be executed. It's been required since January 1, 2026. We have already completed CMHA's Virtual Landlord Orientation."
+    },
+    {
+      "q": "Is there a limit on how many units I can rent to voucher holders?",
+      "a": "CMHA's landlord materials describe no cap on the number of assisted units one owner can hold, and require no landlord application or pre-approval. CMHA markets access to more than 15,000 program participants. The process is defined per tenancy, so each additional unit just means one more run through the steps. Confirm specifics with CMHA."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.ecfr.gov/current/title-24/subtitle-A/part-5/subpart-G/section-5.703",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/voucher_holders/pbv_mod_rehab_property_map_.php",
+    "https://www.cmha.net/housing/applicants/project_based_vouchers.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20%26%20Documents/LandlordPortalUserGuide.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

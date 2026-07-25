@@ -58,7 +58,7 @@
           "h3": "Against the market numbers we can actually cite",
           "body": [
             "No reachable source publishes a ZIP-level asking-rent series for Cleveland, so the market figures here are metro-wide across those five counties — not your street. Yardi Matrix put average advertised asking rents at **$1,246** in February 2026, with 94.5% stabilized occupancy; Colliers data reported in April 2026 put Q1 2026 average rent at **$1,419**.",
-            "CMHA's median FY2026 two-bedroom standard, $1,525, sits above both — so across much of the service area **the ceiling is not what stops you.** In 44113 it is nowhere near binding: $2,169, against HUD's own FY2026 Small Area FMR of $1,920 for that same ZIP. At the other end, 44127's $1,096 sits below HUD's $1,279 metro two-bedroom FMR, and if comparable unassisted units there rent above the standard, the difference lands on the tenant — where the 40% test below usually kills it."
+            "CMHA's median FY2026 two-bedroom standard, $1,525, sits above both — so across much of the service area **the ceiling is not what stops you.** In 44113 it is nowhere near binding: $2,169, against HUD's own FY2026 Small Area FMR of $1,920 for that same ZIP. At the other end, 44127's $1,096 sits below HUD's $1,279 metro two-bedroom FMR, and if comparable unassisted units there rent above the standard, the difference lands on the tenant — where the 40% test below caps how much of it they can absorb."
           ]
         }
       ]
@@ -106,7 +106,7 @@
     {
       "h2": "The short version",
       "body": [
-        "Section 8 does not pay above market, because rent reasonableness is defined against the market. Whether it pays less comes down to one number you can look up in ten minutes: if your ZIP's standard sits above what comparable unassisted units nearby rent for, the ceiling never binds. Source of income is not a protected class in the City of Cleveland, so nobody is telling you that you have to. Call **(440) 444-4737** or start at [Section 8 Stress Free](/section8stressfree)."
+        "Section 8 does not pay above market, because rent reasonableness is defined against the market. Whether it pays less comes down to one number you can look up in ten minutes: if your ZIP's standard sits above what comparable unassisted units nearby rent for, the ceiling never binds. Source of income is not a protected class in the City of Cleveland, so nobody is telling you that you must. Call **(440) 444-4737** or start at [Section 8 Stress Free](/section8stressfree)."
       ]
     }
   ],
@@ -140,7 +140,6 @@
     "https://www.huduser.gov/portal/datasets/fmr/fmr2026/fy2026_safmrs_revised.xlsx",
     "https://www.yardimatrix.com/blog/cleveland-multifamily-market-report/",
     "https://neo-trans.blog/2026/04/28/cleveland-has-ohios-highest-apartment-rents/",
-    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
     "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
     "https://www.prrac.org/pdf/AppendixB.pdf"
   ],

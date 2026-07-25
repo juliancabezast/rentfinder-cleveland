@@ -1,0 +1,113 @@
+{
+  "slug": "hud-vash-exception-payment-standard-cleveland",
+  "section": "section-8-landlords",
+  "title": "The HUD-VASH 120% Rent Ceiling: Can You Charge More for a Veteran Tenant?",
+  "metaTitle": "HUD-VASH 120% Rent Ceiling: Cleveland Guide",
+  "metaDescription": "HUD-VASH lets a PHA set an exception payment standard up to 120% of FMR. Has CMHA adopted one in Cleveland, and what can a landlord really charge?",
+  "primaryKeyword": "hud vash exception payment standard cleveland",
+  "secondaryKeywords": ["hud-vash 120% payment standard", "hud vash rent ceiling cleveland", "cmha hud-vash exception payment standard", "higher rent section 8 veteran cleveland"],
+  "answerBox": "Federal HUD-VASH rules let a housing authority set an exception payment standard as high as 120% of Fair Market Rent, above the usual 90-110% band. But CMHA has not published one, and its plan only recites the authority. Confirm any VASH-specific standard with CMHA in writing before pricing to it.",
+  "sections": [
+    {
+      "h2": "The short answer for Cleveland landlords",
+      "body": [
+        "Yes, in theory. HUD's HUD-VASH operating requirements let a public housing authority set a separate **exception payment standard** for veteran vouchers of **up to, but no higher than, 120 percent** of the published area-wide Fair Market Rent (FMR) or Small Area FMR, noticeably above the 90-110% band that governs ordinary Housing Choice Vouchers.",
+        "The catch is local. That 120% figure is federal **permission**, not an automatic ceiling. In Cuyahoga County, CMHA's FY2025 Administrative Plan quotes HUD's authority word for word but includes no policy paragraph enacting a VASH-specific standard, and CMHA's public Rent Determination tool returns only its standard HCV figures. So before you price a unit to 120%, get written confirmation from CMHA's HCV Program that an exception standard is actually in force. For the general mechanics, our [guide to exception payment standards in Cleveland](/exception-payment-standards-cleveland/) covers how these ceilings are set."
+      ]
+    },
+    {
+      "h2": "What the HUD-VASH exception payment standard is",
+      "body": [
+        "A regular voucher payment standard in Cuyahoga County is set between **90% and 110% of the Fair Market Rent, or approved exceptions as applicable**. For HUD-VASH, HUD's August 2024 operating requirements waive 24 CFR 982.503(a)(2), (b) and (c) so a housing authority **may** set a separate standard 'up to, but no higher than 120 percent' of the metro-wide FMR or Small Area FMR.",
+        "HUD is candid about why. In markets it describes as 'very competitive with a shortage of affordable rental units,' it notes that 'landlords may be reluctant to rent to individuals experiencing homelessness due to poor credit history or lack of recent rental history.' The higher standard is a deliberate lever to widen the pool of units a veteran can actually lease, not a windfall for owners."
+      ]
+    },
+    {
+      "h2": "A higher standard is not a higher rent",
+      "body": [
+        "Here is the distinction that trips up most owners. **The payment standard is not the most you can charge.** CMHA states it plainly: 'The payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.'",
+        "So a HUD-VASH exception standard does not authorize a higher rent on its own. What it does is raise the subsidy ceiling, which mostly benefits the tenant: it lowers the veteran's share on a higher-rent unit and lets a market-rate apartment fit within program rules. Two other limits still apply and are not waived by any exception standard:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Rent reasonableness.** Under 24 CFR 982.507, CMHA may not approve a lease until it finds the rent reasonable against comparable unassisted units, and the rent may never exceed that determination during the tenancy. CMHA measures this on **gross rent**, the contract rent plus tenant-paid utilities or the utility allowance.",
+          "**The 40% affordability rule.** On an initial contract, the tenant's total portion paid to you can be no more than 40% of the household's monthly income; if it would exceed that, CMHA negotiates with the owner to reduce the rent."
+        ]
+      }
+    },
+    {
+      "h2": "Has CMHA actually adopted one?",
+      "body": [
+        "On the public record, it is not documented. CMHA's Administrative Plan reproduces HUD's HUD-VASH exception authority verbatim, 'PHAs may go up to but no higher than 120 percent of the published area-wide fair market rent (FMR) or small area fair market rent (SAFMR) specifically for VASH families,' but it contains no 'PHA Policy' statement adopting a VASH-specific standard. CMHA publishes no HUD-VASH landlord page, no VASH staff contact, and no VASH landlord guide, and its Rent Determination tool shows the same ZIP-level figures regardless of voucher type.",
+        "None of that proves a standard does not exist behind the counter, only that you cannot verify one from published documents. Treat 120% as a question to ask, not a number to assume. Put it to CMHA's HCV Program in writing before you sign anything: **(216) 431-1471**. Ask specifically whether a HUD-VASH exception payment standard applies to the ZIP code and bedroom size of your unit, and get the answer in writing so it can support your rent request."
+      ]
+    },
+    {
+      "h2": "Project-based HUD-VASH is a separate case",
+      "body": [
+        "If you are looking at **project-based** HUD-VASH rather than a tenant's own voucher, the exception standard works differently. HUD allows it 'only in cases where the project consists only of units made available exclusively for HUD-VASH,' and such a project can carry only one contract rent for similar units. CMHA has moved two exclusively-veteran project-based developments, 'Cleveland West' and 'Emerald Senior,' toward Agreements to enter into a HAP Contract, alongside an existing veteran site.",
+        "Project-based deals run on their own long-term contracts and follow a different playbook from a tenant-based voucher. See [project-based vouchers for Cleveland landlords](/project-based-vouchers-landlords-cleveland/) if that is the path you are weighing."
+      ]
+    },
+    {
+      "h2": "Why a HUD-VASH tenant is worth pursuing at the standard ceiling",
+      "body": [
+        "Source of income is not a protected class in the City of Cleveland, so owners may lawfully decline a voucher. But a HUD-VASH tenancy carries advantages worth weighing even at the ordinary payment standard, before any exception is confirmed:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "The subsidy portion is paid directly and on time by the housing authority. The VA reminds owners that 'Accepting vouchers or subsidies doesn't mean getting less money.'",
+          "You keep full control of screening. The VA is explicit that 'Screening and approval of Veteran tenants is at your discretion.'",
+          "Every HUD-VASH veteran has an assigned VA case manager who is 'also a resource for you, the landlord, to help resolve issues with the tenancy.'",
+          "The HAP contract mechanics match a standard tenant-based voucher, and HUD renews HUD-VASH vouchers the same way as all other Housing Choice Vouchers."
+        ]
+      }
+    },
+    {
+      "h2": "How we help",
+      "body": [
+        "We have completed CMHA's Virtual Landlord Orientation, mandatory since January 1, 2026 before a HAP contract can be executed for a new tenancy, so a veteran's lease-up does not stall on paperwork. Our placement fee is one month's rent, billed only after the tenant is placed, and ongoing management is 5% of monthly rent while the unit is rented. We serve Greater Cleveland and Cuyahoga County under CMHA.",
+        "For the full veteran-tenancy walkthrough, see our [HUD-VASH landlord guide](/hud-vash-landlord-guide-cleveland/) and [what to expect renting to veteran voucher holders](/renting-to-veteran-voucher-holders-cleveland/). Questions on a specific unit or ZIP-code ceiling? Call **(440) 444-4737** or [start with our Section 8 service](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I charge up to 120% of Fair Market Rent for a HUD-VASH tenant in Cleveland?",
+      "a": "The 120% figure is HUD's cap on an optional exception payment standard, not a rent you can automatically charge. It sets how much subsidy a housing authority may pay, and CMHA has not published one. Rent reasonableness against comparable unassisted units still governs your actual rent, so confirm any VASH-specific standard with CMHA before pricing to it."
+    },
+    {
+      "q": "Has CMHA adopted a HUD-VASH exception payment standard?",
+      "a": "Not on the public record. CMHA's Administrative Plan quotes HUD's authority to set one but includes no policy paragraph enacting it, and its Rent Determination tool shows only standard figures. That does not rule one out. Verify in writing with CMHA's HCV Program at (216) 431-1471 before pricing a unit to 120% of FMR."
+    },
+    {
+      "q": "Does a higher payment standard mean I get more rent?",
+      "a": "No. The payment standard is the maximum subsidy, not the maximum rent. CMHA states the payment standard 'is NOT the maximum amount that the landlord can charge.' A higher standard lowers the veteran's share and helps a higher-rent unit qualify, but rent reasonableness and the 40% affordability rule still cap what CMHA will approve."
+    },
+    {
+      "q": "What limits my HUD-VASH rent if not the payment standard?",
+      "a": "Two federal tests. Rent reasonableness under 24 CFR 982.507 compares your unit to comparable unassisted units, measured on gross rent, which is rent plus tenant-paid utilities. And on an initial contract, the tenant's portion cannot exceed 40% of household income, or CMHA negotiates the rent down before approving the lease."
+    },
+    {
+      "q": "Is project-based HUD-VASH treated the same way?",
+      "a": "No. HUD allows a HUD-VASH exception standard for project-based units only where the project is made up exclusively of HUD-VASH units, with one contract rent for similar units. CMHA has advanced two veteran-only developments, Cleveland West and Emerald Senior, toward project-based HAP contracts, which run on their own long-term terms."
+    }
+  ],
+  "sources": [
+    "https://archives.hud.gov/news/2024/6476-N-01-HUD-VASH-Operating-Requirements-Final-Notice-HEADER-8-7-24.pdf",
+    "https://www.cmha.net/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.hud.gov/sites/dfiles/PIH/documents/HUD-VASH%20Operating%20Requirements%20FAQs.pdf",
+    "https://www.cmha.net/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/2025%20PHA%20PLAN.pdf",
+    "https://department.va.gov/homeless/landlords/landlord-faqs/",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-homeless-veterans",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/Automatic%20Deposit%20Form.pdf",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+  ],
+  "lastUpdated": "2026-07-22"
+}

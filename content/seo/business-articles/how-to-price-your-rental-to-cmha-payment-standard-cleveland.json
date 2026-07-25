@@ -1,0 +1,153 @@
+{
+  "slug": "how-to-price-your-rental-to-cmha-payment-standard-cleveland",
+  "section": "section-8-landlords",
+  "title": "How to Price Your Rental to the CMHA Payment Standard (Without Triggering a Reduction)",
+  "metaTitle": "Price Your Rental to CMHA's Payment Standard",
+  "metaDescription": "How to price a rental to the Section 8 payment standard in Cleveland: fit gross rent under CMHA's ZIP-level standard and avoid a rent reduction.",
+  "primaryKeyword": "how to price rental to section 8 payment standard cleveland",
+  "secondaryKeywords": [
+    "cmha payment standard by zip",
+    "gross rent vs payment standard cleveland",
+    "rent reasonableness cmha",
+    "section 8 rent reduction cleveland"
+  ],
+  "answerBox": "Set your asking rent so that rent plus the tenant-paid utility allowance (gross rent) lands at or under CMHA's payment standard for that unit's ZIP code and bedroom size, and no higher than comparable unassisted units. That keeps the tenant's share affordable and avoids a CMHA rent negotiation.",
+  "sections": [
+    {
+      "h2": "The payment standard is a subsidy ceiling, not your rent and not a guarantee",
+      "body": [
+        "CMHA is blunt about this: \"the payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" So the standard is not a cap on your asking rent, and it is not a guaranteed rent either. CMHA still has to find your rent reasonable and pass the unit through inspection before any Housing Assistance Payment (HAP) contract is signed.",
+        "The number that actually has to fit under the payment standard is **gross rent** — your contract rent plus a utility allowance for any utilities the tenant pays. CMHA applies its pricing tests to gross rent, not to the rent figure you advertise. Price so that gross rent lands at or just under the payment standard for that ZIP code and bedroom size, and you have set the rent as high as the program will support cleanly, without pushing the tenant's out-of-pocket share up or tripping a reduction."
+      ]
+    },
+    {
+      "h2": "Look up the standard for the exact ZIP code and bedroom size",
+      "body": [
+        "CMHA is a mandatory Small Area Fair Market Rent (SAFMR) authority, which means its payment standards are set per ZIP code rather than as one countywide number. Its Rent Determination tool publishes FY2026 payment standards effective January 1, 2026 for 53 ZIP codes in its service area. Because the standard is ZIP-specific, [what SAFMR means for your rent](/what-is-safmr-cleveland-landlords/) is the first thing to understand before you price.",
+        "The spread is wide. The two-bedroom standard runs from **$1,096 in ZIP 44127 to $2,169 in ZIP 44113** — roughly a 2x difference across the county — so any \"CMHA payment standard\" quoted without a ZIP code is meaningless. Two cautions when you pull the number: the table the tool shows *before* you enter a ZIP is a placeholder that matches only ZIPs 44103 and 44105, not a countywide figure; and if a tenant rents a unit larger than their voucher bedroom size, CMHA applies the payment standard and utility allowance for the smaller of the two.",
+        "Here is how far the FY2026 standards travel between the highest and lowest ZIPs in CMHA's service area. Look up your own ZIP in the [CMHA Rent Determination tool](/cmha-rent-determination-tool-how-to-look-up-payment-standard-cleveland/) rather than assuming a nearby figure applies."
+      ],
+      "table": {
+        "headers": [
+          "Bedroom size",
+          "ZIP 44113 (Tremont / Ohio City)",
+          "ZIP 44127 (Slavic Village area)",
+          "Service-area median"
+        ],
+        "rows": [
+          [
+            "Studio / efficiency",
+            "$1,582",
+            "$802",
+            "$1,118"
+          ],
+          [
+            "1 bedroom",
+            "$1,796",
+            "$915",
+            "$1,265"
+          ],
+          [
+            "2 bedroom",
+            "$2,169",
+            "$1,096",
+            "$1,525"
+          ],
+          [
+            "3 bedroom",
+            "$2,791",
+            "$1,412",
+            "$1,966"
+          ],
+          [
+            "4 bedroom",
+            "$2,983",
+            "$1,514",
+            "$2,101"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "Gross rent = your rent plus the tenant's utility allowance",
+      "body": [
+        "This is the step landlords miss. If the tenant pays for some utilities — gas heat, electric — CMHA adds a **utility allowance** to your contract rent to arrive at gross rent, and gross rent is what it measures against the payment standard and against comparable rents. CMHA publishes a utility allowance schedule for tenant-furnished utilities effective January 1, 2026.",
+        "The practical consequence: the more utilities you leave to the tenant, the less headroom your contract rent has under the same payment standard, because part of that standard is being spent on the utility allowance. If you fold more utilities into the rent, your contract rent can sit closer to the standard. Decide who pays which utilities *before* you set the asking rent — that single decision moves your allowable contract rent up or down. The way the standard splits between you and the tenant is covered in [tenant portion vs HAP portion](/tenant-portion-vs-hap-portion-cleveland/)."
+      ]
+    },
+    {
+      "h2": "The two tests that trigger a rent reduction",
+      "body": [
+        "A rent above the payment standard is not what usually gets negotiated down. Two separate tests do, and both can bite even when your rent is under the standard.",
+        "**Test 1 — rent reasonableness.** After the tenant's Request for Tenancy Approval (RFTA) packet is submitted, CMHA compares your unit to comparable unassisted units in the area, weighing location, amenities, size and type, and utilities, and it applies that comparison to gross rent. A unit that is not rent reasonable is ineligible for the program, because no federal funds may pay any part of a rent that is not reasonable. Pricing at the payment standard does not exempt you: if comparable unassisted units rent for less, CMHA holds you to the lower figure.",
+        "**Test 2 — the 40% affordability cap at move-in.** For an initial HCV contract, the family's total tenant portion paid directly to you can be no more than 40% of the family's monthly adjusted income. If your rent would push the tenant above that line, CMHA negotiates with you to reduce the rent. This is the classic \"reduction,\" and it has nothing to do with the payment standard — it turns on the specific tenant's income.",
+        "Overshooting the standard tends to trip both tests at once: it lifts the tenant's out-of-pocket share (they pay the gap above the standard), which can breach the 40% cap, and an aggressive rent is more likely to fail reasonableness in the first place. For the narrow cases where a ceiling above the basic band applies, see [exception payment standards](/exception-payment-standards-cleveland/)."
+      ]
+    },
+    {
+      "h2": "How the HAP math pays out — why overshooting earns you nothing",
+      "body": [
+        "CMHA calculates the Housing Assistance Payment as the **lesser of** (payment standard minus the family's Total Tenant Payment) **or** (gross rent minus the family's Total Tenant Payment). Read that carefully: pricing gross rent above the payment standard does not increase CMHA's check. It simply shifts the excess onto the tenant, who then has to qualify to pay it and stay affordable at move-in.",
+        "So the payment standard is the subsidy ceiling, and rent reasonableness may set an even lower one. The honest target is gross rent at or just below the payment standard **and** at or below comparable unassisted rents. That is the highest rent the program will support without a fight — anything above it either falls on the tenant or gets negotiated back down."
+      ]
+    },
+    {
+      "h2": "A pricing checklist — and where we come in",
+      "body": [
+        "Run these steps in order before you list the unit or submit paperwork. Note that there is no landlord application or pre-approval process with CMHA; the tenant's RFTA packet drives the rent determination, inspection, and HAP contract."
+      ],
+      "list": {
+        "type": "ol",
+        "items": [
+          "Confirm the unit's ZIP code and the voucher bedroom size, then read the FY2026 standard for that exact ZIP and size in CMHA's Rent Determination tool — never the default placeholder table.",
+          "Decide utility responsibility first, then back out the utility allowance so that contract rent plus allowance (gross rent) lands at or under the standard.",
+          "Sanity-check your rent against comparable unassisted units in the same area — that is the reasonableness ceiling, and it can sit below the payment standard.",
+          "Leave a margin so the tenant's share stays under 40% of monthly adjusted income at move-in, which is where reductions are negotiated.",
+          "Submit the tenant's RFTA packet to CMHA (rfta@cmha.net); CMHA then makes the rent determination, schedules the HQS inspection, and issues the HAP contract."
+        ]
+      }
+    },
+    {
+      "h2": "Why owners hand this to us",
+      "body": [
+        "We have completed CMHA's mandatory Virtual Landlord Orientation — required since January 1, 2026 before a HAP contract can be executed for a new tenancy — so we run this pricing and paperwork every week and know where the gross-rent math and the 40% test actually catch owners. Pricing to the standard is worth doing well: it is the difference between a rent that clears on the first RFTA and one that comes back for negotiation.",
+        "Our terms are simple and tied to results. Tenant placement is one month's rent, charged only after we place a tenant — no placement, no fee. Inspection attendance with a written report is $100, or you attend yourself. Ongoing management is 5% of monthly rent, only while the unit is rented. Repair estimates are free, itemized, and back within 24 hours, and nothing starts without your approval. Call **(440) 444-4737** or see how we make [Section 8 stress-free](/section8stressfree) for Greater Cleveland owners."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is the CMHA payment standard the most I can charge?",
+      "a": "No. CMHA states the payment standard is the maximum subsidy it will pay toward the tenant's rent, not a cap on your rent. You can ask for more, but any amount that pushes gross rent above the standard shifts onto the tenant, who must be able to afford it and stay within the 40% total-tenant-portion limit on an initial contract."
+    },
+    {
+      "q": "What is \"gross rent\" and why does it matter for pricing?",
+      "a": "Gross rent is your contract rent plus a utility allowance for utilities the tenant pays. CMHA applies rent reasonableness and the payment-standard comparison to gross rent, not to your advertised rent. So the utilities you assign to the tenant reduce the contract rent you can charge under the same standard — decide utility responsibility before you set the rent."
+    },
+    {
+      "q": "Why did CMHA ask me to lower my rent?",
+      "a": "Two reasons trigger it. Either your rent failed rent reasonableness against comparable unassisted units, or the tenant's share would exceed 40% of their monthly adjusted income on an initial contract, in which case CMHA negotiates a reduction with you. Neither one is simply about exceeding the payment standard — reasonableness and the tenant's income drive the reduction."
+    },
+    {
+      "q": "Do all Cleveland ZIP codes share the same payment standard?",
+      "a": "No. CMHA sets standards per ZIP code under Small Area Fair Market Rents. The FY2026 two-bedroom standard ranges from $1,096 in ZIP 44127 to $2,169 in ZIP 44113 across the 53 service-area ZIPs. Always look up the specific ZIP code and bedroom size in CMHA's Rent Determination tool before you price the unit."
+    },
+    {
+      "q": "Will CMHA automatically approve a rent set at the payment standard?",
+      "a": "No. The payment standard is a subsidy ceiling, not a guarantee. After the RFTA is submitted, CMHA still runs rent reasonableness against comparable unassisted units and inspects the unit before issuing a HAP contract. A rent that sits above comparable unassisted units can be rejected even when it is below the payment standard."
+    },
+    {
+      "q": "Where do I find the current payment standard for my ZIP?",
+      "a": "CMHA publishes FY2026 payment standards effective January 1, 2026 only through its interactive Rent Determination tool at apps.cmha.net/rentdetermination, searchable by ZIP code and bedroom size. There is no static PDF, and the table shown before you enter a ZIP is a placeholder. Look up the exact ZIP each time, since the figures change annually."
+    }
+  ],
+  "sources": [
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.cmha.net/Document%20Center/Housing/Landlords/Rent/UA%202026.pdf",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.hud.gov/sites/dfiles/PIH/documents/Mandatory-SAFMR-PHAs.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

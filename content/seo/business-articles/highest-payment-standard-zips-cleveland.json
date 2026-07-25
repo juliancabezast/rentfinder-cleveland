@@ -1,0 +1,119 @@
+{
+  "slug": "highest-payment-standard-zips-cleveland",
+  "section": "section-8-landlords",
+  "title": "Where Section 8 Pays the Most: Highest Payment-Standard ZIP Codes in Cuyahoga County",
+  "metaTitle": "Highest Section 8 Payment-Standard ZIPs Cleveland",
+  "metaDescription": "CMHA's highest Section 8 payment standards for 2026 sit in ZIP 44113 (Tremont/Ohio City) and 44040. See the ceilings by bedroom size for Cleveland landlords.",
+  "primaryKeyword": "highest section 8 payment standard zip codes cleveland",
+  "secondaryKeywords": ["CMHA payment standard by ZIP", "44113 payment standard", "Cuyahoga County voucher rent ceilings", "Small Area FMR Cleveland"],
+  "answerBox": "CMHA's highest Housing Choice Voucher payment standards for FY2026 (effective January 1, 2026) fall in ZIP codes 44113 (Tremont/Ohio City) and 44040, ranging from $1,582 for a studio to $2,983 for a four-bedroom. Standards are set per ZIP under Small Area FMRs and cap the subsidy, not the rent you may charge.",
+  "sections": [
+    {
+      "h2": "The top-paying ZIP codes in CMHA's service area",
+      "body": [
+        "CMHA sets Housing Choice Voucher payment standards **per ZIP code**, not as one countywide number. Under Small Area Fair Market Rents (SAFMRs), the agency's Rent Determination tool publishes FY2026 payment standards effective January 1, 2026 for the 53 ZIP codes in its service area. The highest tier belongs to **ZIP 44113** — the Tremont, Ohio City and near-West-Side area — tied with **ZIP 44040**. Both carry the top figure at every bedroom size CMHA lists.",
+        "For a landlord, the same voucher tenant can bring a larger subsidy in 44113 than in most of the county. Here is CMHA's FY2026 schedule for ZIP 44113 (identical in 44040):"
+      ],
+      "table": {
+        "headers": ["Bedroom size", "44113 / 44040 payment standard (FY2026)"],
+        "rows": [
+          ["Studio / efficiency", "$1,582"],
+          ["1 bedroom", "$1,796"],
+          ["2 bedroom", "$2,169"],
+          ["3 bedroom", "$2,791"],
+          ["4 bedroom", "$2,983"]
+        ]
+      }
+    },
+    {
+      "h2": "How the top ZIPs compare to the rest of the county",
+      "body": [
+        "The gap between the highest and lowest CMHA ZIP codes is wide. For a two-bedroom, the standard runs from $1,096 in ZIP 44127 (the Slavic Village area) to $2,169 in 44113 — a spread of roughly 98%. That is why any single \"CMHA payment standard\" quoted without a ZIP code is misleading. The table below shows the top tier against the median and the floor across CMHA's 53 service-area ZIPs.",
+        "One trap to avoid: the placeholder table CMHA's tool shows **before** you select a ZIP ($881 studio / $1,005 one-bedroom / $1,209 two-bedroom / $1,559 three-bedroom / $1,661 four-bedroom) is not a countywide figure — it corresponds only to ZIP codes 44103 and 44105. Always enter the property's actual ZIP."
+      ],
+      "table": {
+        "headers": ["Bedroom size", "Highest (44113 / 44040)", "Median of 53 ZIPs", "Lowest (44127)"],
+        "rows": [
+          ["Studio", "$1,582", "$1,118", "$802"],
+          ["1 bedroom", "$1,796", "$1,265", "$915"],
+          ["2 bedroom", "$2,169", "$1,525", "$1,096"],
+          ["3 bedroom", "$2,791", "$1,966", "$1,412"],
+          ["4 bedroom", "$2,983", "$2,101", "$1,514"]
+        ]
+      }
+    },
+    {
+      "h2": "Other higher-standard ZIP codes worth knowing",
+      "body": [
+        "44113 and 44040 sit at the ceiling, but several other ZIPs pay well above the county median. A few examples from CMHA's FY2026 tool:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**ZIP 44118 (Cleveland Heights):** $1,683 for a two-bedroom and $2,169 for a three-bedroom — that three-bedroom matches 44113's two-bedroom standard.",
+          "**ZIP 44141 (Brecksville):** CMHA's tool lists roughly $1,988 for a two-bedroom; confirm the exact figure in the tool before you price a unit there."
+        ]
+      }
+    },
+    {
+      "h2": "Why one ZIP pays more than the next: Small Area FMRs",
+      "body": [
+        "CMHA appears on HUD's official Mandatory SAFMR list with a designation year of 2024, meaning it is **required** — not merely permitted — to use Small Area Fair Market Rents to set voucher payment standards. CMHA implemented SAFMRs effective January 1, 2025; the agency says the change is intended to make payment standards better reflect the local market and give families more access to low-poverty, high-opportunity areas. You can read the mechanics in our guide to [what SAFMR means for Cleveland landlords](/what-is-safmr-cleveland-landlords/).",
+        "Before SAFMRs, a voucher used a single metro-wide Fair Market Rent — HUD's FY2026 figures for the Cleveland, OH HUD Metro FMR Area are $933 efficiency, $1,058 one-bedroom, $1,279 two-bedroom, $1,646 three-bedroom and $1,760 four-bedroom, one number for the whole region. SAFMRs replaced that flat figure with a separate FMR per ZIP, so higher-rent ZIPs like 44113 now carry higher standards. CMHA states its standards are built on HUD Fair Market Rents and set between 90% and 110% of the FMRs \"or approved exceptions as applicable.\"",
+        "There is also a location-based layer: CMHA participates in the **Cuyahoga Community Choice Demonstration**, under which the payment standard depends on where the unit sits within the county. An Address Locator Tool shows which tier a property falls in and the estimated rental price limit for that neighborhood.",
+        "The takeaway: the ZIP a unit sits in directly changes the subsidy ceiling. If you are weighing the other end of the range, see our companion piece on the [lowest payment-standard ZIPs](/lowest-payment-standard-zips-cleveland/)."
+      ]
+    },
+    {
+      "h2": "A higher standard is a bigger subsidy ceiling — not guaranteed rent",
+      "body": [
+        "The single most important thing to understand about these numbers: CMHA is explicit that \"the payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" You may set your rent above the standard — the tenant then covers the difference within program limits — and the standard does not, by itself, promise any particular rent or approval. Approval still depends on the unit passing inspection and CMHA's rent-reasonableness review.",
+        "CMHA calculates the monthly Housing Assistance Payment (HAP) as the lesser of (the payment standard minus the tenant's Total Tenant Payment) or (the gross rent minus that Total Tenant Payment). So a high 44113 standard raises the **cap** on the subsidy, but your actual HAP still tracks the rent you set and the tenant's income.",
+        "One more rule that interacts with these ZIP tiers: if a voucher family rents a unit larger than the bedroom size on its voucher, CMHA applies the payment standard and utility allowance for the **smaller** of the two — the voucher size or the actual unit size. A three-bedroom house rented to a family with a two-bedroom voucher is subsidized at the two-bedroom standard. For turning these ceilings into an asking rent, see [how to price your rental to CMHA's payment standard](/how-to-price-your-rental-to-cmha-payment-standard-cleveland/), and always confirm a specific ZIP in [CMHA's Rent Determination tool](/cmha-rent-determination-tool-how-to-look-up-payment-standard-cleveland/) before publication — these figures change annually."
+      ]
+    },
+    {
+      "h2": "How we help Cleveland owners lease to voucher tenants",
+      "body": [
+        "Source of income is not a protected class in the City of Cleveland, so accepting a voucher is your choice. Where the numbers work — and in the top-tier ZIPs they often do — a voucher tenancy can be steady and well-priced. We handle the paperwork.",
+        "Our terms are success-based: tenant placement is one month's rent, charged **only after** a tenant is placed — no placement, no fee. Inspection attendance with a written report is $100 flat (or you attend yourself). Ongoing management is 5% of the monthly rent, billed only while the unit is rented. Repair estimates are free, itemized, and back within 24 hours, and nothing starts without your approval. We have also completed CMHA's mandatory Virtual Landlord Orientation — required since January 1, 2026 before a HAP contract can be executed for a new tenancy — so we can move a top-ZIP unit toward a signed contract without you learning the process from scratch.",
+        "We serve Greater Cleveland and Cuyahoga County under CMHA. Call **(440) 444-4737** or start with our [stress-free Section 8 overview](/section8stressfree) and [landlord resource hub](/section-8-landlords/)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which Cleveland ZIP code has the highest Section 8 payment standard?",
+      "a": "ZIP 44113 — the Tremont, Ohio City and near-West-Side area — carries CMHA's highest FY2026 payment standards, tied with ZIP 44040. Both top out at $1,582 for a studio, $1,796 one-bedroom, $2,169 two-bedroom, $2,791 three-bedroom and $2,983 four-bedroom."
+    },
+    {
+      "q": "What is CMHA's payment standard for a three-bedroom in 44113?",
+      "a": "CMHA's FY2026 three-bedroom payment standard for ZIP 44113 is $2,791, effective January 1, 2026 — the highest three-bedroom standard in the agency's 53-ZIP service area, alongside ZIP 44040. It caps the subsidy, not the rent you may charge."
+    },
+    {
+      "q": "Is the payment standard the most I can charge in rent?",
+      "a": "No. CMHA states the payment standard \"is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" You may set rent above it, subject to CMHA's rent-reasonableness review and the tenant's ability to cover the difference within program limits."
+    },
+    {
+      "q": "Why do payment standards differ so much by ZIP in Cuyahoga County?",
+      "a": "CMHA is on HUD's Mandatory SAFMR list (designation year 2024) and implemented Small Area Fair Market Rents on January 1, 2025. SAFMRs replace one metro-wide figure with a separate Fair Market Rent per ZIP, so higher-rent ZIPs like 44113 carry higher standards. The two-bedroom standard alone spans about 98% across the county."
+    },
+    {
+      "q": "Where do I look up a specific ZIP code's payment standard?",
+      "a": "Use CMHA's Rent Determination tool, which publishes FY2026 payment standards effective January 1, 2026 for the 53 service-area ZIPs. Only a subset of ZIPs is quoted here and figures change annually, so enter the property's exact ZIP and re-verify before you price a unit."
+    },
+    {
+      "q": "Does a higher payment standard mean my rent is guaranteed?",
+      "a": "No. A higher standard raises the subsidy ceiling, but it does not guarantee any specific rent or automatic approval. The unit must still pass inspection and CMHA's rent-reasonableness review, and the monthly Housing Assistance Payment is calculated from your rent and the tenant's income."
+    }
+  ],
+  "sources": [
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.hud.gov/sites/dfiles/PIH/documents/Mandatory-SAFMR-PHAs.pdf",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://cuyahogamobility.org/frequently-asked-questions/",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

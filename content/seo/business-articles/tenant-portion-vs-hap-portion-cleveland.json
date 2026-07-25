@@ -1,0 +1,123 @@
+{
+  "slug": "tenant-portion-vs-hap-portion-cleveland",
+  "section": "section-8-landlords",
+  "title": "Who Pays What: The Tenant's Share vs. CMHA's Share of Your Rent",
+  "metaTitle": "Tenant's Share vs. CMHA's HAP Share of Your Rent",
+  "metaDescription": "CMHA splits your Section 8 rent in Cleveland into the tenant's portion and CMHA's HAP portion. How the split is set, why it changes, and when rent drops.",
+  "primaryKeyword": "section 8 tenant portion vs cmha portion rent cleveland",
+  "secondaryKeywords": [
+    "total tenant payment cmha",
+    "housing assistance payment cleveland landlord",
+    "cmha tenant rent share",
+    "why does section 8 tenant portion change"
+  ],
+  "answerBox": "CMHA divides your contract rent into two payments: the tenant's Total Tenant Payment (TTP) and CMHA's Housing Assistance Payment (HAP). Per CMHA, TTP is income-based — the greater of 30% of adjusted income, 10% of gross income, or a minimum rent — and HAP covers the rest, up to your ZIP's payment standard.",
+  "sections": [
+    {
+      "h2": "Your rent arrives in two payments",
+      "body": [
+        "CMHA never pays your whole rent, and the tenant never covers it alone. Your contract rent is split into the tenant's **Total Tenant Payment (TTP)** and CMHA's **Housing Assistance Payment (HAP)**. CMHA sends its HAP share by direct deposit — enrollment is mandatory for owners — on dates that are \"generally on the 3rd and 16th of each month,\" while the tenant pays their portion directly to you.",
+        "One number owners routinely misread is the payment standard. It is **not** your rent ceiling. CMHA is explicit: \"The payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" You can price above it — the payment standard simply caps how much of the rent CMHA's HAP will reach."
+      ]
+    },
+    {
+      "h2": "How CMHA sets the tenant's Total Tenant Payment",
+      "body": [
+        "The tenant's share is tied to their income, not to your asking rent. CMHA's Landlord Participation Guide calculates the Total Tenant Payment as the **greatest** of three figures:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "30% of the family's monthly adjusted income",
+          "10% of gross monthly income",
+          "CMHA's minimum rent (stated as $50 in CMHA's Landlord Participation Guide)"
+        ]
+      }
+    },
+    {
+      "h2": "Gross rent is the number CMHA actually tests",
+      "body": [
+        "CMHA runs its calculations on **gross rent**, not on your contract rent alone. Gross rent is your rent plus any utilities the tenant pays directly (or CMHA's utility allowance for them). CMHA publishes an HCVP utility allowance schedule effective January 1, 2026 for exactly this purpose.",
+        "This distinction matters: the rent you advertise is not the figure CMHA measures against the payment standard or the affordability test. If the tenant is responsible for some utilities, CMHA folds an allowance into the math, so your listed rent and CMHA's gross-rent figure are two different numbers."
+      ]
+    },
+    {
+      "h2": "How CMHA sets its HAP share",
+      "body": [
+        "Once the TTP is fixed, CMHA's Landlord Participation Guide sets the Housing Assistance Payment as the **lesser** of two figures: the payment standard minus the TTP, or the gross rent minus the TTP. CMHA pays that amount, the tenant pays the balance, and together they equal your rent.",
+        "Here is a hypothetical worked example — the dollar figures for TTP and contract rent are illustrative, but the payment standard is real. Suppose your two-bedroom is in ZIP 44105, where CMHA's FY2026 payment standard (effective 1/1/2026) is **$1,209**, and you sign a $1,200 lease with you paying the utilities (so gross rent equals your contract rent). If CMHA sets the family's TTP at $400:"
+      ],
+      "table": {
+        "headers": ["Step", "Calculation", "Result"],
+        "rows": [
+          ["Payment standard − TTP", "$1,209 − $400", "$809"],
+          ["Gross rent − TTP", "$1,200 − $400", "$800"],
+          ["CMHA pays the lesser (HAP)", "—", "$800"],
+          ["Tenant pays (TTP)", "—", "$400"],
+          ["You collect (your full rent)", "$800 + $400", "$1,200"]
+        ]
+      }
+    },
+    {
+      "h2": "Why the tenant's share can change mid-lease",
+      "body": [
+        "Because the TTP is income-based, it moves whenever CMHA recertifies the family's income — but your total rent does not. If the tenant's income falls, CMHA raises its subsidy: the agency's own owner materials list a subsidy that increases if the tenant loses income as a benefit of participating. Your rent is unchanged; only the split shifts, with CMHA covering more and the tenant less. If income rises, the reverse happens — the tenant's portion goes up, CMHA's HAP comes down, and you still collect the same rent.",
+        "CMHA processes these shifts on a separate payment run. Its 2026 HAP Payment Calendar schedules a Primary disbursement plus a **Mid-Month disbursement** for \"approved adjustments such as new admissions, contract changes, corrections, or other qualifying payment updates that occur after the primary payment has been processed.\" A change to who pays which utilities can move the number too, since the utility allowance is part of the gross-rent calculation."
+      ]
+    },
+    {
+      "h2": "When CMHA can ask you to lower the rent",
+      "body": [
+        "Two checks can force a rent reduction before the HAP contract is ever signed.",
+        "**The 40% affordability cap.** On an initial CMHA HCV contract, the total tenant portion can be no more than 40% of the family's monthly adjusted income; if it would exceed that, CMHA negotiates with the owner to reduce the rent. Price above what the family can carry on day one and CMHA will come back to the table.",
+        "**Rent reasonableness.** CMHA compares your unit to comparable unassisted units in the market area and applies the test to gross rent. A unit that is not rent reasonable is ineligible for the program, because no federal funds may pay for any part of rent that is not reasonable.",
+        "Raising rent later is regulated, not automatic. Increase requests go to RentAdjustment@cmha.net and require a HAP contract at least one year old, a passed annual inspection within 12 months of the effective date, a current recertification, at least 12 months since the last approved adjustment, and a rent-reasonable amount. Context matters here as well: on August 14, 2025 CMHA asked Greater Cleveland landlords to forgo rent increases because of a projected voucher budget shortfall."
+      ]
+    },
+    {
+      "h2": "Pricing the split in your favor — and how we help",
+      "body": [
+        "The split is only as good as your starting rent, and your starting rent should be set against your ZIP's payment standard, not a countywide average — CMHA's standards vary widely from one ZIP to the next. See [how to price your rental to CMHA's payment standard](/how-to-price-your-rental-to-cmha-payment-standard-cleveland/) and [look up your ZIP in CMHA's Rent Determination tool](/cmha-rent-determination-tool-how-to-look-up-payment-standard-cleveland/) before you list. For the bigger picture on who sends you which check, see [who actually pays a Cleveland voucher landlord](/who-pays-landlords-cmha-eden-coc-cleveland/), and for that first partial month, [how your first HAP payment is prorated](/first-hap-payment-proration-cleveland/).",
+        "Our service keeps your side of the split clean. We place your tenant for **one month's rent, charged only after the tenant is placed** — no placement, no fee. Ongoing management is **5% of monthly rent, billed only while the unit is rented**. We attend the CMHA inspection and send you a written report for **$100** (or you can attend yourself), and repair estimates are free, itemized, and back within 24 hours, with nothing starting without your approval. We have also completed **CMHA's mandatory Virtual Landlord Orientation** — required since January 1, 2026 before a HAP contract can be executed for a new tenancy — so your first contract is not delayed on our end. More landlord answers live in our [Section 8 landlord guides](/section-8-landlords/). Call us at (440) 444-4737."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does CMHA pay all of my rent?",
+      "a": "No. CMHA pays its Housing Assistance Payment (HAP), and the tenant pays the Total Tenant Payment (TTP); together they equal your contract rent. CMHA sends its share by mandatory direct deposit, generally on the 3rd and 16th of each month, and the tenant pays their portion to you directly."
+    },
+    {
+      "q": "How is the tenant's portion calculated?",
+      "a": "Per CMHA's Landlord Participation Guide, the Total Tenant Payment is the greater of 30% of the family's monthly adjusted income, 10% of gross monthly income, or CMHA's minimum rent (stated as $50 in that guide). CMHA applies its tests to gross rent — your rent plus any tenant-paid utilities or the utility allowance for them."
+    },
+    {
+      "q": "Why did my tenant's portion change mid-lease?",
+      "a": "The Total Tenant Payment is income-based, so it moves when CMHA recertifies the family's income. If income drops, CMHA increases its subsidy and the tenant pays less; if income rises, the tenant pays more and CMHA pays less. Either way, your total rent stays the same — only the split changes."
+    },
+    {
+      "q": "Can CMHA make me lower my rent?",
+      "a": "On an initial contract, if the tenant's portion would exceed 40% of the family's monthly adjusted income, CMHA negotiates with the owner to reduce the rent. Your rent must also pass rent reasonableness against comparable unassisted units, measured on gross rent. Both are checked before the HAP contract is signed."
+    },
+    {
+      "q": "Is the payment standard the most I can charge?",
+      "a": "No. CMHA states the payment standard \"is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy\" CMHA will pay toward the tenant's rent portion. You can charge more, but the rent must still pass rent reasonableness and the 40% affordability test."
+    },
+    {
+      "q": "How often can I raise the rent on a voucher tenant?",
+      "a": "Increase requests go to RentAdjustment@cmha.net and require a HAP contract at least one year old, a passed annual inspection within 12 months, a current recertification, at least 12 months since your last approved increase, and a rent-reasonable amount. Note that in August 2025 CMHA asked landlords to forgo increases over a budget shortfall."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/Document%20Center/Housing/Landlords/Rent/UA%202026.pdf",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://signalcleveland.org/cmha-asks-greater-cleveland-landlords-not-to-raise-rent-on-section-8-tenants/"
+  ],
+  "lastUpdated": "2026-07-22"
+}

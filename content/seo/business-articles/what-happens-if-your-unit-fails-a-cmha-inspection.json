@@ -1,0 +1,146 @@
+{
+  "slug": "what-happens-if-your-unit-fails-a-cmha-inspection",
+  "section": "section-8-landlords",
+  "title": "Failed Inspection, Withheld Rent, Abatement: How Owners Lose HAP Money",
+  "metaTitle": "Section 8 Rent Abatement: What a Failed Inspection Costs",
+  "metaDescription": "Failed a CMHA inspection? The Section 8 rent abatement landlord guide: withheld vs. abated HAP, which money comes back, and when CMHA ends the contract.",
+  "primaryKeyword": "section 8 rent abatement landlord",
+  "secondaryKeywords": [
+    "cmha hap abatement",
+    "failed cmha inspection",
+    "hap contract termination",
+    "withheld hap payments cleveland"
+  ],
+  "answerBox": "Withheld HAP is recoverable; abated HAP is not. Under 24 CFR 982.404, CMHA may withhold payments after written notice of deficiencies and must pay the withheld period once you comply. Miss the cure period and payments abate, permanently. Uncured, the federal rule points to HAP contract termination in 60 days.",
+  "sections": [
+    {
+      "h2": "Withheld and abated are not two words for the same thing",
+      "body": [
+        "CMHA's landlord page advertises \"[s]table, guaranteed rent payments deposited directly into your account.\" That is CMHA's phrasing; the same agency publishes the rule that stops those payments.",
+        "**Withholding is a pause.** Under 24 CFR 982.404(d)(1) a housing authority may withhold payments after written notice of deficiencies. Comply during the cure period and the PHA \"[m]ust provide assistance payments to cover the time period for which the assistance payments were withheld.\"",
+        "**Abatement is a loss.** Under 24 CFR 982.404(d)(2)(i), \"The PHA must abate the HAP, including amounts that had been withheld, if the owner fails to make the repairs within the applicable cure period.\" Must, not may. And 24 CFR 982.4 defines abatement as \"Stopping HAP payments to an owner with no potential for retroactive payment.\""
+      ],
+      "table": {
+        "headers": [
+          "Item",
+          "Withheld",
+          "Abated"
+        ],
+        "rows": [
+          [
+            "Trigger",
+            "Cure period still running",
+            "Cure period expired"
+          ],
+          [
+            "Recoverable",
+            "Yes, once you comply",
+            "No retroactive payment, ever"
+          ],
+          [
+            "Tenant's share",
+            "Unaffected",
+            "Unaffected: \"still responsible for their portion of the rent\""
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "The clocks that decide which one you get",
+      "body": [
+        "Nothing here is triggered by the failure, but by the deadline you miss afterward. Under 24 CFR 982.404(a)(3), \"[i]f a deficiency is life-threatening, the owner must correct the deficiency within 24 hours of notification. For other deficiencies, the owner must correct the deficiency within 30 calendar days of notification (or any reasonable PHA-approved extension).\"",
+        "CMHA's own version: it may abate where owners \"do not comply with notifications to correct HQS deficiencies within the specified timeframe. 24 hours or 30 days depending on the nature of the deficiency.\" CMHA publishes a fixed 24-hour list, itemized in [what gets a unit failed](/section-8-inspection-fail-items-cleveland/).",
+        "Two other clocks matter. Under 24 CFR 982.405(d), when a tenant or a government official reports a deficiency the PHA inspects within 24 hours if it is life-threatening, otherwise within 15 days. And once your corrections are done, CMHA's FY2025 Administrative Plan policy is to \"reinspect the unit within five business days of the date the owner notifies the PHA that the required corrections have been made.\""
+      ]
+    },
+    {
+      "h2": "Abatement lands on the first of a month",
+      "body": [
+        "CMHA's Landlord FAQ sets out the sequence: \"Rent is abated when the unit fails to pass on two consecutive inspections,\" and if the violation survives the second one, \"the HAP will abate on the first of the month following the failure to comply.\" The unit of loss is a month, so a reinspection that passes before the month turns is worth a full month of subsidy.",
+        "One caution on counting: CMHA's undated Landlord Participation Guide says \"Up to three inspections are allowed\" for periodic, emergency and special inspections, which does not match the live FAQ. Confirm your own file at 216.271.2116."
+      ]
+    },
+    {
+      "h2": "What actually shortens the exposure",
+      "body": [
+        "You cannot certify your own way out: HUD Notice PIH 2024-26 REV-1 confirms \"24 CFR 5.707 exempts landlords participating in HCV, PBV, and Section 8 Mod Rehab programs from any self-inspection requirements.\"",
+        "**We attend the inspection and send you a written report for $100**, or you attend yourself and pay nothing. **Estimates come back free, itemized, inside 24 hours**, and nothing starts without your approval — a two-week wait on a quote spends half a 30-day cure period."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Send proof instead of booking a second visit.** 24 CFR 982.405(i) lets a PHA \"use verification methods other than another on-site inspection\" and \"accept photographic evidence or other reliable evidence from the owner.\"",
+          "**Notify the day the work is finished.** The five-business-day reinspection window runs from your notification, not from the repair. Scheduling is 216.478.9680.",
+          "**Expect a reinspection fee.** Under 24 CFR 982.405(h) a PHA may set \"a reasonable fee to owners for a reinspection.\" CMHA publishes no amount, so ask."
+        ]
+      }
+    },
+    {
+      "h2": "Three moves that are off the table",
+      "list": {
+        "type": "ol",
+        "items": [
+          "**You cannot evict over it.** 24 CFR 982.404(d)(3): \"An owner may not terminate the tenancy of any family due to the withholding or abatement of assistance.\"",
+          "**You cannot bill the tenant the difference.** CMHA: \"Side deals between the landlord and family are illegal\" and can leave a landlord \"disbarred, suspended or subject to a limited denial of participation.\" The family owes \"their portion of the rent, only.\"",
+          "**You cannot pass the reinspection fee on.** 24 CFR 982.405(h): \"The owner may not pass this fee along to the family.\""
+        ]
+      },
+      "body": [
+        "Abatement also cancels a protection elsewhere: CMHA holds HAP at a landlord's request during an eviction, and \"[i]f the tenant remains in the unit during the eviction process, and the unit is not in abatement, the landlord may receive all withheld HAP payments, whether or not the landlord won or lost the eviction.\"",
+        "None of it moves Ohio law: R.C. 5321.04(A) imposes ten non-waivable duties on every landlord, voucher or not. And where the tenant caused the damage, \"HCVP does not pay for tenant caused damages\" — the repair clock runs against you either way."
+      ]
+    },
+    {
+      "h2": "How it ends: two published numbers that disagree",
+      "body": [
+        "Under 24 CFR 982.404(d)(2)(ii), once a PHA abates it must warn the family and owner that if the unit \"does not meet HQS within 60 days (or a reasonable longer period established by the PHA) after the determination of noncompliance ... the PHA will terminate the HAP contract for the unit, and the family will have to move.\" The family is issued its voucher at least 30 days before termination.",
+        "CMHA publishes a shorter one: \"If a unit is in abatement for more than 30 days, the HAP Contract may be terminated.\" Both are published. Plan to 30 days — it costs you first if it is the operative number — and confirm at 216.271.2116.",
+        "Enforcement is not discretionary. HUD Notice PIH 2024-26 REV-1 — written for NSPIRE, which CMHA says starts February 1, 2027, with HQS governing until then — states that an uncorrected failure means \"the PHA must initiate Housing Assistance Payment (HAP) Contract enforcement, which can include withholding or abatement of assistance payments, terminations, or relocations.\"",
+        "Termination does not put you back at the starting line. Re-leasing means a fresh Request for Tenancy Approval, and since January 1, 2026 the owner or managing agent must have completed CMHA's Virtual Landlord Orientation before a HAP contract can be executed for a new tenancy."
+      ]
+    },
+    {
+      "h2": "Where we fit",
+      "body": [
+        "**We have already completed CMHA's Virtual Landlord Orientation**, the roughly 90-minute live session CMHA verifies before executing a contract. That prerequisite is done.",
+        "We work Greater Cleveland and Cuyahoga County, under CMHA, and nowhere else. Placement is one month's rent, charged only after the tenant is placed: no placement, no fee. Management is 5% of monthly rent, billed only while the unit is rented.",
+        "Open failure with a clock running: call **(440) 444-4737**. Still weighing the arrangement: [what CMHA pays and what it doesn't](/is-section-8-rent-guaranteed-cleveland/), [what owners sign up for on inspections](/are-section-8-inspections-worth-it-cleveland/), or [how we run voucher tenancies](/section8stressfree). General information on published rules, not legal advice."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between withheld and abated Section 8 rent?",
+      "a": "Withholding pauses payment while your cure period runs; under 24 CFR 982.404(d)(1) the PHA must cover that period once the unit complies. Abatement is the penalty for missing it: 24 CFR 982.4 defines abatement as stopping payments \"with no potential for retroactive payment,\" and anything already withheld is swept in."
+    },
+    {
+      "q": "Can I get abated HAP back once I finally make the repair?",
+      "a": "No. Payments can resume once the unit passes, but the abated stretch is not paid retroactively — CMHA states there \"will be no retroactive payments made during that period.\" The deadline matters more than the fix: a life-threatening item corrected on day three has already missed its 24-hour cure period."
+    },
+    {
+      "q": "Does the tenant still pay their share while HAP is abated?",
+      "a": "Yes. CMHA states the family remains \"responsible for their portion of the rent, only.\" What stops is CMHA's payment, and you may not raise the tenant's share to cover the gap — CMHA warns side deals can leave a landlord \"disbarred, suspended or subject to a limited denial of participation.\""
+    },
+    {
+      "q": "Can I evict the tenant because CMHA abated my payments?",
+      "a": "Not on that basis. 24 CFR 982.404(d)(3): \"An owner may not terminate the tenancy of any family due to the withholding or abatement of assistance.\" Abatement also undercuts a separate protection, since CMHA releases HAP held during an eviction only where the unit \"is not in abatement,\" win or lose."
+    },
+    {
+      "q": "How long after abatement does CMHA terminate the HAP contract?",
+      "a": "Two published numbers disagree. 24 CFR 982.404(d)(2)(ii) points to termination if the unit does not meet HQS within 60 days of the determination of noncompliance, with the family issued a voucher at least 30 days beforehand. CMHA's Landlord FAQ says a unit in abatement more than 30 days may be terminated."
+    }
+  ],
+  "sources": [
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.04"
+  ],
+  "lastUpdated": "2026-07-21"
+}

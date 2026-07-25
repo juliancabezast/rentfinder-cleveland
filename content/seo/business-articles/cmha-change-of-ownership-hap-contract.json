@@ -1,0 +1,144 @@
+{
+  "slug": "cmha-change-of-ownership-hap-contract",
+  "section": "section-8-landlords",
+  "title": "Buying or Selling a Cleveland Rental With an Active HAP Contract",
+  "metaTitle": "CMHA Change of Ownership Form: HAP After a Sale",
+  "metaDescription": "Bought a Cleveland rental with a voucher tenant? The CMHA change of ownership form is what moves HAP payments to you. What CMHA requires, and when it pays.",
+  "primaryKeyword": "cmha change of ownership form",
+  "secondaryKeywords": [
+    "cmha change of ownership packet",
+    "buying a rental with a section 8 tenant cleveland",
+    "hap contract new owner cuyahoga county",
+    "transfer hap payments to new owner cmha",
+    "selling a rental with a voucher tenant cleveland"
+  ],
+  "answerBox": "Closing does not move the money. CMHA requires every owner who purchases property with existing HCVP tenants to complete and submit its Change of Ownership packet, and states that the new owner \"will begin receiving payments when the packet has been completed and processed.\" Until that happens, the buyer is not being paid.",
+  "sections": [
+    {
+      "h2": "Closing does not move the money",
+      "body": [
+        "From CMHA's Landlord FAQ: a buyer acquiring a property with an active HCVP HAP contract must complete and submit CMHA's Change of Ownership packet, and **\"[t]he new owner will begin receiving payments when the packet has been completed and processed.\"** CMHA's Property Ownership Changes page says the same.",
+        "Nothing in that is triggered by the deed or the title company. Recording makes you the owner; the processed packet makes you the payee. You can file early; you cannot make CMHA process faster. **CMHA publishes no processing time**, no target and no turnaround statistic, so any article handing you a number is inventing it. HAP payment questions go to **216.271.2495** or **financehcvp@cmha.net**."
+      ]
+    },
+    {
+      "h2": "The form, and what a new owner needs on file",
+      "body": [
+        "CMHA publishes it in the landlord Forms & Documents library — a 16-item index that also holds the Automatic Deposit Form, the Agent/Payee Form and the 2026 HAP Payment Calendar. It carries both names: **Change of Ownership Form** and **Change of Ownership Packet**.",
+        "If CMHA already pays you elsewhere, you are in its vendor system and the packet is the whole errand. If not, settle which entity is the payee first: the Tax ID or SSN you give CMHA has to match its vendor record, and an LLC on the deed with a personal SSN on the tax form is a delay you build yourself. See [the forms library](/cmha-landlord-portal-and-forms/) and [direct deposit](/cmha-direct-deposit-hap-payments/)."
+      ],
+      "table": {
+        "headers": [
+          "Requirement",
+          "What CMHA published"
+        ],
+        "rows": [
+          [
+            "Change of Ownership packet",
+            "\"The new owner will begin receiving payments when the packet has been completed and processed\""
+          ],
+          [
+            "Direct deposit",
+            "\"All owners are required to go on direct deposit to receive HAP payments\" — form plus a voided check to HCVP Finance, 8120 Kinsman Road, Cleveland, Ohio 44104"
+          ],
+          [
+            "IRS Form W-9",
+            "CMHA \"will not execute the HAP contract until the owner has submitted IRS form W-9\" — the RFTA packet marks it \"new vendors only\""
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "When the payments start flowing to you",
+      "body": [
+        "The trigger is the processed packet. The dates are published: CMHA states that HAP payment dates typically occur on the **3rd and the 16th**, and its 2026 HAP Payment Calendar formalizes a **Primary** and a **Mid-Month HAP Disbursement**, the second for \"approved adjustments such as new admissions, contract changes, corrections, or other qualifying payment updates that occur after the primary payment has been processed.\"",
+        "A change of ownership is a contract change — CMHA's own wording for that second run — though CMHA does not publish which run a processed change lands on. On a brand-new contract, a different case, it is specific: \"you will be paid on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and occupancy permit, when applicable.\" More in [When Does CMHA Pay?](/when-does-cmha-pay-landlords/)"
+      ]
+    },
+    {
+      "h2": "What the sale does not change",
+      "body": [
+        "The tenancy does not restart because the deed moved. CMHA's Landlord Participation Guide describes what you step into: an initial lease term of at least one year, a HAP contract running concurrently with the lease — when one ends, so does the other — and no CMHA authorization for the family to move during that first year. See [What Is a HAP Contract](/what-is-a-hap-contract-cmha/).",
+        "The exposure transfers with it. CMHA abates HAP when a unit fails two consecutive inspections: \"the HAP will abate on the first of the month following the failure to comply.\" No retroactive payments are made for that period, and \"[i]f a unit is in abatement for more than 30 days, the HAP Contract may be terminated.\" CMHA adds that \"HCVP does not pay for tenant caused damages.\""
+      ]
+    },
+    {
+      "h2": "What to get from the seller before you close",
+      "body": [
+        "Ask while the seller still wants the deal to close."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Inspection history.** The Landlord Portal shows inspection history and failed items with photos within 72 hours of a failure — the seller can pull it; you cannot until you have a vendor code",
+          "**Abatement status.** Abated money carries no retroactive payment, and 30 days in abatement puts the contract itself at risk",
+          "**Any eviction in progress.** CMHA holds HAP at the landlord's request during an eviction, and both parties must give HCVP a copy of the eviction notice",
+          "**The last approved rent adjustment date.** CMHA's gates are written around the contract, not your tenure: both signatures to RentAdjustment@cmha.net, a contract at least a year old, a passed annual inspection within 12 months of the effective date, a current recertification, and 12 months since the last adjustment"
+        ]
+      }
+    },
+    {
+      "h2": "If the tenant moves out after you buy",
+      "body": [
+        "Then this is a new tenancy, not a change of ownership, and CMHA's seven-step lease-up applies: advertise, orientation, screening, RFTA packet, rent offer, inspection, contract and lease. Since **January 1, 2026**, submitting an RFTA triggers a requirement that the owner or designated managing agent complete CMHA's Virtual Landlord Orientation — about 90 minutes, live, booked through Eventbrite, once every 24 months — before CMHA can execute a HAP contract for a new tenancy. On existing business CMHA is brief: \"Existing HAP contracts and current HAP payments are not affected.\"",
+        "Two details bite a recent buyer. After an RFTA, CMHA verifies ownership through the County Auditor's website and confirms the unit is not in foreclosure and is current on property taxes — an unposted deed becomes a live problem. It also requires a Certificate of Occupancy and/or Rental Registration with the RFTA in 17 named suburbs, Parma, Lakewood, Euclid and Cleveland Heights among them, and verifies City of Cleveland registrations through the City's Citizen Access Portal, effective October 1, 2025.",
+        "Whether you keep leasing to voucher holders is a decision, not an obligation — source of income is not on the City of Cleveland's protected-class list, though Cleveland Heights, South Euclid, Warrensville Heights and Linndale have their own ordinances."
+      ]
+    },
+    {
+      "h2": "What we handle, and what it costs",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and **we have completed CMHA's Virtual Landlord Orientation** — the step that has gated new HAP contracts since January 1, 2026. On a purchase that matters twice: the packet goes in the week you close, and the first vacancy afterward is not waiting on a session nobody booked."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "File the Change of Ownership packet, become someone CMHA's finance system can pay — direct deposit is mandatory and the tax record must match the name now on title — then watch the 3rd and the 16th. Selling is the same job in reverse: give the buyer what they need to file. Call **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do HAP payments transfer to me automatically when the sale closes?",
+      "a": "No. CMHA requires every owner who purchases property with existing HCVP tenants to complete and submit its Change of Ownership packet, and states that the new owner begins receiving payments once the packet has been completed and processed. Recording the deed makes you the owner; the processed packet makes you the payee."
+    },
+    {
+      "q": "Where do I get CMHA's change of ownership form?",
+      "a": "From CMHA's landlord Forms & Documents library, a 16-item index that also publishes the Automatic Deposit Form, the Agent/Payee Form and the 2026 HAP Payment Calendar. CMHA keeps a separate Property Ownership Changes page as well, and names the document both Change of Ownership Form and Change of Ownership Packet."
+    },
+    {
+      "q": "How long does CMHA take to process a change of ownership?",
+      "a": "CMHA publishes no processing time, target or turnaround statistic for the packet, so there is no honest number to quote. What is published is the trigger: payments begin once the packet has been completed and processed. Chase it through HCVP finance at 216.271.2495 or financehcvp@cmha.net, or the HCV office at (216) 431-1471."
+    },
+    {
+      "q": "I am the seller. What is actually on me?",
+      "a": "CMHA publishes the requirement on the buyer's side, so a seller's job is making that filing fast: the executed HAP contract and lease, inspection history pulled from the Landlord Portal while you still have access, the last approved rent adjustment date, the security deposit, and any eviction notice given to HCVP."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/ownership.php",
+    "https://www.cmha.net/housing/landlords/forms___documents.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/about_us/contact_us.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordPortalUserGuide.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/Automatic%20Deposit%20Form.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

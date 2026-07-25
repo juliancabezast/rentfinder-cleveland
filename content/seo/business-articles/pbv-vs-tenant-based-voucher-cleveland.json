@@ -1,0 +1,96 @@
+{
+  "slug": "pbv-vs-tenant-based-voucher-cleveland",
+  "section": "section-8-landlords",
+  "title": "PBV vs. Tenant-Based Voucher: Which Section 8 Setup Is Better for a Cleveland Owner?",
+  "metaTitle": "PBV vs. Tenant-Based Voucher: Cleveland",
+  "metaDescription": "Project based voucher vs tenant based voucher for a Cleveland rental: PBV ties CMHA subsidy to your building up to 20 years; tenant-based moves with the tenant.",
+  "primaryKeyword": "project based voucher vs tenant based voucher",
+  "secondaryKeywords": ["project-based voucher Cleveland landlord", "tenant-based voucher CMHA", "PBV vs HCV landlord"],
+  "answerBox": "For most Cleveland landlords the realistic choice is a tenant-based voucher: a CMHA voucher holder finds your unit and brings a Request for Tenancy Approval. A project-based voucher instead ties CMHA subsidy to your building under a HAP contract of up to 20 years — a setup CMHA project-bases, not one you pick at lease-up.",
+  "sections": [
+    {
+      "h2": "The honest answer for a Cleveland owner",
+      "body": [
+        "For nearly every private landlord in Greater Cleveland, these two are not equal options on a menu. A **tenant-based** Housing Choice Voucher is the setup you will actually encounter: a CMHA voucher holder finds your listing and brings you a Request for Tenancy Approval (RFTA) to start the lease-up. A **project-based voucher (PBV)** is different in kind — CMHA attaches the subsidy to a specific unit or building under a long-term contract, and HUD notes that a housing authority \"can generally project-base up to 20 percent of its authorized voucher units.\" It is CMHA, not the owner, that decides which units get project-based; you do not convert an ordinary rental to PBV by checking a box on a normal lease-up.",
+        "So the real question for most owners is not \"which do I pick,\" but \"is my property part of a CMHA project-based arrangement, or am I renting to a voucher holder on the open market?\" Either way, participation is voluntary: as of July 2026 no federal law, Ohio statute, or Cleveland ordinance makes source of income a protected class in the city, so declining a voucher solely because it is a voucher is lawful. Everything below is about whether a setup is **worth it**, not something you must accept."
+      ]
+    },
+    {
+      "h2": "Tenant-based vs. project-based: the core difference",
+      "body": [
+        "The distinction comes down to what the subsidy is attached to. CMHA states that with a project-based voucher \"the voucher subsidy stays with the building. When the assisted tenant moves out, the rental assistance remains with the building for the next eligible occupant.\" A tenant-based voucher is the mirror image: the assistance belongs to the household, so when they move on, the voucher goes with them and your unit returns to the open market."
+      ],
+      "table": {
+        "headers": ["Feature", "Tenant-based voucher (HCV)", "Project-based voucher (PBV)"],
+        "rows": [
+          ["Subsidy attaches to", "The household — it moves with the family", "The unit/building — it stays for the next eligible occupant"],
+          ["HAP contract term", "Typically one year", "Initial term up to 20 years per unit (24 CFR 983.205)"],
+          ["Who sets it up", "A voucher holder finds your listing and brings the RFTA", "CMHA project-bases specific units (generally up to 20% of its authorized vouchers)"],
+          ["If the assisted tenant leaves", "Subsidy leaves with the household; unit re-enters the open market", "Assistance remains with the building for the next eligible occupant"],
+          ["Governing rules", "24 CFR Part 982", "24 CFR Part 983 (much of Part 982 also applies)"]
+        ]
+      }
+    },
+    {
+      "h2": "The 20-year commitment behind a project-based voucher",
+      "body": [
+        "The number that should shape your decision is the contract length. Under federal rule 24 CFR 983.205, a housing authority \"may enter into a HAP contract with an owner for an initial term of up to 20 years for each contract unit\" — a world apart from the typically one-year HAP contract behind a standard tenant-based voucher. Each extension \"must have a term that does not exceed 20 years,\" and \"[a]t no time may the total remaining term of the HAP contract, with extensions, exceed 40 years.\"",
+        "That long horizon is the point of PBV: it locks subsidy to your building so a vacancy is refilled from CMHA's eligible pool rather than the general market. CMHA says PBV tenants \"are assisted as long as they live in the unit and continue to qualify for the program,\" paying \"30% of their income for rent and utilities\" while CMHA covers the rest. But the same commitment cuts the other way — it ties your unit to program rules for years, and PBV layers its own regulations at 24 CFR Part 983 on top of the core voucher rules at Part 982. CMHA also operates **Moderate Rehabilitation (Mod/Rehab)**, a separate project-based subsidy under 24 CFR Part 882 — see our [Mod Rehab landlord guide](/moderate-rehabilitation-program-landlord-cleveland/) and confirm the specifics with CMHA."
+      ]
+    },
+    {
+      "h2": "Why most Cleveland owners rent tenant-based",
+      "body": [
+        "The tenant-based path is faster to enter and keeps you in control of turnover. A voucher holder shopping with a voucher good for 180 days from its issue date finds your unit, you screen them exactly as you would any applicant — \"[i]t is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant\" — and the deal starts when they hand you the RFTA. The initial lease runs at least a year, the HAP contract runs concurrently with it, and CMHA will not authorize the family to move during that first year; after that, on CMHA's own benefit list, you can use your own lease and go month-to-month.",
+        "If the tenant eventually leaves, the subsidy leaves with them and you re-list on the open market rather than waiting for a CMHA referral. For an owner with one or a handful of units, that flexibility usually outweighs the long guarantee of PBV — and CMHA markets its tenant pool as the selling point, \"over 15,000 voucher holders,\" so re-leasing to another voucher holder is realistic without a 20-year contract. When a tenant gives notice, our [voucher tenant moving-out guide](/voucher-tenant-moving-out-landlord-guide-cleveland/) and [first-year lease rules](/voucher-tenant-lease-rules-first-year-cleveland/) cover what CMHA expects.",
+        "On the income side, CMHA describes the owner benefits as \"[s]table, guaranteed rent payments deposited directly into your account,\" with the subsidy rising if the tenant loses income. That is CMHA's language, quoted — we do not promise guaranteed rent ourselves; the assistance portion depends on the executed contract, a passing inspection, and the tenant continuing to qualify."
+      ]
+    },
+    {
+      "h2": "When project-based is worth a closer look",
+      "body": [
+        "PBV can make sense if you own or are developing a building and want predictable, long-run occupancy tied to the property rather than to any single tenant — for example, supportive-housing settings where the subsidy needs to sit with the building. CMHA's public Project-Based Voucher & Mod/Rehab property list already carries such buildings, including EDEN's supportive-housing property The Lotus at 1417 E 45th Street, Cleveland.",
+        "Because CMHA — not the owner — decides which units get project-based, the way in is to talk to CMHA directly: it runs an online intake form for prospective landlord partners at cmha.net/housing/landlords/online_inquiries.php. For the deeper mechanics, see our [project-based voucher guide for Cleveland landlords](/project-based-vouchers-landlords-cleveland/). One caution: other voucher types (Mainstream, Family Unification, Stability and others) are sometimes discussed alongside PBV. Those are separate federal programs, and whether CMHA runs a given one — and whether it fits your building — is a question for CMHA, so ask which programs actually apply before you count on them."
+      ]
+    },
+    {
+      "h2": "How we help with either setup",
+      "body": [
+        "We work under CMHA across Greater Cleveland and Cuyahoga County, and we have already completed CMHA's mandatory Virtual Landlord Orientation — required since January 1, 2026, once every 24 months, and mandatory before CMHA can execute a HAP contract for a new tenancy. So an RFTA we file will not stall for a missing orientation.",
+        "Our tenant placement for a tenant-based lease-up is one month's rent, charged **only after** a tenant is placed — no placement, no fee. We attend the CMHA inspection and send you a written report for $100 flat, or you can attend it yourself. Ongoing management is 5% of the monthly rent, billed only while the unit is rented. Repair estimates are free, itemized, and back in your inbox within 24 hours, and nothing starts without your approval. Either way, see [how our Section 8 service works](/section8stressfree) or call (440) 444-4737."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I convert my existing rental to a project-based voucher?",
+      "a": "Not on your own. CMHA — not the owner — decides which units are project-based, and HUD says an authority can generally project-base up to 20 percent of its authorized vouchers. You cannot switch a normal lease-up to PBV by checking a box. The practical route is CMHA's landlord-partner inquiry form; most private owners rent tenant-based instead."
+    },
+    {
+      "q": "If a project-based tenant moves out, do I lose the subsidy?",
+      "a": "No — that is the defining feature of PBV. CMHA states the rental assistance \"remains with the building for the next eligible occupant,\" so a vacancy is refilled from CMHA's eligible pool. With a tenant-based voucher the opposite is true: the assistance belongs to the household and leaves with them when they move."
+    },
+    {
+      "q": "How long is a project-based HAP contract?",
+      "a": "Under 24 CFR 983.205 the initial term can run up to 20 years for each contract unit, with extensions of up to 20 years each and a hard 40-year cap on the total remaining term. That contrasts with the typically one-year HAP contract behind a standard tenant-based voucher, which renews alongside the lease."
+    },
+    {
+      "q": "Do I have to accept vouchers at all in Cleveland?",
+      "a": "No. As of July 2026 no federal law, no Ohio statute, and no City of Cleveland ordinance makes source of income a protected class in the city, so declining a voucher solely because it is a voucher is lawful. The case for either setup is about the benefits it offers you, not a mandate you have to follow."
+    }
+  ],
+  "sources": [
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-project",
+    "https://www.cmha.net/housing/applicants/project_based_vouchers.php",
+    "https://www.law.cornell.edu/cfr/text/24/983.205",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-VIII/part-882",
+    "https://www.cmha.net/housing/voucher_holders/pbv_mod_rehab_property_map_.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/online_inquiries.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

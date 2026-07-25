@@ -1,0 +1,165 @@
+{
+  "slug": "property-management-fees-cleveland",
+  "section": "section-8-landlords",
+  "title": "Property Management Fees in Cleveland: What Firms Actually Charge",
+  "metaTitle": "Property Management Fees in Cleveland: 2026 Rates",
+  "metaDescription": "What property management fees Cleveland firms actually charge, as published July 2026: 5% to 12% of monthly rent, flat $129 plans, and the 8.49% U.S. average.",
+  "primaryKeyword": "property management fees cleveland",
+  "secondaryKeywords": [
+    "average property management fee cleveland",
+    "how much do property managers charge in cleveland",
+    "cleveland property management pricing",
+    "flat fee property management cleveland"
+  ],
+  "answerBox": "Cleveland property managers publish monthly management fees from 5% to 12% of rent, plus flat-rate options at $129 a month. Two local firms describe 8% to 12% as the regional norm. The only national survey found, covering 80 metros and last updated in 2022, averaged 8.49%. We charge 5%, billed only while rented.",
+  "sections": [
+    {
+      "h2": "What Cleveland firms publish, company by company",
+      "body": [
+        "Five Greater Cleveland managers put a monthly rate on a public page. The table below is **as published July 2026**; none of these pricing pages carries an effective date of its own, so read every figure as a snapshot a company can change without notice.",
+        "Two of the five are not percentages at all: Realty Trust Services publishes a \"simple flat rate monthly fee\" of $129, and B2B's Premium plan is $129 per unit after bulk discounts. A third publishes no percentage at all — **Evernest's Cleveland pricing page does not disclose its management fee.** The 8%–10% below comes from an aggregator last updated June 7, 2024, and is labeled as such rather than quoted as Evernest's."
+      ],
+      "table": {
+        "headers": [
+          "Company",
+          "Published monthly management fee",
+          "Floor or cap"
+        ],
+        "rows": [
+          [
+            "B2B Property Management (Brooklyn, OH)",
+            "5% of rent (Standard); $129 per unit (Premium, after bulk discounts)",
+            "\"Minimums apply\" — amount not published"
+          ],
+          [
+            "Progressive Urban Property Management (Cleveland)",
+            "10% for single-family and 1–3 units; 8% for 4–9 units",
+            "$80 / $60 monthly minimum"
+          ],
+          [
+            "High Tech Property Management (Brook Park)",
+            "8% Bronze; 11% Silver; 12% Gold",
+            "$79 / $109 / $139 monthly minimum"
+          ],
+          [
+            "Realty Trust Services (Cleveland)",
+            "$129 per month, flat",
+            "Volume pricing available"
+          ],
+          [
+            "Evernest Cleveland",
+            "8%–10% per an aggregator; not published by Evernest",
+            "$199 cap (aggregator, June 2024)"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "The range local managers call normal — and why the published rates undercut it",
+      "body": [
+        "Two Cleveland-area firms have gone on record with a market range, and they agree. B2B Property Management's fee guide says monthly management fees in Cleveland \"generally range between eight and twelve percent of collected monthly rent.\" IIP Management writes that \"most property management companies in this region charge between 8% to 12% of the monthly rent as a management fee.\"",
+        "That band is the market's middle, not its floor: B2B publishes the 8%-to-12% description **and** a 5% Standard plan, and Realty Trust's flat $129 is not on the scale at all. The spread is wide for a plain reason — **nobody regulates it.** No government source (HUD, CMHA, the Ohio Revised Code, Cuyahoga County) publishes or sets management fee levels. These are unregulated private-market prices."
+      ]
+    },
+    {
+      "h2": "How Cleveland compares to the national average",
+      "body": [
+        "One usable benchmark exists. iPropertyManagement surveyed management companies across 80 metropolitan areas and found an **average management fee of 8.49% of total monthly rent**, advertised rates ranging from 3.75% to 14.0%, and an average flat fee of **$101.04 per unit per month**.",
+        "The caveat is vintage: that survey was last updated September 7, 2022, and no 2025 or 2026 national fee survey — nor any NARPM, IREM or Buildium data with an Ohio breakout — turned up. Compare the shape of the numbers, not their freshness.",
+        "On that basis Cleveland's published rates **straddle** the national average. The 5% and 8% plans land below 8.49%; the 10%, 11% and 12% tiers land above. The flat options are the clearer gap — $129 a month and $129 per unit both exceed $101.04, though a flat fee's competitiveness depends entirely on the rent it attaches to. [Flat fee vs. percentage](/flat-fee-vs-percentage-property-management/) works that trade-off through."
+      ]
+    },
+    {
+      "h2": "What those percentages cost in dollars",
+      "body": [
+        "Percentages hide the size of the check. Below is our arithmetic on one named figure: Yardi Matrix put the Cleveland metro's average advertised asking rent at **$1,246** as of February 2026. Treat it as an illustration, not a quote for your unit — it is a metro-wide multifamily average spanning Cuyahoga, Geauga, Lake, Lorain and Medina counties. HUD's FY2026 two-bedroom Fair Market Rent for the same metro is $1,279, so the arithmetic barely moves."
+      ],
+      "table": {
+        "headers": [
+          "Rate",
+          "Per month at $1,246 rent",
+          "Per year"
+        ],
+        "rows": [
+          ["5%", "$62", "$748"],
+          ["8%", "$100", "$1,196"],
+          ["8.49% (national average)", "$106", "$1,269"],
+          ["10%", "$125", "$1,495"],
+          ["11%", "$137", "$1,645"],
+          ["12%", "$150", "$1,794"],
+          ["$129 flat", "$129", "$1,548"]
+        ]
+      }
+    },
+    {
+      "h2": "Minimums and caps quietly rewrite the rate",
+      "body": [
+        "A percentage with a floor under it is a flat fee below a certain rent, and the published floors here are high enough to matter. The break-even points are simple division:",
+        "A cap runs the other way: the $199 ceiling the aggregator attributes to Evernest would stop a 10% fee climbing past the point where rent reaches $1,990. So the question on a pricing call is not \"what's your percentage\" but **\"what's your percentage, your monthly minimum, and your cap\"** — any one alone can mislead."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Progressive Urban's 10% carries an $80 monthly minimum, so the floor takes over below $800 of rent",
+          "High Tech's Bronze 8% carries a $79 minimum — the floor takes over below about $988",
+          "High Tech's Silver 11% with a $109 minimum takes over below about $991",
+          "High Tech's Gold 12% with a $139 minimum takes over below about $1,158",
+          "B2B's Standard 5% says \"minimums apply\" without publishing the amount, so its effective floor is unknown"
+        ]
+      }
+    },
+    {
+      "h2": "The monthly fee is not the price",
+      "body": [
+        "The percentage is one line on an invoice with several. Published lease renewal fees here run **$149 to $295**: High Tech charges $295, $249 and $149 by tier; Evernest publishes $250; Realty Trust $199; B2B $195 on Standard, included on Premium. Progressive Urban publishes no renewal fee at all — an omission to ask about, not a zero.",
+        "Placement is the bigger line. Evernest publishes 50% of one month's rent with a $500 minimum. B2B and Realty Trust each publish one month's rent. Progressive Urban publishes one full month **plus $250 more for voucher tenants** and a one-time setup fee of $100 to $150 per unit. Nationally, placement averaged 70.6% of one month's rent bundled with management and 81.8% sold standalone. Two neighbors carry the detail: [what one month's rent buys](/tenant-placement-fee-cleveland/) and [the fees under the fee](/hidden-property-management-fees-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Where our 5% sits in that market",
+      "body": [
+        "We charge **5% of monthly rent, billed only while the unit is rented** — about $62 a month on the $1,246 average above. That matches the lowest published percentage in Greater Cleveland and lands below the 8.49% national average. No setup fee, and no surcharge for a voucher tenancy.",
+        "**Tenant placement is one month's rent, charged only after the tenant is placed.** No placement, no fee. That sits at the top of the published Cleveland placement range and above the national bundled average of 70.6% — deliberately: we would rather be paid on the outcome than the attempt.",
+        "Two smaller items round it out. **Attending the CMHA inspection and sending you a written report is $100** — or you attend yourself and pay nothing. **Repair estimates come back free, itemized, inside 24 hours, and nothing starts without your approval.** We have also completed CMHA's Virtual Landlord Orientation, required since January 1, 2026 of the owner or managing agent before CMHA can execute a HAP contract for a new tenancy.",
+        "We work Greater Cleveland and Cuyahoga County under CMHA. To hold a real quote against the table above, call **(440) 444-4737** or see [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the average property management fee in Cleveland?",
+      "a": "No survey publishes a Cleveland average and no government body tracks one. What exists is what firms publish: 5% to 12% of monthly rent, plus flat options at $129. Two local managers describe 8% to 12% as the regional norm. The nearest benchmark is a national 80-metro average of 8.49%, last updated in 2022."
+    },
+    {
+      "q": "Is 10% a fair management fee in Cleveland?",
+      "a": "It sits inside the 8%-to-12% band two Cleveland-area firms publish, and above the 8.49% national average from the only survey located. Whether it is fair depends on what sits beside it: the monthly minimum, any cap, the renewal fee, the placement fee, and whether evictions and inspections cost extra."
+    },
+    {
+      "q": "Do Cleveland managers offer flat-fee management instead of a percentage?",
+      "a": "Yes. Realty Trust Services publishes a flat $129 per month with volume pricing, and B2B's Premium plan is $129 per unit after bulk discounts. Both exceed the national average flat fee of $101.04 per unit per month. A flat fee favors higher-rent units and costs proportionally more on cheaper ones."
+    },
+    {
+      "q": "Does the monthly management fee include finding the tenant?",
+      "a": "Usually not. Evernest publishes a separate leasing fee of 50% of one month's rent with a $500 minimum; B2B and Realty Trust each publish one month's rent; Progressive Urban publishes one full month plus $250 more for a voucher tenant. B2B includes placement at no extra charge only on its Premium plan."
+    },
+    {
+      "q": "How current are these Cleveland fee figures?",
+      "a": "They were read from each company's own pricing page as published July 2026, and none of those pages carries an effective date, so a firm can change them without notice. The exception is Evernest's percentage, which comes from an aggregator dated June 7, 2024 — we cite it as an aggregator figure, not as Evernest's."
+    }
+  ],
+  "sources": [
+    "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+    "https://www.iip-management.com/property-management-fees/",
+    "https://clevelandpupm.com/pricing/",
+    "https://hightechpropertymanagement.com/pricing/",
+    "https://www.b2brealty.com/",
+    "https://propertymanagementoh.com/pricing-public",
+    "https://www.cleveland-property-management.com/pricing",
+    "https://ipropertymanagement.com/companies/cleveland-oh",
+    "https://ipropertymanagement.com/research/average-property-management-fees",
+    "https://www.yardimatrix.com/blog/cleveland-multifamily-market-report/",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.cmha.net/housing/landlords/training.php"
+  ],
+  "lastUpdated": "2026-07-21"
+}

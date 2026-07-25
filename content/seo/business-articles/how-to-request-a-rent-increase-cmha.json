@@ -1,0 +1,154 @@
+{
+  "slug": "how-to-request-a-rent-increase-cmha",
+  "section": "section-8-landlords",
+  "title": "How to Request a Rent Increase on a CMHA Voucher Tenancy",
+  "metaTitle": "CMHA Rent Increase Request: Rules and Timing",
+  "metaDescription": "A CMHA rent increase request goes to RentAdjustment@cmha.net. The five conditions, the signed form, and how far ahead to file so the new rent starts on time.",
+  "primaryKeyword": "cmha rent increase request",
+  "secondaryKeywords": [
+    "cmha rent adjustment request form",
+    "section 8 rent increase cleveland",
+    "how to raise rent on a voucher tenant",
+    "cmha rent adjustment effective date"
+  ],
+  "answerBox": "Rent increases go to RentAdjustment@cmha.net on a form both landlord and tenant sign. CMHA requires a HAP contract at least a year old, a passed annual inspection within 12 months of the effective date, a current recertification, 12 months since your last approved adjustment, and a rent-reasonable amount. Approved increases start the first of the month after 60 days.",
+  "sections": [
+    {
+      "h2": "What CMHA requires, and where the request goes",
+      "body": [
+        "A rent increase on a voucher tenancy is not a conversation between you and your tenant. It is a change to the HAP contract, and CMHA decides it. The request is a form signed by **both landlord and tenant**, emailed to **RentAdjustment@cmha.net** — not a portal submission. The current version is the 2026 Rent Adjustment Request, in CMHA's landlord Forms & Documents library.",
+        "CMHA's Landlord FAQ sets out what must be true before an adjustment is considered. The conditions are cumulative — one missing item holds the request."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**The HAP contract is at least one year old**",
+          "**A passed annual inspection within 12 months of the adjustment's effective date** — the effective date, not the day you file",
+          "**The tenant's recertification is current**",
+          "**At least 12 months have passed since your last approved adjustment**",
+          "**The amount is rent reasonable**, as redetermined by CMHA"
+        ]
+      }
+    },
+    {
+      "h2": "Two twelve-month clocks, and they are not the same clock",
+      "body": [
+        "On a first tenancy both anniversaries arrive together: CMHA's Landlord Participation Guide states the initial lease term must be at least one year and the HAP contract runs concurrently with it. After that they drift, because the clock on your last approved adjustment resets whenever an increase is granted. CMHA's wording says only \"since the last approved adjustment,\" so ask which date it counts from if you are near the line.",
+        "No percentage cap appears among those conditions, and going month-to-month after the initial term is no shortcut: under 24 CFR 982.507(a) rent to owner may never exceed the most recent reasonableness determination during the assisted tenancy."
+      ]
+    },
+    {
+      "h2": "The inspection date is what quietly kills requests",
+      "body": [
+        "The condition is a **passed** annual inspection within 12 months of the **effective date**, not of your filing date. Say your last passed inspection was eleven months ago and you file today for an effective date three months out: on that date the inspection is fourteen months old and the condition fails.",
+        "Do not assume an inspection is already on its way to fix that. CMHA's pages disagree on frequency: its Inspections page describes annual inspections \"within twelve months of the previous inspection\" and says the agency is looking to transition to biennial, while its landlord index page already markets biennial. Check your last passed inspection date yourself. Scheduling is 216.478.9680, and CMHA publishes no expedited option. The recertification condition is the same problem on the tenant's side — see [annual recertification](/cmha-annual-recertification-what-landlords-need-to-know/)."
+      ]
+    },
+    {
+      "h2": "\"Rent reasonable\" is decided again, from scratch",
+      "body": [
+        "Under 24 CFR 982.507(a) a housing authority must redetermine reasonable rent **before any increase** in the rent to owner. Section 982.507(b) sets the comparison: rent for other comparable unassisted units, weighing location, quality, size, unit type and age, plus amenities, services, maintenance and utilities the owner provides. How many comparables CMHA uses is unsettled in its own documents — the Rent page says two, the Landlord Participation Guide three.",
+        "Either way the test runs against **gross rent** — rent plus tenant-paid utilities, or the utility allowance, not your contract rent alone. And 24 CFR 982.507(d) keeps working after approval: accepting each monthly housing assistance payment certifies that rent to owner is no more than you charge for comparable unassisted units in the same premises. [Rent reasonableness](/cmha-rent-reasonableness-explained/) has the mechanics."
+      ]
+    },
+    {
+      "h2": "Who actually pays an approved increase",
+      "body": [
+        "CMHA is explicit that **\"the payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\"** Its Landlord Participation Guide puts the Housing Assistance Payment at the lesser of (payment standard minus total tenant payment) or (gross rent minus total tenant payment) — so once gross rent passes the payment standard, the extra comes from the household.",
+        "So location decides how hard an increase bites. CMHA's FY2026 payment standards, effective January 1, 2026, are set per ZIP across 53 service-area ZIPs — the two-bedroom figure runs from $1,096 in ZIP 44127 to $2,169 in 44113 and 44040. Look yours up in [payment standards by ZIP code](/cmha-payment-standards-by-zip-code/) first. CMHA's published 40% affordability limit is stated for an **initial** contract, so ask CMHA how it bears on an adjustment."
+      ]
+    },
+    {
+      "h2": "How far ahead to file",
+      "body": [
+        "CMHA's effective-date rule is one sentence: an approved increase takes effect **\"the 1st of the month after 60 days of receiving the request.\"** The clock runs from receipt, so the day of the month you send it is worth real money. Applied to a June filing:"
+      ],
+      "table": {
+        "headers": [
+          "CMHA receives the request",
+          "60 days later",
+          "New rent can start"
+        ],
+        "rows": [
+          [
+            "June 1",
+            "July 31",
+            "August 1"
+          ],
+          [
+            "June 15",
+            "August 14",
+            "September 1"
+          ],
+          [
+            "June 30",
+            "August 29",
+            "September 1"
+          ],
+          [
+            "July 1",
+            "August 30",
+            "September 1"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "What that calendar means",
+      "body": [
+        "Filing on the 1st instead of the 15th can pull the new rent forward a full month, while the last day of a month and the first of the next may land identically. CMHA's guidance points the same way: file roughly **60 to 90 days** ahead. The table is our arithmetic on CMHA's wording, not a CMHA schedule — the effective date on your approval governs."
+      ]
+    },
+    {
+      "h2": "Context worth knowing before you file",
+      "body": [
+        "On August 14, 2025, CMHA asked Greater Cleveland landlords to forgo rent increases, citing a projected voucher budget shortfall. Dorivette Nolan, CMHA's chief of policy, planning and voucher administration, wrote that \"to preserve subsidy payment to landlords like you and prevent the termination of Housing Assistance Payment (HAP) contracts... we are implementing various cost-saving measures.\" That is not a rule and not among the published conditions — but it is the environment your request lands in."
+      ]
+    },
+    {
+      "h2": "What we handle, and what it costs",
+      "body": [
+        "A rent adjustment is a calendar problem more than a paperwork problem. The form takes minutes; tracking the dates around it is the part owners miss.",
+        "**Ongoing management is 5% of monthly rent, charged only while the unit is rented** — the line that covers watching these dates and filing on them. **Tenant placement is one month's rent, charged only after the tenant is placed**: no placement, no fee. **Inspection attendance with a written report is $100**, or attend yourself. Repair estimates come back free and itemized inside 24 hours, and nothing starts without your approval.",
+        "We have also **completed CMHA's Virtual Landlord Orientation**, required since January 1, 2026 before a HAP contract can be executed for a new tenancy. CMHA states existing HAP contracts and current payments are unaffected, so it gates your next placement, not this filing. We work Greater Cleveland and Cuyahoga County."
+      ]
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Email a form signed by you and your tenant to RentAdjustment@cmha.net. Have the HAP contract past its first year, twelve months clear of your last approved adjustment, a passed inspection still inside twelve months on the effective date, and a current recertification. File 60 to 90 days out, early in the month. Questions: **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How far ahead do I have to file a CMHA rent increase request?",
+      "a": "CMHA's Landlord FAQ says an approved increase takes effect the 1st of the month after 60 days from receiving the request, so file roughly 60 to 90 days before you want the new rent to start. The day of the month matters: a request received June 1 can start August 1, while June 15 waits until September 1."
+    },
+    {
+      "q": "Can I raise the rent during the first year of a voucher tenancy?",
+      "a": "No. CMHA requires the HAP contract to be at least one year old, and separately at least 12 months since your last approved adjustment. CMHA's Landlord Participation Guide states the initial lease term must be at least one year and that the HAP contract runs concurrently with the lease, so both clocks start together."
+    },
+    {
+      "q": "Does CMHA cap how much I can raise the rent?",
+      "a": "No percentage limit appears among the conditions CMHA publishes. The amount is governed by rent reasonableness instead: 24 CFR 982.507(a) requires the housing authority to redetermine reasonable rent before any increase, and rent to owner may never exceed the most recent reasonableness determination. CMHA runs that test against gross rent."
+    },
+    {
+      "q": "If CMHA approves an increase, does CMHA pay all of it?",
+      "a": "Not necessarily. CMHA states that the payment standard is not the maximum rent a landlord can charge, only the maximum subsidy it will pay. Its Landlord Participation Guide puts the Housing Assistance Payment at the lesser of payment standard minus total tenant payment, or gross rent minus total tenant payment — so rent above the ZIP code's payment standard falls on the household."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/forms___documents.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://signalcleveland.org/cmha-asks-greater-cleveland-landlords-not-to-raise-rent-on-section-8-tenants/"
+  ],
+  "lastUpdated": "2026-07-21"
+}

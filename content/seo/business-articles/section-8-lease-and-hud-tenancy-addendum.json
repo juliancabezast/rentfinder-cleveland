@@ -1,0 +1,130 @@
+{
+  "slug": "section-8-lease-and-hud-tenancy-addendum",
+  "section": "section-8-landlords",
+  "title": "Your Lease and the HUD Tenancy Addendum: Which Document Wins",
+  "metaTitle": "HUD Tenancy Addendum vs. Your Lease: Which Wins",
+  "metaDescription": "How the HUD tenancy addendum and your lease fit together for CMHA owners: term length, month-to-month, banned side payments, and what you can still write in.",
+  "primaryKeyword": "hud tenancy addendum lease",
+  "secondaryKeywords": [
+    "section 8 lease addendum",
+    "HUD-52641-A",
+    "section 8 lease term Cleveland",
+    "CMHA lease requirements",
+    "month-to-month section 8 lease"
+  ],
+  "answerBox": "You write the lease; HUD writes the Tenancy Addendum. CMHA's owner materials say landlords may use their own lease and go month-to-month after the initial term, with tenant obligations defined in the Lease Addendum. The addendum (HUD-52641-A) arrives fixed in the tenant's packet, so where the two collide, your lease is the document that gets rewritten.",
+  "sections": [
+    {
+      "h2": "Two documents, and only one is yours to draft",
+      "body": [
+        "A voucher tenancy runs on paper arriving from two directions. You write the lease. HUD wrote the Tenancy Addendum, and it reaches you inside the packet the voucher holder hands over. CMHA's Landlord Participation Guide lists that Request for Tenancy Approval packet as containing the RFTA form, the **HUD Tenancy Addendum**, a Landlord Fraud Letter, a Landlord Certification, a Drug-Free Housing Lease Addendum, a Lead-based Paint Disclosure, a Direct Deposit Form, a W-9 for new vendors, and an Agent Form where one applies.",
+        "CMHA publishes no blank copies of the core forms, because they are not CMHA's forms. They are standard HUD forms issued inside the tenant's voucher packet — **HUD-52517** (Request for Tenancy Approval), **HUD-52641** (HAP Contract) and **HUD-52641-A** (Tenancy Addendum) — all downloadable from HUD.gov. Read HUD-52641-A before a voucher holder ever calls you. It is the one document in the stack you will never get to edit."
+      ],
+      "table": {
+        "headers": ["Document", "Who drafts it", "What it carries"],
+        "rows": [
+          ["Your lease", "You", "Term, rent to owner, deposit, house rules — the ordinary body of an Ohio lease"],
+          ["HUD Tenancy Addendum (HUD-52641-A)", "HUD", "The program's terms; CMHA describes tenant obligations as defined in the Lease Addendum"],
+          ["HAP contract (HUD-52641)", "HUD form, executed by CMHA", "The payment agreement between CMHA and the owner"]
+        ]
+      }
+    },
+    {
+      "h2": "What \"wins\" actually means in practice",
+      "body": [
+        "Owners want a courtroom answer. The answer that matters is procedural, and it arrives much earlier. CMHA reviews the RFTA for completeness **and for consistency with the proposed lease**, and it will not accept missing information or corrections by phone — deficiencies must be corrected in writing. A lease clause that collides with the program becomes a deficiency that stops your file, and the document that gets rewritten is the one you drafted.",
+        "Your lease still matters. CMHA's owner-facing materials list, among the reasons to participate, **the ability to use the landlord's own lease** and to go month-to-month after the initial term, with tenant obligations **defined in the Lease Addendum**. Your lease governs the tenancy; the addendum governs the program. Where the two touch — term, rent, what the tenant may pay you, how the tenancy ends — the addendum is the fixed part. So write the lease you would write anyway, then read it line by line against HUD-52641-A and strike whatever the addendum already answers differently."
+      ]
+    },
+    {
+      "h2": "Term length: a year first, month-to-month after",
+      "body": [
+        "CMHA's Landlord Participation Guide states that the **initial lease term must be at least one year**, that the **HAP contract runs concurrently with the lease** — when one ends, so does the other — and that CMHA will not authorize the family to move during that first year. The guide carries no revision date, so confirm with CMHA before building a shorter first term into an offer. The timing that hangs off your lease start date is covered in [What Is a HAP Contract](/what-is-a-hap-contract-cmha/).",
+        "After the initial term, CMHA's landlord page lists going **month-to-month** as one of the things a voucher owner can do. In Ohio that becomes a periodic tenancy governed by your lease and by R.C. 5321.17, which requires at least 30 days' notice before the periodic rental date to terminate a month-to-month tenancy.",
+        "Do not mistake that notice for the whole procedure. Cleveland Housing Court's eviction FAQ warns that subsidized tenants \"are afforded special protection under Federal law,\" that \"[m]ost also are entitled to an opportunity to correct their conduct before the landlord may file an eviction action,\" and that owners receiving a rent subsidy should consult an attorney before filing — see [Ending a Voucher Tenancy in Ohio](/how-to-end-a-tenancy-with-a-voucher-tenant-ohio/)."
+      ]
+    },
+    {
+      "h2": "Side payments: the clause you cannot write",
+      "body": [
+        "This is the term owners most often try to add, and the one that ends participation. CMHA states it without hedging: **\"Families may not pay a rent share greater than the amount determined by the CMHA. Side deals between the landlord and family are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\"**",
+        "The arithmetic is settled before you sign. For an initial CMHA contract the total tenant portion may be no more than **40% of the family's monthly adjusted income**; if the family's share would run over, CMHA negotiates with the owner to bring the rent down. Your certification does not stop at signing either — under **24 CFR 982.507(d)**, accepting each monthly housing assistance payment certifies that the rent to owner is not more than the rent you charge for comparable unassisted units in the premises.",
+        "So there is no lawful version of \"CMHA approved the rent and the tenant pays me the difference.\" If you want to charge for anything that is not rent to owner, get CMHA's answer in writing before the lease is signed."
+      ]
+    },
+    {
+      "h2": "Your escalation clause does not execute itself",
+      "body": [
+        "An automatic annual increase is the second clause owners are surprised by. Under **24 CFR 982.507(a)**, a housing authority may not approve a lease until it determines the initial rent to owner is reasonable, must redetermine reasonable rent before any increase, and the rent to owner may never exceed the most recent reasonableness determination during the assisted tenancy. A sentence in your lease performs none of that.",
+        "CMHA's process is a filing, not a calendar event. Requests go to RentAdjustment@cmha.net on a form signed by both landlord and tenant, and CMHA requires a HAP contract at least one year old, a passed annual inspection within 12 months of the effective date, a current recertification, at least 12 months since the last approved adjustment, and a rent-reasonable amount. An approved increase then takes effect **\"the 1st of the month after 60 days of receiving the request.\"** Keep the clause if you like it; file anyway, and file early. The mechanics: [How to Request a Rent Increase](/how-to-request-a-rent-increase-cmha/)."
+      ]
+    },
+    {
+      "h2": "What is still entirely yours to write",
+      "body": [
+        "Most of it, in fact. The addendum takes the program's questions off your desk, not the property's."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Screening.** CMHA does not do it for you: \"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\" Your criteria, your application, your decision",
+          "**The security deposit.** Ohio law governs it, not the program — R.C. 5321.16(B) requires deductions to be itemized in a written notice delivered with the amount due within 30 days after the rental agreement ends and possession is delivered",
+          "**Damage recovery.** CMHA states that \"HCVP does not pay for tenant caused damages\" and directs owners to bill the tenant or recover from the deposit, so your deposit language is doing real work",
+          "**The ordinary body of the lease** — maintenance requests, yard and snow duties, parking, alterations, notice addresses. Draft them as you would for any tenancy, then check each against the addendum"
+        ]
+      }
+    },
+    {
+      "h2": "One remedy that will not hold",
+      "body": [
+        "Before you draft your termination clause, know this limit: under **24 CFR 982.404(d)(3)**, \"An owner may not terminate the tenancy of any family due to the withholding or abatement of assistance.\" If CMHA abates your Housing Assistance Payment because a repair went uncorrected, the repair is what you get to fix. The tenancy is not."
+      ]
+    },
+    {
+      "h2": "Where we come in",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County, under CMHA, and we have **completed CMHA's Virtual Landlord Orientation** — required since January 1, 2026, once every 24 months, and required before CMHA can execute a HAP contract for a new tenancy. On a placement we read your lease against the addendum before the packet goes in, so the file does not come back weeks later for a written correction.",
+        "Our terms are plain. Tenant placement is one month's rent, charged only after the tenant is placed — no placement, no fee. Inspection attendance with a written report is $100, and you are welcome to attend yourself instead. Ongoing management is 5% of monthly rent, only while the unit is rented. Repair estimates come back free, itemized, inside 24 hours, and nothing starts without your approval.",
+        "Call **(440) 444-4737** or start at [Section 8, stress free](/section8stressfree). This is general information about published program rules, not legal advice — have counsel review any lease you intend to use."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I use my own lease with a CMHA voucher tenant?",
+      "a": "Yes. CMHA's owner-facing materials list the ability to use the landlord's own lease as a reason to participate, with tenant obligations defined in the Lease Addendum. What you cannot do is draft around the addendum: CMHA reviews the Request for Tenancy Approval for consistency with your proposed lease, and deficiencies must be corrected in writing."
+    },
+    {
+      "q": "Does the HUD Tenancy Addendum replace my lease?",
+      "a": "No, it attaches to it. The addendum is HUD form HUD-52641-A, one of the standard HUD forms issued inside the tenant's voucher packet alongside HUD-52517 and HUD-52641. CMHA publishes no blank copies because they are not CMHA's forms. You can download and read HUD-52641-A from HUD.gov before you ever list a unit."
+    },
+    {
+      "q": "How long must the first lease be, and can it go month-to-month?",
+      "a": "CMHA's Landlord Participation Guide states the initial lease term must be at least one year, that the HAP contract runs concurrently with the lease, and that CMHA will not authorize the family to move during that first year. CMHA's landlord page lists month-to-month after the initial term as an option. Confirm the current rule with CMHA, since the guide carries no revision date."
+    },
+    {
+      "q": "Can I write a clause letting the tenant pay me extra on the side?",
+      "a": "No. CMHA states that \"Families may not pay a rent share greater than the amount determined by the CMHA. Side deals between the landlord and family are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\" Accepting each monthly payment also re-certifies your rent under 24 CFR 982.507(d)."
+    },
+    {
+      "q": "Will an automatic rent increase clause in my lease work?",
+      "a": "Not on its own. Under 24 CFR 982.507(a) the rent to owner may never exceed the most recent reasonableness determination, and CMHA must redetermine before any increase. CMHA requires a signed adjustment form, a HAP contract at least a year old, a passed annual inspection within 12 months of the effective date, a current recertification, and 12 months since the last adjustment."
+    }
+  ],
+  "sources": [
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-landlord-forms",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.17",
+    "https://www.clevelandhousingcourt.org/sites/default/files/faq-evictions---2020.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

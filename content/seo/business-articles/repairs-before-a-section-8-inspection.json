@@ -1,0 +1,142 @@
+{
+  "slug": "repairs-before-a-section-8-inspection",
+  "section": "section-8-landlords",
+  "title": "Repairs Before Inspection: Scoping the Work, Getting Estimates, Beating the Clock",
+  "metaTitle": "Repairs Before a Section 8 Inspection: Scope and Clocks",
+  "metaDescription": "Planning repairs before Section 8 inspection day in Cleveland: scope the work by severity, price it fast, and finish inside CMHA's 24-hour and 30-day windows.",
+  "primaryKeyword": "repairs before section 8 inspection",
+  "secondaryKeywords": [
+    "cmha repair deadline",
+    "how long to fix a failed hqs inspection",
+    "section 8 repair estimate cleveland",
+    "cmha 30 day correction period",
+    "reinspection after repairs cmha"
+  ],
+  "answerBox": "Scope repairs by the clock attached to them, not by what they cost. Life-threatening deficiencies must be corrected within 24 hours of notification; other deficiencies within 30 calendar days or a reasonable PHA-approved extension. CMHA reinspects within five business days of your notice that corrections are done, so sequence the slowest trade first.",
+  "sections": [
+    {
+      "h2": "Scope by the clock, not by the cost",
+      "body": [
+        "Each cited item carries its own deadline, set by severity, not price. Under **24 CFR 982.404(a)(3):** \"If a deficiency is life-threatening, the owner must correct the deficiency within 24 hours of notification. For other deficiencies, the owner must correct the deficiency within 30 calendar days of notification (or any reasonable PHA-approved extension).\" CMHA states the same split — **\"24 hours or 30 days depending on the nature of the deficiency.\"**",
+        "The first pass is sorting, not costing. CMHA's published 24-hour list: a missing or inoperable smoke or carbon monoxide detector; range burners that do not ignite; a hazardous gas hook-up for a kitchen range evidenced by a strong smell of gas; no water; no electricity; no heat (October 15 to April 15); sewer back-up; gas leak; unlockable windows within six feet of ground level or entry doors with missing or broken locks; and anything deemed life-threatening.",
+        "That is a severity list, not a frequency list: no primary source publishes deficiency data for Cleveland-area voucher inspections, and much of the ranked \"most common fail items\" content online describes Columbus, a different authority sharing the acronym. See [what gets a unit failed](/section-8-inspection-fail-items-cleveland/)."
+      ],
+      "table": {
+        "headers": [
+          "What you are fixing",
+          "The window you are working against"
+        ],
+        "rows": [
+          [
+            "Life-threatening item, or anything on CMHA's emergency list",
+            "24 hours from notification"
+          ],
+          [
+            "Any other cited deficiency",
+            "30 calendar days, or a PHA-approved extension"
+          ],
+          [
+            "Corrections you have finished and reported",
+            "Reinspection within five business days of your notice"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "The extension is the lever most owners never pull",
+      "body": [
+        "Read the 30-day rule to the end: **\"or any reasonable PHA-approved extension.\"** The same phrase governs mid-tenancy repairs under 24 CFR 982.405(d). Ask the moment a part goes on backorder — in writing, before the deadline. Nothing extends a 24-hour item.",
+        "Two shortcuts do not exist. HUD Notice PIH 2024-26 REV-1 confirms that 24 CFR 5.707 **\"exempts landlords participating in HCV, PBV, and Section 8 Mod Rehab programs from any self-inspection requirements.\"** And **CMHA publishes no expedited, fast-track or self-certification option.** Scheduling is 216.478.9680; inspection help is 216.271.2116."
+      ]
+    },
+    {
+      "h2": "What a useful repair estimate contains",
+      "body": [
+        "A lump-sum bid is nearly useless against a cited punch list: what you report to CMHA has to map onto what the inspector wrote. Two clocks run at once — at HUD's FY2026 two-bedroom Fair Market Rent of **$1,279** for the Cleveland metro, a vacant day costs about **$42** (our arithmetic, $1,279 ÷ 30 = $42.63, not a published statistic)."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "One line per cited deficiency, worded the way the inspection report words it, and kept separate from discretionary work — only cited items are on a clock.",
+          "A parts lead time on every line that needs an order — the number that tells you whether to request an extension.",
+          "The license each item needs: pre-1978 defective paint has to be repaired by a certified lead abatement contractor.",
+          "A start date you can hold, since the reinspection clock runs from your notification, not the crew's last day."
+        ]
+      }
+    },
+    {
+      "h2": "Sequencing: what to book first",
+      "body": [
+        "Order the work by clock length and scheduling difficulty, not by room."
+      ],
+      "list": {
+        "type": "ol",
+        "items": [
+          "**Lead work,** if the unit predates 1978 and paint was cited. Where a child under six will reside, the owner has 10 days from the move-in inspection (30 from an annual) to produce a passed lead clearance test plus proof the repairs were done by a certified lead abatement contractor — two appointments inside CMHA's tightest window. [Cleveland's lead rules](/lead-paint-rules-for-rentals-cleveland/) cover the City's separate Lead Safe Certification.",
+          "**Utilities on, and staying on.** No water, no electricity and no heat (October 15 to April 15) are 24-hour items, and CMHA's 15-day inspection clock is suspended for any period the unit is not available — a shut-off meter stops that clock, not your vacancy.",
+          "**Gas and the range.** A strong smell of gas at the hook-up, and burners that do not ignite, are 24-hour items needing a licensed trade.",
+          "**Detectors.** Since December 29, 2024 CMHA requires a smoke detector on each level, inside each bedroom or sleeping area, within 21 feet of each bedroom door, and in any living area separated from bedrooms by a door; battery units must be 10-year sealed and tamper-resistant, or hardwired. Carbon monoxide detectors have been required since December 27, 2022 wherever there is a gas appliance, attached garage or wood-burning fireplace.",
+          "**Security hardware, then the rest.** Unlockable ground-level windows and broken entry locks are same-day work; everything else runs on the 30-day clock."
+        ]
+      }
+    },
+    {
+      "h2": "Closing the loop faster than a second visit",
+      "body": [
+        "Reporting the work is a step, not a formality. CMHA policy is to **\"reinspect the unit within five business days of the date the owner notifies the PHA that the required corrections have been made\"** — that clock starts at your notification, not at the crew's last nail.",
+        "Then ask whether a visit is needed. Under 24 CFR 982.405(i) an authority \"may accept photographic evidence or other reliable evidence from the owner to verify that a deficiency has been corrected\" — discretion, not a right, but worth offering on a single detector. It may also set \"a reasonable fee\" for a reinspection under 982.405(h), and **\"The owner may not pass this fee along to the family.\"**",
+        "And do not hand over keys to keep the deal warm: CMHA warns that if the owner lets the tenant move in early, **\"the tenant will be responsible for the full amount of the rent.\"**"
+      ]
+    },
+    {
+      "h2": "Miss the window and withheld money becomes abated money",
+      "body": [
+        "Only the first penalty is refundable. Under **24 CFR 982.404(d)(1)** an authority may withhold payments after written notice; cure in time and it \"[m]ust provide assistance payments to cover the time period for which the assistance payments were withheld.\" Miss it, and 982.404(d)(2)(i) requires it to \"abate the HAP, including amounts that had been withheld\" — abatement being **\"Stopping HAP payments to an owner with no potential for retroactive payment\"** under 24 CFR 982.4.",
+        "CMHA's version: **\"Rent is abated when the unit fails to pass on two consecutive inspections,\"** effective the first of the month following the failure to comply. Its FAQ says abatement beyond 30 days may end the HAP contract; the federal rule sets 60 days. And you cannot evict your way out: **\"An owner may not terminate the tenancy of any family due to the withholding or abatement of assistance.\"** [How owners lose HAP money](/what-happens-if-your-unit-fails-a-cmha-inspection/)."
+      ]
+    },
+    {
+      "h2": "How we run the repair window",
+      "body": [
+        "We place and manage voucher tenancies across Greater Cleveland and Cuyahoga County, under CMHA. **Repair estimates come back free, itemized, inside 24 hours, and nothing starts without your approval** — scoped against the cited items, sorted into 24-hour and 30-day buckets, with lead times shown so you know on day one whether to ask for more time.",
+        "**We attend the inspection and send you a written report for $100,** or you attend yourself and pay nothing. **Placement is one month's rent, charged only after the tenant is placed** — no placement, no fee — and **management is 5% of monthly rent, billed only while rented.** We have already completed CMHA's Virtual Landlord Orientation, required since January 1, 2026 before a HAP contract can be executed for a new tenancy.",
+        "Nobody in the City of Cleveland has to accept a voucher; source of income is not a protected class there. If the tenancy is worth having, call **(440) 444-4737** or see [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How long do I have to fix a failed Section 8 inspection item?",
+      "a": "Severity decides. Under 24 CFR 982.404(a)(3), a life-threatening deficiency must be corrected within 24 hours of notification and any other deficiency within 30 calendar days, or a reasonable PHA-approved extension. CMHA publishes the same split. Cited pre-1978 paint carries its own 10-day lead clearance clock."
+    },
+    {
+      "q": "Can I get more time on a repair?",
+      "a": "On the 30-day category the rule contemplates it: corrections are due within \"30 calendar days of notification (or any reasonable PHA-approved extension).\" Nothing in the rule extends a 24-hour item. Ask in writing before the deadline. Scheduling is 216.478.9680; inspection help is 216.271.2116."
+    },
+    {
+      "q": "Can I send photos instead of hosting a second inspection?",
+      "a": "You can ask. Under 24 CFR 982.405(i) an authority \"may accept photographic evidence or other reliable evidence from the owner to verify that a deficiency has been corrected\" instead of another on-site inspection. That is discretion, not a right; otherwise CMHA reinspects within five business days of your notice."
+    },
+    {
+      "q": "Will CMHA charge me for a reinspection?",
+      "a": "Possibly. 24 CFR 982.405(h) bars charging the owner for the initial inspection or the first inspection during occupancy, but permits \"a reasonable fee to owners for a reinspection\" where a cited deficiency was not corrected. The owner may not pass it to the family; CMHA does not publish the amount."
+    },
+    {
+      "q": "What happens if repairs run past the deadline?",
+      "a": "Withheld payments come back if you cure inside the window; abated payments do not — abatement means stopping payments \"with no potential for retroactive payment.\" CMHA abates after two consecutive failed inspections, effective the first of the month following the failure to comply, and says abatement beyond 30 days may end the HAP contract."
+    }
+  ],
+  "sources": [
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

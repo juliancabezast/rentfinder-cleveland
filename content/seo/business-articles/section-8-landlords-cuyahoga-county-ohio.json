@@ -1,0 +1,243 @@
+{
+  "slug": "section-8-landlords-cuyahoga-county-ohio",
+  "section": "section-8-landlords",
+  "title": "The Cuyahoga County Map: Which Suburbs Require What Before CMHA Will Approve You",
+  "metaTitle": "Section 8 Landlord Rules by Cuyahoga County Suburb",
+  "metaDescription": "Section 8 landlord rules in Cuyahoga County change at the city line: 17 suburbs need a document with the RFTA, and five have source-of-income ordinances.",
+  "primaryKeyword": "section 8 landlord cuyahoga county",
+  "secondaryKeywords": [
+    "cmha rental registration suburbs",
+    "certificate of occupancy rfta cmha",
+    "cuyahoga county source of income ordinance",
+    "section 8 landlord requirements by city cleveland"
+  ],
+  "answerBox": "CMHA collects a Certificate of Occupancy and/or rental registration with the RFTA in 17 named Cuyahoga County suburbs, and since October 1, 2025 verifies City of Cleveland registrations itself through the City's portal. Separately, five county municipalities ban source-of-income discrimination. Everywhere else, local paperwork is your city's rule to state — ask its building department.",
+  "sections": [
+    {
+      "h2": "There are two maps, and they are not the same map",
+      "body": [
+        "\"What does my city require for Section 8?\" is two questions wearing one coat. The administrative one: which document CMHA wants in the envelope before it will process your Request for Tenancy Approval. The legal one: whether the municipality makes it unlawful to turn a voucher down at all. Most Cuyahoga County cities appear on neither list.",
+        "Discard the premise in this article's own title, too. **CMHA does not approve landlords** — its Leasing with CMHA page states, \"Please note that CMHA does not have a pre-approval process for landlords or units.\" What gets approved is a tenancy, and geography changes what a complete packet looks like."
+      ]
+    },
+    {
+      "h2": "The 17 suburbs where a document rides along with the RFTA",
+      "body": [
+        "CMHA states that a copy of the **Certificate of Occupancy and/or Rental Registration** must be collected with the RFTA for units in seventeen named suburbs:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Bedford, Bedford Heights, Brook Park, Cleveland Heights, Cuyahoga Heights, East Cleveland, Euclid, Fairview Park, Garfield Heights",
+          "Lakewood, Lyndhurst, Maple Heights, Parma, Shaker Heights, South Euclid, University Heights, Warrensville Heights"
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "What that requirement actually is",
+          "body": [
+            "CMHA is collecting a municipal document, not issuing one. What it is called, what it costs, whether a city inspection precedes it and how long the city takes are set by the municipality — CMHA publishes the list of cities, not the requirements behind them. Nor is any of it about vouchers: a city that licenses rental property licenses it no matter who pays the rent. A voucher tenancy only makes the paperwork visible to a third party."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "The City of Cleveland sits on the map a different way",
+      "body": [
+        "Cleveland is not on that list, because CMHA does not ask you for the document — it looks the answer up: **\"Effective October 1, 2025, CMHA will verify active City of Cleveland rental registrations through the City's Citizen Access Portal for units located in Cleveland.\"** Nothing to attach, nothing to forget, and a registration that is not active when CMHA checks stalls the RFTA by itself.",
+        "Behind the lookup sits Residents First: register and pay fees per non-owner-occupied property, file an affidavit naming a local agent in charge, show current taxes or a payment plan, and hold lead-safe certification. Detail lives in [the City of Cleveland article](/section-8-landlords-cleveland-ohio/) and in [what a rental registration actually is](/what-is-a-rental-registration-permit-cleveland/)."
+      ]
+    },
+    {
+      "h2": "The five municipalities where refusing a voucher is not simply your call",
+      "body": [
+        "PRRAC's compilation of source-of-income laws, updated March 2026, lists 23 Ohio municipalities. Five sit in Cuyahoga County: **Cleveland Heights** (Ord. 25-2021, April 19, 2021), **University Heights** (Ch. 820, 2012, amended April 15, 2019), **South Euclid** (Ch. 1408, April 9, 2018), **Warrensville Heights** (Ch. 113, May 15, 2012) and **Linndale** (Ch. 515, May 1, 2012). Signal Cleveland reports that only three of the five — Cleveland Heights, South Euclid and University Heights — specifically include voucher protections. Treat the other two as unsettled.",
+        "Where an ordinance is squarely about vouchers it has teeth: Cleveland Heights defines source of income as expressly \"including but not limited to housing vouchers,\" enforces through its Fair Practices Board, and under Codified Ordinance § 749.19 allows civil penalties up to $10,000 plus damages and attorney's fees. University Heights is less settled — Crain's Cleveland Business reported on October 31, 2025 that the ordinance \"may face a constitutional challenge,\" which is neither a ruling that it stands nor that it falls.",
+        "Nothing applies county-wide: five of the county's roughly forty municipalities have such a law, and a 2021 county-level proposal never reached council. Outside those five — the City of Cleveland included — the federal Fair Housing Act \"does not prohibit landlords from refusing to accept tenant applications based on a tenant's lawful income source,\" R.C. 4112.02(H) lists nine protected classes without source of income, and Cleveland's Office of Fair Housing publishes thirteen with no income-related entry. [The full legal picture is here](/can-landlords-refuse-section-8-ohio/)."
+      ]
+    },
+    {
+      "h2": "The map on one page",
+      "table": {
+        "headers": [
+          "Municipality",
+          "Document due with the RFTA",
+          "Source-of-income ordinance (PRRAC, March 2026)"
+        ],
+        "rows": [
+          [
+            "Bedford",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Bedford Heights",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Brook Park",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Cleveland (city)",
+            "None — CMHA checks the City portal",
+            "Not listed"
+          ],
+          [
+            "Cleveland Heights",
+            "CO or registration",
+            "Yes — Ord. 25-2021; names vouchers"
+          ],
+          [
+            "Cuyahoga Heights",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "East Cleveland",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Euclid",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Fairview Park",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Garfield Heights",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Lakewood",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Linndale",
+            "Not on CMHA's list",
+            "Yes — Ch. 515 (2012); voucher reach unclear"
+          ],
+          [
+            "Lyndhurst",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Maple Heights",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Parma",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "Shaker Heights",
+            "CO or registration",
+            "Not listed"
+          ],
+          [
+            "South Euclid",
+            "CO or registration",
+            "Yes — Ch. 1408 (2018); names vouchers"
+          ],
+          [
+            "University Heights",
+            "CO or registration",
+            "Yes — Ch. 820 (2012/2019); challenge reported 2025"
+          ],
+          [
+            "Warrensville Heights",
+            "CO or registration",
+            "Yes — Ch. 113 (2012); voucher reach unclear"
+          ]
+        ]
+      },
+      "body": [
+        "\"CO\" is Certificate of Occupancy. \"Not listed\" means the city does not appear in PRRAC's compilation, not that we have read its code — confirm current ordinance text before declining anyone in one of the five."
+      ]
+    },
+    {
+      "h2": "How to find your own city's rule in three checks",
+      "body": [
+        "Appearing on neither list is not the same as nothing being required. It means CMHA collects no document there; your city may still license rentals."
+      ],
+      "list": {
+        "type": "ol",
+        "items": [
+          "**Check the seventeen.** If your city is on CMHA's list, hold the certificate or registration before the RFTA goes in. CMHA reviews the packet for completeness and will not accept corrections by phone — deficiencies must be cured in writing, which is where the weeks go.",
+          "**Call the building or housing department** and ask: does a non-owner-occupied rental need a registration or certificate here; is a city inspection part of issuing it; must it be re-issued when the tenant changes; how long from application to certificate in hand.",
+          "**Check the ordinance list for the same city** — different question, different answer. And where there is no ordinance, that is still no reason to advertise the fact: a 2017 Cuyahoga County audit found housing providers advertising \"No section 8\" were 26% more likely to deliver unfavorable treatment to Black prospective tenants."
+        ]
+      }
+    },
+    {
+      "h2": "Why the paperwork map can cost you a month",
+      "body": [
+        "A missing municipal document does not fail your unit. It stalls the packet, against a clock with a hard end: the HAP contract \"must be executed no later than 60 calendar days from the beginning of the lease term,\" and \"[a]ny HAP contract executed after the 60-day period is void.\" Since **January 1, 2026**, submitting an RFTA also triggers a requirement that the owner or designated managing agent complete CMHA's Virtual Landlord Orientation, once every 24 months, before a HAP contract can be executed for a new tenancy. Both the city certificate and the orientation are easy to arrange in advance and slow to arrange once the packet is already in."
+      ]
+    },
+    {
+      "h2": "Where we come in",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County, under CMHA, and **we have completed CMHA's Virtual Landlord Orientation**. On a unit in one of the seventeen suburbs we pull the municipal document first, then submit the RFTA with it attached. Our terms:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance plus a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Seventeen suburbs require a Certificate of Occupancy and/or rental registration to travel with the RFTA. Cleveland is checked electronically instead. Five municipalities have source-of-income ordinances, three of them reported to name vouchers, and nothing exists county-wide. If your city is on neither list, call its building department anyway. Call **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which Cuyahoga County suburbs require a Certificate of Occupancy or rental registration with the RFTA?",
+      "a": "CMHA names seventeen: Bedford, Bedford Heights, Brook Park, Cleveland Heights, Cuyahoga Heights, East Cleveland, Euclid, Fairview Park, Garfield Heights, Lakewood, Lyndhurst, Maple Heights, Parma, Shaker Heights, South Euclid, University Heights and Warrensville Heights. For units there, a copy of the Certificate of Occupancy and/or Rental Registration must be collected with the RFTA."
+    },
+    {
+      "q": "Is there a Cuyahoga County-wide rule requiring landlords to accept housing vouchers?",
+      "a": "No. Five of the county's roughly forty municipalities have source-of-income laws — Cleveland Heights, University Heights, South Euclid, Warrensville Heights and Linndale — and a 2021 county-level proposal never reached council. Signal Cleveland reports only three of the five specifically include voucher protections. Elsewhere, including the City of Cleveland, declining a voucher is lawful."
+    },
+    {
+      "q": "My city is on neither list. Does that mean there is no local paperwork?",
+      "a": "No. It means CMHA collects no municipal document with the RFTA there, and PRRAC's compilation lists no ordinance. Your city may still require a registration or certificate of occupancy for any non-owner-occupied unit. CMHA publishes the list of cities where it collects the document, not each municipality's requirements — call the building department."
+    },
+    {
+      "q": "Does CMHA have to approve me as a landlord first?",
+      "a": "No. CMHA states it \"does not have a pre-approval process for landlords or units.\" Since January 1, 2026, though, submitting an RFTA triggers a requirement that the owner or designated managing agent complete CMHA's Virtual Landlord Orientation before a HAP contract can be executed for a new tenancy."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://www.prrac.org/pdf/AppendixB.pdf",
+    "https://signalcleveland.org/source-of-income-discrimination-section-8-housing-vouchers-cuyahoga-county/",
+    "https://www.crainscleveland.com/real-estate/university-heights-ordinance-may-be-cusp-constitutional-battle/",
+    "https://codes.ohio.gov/ohio-revised-code/section-4112.02",
+    "https://www.usccr.gov/files/2025-08/soi-pb-ohio_july-2025.pdf",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

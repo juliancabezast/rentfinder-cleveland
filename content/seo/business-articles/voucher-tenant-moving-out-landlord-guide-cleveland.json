@@ -1,0 +1,103 @@
+{
+  "slug": "voucher-tenant-moving-out-landlord-guide-cleveland",
+  "section": "section-8-landlords",
+  "title": "When a Voucher Tenant Moves Out: A Cleveland Landlord's Playbook",
+  "metaTitle": "Voucher Tenant Moving Out: Cleveland Landlord Guide",
+  "metaDescription": "When a Section 8 tenant moves out, a Cleveland landlord's HAP contract ends with the lease. Learn the notice rules and exactly when CMHA payments stop.",
+  "primaryKeyword": "section 8 tenant moving out landlord cleveland",
+  "secondaryKeywords": ["voucher tenant move out hap contract", "when does cmha stop paying hap", "notice to move section 8 cleveland", "voucher tenant porting out landlord"],
+  "answerBox": "When a Housing Choice Voucher tenant moves out, the assistance follows the family, not your unit. CMHA's HAP contract runs concurrently with the lease, so it ends when the tenancy ends. CMHA won't authorize a move during the first lease year; after that, Ohio law sets the notice on a month-to-month.",
+  "sections": [
+    {
+      "h2": "The rule that answers most of this: the HAP contract is tied to the lease",
+      "body": [
+        "The single fact that settles the biggest question: CMHA's Housing Assistance Payments (HAP) contract **runs concurrently with the lease** — when one ends, so does the other. Per CMHA's Landlord Guidebook, the initial lease term must be at least one year, and CMHA **will not authorize the family to move during the first year**. So your subsidy never quietly continues past the tenancy: the HAP contract ends when the lease ends.",
+        "The 'port out' worry turns on one distinction. A regular Housing Choice Voucher is **tenant-based** — the assistance belongs to the family and travels with them, whether they move across town or port to another housing authority's jurisdiction. That is the opposite of a Project-Based Voucher, where CMHA says the subsidy \"stays with the building\" and \"remains with the building for the next eligible occupant\" (see [PBV vs. tenant-based vouchers](/pbv-vs-tenant-based-voucher-cleveland/)). With a tenant-based voucher, keeping the income means placing a new voucher holder, not inheriting one.",
+        "One narrow exception: if your tenant holds a **HUD-VASH** voucher, HUD conditions their portability on continued case management — limiting moves to jurisdictions where VA case-management services are available and requiring the VA facility to be consulted first (see our [HUD-VASH landlord guide](/hud-vash-landlord-guide-cleveland/))."
+      ]
+    },
+    {
+      "h2": "Notice: what your tenant must give you, and when",
+      "body": [
+        "During the first lease year, CMHA will not authorize the move at all, so a tenant who wants to leave in year one generally cannot take the voucher and walk away without breaking the lease.",
+        "After the first year, whether the tenancy renews for a new term or continues month-to-month depends on your lease. If it becomes a **month-to-month** periodic tenancy, Ohio law sets the notice: under R.C. 5321.17, a month-to-month tenancy requires **at least 30 days' notice before the periodic rental date** to terminate, and a week-to-week tenancy at least seven days. The rule cuts both ways — it is the same notice a departing tenant owes you. Get it in writing and record the date; it starts the clock on your turnover and the final month of subsidy."
+      ]
+    },
+    {
+      "h2": "When exactly the HAP payments stop",
+      "body": [
+        "HAP is a **monthly** payment, paid to the owner at the beginning of each month, and CMHA prorates a **partial first month** when a lease term begins after the first — so proration is normal at the *start* of a tenancy (the front-end mechanics are in our [first HAP payment proration guide](/first-hap-payment-proration-cleveland/)).",
+        "Because the HAP contract is tied to the lease, the subsidy ends when the tenancy ends — no HAP outlives the lease. Rather than guess the last figure, use the record: your CMHA Landlord Portal gives 24-hour access to HAP payment information, a ledger you can export, and the tenant's caseworker contact. Read the ledger and confirm the final covered period with HCVP. And do not confuse a move-out with an **abatement** — a payment stop triggered by failed inspections, not by the tenant leaving ([abatement vs. termination](/hap-abatement-vs-termination-cleveland/))."
+      ]
+    },
+    {
+      "h2": "If the move is really an eviction",
+      "body": [
+        "If you file to evict, give HCVP a copy of the eviction notice — CMHA asks both landlord and tenant to provide one. During the eviction CMHA will hold HAP on the landlord's request, and states that if the tenant **remains in the unit during the eviction process and the unit is not in abatement, the landlord may receive all withheld HAP payments, whether or not the landlord won or lost the eviction**. Holding HAP is not the same as losing it.",
+        "Evicting a subsidized tenant is procedurally different from a market eviction. Cleveland Housing Court warns subsidized tenants \"are afforded special protection under Federal law,\" that most are entitled to a chance to correct their conduct before you may file, and it urges subsidized landlords to consult an attorney first. And never use self-help — in Ohio you cannot physically remove the tenant, cut off utilities, or change the locks to force a move."
+      ]
+    },
+    {
+      "h2": "Move-out money: security deposit and damage",
+      "body": [
+        "CMHA is blunt: **HCVP does not pay for tenant-caused damages**. Your options are any Ohio landlord's — bill the tenant, deduct from the security deposit, or pursue the tenant in court. The one exception is program-specific: if your tenant is a Cuyahoga Community Choice Demonstration client and the unit sits in a designated Opportunity Area, that separate program offers a Damage Mitigation Fund of up to $2,000. It is not a general CMHA benefit.",
+        "Ohio's deposit rules apply in full. Under R.C. 5321.16(B), any deduction must be **itemized in a written notice to the tenant, with the balance due, within 30 days** after the rental agreement terminates and possession is delivered. Miss that window and R.C. 5321.16(C) exposes you to the amount wrongfully withheld **plus damages equal to that amount and reasonable attorney's fees**. If the tenant stayed six months or more, R.C. 5321.16(A) also requires 5% annual interest on any deposit above the greater of $50 or one month's rent."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Photograph the unit's condition at move-out, dated.",
+          "Deliver the itemized deduction notice within 30 days of getting possession back.",
+          "Pay any interest owed if the tenant stayed six months or longer.",
+          "CMHA reimburses none of it — recover from the deposit or the tenant."
+        ]
+      }
+    },
+    {
+      "h2": "Turning the vacancy back into voucher income",
+      "body": [
+        "Since the voucher left with the family, keeping voucher income means placing a **new** voucher holder: a new Request for Tenancy Approval (RFTA), a fresh inspection, and a new HAP contract. The timing warning that matters most — do **not** let the new tenant move in before the unit passes inspection and the contract is executed. CMHA states that if you do, the tenant is responsible for the full amount of the rent and HCVP will not pay it retroactively.",
+        "One 2026 change to know: since January 1, 2026, submitting an RFTA triggers a requirement that the owner or managing agent complete CMHA's Virtual Landlord Orientation — required once every 24 months — before CMHA can execute a HAP contract for a **new** tenancy. Existing HAP contracts and current payments are not affected. Because the new tenant often moves in mid-month, expect that first HAP payment to be prorated for the partial month."
+      ]
+    },
+    {
+      "h2": "How Rent Finder Cleveland handles a turnover",
+      "body": [
+        "We keep the gap between one voucher tenant and the next as short as the process allows, on flat, honest terms. **We have already completed CMHA's mandatory Virtual Landlord Orientation**, so your next placement isn't held up waiting on our onboarding.",
+        "Our fees are simple: **tenant placement is one month's rent, charged only after the tenant is actually placed** — no placement, no fee. We attend the CMHA inspection and send you a written report for **$100** (or you can attend yourself). Ongoing management is **5% of monthly rent, billed only while the unit is rented**. Repair estimates are free and itemized, back within 24 hours, and nothing starts without your approval. We serve Greater Cleveland and Cuyahoga County under CMHA. Call **(440) 444-4737** or start at [Section 8, stress-free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does my HAP contract automatically end when the tenant moves out?",
+      "a": "Yes. CMHA's HAP contract runs concurrently with the lease, so when the lease ends the HAP contract ends too. A tenant-based Housing Choice Voucher follows the family, unlike a Project-Based Voucher, where CMHA says the subsidy stays with the building for the next eligible occupant. To keep voucher income, you place a new voucher holder."
+    },
+    {
+      "q": "Can my tenant move out and take the voucher during the first year?",
+      "a": "No. CMHA states it will not authorize the family to move during the first year of the lease, and the initial lease term must be at least one year. After the initial term, if the tenancy has become month-to-month, Ohio's R.C. 5321.17 requires at least 30 days' notice before the periodic rental date to end it."
+    },
+    {
+      "q": "When does CMHA actually stop paying the HAP?",
+      "a": "HAP is a monthly payment tied to the lease, so the subsidy for the unit ends when the tenancy ends. CMHA prorates a partial first month at the start of a tenancy. For the exact final-month figure on a departing tenant, read the ledger in your CMHA Landlord Portal and confirm the last covered period with HCVP rather than assuming."
+    },
+    {
+      "q": "Does CMHA cover damage the tenant left behind?",
+      "a": "No. CMHA states HCVP does not pay for tenant-caused damages. You bill the tenant, deduct from the security deposit, or pursue the tenant in court. Ohio's R.C. 5321.16 requires an itemized deposit return within 30 days of getting possession back; missing that can cost you double the amount withheld plus attorney's fees."
+    }
+  ],
+  "sources": [
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.cmha.net/housing/applicants/project_based_vouchers.php",
+    "https://www.hud.gov/sites/dfiles/PIH/documents/HUD_VASH_HCV_Guidebook_Chapter_July_2021.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.17",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.clevelandhousingcourt.org/sites/default/files/faq-evictions---2020.pdf",
+    "https://cuyahogamobility.org/property-owners/",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/training.php"
+  ],
+  "lastUpdated": "2026-07-22"
+}

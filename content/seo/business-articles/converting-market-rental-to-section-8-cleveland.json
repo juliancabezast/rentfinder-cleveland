@@ -1,0 +1,97 @@
+{
+  "slug": "converting-market-rental-to-section-8-cleveland",
+  "section": "section-8-landlords",
+  "title": "My Tenant Got a Voucher: Converting a Market Rental to Section 8",
+  "metaTitle": "Convert Market Rental to Section 8 in Cleveland",
+  "metaDescription": "Your in-place tenant got a CMHA voucher? How to convert a market rental to Section 8 in Cleveland—RFTA, inspection, and HAP contract—without a gap in rent.",
+  "primaryKeyword": "convert market rental to section 8 cleveland",
+  "secondaryKeywords": ["tenant got a section 8 voucher what to do", "cmha rfta existing tenant", "section 8 hap contract in-place tenant cleveland"],
+  "answerBox": "CMHA has no separate 'conversion' track: an in-place tenant who receives a voucher goes through the same new-tenancy steps — landlord orientation, a Request for Tenancy Approval, a passed inspection, a rent-reasonableness review, and a new one-year lease with a HAP contract. Keep your current lease running so rent never stops until the HAP contract takes effect.",
+  "sections": [
+    {
+      "h2": "The short answer: it's a new tenancy, not a paperwork switch",
+      "body": [
+        "When a tenant you already have hands you a Cuyahoga Metropolitan Housing Authority (CMHA) voucher, there is no special \"conversion\" form that flips your existing lease into a subsidized one. CMHA treats it as a **new tenancy** and runs it through the same lease-up path it uses for any voucher.",
+        "The upside: your resident is already in place, so you skip the two hardest steps. CMHA's seven-step path is (1) advertise the unit, (2) attend Mandatory Landlord Orientation, (3) screen the tenant, (4) submit the Request for Tenancy Approval (RFTA), (5) accept the rent offer, (6) pass the inspection, and (7) sign the HAP contract and lease. Steps 1 and 3 are effectively done — you already found and screened this tenant — so your work is the orientation, the RFTA, the inspection, and the new contract."
+      ]
+    },
+    {
+      "h2": "The RFTA comes from your tenant — but you can file it",
+      "body": [
+        "The voucher holder is the one CMHA hands the RFTA to; step 4 is \"Submit Request for Tenancy Approval Packet (RFTA) provided to you by HCV Family.\" But you can act directly: CMHA policy says the RFTA \"must be signed by both the family and the owner,\" and \"the owner may submit the RTA on behalf of the family.\" Submit the packet by email to **rfta@cmha.net** or at the kiosks in CMHA's Main Campus lobby, 8120 Kinsman Road.",
+        "Move quickly. A CMHA voucher expires **180 days from its issue date**, and the RFTA and proposed lease must be submitted by then — your tenant already living there does not pause the clock. A family may hold only **one** live RFTA at a time, and CMHA will not fix missing information or take corrections by phone; deficiencies must be corrected in writing, a common source of delay. The packet is nine documents (RFTA, HUD Tenancy Addendum, Landlord Fraud Letter, Landlord Certification, Drug-Free Housing and Lead-Based Paint addenda, a direct-deposit form, a W-9 for new vendors, and an agent form if applicable). After you file, CMHA verifies ownership through the County Auditor and confirms the property is not in foreclosure and is current on taxes.",
+        "One 2026 change catches owners off guard: since **January 1, 2026**, submitting an RFTA requires the owner or managing agent to complete CMHA's Virtual Landlord Orientation — a live session of about 90 minutes, once every 24 months — **before CMHA can execute a HAP contract for a new tenancy.** Existing HAP contracts and payments are unaffected, but a voucher for an in-place tenant is a *new* contract. **We have already completed CMHA's Virtual Landlord Orientation,** so if we handle the file this won't hold up your contract."
+      ]
+    },
+    {
+      "h2": "The rent you charge now may not be the rent CMHA approves",
+      "body": [
+        "Here is what surprises owners most: the rent you charge today is not automatically the rent CMHA approves. After the RFTA is in, CMHA runs a **rent-reasonableness** determination against comparable unassisted units in the same market area; a unit that is not rent reasonable is ineligible. That test uses **gross rent** — your rent plus tenant-paid utilities (or the utility allowance) — not contract rent alone. And the payment standard is **not** a rent ceiling: it is the most subsidy CMHA will pay, not the most you may charge.",
+        "A second test can push rent down. On an **initial** contract, the tenant's portion paid directly to you can be **no more than 40% of the family's monthly adjusted income**; if it would exceed that, CMHA negotiates a reduction. Once approved, your rent arrives in two streams — the tenant's portion and CMHA's Housing Assistance Payment (HAP). See [how to price your rental to CMHA's payment standard](/how-to-price-your-rental-to-cmha-payment-standard-cleveland/) and [how CMHA pays the HAP portion by direct deposit](/cmha-direct-deposit-hap-payments/)."
+      ]
+    },
+    {
+      "h2": "How to keep rent flowing during the switch",
+      "body": [
+        "To avoid a rent gap, keep your **current market lease in force** and keep collecting under it until the new subsidized lease and HAP contract take effect. Do not let the tenant stop paying in anticipation of the voucher: CMHA pays no HAP before the contract is executed and warns that if a tenant occupies before the approved date, \"the tenant will be responsible for the full amount of the rent and HCVP will not pay the back amount retroactively.\" Rent doesn't stop as long as the existing tenancy runs — but there is no back-pay for the review window, so plan the handoff.",
+        "Once the new lease term begins, the **HAP contract must be executed no later than 60 calendar days from the start of that term**; executed inside the window, CMHA pays HAP for the portion before execution (up to 60 days), and \"any HAP contract executed after the 60-day period is void.\" Your first payment lands on the next scheduled run after CMHA receives three signed contract copies, the executed lease, and an occupancy permit where applicable, and it is **prorated** if the term starts after the first of the month. Payments are by mandatory direct deposit, generally on the **3rd and 16th**, and CMHA won't execute the contract until your **W-9** is on file. For that partial first check, see [first HAP payment proration](/first-hap-payment-proration-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Passing inspection — and not losing your tenant to a second failure",
+      "body": [
+        "Between the RFTA and the contract sits the inspection, where a straightforward conversion can go sideways. CMHA's policy is to complete the initial inspection and notify you and the tenant **within 15 days** of the RFTA submission, with the clock suspended for any period the unit isn't available. You cannot self-certify — voucher landlords are exempt from self-inspection, so an outside inspection is required.",
+        "The initial inspection gets **two attempts**: if it fails, CMHA reinspects **within five business days** of your notice that repairs are done, but \"when a unit fails an initial inspection the second time,\" the tenant \"is provided with written notice to find another unit\" — exactly how you'd lose the tenant you were trying to keep. Treat the first inspection as the one that counts. The tenancy-approval determination itself is completed **within 10 business days** of CMHA receiving all required information. These are policy targets, not guaranteed turnaround times."
+      ]
+    },
+    {
+      "h2": "The new lease resets to a one-year term",
+      "body": [
+        "The lease you sign is new, and its clock restarts. CMHA requires an **initial term of at least one year**, the HAP contract runs **concurrently** with it (when one ends, so does the other), and CMHA will not authorize the family to move during that first year — even if this tenant has lived in the unit for years. Expect a fresh one-year lease with the HUD Tenancy Addendum attached, not an amendment to the old one — how that addendum overrides conflicting terms in your lease is covered in [the Section 8 lease and HUD Tenancy Addendum](/section-8-lease-and-hud-tenancy-addendum/)."
+      ]
+    },
+    {
+      "h2": "How we handle the conversion",
+      "body": [
+        "Because your tenant is already placed, there is no tenant-placement fee here — that one-month fee applies only when we place a *new* tenant. A conversion needs clean paperwork and a first-time inspection pass, and that is what we do.",
+        "We've completed CMHA's mandatory Virtual Landlord Orientation, we prepare and file the RFTA and the full nine-document packet, and we get the unit inspection-ready. We can attend the inspection and send you a written report for a flat **$100** (or attend yourself), turn around free, itemized repair estimates within 24 hours with nothing starting until you approve, and manage the tenancy afterward for **5% of monthly rent, only while it's rented.** Call **(440) 444-4737**."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does my tenant have to move out and back in to use the voucher?",
+      "a": "No. It is the same unit and the same resident. What changes is the paperwork: CMHA treats it as a new tenancy, so you'll submit a Request for Tenancy Approval, pass an inspection, and sign a new one-year lease with a HAP contract. Your tenant stays put — nobody moves."
+    },
+    {
+      "q": "Will CMHA pay me for the weeks while the file is processed?",
+      "a": "Not before the HAP contract exists. CMHA pays no HAP until the contract is executed and will not back-pay for occupancy before the approved date. If the contract is executed within 60 days of the new lease term's start, CMHA pays HAP back to that start date. Keep your current lease running so rent never stops meanwhile."
+    },
+    {
+      "q": "Can I keep charging the same rent after the voucher?",
+      "a": "Maybe, but not automatically. CMHA runs a rent-reasonableness review against comparable unassisted units, applied to gross rent (rent plus tenant-paid utilities). On an initial contract, the tenant's portion can't exceed 40% of the family's monthly adjusted income; if it would, CMHA negotiates the rent down. The payment standard caps subsidy, not what you may charge."
+    },
+    {
+      "q": "Do I have to take the landlord orientation if I've done this before?",
+      "a": "For a new tenancy, yes. Since January 1, 2026, submitting an RFTA requires the owner or managing agent to complete CMHA's Virtual Landlord Orientation — about 90 minutes, once every 24 months — before CMHA can execute the HAP contract. A voucher for your in-place tenant is a new contract, so it applies. We've already completed it."
+    },
+    {
+      "q": "Can I file the RFTA myself, or does my tenant have to?",
+      "a": "Either. CMHA hands the RFTA to the voucher holder, but its policy says the packet \"must be signed by both the family and the owner,\" and \"the owner may submit the RTA on behalf of the family.\" So you or your manager can file it — by email to rfta@cmha.net or at the kiosks in CMHA's Main Campus lobby."
+    },
+    {
+      "q": "What happens if my unit fails the inspection?",
+      "a": "You get a second chance, not a third. CMHA reinspects within five business days after you report repairs are done. If the unit fails the initial inspection a second time, CMHA gives the tenant written notice to find another unit — which is how you'd lose them. That's why the first inspection is the one to get right."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

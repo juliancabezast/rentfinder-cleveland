@@ -1,0 +1,109 @@
+{
+  "slug": "continuum-of-care-leasing-landlord-cleveland",
+  "section": "section-8-landlords",
+  "title": "Continuum of Care Leasing in Cuyahoga County: When Your Tenant Is a Nonprofit",
+  "metaTitle": "CoC Leasing Landlord Guide: Cleveland",
+  "metaDescription": "In a Continuum of Care leasing project, a nonprofit is your tenant and owes 100% of the rent — even on a vacant month. How the Cleveland arrangement works.",
+  "primaryKeyword": "continuum of care leasing landlord cleveland",
+  "secondaryKeywords": ["coc leasing project", "shelter plus care landlord cleveland", "nonprofit tenant lease cleveland", "eden coc landlord cuyahoga"],
+  "answerBox": "In a HUD Continuum of Care (CoC) leasing project — the structure that absorbed the old Shelter Plus Care — your lease is with the nonprofit agency, not the resident. HUD rules make that nonprofit responsible for 100% of the rent, even on a vacant month, and rent can't exceed fair market rent or rent reasonableness.",
+  "sections": [
+    {
+      "h2": "The short version: a nonprofit signs your lease",
+      "body": [
+        "The arrangement you're describing is a **Continuum of Care (CoC) Program leasing project.** HUD's guidance is explicit: the lease is \"made between the recipient or subrecipient (the tenant) and the landowner or sublessor,\" and \"the program participant must be the sublessee of the recipient or subrecipient.\" In plain terms, the agency is your tenant; the household that moves in is its subtenant.",
+        "That reshapes your risk. Because the agency holds the lease, HUD makes it \"responsible for the 100 percent of the rent or sublease rent to the landowner or sublessor, even if the program participant does not pay the occupancy charge in a given month\" — and, crucially, \"the recipient or subrecipient pays rent on a vacant unit.\" So in a properly structured CoC leasing project the agency owes you full rent whether or not its client pays, and whether or not anyone is living there that month. That protection rides on the agency's HUD grant and on the deal being written as a *leasing* project, not a *rental-assistance* one — so get the structure in writing before you sign."
+      ]
+    },
+    {
+      "h2": "Why it's called \"Shelter Plus Care\" — and why that name is gone",
+      "body": [
+        "If someone offered you \"Shelter Plus Care,\" they're using a retired label. The **HEARTH Act of 2009** consolidated three McKinney-Vento programs — the Supportive Housing Program, Shelter Plus Care, and the Section 8 Moderate Rehabilitation SRO program — into the single **Continuum of Care (CoC) Program**, so Shelter Plus Care no longer exists as a standalone funding stream. HUD's final rule \"Removal of Regulations for the Shelter Plus Care and the Supportive Housing Programs\" (published April 20, 2026, effective May 20, 2026) struck 24 CFR parts 582 and 583, and as of the July 1, 2026 Code of Federal Regulations, Title 24 keeps Part 578 (the CoC Program) but no Part 582 or 583.",
+        "The old vocabulary lingers in the paperwork, though. Locally, EDEN's CoC projects still carry the Shelter Plus Care component labels — **TRA** (tenant-based rental assistance) and **SRA** (sponsor-based rental assistance) — so a 2026 contract can still read \"TRA\" or \"SRA.\" The Mod Rehab SRO program was folded in the same way; see our [moderate rehabilitation program guide](/moderate-rehabilitation-program-landlord-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Leasing vs. rental assistance: the distinction that sets your risk",
+      "body": [
+        "CoC money reaches a unit two ways, and only one gives you the vacant-month protection. In a **leasing** project the agency is the tenant and owes 100% of the rent, as above. In a **rental-assistance** project the structure flips: \"a three-party lease is signed by the program participant (the sole tenant), the landowner, and the recipient or subrecipient,\" and the agency \"is not responsible for the participant's portion if the participant misses a rent payment in a given month.\" The words look almost identical; the risk does not — ask, in writing, which one you're signing."
+      ],
+      "table": {
+        "headers": ["", "CoC leasing project", "CoC rental assistance project"],
+        "rows": [
+          ["Who is your tenant", "The nonprofit recipient/subrecipient", "The household — the sole tenant"],
+          ["The lease", "Between the agency and the owner; the resident is the agency's sublessee", "A three-party lease: participant, owner, and agency"],
+          ["If the resident misses a month", "The agency still owes 100% of the rent", "The agency is not responsible for the participant's portion"],
+          ["A vacant unit", "The agency pays rent on the vacant unit", "Not stated as an agency obligation"]
+        ]
+      }
+    },
+    {
+      "h2": "What rent can you charge?",
+      "body": [
+        "For a CoC leasing project, HUD caps rent plainly: \"rent paid on units cannot exceed fair market rent or rent reasonableness, whichever is less.\" That is HUD **Fair Market Rent** — the metro-wide FMR — not CMHA's ZIP-code payment standards, which govern Housing Choice Vouchers. Locally it matters because EDEN, the dominant CoC agency here, prices to FMR: its November 2023 Rent Determination Policy says that \"as a recipient of HUD funding, EDEN is required to keep approved rent amounts, as much as possible, at or below the established FMR for the jurisdiction.\" Expect a rent-reasonableness check too; [who pays landlords under CMHA, EDEN and CoC](/who-pays-landlords-cmha-eden-coc-cleveland/) shows how the money flows."
+      ]
+    },
+    {
+      "h2": "Who runs CoC leasing in Greater Cleveland",
+      "body": [
+        "Three names come up, and they are not interchangeable. The **Cuyahoga County Office of Homeless Services (OHS)** is the lead agency and collaborative applicant for the Cleveland/Cuyahoga County Continuum of Care (HUD CoC number **OH-502**); it convenes the CoC and submits the consolidated application to HUD, but does not sign your lease. The agency that holds contracts is a nonprofit subrecipient. In HUD's FY2024 CoC competition, **Emerald Development and Economic Network (EDEN), Inc.** — a 501(c)(3) separate from CMHA — received **$40,062,407 across 13 projects in OH-502, or 75.4% of the CoC's $53,159,310 total.** The largest, \"93 TRA,\" was awarded $16,245,579.",
+        "Note what is *not* here: **CMHA received no FY2024 CoC award at all,** and whether it administers any CoC rental assistance in Cuyahoga County is not established in the public record. So expect your counterparty to be EDEN or another CoC subrecipient — confirm which \"recipient or subrecipient\" will be named on your lease. EDEN's sponsor-based (SRA) assistance is project-based at partner properties under MOUs, with on-site supportive services. Our [EDEN landlord guide](/eden-inc-landlord-guide-cleveland/) and [renting to EDEN supportive-housing tenants](/renting-to-eden-supportive-housing-tenants-cleveland/) cover the day-to-day."
+      ]
+    },
+    {
+      "h2": "A landlord's due-diligence checklist",
+      "body": [
+        "The vacant-month protection is real, but only if the paperwork actually creates it. Before you commit a unit:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Get the structure in writing** — leasing (the agency is your tenant) or rental assistance (the household is) — and confirm the exact recipient or subrecipient who signs the lease is the party on the hook for the rent.",
+          "**Keep the local law in view:** in the City of Cleveland, source of income is not a protected class, so participating is your choice — weigh the protection against the added paperwork."
+        ]
+      }
+    },
+    {
+      "h2": "How we help",
+      "body": [
+        "We manage voucher and supportive-housing tenancies across Greater Cleveland and Cuyahoga County, and a CoC leasing deal sits squarely in that lane. **Tenant placement is one month's rent, charged only after a tenant is actually placed** — no placement, no fee. We attend the required inspection and send you a **written report for $100** (or you attend yourself). Ongoing management is **5% of monthly rent, billed only while the unit is rented.** Repair estimates are free, itemized, and back within 24 hours, and nothing starts without your approval.",
+        "We have also completed **CMHA's mandatory Virtual Landlord Orientation** — required since January 1, 2026 before a CMHA HAP contract can be executed for a new tenancy — so if your portfolio mixes CoC agencies with Housing Choice Vouchers, both sides are familiar territory. Call **(440) 444-4737** or start with our [stress-free Section 8 overview](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "In a CoC leasing project, who is actually my tenant?",
+      "a": "The nonprofit recipient or subrecipient — the agency — signs your lease and is your tenant. HUD's rule is that the lease is \"made between the recipient or subrecipient (the tenant) and the landowner,\" and the resident \"must be the sublessee.\" The household lives there as the agency's subtenant, not your direct tenant."
+    },
+    {
+      "q": "Does the agency really pay rent on a vacant month?",
+      "a": "In a CoC leasing project, yes. HUD states the agency is \"responsible for the 100 percent of the rent... even if the program participant does not pay the occupancy charge in a given month,\" and \"pays rent on a vacant unit.\" That applies only to leasing projects and rides on the agency's HUD grant, so confirm the structure in writing."
+    },
+    {
+      "q": "What's the difference between CoC leasing and CoC rental assistance?",
+      "a": "In leasing, the agency is your tenant and owes 100% of the rent, including on a vacant unit. In rental assistance, a three-party lease makes the participant the sole tenant, and the agency is not responsible for the participant's portion if they miss a payment. Ask which structure applies before signing — your risk turns on it."
+    },
+    {
+      "q": "Is Shelter Plus Care still available?",
+      "a": "Not as a standalone program. The HEARTH Act of 2009 folded Shelter Plus Care, the Supportive Housing Program, and Section 8 Mod Rehab SRO into the Continuum of Care Program, and HUD removed 24 CFR parts 582 and 583 effective May 20, 2026. The TRA and SRA labels survive on local CoC contracts, but the funding now runs through CoC."
+    },
+    {
+      "q": "Does CMHA run CoC leasing in Cleveland?",
+      "a": "CMHA received no FY2024 CoC award. The Cuyahoga County Office of Homeless Services is the CoC lead agency for OH-502, and EDEN was the largest recipient at $40,062,407 (75.4% of the total). Whether CMHA administers any CoC rental assistance is not established publicly, so confirm which agency will be your counterparty."
+    }
+  ],
+  "sources": [
+    "https://files.hudexchange.info/resources/documents/CoCProgramLeasingandRentalAssistanceSummariesofLeaseExamples.pdf",
+    "https://www.hudexchange.info/homelessness-assistance/hearth-act/",
+    "https://www.federalregister.gov/documents/2026/04/20/2026-07633/removal-of-regulations-for-the-shelter-plus-care-and-the-supportive-housing-programs",
+    "https://www.ecfr.gov/api/versioner/v1/structure/2026-07-01/title-24.json",
+    "https://www.hud.gov/sites/dfiles/CPD/documents/CoC/CoC-2024-All-States-2024-Funding-Report.xlsx",
+    "https://hhs.cuyahogacounty.gov/programs/detail/2025-coc-program-competition",
+    "https://hhs.cuyahogacounty.gov/programs/detail/cleveland-cuyahoga-county-continuum-of-care",
+    "https://www.edencle.org/about",
+    "https://www.edencle.org/programs",
+    "https://www.edencle.org/owner/RentDetermination.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

@@ -1,0 +1,118 @@
+{
+  "slug": "hud-vash-landlord-guide-cleveland",
+  "section": "section-8-landlords",
+  "title": "HUD-VASH Step by Step for Cleveland Owners: HUD + VA, and How CMHA Runs It",
+  "metaTitle": "HUD-VASH Landlord Guide Cleveland: RFTA to Pay",
+  "metaDescription": "HUD-VASH landlord guide for Cleveland owners: how the VA and CMHA divide the work, and how the RFTA-to-payment path runs under CMHA in Cuyahoga County.",
+  "primaryKeyword": "hud vash landlord guide cleveland",
+  "secondaryKeywords": ["hud-vash rfta cmha", "renting to hud-vash veteran cleveland", "cmha hud-vash hap contract", "va case manager landlord"],
+  "answerBox": "In HUD-VASH the work splits in two: the VA refers the veteran, confirms eligibility, and provides case management; CMHA runs the rent side — reviewing the Request for Tenancy Approval, inspecting the unit, executing the HAP contract, and paying your subsidy by direct deposit. From RFTA to payment, the owner's path mirrors a standard Cuyahoga voucher.",
+  "sections": [
+    {
+      "h2": "Two agencies, one tenancy — who does what",
+      "body": [
+        "HUD-VASH is a partnership. HUD's tenant-based Housing Choice Voucher rental assistance for homeless veterans is paired with **case management and clinical services from the Department of Veterans Affairs**, delivered at VA medical centers, clinics, or VA-designated entities. Two agencies, two lanes: the VA owns the veteran side, the housing authority owns the rent side. In Cuyahoga County that authority is **CMHA**, which administers the HUD-VASH vouchers used here.",
+        "The **VA never pays your rent** — it refers the veteran and provides case management — while **CMHA reviews your paperwork, inspects the unit, signs the HAP contract, and deposits your subsidy.** HUD notes HUD-VASH vouchers are renewed \"along with all other housing choice vouchers,\" so on the rent side the mechanics match a standard voucher. The VA case manager is a resource for you too — the VA calls case managers \"a resource for you, the landlord, to help resolve issues with the tenancy.\""
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**The VA:** confirms eligibility, refers the veteran to CMHA, and assigns a case manager (a voucher condition, not optional).",
+          "**CMHA:** reviews the RFTA, runs rent reasonableness, inspects, executes the HAP contract, and pays the subsidy.",
+          "**You, the owner:** advertise, screen and select the tenant (your call), submit the RFTA, pass inspection, and sign the HAP contract and lease."
+        ]
+      }
+    },
+    {
+      "h2": "How a veteran reaches you",
+      "body": [
+        "A HUD-VASH voucher does not come off a waiting list — HUD's rules bar the authority from keeping one, and the partnering VA facility refers each eligible veteran directly. The VA points veterans to the **National Call Center for Homeless Veterans at 877-424-3838**. CMHA's role in eligibility is narrow: its Administrative Plan states it \"has no role in determining or verifying the veteran's eligibility,\" and it screens income \"within five business days of receipt of a VAMC referral.\"",
+        "The VA is explicit that \"screening and approval of Veteran tenants is at your discretion,\" so you run your own screening and choose whether to rent — every point here is why a HUD-VASH tenancy is worth it, not that you must accept one."
+      ]
+    },
+    {
+      "h2": "From RFTA to HAP contract, step by step",
+      "body": [
+        "Once you and a veteran agree on a unit, the process is CMHA's standard voucher path: advertise, complete **Mandatory Landlord Orientation**, screen the tenant, submit the RFTA, accept the rent offer, pass inspection, then sign the HAP contract and lease. There is no separate landlord application — CMHA \"does not have a pre-approval process for landlords or units.\"",
+        "The **Request for Tenancy Approval is brought to you by the voucher holder**. It must be signed by both family and owner, and the owner may submit it — by email to **rfta@cmha.net** or at the kiosks in CMHA's Main Campus lobby, 8120 Kinsman Road. The packet bundles the RFTA, HUD Tenancy Addendum, Landlord Certification, Lead-Based Paint Disclosure, a Direct Deposit form, and a W-9 for new vendors. CMHA reviews it for completeness and **will not accept corrections by phone** — fixes must be in writing, a common source of delay.",
+        "CMHA then verifies ownership and current taxes, runs **rent reasonableness** (an unreasonable rent is ineligible), and schedules the inspection — still to **Housing Quality Standards**, not NSPIRE, as of 2026. The targets below are policy goals, not guaranteed turnaround — CMHA publishes no elapsed-time statistics."
+      ],
+      "table": {
+        "headers": ["CMHA step", "Published policy target"],
+        "rows": [
+          ["Initial HQS inspection + pass/fail decision, owner and family notified", "Within 15 days of RFTA submission"],
+          ["Tenancy-approval determination", "Within 10 business days of receiving all required information"],
+          ["Reinspection after you fix a failed item", "Within 5 business days of your notice"],
+          ["HAP contract execution", "No later than 60 calendar days from lease start — a later contract is void"]
+        ]
+      }
+    },
+    {
+      "h2": "Two gates you can't skip",
+      "body": [
+        "First, **the W-9 and the orientation are hard gates**. CMHA \"will not execute the HAP contract until the owner has submitted IRS form W-9,\" and since January 1, 2026 submitting an RFTA also triggers **CMHA's Virtual Landlord Orientation** — a roughly 90-minute live session, required once every 24 months — which must be completed before CMHA can execute a HAP contract for a new tenancy. Existing contracts and payments are unaffected, and **Rent Finder Cleveland has already completed it**, so a tenancy we handle does not wait on it.",
+        "Second, **never let the veteran move in early**. CMHA warns that if the owner permits it, \"the tenant will be responsible for the full amount of the rent and HCVP will not pay the back amount retroactively.\" A move-in before approval is rent you cannot recover."
+      ]
+    },
+    {
+      "h2": "What HUD-VASH changes versus a standard voucher",
+      "body": [
+        "Most differences favor a longer, more stable tenancy:",
+        "**A longer search window.** CMHA sets HUD-VASH vouchers at a **180-day initial term** — versus a 120-day HUD-VASH federal floor and 60 days on a standard voucher — giving a veteran more room to hold your unit.",
+        "**Graduation doesn't end your subsidy.** Case management is a voucher condition, but HUD says a finding that it is no longer needed \"is not grounds for termination of HCV assistance.\" HUD also waived the one-year-minimum lease rule for HUD-VASH, so a shorter initial term is permitted.",
+        "**The rent ceiling — confirm before you count on it.** Federal rules let an authority set a VASH exception standard **up to 120% of Fair Market Rent** — above the 90–110% band on a regular voucher — and HUD ties that flexibility to landlord reluctance. But CMHA's plan recites that authority without enacting a VASH-specific standard, and its public tool returns standard figures. Do **not** price a Cuyahoga unit on a 120% assumption — confirm with CMHA (Aleksandra Tyler, 216.271.2599) first. See our [HUD-VASH exception payment standard guide](/hud-vash-exception-payment-standard-cleveland/)."
+      ]
+    },
+    {
+      "h2": "How and when CMHA pays",
+      "body": [
+        "CMHA sets the Housing Assistance Payment as **the lesser of (payment standard minus Total Tenant Payment) or (gross rent minus Total Tenant Payment)** — the subsidy sits under the tenant's own share; see [tenant portion vs. HAP portion](/tenant-portion-vs-hap-portion-cleveland/).",
+        "Payment is by **mandatory direct deposit**, on two runs a month — a primary run plus a mid-month run for new admissions and corrections — with dates that typically fall on the **3rd and the 16th**. If the lease starts after the first, the first month's HAP is **prorated** for the partial month ([details here](/first-hap-payment-proration-cleveland/)). The **Landlord Portal** then gives 24-hour access to payment history, an exportable ledger, 1099s, inspection history, and your tenant's caseworker contact.",
+        "That reliable monthly deposit — plus a VA case manager on call — is the case for a HUD-VASH tenancy; as the VA puts it, \"accepting vouchers or subsidies doesn't mean getting less money.\" See also [renting to veteran voucher holders](/renting-to-veteran-voucher-holders-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Where Rent Finder Cleveland fits",
+      "body": [
+        "We work the CMHA rent side so a HUD-VASH tenancy closes cleanly, and we serve Greater Cleveland and Cuyahoga County under CMHA.",
+        "Our terms are outcome-based: **tenant placement is one month's rent, charged only after the tenant is placed** — no placement, no fee. We can **attend the CMHA inspection and send you a written report for $100** (or you attend yourself). **Ongoing management is 5% of monthly rent, only while rented**; repair estimates are free, itemized, back within 24 hours, and nothing starts without your approval. Call **(440) 444-4737**, or start with our [Section 8 landlord overview](/section-8-landlords/) and [stress-free Section 8 service](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does the VA pay my rent in HUD-VASH?",
+      "a": "No. The VA provides case management and refers the veteran; CMHA — the Cuyahoga County housing authority — pays your rent subsidy through the HAP contract, by mandatory direct deposit on two runs a month. Payment questions go to CMHA, not the VA."
+    },
+    {
+      "q": "Can I still screen and decline a HUD-VASH veteran?",
+      "a": "Yes. The VA states screening and approval of veteran tenants is at your discretion. CMHA only checks income eligibility after the VA refers the veteran; it has no role in judging the veteran's VA eligibility or homelessness status. The choice to rent remains yours."
+    },
+    {
+      "q": "Is the HUD-VASH rent ceiling really 120% of Fair Market Rent in Cleveland?",
+      "a": "Federal rules let an authority set a VASH exception standard up to 120% of FMR, but CMHA's plan recites that authority without enacting a VASH-specific standard, and its public tool returns standard figures. Do not price on the 120% assumption — confirm with CMHA's landlord outreach line, 216.271.2599, first."
+    },
+    {
+      "q": "When does CMHA pay, and what if the lease starts mid-month?",
+      "a": "CMHA pays by mandatory direct deposit on two monthly runs — a primary and a mid-month disbursement, typically around the 3rd and 16th. If the lease begins after the first, the first month's HAP is prorated for the partial month. Never let the tenant move in before the approved date, or that rent is unpaid."
+    }
+  ],
+  "sources": [
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-homeless-veterans",
+    "https://www.hud.gov/sites/dfiles/PIH/documents/HUD_VASH_HCV_Guidebook_Chapter_July_2021.pdf",
+    "https://archives.hud.gov/news/2024/6476-N-01-HUD-VASH-Operating-Requirements-Final-Notice-HEADER-8-7-24.pdf",
+    "https://department.va.gov/homeless/landlords/landlord-faqs/",
+    "https://department.va.gov/homeless/hud-vash/",
+    "https://chnhousingpartners.org/news/chn-housing-partners-breaks-ground-on-cleveland-west-veterans-housing/",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/about_us/contact_us.php",
+    "https://www.cmha.net/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

@@ -1,0 +1,172 @@
+{
+  "slug": "section-8-rental-cash-flow-cleveland",
+  "section": "section-8-landlords",
+  "title": "Monthly Cash Flow on a Cleveland Voucher Rental, Line by Line",
+  "metaTitle": "Section 8 Rental Cash Flow in Cleveland, Line by Line",
+  "metaDescription": "A month-by-month section 8 rental cash flow picture for one Cleveland house: two payments, CMHA's 3rd-and-16th calendar, every expense line priced or flagged.",
+  "primaryKeyword": "section 8 rental cash flow",
+  "secondaryKeywords": [
+    "section 8 landlord income cleveland",
+    "how much do section 8 landlords make cleveland",
+    "cmha hap payment schedule",
+    "voucher rental expenses cleveland"
+  ],
+  "answerBox": "On a CMHA voucher tenancy your rent arrives as two payments that add up to one approved contract rent: the housing assistance payment by mandatory direct deposit, generally on the 3rd of the month, and the tenant's share paid to you. Expenses run the same as any Cleveland rental, plus inspection deadlines that can pause the subsidy.",
+  "sections": [
+    {
+      "h2": "The top line arrives as two payments, on two clocks",
+      "body": [
+        "One voucher tenancy produces one approved contract rent that reaches you in two pieces: CMHA sends the housing assistance payment (HAP), the household pays the rest. Side deals with the family are illegal.",
+        "**Direct deposit is not optional**: \"All owners are required to go on direct deposit to receive HAP payments.\" Payment dates \"are generally on the 3rd and 16th of each month\" — a primary run plus a mid-month run for adjustments. On CMHA's 2026 calendar every primary run falls between the 2nd and the 5th.",
+        "Month one differs. You are paid \"on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and occupancy permit,\" and a mid-month lease start is prorated. CMHA calls this \"[s]table, guaranteed rent payments\" — its word, not ours: [what CMHA pays and what it doesn't](/is-section-8-rent-guaranteed-cleveland/)."
+      ]
+    },
+    {
+      "h2": "What sets the top line, and what doesn't",
+      "body": [
+        "The number that gets split is fixed before move-in. Under 24 CFR 982.507 an authority may not approve a lease until it finds the rent reasonable against comparable unassisted units, and rent may never exceed the most recent such determination. CMHA runs that test on **gross rent** — rent plus tenant-paid utilities or the utility allowance — and the tenant's initial portion cannot exceed 40% of monthly income.",
+        "What does *not* set your rent is the payment standard: \"it is the maximum amount of subsidy that the CMHA will pay,\" not \"the maximum amount that the landlord can charge.\" It runs per ZIP — the FY2026 two-bedroom standard spans **$1,096 in 44127 to $2,169 in 44113**, median $1,525. See [how much rent you can charge](/how-much-rent-can-i-charge-section-8-cleveland/)."
+      ]
+    },
+    {
+      "h2": "One house, one month, line by line",
+      "body": [
+        "A three-bedroom in ZIP 44105. **The rent is an assumption, not a quote: $1,200.** For scale, HUD's FY2026 two-bedroom Fair Market Rent for the metro is $1,279. The 44105 three-bedroom payment standard is $1,559, so the subsidy ceiling is not binding here. If the household pays gas and electric, CMHA adds a utility allowance to run its tests — changing what gets *approved*, not what reaches you.",
+        "The split between the first two lines moves with income; your total does not. CMHA's undated Landlord Participation Guide puts Total Tenant Payment at the greater of 30% of adjusted income, 10% of gross income, or a $50 minimum. At $50 you collect roughly **$1,150 by deposit and $50 from the household**; at $500, **$700 and $500**. CMHA adds that the subsidy rises if the tenant loses income."
+      ],
+      "table": {
+        "headers": [
+          "Monthly line",
+          "This month",
+          "Source of the number"
+        ],
+        "rows": [
+          [
+            "Contract rent (assumed)",
+            "$1,200",
+            "CMHA's determination"
+          ],
+          [
+            "— housing assistance payment",
+            "direct deposit",
+            "CMHA, generally the 3rd"
+          ],
+          [
+            "— tenant share",
+            "per your lease",
+            "the household"
+          ],
+          [
+            "Management, our rate",
+            "−$60 (5%)",
+            "billed only while rented"
+          ],
+          [
+            "Management, Cleveland's published band",
+            "−$96 to −$144 (8%–12%)",
+            "local managers' guides"
+          ],
+          [
+            "Vacancy set-aside",
+            "−$47 to −$93",
+            "derived below"
+          ],
+          [
+            "Taxes, insurance, debt service",
+            "your own bills",
+            "nothing published"
+          ],
+          [
+            "Repairs",
+            "owner-approved only",
+            "nothing published"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "The lines nobody can price for you",
+      "body": [
+        "Taxes, insurance and debt service are parcel-specific — use your own bills. Repairs and turnover have no primary or government benchmark here, and no Cleveland days-on-market figure exists in any reachable source.",
+        "A Cleveland manager's guide calls **two to four weeks annually** realistic for most single-family properties — one company's estimate, not a survey. At $1,200 that is $40 a day: 14 to 28 days is $560 to $1,120 a year, or $47 to $93 a month. See [what one vacant day costs](/what-a-vacant-rental-day-costs-cleveland/). The compliance lines are knowable:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Listing: free** — CMHA partners with AffordableHousing.com and OhioHousingLocator.org.",
+          "**Orientation:** roughly 90 minutes, virtual, required every 24 months since January 1, 2026 before a HAP contract can be executed.",
+          "**Cleveland:** Residents First requires registration and fees per rental property, a Cuyahoga County local agent, current taxes and lead-safe certification, enforced with $200 civil tickets. Lead Safe Certification runs two years.",
+          "**Suburbs:** seventeen require a Certificate of Occupancy or Rental Registration with the RFTA.",
+          "**Reinspection fee:** 24 CFR 982.405(h) permits a reasonable owner fee and bars passing it to the tenant; CMHA publishes no amount."
+        ]
+      }
+    },
+    {
+      "h2": "The months the subsidy doesn't arrive",
+      "body": [
+        "**Withheld money is recoverable; abated money is not.** Under 24 CFR 982.404(d) an authority must resume withheld payments and cover the withheld period if the unit complies inside the cure window, while abatement means \"[s]topping HAP payments to an owner with no potential for retroactive payment.\" CMHA's trigger is a two-strike rule: \"Rent is abated when the unit fails to pass on two consecutive inspections,\" from the first of the month after the failure to comply. Past 30 days, the contract may be terminated.",
+        "Three more. \"HCVP does not pay for tenant caused damages.\" Let a household in early and \"the tenant will be responsible for the full amount of the rent.\" And the contract must be executed within 60 calendar days of the lease start: \"[a]ny HAP contract executed after the 60-day period is void.\" One rule runs the other way: during an eviction CMHA holds the HAP on request, and if the tenant stays and the unit is not in abatement the landlord may receive all of it."
+      ]
+    },
+    {
+      "h2": "Year two",
+      "body": [
+        "Recertification re-runs the household's income and moves the split, usually without touching your total. Moving the total is a separate filing: CMHA requires a signed request to RentAdjustment@cmha.net, a HAP contract at least a year old, a passed annual inspection within 12 months of the effective date, a current recertification, 12 months since the last adjustment, and a rent-reasonable amount. Approved, it starts \"the 1st of the month after 60 days.\"",
+        "Budget that as a request, not a schedule: on August 14, 2025 CMHA asked Greater Cleveland landlords to forgo rent increases over a projected voucher budget shortfall."
+      ]
+    },
+    {
+      "h2": "What we charge against that line",
+      "body": [
+        "**Management is 5% of monthly rent, billed only while rented** — $60 on the $1,200 example, against a Cleveland band two local guides put at 8% to 12%. **Placement is one month's rent, charged only after the tenant is placed.** No placement, no fee. Published Cleveland placement fees run 50% to 100% of a month's rent, and one local firm adds $250 for a voucher tenant; we add no voucher surcharge.",
+        "**Attending the CMHA inspection with a written report is $100**, or you attend yourself and pay nothing. **Repair estimates come back free, itemized, inside 24 hours; nothing starts without your approval** — decisive against the cure clocks above, where a slow estimate turns a repair into an abatement. We have completed CMHA's Virtual Landlord Orientation.",
+        "We work Greater Cleveland and Cuyahoga County, under CMHA. To put your own rent and ZIP into this layout, call **(440) 444-4737** or see [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When does CMHA pay a Cleveland landlord?",
+      "a": "CMHA states payment dates \"are generally on the 3rd and 16th of each month\" — a primary disbursement plus a mid-month run for adjustments such as new admissions and contract changes. On its published 2026 calendar every primary run falls between the 2nd and the 5th."
+    },
+    {
+      "q": "Does CMHA pay the whole rent?",
+      "a": "No. CMHA pays the housing assistance payment and the household pays the balance directly to you; together they equal the approved contract rent. The split follows the household's income, so it moves at recertification while your total stays put. Families may not pay more than CMHA's figure."
+    },
+    {
+      "q": "What monthly expenses should I budget on a voucher rental?",
+      "a": "The same as any Cleveland rental: management, repairs, turnover, taxes, insurance, debt service and a vacancy set-aside. No published Cleveland figure exists for repairs, taxes or insurance on a given parcel, so use your own bills. One local manager's guide estimates two to four weeks of vacancy a year."
+    },
+    {
+      "q": "Can the housing assistance payment ever stop?",
+      "a": "Yes. CMHA abates rent when a unit fails two consecutive inspections, from the first of the month after the failure to comply, with no retroactive payment — and more than 30 days in abatement can end the contract. Money withheld during a federal cure window is recoverable; abated money is not."
+    },
+    {
+      "q": "How much of my rent does the payment standard determine?",
+      "a": "None of it directly. CMHA states the payment standard is not the maximum a landlord may charge — it caps the subsidy, not the rent. Your rent comes from CMHA's rent-reasonableness determination against comparable unassisted units, applied to gross rent, plus a 40%-of-income test."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+    "https://www.iip-management.com/property-management-fees/",
+    "https://clevelandpupm.com/pricing/",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners",
+    "https://signalcleveland.org/cmha-asks-greater-cleveland-landlords-not-to-raise-rent-on-section-8-tenants/",
+    "https://signalcleveland.org/cleveland-residents-first-local-agent-landlord-law-bibb/"
+  ],
+  "lastUpdated": "2026-07-21"
+}

@@ -1,0 +1,160 @@
+{
+  "slug": "how-to-get-approved-as-a-section-8-landlord-cmha",
+  "section": "section-8-landlords",
+  "title": "Do You Need CMHA Approval to Rent to a Voucher Holder?",
+  "metaTitle": "How to Get Approved as a Section 8 Landlord (CMHA)",
+  "metaDescription": "How to get approved as a Section 8 landlord in Cleveland: CMHA has no landlord application or approved-owner list, but it can still deny your tenancy.",
+  "primaryKeyword": "how to get approved as a section 8 landlord",
+  "secondaryKeywords": [
+    "cmha landlord approval",
+    "approved section 8 landlord list cleveland",
+    "does cmha approve landlords",
+    "can cmha deny my tenancy",
+    "cmha landlord requirements cuyahoga county"
+  ],
+  "answerBox": "No. CMHA states it \"does not have a pre-approval process for landlords or units,\" and its Landlord FAQ says \"No application process is required.\" There is no approved-owner list. CMHA approves a tenancy, not a landlord — one unit, one family, one rent — and it can still deny that.",
+  "sections": [
+    {
+      "h2": "There is nothing to apply for",
+      "body": [
+        "Owners searching for how to get approved as a Section 8 landlord are usually looking for a credential: a license, a certificate, a place on a list CMHA hands to voucher holders. CMHA publishes the opposite. Its Leasing with CMHA page states, **\"Please note that CMHA does not have a pre-approval process for landlords or units,\"** and its Landlord FAQ answers the question \"How do I qualify as an HCVP Landlord?\" with **\"No application process is required.\"**",
+        "CMHA's HCV Administrative Plan says the same thing at policy level: **\"The PHA does not formally approve an owner to participate in the HCV program.\"** There is no owner file to open, no vetting queue to sit in, and no status you can put in a listing.",
+        "The plumbing confirms it. CMHA's Landlord Portal — the RENTCafé system where owners see payments, inspection history and 1099s — cannot be opened on request. Registration requires a unique vendor/landlord registration code sent in a welcome letter from the Director of the Housing Choice Voucher Program, and new vendors are issued a code after their first HAP contract. The account follows the contract, not the other way around. You cannot be a registered CMHA landlord before you have a tenancy, because the registration is a consequence of one."
+      ]
+    },
+    {
+      "h2": "What CMHA approves is a tenancy, not a landlord",
+      "body": [
+        "The unit of decision is the Request for Tenancy Approval. One unit, one household, one rent — assessed together, on its own facts. You do not obtain the RFTA from CMHA; the voucher holder brings it to you. CMHA's own step is worded \"Submit Request for Tenancy Approval Packet (RFTA) provided to you by HCV Family.\"",
+        "Under CMHA policy the RFTA \"must be signed by both the family and the owner,\" and \"[t]he owner may submit the RTA on behalf of the family.\" Only one can be live at a time: \"The family may not submit, and the PHA will not process, more than one (1) RTA at a time.\" On the decision itself, CMHA policy states that \"[t]he PHA will complete its determination within 10 business days of receiving all required information.\"",
+        "That framing has a consequence most owners miss. Because the approval attaches to a tenancy, it does not carry forward. The HAP contract runs concurrently with the lease — when one ends, so does the other — so the next voucher household in the same unit means a new RFTA, a new rent determination and a new inspection. Passing once buys you experience, a portal account and a 24-month orientation clock. It does not buy you standing."
+      ]
+    },
+    {
+      "h2": "The one requirement that looks like a certification",
+      "body": [
+        "Effective **January 1, 2026**, submitting an RFTA triggers a requirement that the property owner or designated managing agent complete CMHA's Virtual Landlord Orientation — required once every 24 months — and the orientation must be completed **before CMHA can execute a HAP contract for a new tenancy**. It is a live virtual session of about 90 minutes, scheduled and registered through Eventbrite, with attendance verified by CMHA before the contract is executed. CMHA asks landlords to register using the same name and email used for CMHA correspondence.",
+        "This is the closest thing to a landlord credential in the program, and it is still not owner approval. It certifies attendance, not you and not your building. It is a box CMHA ticks before signing a specific contract, and CMHA is explicit that **\"Existing HAP contracts and current HAP payments are not affected.\"** Nothing about it puts you on a list or makes a future tenancy more likely to be approved.",
+        "It does, however, sit directly in the path of a deal in progress. **We have completed it.** Name us as your designated managing agent and the requirement is satisfied on the day the RFTA is filed, with no session to book and no calendar to wait on. Detail here: [CMHA's Mandatory Landlord Orientation](/cmha-landlord-orientation-requirement/)."
+      ]
+    },
+    {
+      "h2": "So on what grounds can CMHA still say no?",
+      "body": [
+        "No owner approval does not mean nothing to fail. The same Administrative Plan sentence that rules out formal owner approval reserves the right to deny a specific tenancy based on past owner behavior, a conflict of interest, or other owner-related issues, citing 24 CFR 982.306(e). Around that sit a set of published, checkable conditions — each one attached to the unit, the paperwork or the money rather than to you personally."
+      ],
+      "table": {
+        "headers": ["Ground", "What CMHA or HUD publishes"],
+        "rows": [
+          ["Owner-related issues", "CMHA may deny a specific tenancy based on past owner behavior, a conflict of interest, or other owner-related issues (24 CFR 982.306(e))"],
+          ["Debarment or suspension", "Side deals with the family \"are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation\""],
+          ["Ownership, foreclosure, taxes", "CMHA's Landlord Participation Guide describes verifying ownership through the County Auditor's website and confirming the unit is not in foreclosure and is current on property taxes"],
+          ["Local registration", "A Certificate of Occupancy and/or Rental Registration must accompany the RFTA in 17 named suburbs; effective October 1, 2025, CMHA verifies Cleveland rental registrations through the City's Citizen Access Portal"],
+          ["The rent", "Under 24 CFR 982.507(a) a PHA may not approve a lease until it determines the initial rent to owner is reasonable, judged against comparable unassisted units"],
+          ["The condition of the unit", "The initial inspection gets two attempts, rescheduled within 7-10 days; \"[w]hen a unit fails an initial inspection the second time, the HCVP applicant/participant is provided with written notice to find another unit\""],
+          ["Incomplete paperwork", "CMHA reviews the RFTA for completeness and consistency with the proposed lease and will not accept missing information or corrections by phone; it \"will not execute the HAP contract until the owner has submitted IRS form W-9\""],
+          ["A competing packet", "\"The family may not submit, and the PHA will not process, more than one (1) RTA at a time\""],
+          ["The clock", "The HAP contract \"must be executed no later than 60 calendar days from the beginning of the lease term\" — \"Any HAP contract executed after the 60-day period is void\""]
+        ]
+      }
+    },
+    {
+      "h2": "Most of that list is settled before you file",
+      "body": [
+        "Read the grounds again and the pattern is clear: registration status, tax status, the condition of the unit and the completeness of the packet are all in your hands on the day you file. Only the 60-day contract deadline and the two-strikes inspection rule are genuinely unforgiving once the process is running.",
+        "The registration line is the one that has moved recently. In the City of Cleveland, Residents First requires owners of non-owner-occupied residential property to register and pay a fee per property, and to submit an affidavit naming a local agent in charge, proof of current taxes or an established payment plan, and lead-safe certification, in order to obtain a Certificate Approving Rental Occupancy. Since October 2025 that City record is checked from inside the CMHA process, so a lapse that used to be invisible now stalls a voucher deal. More on what stalls a packet: [Why Your RFTA Is Stuck](/why-your-rfta-is-taking-so-long-cmha/)."
+      ]
+    },
+    {
+      "h2": "What CMHA does not decide: your tenant",
+      "body": [
+        "One thing CMHA is unambiguous about is that it is not screening for you: **\"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\"** What CMHA will supply is contact information — the family's current address and, if known, the name and address of the landlord at the family's current and prior address.",
+        "So there are two separate vetoes in this process, and neither substitutes for the other. Yours covers the applicant: rental history, references, whatever criteria you apply consistently to every applicant. CMHA's covers the tenancy: the rent, the unit, the paperwork, the deadlines. A voucher tells you CMHA has found the household eligible for assistance. It is not a screening report, and holding one does not oblige you to rent to anybody."
+      ]
+    },
+    {
+      "h2": "And none of this is compulsory",
+      "body": [
+        "The federal Fair Housing Act protects race, color, national origin, sex, religion, disability and familial status, but \"it does not prohibit landlords from refusing to accept tenant applications based on a tenant's lawful income source.\" The City of Cleveland's own Office of Fair Housing publishes a list of 13 protected classes, and source of income is not among them. As of July 2026 it is lawful in the City of Cleveland to decline a Housing Choice Voucher solely because it is a voucher.",
+        "That matters here because it settles what kind of question this is. Nobody is telling you that you have to get approved. There is no approval, and in Cleveland there is no obligation either — which means the only honest reason to run the CMHA process is that the economics work for your specific unit. Where the rules do differ by municipality: [Can a Landlord Legally Say No to a Housing Voucher in Ohio?](/can-landlords-refuse-section-8-ohio/)"
+      ]
+    },
+    {
+      "h2": "What you can do before you have an applicant",
+      "body": [
+        "There is no approval to collect in advance, but there are four things that can be done cold, none of which requires a voucher holder to exist yet:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Complete the Landlord Orientation**, or appoint a managing agent who already has — it is required once every 24 months and must be done before CMHA can execute a HAP contract for a new tenancy",
+          "**Get local registration current.** A Certificate of Occupancy and/or Rental Registration is collected with the RFTA in Bedford, Bedford Heights, Brook Park, Cleveland Heights, Cuyahoga Heights, East Cleveland, Euclid, Fairview Park, Garfield Heights, Lakewood, Lyndhurst, Maple Heights, Parma, Shaker Heights, South Euclid, University Heights and Warrensville Heights; in Cleveland, CMHA checks the City's portal",
+          "**List the vacancy at no cost.** \"CMHA has partnered with affordablehousing.com or OhioHousingLocator.org to provide free listing options for owners and landlords,\" and CMHA asks owners advertising elsewhere to state that vouchers are welcome",
+          "**Introduce yourself.** CMHA runs an online intake form for prospective landlord partners at cmha.net/housing/landlords/online_inquiries.php — an inquiry, not an application, and not a step toward approval"
+        ]
+      }
+    },
+    {
+      "h2": "What it costs to have us handle it",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County, under CMHA, and we have completed CMHA's Virtual Landlord Orientation — so the one requirement that can hold up contract execution is already satisfied when you name us. We screen the applicant to your criteria, assemble and file the RFTA, and hold the paperwork together through the rent determination, the inspection and contract execution."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back within 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "There is no application, no approved-landlord list and no certificate. CMHA approves tenancies, one at a time, and it can refuse one over owner conduct, a conflict of interest, ownership or tax status, missing local registration, an unreasonable rent, a unit that fails twice, an incomplete packet or a missed deadline. Every one of those is checkable before you file. Call **(440) 444-4737**, or read how our voucher service works: [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is there a CMHA landlord application or an approved-landlord list?",
+      "a": "No. CMHA's Leasing with CMHA page states it \"does not have a pre-approval process for landlords or units,\" and its Landlord FAQ answers \"How do I qualify as an HCVP Landlord?\" with \"No application process is required.\" Its Administrative Plan adds that the PHA \"does not formally approve an owner to participate in the HCV program.\" There is no list and no credential."
+    },
+    {
+      "q": "Can CMHA still reject me as a landlord?",
+      "a": "There is no owner approval to reject at the front end, but CMHA may deny a specific tenancy based on past owner behavior, a conflict of interest, or other owner-related issues under 24 CFR 982.306(e). CMHA also warns that side deals with a family are illegal and \"could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\""
+    },
+    {
+      "q": "Does the mandatory orientation mean CMHA approves landlords now?",
+      "a": "No. Since January 1, 2026, submitting an RFTA triggers a requirement that the owner or designated managing agent complete CMHA's Virtual Landlord Orientation, required once every 24 months, before CMHA can execute a HAP contract for a new tenancy. It verifies attendance at a 90-minute session; it does not certify you or your property, and existing HAP contracts and payments are unaffected."
+    },
+    {
+      "q": "If CMHA approved my unit once, is it approved for the next voucher tenant?",
+      "a": "No. Approval attaches to a tenancy, not to a property. The HAP contract runs concurrently with the lease, so when that lease ends the contract ends with it. A new voucher household means a new Request for Tenancy Approval, a new rent determination and a new inspection. What carries over is your portal account and the 24-month orientation window."
+    },
+    {
+      "q": "Do I need a rental license to rent to a voucher holder in Greater Cleveland?",
+      "a": "CMHA issues none, but your municipality may. CMHA collects a Certificate of Occupancy and/or Rental Registration with the RFTA in 17 named suburbs, and since October 1, 2025 it verifies active City of Cleveland rental registrations through the City's Citizen Access Portal. Cleveland's Residents First rules require registration, a local agent in charge, current taxes and lead-safe certification."
+    },
+    {
+      "q": "Who decides whether my applicant is a good tenant?",
+      "a": "You do. CMHA states plainly that \"[i]t is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\" CMHA will give you the family's current address and, if known, the name and address of the landlord at the family's current and prior address. The voucher establishes eligibility for assistance, not rental history."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/online_inquiries.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordPortalUserGuide.pdf",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://www.usccr.gov/files/2025-08/soi-pb-ohio_july-2025.pdf",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

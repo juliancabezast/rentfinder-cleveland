@@ -1,0 +1,100 @@
+{
+  "slug": "section-8-rental-income-taxes-cleveland",
+  "section": "section-8-landlords",
+  "title": "Taxes on Section 8 Rental Income: W-9s, 1099s, and Reporting HAP",
+  "metaTitle": "Section 8 Rental Income Taxes: W-9 & 1099 Cleveland",
+  "metaDescription": "How CMHA's HAP subsidy is handled at tax time in Cleveland: why you file a W-9, where your 1099 lives in the Landlord Portal, and how voucher rent is reported.",
+  "primaryKeyword": "section 8 rental income taxes 1099 cleveland",
+  "secondaryKeywords": ["cmha w-9 landlord", "cmha 1099 landlord portal", "is hap payment taxable", "voucher rent tax reporting cleveland"],
+  "answerBox": "CMHA collects an IRS Form W-9 before it will execute your HAP contract, because it pays you and reports that money at tax time. Your year-end 1099 appears in the CMHA Landlord Portal. The HAP subsidy is rental income, reported alongside the tenant's own rent portion.",
+  "sections": [
+    {
+      "h2": "Why CMHA needs your W-9 before the first check",
+      "body": [
+        "The tax paperwork starts before any money moves. CMHA **\"will not execute the HAP contract until the owner has submitted IRS form W-9,\"** so the W-9 is not optional and not an afterthought — it is a gate on your first payment. It arrives inside the Request for Tenancy Approval (RFTA) packet, listed there as **\"W-9 (new vendors only),\"** which means an owner already set up with CMHA from a prior tenancy generally does not resubmit one.",
+        "The reason is simple: once CMHA begins paying Housing Assistance Payments on a tenant's behalf, it becomes a payer of your rental income and needs your legal name and taxpayer identification number on file to report what it pays you. That taxpayer ID — your Social Security number or your EIN — has to be exactly right, because the number you later enter to register for the owner portal **must match CMHA's vendor record.** A W-9 with a mismatched name or number is the most common way a landlord locks themselves out of their own payment history. Get it correct the first time and the rest of the year is quiet."
+      ]
+    },
+    {
+      "h2": "Where your 1099 lives: the CMHA Landlord Portal",
+      "body": [
+        "You do not wait for a 1099 in the mail and hope it shows up. CMHA runs a RentCafé-based Landlord Portal that gives owners 24-hour access to HAP payment information, the HAP payment calendar, a ledger **exportable to Excel and PDF**, bank-account updates, and **1099s** — the year-end tax document lives in the same place you check your deposits.",
+        "New owners receive a welcome letter from the Director of the Housing Choice Voucher Program containing a unique vendor/landlord registration code. That code is required to create the account, and — as above — the Tax ID or SSN you enter must match the CMHA vendor record. Once you are in, the portal is also where you request Electronic Fund Transfer (bank) changes and pull the exportable ledger you will hand your accountant."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Your annual 1099, downloadable from the portal",
+          "A full HAP payment ledger you can export to Excel and PDF",
+          "The HAP payment calendar for the year",
+          "Bank-account / Electronic Fund Transfer change requests",
+          "Document upload and inspection history"
+        ]
+      }
+    },
+    {
+      "h2": "Is the voucher rent taxed like any other rent?",
+      "body": [
+        "Yes — the HAP subsidy is rent. It is money paid for the use of your property, and owners generally report it as rental income the same way they report the tenant's own share. It is not tax-free simply because a housing authority sends it. Two practical points shape how it lands on your books:",
+        "First, CMHA's 1099 reflects only the **HAP portion CMHA paid** — the tenant's own rent portion never touches CMHA and never appears on that form, so you track the tenant's payments separately. If you are unsure which dollar is which, our companion piece on the [tenant portion versus the HAP portion](/tenant-portion-vs-hap-portion-cleveland/) walks through the split. Second, this article describes documented CMHA behavior — how the paperwork flows — not a substitute for your own accountant. Talk to a tax professional about how to report it on your return."
+      ]
+    },
+    {
+      "h2": "Payment timing, and why it matters at year-end",
+      "body": [
+        "How the money arrives affects how your year adds up. Direct deposit is mandatory: **\"All owners are required to go on direct deposit to receive HAP payments.\"** You enroll with CMHA's Automatic Deposit form (an ACH credit authorization) plus a voided check, mailed to HCVP Finance, 8120 Kinsman Road, Cleveland, Ohio 44104. From then on, HAP payment dates are **\"generally on the 3rd and 16th of each month.\"**",
+        "On a brand-new contract, you are paid on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease, and the occupancy permit where applicable — return the signed paperwork late and payment simply rolls to the next run. And if the lease term begins after the first of the month, the first month's HAP is prorated for a partial month; the mechanics of that [first prorated HAP payment](/first-hap-payment-proration-cleveland/) are worth understanding, because a small first check can straddle the December-to-January boundary and change which tax year it falls in. The exportable portal ledger is exactly how you reconcile those edge cases. HAP payment questions go to CMHA at 216.271.2495 or financehcvp@cmha.net."
+      ]
+    },
+    {
+      "h2": "More than one program means more than one 1099",
+      "body": [
+        "The entity that pays you is the entity that reports it — so if you house tenants under different programs, expect separate records from each payer, not one combined statement. CMHA is one payer. But a Cleveland owner might also rent to a client of EDEN (Emerald Development and Economic Network), whose landlord onboarding requires **its own W-9** and direct-deposit form as part of a six-step process, and which pays the landlord on its own schedule — **between the 1st and 4th of each month**, versus CMHA's 3rd and 16th.",
+        "That is two vendor records, two direct-deposit setups, and two year-end documents to reconcile. Our guide to [who actually pays Cleveland landlords across CMHA, EDEN, and Continuum of Care](/who-pays-landlords-cmha-eden-coc-cleveland/) maps out the payers, and the [EDEN landlord guide](/eden-inc-landlord-guide-cleveland/) covers that program's onboarding in detail. Keep each payer's paperwork in its own file and tax season stays organized."
+      ]
+    },
+    {
+      "h2": "How we keep the tax paperwork clean",
+      "body": [
+        "The single most preventable tax-season headache in this program is a vendor record that does not match — a name, an SSN, or an EIN entered one way on the W-9 and another way in the portal. We set it up right the first time: the correct legal name and taxpayer ID on the W-9, direct-deposit enrollment with CMHA's Finance office, and a portal login whose Tax ID matches, so your 1099 is accurate and your ledger actually reconciles.",
+        "We have also completed CMHA's **Virtual Landlord Orientation**, which — effective January 1, 2026 — must be finished before CMHA can execute a HAP contract for a new tenancy. That means we can move a new placement through the paperwork without a training bottleneck. Our pricing is built the same way, so it is easy to account for: tenant placement is **one month's rent, charged only after the tenant is placed** — no placement, no fee; inspection attendance with a written report is **$100** (or you attend yourself); ongoing management is **5% of monthly rent, only while the unit is rented**; and repair estimates are free, itemized, and back to you within 24 hours, with nothing starting until you approve it. We are not tax preparers — we hand your accountant clean records and make tax season boring. Reach us at **(440) 444-4737** or start with [Section 8, stress-free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I have to send CMHA a W-9?",
+      "a": "Yes. CMHA will not execute your HAP contract until you submit IRS Form W-9, and it is included in the RFTA packet for new vendors. Because CMHA pays you and reports it, it needs your legal name and taxpayer ID on file. Owners already set up from a prior tenancy generally do not resubmit."
+    },
+    {
+      "q": "Where do I get my 1099 from CMHA?",
+      "a": "From the CMHA Landlord Portal, the RentCafé-based owner portal that gives 24-hour access to 1099s, HAP payment information, the payment calendar, and a ledger you can export to Excel or PDF. You need the vendor registration code CMHA mails you, and your Tax ID or SSN must match CMHA's vendor record to log in."
+    },
+    {
+      "q": "Is the HAP subsidy taxable, or only the tenant's portion?",
+      "a": "The HAP subsidy is rent paid on the tenant's behalf, so owners generally report it as rental income like any other rent. CMHA's 1099 reflects only the HAP portion CMHA paid; the tenant's own rent portion never appears on it and is tracked separately. Ask your tax professional how to report each on your return."
+    },
+    {
+      "q": "Which taxpayer ID goes on the W-9, my SSN or an EIN?",
+      "a": "Either the SSN or the EIN you use to report the rental — but it must match the name on your return and, critically, CMHA's vendor record. The Landlord Portal requires that the Tax ID or SSN you enter match that record, so keep your W-9, direct-deposit, and portal identities identical."
+    },
+    {
+      "q": "When does HAP actually reach my account?",
+      "a": "HAP is paid by mandatory direct deposit, generally on the 3rd and 16th of each month. A new contract pays on the next scheduled date after CMHA receives three signed contract copies, the executed lease, and the occupancy permit where applicable. A first month beginning after the first of the month is prorated for the partial month."
+    },
+    {
+      "q": "I rent to a CMHA tenant and an EDEN tenant — one 1099 or two records?",
+      "a": "Two. Each program that pays you reports separately. EDEN requires its own W-9 and direct-deposit form and pays between the 1st and 4th of the month, while CMHA pays on the 3rd and 16th. Keep each payer's ledger in its own file and reconcile them independently at year-end."
+    }
+  ],
+  "sources": [
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordPortalUserGuide.pdf",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/about_us/contact_us.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.edencle.org/owner/Welcome.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

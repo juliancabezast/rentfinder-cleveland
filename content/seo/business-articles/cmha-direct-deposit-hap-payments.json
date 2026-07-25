@@ -1,0 +1,174 @@
+{
+  "slug": "cmha-direct-deposit-hap-payments",
+  "section": "section-8-landlords",
+  "title": "Setting Up Direct Deposit for CMHA HAP Payments",
+  "metaTitle": "CMHA Direct Deposit Form: Enrolling for HAP Payments",
+  "metaDescription": "The CMHA direct deposit form, step by step: what to send with it, where to mail it, why paper checks are not an option, and when the first HAP deposit lands.",
+  "primaryKeyword": "cmha direct deposit form",
+  "secondaryKeywords": [
+    "cmha automatic deposit form",
+    "hap payment direct deposit cmha",
+    "cmha ach authorization landlord",
+    "change bank account cmha landlord portal",
+    "cmha hap payment paper check"
+  ],
+  "answerBox": "Direct deposit is not optional at CMHA: \"All owners are required to go on direct deposit to receive HAP payments.\" Enroll with CMHA's Automatic Deposit form — an ACH credit authorization — plus a voided check, mailed to HCVP Finance, 8120 Kinsman Road, Cleveland, Ohio 44104. There is no paper-check alternative to elect.",
+  "sections": [
+    {
+      "h2": "Can you take a paper check instead? No",
+      "body": [
+        "Take the answer first, because it is the question most owners arrive with. CMHA's Landlord FAQ states that **\"All owners are required to go on direct deposit to receive HAP payments.\"** Not a default with an opt-out — a requirement. Bank details sit in the same category as your W-9, which CMHA's Administrative Plan handles just as bluntly: it **\"will not execute the HAP contract until the owner has submitted IRS form W-9.\"**",
+        "Separate the mechanics from the marketing. CMHA's owner page advertises **\"[s]table, guaranteed rent payments deposited directly into your account.\"** Those are CMHA's words. ACH changes how money moves, not whether it is owed — CMHA abates HAP when a unit fails two consecutive inspections, with no retroactive payment for that period ([more here](/is-section-8-rent-guaranteed-cleveland/)). And enrolling is not the same as being required to accept a voucher: in the City of Cleveland, source of income is not a protected class — the city's Office of Fair Housing lists thirteen, and it is not among them."
+      ]
+    },
+    {
+      "h2": "What the form is, and where it lives",
+      "body": [
+        "The document is CMHA's **Automatic Deposit Form**, one of the 16 items on its landlord Forms & Documents page, alongside the Agent/Payee Form, the Change of Ownership packet and the 2026 HAP Payment Calendar. Its full title says what you are signing: the **HCVP Authorization Agreement for Automatic Deposits (ACH Credits)**. The form carries the program's own contact block — HCVP at **(216) 431-1471**, fax (216) 271-4111, 8120 Kinsman Road, Cleveland, OH 44104, with CMHA's main line at 216.348.5000, weekdays 8 a.m. to 5 p.m."
+      ]
+    },
+    {
+      "h2": "What CMHA requires with the form",
+      "body": [
+        "Two enclosures and one address — all of it CMHA's own published wording:"
+      ],
+      "table": {
+        "headers": [
+          "Item",
+          "What CMHA published"
+        ],
+        "rows": [
+          [
+            "Automatic Deposit form",
+            "An ACH credit authorization. \"All owners are required to go on direct deposit\""
+          ],
+          [
+            "A voided check",
+            "Submitted together with the form"
+          ],
+          [
+            "Where it goes",
+            "HCVP Finance, 8120 Kinsman Road, Cleveland, Ohio 44104"
+          ],
+          [
+            "IRS Form W-9",
+            "New vendors only. No W-9, no executed HAP contract"
+          ],
+          [
+            "Agent Form",
+            "\"Agent Form (if applicable)\" — travels in the same RFTA packet"
+          ],
+          [
+            "Who to ask",
+            "HAP payment questions: 216.271.2495 or financehcvp@cmha.net"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "Where it sits in the leasing sequence",
+      "body": [
+        "It is not a separate errand after signing. CMHA's Landlord Participation Guide lists the RFTA packet as nine documents — the Request for Tenancy Approval, HUD Tenancy Addendum, Landlord Fraud Letter, Landlord Certification, Drug-Free Housing Lease Addendum and Lead-based Paint Disclosure, plus the **Direct Deposit Form (if applicable)**, the **W-9 (new vendors only)** and the **Agent Form (if applicable)**.",
+        "Read those parentheticals closely; they are the whole answer for repeat owners. An owner already enrolled from a prior contract has a vendor record at CMHA and is not re-papering bank details unit by unit. A first-timer does both at once. One adjacent gate is worth knowing while the packet is open: since **January 1, 2026**, submitting an RFTA triggers a requirement that the owner or designated managing agent complete CMHA's Virtual Landlord Orientation, once every 24 months, before a HAP contract can be executed for a new tenancy."
+      ]
+    },
+    {
+      "h2": "When the first deposit lands",
+      "body": [
+        "Enrollment does not start the money; contract execution does. CMHA: **\"you will be paid on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and occupancy permit, when applicable.\"** Returning signed contracts a day late does not cost a day — it costs a run.",
+        "Those runs are fixed: **\"generally on the 3rd and 16th of each month.\"** The 2026 HAP Payment Calendar formalizes both — a Primary HAP Disbursement, and a Mid-Month HAP Disbursement for **\"approved adjustments such as new admissions, contract changes, corrections\"** processed after the primary run. A brand-new contract is a new admission, which is why a first deposit often lands mid-month — and short of a full month, since a lease term beginning after the first is prorated. Detail in [When Does CMHA Pay Landlords?](/when-does-cmha-pay-landlords/)"
+      ]
+    },
+    {
+      "h2": "Changing the account later: the Landlord Portal",
+      "body": [
+        "After your first HAP contract, CMHA issues a unique vendor/landlord registration code in a welcome letter from the Director of the Housing Choice Voucher Program. That code creates your account on CMHA's RentCafe-based Landlord Portal, reached from applications.cmha.net under \"Landlord Login.\" One detail sinks more registrations than any other: **the Tax ID or SSN you enter must match the CMHA vendor record.**",
+        "CMHA describes the portal as where owners \"view information related to payments and inspections, update contact information, **request Electronic Fund Transfer changes** and more\" — plus bank-account updates, 1099s, a ledger exportable to Excel and PDF, and inspection history. The paper form is the front door; the portal is the standing channel. See [The CMHA Landlord Portal and Forms Library](/cmha-landlord-portal-and-forms/)."
+      ]
+    },
+    {
+      "h2": "When the deposit should go to someone else",
+      "body": [
+        "Two situations move the destination rather than change it, and each has its own document rather than a second deposit form. For **an agent or payee**, CMHA publishes an Agent/Payee Form (2025) and a Change of Agent/Payee Packet dated 9.5.25. For **a sale**, every owner who buys property with existing HCVP tenants must submit a Change of Ownership packet: **\"[t]he new owner will begin receiving payments when the packet has been completed and processed.\"** Closing does not redirect a HAP deposit; processing the packet does."
+      ]
+    },
+    {
+      "h2": "What actually stalls a deposit",
+      "body": [
+        "Every one of these is a CMHA gate, and every one is avoidable:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**No W-9 on file** — CMHA will not execute the contract, and nothing is payable before execution, so a perfect ACH authorization sits idle",
+          "**Signed contracts returned after a run** — payment waits for the next scheduled date",
+          "**Orientation not completed** — since January 1, 2026 it gates execution on a new tenancy",
+          "**A vendor-record mismatch** — an LLC on the deed and a personal SSN on the form is the classic portal collision",
+          "**An ownership change not filed** — the new owner is paid only once the packet is processed"
+        ]
+      }
+    },
+    {
+      "h2": "What we handle, and what it costs",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and **we have completed CMHA's Virtual Landlord Orientation** — the step that has gated new HAP contracts since January 1, 2026. When we place a tenant the RFTA packet goes in assembled: deposit form where it applies, W-9 for a new vendor, agent form where one belongs. Bank details are yours and stay yours; the Agent/Payee Form exists if you want payments routed elsewhere, and using it is your call. The terms:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "One form, one voided check, one address: HCVP Finance, 8120 Kinsman Road, Cleveland, Ohio 44104 — plus a W-9 if CMHA has never paid you before. After the first contract the portal takes over for bank changes. There is no check to elect instead. Call **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I get a paper check from CMHA instead of direct deposit?",
+      "a": "No. CMHA's Landlord FAQ states that all owners are required to go on direct deposit to receive HAP payments — a requirement, not a default with an opt-out, so there is no check option to elect. Enrollment is the Automatic Deposit form, an ACH credit authorization, sent with a voided check to HCVP Finance in Cleveland."
+    },
+    {
+      "q": "What do I send with the CMHA direct deposit form?",
+      "a": "A voided check, mailed with the Automatic Deposit form to HCVP Finance at 8120 Kinsman Road, Cleveland, Ohio 44104. If CMHA has never paid you before, a W-9 goes in too: the Administrative Plan says CMHA will not execute the HAP contract until the owner has submitted IRS form W-9."
+    },
+    {
+      "q": "Does the direct deposit form go inside the RFTA packet?",
+      "a": "Yes. CMHA's Landlord Participation Guide lists the packet as nine documents, including the Direct Deposit Form marked \"if applicable,\" the W-9 marked \"new vendors only,\" and the Agent Form marked \"if applicable.\" Those qualifiers matter: an owner already enrolled from a previous contract has a vendor record and is not resubmitting bank details unit by unit."
+    },
+    {
+      "q": "How do I change the bank account my HAP payments go into?",
+      "a": "Through CMHA's RentCafe-based Landlord Portal, reached from applications.cmha.net under \"Landlord Login.\" CMHA describes it as where owners view payment and inspection information, update contact information and request Electronic Fund Transfer changes. Registration needs the code CMHA mails after your first HAP contract, and the Tax ID or SSN entered must match CMHA's vendor record."
+    },
+    {
+      "q": "When will my first HAP deposit actually arrive?",
+      "a": "CMHA pays on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and the occupancy permit where applicable. Payment dates are generally the 3rd and the 16th; the 2026 calendar runs a primary disbursement plus a mid-month one covering new admissions and corrections."
+    },
+    {
+      "q": "I bought a property with a voucher tenant in it. How do deposits move to me?",
+      "a": "Not automatically at closing. CMHA requires every owner who purchases property with existing HCVP tenants to complete and submit its Change of Ownership packet, and states the new owner will begin receiving payments when the packet has been completed and processed. It is published alongside the Automatic Deposit Form in CMHA's landlord forms library."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/forms___documents.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/ownership.php",
+    "https://www.cmha.net/about_us/contact_us.php",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/Automatic%20Deposit%20Form.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordPortalUserGuide.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

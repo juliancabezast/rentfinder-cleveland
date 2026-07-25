@@ -84,6 +84,9 @@ const APP_ROUTES = new Set([
   "/", "/p/book-showing", "/apply", "/p/apply", "/sms-signup/", "/leasingtracker",
   "/p/privacy-policy", "/p/terms-of-service", "/auth/login",
   "/houses-for-rent-cleveland-oh/", "/apartments-for-rent-cleveland-oh/", "/section-8-housing-cleveland-oh/",
+  // The Section 8 landlord conversion page (SPA route, no trailing slash — both
+  // spellings resolve). The landlord hub and its articles link to it heavily.
+  "/section8stressfree", "/section-8-stress-free",
 ]);
 
 export function loadTaxonomy() {
@@ -122,10 +125,18 @@ export function buildRouteSet(taxonomy) {
   for (const key of Object.keys(taxonomy.clusters || {})) routes.add(`${cfg.hubBase}/${key}/`);
   for (const p of taxonomy.pillars || []) routes.add(`/${p.slug}/`);
   for (const a of taxonomy.articles || []) routes.add(`${cfg.hubBase}/${a.cluster}/${a.slug}/`);
-  // B2B sections live at the root, not under the hub base.
-  for (const s of loadBusinessSections()) routes.add(`/${s.slug}/`);
+  // B2B sections live at the root, not under the hub base. A section may set
+  // `rootLevel: true`, which publishes its articles at `/<slug>/` instead of
+  // `/<section>/<slug>/` — the route set must match the generator's choice or
+  // every sibling link between root-level articles reads as broken.
+  const rootLevel = new Set();
+  for (const s of loadBusinessSections()) {
+    routes.add(`/${s.slug}/`);
+    if (s.rootLevel === true) rootLevel.add(s.slug);
+  }
   for (const { data } of loadBusinessArticles()) {
-    if (data.section && data.slug) routes.add(`/${data.section}/${data.slug}/`);
+    if (!data.section || !data.slug) continue;
+    routes.add(rootLevel.has(data.section) ? `/${data.slug}/` : `/${data.section}/${data.slug}/`);
   }
   return routes;
 }

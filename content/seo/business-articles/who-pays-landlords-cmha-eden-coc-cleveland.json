@@ -1,0 +1,121 @@
+{
+  "slug": "who-pays-landlords-cmha-eden-coc-cleveland",
+  "section": "section-8-landlords",
+  "title": "Who Actually Pays You: CMHA, EDEN, or a CoC Nonprofit? A Cleveland Program Map",
+  "metaTitle": "Who Administers Section 8 in Cleveland: CMHA or EDEN?",
+  "metaDescription": "Who administers Section 8 voucher programs in Cleveland? A landlord map of which office — CMHA, EDEN, or a CoC nonprofit — signs your contract and pays you.",
+  "primaryKeyword": "who administers section 8 voucher programs cleveland",
+  "secondaryKeywords": [
+    "cmha vs eden landlord",
+    "who pays section 8 rent cleveland",
+    "continuum of care landlord cuyahoga county",
+    "eden inc voucher landlord cleveland"
+  ],
+  "answerBox": "Three different offices cut Section 8-style rent checks in Cuyahoga County. CMHA administers Housing Choice, Project-Based, and Mod/Rehab vouchers plus HUD-VASH. EDEN, Inc., a separate nonprofit, pays its own supportive-housing and rental-assistance subsidies. In a Continuum of Care project a CoC subrecipient — often EDEN — pays, sometimes as your actual tenant.",
+  "sections": [
+    {
+      "h2": "The short answer: three payers, three offices",
+      "body": [
+        "In Greater Cleveland, \"Section 8\" is shorthand for at least three different rent checks written by three different offices. Which one applies to your tenant tells you who signs your contract, who you email about payment, and — in one case — who your legal tenant is.",
+        "The three payers are **CMHA** (the county housing authority, serving over 15,000 voucher holders), **EDEN, Inc.** (a separate nonprofit that administers its own vouchers), and a **Continuum of Care (CoC) subrecipient** — most often EDEN again — paying under a federal homeless-assistance grant. CMHA, for one, runs no landlord pre-approval at all — it states plainly that \"No application process is required\" — so with a CMHA voucher you are vetted per tenancy, not enrolled."
+      ]
+    },
+    {
+      "h2": "CMHA: the county housing authority",
+      "body": [
+        "The Cuyahoga Metropolitan Housing Authority (CMHA) is the public housing authority for Cuyahoga County. Its published program menu covers Housing Choice Vouchers (tenant-based), Project-Based Vouchers, Moderate Rehabilitation, and CMHA-owned properties. CMHA also administers HUD-VASH vouchers for veterans, with HUD funding the rental assistance and the VA providing the case management and clinical services.",
+        "When your tenant carries a CMHA voucher, your contract is the standard HUD Housing Assistance Payments (HAP) contract, form HUD-52641 — CMHA doesn't publish blank copies; it comes inside the tenant's voucher packet. The tenant's Request for Tenancy Approval (RFTA) goes to rfta@cmha.net, and CMHA then handles the rent determination, the inspection, and the HAP contract. Direct deposit is mandatory, and CMHA pays twice a month, typically on the 3rd and the 16th.",
+        "With [Project-Based Vouchers](/project-based-vouchers-landlords-cleveland/) and Mod/Rehab, the subsidy attaches to the unit rather than the tenant, so when an assisted household moves out the assistance stays with the building. One CMHA-specific gate: since January 1, 2026, before CMHA will execute a HAP contract for a new tenancy, the owner or managing agent must complete CMHA's Virtual Landlord Orientation — a roughly 90-minute session required once every 24 months. We have already completed it."
+      ]
+    },
+    {
+      "h2": "EDEN, Inc.: a separate nonprofit that runs its own vouchers",
+      "body": [
+        "EDEN — Emerald Development and Economic Network, Inc. — is a Cleveland 501(c)(3), a contract agency of the county ADAMHS Board, and it is **not** CMHA. It even tells its own applicants to also join CMHA's separate voucher waitlist. EDEN administers rental assistance for more than 2,200 households a month across Ashtabula, Cuyahoga, Lake and Lorain counties.",
+        "If your tenant's subsidy runs through EDEN, then **EDEN — not CMHA — signs your contract and cuts your check.** The agreement is EDEN's own HAP contract; you list the unit and file a Request for Lease Approval (RFLA), and EDEN's subsidy lands by direct deposit between the 1st and 4th of each month. The tenant pays their portion directly to you; EDEN pays only its share. EDEN prices approved rents to HUD Fair Market Rent — not to CMHA's ZIP-code payment standards — so the ceiling math differs. Its landlord line is 216-503-6369.",
+        "EDEN's program families include Continuum of Care and H-TBRA supportive housing, Rapid Re-Housing, Re-Entry, its Housing Assistance Program, and its own Mainstream voucher program. Most take referrals from approved agencies, not walk-ins — you cannot send a prospect to EDEN to \"get a voucher.\" Full onboarding is in the [EDEN landlord guide](/eden-inc-landlord-guide-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Continuum of Care: when the nonprofit is your tenant",
+      "body": [
+        "Federal Continuum of Care (CoC) money is the third stream, and it can change who your tenant actually is. The Cleveland/Cuyahoga County CoC carries HUD number OH-502, and the Cuyahoga County Office of Homeless Services — not CMHA and not EDEN — is the lead agency that convenes it. The dollars flow to subrecipients: in HUD's FY2024 competition EDEN received $40,062,407 across 13 projects, about 75.4% of the CoC's $53,159,310 total, while CMHA received no CoC award at all.",
+        "How you get paid depends on the project type. In a CoC **leasing** project, HUD's model lease runs \"between the recipient or subrecipient (the tenant) and the landowner\" — so on paper the nonprofit is your tenant, the household is its sublessee, and the subrecipient owes 100% of the rent, even on a vacant unit. In a CoC **rental-assistance** project it is instead a three-party lease signed by the participant (the sole tenant), you, and the subrecipient. (Shelter Plus Care, the old name for much of this, was folded into the CoC program by the 2009 HEARTH Act.) See [Continuum of Care leasing](/continuum-of-care-leasing-landlord-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Federal program names, and who to ask",
+      "body": [
+        "A lot of program names get thrown around — Mainstream, Family Unification (FUP), Foster Youth to Independence (FYI), Stability Vouchers, Emergency Housing Vouchers (EHV). These are federal programs, not automatically CMHA programs. CMHA's public program navigation lists only Housing Choice Vouchers, Project-Based Vouchers, Mod/Rehab and CMHA properties, so whether CMHA operates any specific one locally is worth confirming with CMHA directly.",
+        "Two things are settled. EDEN runs its own Mainstream voucher program. And HUD-VASH in Cuyahoga County is administered by CMHA — HUD renews VASH vouchers \"along with all other housing choice vouchers,\" so from your side the HAP contract mechanics match a standard tenant-based voucher. For veterans, see the [HUD-VASH landlord guide](/hud-vash-landlord-guide-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Program map: who administers and who cuts the check",
+      "body": [
+        "Line up each program family against the office that signs and pays you."
+      ],
+      "table": {
+        "headers": ["Program family", "Who administers & signs", "How & when you're paid"],
+        "rows": [
+          ["Housing Choice Voucher (tenant-based)", "CMHA — HAP contract, form HUD-52641", "Direct deposit; typically the 3rd and 16th"],
+          ["Project-Based Voucher & Mod/Rehab", "CMHA — HAP attaches to the unit", "Direct deposit via CMHA"],
+          ["HUD-VASH (veterans)", "CMHA administers; the VA provides case management", "Same CMHA HAP mechanics"],
+          ["EDEN supportive housing, CoC/H-TBRA, Rapid Re-Housing, Re-Entry, HAP, Mainstream", "EDEN, Inc. — EDEN HAP contract (Part A/B)", "Direct deposit, 1st–4th; tenant pays their portion to you"],
+          ["CoC leasing project", "CoC subrecipient (often EDEN) — nonprofit signs as the tenant", "Subrecipient pays 100% of rent, even on a vacant unit"]
+        ]
+      }
+    },
+    {
+      "h2": "Your choice — and where we fit",
+      "body": [
+        "Source of income is not a protected class in Cleveland, so accepting any of these is your decision, not an obligation — but each pays its subsidy on a set monthly schedule and draws on a large applicant pool.",
+        "Because we have completed CMHA's mandatory Virtual Landlord Orientation, a CMHA HAP contract can be executed for your unit without a training holdup. Tenant placement is one month's rent, charged only after we place the tenant; we attend the inspection and send a written report for $100 (or you attend yourself); ongoing management is 5% of rent, only while rented. Call **(440) 444-4737**, or read [Section 8, stress-free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Who actually cuts my rent check — CMHA or EDEN?",
+      "a": "It depends on the subsidy. A CMHA voucher means CMHA pays you by direct deposit, typically on the 3rd and 16th. An EDEN subsidy means EDEN pays, between the 1st and 4th. A Continuum of Care subrecipient pays under a federal grant — read the contract to see which office you're dealing with."
+    },
+    {
+      "q": "Is EDEN part of CMHA?",
+      "a": "No. EDEN — Emerald Development and Economic Network, Inc. — is a separate Cleveland 501(c)(3) and a contract agency of the county ADAMHS Board. It even tells applicants to also join CMHA's separate voucher waitlist. EDEN administers its own vouchers, signs its own HAP contracts, and pays its own subsidy, apart from the housing authority."
+    },
+    {
+      "q": "In a Continuum of Care leasing project, who is my legal tenant?",
+      "a": "The nonprofit subrecipient. HUD's leasing model has the recipient or subrecipient sign as the tenant, the household as its sublessee, and the subrecipient owes 100% of the rent even on a vacant unit. In a CoC rental-assistance project it is instead a three-party lease with the participant as the sole tenant. Confirm which structure applies before signing."
+    },
+    {
+      "q": "Does CMHA run Mainstream, EHV, FUP, or FYI vouchers?",
+      "a": "Not confirmed. CMHA's public program menu lists only Housing Choice Vouchers, Project-Based Vouchers, Mod/Rehab and CMHA properties. Mainstream, Emergency Housing Vouchers, Family Unification and Foster Youth to Independence are federal programs; ask CMHA directly whether it operates any locally. Separately, EDEN runs its own Mainstream voucher program."
+    },
+    {
+      "q": "Does CMHA get any Continuum of Care money?",
+      "a": "In HUD's FY2024 CoC competition, CMHA received no CoC award at all. EDEN received $40,062,407 across 13 projects, roughly 75.4% of the OH-502 Continuum's total. CoC rental assistance in Cuyahoga County flows through nonprofit subrecipients, coordinated by the county Office of Homeless Services — not the housing authority."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-landlord-forms",
+    "https://www.cmha.net/housing/applicants/project_based_vouchers.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://chnhousingpartners.org/news/chn-housing-partners-breaks-ground-on-cleveland-west-veterans-housing/",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-homeless-veterans",
+    "https://www.edencle.org/about",
+    "https://www.edencle.org/faq",
+    "https://www.edencle.org/owner/Welcome.pdf",
+    "https://www.edencle.org/owners",
+    "https://www.edencle.org/owner/RentDetermination.pdf",
+    "https://hhs.cuyahogacounty.gov/programs/detail/cleveland-cuyahoga-county-continuum-of-care",
+    "https://www.hud.gov/sites/dfiles/CPD/documents/CoC/CoC-2024-All-States-2024-Funding-Report.xlsx",
+    "https://files.hudexchange.info/resources/documents/CoCProgramLeasingandRentalAssistanceSummariesofLeaseExamples.pdf",
+    "https://www.hudexchange.info/homelessness-assistance/hearth-act/",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

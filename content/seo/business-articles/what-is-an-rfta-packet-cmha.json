@@ -1,0 +1,177 @@
+{
+  "slug": "what-is-an-rfta-packet-cmha",
+  "section": "section-8-landlords",
+  "title": "What Is the RFTA Packet — and Who Fills Out Which Part?",
+  "metaTitle": "What Is an RFTA? CMHA's Packet, Explained",
+  "metaDescription": "What is an RFTA? The Request for Tenancy Approval is the packet a CMHA voucher holder hands a Cleveland owner. What's inside it, and who signs which part.",
+  "primaryKeyword": "what is an rfta",
+  "secondaryKeywords": [
+    "request for tenancy approval cmha",
+    "rfta packet contents",
+    "hud form 52517",
+    "who signs the rfta"
+  ],
+  "answerBox": "An RFTA — Request for Tenancy Approval, HUD form 52517 — is the packet a CMHA voucher holder hands the owner to request approval of one unit at one rent. CMHA's Landlord Participation Guide lists nine documents inside. CMHA policy requires signatures from both the family and the owner, and lets the owner file it.",
+  "sections": [
+    {
+      "h2": "An RFTA approves a tenancy, not a landlord",
+      "body": [
+        "The Request for Tenancy Approval asks CMHA to approve **one household, in one unit, at one rent**. It is not a landlord application, and there is no landlord application: CMHA's leasing page says **\"Please note that CMHA does not have a pre-approval process for landlords or units,\"** and its HCV Administrative Plan agrees that **\"[t]he PHA does not formally approve an owner to participate in the HCV program.\"** Nobody is approved as a Section 8 landlord in Cuyahoga County. A tenancy is.",
+        "It is step 4 of the seven CMHA publishes, and steps 5 through 7 — rent offer, inspection, HAP contract and lease — do not exist until the packet lands.",
+        "None of it is compulsory, either. In the City of Cleveland source of income is not a protected class — the City's Office of Fair Housing lists 13 classes, none income-related — so an owner there may lawfully decline a voucher."
+      ]
+    },
+    {
+      "h2": "The packet comes from the tenant, not from CMHA",
+      "body": [
+        "Owners go looking for the RFTA on cmha.net and cannot find it. That is by design. CMHA's step 4 reads: **\"Submit Request for Tenancy Approval Packet (RFTA) provided to you by HCV Family.\"** The household receives the packet with its voucher and hands it to you.",
+        "CMHA's landlord Forms & Documents library holds 16 items — the Automatic Deposit Form, the Agent/Payee Form, the Inspection Checklist, the 2026 HAP Payment Calendar — but no blank RFTA and no blank HAP contract. Those are standard HUD forms, issued inside the tenant's voucher packet and downloadable from HUD.gov:"
+      ],
+      "table": {
+        "headers": [
+          "HUD form",
+          "What it is"
+        ],
+        "rows": [
+          [
+            "HUD-52517",
+            "Request for Tenancy Approval (RFTA)"
+          ],
+          [
+            "HUD-52641-A",
+            "Tenancy Addendum"
+          ],
+          [
+            "HUD-52641",
+            "Housing Assistance Payments (HAP) Contract"
+          ],
+          [
+            "HUD-52580",
+            "Inspection Checklist"
+          ],
+          [
+            "HUD-52646",
+            "Voucher"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "What is actually inside: nine documents",
+      "body": [
+        "CMHA's Landlord Participation Guide lists the packet as nine items, and reproduces the HUD-52646 voucher form (07/2019 edition) plus sample RFTA, HAP and Tenancy Addendum forms as appendices — so you can read them before one reaches you."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Request for Tenancy Approval** — the request itself, HUD-52517",
+          "**HUD Tenancy Addendum** — HUD-52641-A. CMHA's owner materials describe landlords using their own lease, with tenant obligations defined in the Lease Addendum: [your lease and the addendum](/section-8-lease-and-hud-tenancy-addendum/)",
+          "**Landlord Fraud Letter**",
+          "**Landlord Certification**",
+          "**Drug-Free Housing Lease Addendum**",
+          "**Lead-based Paint Disclosure**",
+          "**Direct Deposit Form** (if applicable) — not really optional: **\"All owners are required to go on direct deposit to receive HAP payments\"**",
+          "**W-9** (new vendors only) — CMHA **\"will not execute the HAP contract until the owner has submitted IRS form W-9\"**",
+          "**Agent Form** (if applicable) — where a managing agent is named"
+        ]
+      }
+    },
+    {
+      "h2": "Who fills out which part",
+      "body": [
+        "**The household.** It brings the packet and it holds the voucher. CMHA's guide tells owners to read that voucher first — the unit size it authorizes, and the expiration date, described there as **180 days from the issue date** — because the RFTA and proposed lease must be submitted no later than that date. One limit belongs to this side alone: **\"The family may not submit, and the PHA will not process, more than one (1) RTA at a time.\"**",
+        "**The owner.** You sign, you may file, and you supply the owner-side attachments: the W-9 if you are a new vendor, the direct deposit authorization, the agent form if someone manages for you. You also supply the proposed lease, which CMHA reads the RFTA against; the guide states the initial term must be at least one year, with the HAP contract running concurrently. In 17 named suburbs a **Certificate of Occupancy and/or Rental Registration must be collected with the RFTA**: Bedford, Bedford Heights, Brook Park, Cleveland Heights, Cuyahoga Heights, East Cleveland, Euclid, Fairview Park, Garfield Heights, Lakewood, Lyndhurst, Maple Heights, Parma, Shaker Heights, South Euclid, University Heights and Warrensville Heights. Since **October 1, 2025**, CMHA also verifies active City of Cleveland rental registrations through the City's Citizen Access Portal.",
+        "One thing the packet is not: a screening report. **\"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\"**",
+        "**CMHA.** It verifies ownership through the County Auditor's website and confirms the unit is not in foreclosure and is current on property taxes. It reviews the RFTA for completeness and consistency with the proposed lease, makes the rent reasonableness determination after that review, then schedules the inspection and issues the HAP contract."
+      ]
+    },
+    {
+      "h2": "The signatures CMHA states in writing",
+      "body": [
+        "Two are explicit in CMHA policy. First, the RFTA **\"must be signed by both the family and the owner,\"** and **\"[t]he owner may submit the RTA on behalf of the family.\"** That second clause is the one owners miss: file it yourself and you — not the applicant — decide whether it goes in complete.",
+        "Second, the W-9: CMHA **\"will not execute the HAP contract until the owner has submitted IRS form W-9,\"** so an unsigned tax form at the front becomes a stalled contract at the end.",
+        "Completeness beats speed: CMHA **will not accept missing information or corrections by phone**, so deficiencies must be fixed in writing. Packets go by email to **rfta@cmha.net** or through the kiosks in CMHA's Main Campus lobby at 8120 Kinsman Road: [how to submit an RFTA](/how-to-submit-an-rfta-to-cmha/)."
+      ]
+    },
+    {
+      "h2": "What submitting the packet sets in motion",
+      "body": [
+        "Effective **January 1, 2026**, submitting an RFTA triggers a requirement that the owner or designated managing agent complete CMHA's Virtual Landlord Orientation — once every 24 months, and **before CMHA can execute a HAP contract for a new tenancy**. It is a live virtual session of roughly 90 minutes, booked through Eventbrite, attendance verified by CMHA. Existing HAP contracts and current HAP payments are not affected.",
+        "**We have completed CMHA's orientation.** Name us as managing agent and that trigger is satisfied the day the packet goes in: [what changed January 1, 2026](/cmha-landlord-orientation-requirement/).",
+        "Two published clocks also start from the packet. Neither is an average — CMHA publishes no turnaround statistics, only policy targets:"
+      ],
+      "table": {
+        "headers": [
+          "Clock",
+          "CMHA's published policy"
+        ],
+        "rows": [
+          [
+            "Initial inspection, decision and notice",
+            "Within 15 days of submission of the RFTA, suspended for any period the unit is not available for inspection"
+          ],
+          [
+            "Tenancy-approval determination",
+            "Within 10 business days of receiving all required information"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "What we charge to run it for you",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County, under CMHA, and we have already completed the orientation an RFTA submission triggers."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Nine documents, two stated signatures, one household's shot at one unit. The tenant brings it, the owner may file it, CMHA will not fix it by phone. Call **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What does RFTA stand for?",
+      "a": "Request for Tenancy Approval — HUD form 52517. It asks CMHA to approve one household in one unit at one proposed rent, and it is step 4 of CMHA's seven published steps. It is not a landlord application: CMHA has no pre-approval process for landlords or units."
+    },
+    {
+      "q": "Where do I get the RFTA form?",
+      "a": "From the tenant. CMHA's step 4 is \"Submit Request for Tenancy Approval Packet (RFTA) provided to you by HCV Family.\" CMHA publishes no blank RFTA or HAP contract in its landlord Forms & Documents library — both are standard HUD forms, issued inside the voucher packet."
+    },
+    {
+      "q": "Who signs the RFTA?",
+      "a": "CMHA policy states it \"must be signed by both the family and the owner,\" and \"[t]he owner may submit the RTA on behalf of the family\" — an owner or agent can file it directly. CMHA also \"will not execute the HAP contract until the owner has submitted IRS form W-9.\""
+    },
+    {
+      "q": "What documents are in the CMHA RFTA packet?",
+      "a": "CMHA's Landlord Participation Guide lists nine: the Request for Tenancy Approval, the HUD Tenancy Addendum, the Landlord Fraud Letter, the Landlord Certification, the Drug-Free Housing Lease Addendum, the Lead-based Paint Disclosure, a Direct Deposit Form if applicable, a W-9 for new vendors only, and an Agent Form if applicable."
+    },
+    {
+      "q": "Can a voucher holder have RFTAs out on two units at once?",
+      "a": "No. CMHA policy is explicit: \"The family may not submit, and the PHA will not process, more than one (1) RTA at a time.\" There is a deadline too: CMHA's guide describes the voucher as expiring 180 days from issue, and the RFTA and proposed lease must be filed by then."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/forms___documents.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.hud.gov/helping-americans/housing-choice-vouchers-landlord-forms",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

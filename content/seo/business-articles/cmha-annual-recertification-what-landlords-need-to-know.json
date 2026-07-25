@@ -1,0 +1,170 @@
+{
+  "slug": "cmha-annual-recertification-what-landlords-need-to-know",
+  "section": "section-8-landlords",
+  "title": "Annual Recertification: What Happens to Your Rent Every Year",
+  "metaTitle": "CMHA Annual Recertification: The Landlord's Side",
+  "metaDescription": "A section 8 annual recertification landlord guide for Cuyahoga County: what CMHA's yearly cycle asks of you, and how your HAP check moves while rent stays put.",
+  "primaryKeyword": "section 8 annual recertification landlord",
+  "secondaryKeywords": [
+    "cmha annual recertification",
+    "cmha annual inspection landlord",
+    "hap payment changed but rent did not",
+    "cmha rent adjustment recertification",
+    "voucher tenant income change landlord"
+  ],
+  "answerBox": "Recertification is CMHA's income review with your tenant, not a task assigned to you. What reaches the owner is the periodic inspection and, some years, a different HAP amount at the same contract rent — because CMHA pays the lesser of the payment standard or gross rent, minus the tenant's calculated share.",
+  "sections": [
+    {
+      "h2": "Recertification is CMHA's business with your tenant, not a packet for you",
+      "body": [
+        "Owners arrive braced for paperwork. The income review sits between CMHA and the family. In CMHA's landlord rules, recertification touches an owner at one point: the conditions for a rent adjustment, which require **a current recertification**, a HAP contract at least one year old, a passed annual inspection within 12 months of the effective date, at least 12 months since the last approved adjustment, and a rent-reasonable amount.",
+        "You are not asked to verify anyone's income, and have no standing to. The year asks something narrower: keep the unit inspectable, keep your file current, and know why the deposit can change while the lease does not."
+      ]
+    },
+    {
+      "h2": "Why the HAP check moves when your rent doesn't",
+      "body": [
+        "The HAP contract fixes the rent to owner. It does not fix who pays which part of it. Per CMHA's Landlord Participation Guide, the agency sets Total Tenant Payment at the greater of 30% of monthly adjusted income, 10% of gross monthly income, or CMHA's minimum rent — then pays the **lesser of (payment standard minus Total Tenant Payment) or (gross rent minus Total Tenant Payment)**. Every input except your rent belongs to somebody else.",
+        "CMHA advertises one direction openly: its owner page lists **subsidy that increases if the tenant loses income**. Reversed, the arithmetic is symmetrical. CMHA caps the tenant's side only at the start — on an **initial** contract the portion paid directly to the landlord may be no more than 40% of monthly adjusted income, and CMHA negotiates the rent down if it would exceed that.",
+        "One rule worth memorizing: families **may not pay a rent share greater than the amount determined by CMHA**, and side deals are \"illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\" When the split moves, collect the new calculated share."
+      ],
+      "table": {
+        "headers": [
+          "What changed",
+          "Total rent",
+          "The HAP deposit"
+        ],
+        "rows": [
+          [
+            "Tenant's income rises",
+            "Unchanged",
+            "Falls — tenant share rises"
+          ],
+          [
+            "Tenant loses income",
+            "Unchanged",
+            "Rises — CMHA lists this as a benefit"
+          ],
+          [
+            "Utility allowance revised",
+            "Unchanged",
+            "Can move — CMHA works from gross rent"
+          ],
+          [
+            "ZIP payment standard revised",
+            "Unchanged",
+            "Bounded by the standard in the calculation"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "The numbers CMHA looks up, and when they were last set",
+      "body": [
+        "None are yours to set. CMHA's payment standards are per ZIP code on a Small Area FMR basis; its Rent Determination tool publishes FY2026 standards **effective 1/1/2026** across 53 ZIP codes, set between 90% and 110% of HUD's Fair Market Rents, \"or approved exceptions as applicable.\" CMHA is explicit that **\"the payment standard is NOT the maximum amount that the landlord can charge\"** — only the maximum subsidy toward the tenant's rent portion. The FY2026 two-bedroom standard runs $1,683 in ZIP 44118 against $1,209 in ZIP 44105 — [the ceiling where you own](/cmha-payment-standards-by-zip-code/).",
+        "A second input moves beside it: CMHA's HCVP utility allowance chart, **effective January 1, 2026**, rates revised September 2025. It matters because CMHA tests **gross rent** — rent plus tenant-paid utilities, not contract rent alone."
+      ]
+    },
+    {
+      "h2": "The inspection inside the cycle — and how often it happens",
+      "body": [
+        "Here CMHA's own publications disagree. Its Inspections page describes four types — Initial, Annual (\"within twelve months of the previous inspection\"), Special (\"in response to complaints\") and Emergency — and says CMHA is looking to transition to biennial inspections. Its landlord index page markets \"Biennial inspections,\" as does the Landlord Participation Guide. The federal floor at 24 CFR 982.405(b) is inspection \"at least biennially during assisted occupancy\" — a minimum, not a cap.",
+        "Budget for annual: CMHA's own rent-adjustment rule assumes that cadence — **\"There must be a passed annual inspection within 12 months of the rent adjustment effective date.\"** Confirm your schedule with CMHA at 216.478.9680."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Still HQS.** CMHA states HUD moved the voucher NSPIRE deadline from October 1, 2025 to February 1, 2027; an outside firm inspects against CMHA's 13 key housing quality aspects",
+          "**No self-inspection.** HUD Notice PIH 2024-26 REV-1 exempts voucher landlords under 24 CFR 5.707, and 24 CFR 982.405(i) lets the PHA accept photographic evidence instead of a second visit",
+          "**Free the first time.** 24 CFR 982.405(h) bars charging the owner for the initial inspection or the first during occupancy; a reasonable reinspection fee is allowed, but \"the owner may not pass this fee along to the family\"",
+          "**Lead runs its own clock.** Pre-1978 units cited for defective paint where a child under six will reside get 30 days from an annual inspection for a passed clearance test and proof of work by a certified lead abatement contractor"
+        ]
+      }
+    },
+    {
+      "h2": "What a failed inspection costs, and the word that decides it",
+      "body": [
+        "Two terms sound alike and are not. Under 24 CFR 982.404(d)(1) a PHA may **withhold** payments after written notice, and if the unit complies within the cure period it must resume payments and cover the withheld period. Withheld money comes back. **Abated** money does not — 24 CFR 982.4 defines abatement as \"stopping HAP payments to an owner with no potential for retroactive payment.\"",
+        "CMHA's trigger is published: rent \"is abated when the unit fails to pass on two consecutive inspections,\" abating \"on the first of the month following the failure to comply.\" The family still owes its portion; nothing is paid retroactively. Repairs are due in 24 hours for a life-threatening deficiency, 30 calendar days otherwise. Two thresholds diverge, neither settled: CMHA says a unit in abatement more than **30 days** may have its HAP contract terminated, while 24 CFR 982.404(d)(2)(ii) allows **60 days** after the determination of noncompliance. Work to the tighter one. And 982.404(d)(3) bars an owner from terminating \"the tenancy of any family due to the withholding or abatement of assistance.\" More in [Failed Inspection, Withheld Rent](/what-happens-if-your-unit-fails-a-cmha-inspection/)."
+      ]
+    },
+    {
+      "h2": "The one date in the cycle that is genuinely yours",
+      "body": [
+        "If you want the rent itself to move, this is the only mechanism, and it runs on its own calendar. Requests go to **RentAdjustment@cmha.net** on a form signed by both landlord and tenant, carrying the five conditions above. Approved, the new rent takes effect \"the 1st of the month after 60 days of receiving the request\" — so file 60 to 90 days ahead.",
+        "Reasonableness is re-run, never inherited: under 24 CFR 982.507(a) a PHA must redetermine reasonable rent before any increase, and the rent to owner may never exceed the most recent reasonableness determination, measured against comparable unassisted units. Step by step in [How to Request a Rent Increase](/how-to-request-a-rent-increase-cmha/)."
+      ]
+    },
+    {
+      "h2": "Does the 2026 orientation requirement touch a tenancy you already have?",
+      "body": [
+        "No, and CMHA says so in one sentence: **\"Existing HAP contracts and current HAP payments are not affected.\"** The mandate effective **January 1, 2026** is triggered by submitting an RFTA: the owner or managing agent must complete CMHA's Virtual Landlord Orientation — roughly 90 minutes, live and virtual, booked through Eventbrite, required every 24 months — before CMHA can execute a HAP contract for a **new** tenancy.",
+        "So it bites at turnover, not at recertification. If your household stays, orientation is not what stands between you and next month's deposit. If they leave and you re-let to a voucher holder, it is the gate. **We have completed it.**"
+      ]
+    },
+    {
+      "h2": "What we handle across the year, and what it costs",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County, under CMHA. On a tenancy in place the work is specific: attend the inspection, get anything cited scoped and priced before the clock runs, keep the file approvable for the next adjustment. The terms:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Recertification hands you no forms. The inspection is what reaches you, and CMHA describes its frequency two ways — plan for annual. Contract rent moves only when you move it, effective the 1st of the month after 60 days. The deposit moves on its own, because the tenant's share, the utility allowance and the ZIP payment standard are inputs you do not control. All owners are required to be on direct deposit, on runs CMHA says are \"generally on the 3rd and 16th of each month\" — the second covering \"contract changes, corrections,\" where a recalculated HAP lands. None of it is compulsory: source of income is not among the thirteen protected classes the City of Cleveland's Office of Fair Housing lists, so an owner there may lawfully decline a voucher. Call **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does my tenant's annual recertification require anything from me?",
+      "a": "Not in the way owners expect. The income review is between CMHA and the family, and nothing in CMHA's landlord rules asks you to verify a household's income. Recertification reaches you at one point: CMHA requires a current recertification before approving a rent adjustment, alongside a HAP contract at least one year old and a passed annual inspection within 12 months of the effective date."
+    },
+    {
+      "q": "My HAP payment dropped but the rent is the same. What happened?",
+      "a": "Almost always the split, not the rent. CMHA's Landlord Participation Guide calculates Total Tenant Payment from the household's income, then pays the lesser of payment standard minus that amount, or gross rent minus that amount. If income rose, the tenant's share rises and CMHA's falls. Your total is unchanged. Collect the new calculated tenant share and nothing beyond it — CMHA prohibits side deals outright."
+    },
+    {
+      "q": "How often will CMHA inspect a unit that is already leased?",
+      "a": "CMHA's own pages differ, so treat the frequency as unsettled. Its Inspections page describes an Annual inspection within twelve months of the previous one and says CMHA is looking to transition to biennial; its landlord index page markets biennial inspections. The federal minimum at 24 CFR 982.405(b) is at least biennially. Plan for annual, and confirm your schedule at 216.478.9680."
+    },
+    {
+      "q": "Can I raise the rent at recertification time?",
+      "a": "Only through CMHA's rent adjustment process, and only with five conditions met: a HAP contract at least one year old, a passed annual inspection within 12 months of the effective date, a current recertification, at least 12 months since the last approved adjustment, and a rent-reasonable amount. Requests go to RentAdjustment@cmha.net signed by both parties, effective the 1st of the month after 60 days."
+    },
+    {
+      "q": "What happens if the unit fails its inspection?",
+      "a": "Repairs are due within 24 hours for a life-threatening deficiency and 30 calendar days otherwise. CMHA states rent is abated when a unit fails two consecutive inspections, beginning the first of the month following the failure to comply, with no retroactive payments; the family still owes its own portion. CMHA publishes a 30-day abatement threshold for contract termination, while the federal rule allows 60 days."
+    },
+    {
+      "q": "Do I need CMHA's landlord orientation to keep an existing voucher tenant?",
+      "a": "No. CMHA states that existing HAP contracts and current HAP payments are not affected by the requirement that took effect January 1, 2026. Submitting an RFTA for a new tenancy is what triggers it: the owner or designated managing agent must complete the roughly 90-minute Virtual Landlord Orientation, required every 24 months, before CMHA can execute that contract. We have completed ours."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/Document%20Center/Housing/Landlords/Rent/UA%202026.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Website%20Tree/Housing/Landlords/HAP%20Payment%20Calendar%202026.pdf",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing"
+  ],
+  "lastUpdated": "2026-07-21"
+}

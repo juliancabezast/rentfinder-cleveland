@@ -1,0 +1,188 @@
+{
+  "slug": "cmha-rent-reasonableness-explained",
+  "section": "section-8-landlords",
+  "title": "Rent Reasonableness: How CMHA Decides Your Asking Rent Is Approvable",
+  "metaTitle": "CMHA Rent Reasonableness: How Your Rent Gets Approved",
+  "metaDescription": "CMHA rent reasonableness explained: what CMHA compares your proposed rent against, which factors move the determination, and what happens if your unit fails.",
+  "primaryKeyword": "rent reasonableness cmha",
+  "secondaryKeywords": [
+    "cmha rent reasonableness determination",
+    "24 cfr 982.507 rent to owner",
+    "comparable unassisted units cleveland",
+    "unit not rent reasonable cmha"
+  ],
+  "answerBox": "CMHA compares your proposed rent to comparable unassisted units in the same market — weighing location, quality, size, unit type, age, amenities, services, maintenance and owner-supplied utilities under 24 CFR 982.507(b). The test runs on gross rent after your RFTA is filed. A unit that is not rent reasonable is ineligible for the program.",
+  "sections": [
+    {
+      "h2": "What rent reasonableness actually is",
+      "body": [
+        "CMHA does not approve landlords. Its Leasing with CMHA page says so outright: **\"Please note that CMHA does not have a pre-approval process for landlords or units.\"** What CMHA does approve, on every single tenancy, is the rent.",
+        "The rule is federal. Under **24 CFR 982.507(b)**, a housing authority must determine whether the rent to owner is reasonable **in comparison to rent for other comparable unassisted units**, considering (1) the location, quality, size, unit type and age of the contract unit, and (2) any amenities, housing services, maintenance and utilities to be provided by the owner under the lease.",
+        "Read the benchmark twice. Your rent is not measured against CMHA's payment standard, HUD's Fair Market Rent, or what other voucher units nearby collect, but against **unassisted** rentals — ordinary market units rented by ordinary market tenants."
+      ]
+    },
+    {
+      "h2": "Reasonableness is a cap on rent. The payment standard is not.",
+      "body": [
+        "Owners fuse these two numbers into one and plan around the wrong one. The payment standard tells you **who pays**; reasonableness decides whether the number may exist at all. Pricing mechanics: [how much rent you can actually charge](/how-much-rent-can-i-charge-section-8-cleveland/). ZIP-level figures: [CMHA payment standards by ZIP code](/cmha-payment-standards-by-zip-code/)."
+      ],
+      "table": {
+        "headers": ["", "Payment standard", "Rent reasonableness"],
+        "rows": [
+          ["What it limits", "The subsidy CMHA pays", "The rent you are allowed to charge"],
+          ["Set by", "Your ZIP code — FY2026 standards effective 1/1/2026", "Comparable unassisted units in your market"],
+          ["CMHA's own framing", "\"NOT the maximum amount that the landlord can charge\"", "A unit that is not rent reasonable is ineligible for the program"],
+          ["If your number exceeds it", "The household covers the difference", "The lease cannot be approved at that rent"]
+        ]
+      }
+    },
+    {
+      "h2": "How many comparables? CMHA publishes two different answers",
+      "body": [
+        "Worth knowing before somebody quotes a number at you with confidence. CMHA's **live landlord Rent page** states it compares the proposed unit to **two** comparable unassisted units in the area, considering location, amenities, size and type, and utilities. CMHA's own **Landlord Participation Guide** states it compares the unit to **three** unassisted units with similar specifications, weighing location, quality, size, unit type, age, amenities, maintenance and housing services.",
+        "Both documents are CMHA's and they contradict each other. Treat the count as unsettled and the principle as fixed: your unit is priced against real unsubsidized rentals with similar specifications in the same market area."
+      ]
+    },
+    {
+      "h2": "The factors that move the determination — and the ones you write yourself",
+      "body": [
+        "Split 982.507(b) into its two clauses and the practical picture appears."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Fixed by the property**: location, quality, size, unit type and age of the contract unit. You cannot argue these — only document them accurately, because an under-described unit gets compared as a plainer one",
+          "**Set by your lease**: amenities, housing services, maintenance and utilities the owner provides. This is the clause you control, and the one that carries a rent difference"
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "Put the second clause on paper",
+          "body": [
+            "If your lease has you furnishing the range and refrigerator, paying water and sewer, or covering trash — all line items on CMHA's own utility allowance chart — that belongs in the paperwork. Those are exactly the items 982.507(b) directs the authority to weigh. Leave them blank and CMHA compares a stripped-down unit."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "The number under test is gross rent, not your asking rent",
+      "body": [
+        "This mechanic derails more first submissions than any other. CMHA applies rent reasonableness to **gross rent** — the rent charged **plus** tenant-paid utilities, valued at CMHA's published utility allowance — not to the contract rent alone. Your advertised figure is not the one examined.",
+        "CMHA publishes an HCVP utility allowance schedule effective **January 1, 2026**, rates revised September 2025. Every utility you shift onto the tenant adds its allowance to the number under test without adding a dollar to what you collect. Settle the split *before* you set the rent."
+      ]
+    },
+    {
+      "h2": "When the determination happens, and what it holds up",
+      "body": [
+        "Rent reasonableness runs **after** the Request for Tenancy Approval is submitted and reviewed — not before you show the unit or screen anyone. It is step five of the seven steps CMHA publishes for landlords, and CMHA names that step **\"accept the rent offer.\"** Under **24 CFR 982.507(a)** the authority may not approve a lease until it determines the initial rent to owner is reasonable.",
+        "CMHA publishes no turnaround time for the rent determination itself. It publishes policy targets for the steps around it: the initial inspection completed and both parties notified **within 15 days** of RTA submission, and the tenancy-approval determination **within 10 business days of receiving all required information**. Those are stated targets, not measured averages."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "CMHA will not accept missing information or corrections **by phone** — deficiencies must be fixed in writing, a standard source of delay",
+          "A family **may not submit, and CMHA will not process, more than one RTA at a time** — while your rent question is open, that household cannot pursue another unit",
+          "Vouchers expire. CMHA's guide puts that at **180 days from the issue date**, and the RFTA and proposed lease must be in before then"
+        ]
+      }
+    },
+    {
+      "h2": "What happens if the unit comes back not rent reasonable",
+      "body": [
+        "There is no waiver and no appeal to a higher payment standard. CMHA's Landlord Participation Guide states it plainly: a unit that is **not rent reasonable is ineligible for the HCV program**, because no federal funds may be used for any part of a rent that is not reasonable. What arrives instead of an approval is a rent offer, and three doors:"
+      ],
+      "list": {
+        "type": "ol",
+        "items": [
+          "**Accept the rent offer.** Step five of CMHA's seven steps exists for exactly this moment, and the tenancy proceeds at the determined figure",
+          "**Change what is being tested.** Gross rent is contract rent plus tenant-paid utilities, so taking a utility back onto your side of the lease lowers the number under examination without lowering the rent you collect",
+          "**Withdraw.** Source of income is not a protected class in the City of Cleveland, whose Office of Fair Housing lists 13 protected classes, none income-related, and no federal law or Ohio statute fills the gap. Lawful — and the door that leaves the unit vacant"
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "The one thing you cannot do",
+          "body": [
+            "Collect the gap privately. CMHA is unambiguous: families may not pay a rent share greater than the amount CMHA determines, and **\"side deals between the landlord and family are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\"** A quiet $150 a month puts the household's assistance and your standing in the program on the same table."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "A second test that looks like this one, and is not",
+      "body": [
+        "A rent can be entirely reasonable and still come back for reduction. For an initial CMHA HCV contract the **total tenant portion may be no more than 40% of the family's monthly adjusted income**, and if the family's share would exceed that, CMHA negotiates with the owner to reduce the rent. CMHA's rent page is explicit that the requested rent must **separately** pass the rent reasonableness test against comparable unassisted units.",
+        "So a rent gets pushed down two independent ways. It fails against the comparables — a fact about your property, which fails the same way for every applicant. Or it clears the comparables and fails the 40% test — a fact about the household that applied, which is why an identical rent sails through with one applicant and stalls with the next."
+      ]
+    },
+    {
+      "h2": "The determination follows you the whole tenancy",
+      "body": [
+        "982.507(a) does not stop at move-in. The authority must redetermine reasonable rent **before any rent increase**, and the rent to owner **may never exceed the most recent reasonableness determination** during the assisted tenancy. Whatever gets approved is a ceiling until something else is.",
+        "And under **982.507(d)**, by accepting each monthly housing assistance payment the owner certifies that the rent to owner is not more than the rent charged by that owner for comparable unassisted units in the premises. Not a signature given once at lease-up — it renews with every deposit.",
+        "Reaching a different number later is a defined process. CMHA requires a HAP contract at least one year old, a passed annual inspection within 12 months of the effective date, a current recertification, at least 12 months since the last approved adjustment, and a rent-reasonable amount — and an approved increase takes effect **\"the 1st of the month after 60 days of receiving the request.\"** In full: [how to request a rent increase](/how-to-request-a-rent-increase-cmha/)."
+      ]
+    },
+    {
+      "h2": "What we do with this, and what it costs",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County, under CMHA, and we have **completed CMHA's Virtual Landlord Orientation** — required since **January 1, 2026** before a HAP contract can be executed for a new tenancy. Submitting an RFTA triggers that requirement; it is not a thing to discover after the rent is determined."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance with a written report — $100.** You are welcome to attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Price against unassisted rentals with similar specifications, settle the utility split before you set the number, and put the amenities, services, maintenance and owner-paid utilities on paper — that is the 982.507(b) clause you control. Then file the RFTA expecting a determination, not a yes. Call **(440) 444-4737**, or start at [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What does CMHA compare my rent to?",
+      "a": "To comparable unassisted units — ordinary unsubsidized rentals in your market, not other voucher units and not the payment standard. Under 24 CFR 982.507(b) the authority weighs the location, quality, size, unit type and age of your unit, plus any amenities, housing services, maintenance and utilities you provide under the lease. CMHA applies that test to gross rent, meaning rent plus tenant-paid utilities."
+    },
+    {
+      "q": "How many comparable units does CMHA use?",
+      "a": "CMHA publishes two different answers. Its live landlord Rent page says two comparable unassisted units in the area. Its Landlord Participation Guide says three unassisted units with similar specifications. Both are CMHA documents and they conflict, so no single number should be stated as fact. The principle holds either way: your rent is benchmarked against real unsubsidized rentals nearby."
+    },
+    {
+      "q": "What happens if my unit is not rent reasonable?",
+      "a": "CMHA's Landlord Participation Guide states that a unit which is not rent reasonable is ineligible for the HCV program, because no federal funds may be used for any part of a rent that is not reasonable. In practice you receive a rent offer — step five of CMHA's seven steps is \"accept the rent offer\" — and you can accept it, move a utility back onto your side of the lease to lower gross rent, or withdraw."
+    },
+    {
+      "q": "Is rent reasonableness the same as the payment standard?",
+      "a": "No, and confusing them is costly. CMHA states the payment standard \"is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay.\" Rent reasonableness is an actual limit on the rent itself. You may price above the payment standard and let the household carry the difference. You may not price above the reasonableness determination at all."
+    },
+    {
+      "q": "Does rent reasonableness apply to rent increases too?",
+      "a": "Yes. Under 24 CFR 982.507(a) the authority must redetermine reasonable rent before any rent increase, and the rent to owner may never exceed the most recent determination during the assisted tenancy. CMHA additionally requires a HAP contract at least a year old, a passed annual inspection within 12 months of the effective date, a current recertification, at least 12 months since the last adjustment, and a rent-reasonable amount."
+    },
+    {
+      "q": "Can the tenant pay me the difference if CMHA lowers the rent?",
+      "a": "No. CMHA states that families may not pay a rent share greater than the amount CMHA determines, and that \"side deals between the landlord and family are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\" Separately, 24 CFR 982.507(d) makes you certify, every month you accept a payment, that your rent is not above what you charge for comparable unassisted units in the premises."
+    }
+  ],
+  "sources": [
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/Document%20Center/Housing/Landlords/Rent/UA%202026.pdf",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

@@ -1,0 +1,90 @@
+{
+  "slug": "exception-payment-standards-cleveland",
+  "section": "section-8-landlords",
+  "title": "Exception Payment Standards Explained: Why CMHA Pays 113% of the SAFMR",
+  "metaTitle": "CMHA Exception Payment Standards: 113% of SAFMR",
+  "metaDescription": "CMHA's 2026 payment standards run about 113% of the Small Area FMR, above the 90–110% band. How the CMHA exception payment standard works in Cleveland.",
+  "primaryKeyword": "cmha exception payment standard cleveland",
+  "secondaryKeywords": ["cmha 113 percent safmr", "cmha payment standard 2026 cleveland", "safmr vs payment standard cleveland", "hud-vash exception payment standard cleveland"],
+  "answerBox": "CMHA's FY2026 Housing Choice Voucher payment standards work out to roughly 113% of HUD's Small Area Fair Market Rent for the same ZIP code — just above the 90–110% range CMHA describes in its own policy language. CMHA publishes the dollar figures, not the percentage. Some federal programs, such as HUD-VASH, allow standards up to 120%.",
+  "sections": [
+    {
+      "h2": "The Short Answer: CMHA's Standards Land Near 113% of the SAFMR",
+      "body": [
+        "CMHA is a **mandatory Small Area Fair Market Rent** authority — HUD's official Mandatory SAFMR list names Cuyahoga Metropolitan Housing Authority (PHA code OH003) with a 2024 designation year, so it must set Housing Choice Voucher payment standards by ZIP code rather than as one countywide figure. When you divide CMHA's FY2026 payment standard for a ZIP by HUD's published FY2026 Small Area FMR for that same ZIP, the result lands at about **113%** — and it does so with unusual consistency: across all 53 service-area ZIP codes and five bedroom sizes, every one of the 265 combinations falls between 112.9% and 113.0%.",
+        "That relationship is arithmetic we ran across two datasets, not a percentage CMHA publishes. CMHA's own rent page states only that its payment standards are set \"between 90% and 110% of the FMRs, or approved exceptions as applicable.\" It never prints a \"113%\" basis, and it does not publish the legal reason the current figures sit above that stated band. So the honest framing is this: the **dollar figure in CMHA's tool governs your deal**, and 113% is simply a lens showing those dollars run a bit above HUD's raw Small Area FMR."
+      ]
+    },
+    {
+      "h2": "What 113% Looks Like in Real Numbers",
+      "body": [
+        "Two numbers sit behind every voucher rent in Cuyahoga County. The first is HUD's **Small Area Fair Market Rent (SAFMR)** — a ZIP-level rent benchmark HUD publishes each year for bedroom sizes 0 through 4. The second is **CMHA's payment standard** — the maximum subsidy CMHA will apply, which CMHA sets from those SAFMRs and serves through its [Rent Determination tool](/cmha-rent-determination-tool-how-to-look-up-payment-standard-cleveland/). ZIP 44113 (Tremont / Ohio City), the top tier in CMHA's service area, shows the pattern cleanly.",
+        "The same multiple holds on the low end: in ZIP 44104, HUD's one-bedroom SAFMR is $810 and CMHA's one-bedroom payment standard is $915 — again about 113%. For the plain-English version of what a SAFMR is and why HUD moved Cleveland onto them, see [what SAFMR means for Cleveland landlords](/what-is-safmr-cleveland-landlords/)."
+      ],
+      "table": {
+        "headers": ["Bedroom size", "HUD FY2026 SAFMR (44113)", "CMHA FY2026 payment standard (44113)", "PS ÷ SAFMR"],
+        "rows": [
+          ["Studio", "$1,400", "$1,582", "~113%"],
+          ["1 bedroom", "$1,590", "$1,796", "~113%"],
+          ["2 bedroom", "$1,920", "$2,169", "~113%"],
+          ["3 bedroom", "$2,470", "$2,791", "~113%"],
+          ["4 bedroom", "$2,640", "$2,983", "~113%"]
+        ]
+      }
+    },
+    {
+      "h2": "Why You Should Underwrite to the Dollars, Not the Percentage",
+      "body": [
+        "CMHA does not publish a percentage basis or a document explaining why the FY2026 figures land above the 90–110% range its prose describes, so no one outside CMHA can state the mechanism with certainty — and this article will not guess at one. What you can rely on is the payment standard itself, looked up for your unit's **exact ZIP code and bedroom size**.",
+        "Two cautions on the lookup. First, the payment standard is **not a rent cap**. CMHA is explicit: \"The payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" A tenant can rent above the standard and cover the difference, subject to CMHA's rent-reasonableness review and affordability rules. Second, do not read the tool's default screen as a countywide number — the table it shows before you pick a ZIP corresponds only to ZIP codes 44103 and 44105. Always enter your own unit's ZIP."
+      ]
+    },
+    {
+      "h2": "When a Payment Standard Can Go Even Higher Than the Basic Range",
+      "body": [
+        "HUD's rules do allow payment standards above the basic range in specific, defined situations — and the clearest sourced example is **HUD-VASH**, the voucher program for veterans. For HUD-VASH, HUD waives the normal caps at 24 CFR 982.503 so a housing authority \"may set a separate HUD-VASH exception payment standard of up to, but no higher than 120 percent of the published metropolitan area-wide Fair Market Rents (FMRs) or Small Area FMRs.\" HUD justifies the higher ceiling bluntly, noting that competitive markets have a shortage of affordable units and that \"landlords may be reluctant to rent to individuals experiencing homelessness due to poor credit history or lack of recent rental history.\"",
+        "That authority is federal and real, but it is not automatic in Cuyahoga County. CMHA's Housing Choice Voucher Administrative Plan reproduces HUD's exception-standard language word for word, yet it does not include a policy paragraph actually enacting a VASH-specific standard, and CMHA's public tool serves the standard Housing Choice Voucher figures. Treat a higher VASH ceiling as something to **confirm in writing with CMHA's HCVP office**, not as a rate you can assume. The details are in our [HUD-VASH exception payment standard guide](/hud-vash-exception-payment-standard-cleveland/).",
+        "Location can move the standard too. CMHA participates in the **Cuyahoga Community Choice Demonstration**, under which the payment standard depends on where the unit sits within the county; an Address Locator Tool shows which tier a property falls in and an estimated rental price limit for that area. CMHA does not publish the tier values, so no one can promise a specific bonus for a specific address — but if your property is in a participating area, it is worth checking with CMHA. For how location already shapes the numbers today, see [which Cleveland ZIP codes carry the highest payment standards](/highest-payment-standard-zips-cleveland/)."
+      ]
+    },
+    {
+      "h2": "What This Means When You Price a Rent Finder Cleveland Unit",
+      "body": [
+        "For a landlord, the practical takeaway is short. Pull the FY2026 payment standard for your unit's exact ZIP and bedroom size from CMHA's Rent Determination tool, treat it as the ceiling on the **subsidy** rather than on the rent, and re-check it before every leasing decision — CMHA's standards, HUD's FMRs, and utility allowances all change annually, so never quote a figure from memory.",
+        "Source of income is not a protected class under City of Cleveland law, so an owner there may lawfully decline a voucher. But when the payment standard for your ZIP sits around 113% of HUD's Small Area FMR, a voucher rent can be genuinely competitive with the open market — which is the whole argument for accepting one. We help owners run that math and lease up. We have completed **CMHA's mandatory Virtual Landlord Orientation** (required since January 1, 2026 before a HAP contract can be executed for a new tenancy), so the paperwork side is already in place. Tenant placement is one month's rent, charged only after the tenant is placed — no placement, no fee; inspection attendance with a written report is $100 (or you can attend yourself); and ongoing management is 5% of monthly rent, only while the unit is rented. Call **(440) 444-4737**, or start with our [Section 8 landlord overview](/section-8-landlords/) and our [stress-free voucher leasing](/section8stressfree) walkthrough."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is 113% CMHA's official payment-standard policy?",
+      "a": "No. CMHA publishes ZIP-level dollar figures, not a percentage basis. The 113% is a ratio we calculated by comparing CMHA's FY2026 payment standards to HUD's FY2026 Small Area FMRs for the same ZIP codes. CMHA's own policy language says only that standards are set \"90% to 110% of the FMRs, or approved exceptions as applicable.\""
+    },
+    {
+      "q": "Where do I find the exact payment standard for my unit?",
+      "a": "Use CMHA's Rent Determination tool and enter your unit's ZIP code and bedroom size. Do not rely on the default table the tool shows before a ZIP is selected — those figures ($881 studio up to $1,661 four-bedroom) apply only to ZIP codes 44103 and 44105. The standards change every year, so re-verify before each lease."
+    },
+    {
+      "q": "Can CMHA ever pay more than the published payment standard?",
+      "a": "The payment standard is the maximum subsidy, not a cap on your rent, and a tenant may pay above it out of pocket within CMHA's rent-reasonableness rules. Separately, certain federal programs allow higher exception standards — HUD-VASH permits up to 120% of the FMR or Small Area FMR — but those apply only to specific voucher types and should be confirmed with CMHA."
+    },
+    {
+      "q": "Does the HUD-VASH 120% ceiling apply to my voucher tenant automatically?",
+      "a": "No. The 120% exception standard is a federal authority written specifically for HUD-VASH. CMHA's Administrative Plan recites that authority but does not clearly enact a VASH-specific standard, and its public tool returns the standard Housing Choice Voucher figures. Confirm any higher ceiling in writing with CMHA's HCVP office before you rely on it in a lease."
+    },
+    {
+      "q": "Did CMHA's 2026 payment standards go up from 2025?",
+      "a": "There is no published year-over-year comparison we can cite, and CMHA's rent page still shows FY2025 narrative text while its live tool returns FY2026 figures effective January 1, 2026. Do not assume an increase or a decrease — just look up the current figure for your ZIP and bedroom size."
+    }
+  ],
+  "sources": [
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/fy2026_safmrs_revised.xlsx",
+    "https://www.hud.gov/sites/dfiles/PIH/documents/Mandatory-SAFMR-PHAs.pdf",
+    "https://archives.hud.gov/news/2024/6476-N-01-HUD-VASH-Operating-Requirements-Final-Notice-HEADER-8-7-24.pdf",
+    "https://www.cmha.net/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cuyahogamobility.org/frequently-asked-questions/"
+  ],
+  "lastUpdated": "2026-07-22"
+}

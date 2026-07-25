@@ -1,0 +1,147 @@
+{
+  "slug": "is-a-property-manager-worth-it-cleveland",
+  "section": "section-8-landlords",
+  "title": "Does a Property Manager Pay for Itself? The Break-Even Math",
+  "metaTitle": "Is a Property Manager Worth It? Cleveland Math",
+  "metaDescription": "Is a property manager worth it in Cleveland? At 5% of rent the fee equals 18 vacant days a year, at any rent. The break-even arithmetic, line by line.",
+  "primaryKeyword": "is a property manager worth it",
+  "secondaryKeywords": [
+    "property manager break even cleveland",
+    "is property management worth the cost",
+    "property management roi cleveland",
+    "should i hire a property manager cleveland"
+  ],
+  "answerBox": "A management fee converts to vacancy at a fixed rate: 360 times the percentage. At 5% of rent that is 18 vacant days a year, at any rent. At the 8% to 12% two Cleveland firms call normal, it is 29 to 43 days. Placement at one month's rent buys back 30 days.",
+  "sections": [
+    {
+      "h2": "Convert the fee into vacant days — the rent cancels out",
+      "body": [
+        "One vacant day costs rent divided by 30. At HUD's FY2026 two-bedroom Fair Market Rent for the Cleveland metro — **$1,279** — that is **$42.63 a day**. That is our arithmetic on HUD's figure, not a published statistic; [what one vacant day costs](/what-a-vacant-rental-day-costs-cleveland/) runs the other rent inputs.",
+        "A year of management costs 12 × rate × rent. A vacant day costs rent ÷ 30. Divide one by the other and the rent cancels: **a management fee is worth 360 × the rate in vacant days per year — the same answer at $700 rent or $2,100 rent.**",
+        "Two Cleveland-area firms publish 8% to 12% as the regional norm, so the question is never \"is 10% fair.\" It is whether the manager saves more than 36 vacant days a year. Ours has to save 18."
+      ],
+      "table": {
+        "headers": [
+          "Monthly rate",
+          "Per month at $1,279 rent",
+          "Per year",
+          "Vacant days it equals"
+        ],
+        "rows": [
+          ["5% — our fee", "$64", "$767", "18 days"],
+          ["8% — bottom of the range two local firms publish", "$102", "$1,228", "29 days"],
+          ["8.49% — national 80-metro average (survey updated 2022)", "$109", "$1,303", "31 days"],
+          ["10%", "$128", "$1,535", "36 days"],
+          ["12% — top of that local range", "$153", "$1,842", "43 days"],
+          ["$129 flat", "$129", "$1,548", "36 days"]
+        ]
+      }
+    },
+    {
+      "h2": "Are 18 savable days even on the table?",
+      "body": [
+        "No Cleveland days-on-market figure is published anywhere reachable, so three labeled anchors are all anyone has. RentCafe puts U.S. apartments at **46 days to fill** in early 2026 — national, and Cleveland is not among the 139 markets it ranks. IIP Management advertises a **\"39-Day Guarantee\"** on placement — a marketing promise, not a market average. B2B Property Management's fee guide calls **\"two to four weeks annually\"** a realistic vacancy estimate for most Cleveland single-family properties — one company's estimate, not a survey.",
+        "Take that last one at face value: 14 to 28 vacant days is $597 to $1,194 a year at $42.63 a day. Our 5% ($767) sits inside that band; a 12% fee ($1,842) costs more than the whole vacancy problem it is hired to fix. Applicants are rarely the constraint — CMHA markets \"[a] large pool of prospective applicants, as CMHA is serves over 15,000 voucher holders,\" and told the U.S. Commission on Civil Rights that only about **50% of households admitted to the program in Cuyahoga County found housing before their voucher expired**. Days go to paperwork, repairs and scheduling."
+      ]
+    },
+    {
+      "h2": "One-time fees dominate the total, and tenancy length is the lever",
+      "body": [
+        "Placement is one month's rent — at the same arithmetic, exactly **30 vacant days**. It pays for itself if the unit fills 30 days sooner than it would have, or if the tenancy runs longer. The second lever moves far more money, as the table shows.",
+        "This is our full billing on a $1,279 unit, assuming we attend one CMHA inspection at move-in ($100 — you can attend instead and pay nothing). Our 5% is billed **only while rented**, so a vacant month bills nothing and these totals are ceilings. For context, a Cleveland manager's guide puts local placement at 50% to 100% of one month's rent, and the only national survey found averaged 70.6% bundled with management. We charge a full month, only after the tenant is placed — a slow fill costs us, not you. [What Cleveland firms actually charge](/property-management-fees-cleveland/) lays the schedules side by side, and [the fees under the fee](/hidden-property-management-fees-cleveland/) covers the add-ons that move this total."
+      ],
+      "table": {
+        "headers": [
+          "If the tenancy lasts",
+          "Total we bill",
+          "Average per year",
+          "Vacant-day equivalent per year"
+        ],
+        "rows": [
+          ["1 year", "$2,146", "$2,146", "50 days"],
+          ["2 years", "$2,914", "$1,457", "34 days"],
+          ["3 years", "$3,681", "$1,227", "29 days"],
+          ["5 years", "$5,216", "$1,043", "24 days"]
+        ]
+      }
+    },
+    {
+      "h2": "The mistakes cost more than the vacancy",
+      "body": [
+        "**Abatement is permanent.** CMHA states rent \"is abated when the unit fails to pass on two consecutive inspections,\" that the HAP \"will abate on the first of the month following the failure to comply,\" and that no retroactive payments are made for that period. Federal rule agrees — 24 CFR 982.4 defines abatement as \"[s]topping HAP payments to an owner with no potential for retroactive payment.\" CMHA publishes a 30-day abatement threshold for terminating the contract; 24 CFR 982.404(d)(2)(ii) sets 60 days from the determination of noncompliance. Neither is settled; both argue against letting a re-inspection slip.",
+        "**A late contract is a void contract.** CMHA's Administrative Plan says the HAP contract \"must be executed no later than 60 calendar days from the beginning of the lease term\" and that \"[a]ny HAP contract executed after the 60-day period is void\" — the subsidy for that tenancy, gone. Moving the tenant in early does not rescue it: if the owner permits it, CMHA warns, \"the tenant will be responsible for the full amount of the rent and HCVP will not pay the back amount retroactively.\" Rent increases take effect \"the 1st of the month after 60 days of receiving the request,\" so a late filing does not backdate.",
+        "**Paperwork stalls bill at $42.63 a day too.** CMHA must collect a Certificate of Occupancy and/or Rental Registration with the RFTA in 17 named suburbs, and since **October 1, 2025** it verifies active City of Cleveland rental registrations through the City's Citizen Access Portal. Since **January 1, 2026**, an RFTA also requires the owner or designated managing agent to complete CMHA's Virtual Landlord Orientation — roughly 90 minutes, live and virtual, once every 24 months — **before CMHA can execute a HAP contract for a new tenancy**. We have completed ours. And nothing offsets a lost month: CMHA publishes no signing bonus, no vacancy-loss payment and no damage-mitigation fund for ordinary voucher landlords."
+      ]
+    },
+    {
+      "h2": "Does unit count change the answer?",
+      "body": [
+        "Less than owners expect. A percentage is charged per unit against that unit's rent, so the break-even stays 18 days per unit whether you own one or nine. Four things do shift with count:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Flat fees stop competing at low rents.** A $129 flat fee is about 10% of a $1,279 rent, and reaches 5% only once rent hits roughly $2,580.",
+          "**Some firms price count directly.** Progressive Urban Property Management publishes 10% for single-family and 1–3 units, 8% for 4–9. Ours is 5% at any count.",
+          "**One compliance cost is per owner.** CMHA's orientation runs once every 24 months for the owner or managing agent, not per unit — so self-managing gets relatively cheaper per door as you add doors.",
+          "**Everything else multiplies.** Each unit carries its own inspection cycle, its own rent-adjustment window and its own registration to keep active — and in Cleveland proper every landlord must name a local agent based in Cuyahoga County, enforced with $200 civil tickets whose unpaid fines are added to the tax bill."
+        ]
+      }
+    },
+    {
+      "h2": "When the math says don't hire anyone",
+      "body": [
+        "If your tenant has been in place for years, no turnover is coming, you live nearby and the unit passes inspections without drama, a manager is buying you time, not money — 18 vacant days a year to stop doing work you already do well. That is a legitimate purchase; just call it what it is. It flips the moment the unit turns over, an RFTA is in flight, a re-inspection is pending, a rent increase is due, or you are more than a short drive away."
+      ]
+    },
+    {
+      "h2": "Our numbers, against the same yardstick",
+      "body": [
+        "**Placement is one month's rent, charged only after the tenant is placed** — a 30-day break-even, with the slow-fill risk on us. **Management is 5% of monthly rent, billed only while rented** — 18 vacant days a year, nothing during a vacancy. **Attending your CMHA inspection with a written report is $100**, or you attend and pay nothing. **Repair estimates come back free, itemized, inside 24 hours, and no work starts without your approval.**",
+        "We have completed CMHA's Virtual Landlord Orientation and we work Greater Cleveland and Cuyahoga County under CMHA. To run this arithmetic against your rent and unit count, call **(440) 444-4737** or see [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I know if a property manager is worth it for my rental?",
+      "a": "Convert the fee to vacant days: 360 times the rate. A 5% fee equals 18 vacant days a year, 10% equals 36, 12% equals 43 — at any rent, because the rent cancels out. Then ask how many days you actually lose to turnover and paperwork, and whether you would have hit every CMHA deadline yourself."
+    },
+    {
+      "q": "What is the break-even on a tenant placement fee?",
+      "a": "One month's rent equals exactly 30 vacant days, since a vacant day costs rent divided by 30. Placement pays for itself if the unit fills 30 days sooner, or if the tenancy outlasts one you would have signed. Cleveland placement fees run 50% to 100% of a month; the national average was 70.6% when bundled with management."
+    },
+    {
+      "q": "Does a management fee make sense on a low-rent unit?",
+      "a": "Percentage fees scale with rent, so the days-equivalent break-even does not change. Flat fees and minimums are what bite: a $129 flat fee is roughly 10% of a $1,279 rent, and Cleveland firms publish monthly minimums from $60 to $139. Ask for the percentage, the minimum and the cap before comparing anything."
+    },
+    {
+      "q": "How many units do I need before management pays for itself?",
+      "a": "There is no threshold in the arithmetic — the break-even is 18 days per unit at 5% whether you own one or nine. Structure is what changes: flat plans favor higher rents, one local firm tiers at 10% for 1–3 units and 8% for 4–9, and every added unit brings its own inspection cycle and its own active registration."
+    },
+    {
+      "q": "Does CMHA pay anything that offsets a management fee?",
+      "a": "No. CMHA publishes no signing bonus, no vacancy-loss payment and no damage-mitigation fund for ordinary Housing Choice Voucher landlords — none appears in its Landlord FAQ, its Leasing with CMHA page, its Landlord Participation Guide or its 2026 landlord newsletters. Assume every lost day is yours."
+    }
+  ],
+  "sources": [
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+    "https://www.iip-management.com/property-management-fees/",
+    "https://www.iip-management.com/",
+    "https://ipropertymanagement.com/research/average-property-management-fees",
+    "https://www.rentcafe.com/blog/rental-market/rental-competitiveness-index/us-hottest-rental-markets/",
+    "https://clevelandpupm.com/pricing/",
+    "https://hightechpropertymanagement.com/pricing/",
+    "https://propertymanagementoh.com/pricing-public",
+    "https://www.cmha.net/housing/landlords/index.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.usccr.gov/files/2024-10/2024-source-of-income-housing-discrimination-in-oh.pdf",
+    "https://signalcleveland.org/cleveland-residents-first-local-agent-landlord-law-bibb/"
+  ],
+  "lastUpdated": "2026-07-21"
+}

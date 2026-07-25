@@ -1,0 +1,133 @@
+{
+  "slug": "flat-fee-vs-percentage-property-management",
+  "section": "section-8-landlords",
+  "title": "Flat Fee vs. Percentage Management: Which Costs You Less in Cleveland?",
+  "metaTitle": "Flat Fee vs. Percentage Management: Cleveland Math",
+  "metaDescription": "Flat fee vs percentage property management in Cleveland: a $129 flat plan and a 10% fee tie at $1,290 of rent. The break-even math on published 2026 prices.",
+  "primaryKeyword": "flat fee vs percentage property management",
+  "secondaryKeywords": [
+    "flat fee property management cleveland",
+    "percentage vs flat rate property management fee",
+    "property management break even rent cleveland",
+    "is flat fee property management cheaper"
+  ],
+  "answerBox": "Divide the flat fee by the percentage to find the rent where the two tie. Against Cleveland's published $129 flat plan, 12% ties at $1,075 of rent, 10% at $1,290, 8% at $1,612.50. HUD's FY2026 two-bedroom Fair Market Rent here is $1,279 — so on a typical two-bedroom, one-time fees decide it, not the monthly rate.",
+  "sections": [
+    {
+      "h2": "The break-even is one division",
+      "body": [
+        "Flat and percentage are the same service priced two ways. One number separates them: **the flat fee divided by the rate** — the rent at which they cost you the same.",
+        "Greater Cleveland's published flat rate is $129 a month. Realty Trust Services calls it a \"simple flat rate monthly fee,\" and B2B Property Management's Premium plan is the same $129 per unit after bulk discounts. That $129 ties at $1,075 of rent (12%), about $1,173 (11%), **$1,290 (10%)**, $1,612.50 (8%) and $2,580 (5%). Below the tie point the percentage is cheaper; above it, the flat fee.",
+        "HUD's FY2026 Fair Market Rents for the Cleveland, OH HUD Metro FMR Area, which includes Cuyahoga County, are $933 efficiency, $1,058 one-bedroom, **$1,279 two-bedroom**, $1,646 three-bedroom, $1,760 four-bedroom. Yardi Matrix put the metro's average advertised asking rent at **$1,246** in February 2026 — five-county figures, not a quote for your address.",
+        "The two-bedroom line is the punchline. At $1,279 of rent, 10% costs $127.90 a month against $129 flat: **$1.10 apart**, or $1,534.80 versus $1,548 across a year.",
+        "Below is our arithmetic on published rates. The $1,525 row is CMHA's median FY2026 two-bedroom payment standard — a subsidy ceiling CMHA says is \"NOT the maximum amount that the landlord can charge.\""
+      ],
+      "table": {
+        "headers": ["Monthly rent", "5%", "8%", "10%", "12%", "$129 flat"],
+        "rows": [
+          ["$933 (HUD efficiency FMR)", "$47", "$75", "$93", "$112", "$129"],
+          ["$1,246 (metro asking rent)", "$62", "$100", "$125", "$150", "$129"],
+          ["$1,279 (HUD 2BR FMR)", "$64", "$102", "$128", "$153", "$129"],
+          ["$1,525 (median CMHA 2BR standard)", "$76", "$122", "$153", "$183", "$129"],
+          ["$1,646 (HUD 3BR FMR)", "$82", "$132", "$165", "$198", "$129"]
+        ]
+      }
+    },
+    {
+      "h2": "Minimums and caps switch the model without telling you",
+      "body": [
+        "A percentage with a floor under it **is** a flat fee below a certain rent, and Cleveland's published floors are high enough to bite. Same division, other direction: minimum ÷ rate.",
+        "So a 12% Gold plan on an $1,100 unit is not a 12% plan — it is a $139 flat fee. At CMHA's lowest published two-bedroom standard, $1,096 in ZIP 44127, that tier bills its minimum. Ask for **the percentage, the minimum and the cap** in one sentence."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Progressive Urban Property Management: 10% with an $80 minimum on 1–3 units, so the floor takes over below $800 of rent; 8% with a $60 minimum on 4–9 units, below $750",
+          "High Tech Property Management: 8% Bronze with a $79 minimum takes over below about $988; 11% Silver with $109 below about $991; 12% Gold with $139 below about $1,158",
+          "B2B's 5% Standard plan says \"minimums apply\" without publishing the amount, so its floor cannot be read off the page",
+          "Caps run the other way. The aggregator iPropertyManagement attributes 8%–10% capped at $199 to Evernest Cleveland (June 7, 2024); Evernest's own page discloses no percentage. That cap would stop a 10% fee past $1,990 of rent"
+        ]
+      }
+    },
+    {
+      "h2": "The two models fail in different directions",
+      "body": [
+        "A percentage is charged on rent that comes in. B2B's fee guide describes the Cleveland market as \"between eight and twelve percent of **collected** monthly rent\"; IIP Management describes the same 8%-to-12% band as the regional norm. A flat charge does not know whether the rent arrived, and whether it runs through a vacancy or a non-payment month is not something a headline rate tells you. Get that in writing.",
+        "On a voucher tenancy the percentage side is steadier than it looks. Before CMHA considers an increase it wants a HAP contract at least a year old, a passed annual inspection within 12 months, a current recertification and **12 months since the last approved adjustment** — and an approved increase starts \"the 1st of the month after 60 days of receiving the request.\""
+      ]
+    },
+    {
+      "h2": "One turnover outweighs a year of rate shopping",
+      "body": [
+        "Scale the argument first. At $1,279 of rent, the gap between the cheapest published percentage (5%) and the dearest (12%) is $89.53 a month — **$1,074 across a year.** One placement at one month's rent is $1,279. **A single extra turnover costs more than a year of paying the highest published rate instead of the lowest.**",
+        "The one-time lines are where Cleveland firms differ most. A local fee guide puts placement at 50% to 100% of one month's rent; Evernest publishes 50% with a $500 minimum, while B2B, Realty Trust and Progressive Urban each publish one full month — Progressive Urban adding **$250 more for a voucher tenant** and a $100–$150 setup fee. Renewals: $149–$295 by tier at High Tech, $250 Evernest, $199 Realty Trust, $195 B2B, inside that guide's $100–$300 range. Nationally, placement averaged 70.6% of a month's rent bundled with management, 81.8% standalone.",
+        "Or price the gap in vacant days. At the $1,279 two-bedroom FMR, one vacant day is about $42.63 of gross rent ($1,279 ÷ 30 — our arithmetic, not a published statistic). The whole 5%-to-12% annual difference is **25 vacant days**, so a manager who leases three weeks sooner has earned the higher rate. See [the break-even math](/is-a-property-manager-worth-it-cleveland/) and [the fees under the fee](/hidden-property-management-fees-cleveland/)."
+      ]
+    },
+    {
+      "h2": "A decision rule you can apply in a minute",
+      "body": [
+        "None of these prices is regulated — no government body publishes or sets management fee levels, so there is no official benchmark to appeal to. The full list sits in [property management fees in Cleveland](/property-management-fees-cleveland/), read as of July 2026; none of those pages carries an effective date, so re-check before signing."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Under about $1,075 of rent:** every published percentage below 12% beats $129 flat — unless a minimum takes over first",
+          "**Roughly $1,075 to $1,290:** 12% costs more than flat, 10% costs less, and the monthly gap is small enough that placement and renewal fees should decide it",
+          "**Above about $1,612:** flat $129 undercuts even 8%. In Cuyahoga County that is mostly three- and four-bedroom territory, where CMHA's FY2026 median standards are $1,966 and $2,101",
+          "**More than one unit:** both models bend — Realty Trust publishes volume pricing, B2B's $129 Premium is after bulk discounts, Progressive Urban drops 10% to 8% at four units",
+          "**A voucher tenancy:** settle surcharges first. A published $250 voucher add-on outweighs months of any flat-versus-percentage difference at these rents"
+        ]
+      }
+    },
+    {
+      "h2": "Where our own pricing lands on this scale",
+      "body": [
+        "We are on the percentage side, at the bottom of it. **Ongoing management is 5% of monthly rent, billed only while the unit is rented** — $63.95 on a $1,279 two-bedroom, $62.30 on the $1,246 metro average. Against $129 flat, 5% is cheaper at any rent below $2,580, which is above CMHA's FY2026 **median** payment standard for every bedroom size it publishes: $1,118, $1,265, $1,525, $1,966 and $2,101.",
+        "**Placement is one month's rent, charged only after the tenant is placed** — no placement, no fee, so a slow lease-up costs us our fee. **Attending the CMHA inspection and writing it up is $100,** or you attend yourself and pay nothing. **Repair estimates are free, itemized, inside 24 hours, and nothing starts without your approval.**",
+        "One item is not a price: we have completed CMHA's Virtual Landlord Orientation. Since January 1, 2026, submitting an RFTA triggers a requirement that the owner or managing agent complete it — every 24 months — **before CMHA can execute a HAP contract for a new tenancy.**",
+        "We work Greater Cleveland and Cuyahoga County under CMHA. To hold a real number against the table above, call **(440) 444-4737** or start at [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is flat-fee property management cheaper than a percentage in Cleveland?",
+      "a": "Only above a certain rent. Divide the flat fee by the rate: against Cleveland's published $129 flat plan, 12% ties at $1,075 of rent, 10% at $1,290, 8% at $1,612.50 and 5% at $2,580. Below the tie point the percentage wins."
+    },
+    {
+      "q": "At what rent does a $129 flat fee beat a 10% management fee?",
+      "a": "At $1,290 a month, which is close to where the market sits. HUD's FY2026 two-bedroom Fair Market Rent for the Cleveland metro is $1,279, so 10% comes to $127.90 against $129 flat — about $13 apart across a full year."
+    },
+    {
+      "q": "Do Cleveland property managers offer flat-fee plans?",
+      "a": "Two published ones. Realty Trust Services advertises a flat $129 per month with volume pricing, and B2B Property Management's Premium plan is $129 per unit after bulk discounts. The only national survey located — 80 metros, last updated 2022 — averaged $101.04 per unit monthly."
+    },
+    {
+      "q": "Does a percentage fee stop when the unit is vacant?",
+      "a": "That depends on the contract, not the model. Local guides describe the Cleveland norm as a percentage of collected rent, which implies no collection means no fee — but a headline rate does not settle it, so ask in writing. Our 5% is billed only while rented."
+    },
+    {
+      "q": "Which fee model suits a Section 8 tenancy better?",
+      "a": "Neither, structurally — though a percentage is unusually predictable on a voucher deal, since CMHA requires at least 12 months between approved rent adjustments and starts an increase on the first of the month after 60 days. Check voucher surcharges instead: one firm publishes $250 extra."
+    }
+  ],
+  "sources": [
+    "https://propertymanagementoh.com/pricing-public",
+    "https://www.b2brealty.com/",
+    "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+    "https://www.iip-management.com/property-management-fees/",
+    "https://clevelandpupm.com/pricing/",
+    "https://hightechpropertymanagement.com/pricing/",
+    "https://www.cleveland-property-management.com/pricing",
+    "https://ipropertymanagement.com/companies/cleveland-oh",
+    "https://ipropertymanagement.com/research/average-property-management-fees",
+    "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx",
+    "https://www.yardimatrix.com/blog/cleveland-multifamily-market-report/",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php"
+  ],
+  "lastUpdated": "2026-07-21"
+}

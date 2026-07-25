@@ -1,0 +1,171 @@
+{
+  "slug": "can-i-manage-a-section-8-rental-myself",
+  "section": "section-8-landlords",
+  "title": "Can You Self-Manage a Voucher Rental? What Stays on Your Desk Either Way",
+  "metaTitle": "Can I Manage a Section 8 Rental Myself? CMHA Rules",
+  "metaDescription": "Can I manage a Section 8 rental myself? Yes — CMHA has no landlord approval process. Which CMHA and Ohio duties stay yours, and which a signed agent form moves.",
+  "primaryKeyword": "can i manage a section 8 rental myself",
+  "secondaryKeywords": [
+    "cmha agent payee form",
+    "self manage section 8 rental cleveland",
+    "designated managing agent cmha",
+    "landlord responsibilities section 8 cuyahoga county"
+  ],
+  "answerBox": "Yes. CMHA has no landlord approval process and nothing requires you to hire a manager. But some duties never transfer: Ohio's ten non-waivable landlord duties, the deposit accounting, your signature on the RFTA and W-9, and the certification you make by accepting each monthly HAP payment.",
+  "sections": [
+    {
+      "h2": "Yes — and CMHA never asked you to hire anyone",
+      "body": [
+        "**Can I manage a Section 8 rental myself?** In Cuyahoga County, yes. CMHA's Leasing with CMHA page states, \"Please note that CMHA does not have a pre-approval process for landlords or units,\" and its HCV Administrative Plan adds that \"[t]he PHA does not formally approve an owner to participate in the HCV program\" — while reserving the right to deny a specific tenancy over past owner behavior.",
+        "Because there is no credential to earn, there is none to hand over: CMHA deals with whoever is named on the paperwork. The question is which duties only work with your signature, your bank account or your presence."
+      ]
+    },
+    {
+      "h2": "The part that never transfers",
+      "body": [
+        "Two sets of rules follow the owner, not the manager: Ohio landlord-tenant law, which names the landlord, and the certifications attached to the money."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Screening.** CMHA is explicit: \"It is the landlord's responsibility to screen prospective HCV tenants just as you would any other tenant.\" It supplies the family's current address and, if known, the landlord at the current and prior address. Someone can make those calls; the decision is yours.",
+          "**Ohio's ten landlord duties.** R.C. 5321.04(A) imposes ten non-waivable duties — code compliance materially affecting health and safety, a fit and habitable premises, safe common areas, working electrical, plumbing and heating fixtures, running water and reasonable heat, waste removal in buildings of four or more units. Entry requires reasonable notice, and \"[t]wenty-four hours is presumed to be a reasonable notice\" absent an emergency.",
+          "**The deposit.** R.C. 5321.16(B) requires deductions itemized in writing and delivered with any amount due within **30 days** of termination and delivery of possession; miss it and you owe the amount wrongfully withheld again, plus attorney fees.",
+          "**The monthly certification.** Under 24 CFR 982.507(d), accepting each monthly housing assistance payment certifies that the rent is no more than what that owner charges for comparable unassisted units in the premises.",
+          "**No side deals.** CMHA: \"Side deals between the landlord and family are illegal and could result in the family being terminated and the landlord disbarred, suspended or subject to a limited denial of participation.\"",
+          "**Damage, fees and abatement.** \"HCVP does not pay for tenant caused damages.\" A reinspection fee charged to the owner under 24 CFR 982.405(h) may not be passed to the family. And under 24 CFR 982.404(d)(3), \"[a]n owner may not terminate the tenancy of any family due to the withholding or abatement of assistance.\""
+        ]
+      }
+    },
+    {
+      "h2": "What a designated agent can move",
+      "body": [
+        "CMHA names a delegate in exactly one place on its live landlord pages. Effective **January 1, 2026**, submitting an RFTA triggers Mandatory Landlord Orientation, and the requirement falls on \"the property owner or designated managing agent\" — once every 24 months, verified before a HAP contract can be executed for a new tenancy. [What changed January 1, 2026](/cmha-landlord-orientation-requirement/).",
+        "For everything else, the mechanism is a form. CMHA's landlord Forms & Documents library includes an **Agent/Payee Form**, and the Landlord Participation Guide lists an \"Agent Form (if applicable)\" in the RFTA packet. What CMHA does not publish is what that form covers — signature authority, payment routing, notices, or all three. Call HCVP at **(216) 431-1471** first. [The portal and forms library](/cmha-landlord-portal-and-forms/)."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**The money is routed on paper.** \"All owners are required to go on direct deposit to receive HAP payments,\" and payment dates are generally the **3rd and 16th**. The portal login is tied to a vendor record: CMHA mails a unique registration code, and the Tax ID must match it.",
+          "**Two signatures on the RFTA.** It \"must be signed by both the family and the owner,\" though \"[t]he owner may submit the RTA on behalf of the family.\" And CMHA \"will not execute the HAP contract until the owner has submitted IRS form W-9.\"",
+          "**A rent increase needs the tenant's signature too**, goes to RentAdjustment@cmha.net, and takes effect the 1st of the month after 60 days. A buyer of a unit with an active HAP contract files the Change of Ownership packet before payments move."
+        ]
+      }
+    },
+    {
+      "h2": "Cleveland's other agent — the one the City requires",
+      "body": [
+        "A second designation has nothing to do with CMHA. Under Cleveland's Residents First rules, owners of non-owner-occupied residential property must register each property, pay registration fees, and file an affidavit naming a **local agent in charge**, plus proof of current taxes and lead-safe certification, to obtain a Certificate Approving Rental Occupancy. Signal Cleveland reports that agent must be based in Cuyahoga County and takes legal responsibility for the property, enforced with **$200 civil tickets** whose unpaid fines are added to the tax bill. If you do not live in Cuyahoga County, that is a delegate the City requires whether you wanted one or not. [Self-managing from out of state](/out-of-state-landlord-cleveland/)."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "Rentals built before 1978 need Cleveland Lead Safe Certification or an exemption, valid two years. Since **October 1, 2025**, CMHA verifies active City of Cleveland rental registrations through the City's Citizen Access Portal — a lapsed one stalls an RFTA.",
+          "In 17 named suburbs, among them Parma, Lakewood, Euclid and Cleveland Heights, a Certificate of Occupancy and/or Rental Registration must go in with the RFTA packet."
+        ]
+      }
+    },
+    {
+      "h2": "Who holds the pen",
+      "body": [
+        "One duty genuinely is not yours: HUD Notice PIH 2024-26 REV-1 states that \"24 CFR 5.707 exempts landlords participating in HCV, PBV, and Section 8 Mod Rehab programs from any self-inspection requirements.\" CMHA's own inspections are booked at 216.478.9680."
+      ],
+      "table": {
+        "headers": [
+          "Task",
+          "Can someone else do it?",
+          "What CMHA requires"
+        ],
+        "rows": [
+          [
+            "Screen the applicant",
+            "Yes, on your behalf",
+            "CMHA does not screen for your unit"
+          ],
+          [
+            "Sign the RFTA",
+            "Owner's signature required",
+            "Signed by family and owner; owner may file it"
+          ],
+          [
+            "Landlord Orientation",
+            "Owner or designated managing agent",
+            "Every 24 months, before HAP execution"
+          ],
+          [
+            "Receive the HAP payment",
+            "Set by form, not by agreement",
+            "Direct deposit; paid the 3rd and 16th"
+          ],
+          [
+            "Inspection access and repairs",
+            "Yes",
+            "Reinspection 5 business days after your notice"
+          ],
+          [
+            "Ohio's landlord duties",
+            "The work can be hired out",
+            "R.C. 5321.04 names the landlord"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "So: self-manage, or not?",
+      "body": [
+        "The test is not competence. It is reachability on a 24-hour clock and a tolerance for writing things down — CMHA will not accept missing information or corrections by phone, so every deficiency becomes a written round trip. Weigh that against the price of handing it off: as published in July 2026, Cleveland-area firms describe monthly management at **8% to 12%** of collected rent and placement at **50% to 100%** of one month's rent. Our side of it, under CMHA in Greater Cleveland:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement: one month's rent**, charged only after the tenant is placed. No placement, no fee.",
+          "**Inspection attendance with a written report: $100** — or attend yourself and pay nothing.",
+          "**Ongoing management: 5% of monthly rent**, only while the unit is rented.",
+          "**Repair estimates free and itemized inside 24 hours**; nothing starts without your approval.",
+          "**We have completed CMHA's mandatory Virtual Landlord Orientation** — a requirement that falls on the owner or the designated managing agent. Call **(440) 444-4737**, or see [how the service works](/section8stressfree)."
+        ]
+      }
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need CMHA's approval to manage my own rental?",
+      "a": "No. CMHA's Leasing with CMHA page says there is no pre-approval process for landlords or units, and its Landlord FAQ says no application process is required. The Administrative Plan adds that the authority does not formally approve owners at all — though it may still deny a specific tenancy over past owner behavior."
+    },
+    {
+      "q": "Can a property manager sign the RFTA and receive the HAP payment for me?",
+      "a": "CMHA policy requires the RFTA to be signed by both the family and the owner, while allowing the owner to submit it on the family's behalf. Direct deposit is mandatory, so payment routing is decided by form. CMHA publishes an Agent/Payee Form but not its terms — call HCVP at (216) 431-1471 to confirm scope."
+    },
+    {
+      "q": "If I hire a manager, do I still have to attend CMHA's orientation?",
+      "a": "The requirement, effective January 1, 2026, falls on the property owner or designated managing agent — once every 24 months, verified before a HAP contract is executed for a new tenancy. If your designated agent has completed it, that is the person CMHA's rule names. Existing HAP contracts are not affected."
+    },
+    {
+      "q": "Who is responsible if a repair deadline is missed, me or my manager?",
+      "a": "Federal rule allows 24 hours to correct a life-threatening deficiency and 30 calendar days for other deficiencies. Ohio's R.C. 5321.04(A) imposes ten non-waivable duties on the landlord, including keeping the premises fit and habitable. Hiring someone to do the work does not change whose name the statute uses. Ask your attorney about your agreement."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/forms___documents.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordPortalUserGuide.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/Automatic%20Deposit%20Form.pdf",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.ecfr.gov/current/title-24/section-982.507",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.04",
+    "https://codes.ohio.gov/ohio-revised-code/section-5321.16",
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://signalcleveland.org/cleveland-residents-first-local-agent-landlord-law-bibb/",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners",
+    "https://www.b2brealty.com/blog/the-real-cost-of-property-management-in-cleveland-fees-hidden-charges-and-roi-explained",
+    "https://www.iip-management.com/property-management-fees/"
+  ],
+  "lastUpdated": "2026-07-21"
+}

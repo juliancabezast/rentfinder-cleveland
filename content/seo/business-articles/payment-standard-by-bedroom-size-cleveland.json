@@ -1,0 +1,99 @@
+{
+  "slug": "payment-standard-by-bedroom-size-cleveland",
+  "section": "section-8-landlords",
+  "title": "Section 8 Payment Standards by Bedroom Size in Cleveland (Studio to 4 BR)",
+  "metaTitle": "CMHA Payment Standard by Bedroom Size, Cleveland",
+  "metaDescription": "See CMHA's FY2026 payment standards by bedroom size in Cleveland, studio to 4-bedroom, and what happens when your unit is larger than the tenant's voucher.",
+  "primaryKeyword": "cmha payment standard by bedroom size cleveland",
+  "secondaryKeywords": [
+    "section 8 payment standard by bedroom cleveland",
+    "cmha payment standard studio 1 2 3 4 bedroom",
+    "unit larger than voucher size cmha"
+  ],
+  "answerBox": "CMHA's voucher payment standard rises with each bedroom size, but because CMHA sets standards by ZIP under Small Area FMRs, the exact figure depends on location. For FY2026, medians across its 53 ZIPs run about $1,118 for a studio to $2,101 for a four-bedroom. If your unit is larger than the tenant's voucher, CMHA pays at the smaller size.",
+  "sections": [
+    {
+      "h2": "CMHA payment standards by bedroom size, studio to four-bedroom (FY2026)",
+      "body": [
+        "CMHA sets a Housing Choice Voucher payment standard for every bedroom size from studio (0 BR) upward, and the figure climbs as the bedroom count goes up. What trips up owners is that there is no single Cleveland number. Since **January 1, 2025**, CMHA has been required to set payment standards by ZIP code using HUD's Small Area Fair Market Rents, so a studio standard in one ZIP can outrun a two-bedroom standard in another.",
+        "The table below shows FY2026 figures (effective 1/1/2026) three ways: the median across CMHA's 53 service-area ZIP codes, the lowest-tier ZIP (44127, the Slavic Village area), and the highest-tier ZIP (44113, Tremont / Ohio City / near West Side). Every figure comes from CMHA's Rent Determination tool."
+      ],
+      "table": {
+        "headers": ["Bedroom size", "Median (53 ZIPs)", "Lowest tier — ZIP 44127", "Highest tier — ZIP 44113"],
+        "rows": [
+          ["Studio / efficiency (0 BR)", "$1,118", "$802", "$1,582"],
+          ["1 bedroom", "$1,265", "$915", "$1,796"],
+          ["2 bedroom", "$1,525", "$1,096", "$2,169"],
+          ["3 bedroom", "$1,966", "$1,412", "$2,791"],
+          ["4 bedroom", "$2,101", "$1,514", "$2,983"]
+        ]
+      }
+    },
+    {
+      "h2": "How much the standard rises with each bedroom",
+      "body": [
+        "Read the median column top to bottom and you can see the shape of the increase: adding a bedroom always raises the standard, but the steps are not uniform. The move from studio to one-bedroom is modest ($1,118 to $1,265). The largest jumps land on the two- and three-bedroom sizes ($1,525, then $1,966). The step from three- to four-bedroom is comparatively small ($1,966 to $2,101).",
+        "That same pattern holds in the high-tier and low-tier ZIPs, though every dollar figure shifts with location. In ZIP 44113 the standard climbs from $1,582 for a studio to $2,983 for a four-bedroom; in ZIP 44127 it runs from $802 to $1,514. So the honest answer to \"how much does each bedroom add\" is: it depends on your ZIP and on which two sizes you are comparing — there is no flat per-bedroom increment across the county."
+      ]
+    },
+    {
+      "h2": "Why 'the payment standard' depends on your ZIP, not just the bedroom count",
+      "body": [
+        "Because CMHA uses Small Area FMRs, the same bedroom size carries very different standards across the service area. The FY2026 two-bedroom standard is **$1,096 in ZIP 44127** and **$2,169 in ZIP 44113** — roughly a 2x spread — so any \"CMHA two-bedroom pays $X\" figure quoted without a ZIP is misleading. Two more real examples: the two-bedroom standard is $1,683 in ZIP 44118 (Cleveland Heights) versus $1,209 in ZIP 44105, and the three-bedroom standard is $2,169 versus $1,559 in those same two ZIPs.",
+        "One trap to avoid: CMHA's Rent Determination tool shows a default table before you enter a ZIP — $881 studio, $1,005 one-bedroom, $1,209 two-bedroom, $1,559 three-bedroom, $1,661 four-bedroom. Those are **not** a countywide standard; they match only ZIP codes 44103 and 44105. Always enter your property's ZIP before you read a number.",
+        "For the bigger picture on how Small Area FMRs reshaped Cleveland pricing, see [what SAFMR means for Cleveland landlords](/what-is-safmr-cleveland-landlords/); for where the county tops out, see [the highest payment-standard ZIPs](/highest-payment-standard-zips-cleveland/)."
+      ]
+    },
+    {
+      "h2": "What happens if your unit is larger than the tenant's voucher",
+      "body": [
+        "This is the question that costs owners money if they get it wrong. If a voucher family selects a unit **larger** than the bedroom size on its voucher, CMHA applies the payment standard — and the utility allowance — for the **smaller** of the two: the voucher's bedroom size or the unit's actual size.",
+        "Worked example: you own a three-bedroom house and rent it to a family holding a two-bedroom voucher. CMHA subsidizes at the two-bedroom payment standard for that ZIP, not the three-bedroom. In ZIP 44113 that is the difference between $2,169 (2 BR) and $2,791 (3 BR); in ZIP 44127 it is $1,096 versus $1,412. The family can still rent your larger unit, but the subsidy is anchored to their voucher size.",
+        "The rule always uses the smaller number, so it can cut the other way too: a family with a three-bedroom voucher renting a two-bedroom unit is subsidized at the two-bedroom standard (the actual unit size). Bottom line: match the family's voucher size to your unit where you can, and if you are renting a bigger unit to a smaller voucher, price it knowing CMHA's share is set at the smaller size."
+      ]
+    },
+    {
+      "h2": "The payment standard is a subsidy ceiling — not the rent you can charge",
+      "body": [
+        "CMHA is explicit on this point: \"The payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" It caps CMHA's share of the rent, not your asking rent.",
+        "What the standard actually controls is how CMHA's check is calculated. CMHA figures the Housing Assistance Payment as the lesser of (payment standard minus the family's Total Tenant Payment) or (gross rent minus Total Tenant Payment). Whichever is smaller sets the amount CMHA sends; the tenant covers the remainder, and your rent still has to pass CMHA's rent-reasonableness review. CMHA states its standards are set between 90% and 110% of HUD's Fair Market Rents \"or approved exceptions as applicable.\"",
+        "For how the total rent splits between CMHA's check and the tenant's portion on a specific unit, see [tenant portion vs. HAP portion](/tenant-portion-vs-hap-portion-cleveland/)."
+      ]
+    },
+    {
+      "h2": "Look up your exact figure — and how we price to it",
+      "body": [
+        "CMHA has historically revised payment standards and utility allowances on a January 1 cycle, and only a subset of ZIPs is summarized above, so verify your own ZIP and bedroom size in CMHA's [Rent Determination tool](https://apps.cmha.net/rentdetermination/) before you set a rent. A step-by-step walkthrough is in our guide to [using the CMHA Rent Determination tool](/cmha-rent-determination-tool-how-to-look-up-payment-standard-cleveland/).",
+        "We do this lookup for you: we price your unit against the correct ZIP-level standard for the right bedroom size, and we handle CMHA's paperwork end to end. We have completed CMHA's mandatory Virtual Landlord Orientation — required since January 1, 2026 before a HAP contract can be executed for a new tenancy — so nothing stalls on our side. Tenant placement is one month's rent, charged only after a tenant is placed. Inspection attendance with a written report is $100 (or you can attend yourself). Ongoing management is 5% of monthly rent, only while the unit is rented. See [Section 8, stress-free](/section8stressfree) or call **(440) 444-4737**."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does CMHA's payment standard go up by the same amount for each bedroom?",
+      "a": "No. The standard always rises as the bedroom count increases, but the steps are not uniform, and every figure depends on the ZIP. Across CMHA's 53 FY2026 ZIP codes, the median runs about $1,118 for a studio, $1,265 for a one-bedroom, $1,525 for a two-bedroom, $1,966 for a three-bedroom, and $2,101 for a four-bedroom."
+    },
+    {
+      "q": "I have a three-bedroom but the family's voucher is for two bedrooms — which standard applies?",
+      "a": "CMHA uses the smaller of the voucher size or the actual unit size, so it subsidizes at the two-bedroom payment standard and two-bedroom utility allowance for your ZIP, not the three-bedroom. The family can still rent your three-bedroom unit, but CMHA's subsidy is anchored to their two-bedroom voucher, so price the unit with that in mind."
+    },
+    {
+      "q": "Is the payment standard the most rent I can charge?",
+      "a": "No. CMHA states plainly that the payment standard \"is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\" It caps CMHA's share, not your rent. Your asking rent still has to pass CMHA's rent-reasonableness review."
+    },
+    {
+      "q": "Where do I find the exact payment standard for my ZIP and bedroom size?",
+      "a": "Use CMHA's online Rent Determination tool and enter your property's ZIP code. Do not rely on the table it shows before you enter a ZIP — that default row ($881 / $1,005 / $1,209 / $1,559 / $1,661) is a placeholder matching only ZIPs 44103 and 44105, not a countywide standard."
+    },
+    {
+      "q": "What about units with five or more bedrooms?",
+      "a": "CMHA publishes payment standards for larger units by ZIP in the same Rent Determination tool, but the figures in this guide cover studio through four-bedroom only. For a five-bedroom or larger unit, look up your specific ZIP in the tool, or call us at (440) 444-4737 and we will pull the current figure for you."
+    }
+  ],
+  "sources": [
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf"
+  ],
+  "lastUpdated": "2026-07-22"
+}

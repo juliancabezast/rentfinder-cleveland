@@ -1,0 +1,163 @@
+{
+  "slug": "section-8-inspection-fail-items-cleveland",
+  "section": "section-8-landlords",
+  "title": "What Gets a Unit Failed: CMHA's 24-Hour Emergency List and the Detector Rules",
+  "metaTitle": "Section 8 Inspection Fail Items: CMHA's 24-Hour List",
+  "metaDescription": "The section 8 inspection fail items CMHA gives Cleveland owners 24 hours to correct, plus the exact smoke and carbon monoxide detector rules now in force.",
+  "primaryKeyword": "section 8 inspection fail items",
+  "secondaryKeywords": [
+    "cmha 24 hour emergency fail list",
+    "cmha smoke detector requirements",
+    "carbon monoxide detector section 8 cleveland",
+    "hqs life threatening deficiency 24 hours"
+  ],
+  "answerBox": "CMHA publishes ten violations that must be corrected within 24 hours: a missing or inoperable smoke or carbon monoxide detector, range burners that do not ignite, a gas hook-up smelling strongly of gas, no water, no electricity, no heat between October 15 and April 15, sewer back-up, gas leak, security issues, and anything deemed life-threatening.",
+  "sections": [
+    {
+      "h2": "The ten items CMHA gives you 24 hours to fix",
+      "body": [
+        "CMHA publishes one emergency list on its landlord Inspections page: violations that must be corrected within 24 hours. It is short, it is specific, and it is the only fail list the authority publishes for Cuyahoga County owners."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "A smoke or carbon monoxide detector that is missing or inoperable",
+          "Kitchen range burners that do not ignite",
+          "A hazardous gas hook-up for a kitchen range, evidenced by a strong smell of gas",
+          "No water",
+          "No electricity",
+          "No heat (October 15 to April 15)",
+          "Sewer back-up",
+          "Gas leak",
+          "Security issues — unlockable windows within six feet of ground level and/or unit entry doors with missing or broken locks",
+          "Anything deemed life-threatening"
+        ]
+      }
+    },
+    {
+      "h2": "Why the clock is 24 hours — and what the other clock is",
+      "body": [
+        "The deadline is federal. Under **24 CFR 982.404(a)(3)**, \"[i]f a deficiency is life-threatening, the owner must correct the deficiency within 24 hours of notification. For other deficiencies, the owner must correct the deficiency within 30 calendar days of notification (or any reasonable PHA-approved extension).\" CMHA restates it as \"24 hours or 30 days depending on the nature of the deficiency.\"",
+        "There are only two speeds. And the last item on the list — anything deemed life-threatening — is a catch-all the inspector applies on site, which makes the published ten a floor, not a ceiling."
+      ]
+    },
+    {
+      "h2": "What this list is not: the most common failures",
+      "body": [
+        "This is a **severity** list, not a frequency list. Neither CMHA nor HUD publishes deficiency-frequency or pass-rate data for Cleveland-area voucher inspections, so no sourceable ranking of why units fail here exists — and ranked lists circulating online are often written for a different housing authority and relabeled. Preparation is a separate job: see [how to get a unit ready to pass the first time](/how-to-prepare-a-rental-to-pass-a-section-8-inspection-cleveland/)."
+      ]
+    },
+    {
+      "h2": "The smoke detector rule, position by position",
+      "body": [
+        "Effective **December 29, 2024**, CMHA's placement rule is more specific than most owners expect. The conditions overlap rather than substitute for one another."
+      ],
+      "table": {
+        "headers": [
+          "Where",
+          "What CMHA requires"
+        ],
+        "rows": [
+          [
+            "Each level of the unit",
+            "One smoke detector"
+          ],
+          [
+            "Inside each bedroom or sleeping area",
+            "One smoke detector"
+          ],
+          [
+            "Within 21 feet of the door to each bedroom",
+            "One smoke detector"
+          ],
+          [
+            "Any living area separated from bedrooms by a door",
+            "One smoke detector"
+          ],
+          [
+            "All battery-operated units",
+            "10-year sealed and tamper-resistant, or hardwired"
+          ]
+        ]
+      },
+      "h3s": [
+        {
+          "h3": "The battery clause is what catches people",
+          "body": [
+            "A replaceable-battery detector does not meet the requirement, however new it is. And a detector that is present but inoperable is treated exactly like one that is missing — both sit on the 24-hour list."
+          ]
+        }
+      ]
+    },
+    {
+      "h2": "Carbon monoxide: three triggers, one automatic emergency fail",
+      "body": [
+        "Carbon monoxide detectors have been required since **December 27, 2022** wherever there is any gas-fueled appliance, an attached garage, or a wood-burning fireplace. One trigger is enough, and the test is the building rather than the tenancy: a gas water heater in the basement of an otherwise all-electric house puts the unit in scope.",
+        "CMHA is blunt about the consequence — \"[l]ack of carbon monoxide detector(s) will be considered an emergency fail subject to correction within 24 hours.\" There is no 30-day path for this one."
+      ]
+    },
+    {
+      "h2": "Miss the clock and here is what it costs",
+      "body": [
+        "**Withholding is recoverable.** Under 24 CFR 982.404(d)(1), if the unit complies during the cure period the PHA \"[m]ust resume assistance payments\" and \"[m]ust provide assistance payments to cover the time period for which the assistance payments were withheld.\"",
+        "**Abatement is not.** The PHA \"must abate the HAP, including amounts that had been withheld, if the owner fails to make the repairs within the applicable cure period,\" and 24 CFR 982.4 defines abatement as \"[s]topping HAP payments to an owner with no potential for retroactive payment.\" CMHA abates when a unit fails two consecutive inspections, effective \"the first of the month following the failure to comply\" — and you may not terminate a tenancy over it, because 24 CFR 982.404(d)(3) forbids that. See [what happens when a unit fails](/what-happens-if-your-unit-fails-a-cmha-inspection/)."
+      ]
+    },
+    {
+      "h2": "Proving the fix without waiting for another visit",
+      "body": [
+        "You file nothing between visits: HUD Notice PIH 2024-26 REV-1 confirms that \"24 CFR 5.707 exempts landlords participating in HCV, PBV, and Section 8 Mod Rehab programs from any self-inspection requirements.\" What you owe is proof a cited item is fixed, and photographs can carry it — under 24 CFR 982.405(i) a housing authority \"may use verification methods other than another on-site inspection\" and \"may accept photographic evidence or other reliable evidence from the owner.\" It is discretionary, not a right, but on a 24-hour item it is the fastest path available.",
+        "If a re-visit is needed, CMHA's policy is to \"reinspect the unit within five business days of the date the owner notifies the PHA that the required corrections have been made\" — your notification starts that clock, not your repair. Scheduling runs through 216.478.9680, and [the move-in inspection has its own clocks](/cmha-initial-inspection-what-to-expect/)."
+      ]
+    },
+    {
+      "h2": "What changes when NSPIRE arrives",
+      "body": [
+        "CMHA states that \"HUD has extended the start date for the new NSPIRE Inspection Standards for the Housing Choice Voucher (HCV) Program. The final transition deadline has been moved from October 1, 2025 to February 1, 2027.\" HUD's Federal Register notice of September 30, 2025 extends compliance through January 31, 2027, its third extension, and still permits early adoption — so confirm the standard before scoping work.",
+        "The 24-hour concept survives the change. Under NSPIRE, inspections \"are not numerically scored and NSPIRE retains pass/fail indicators\": Life-Threatening deficiencies get 24 hours, Severe and Moderate get 30 days, and Low deficiencies \"result in a pass.\" NSPIRE's affirmative requirements under 24 CFR 5.703 include a working smoke detector on each level and carbon monoxide detection meeting HUD standards."
+      ]
+    },
+    {
+      "h2": "How we take the 24-hour clock off your desk",
+      "body": [
+        "Emergency items are won on response time, not skill. We have completed CMHA's mandatory Virtual Landlord Orientation — required since January 1, 2026 before CMHA can execute a HAP contract for a new tenancy — so that requirement is already met on our side.",
+        "We attend the inspection and send a written report for **$100**, or you attend yourself and pay nothing. When something is cited, repair estimates come back **free, itemized, inside 24 hours**, and nothing starts without your approval. Placement is **one month's rent, charged only after a tenant is placed**; management is **5% of monthly rent, only while the unit is rented**. We work Greater Cleveland and Cuyahoga County, under CMHA — call **(440) 444-4737** or see [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is on CMHA's 24-hour emergency fail list?",
+      "a": "Ten items: a missing or inoperable smoke or carbon monoxide detector; kitchen range burners that do not ignite; a hazardous gas hook-up for a range evidenced by a strong smell of gas; no water; no electricity; no heat between October 15 and April 15; sewer back-up; gas leak; security issues; and anything deemed life-threatening."
+    },
+    {
+      "q": "Do I need a smoke detector in every bedroom?",
+      "a": "Yes, and more. Since December 29, 2024 CMHA requires one on each level, one inside each bedroom or sleeping area, one within 21 feet of the door to each bedroom, and one in any living area separated from bedrooms by a door. Battery-operated units must be 10-year sealed and tamper-resistant, or hardwired."
+    },
+    {
+      "q": "When does a unit need a carbon monoxide detector?",
+      "a": "Since December 27, 2022, wherever the unit has any gas-fueled appliance, an attached garage, or a wood-burning fireplace. One trigger is enough — a gas water heater alone puts the unit in scope. CMHA states that lack of carbon monoxide detectors \"will be considered an emergency fail subject to correction within 24 hours.\""
+    },
+    {
+      "q": "Are these the most common reasons units fail in Cleveland?",
+      "a": "No. It is a severity list, not a frequency list. Neither CMHA nor HUD publishes deficiency-frequency or pass-rate data for Cleveland-area voucher inspections, so any ranked \"most common failures\" list you find is either unsourced or borrowed from a different housing authority entirely."
+    },
+    {
+      "q": "What happens if I cannot correct an emergency item in 24 hours?",
+      "a": "Payments can be withheld, then abated. Withheld money is recoverable if you cure within the period. Abated money is not: federal rules define abatement as stopping payments \"with no potential for retroactive payment.\" CMHA abates after two consecutive failed inspections, effective the first of the following month."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.404",
+    "https://www.ecfr.gov/current/title-24/subtitle-B/chapter-IX/part-982/subpart-I/section-982.405",
+    "https://www.ecfr.gov/current/title-24/subtitle-A/part-5/subpart-G/section-5.703",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://www.federalregister.gov/documents/2025/09/30/2025-19070/economic-growth-regulatory-relief-and-consumer-protection-act-implementation-of-national-standards",
+    "https://www.hud.gov/reac/nspire-notices"
+  ],
+  "lastUpdated": "2026-07-21"
+}

@@ -1,0 +1,206 @@
+{
+  "slug": "section-8-landlords-euclid-ohio",
+  "section": "section-8-landlords",
+  "title": "Section 8 Landlords in Euclid: Apartments, Rental Registration and Lakefront ZIPs",
+  "metaTitle": "Section 8 Landlord Euclid Ohio: Registration First",
+  "metaDescription": "Section 8 landlord Euclid Ohio guide: Euclid is one of 17 suburbs where CMHA collects a rental registration with the RFTA, plus ZIP-level payment standards.",
+  "primaryKeyword": "section 8 landlord euclid ohio",
+  "secondaryKeywords": [
+    "euclid ohio rental registration cmha",
+    "cmha payment standard 44123 44132",
+    "section 8 apartment building euclid",
+    "certificate of occupancy rfta cmha",
+    "cmha utility allowance multi-unit apartment"
+  ],
+  "answerBox": "Euclid is one of 17 suburbs where CMHA collects a Certificate of Occupancy and/or Rental Registration with the Request for Tenancy Approval, so the city paperwork must exist before the RFTA moves. CMHA sets payment standards by ZIP code rather than by city, and its utility allowances are set separately for apartments and houses.",
+  "sections": [
+    {
+      "h2": "Euclid is on CMHA's list, and that changes the order of operations",
+      "body": [
+        "CMHA does not license landlords: **\"Please note that CMHA does not have a pre-approval process for landlords or units.\"** What it does is check that your city already licensed the building.",
+        "For units in **17 named suburbs — Euclid among them, alongside South Euclid, Parma, Lakewood and Shaker Heights — CMHA collects a copy of the Certificate of Occupancy and/or Rental Registration when the Request for Tenancy Approval is submitted.** Cleveland is not on that list; there CMHA verifies registrations through the City's Citizen Access Portal instead, effective October 1, 2025. In Euclid the document travels with your packet. If it does not exist yet, the packet is incomplete the day you file it.",
+        "We do not print Euclid's fees or renewal cadence here — city rules move, and a stale figure is how owners under-budget. Get them in writing from the building department before you advertise. See [Rental Registration, Occupancy Certificates and Leasing Permits](/what-is-a-rental-registration-permit-cleveland/) and [The Cuyahoga County Map](/section-8-landlords-cuyahoga-county-ohio/)."
+      ]
+    },
+    {
+      "h2": "The certificate gets asked for twice — the second time is your first check",
+      "body": [
+        "Registration reappears at the money end. CMHA's Landlord FAQ describes the first HAP payment on a new contract this way: you are paid **\"on the next scheduled payment date after HCVP has received three copies of the signed contracts, the executed lease and occupancy permit, when applicable.\"** In Euclid, \"when applicable\" applies.",
+        "CMHA also reviews the RFTA against the proposed lease and **will not accept corrections by phone** — deficiencies must be fixed in writing. Its Landlord Participation Guide describes CMHA verifying ownership through the County Auditor's website, confirming the unit is not in foreclosure and is current on taxes."
+      ]
+    },
+    {
+      "h2": "The subsidy ceiling follows the ZIP, not the city line",
+      "body": [
+        "CMHA was required to implement Small Area Fair Market Rent payment standards effective January 1, 2025, so the ceiling attaches to the unit's ZIP, not to the county. Two Euclid rentals a mile apart can sit under different standards. Below is what CMHA's Rent Determination tool returns, effective January 1, 2026, for the ZIPs covering Euclid and the bordering lakefront corridor. ZIP boundaries do not follow municipal ones — look yours up before pricing."
+      ],
+      "table": {
+        "headers": [
+          "ZIP",
+          "0 BR",
+          "1 BR",
+          "2 BR",
+          "3 BR",
+          "4 BR"
+        ],
+        "rows": [
+          [
+            "44117",
+            "$892",
+            "$1,005",
+            "$1,220",
+            "$1,570",
+            "$1,683"
+          ],
+          [
+            "44119",
+            "$971",
+            "$1,107",
+            "$1,333",
+            "$1,717",
+            "$1,830"
+          ],
+          [
+            "44123",
+            "$1,050",
+            "$1,197",
+            "$1,446",
+            "$1,864",
+            "$1,988"
+          ],
+          [
+            "44132",
+            "$1,050",
+            "$1,186",
+            "$1,435",
+            "$1,841",
+            "$1,977"
+          ],
+          [
+            "44143",
+            "$994",
+            "$1,118",
+            "$1,356",
+            "$1,740",
+            "$1,864"
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "What that table does not mean",
+      "body": [
+        "Across CMHA's 53 service-area ZIPs the median two-bedroom standard is **$1,525**. Every ZIP above sits under it at one and two bedrooms. CMHA's next sentence matters: **\"The payment standard is NOT the maximum amount that the landlord can charge; it is the maximum amount of subsidy that the CMHA will pay toward each tenant's rent portion.\"**",
+        "What constrains the deal is rent reasonableness plus a second test: on an initial contract the tenant portion paid directly to you can be **no more than 40% of the family's monthly adjusted income**, or CMHA negotiates the rent down. See [CMHA Payment Standards by ZIP Code](/cmha-payment-standards-by-zip-code/)."
+      ]
+    },
+    {
+      "h2": "If it is an apartment, you are on a different row of the utility chart",
+      "body": [
+        "CMHA's utility allowance schedule, effective January 1, 2026, sets allowances by **building type** — single-family dwelling, townhouse/duplex/triplex/row house, **multi-unit apartment**, manufactured home — then by heat source.",
+        "That matters because CMHA applies rent reasonableness to **gross rent**: rent charged plus tenant-paid utilities, or the allowance, not contract rent alone. The chart's footer says so — *\"subtract from reasonable gross rent to check if additional tenant portion would be required.\"* An identical standard buys different contract rent:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "At two bedrooms the \"Electricity — other\" allowance is **$45 for a multi-unit apartment** against **$64 for a single-family dwelling** — $19 a month of headroom, gone",
+          "Natural-gas space heat at two bedrooms: **$62** multi-unit apartment, **$66** townhouse/duplex/triplex/row house, **$68** single-family",
+          "Trash splits by geography, not building — **$16 a month suburban** against **$9 in the City of Cleveland**",
+          "If the voucher is for fewer bedrooms than the unit has, CMHA's guide describes applying the standard and allowance for the **smaller** of the two"
+        ]
+      }
+    },
+    {
+      "h2": "One family, one RFTA — and two chances at the inspection",
+      "body": [
+        "An owner with several units in one Euclid building expects to hedge — file on the two-bedroom and the one-bedroom, let CMHA choose. Policy forecloses it: **\"The family may not submit, and the PHA will not process, more than one (1) RTA at a time.\"** Pick the unit, then file.",
+        "The inspection is finite too. It gets two attempts, rescheduled within 7 to 10 days, and **\"[w]hen a unit fails an initial inspection the second time, the HCVP applicant/participant is provided with written notice to find another unit.\"** Two items on CMHA's 24-hour emergency list land hardest on older multi-unit stock: **no heat between October 15 and April 15**, and **unlockable windows within six feet of ground level and/or unit entry doors with missing or broken locks**. The clocks below are policy targets, not measured turnaround."
+      ],
+      "table": {
+        "headers": [
+          "Stage",
+          "CMHA's published policy"
+        ],
+        "rows": [
+          [
+            "Initial inspection, decision, notice",
+            "Within 15 days of RFTA submission; clock suspends while the unit is unavailable"
+          ],
+          [
+            "Tenancy-approval determination",
+            "Within 10 business days of receiving all required information"
+          ],
+          [
+            "Reinspection after repairs",
+            "Within five business days of the owner's notification"
+          ],
+          [
+            "HAP contract",
+            "No later than 60 calendar days from the lease start — after that it \"is void\""
+          ]
+        ]
+      }
+    },
+    {
+      "h2": "Nobody in Euclid can require you to do this",
+      "body": [
+        "Ohio's fair housing statute, R.C. 4112.02(H), does not list source of income or housing vouchers among its protected classes, and the U.S. Commission on Civil Rights' Ohio Advisory Committee puts it flatly: **\"Source-of-income discrimination is legal in most of Ohio.\"** PRRAC's compilation, updated March 2026, identifies five Cuyahoga municipalities with local protections — **South Euclid** among them, Euclid not. Ordinances change, so confirm with the city, and read [Can a Landlord Legally Say No to a Housing Voucher in Ohio?](/can-landlords-refuse-section-8-ohio/).",
+        "So the case is never obligation. Euclid asks for the registration whether a voucher is involved or not — and once you hold it, the rest is an orientation, an RFTA and an inspection."
+      ]
+    },
+    {
+      "h2": "Where we come in",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and **we have completed CMHA's Virtual Landlord Orientation** — which, since January 1, 2026, the owner or designated managing agent must complete every 24 months before CMHA can execute a HAP contract for a new tenancy. Named as your agent, that box is ticked the day your RFTA is filed."
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance plus a written report — $100.** Attend it yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Get the City of Euclid certificate before you advertise — CMHA collects it with the RFTA and asks for the occupancy permit again before your first check. Look up the unit's own ZIP instead of assuming a Euclid number. If it is an apartment, price off the multi-unit utility rows. Call **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is Euclid one of the suburbs where CMHA requires a rental registration?",
+      "a": "Yes. CMHA collects a copy of the Certificate of Occupancy and/or Rental Registration when an RFTA is submitted for a unit in 17 named suburbs, and Euclid is one of them. Cleveland is handled differently: since October 1, 2025 CMHA verifies Cleveland registrations through the City's Citizen Access Portal instead."
+    },
+    {
+      "q": "What is CMHA's payment standard for a two-bedroom in Euclid?",
+      "a": "It depends on the ZIP, not the city. Effective January 1, 2026 the two-bedroom standards are $1,220 in 44117, $1,333 in 44119, $1,446 in 44123, $1,435 in 44132 and $1,356 in 44143, against a $1,525 median across CMHA's 53 service-area ZIPs. Confirm your address in CMHA's tool."
+    },
+    {
+      "q": "Does CMHA use a different utility allowance for an apartment than for a house?",
+      "a": "Yes. CMHA's January 1, 2026 schedule sets allowances by building type — single-family, townhouse/duplex/triplex/row house, multi-unit apartment, manufactured home — then by heat source. At two bedrooms the \"Electricity — other\" allowance is $45 for a multi-unit apartment against $64 for a single-family dwelling, and rent reasonableness is applied to gross rent."
+    },
+    {
+      "q": "Do I have to accept a housing voucher in Euclid, Ohio?",
+      "a": "No. Ohio's fair housing statute does not list source of income among its protected classes, and the U.S. Commission on Civil Rights' Ohio Advisory Committee states that source-of-income discrimination is legal in most of Ohio. PRRAC's March 2026 compilation names five Cuyahoga municipalities with local protections; Euclid is not among them, though neighboring South Euclid is."
+    }
+  ],
+  "sources": [
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/rent.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://apps.cmha.net/rentdetermination/",
+    "https://www.cmha.net/Document%20Center/Housing/Landlords/Rent/UA%202026.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://codes.ohio.gov/ohio-revised-code/section-4112.02",
+    "https://www.usccr.gov/files/2025-08/soi-pb-ohio_july-2025.pdf",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}

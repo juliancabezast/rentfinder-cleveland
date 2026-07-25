@@ -1,0 +1,143 @@
+{
+  "slug": "section-8-landlords-cleveland-ohio",
+  "section": "section-8-landlords",
+  "title": "Renting to Voucher Tenants in the City of Cleveland: Registration, Lead-Safe and the Portal Check",
+  "metaTitle": "Section 8 Landlord Cleveland Ohio: City Rules First",
+  "metaDescription": "Section 8 landlord Cleveland Ohio guide: Residents First registration, a local agent in charge, lead-safe certification, and CMHA's rental registration check.",
+  "primaryKeyword": "section 8 landlord cleveland ohio",
+  "secondaryKeywords": [
+    "cleveland residents first landlord registration",
+    "cleveland rental registration cmha",
+    "lead safe certification cleveland rental",
+    "cleveland local agent in charge landlord",
+    "cmha citizen access portal rental registration"
+  ],
+  "answerBox": "CMHA does not license landlords — the City of Cleveland does. Residents First requires owners of non-owner-occupied property to register and pay fees, file an affidavit naming a local agent in charge, show current taxes, and hold lead-safe certification. Since October 1, 2025, CMHA verifies active Cleveland rental registrations through the City's Citizen Access Portal.",
+  "sections": [
+    {
+      "h2": "Cleveland licenses the building. CMHA does not license you",
+      "body": [
+        "Owners merge two systems into one imaginary permit. Only one is a license, and it is not CMHA's. Its Leasing with CMHA page states, \"Please note that CMHA does not have a pre-approval process for landlords or units,\" and its Administrative Plan agrees: **\"The PHA does not formally approve an owner to participate in the HCV program.\"**",
+        "The licensing happens at City Hall. Cleveland makes you register the property, name someone locally responsible for it and certify it against lead. CMHA's job is to check that you did."
+      ]
+    },
+    {
+      "h2": "Residents First: what the City asks for",
+      "body": [
+        "Under Cleveland's **Residents First** rules, owners of non-owner-occupied residential property must register and pay registration fees for each property, and submit an affidavit naming a **local agent in charge**, proof of current taxes or an established payment plan, and **lead-safe certification** — to obtain a **Certificate Approving Rental Occupancy**.",
+        "The City's warning is not decorative: \"[f]ailure to register rental properties as required may result in penalties, fines, and possible criminal prosecution.\"",
+        "Fee amounts and renewal cadence move, so confirm the current schedule with the City, not with a blog post. For how the same paperwork is named across the county: [Rental Registration, Occupancy Certificates and Leasing Permits](/what-is-a-rental-registration-permit-cleveland/)."
+      ]
+    },
+    {
+      "h2": "The local agent is what catches out-of-town owners",
+      "body": [
+        "Residents First requires every landlord to name a **\"local agent\" based in Cuyahoga County** who takes legal responsibility for the property. It is enforced with **$200 civil tickets**, and unpaid fines are added to the property tax bill.",
+        "Hold onto that last detail: the tax bill is exactly what gets examined later in the voucher process. Compliance is visibly incomplete — as of mid-June 2025, landlords representing **10,314 properties had registered 2,433 local agents**.",
+        "If you own from out of state, solve this first, and ask any manager you interview in writing: will you be named as the local agent? A management agreement is not that affidavit."
+      ]
+    },
+    {
+      "h2": "Lead-safe certification, and the rule underneath it",
+      "body": [
+        "Cleveland requires owners of rental units **built before 1978** to hold a **Lead Safe Certification** or an exemption. It is **valid for two years**, after which owners must re-apply. Owner-occupied properties are not certified.",
+        "That is a paperwork rule. Underneath it sits a federal one that looks at the paint itself: HUD Notice PIH 2024-26 REV-1 states that \"any deteriorated paint in target housing, or other lead-based paint hazard ... is considered a violation of HQS and the NSPIRE Standards.\"",
+        "CMHA attaches a clock. For pre-1978 units cited for defective paint where a child under 6 will reside, the owner has **10 days from the initial move-in inspection** — 30 days from an annual — to provide a passed lead clearance test and proof repairs were done by a certified lead abatement contractor. Not long enough to start looking for one: [Lead Paint Rules for Cleveland Rentals](/lead-paint-rules-for-rentals-cleveland/)."
+      ]
+    },
+    {
+      "h2": "The portal check: why a lapsed registration stalls an RFTA",
+      "body": [
+        "CMHA collects a Certificate of Occupancy and/or Rental Registration with the RFTA for units in **17 named suburbs** — Euclid, Lakewood, Parma, Shaker Heights and East Cleveland among them. The City of Cleveland is not on that list, which reads like an exemption.",
+        "It is not one. In CMHA's words: **\"Effective October 1, 2025, CMHA will verify active City of Cleveland rental registrations through the City's Citizen Access Portal for units located in Cleveland.\"** Nobody asks for a copy; the check happens without you.",
+        "Ownership is examined in the same stretch. CMHA's Landlord Participation Guide describes CMHA verifying ownership through the County Auditor's website after the RFTA is submitted, and confirming the unit is not in foreclosure and is current on property taxes. Registration, taxes and title get read as one picture. Rules differ by city — [The Cuyahoga County Map](/section-8-landlords-cuyahoga-county-ohio/)."
+      ]
+    },
+    {
+      "h2": "The order that saves you a month",
+      "body": [
+        "None of the city items are quick, and every CMHA clock after is short."
+      ],
+      "table": {
+        "headers": ["When", "What has to be true", "Whose rule"],
+        "rows": [
+          ["Before you advertise", "Registration and fees paid, agent affidavit filed, taxes current or on a plan, lead-safe certification held", "City"],
+          ["Before a new HAP contract", "Owner or designated managing agent has completed CMHA's Virtual Landlord Orientation — every 24 months since January 1, 2026", "CMHA"],
+          ["At RFTA", "Registration active in the City's Citizen Access Portal; ownership, foreclosure and taxes verified", "CMHA"],
+          ["After RFTA", "Inspection, decision and notice within 15 days of RFTA submission; tenancy determination within 10 business days of receiving all required information", "CMHA"],
+          ["Outer limit", "HAP contract executed no later than 60 calendar days from the start of the lease term — after that it \"is void\"", "CMHA"]
+        ]
+      },
+      "list": {
+        "type": "ul",
+        "items": [
+          "The voucher expires throughout — CMHA's Landlord Participation Guide describes it as **180 days from the issue date**, the deadline for the RFTA and lease",
+          "Fixes are not phoned in: CMHA **will not accept missing information or corrections by phone**, so deficiencies must be corrected in writing",
+          "Do not bridge a gap with keys — move a tenant in early and **\"the tenant will be responsible for the full amount of the rent\"**"
+        ]
+      }
+    },
+    {
+      "h2": "Nobody in Cleveland can make you do this",
+      "body": [
+        "The City's Office of Fair Housing publishes thirteen protected classes, and source of income, housing vouchers and Section 8 are not among them. Ohio adds no statewide protection — the U.S. Commission on Civil Rights' Ohio Advisory Committee puts it bluntly: \"Source-of-income discrimination is legal in most of Ohio.\" As of July 2026, an owner in the City of Cleveland may lawfully decline a voucher. Several Cuyahoga suburbs are a different story.",
+        "So the argument is never obligation. It is that **the registration, the agent affidavit and the lead-safe certificate are things Cleveland requires of you whether a voucher is ever involved or not.** Hold them already and the extra distance is short: an orientation, an RFTA, an inspection."
+      ]
+    },
+    {
+      "h2": "Where we come in",
+      "body": [
+        "We work Greater Cleveland and Cuyahoga County under CMHA, and **we have completed CMHA's Virtual Landlord Orientation** — which, since January 1, 2026, the owner or designated managing agent must complete every 24 months before CMHA can execute a HAP contract for a new tenancy. Our terms:"
+      ],
+      "list": {
+        "type": "ul",
+        "items": [
+          "**Tenant placement — one month's rent**, charged only after the tenant is placed. No placement, no fee",
+          "**Inspection attendance plus a written report — $100.** Attend yourself instead and pay nothing",
+          "**Ongoing management — 5% of monthly rent**, only while the unit is rented",
+          "**Repair estimates — free, itemized, back inside 24 hours.** Nothing starts without your approval"
+        ]
+      }
+    },
+    {
+      "h2": "The short version",
+      "body": [
+        "Register and pay the fees, file the affidavit naming a local agent in Cuyahoga County, get taxes current or on a plan, hold a lead-safe certification if the building predates 1978 — and keep the registration live, because CMHA now reads it out of the City's portal. Call **(440) 444-4737**, or read [Section 8 Stress Free](/section8stressfree)."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What does the City of Cleveland require before I can rent to a voucher tenant?",
+      "a": "These apply to renting at all, not to vouchers. Under Residents First, an owner of non-owner-occupied residential property must register and pay registration fees for each property and submit an affidavit naming a local agent in charge, proof of current taxes or a payment plan, and lead-safe certification, to obtain a Certificate Approving Rental Occupancy."
+    },
+    {
+      "q": "Does CMHA check my Cleveland rental registration?",
+      "a": "Yes, and without asking you. CMHA states that effective October 1, 2025 it verifies active City of Cleveland rental registrations through the City's Citizen Access Portal for units located in Cleveland. There is no document to attach, and a registration that is not active when CMHA looks stalls the Request for Tenancy Approval."
+    },
+    {
+      "q": "Do I need a lead-safe certificate for a Cleveland rental?",
+      "a": "Cleveland requires owners of rental units built before 1978 to hold a Lead Safe Certification or an exemption, valid for two years, after which owners re-apply. Owner-occupied properties are not certified. Separately, where a pre-1978 unit is cited for defective paint and a child under 6 will reside, CMHA gives the owner 10 days from the initial inspection to produce a passed clearance test."
+    },
+    {
+      "q": "Can my property manager be the Residents First local agent?",
+      "a": "The rule names a local agent based in Cuyahoga County who takes legal responsibility for the property, and the City wants an affidavit naming that agent. Whether a given manager accepts the role is worth settling in writing before you sign, because a management agreement is a different document and does not produce the affidavit."
+    }
+  ],
+  "sources": [
+    "https://clevelandohio.gov/residents/codes-ordinances/residents-first",
+    "https://clevelandohio.gov/city-hall/departments/building-housing/divisions/records-administration/lead-safe-certification/landlords-owners",
+    "https://clevelandohio.gov/city-hall/departments/community-development/programs-services/fair-housing",
+    "https://signalcleveland.org/cleveland-residents-first-local-agent-landlord-law-bibb/",
+    "https://www.cmha.net/housing/landlords/leasing_with_cmha.php",
+    "https://www.cmha.net/housing/landlords/landlord_faq.php",
+    "https://www.cmha.net/housing/landlords/training.php",
+    "https://www.cmha.net/housing/landlords/inspections.php",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/About%20Us/Official%20Documents/Policies,%20Plans%20&%20Reports/FY2025%20Admin%20Plan.pdf",
+    "https://cms3.revize.com/revize/cuyahoga/Document%20Center/Housing/Landlords/Forms%20&%20Documents/LandlordGuidebook.pdf",
+    "https://www.hud.gov/sites/dfiles/OCHCO/documents/2024-26pihn.pdf",
+    "https://www.usccr.gov/files/2025-08/soi-pb-ohio_july-2025.pdf",
+    "https://www.prrac.org/pdf/AppendixB.pdf"
+  ],
+  "lastUpdated": "2026-07-21"
+}
