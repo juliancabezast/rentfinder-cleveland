@@ -170,6 +170,22 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
     const body = (await req.json().catch(() => ({}))) as NotifyBody;
 
+    // ── Funnel bot repurposed → pure lead-OPS tool (2026-07-25, owner decision) ──
+    // New-lead PUSH cards are retired: the live dashboard already shows the count,
+    // and the Funnel bot is now for search/edit/manage only. Kill 🆕 HERE at the
+    // single choke point so EVERY producer (website forms, capture-lead, public
+    // booking, Hemlane single + digest) stops at once — no per-producer edits.
+    // Kept on purpose: the 9 AM work-queue summary ({reminders,fresh}) as the
+    // mgmt-queue nudge, ⏰ lead_reminder (the follow-up queue), and 🔥 hot_lead
+    // (already trigger-disabled by milestone-scoring-v1).
+    if (body.event === "new_lead") return json({ ok: false, skipped: "new_lead_retired" });
+    if (body.event === "leads_batch") {
+      const bp = (body.payload as Record<string, unknown> | undefined) || {};
+      if (!Number(bp.reminders ?? 0) && !Number(bp.fresh ?? 0)) {
+        return json({ ok: false, skipped: "new_lead_digest_retired" });
+      }
+    }
+
     // ALL per-lead alerts (new + hot + reminders) go to the FUNNEL bot
     // (@FunnelRFCBot) — the lead-management bot (2026-07-19 restructure; the
     // old Hot Leads/@ShowingsBot is being repurposed and receives nothing).
