@@ -54,6 +54,7 @@ import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
 import { ManageSlotsTab } from "@/components/showings/ManageSlotsTab";
 import { BookingPageTab } from "@/components/showings/BookingPageTab";
 import { ShowingDetailDialog } from "@/components/showings/ShowingDetailDialog";
+import { ShowingsAgenda } from "@/components/showings/ShowingsAgenda";
 
 interface ShowingWithDetails {
   id: string;
@@ -400,6 +401,18 @@ const ShowingsList: React.FC = () => {
     return groups;
   }, [showings]);
 
+  // Showing Schedule tab: mobile shows the action-first day Agenda; desktop can
+  // toggle between the Agenda and the availability grid (default = grid).
+  const [desktopView, setDesktopView] = useState<"grid" | "agenda">("grid");
+  const openReport = (showingId: string, leadId: string, propertyAddress?: string) => {
+    setSelectedShowingForReport({ id: showingId, leadId, propertyAddress });
+    setReportDialogOpen(true);
+  };
+  const openDetail = (showingId: string) => {
+    setSelectedShowingId(showingId);
+    setDetailDialogOpen(true);
+  };
+
   const handleOpenReport = (e: React.MouseEvent, showing: ShowingWithDetails) => {
     e.stopPropagation();
     setSelectedShowingForReport({
@@ -569,18 +582,48 @@ const ShowingsList: React.FC = () => {
         </TabsList>
 
         <TabsContent value="slots" className="space-y-6">
-          <ManageSlotsTab
-            onTotalsChange={setSlotTotals}
-            reloadSignal={calendarReload}
-            onOpenReport={(showingId, leadId, propertyAddress) => {
-              setSelectedShowingForReport({ id: showingId, leadId, propertyAddress });
-              setReportDialogOpen(true);
-            }}
-            onShowingClick={(showingId) => {
-              setSelectedShowingId(showingId);
-              setDetailDialogOpen(true);
-            }}
-          />
+          {/* Mobile: the action-first day Agenda replaces the slot grid. */}
+          <div className="lg:hidden">
+            <ShowingsAgenda
+              reloadSignal={calendarReload}
+              onReload={bumpCalendar}
+              onOpenReport={openReport}
+              onShowingClick={openDetail}
+            />
+          </div>
+
+          {/* Desktop: toggle between the Agenda and the availability grid. */}
+          <div className="hidden lg:block space-y-3">
+            <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+              <button
+                onClick={() => setDesktopView("grid")}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${desktopView === "grid" ? "bg-white shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                📅 Disponibilidad
+              </button>
+              <button
+                onClick={() => setDesktopView("agenda")}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${desktopView === "agenda" ? "bg-white shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                📋 Agenda
+              </button>
+            </div>
+            {desktopView === "agenda" ? (
+              <ShowingsAgenda
+                reloadSignal={calendarReload}
+                onReload={bumpCalendar}
+                onOpenReport={openReport}
+                onShowingClick={openDetail}
+              />
+            ) : (
+              <ManageSlotsTab
+                onTotalsChange={setSlotTotals}
+                reloadSignal={calendarReload}
+                onOpenReport={openReport}
+                onShowingClick={openDetail}
+              />
+            )}
+          </div>
         </TabsContent>
 
 
