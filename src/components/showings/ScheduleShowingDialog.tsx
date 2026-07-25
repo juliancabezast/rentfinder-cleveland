@@ -132,7 +132,8 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   // Admins can book ANY half-hour manually — not just the publicly-open slots.
   const [selectedTime, setSelectedTime] = useState<string>(""); // "HH:MM:00"
-  const [bookedTimes, setBookedTimes] = useState<Set<string>>(new Set()); // org-wide booked times for the date (single agent ⇒ can't double-book)
+  const [bookedTimes, setBookedTimes] = useState<Set<string>>(new Set()); // times booked by a DIFFERENT property on the date (agent busy elsewhere → disabled)
+  const [sameGroupTimes, setSameGroupTimes] = useState<Set<string>>(new Set()); // times the SELECTED property is already booked → group tour, still bookable
   const [selectedDuration, setSelectedDuration] = useState<string>("30");
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -302,19 +303,37 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       });
       setAvailableSlots(deduped);
 
-      // Org-wide booked times for this date — the single agent can't be in two
-      // places at once, so these are disabled in the manual-book time picker.
-      const { data: bookedRows } = await supabase
-        .from("showing_available_slots")
-        .select("slot_time")
+      // Which times are truly taken, and by WHICH property. Slot rows can't tell
+      // us — the agent-scoped sibling-blocking marks OTHER properties' slots
+      // is_booked too — so read the showings table (the real bookings). A time
+      // booked by a DIFFERENT property = agent busy → disabled. A time booked by
+      // the SAME (selected) property = a group tour → still bookable.
+      const propTz = getTimezoneForCity(properties.find((p) => p.id === selectedPropertyId)?.city);
+      const dayStart = buildScheduledAt(dateStr, "00:00:00", propTz);
+      const dayEnd = new Date(new Date(dayStart).getTime() + 24 * 60 * 60 * 1000).toISOString();
+      const { data: dayShowings } = await supabase
+        .from("showings")
+        .select("scheduled_at, property_id")
         .eq("organization_id", userRecord.organization_id)
-        .eq("slot_date", dateStr)
-        .eq("is_booked", true);
-      setBookedTimes(new Set((bookedRows || []).map((r) => r.slot_time)));
+        .in("status", ["scheduled", "confirmed"])
+        .gte("scheduled_at", dayStart)
+        .lt("scheduled_at", dayEnd);
+      const otherTimes = new Set<string>();
+      const groupTimes = new Set<string>();
+      (dayShowings || []).forEach((s: any) => {
+        const t = new Date(s.scheduled_at).toLocaleString("en-GB", {
+          timeZone: propTz, hour: "2-digit", minute: "2-digit", hour12: false,
+        }) + ":00";
+        if (s.property_id === selectedPropertyId) groupTimes.add(t);
+        else otherTimes.add(t);
+      });
+      setBookedTimes(otherTimes);
+      setSameGroupTimes(groupTimes);
     } catch (error) {
       console.error("Error fetching available slots:", error);
       setAvailableSlots([]);
       setBookedTimes(new Set());
+      setSameGroupTimes(new Set());
     } finally {
       setLoadingSlots(false);
     }
@@ -456,6 +475,60 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           setSubmitting(false);
           return;
         }
+      }
+
+      // ── Group tour: THIS property is already booked at this exact time → this
+      // is a 2nd+ attendee. The slot is already booked and the agent-time already
+      // blocked by the first attendee, and the DB guard permits same-property/
+      // same-time. So add the showing directly (no slot claim, no mass-block),
+      // then the essential side-effects; trg_milestone_showings still scores it.
+      const isGroupAdd = sameGroupTimes.has(slotTime);
+      if (isGroupAdd) {
+        const { data: gShowing, error: gErr } = await supabase
+          .from("showings")
+          .insert({
+            organization_id: userRecord.organization_id,
+            lead_id: selectedLeadId,
+            property_id: selectedPropertyId,
+            leasing_agent_id: selectedAgentId || null,
+            scheduled_at: scheduledAt,
+            duration_minutes: durationMinutes,
+            status: "scheduled",
+            booked_by: userRecord.auth_user_id,
+            booked_by_name: userRecord.full_name || null,
+            booking_source: "admin",
+          })
+          .select("id")
+          .single();
+        if (gErr || !gShowing) throw gErr || new Error("Could not add to the group tour");
+
+        // Advance the lead (scoring is handled by the DB milestone engine).
+        try {
+          await supabase.from("leads")
+            .update({ status: "showing_scheduled", updated_at: new Date().toISOString() })
+            .eq("id", selectedLeadId);
+        } catch (e) { console.error("Group add: lead status update failed", e); }
+
+        // Save the admin's note, if any.
+        const gNotes = notes.trim();
+        if (gNotes) {
+          try {
+            await supabase.from("lead_notes").insert({
+              organization_id: userRecord.organization_id,
+              lead_id: selectedLeadId,
+              created_by: userRecord.id,
+              content: gNotes,
+              note_type: "showing_note",
+              related_showing_id: gShowing.id,
+            });
+          } catch (e) { console.error("Group add: note failed", e); }
+        }
+
+        toast.success(`Added to the group tour at ${formatTimeDisplay(slotTime)} ✅`);
+        resetForm();
+        onOpenChange(false);
+        onSuccess?.();
+        return;
       }
 
       // A showing longer than one 30-min slot spans multiple slot times. The
@@ -1143,12 +1216,13 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     {ADMIN_TIME_OPTIONS.map((t) => {
-                      const booked = bookedTimes.has(t);
+                      const booked = bookedTimes.has(t);       // other property → agent busy
+                      const group = sameGroupTimes.has(t);     // same property already here → group tour
                       const open = availableSlots.some((s) => s.slot_time === t);
                       return (
                         <SelectItem key={t} value={t} disabled={booked}>
                           {formatTimeDisplay(t)}
-                          {booked ? " · booked" : open ? "" : " · add"}
+                          {booked ? " · booked" : group ? " · +grupo" : open ? "" : " · add"}
                         </SelectItem>
                       );
                     })}

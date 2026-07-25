@@ -33,6 +33,7 @@ import {
   FileText,
 } from "lucide-react";
 import { format, addDays, parseISO, startOfDay, startOfWeek } from "date-fns";
+import { buildScheduledAt } from "@/lib/cityTimezone";
 
 // ── The single "bookable" definition: a property whose slots may be shown /
 // opened / booked. Only 'available' — coming_soon is visible in the public
@@ -213,6 +214,8 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [hideEmptyDays, setHideEmptyDays] = useState(false);
   const [missingReports, setMissingReports] = useState<MissingReport[]>([]);
+  // Which showing is mid quick-report (spinner + disable its buttons), by id.
+  const [reportingId, setReportingId] = useState<string | null>(null);
 
   // Drag-to-select range state (logic lives after allTimes/visibleDays exist)
   const [drag, setDrag] = useState<{ a: { d: number; t: number }; b: { d: number; t: number } } | null>(null);
@@ -242,36 +245,35 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
   // ── Missing reports: past showings with no report filed. Each is now
   // actionable (file the report in one click) instead of a bare date chip. ──
-  useEffect(() => {
+  const loadMissingReports = useCallback(async () => {
     if (!orgId) return;
-    (async () => {
-      const nowIso = new Date().toISOString();
-      // 'no_show' is a RECORDED outcome (the report notes are optional), so a
-      // no-show is not "missing a report" — only past showings still awaiting an
-      // outcome (scheduled/confirmed) or auto-completed with no write-up
-      // (completed + null report, e.g. DoorLoop) qualify. .limit caps the chip
-      // list (mirrors the paginated slot query's 1000-row PostgREST guard).
-      const { data } = await supabase
-        .from("showings")
-        .select("id, scheduled_at, status, lead_id, leads(full_name), properties(address)")
-        .eq("organization_id", orgId)
-        .lt("scheduled_at", nowIso)
-        .in("status", ["scheduled", "confirmed", "completed"])
-        .is("agent_report", null)
-        .order("scheduled_at", { ascending: true })
-        .limit(500);
-      setMissingReports(
-        (data || []).map((s: any) => ({
-          id: s.id,
-          leadId: s.lead_id,
-          leadName: s.leads?.full_name || "Unknown lead",
-          address: s.properties?.address || "Unknown property",
-          date: new Date(s.scheduled_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" }),
-          status: s.status,
-        })),
-      );
-    })();
-  }, [orgId, weekOffset, reloadSignal]);
+    const nowIso = new Date().toISOString();
+    // 'no_show' is a RECORDED outcome (the report notes are optional), so a
+    // no-show is not "missing a report" — only past showings still awaiting an
+    // outcome (scheduled/confirmed) or auto-completed with no write-up
+    // (completed + null report, e.g. DoorLoop) qualify. .limit caps the chip
+    // list (mirrors the paginated slot query's 1000-row PostgREST guard).
+    const { data } = await supabase
+      .from("showings")
+      .select("id, scheduled_at, status, lead_id, leads(full_name), properties(address)")
+      .eq("organization_id", orgId)
+      .lt("scheduled_at", nowIso)
+      .in("status", ["scheduled", "confirmed", "completed"])
+      .is("agent_report", null)
+      .order("scheduled_at", { ascending: true })
+      .limit(500);
+    setMissingReports(
+      (data || []).map((s: any) => ({
+        id: s.id,
+        leadId: s.lead_id,
+        leadName: s.leads?.full_name || "Unknown lead",
+        address: s.properties?.address || "Unknown property",
+        date: new Date(s.scheduled_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" }),
+        status: s.status,
+      })),
+    );
+  }, [orgId]);
+  useEffect(() => { loadMissingReports(); }, [loadMissingReports, weekOffset, reloadSignal]);
 
   // Group the missing reports by day for the chip row.
   const missingByDate = useMemo(() => {
@@ -423,6 +425,38 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       });
     });
 
+    // Active showings in the window, grouped by (Cleveland date, time). A slot row
+    // carries only ONE booked_showing_id per (property, time), so a group tour's
+    // 2nd+ attendee (same property + time — now allowed by the milestone guard swap)
+    // has no slot pointing at it. Source group members from the showings table and
+    // MERGE any a slot didn't surface (below) — additive, so the normal single
+    // booking path is untouched.
+    const bookedMap = new Map<string, Map<string, BookingInfo[]>>();
+    {
+      const { data: activeData } = await supabase
+        .from("showings")
+        .select("id, scheduled_at, status, property_id, leads(full_name), properties(address)")
+        .eq("organization_id", orgId)
+        .in("status", ["scheduled", "confirmed", "completed"])
+        .gte("scheduled_at", startInstant)
+        .lte("scheduled_at", endInstant);
+      (activeData || []).forEach((s: any) => {
+        const d = new Date(s.scheduled_at);
+        const dateKey = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+        const h = d.toLocaleString("en-GB", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false });
+        const timeKey = h + ":00";
+        if (!bookedMap.has(dateKey)) bookedMap.set(dateKey, new Map());
+        const tm = bookedMap.get(dateKey)!;
+        if (!tm.has(timeKey)) tm.set(timeKey, []);
+        tm.get(timeKey)!.push({
+          showingId: s.id,
+          leadName: s.leads?.full_name || "Booked",
+          address: s.properties?.address || "Booked",
+          status: s.status,
+        });
+      });
+    }
+
     // Group by date -> time
     const dayMap = new Map<string, Map<string, SlotProperty[]>>();
     (data || []).forEach((s: any) => {
@@ -450,6 +484,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       const dateStr = format(d, "yyyy-MM-dd");
       const timeMap = dayMap.get(dateStr);
       const dayCancelled = cancelledMap.get(dateStr);
+      const dayBooked = bookedMap.get(dateStr);
       const timeSlots = new Map<string, TimeSlotGroup>();
       if (timeMap) {
         timeMap.forEach((props, time) => {
@@ -462,6 +497,14 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
               address: p.property_address,
               status: p.showing_status,
             }));
+          // Merge in group-tour attendees (same property + time) not pointed at by
+          // any slot row — additive, deduped by showingId.
+          {
+            const shown = new Set(bookings.map((b) => b.showingId).filter(Boolean));
+            for (const extra of dayBooked?.get(time) || []) {
+              if (extra.showingId && !shown.has(extra.showingId)) { bookings.push(extra); shown.add(extra.showingId); }
+            }
+          }
           timeSlots.set(time, {
             time,
             properties: openPool,
@@ -493,6 +536,96 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     if (!didMountReload.current) { didMountReload.current = true; return; }
     fetchSlots();
   }, [reloadSignal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── One-click outcome report on a PAST showing (attended vs no-show) ──
+  // Mirrors the Telegram handleAttendance mutation exactly: attended →
+  // completed (+completed_at); no-show → no_show. Both set followed_up_at
+  // (parity with Telegram) and, when no write-up exists yet, a tiny
+  // agent_report marker so the "Missing reports" chip — which keys off
+  // agent_report IS NULL — clears. DB triggers own the rest: trg_milestone_showings
+  // bumps the lead score (completed → 80) and update_lead_status_on_showing flips
+  // the lead to 'showed'. NEVER write lead_score from here (milestone engine owns it).
+  const quickReport = useCallback(async (showingId: string, attended: boolean) => {
+    if (!orgId) return;
+    setReportingId(showingId);
+    try {
+      const nowIso = new Date().toISOString();
+      const upd: Record<string, any> = attended
+        ? { status: "completed", completed_at: nowIso, followed_up_at: nowIso }
+        : { status: "no_show", followed_up_at: nowIso };
+      const { data: cur } = await supabase
+        .from("showings").select("agent_report").eq("id", showingId).maybeSingle();
+      if (!cur?.agent_report) {
+        upd.agent_report = attended ? "Asistió ✅ (reporte rápido)" : "No asistió 👻 (reporte rápido)";
+      }
+      const { error } = await supabase
+        .from("showings").update(upd).eq("organization_id", orgId).eq("id", showingId);
+      if (error) throw error;
+      toast({ title: attended ? "✅ Asistió" : "👻 No asistió", description: "Reporte guardado." });
+      await Promise.all([fetchSlots(), loadMissingReports()]);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "No se pudo guardar el reporte.", variant: "destructive" });
+    } finally {
+      setReportingId(null);
+    }
+  }, [orgId, toast, fetchSlots, loadMissingReports]);
+
+  // ── Drag-and-drop reschedule (desktop only) ──
+  // Drag a booked chip onto a future cell to move it. Time is stored as
+  // showings.scheduled_at (Cleveland tz); slot rows only MIRROR it (sync trigger
+  // fires on status changes, not scheduled_at) so we move the slot booking by
+  // hand: free the old slot(s) linked to this showing, book the new (property,
+  // date, time) slot. The DB guard (trg_enforce_showing_agent_slot) validates the
+  // new instant on the UPDATE — a DIFFERENT property already there → 23505.
+  const rescheduleShowing = useCallback(async (showingId: string, newDate: string, newTime: string) => {
+    if (!orgId || !showingId) return;
+    try {
+      const { data: sh } = await supabase
+        .from("showings").select("property_id, scheduled_at").eq("id", showingId).maybeSingle();
+      if (!sh?.property_id) { toast({ title: "Error", description: "No encontré ese showing.", variant: "destructive" }); return; }
+      const propertyId = sh.property_id as string;
+      const newScheduledAt = buildScheduledAt(newDate, newTime, "America/New_York");
+      if (sh.scheduled_at === newScheduledAt) return; // dropped on its own cell → no-op
+
+      // 1. Move the showing (guard validates different-property conflict → 23505).
+      const { error: updErr } = await supabase
+        .from("showings").update({ scheduled_at: newScheduledAt, status: "scheduled" })
+        .eq("organization_id", orgId).eq("id", showingId);
+      if (updErr) {
+        if ((updErr as any).code === "23505") {
+          toast({ title: "Ocupado", description: "Ese horario ya está tomado por otra propiedad.", variant: "destructive" });
+        } else {
+          toast({ title: "Error", description: (updErr as any).message || "No se pudo reagendar.", variant: "destructive" });
+        }
+        await fetchSlots();
+        return;
+      }
+      // 2. Free the old slot(s) this showing occupied.
+      await supabase.from("showing_available_slots")
+        .update({ is_booked: false, booked_showing_id: null, booked_at: null })
+        .eq("organization_id", orgId).eq("booked_showing_id", showingId);
+      // 3. Book the new slot (find or create for this property + date + time).
+      const { data: existingSlot } = await supabase.from("showing_available_slots")
+        .select("id").eq("organization_id", orgId).eq("property_id", propertyId)
+        .eq("slot_date", newDate).eq("slot_time", newTime).maybeSingle();
+      const nowIso = new Date().toISOString();
+      if (existingSlot) {
+        await supabase.from("showing_available_slots")
+          .update({ is_booked: true, booked_showing_id: showingId, booked_at: nowIso })
+          .eq("id", existingSlot.id);
+      } else {
+        await supabase.from("showing_available_slots").insert({
+          organization_id: orgId, property_id: propertyId, slot_date: newDate, slot_time: newTime,
+          duration_minutes: 30, is_enabled: true, is_booked: true, booked_showing_id: showingId, booked_at: nowIso,
+        });
+      }
+      toast({ title: "Reagendado ✅", description: `Movido a ${formatTime(newTime)}` });
+      await fetchSlots();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "No se pudo reagendar.", variant: "destructive" });
+      await fetchSlots();
+    }
+  }, [orgId, toast, fetchSlots]);
 
   // ── Totals ──────────────────────────────────────────────────────────
   const totals = useMemo(() => {
@@ -914,35 +1047,38 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                   </button>
                 </div>
                 <div className="space-y-1">
-                  {items.map((r) => (
+                  {items.map((r) => {
+                    const busyThis = reportingId === r.id;
+                    return (
                     <div
                       key={r.id}
-                      className="flex items-center gap-2 rounded-md px-2 py-1.5 bg-red-50/60 border border-red-100"
+                      className="rounded-md px-2 py-1.5 bg-red-50/60 border border-red-100 space-y-1.5"
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium truncate">{r.leadName}</div>
-                        <div className="text-[10px] text-muted-foreground truncate">{r.address}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium truncate">{r.leadName}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{r.address}</div>
+                        </div>
+                        {onShowingClick && (
+                          <button onClick={() => onShowingClick(r.id)} className="text-slate-500 hover:text-[#4F46E5] shrink-0" title="Ver showing"><Eye className="h-3.5 w-3.5" /></button>
+                        )}
                       </div>
-                      {onOpenReport ? (
-                        <Button
-                          size="sm"
-                          className="h-7 text-xs bg-[#4F46E5] hover:bg-[#4F46E5]/90 shrink-0"
-                          onClick={() => onOpenReport(r.id, r.leadId, r.address)}
-                        >
-                          <FileText className="h-3 w-3 mr-1" /> Report
+                      <div className="flex gap-1.5">
+                        <Button size="sm" disabled={busyThis} onClick={() => quickReport(r.id, true)} className="flex-1 h-7 text-xs bg-green-600 hover:bg-green-700 text-white">
+                          {busyThis ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅ Fue"}
                         </Button>
-                      ) : onShowingClick ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs shrink-0"
-                          onClick={() => onShowingClick(r.id)}
-                        >
-                          View
+                        <Button size="sm" variant="outline" disabled={busyThis} onClick={() => quickReport(r.id, false)} className="flex-1 h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50">
+                          👻 No fue
                         </Button>
-                      ) : null}
+                        {onOpenReport && (
+                          <Button size="sm" variant="outline" disabled={busyThis} onClick={() => onOpenReport(r.id, r.leadId, r.address)} className="h-7 text-xs shrink-0" title="Reporte completo">
+                            <FileText className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </PopoverContent>
             </Popover>
@@ -1112,6 +1248,8 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                               onSetCities={(cities) => setSlotCities(day.date, time, cities)}
                               onClose={() => closeSlot(day.date, time)}
                               onShowingClick={onShowingClick}
+                              onQuickReport={quickReport}
+                              reportingId={reportingId}
                             />
                           </div>
                         </div>
@@ -1209,6 +1347,12 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                           <td
                             key={day.date}
                             onPointerEnter={() => extendDrag(dIdx, tIdx)}
+                            onDragOver={(e) => { if (!past) e.preventDefault(); }}
+                            onDrop={(e) => {
+                              if (past) return;
+                              const id = e.dataTransfer.getData("text/plain");
+                              if (id) rescheduleShowing(id, day.date, time);
+                            }}
                             className={`p-1 text-center align-middle ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""} ${inDrag(dIdx, tIdx) ? "bg-[#4F46E5]/15" : ""}`}
                           >
                             <SlotCell
@@ -1228,6 +1372,8 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                               onSetCities={(cities) => setSlotCities(day.date, time, cities)}
                               onClose={() => closeSlot(day.date, time)}
                               onShowingClick={onShowingClick}
+                              onQuickReport={quickReport}
+                              reportingId={reportingId}
                             />
                           </td>
                         );
@@ -1337,7 +1483,9 @@ const SlotCell: React.FC<{
   onSetCities: (cities: string[]) => void;
   onClose: () => void;
   onShowingClick?: (id: string) => void;
-}> = ({ day, time, ts, past, cellBusy, cityNames, cityCounts, dayIdx, timeIdx, highlighted, movedRef, onDragBegin, onOpen, onSetCities, onClose, onShowingClick }) => {
+  onQuickReport?: (showingId: string, attended: boolean) => void;
+  reportingId?: string | null;
+}> = ({ day, time, ts, past, cellBusy, cityNames, cityCounts, dayIdx, timeIdx, highlighted, movedRef, onDragBegin, onOpen, onSetCities, onClose, onShowingClick, onQuickReport, reportingId }) => {
   const openCount = ts?.properties.length || 0;
   const bookedCount = ts?.bookedCount || 0;
   const cancelled = ts?.cancelledShowings || [];
@@ -1352,13 +1500,60 @@ const SlotCell: React.FC<{
 
   const bookings = ts?.bookings || [];
 
-  // Past cells are read-only
+  // Past cells: a booked one is CLICKABLE to file a one-click outcome report
+  // (✅ Fue / 👻 No fue); cancelled/empty stay read-only.
   if (past) {
     if (isBooked) return (
-      <div className="rounded-md border bg-green-50 border-green-200 text-green-700 px-2 py-1 text-[10px]">
-        <div className="font-bold truncate">{firstName(bookings[0]?.leadName || "Done")}</div>
-        {bookings[0]?.address && <div className="opacity-70 truncate">{bookings[0].address}</div>}
-      </div>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button className="w-full rounded-md border bg-green-50 border-green-200 text-green-700 px-2 py-1 text-[10px] text-left hover:bg-green-100 transition-colors">
+            <div className="font-bold truncate">{firstName(bookings[0]?.leadName || "Done")}</div>
+            <div className="opacity-70 truncate">
+              {bookedCount > 1 ? `+${bookedCount - 1} más · ${bookings[0]?.address || ""}` : (bookings[0]?.address || "")}
+            </div>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 p-3" side="bottom" align="center">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm">{formatTime(time)} · {format(parseISO(day.date), "MMM d")}</span>
+              <Badge variant="outline" className="text-[10px] border-slate-200 text-slate-500">Pasado</Badge>
+            </div>
+            {bookings.map((b, i) => {
+              const done = b.status === "completed";
+              const busyThis = !!b.showingId && reportingId === b.showingId;
+              return (
+                <div key={b.showingId || i} className="rounded-md border border-slate-100 bg-slate-50/70 px-2 py-1.5 space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs">
+                    <Home className="h-3 w-3 shrink-0 text-slate-400" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{b.leadName}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{b.address}</div>
+                    </div>
+                    {b.showingId && onShowingClick && (
+                      <button onClick={() => onShowingClick(b.showingId!)} className="text-slate-500 hover:text-[#4F46E5] shrink-0"><Eye className="h-3.5 w-3.5" /></button>
+                    )}
+                  </div>
+                  {done ? (
+                    <div className="text-[10px] text-green-700 font-medium flex items-center gap-1"><Check className="h-3 w-3" /> Asistió — reportado</div>
+                  ) : b.showingId && onQuickReport ? (
+                    <div className="flex gap-1.5">
+                      <Button size="sm" disabled={busyThis} onClick={() => onQuickReport(b.showingId!, true)}
+                        className="flex-1 h-7 text-xs bg-green-600 hover:bg-green-700 text-white">
+                        {busyThis ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅ Fue"}
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busyThis} onClick={() => onQuickReport(b.showingId!, false)}
+                        className="flex-1 h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50">
+                        👻 No fue
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
     );
     if (hasCancelled) return (
       <div className="rounded-md border bg-orange-50 border-orange-200 text-orange-600 px-2 py-1 text-[10px]">
@@ -1379,7 +1574,15 @@ const SlotCell: React.FC<{
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${cellStyle} ${highlighted ? "ring-2 ring-[#4F46E5] ring-offset-1" : ""}`}
+          className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${cellStyle} ${highlighted ? "ring-2 ring-[#4F46E5] ring-offset-1" : ""} ${isBooked && bookings[0]?.showingId ? "cursor-grab active:cursor-grabbing" : ""}`}
+          // Drag a booked chip to a new cell to reschedule (desktop HTML5 DnD).
+          draggable={isBooked && !!bookings[0]?.showingId}
+          onDragStart={(e) => {
+            if (isBooked && bookings[0]?.showingId) {
+              e.dataTransfer.setData("text/plain", bookings[0].showingId);
+              e.dataTransfer.effectAllowed = "move";
+            }
+          }}
           // Mouse drag to select a range (only when startable: future, not booked)
           onPointerDown={(e) => {
             if (e.pointerType === "mouse" && e.button === 0 && !isBooked) onDragBegin(dayIdx, timeIdx);
