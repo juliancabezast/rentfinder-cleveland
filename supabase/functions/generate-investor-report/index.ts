@@ -273,11 +273,12 @@ serve(async (req) => {
       organization_id = callerRec.organization_id;
     }
 
-    // 1. Get investor info
+    // 1. Get investor info (scoped to caller's org)
     const { data: investor, error: investorError } = await supabase
       .from("users")
       .select("full_name, email")
       .eq("id", investor_id)
+      .eq("organization_id", organization_id)
       .single();
 
     if (investorError || !investor) {
@@ -309,11 +310,13 @@ serve(async (req) => {
     }
     const siteUrl = `https://${senderDomain}`;
 
-    // 3. Get investor's properties
+    // 3. Get investor's properties (scoped to caller's org)
     const { data: access } = await supabase
       .from("investor_property_access")
       .select("property_id")
-      .eq("investor_id", investor_id);
+      .eq("investor_id", investor_id)
+      .eq("organization_id", organization_id);
+
 
     const propertyIds = access?.map((a) => a.property_id) || [];
 
