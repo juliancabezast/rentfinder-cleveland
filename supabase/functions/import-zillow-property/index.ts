@@ -126,8 +126,23 @@ async function scrapeZillowPage(url: string): Promise<{
   photos: string[];
   yearBuilt: number | null;
 } | null> {
+  // ── SSRF guard: only allow the real Zillow hosts over http(s) ──
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+    const host = parsed.hostname.toLowerCase();
+    const allowedHosts = new Set(["www.zillow.com", "zillow.com", "m.zillow.com"]);
+    if (!allowedHosts.has(host)) {
+      console.error(`Zillow scrape rejected: host not allowed (${host})`);
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
   try {
     const resp = await fetch(url, {
+      redirect: "manual",
       headers: {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -139,6 +154,7 @@ async function scrapeZillowPage(url: string): Promise<{
       console.error(`Zillow page fetch failed: ${resp.status}`);
       return null;
     }
+
 
     const html = await resp.text();
 

@@ -37,6 +37,7 @@ serve(async (req: Request) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
 
+    let callerOrgId: string | null = null;
     if (!isServiceRole) {
       if (!callerToken || callerToken === anonKey) {
         return new Response(
@@ -53,24 +54,22 @@ serve(async (req: Request) => {
       }
       const { data: callerRec } = await supabase
         .from("users")
-        .select("is_active")
+        .select("organization_id, is_active")
         .eq("auth_user_id", authData.user.id)
         .single();
-      if (!callerRec || callerRec.is_active === false) {
+      if (!callerRec || callerRec.is_active === false || !callerRec.organization_id) {
         return new Response(
           JSON.stringify({ error: "Forbidden" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      callerOrgId = callerRec.organization_id;
     }
 
-    // ── Gather all lead data (scoped by org via lead's own org_id) ──
-    const { data: lead } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("id", lead_id)
-      .single();
-    // Note: lead.organization_id is used below to scope all related queries
+    // ── Gather all lead data (scoped by caller org for non-service-role) ──
+    let leadQuery = supabase.from("leads").select("*").eq("id", lead_id);
+    if (callerOrgId) leadQuery = leadQuery.eq("organization_id", callerOrgId);
+    const { data: lead } = await leadQuery.single();
 
     if (!lead) {
       return new Response(
@@ -78,6 +77,7 @@ serve(async (req: Request) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     // Get recent calls
     const { data: calls } = await supabase
