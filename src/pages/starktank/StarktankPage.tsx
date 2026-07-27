@@ -276,7 +276,7 @@ const PitchDeckCarousel = () => {
   const [current, setCurrent] = useState(0);
   const total = PITCH_SLIDES.length;
   const touchStart = useRef(0);
-  const autoTimer = useRef<ReturnType<typeof setInterval>>();
+  const autoTimer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const goTo = (idx: number) => {
     clearInterval(autoTimer.current);

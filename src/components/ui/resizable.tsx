@@ -3,9 +3,19 @@ import * as ResizablePrimitive from "react-resizable-panels";
 
 import { cn } from "@/lib/utils";
 
-const ResizablePanelGroup = ({ className, ...props }: React.ComponentProps<typeof ResizablePrimitive.PanelGroup>) => (
-  <ResizablePrimitive.PanelGroup
-    className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
+// react-resizable-panels v4 renamed its exports (PanelGroup → Group,
+// PanelResizeHandle → Separator) and no longer emits a direction data-attribute,
+// so the vertical variants are driven off the `orientation` prop instead of the
+// old `data-[panel-group-direction=vertical]:` selectors, which would now be
+// dead CSS that silently never matches.
+const ResizablePanelGroup = ({
+  className,
+  orientation = "horizontal",
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.Group>) => (
+  <ResizablePrimitive.Group
+    orientation={orientation}
+    className={cn("flex h-full w-full", orientation === "vertical" && "flex-col", className)}
     {...props}
   />
 );
@@ -15,13 +25,18 @@ const ResizablePanel = ResizablePrimitive.Panel;
 const ResizableHandle = ({
   withHandle,
   className,
+  orientation = "horizontal",
   ...props
-}: React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle> & {
+}: React.ComponentProps<typeof ResizablePrimitive.Separator> & {
   withHandle?: boolean;
+  orientation?: "horizontal" | "vertical";
 }) => (
-  <ResizablePrimitive.PanelResizeHandle
+  <ResizablePrimitive.Separator
     className={cn(
-      "relative flex w-px items-center justify-center bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:-translate-y-1/2 data-[panel-group-direction=vertical]:after:translate-x-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 [&[data-panel-group-direction=vertical]>div]:rotate-90",
+      "relative flex items-center justify-center bg-border after:absolute focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1",
+      orientation === "vertical"
+        ? "h-px w-full after:left-0 after:h-1 after:w-full after:-translate-y-1/2 [&>div]:rotate-90"
+        : "w-px after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2",
       className,
     )}
     {...props}
@@ -31,7 +46,7 @@ const ResizableHandle = ({
         <GripVertical className="h-2.5 w-2.5" />
       </div>
     )}
-  </ResizablePrimitive.PanelResizeHandle>
+  </ResizablePrimitive.Separator>
 );
 
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle };

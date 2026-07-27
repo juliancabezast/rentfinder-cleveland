@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 /** Extract the real error message from a Supabase FunctionsHttpError body — its
  *  .message is only the generic "non-2xx status code" string; the reason (e.g.
@@ -387,7 +388,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     const editedField = editing.field;
     const editedId = editing.leadId;
 
-    const updateData: Record<string, any> = {
+    const updateData: TablesUpdate<"leads"> = {
       [editedField]: editValue.trim(),
       updated_at: new Date().toISOString(),
     };
@@ -486,7 +487,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     setRestoring(true);
 
     const { lead, suggestions } = restoreTarget;
-    const updateData: Record<string, any> = {
+    const updateData: TablesUpdate<"leads"> = {
       ...suggestions,
       updated_at: new Date().toISOString(),
     };
@@ -564,7 +565,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
       const { lead, suggestions } = restorable[i];
       setRestoreAllProgress({ current: i + 1, total: restorable.length });
 
-      const updateData: Record<string, any> = {
+      const updateData: TablesUpdate<"leads"> = {
         ...suggestions,
         updated_at: new Date().toISOString(),
       };

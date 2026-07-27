@@ -1339,7 +1339,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                       // Admins can book on ANY future date (a slot is created on
                       // submit if the public grid has none) — only block the past.
                       disabled={(date) => format(date, "yyyy-MM-dd") < todayInTimezone(getTimezoneForCity(selectedProperty?.city))}
-                      initialFocus
+                      autoFocus
                       className="pointer-events-auto"
                     />
                   )}

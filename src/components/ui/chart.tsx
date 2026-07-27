@@ -91,7 +91,10 @@ const ChartTooltip = RechartsPrimitive.Tooltip;
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
+  // recharts 3 reads `active`/`payload`/`label` from context, so they are no
+  // longer on the public Tooltip props — the content component gets them via
+  // TooltipContentProps instead.
+  Partial<RechartsPrimitive.TooltipContentProps> &
     React.ComponentProps<"div"> & {
       hideLabel?: boolean;
       hideIndicator?: boolean;
@@ -167,7 +170,9 @@ const ChartTooltipContent = React.forwardRef<
 
             return (
               <div
-                key={item.dataKey}
+                // recharts 3 allows dataKey to be an accessor function, which is
+                // not a valid React key — fall back to the derived config key.
+                key={typeof item.dataKey === "string" || typeof item.dataKey === "number" ? item.dataKey : key}
                 className={cn(
                   "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
                   indicator === "dot" && "items-center",
@@ -230,7 +235,9 @@ const ChartLegend = RechartsPrimitive.Legend;
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+    // recharts 3 dropped `payload` from LegendProps; the legend content
+    // component receives it through DefaultLegendContentProps.
+    Pick<RechartsPrimitive.DefaultLegendContentProps, "payload" | "verticalAlign"> & {
       hideIcon?: boolean;
       nameKey?: string;
     }

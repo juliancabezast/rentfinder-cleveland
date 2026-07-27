@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // Agent name mapping (same as LeadsList). Keys must match the UNDERSCORE
 // agent_type values the DB actually writes (welcome_sequence, showing_nurture,
@@ -195,7 +196,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
     const editedField = editing.field;
     const editedId = editing.leadId;
 
-    const updateData: Record<string, any> = {
+    const updateData: TablesUpdate<"leads"> = {
       [editedField]: editValue.trim(),
       updated_at: new Date().toISOString(),
     };
