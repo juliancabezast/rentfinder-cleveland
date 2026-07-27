@@ -1307,6 +1307,7 @@ export type Database = {
       demo_requests: {
         Row: {
           company_name: string | null
+          consent_meta: Json | null
           created_at: string | null
           email: string
           full_name: string
@@ -1320,6 +1321,7 @@ export type Database = {
         }
         Insert: {
           company_name?: string | null
+          consent_meta?: Json | null
           created_at?: string | null
           email: string
           full_name: string
@@ -1333,6 +1335,7 @@ export type Database = {
         }
         Update: {
           company_name?: string | null
+          consent_meta?: Json | null
           created_at?: string | null
           email?: string
           full_name?: string
@@ -5293,6 +5296,10 @@ export type Database = {
         Returns: number
       }
       property_in_user_org: { Args: { _property_id: string }; Returns: boolean }
+      reassign_lead_property_interests: {
+        Args: { p_source_property_id: string; p_target_property_id: string }
+        Returns: Json
+      }
       rebekah_find_alternatives: {
         Args: {
           p_lead_id?: string

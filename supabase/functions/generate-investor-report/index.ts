@@ -406,28 +406,31 @@ serve(async (req) => {
 
     // 10. Generate content
     const monthName = new Date(year, month - 1).toLocaleString("en", { month: "long" });
-    const html = generateReportHTML(investor, metrics, insights || [], monthName, year, orgName);
+    const html = generateReportHTML(investor, metrics, insights || [], monthName, year, orgName, siteUrl);
     const narrative = generateNarrativeSummary(metrics, insights || [], monthName, year);
     const subject = `📊 ${monthName} ${year} Property Report — ${orgName}`;
+    const title = `${monthName} ${year} Property Report`;
 
-    // 11. Store report (upsert to handle regeneration)
+    // 11. Store report (upsert to handle regeneration). Columns match the live
+    // investor_reports schema; the structured payload lives in sections/highlights.
     const { data: report, error: reportError } = await supabase
       .from("investor_reports")
       .upsert(
         {
           organization_id,
           investor_id,
-          period_month: month,
-          period_year: year,
-          subject,
-          html_content: html,
-          narrative_summary: narrative,
-          property_ids: propertyIds,
-          metrics,
-          insights: insights || [],
+          property_id: null, // investor-level (multi-property) report
+          title,
+          report_type: "monthly",
+          period_start: periodStart,
+          period_end: periodEndDate,
+          summary: narrative,
+          sections: { metrics, property_ids: propertyIds },
+          highlights: insights || [],
+          sent_to_email: investor.email || null,
           status: "generated",
         },
-        { onConflict: "investor_id,period_month,period_year" }
+        { onConflict: "organization_id,investor_id,report_type,period_start" }
       )
       .select()
       .single();
@@ -440,58 +443,62 @@ serve(async (req) => {
       );
     }
 
-    // 12. Send via Resend if requested
+    // 12. Send via the shared send-notification-email function (raw fetch +
+    // service-role Bearer — the documented edge→edge pattern). This routes
+    // through the org's Resend key + sender_domain instead of a hardcoded
+    // onboarding@resend.dev sender.
     let emailSent = false;
-    let emailError = null;
+    let emailError: unknown = null;
 
     if (send_email && investor.email) {
-      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-
-      if (RESEND_API_KEY) {
-        try {
-          const emailResponse = await fetch("https://api.resend.com/emails", {
+      try {
+        const emailResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-notification-email`,
+          {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${RESEND_API_KEY}`,
               "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
             },
             body: JSON.stringify({
-              from: `${orgName} <onboarding@resend.dev>`,
-              to: [investor.email],
-              subject: subject,
-              html: html,
+              to: investor.email,
+              subject,
+              html,
+              notification_type: "investor_report",
+              organization_id,
+              related_entity_id: investor_id,
+              related_entity_type: "user",
+              from_name: orgName,
+              queue: false,
             }),
-          });
-
-          const emailResult = await emailResponse.json();
-
-          if (emailResponse.ok) {
-            emailSent = true;
-            await supabase
-              .from("investor_reports")
-              .update({
-                sent_at: new Date().toISOString(),
-                delivered: true,
-                status: "sent",
-                resend_email_id: emailResult.id || null,
-              })
-              .eq("id", report.id);
-          } else {
-            emailError = emailResult;
-            await supabase
-              .from("investor_reports")
-              .update({ status: "failed" })
-              .eq("id", report.id);
           }
-        } catch (err) {
-          emailError = String(err);
+        );
+
+        const emailResult = await emailResponse.json().catch(() => ({}));
+
+        if (emailResponse.ok) {
+          emailSent = true;
+          await supabase
+            .from("investor_reports")
+            .update({
+              sent_at: new Date().toISOString(),
+              status: "sent",
+              resend_email_id: emailResult?.id || emailResult?.email_id || null,
+            })
+            .eq("id", report.id);
+        } else {
+          emailError = emailResult?.error || `send-notification-email HTTP ${emailResponse.status}`;
           await supabase
             .from("investor_reports")
             .update({ status: "failed" })
             .eq("id", report.id);
         }
-      } else {
-        emailError = "RESEND_API_KEY not configured";
+      } catch (err) {
+        emailError = String(err);
+        await supabase
+          .from("investor_reports")
+          .update({ status: "failed" })
+          .eq("id", report.id);
       }
     }
 

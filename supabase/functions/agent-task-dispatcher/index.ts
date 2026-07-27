@@ -386,6 +386,20 @@ async function handleWelcomeSequence(
   const leadName = lead.full_name || ctx.email?.split("@")[0] || "there";
   const firstName = leadName.split(" ")[0];
 
+  // Respect opt-outs and closed leads (mirror the enrichment/nurture guards):
+  // a queued welcome must not fire for a lead who unsubscribed or was already
+  // lost/converted. send-notification-email does not consent-gate
+  // 'welcome_sequence', so the check has to happen here.
+  if ((lead as Record<string, unknown>).unsubscribed_at) {
+    return "Lead unsubscribed — welcome email cancelled";
+  }
+  {
+    const leadStatus = String((lead as Record<string, unknown>).status || "");
+    if (leadStatus === "lost" || leadStatus === "converted") {
+      return `Lead is ${leadStatus} — welcome email cancelled`;
+    }
+  }
+
   // Try email first
   if (lead.email || ctx.email) {
     const email = lead.email || ctx.email;
@@ -1321,10 +1335,17 @@ serve(async (req: Request) => {
 
         // ── Skip tasks for disabled agents ───────────────────────────────
         if (disabledAgents.has(canonicalAgent)) {
-          // Return task to pending so it can run when agent is re-enabled
+          // Return to pending, but push scheduled_for forward so a disabled
+          // agent's backlog can't permanently occupy the front of the claim
+          // batch (claim_pending_tasks orders by scheduled_for ASC) and starve
+          // every other agent's due tasks.
           await supabase
             .from("agent_tasks")
-            .update({ status: "pending", executed_at: null })
+            .update({
+              status: "pending",
+              executed_at: null,
+              scheduled_for: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            })
             .eq("id", task.id);
           totalSkipped++;
           allResults.push({

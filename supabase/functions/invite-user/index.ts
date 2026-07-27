@@ -149,11 +149,22 @@ serve(async (req: Request) => {
         inviteError.message?.includes("already been registered") ||
         inviteError.message?.includes("already exists")
       ) {
-        // Find the existing auth user
-        const { data: authList } = await supabase.auth.admin.listUsers();
-        const existingAuth = authList?.users?.find(
-          (u) => u.email?.toLowerCase() === email.toLowerCase()
-        );
+        // Find the existing auth user — paginate, since listUsers() defaults to
+        // the first page only and would miss the user once the account count
+        // grows past a single page.
+        const target = email.toLowerCase();
+        const perPage = 1000;
+        let existingAuth: { id: string } | undefined;
+        for (let page = 1; page <= 50 && !existingAuth; page++) {
+          const { data: authList, error: listErr } =
+            await supabase.auth.admin.listUsers({ page, perPage });
+          if (listErr) break;
+          const users = authList?.users ?? [];
+          existingAuth = users.find(
+            (u) => u.email?.toLowerCase() === target
+          );
+          if (users.length < perPage) break; // last page reached
+        }
 
         if (existingAuth) {
           authUserId = existingAuth.id;
