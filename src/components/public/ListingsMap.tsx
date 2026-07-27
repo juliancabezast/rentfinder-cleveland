@@ -54,11 +54,10 @@ function priceIcon(l: MapListing): L.DivIcon {
 
 interface ListingsMapProps {
   listings: MapListing[];
-  onApply: (l: MapListing) => void;
   className?: string;
 }
 
-export function ListingsMap({ listings, onApply, className }: ListingsMapProps) {
+export function ListingsMap({ listings, className }: ListingsMapProps) {
   const located = useMemo(
     () => listings.filter((l) => l.latitude != null && l.longitude != null),
     [listings],
@@ -117,16 +116,20 @@ export function ListingsMap({ listings, onApply, className }: ListingsMapProps) 
                 <div className="mt-2 flex flex-col gap-1.5">
                   {l.status === "coming_soon" ? (
                     <Button
+                      asChild
                       size="sm"
                       className="h-9 w-full bg-amber-400 font-bold text-amber-950 hover:bg-amber-300"
-                      onClick={() => onApply(l)}
                     >
-                      <ShieldCheck className="mr-1.5 h-3.5 w-3.5" /> Apply with Voucher
+                      <Link to="/apply">
+                        <ShieldCheck className="mr-1.5 h-3.5 w-3.5" /> Apply with Voucher
+                      </Link>
                     </Button>
                   ) : (
                     <>
-                      <Button size="sm" className="h-9 w-full" onClick={() => onApply(l)}>
-                        <FileSignature className="mr-1.5 h-3.5 w-3.5" /> Start Application
+                      <Button asChild size="sm" className="h-9 w-full">
+                        <Link to="/apply">
+                          <FileSignature className="mr-1.5 h-3.5 w-3.5" /> Start Application
+                        </Link>
                       </Button>
                       <Button asChild size="sm" variant="outline" className="h-9 w-full">
                         <Link to={`/p/schedule-showing/${l.property_id}`}>
