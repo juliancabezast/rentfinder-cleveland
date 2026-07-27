@@ -1,40 +1,18 @@
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { Bot, Boxes, Inbox, Mail, Radio, Square, Users, Zap } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Bot, Inbox, Mail, Radio, Users, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFunnelData } from "@/components/agents/funnel/useFunnelData";
-import { FunnelFlow2D } from "@/components/agents/funnel/FunnelFlow2D";
 import { STAGES } from "@/components/agents/funnel/funnelLayout";
-import { supportsWebGL } from "@/components/agents/funnel/webgl";
+import { AgentsOffice } from "@/components/agents/office/AgentsOffice";
 import { AgentDetailPanel } from "@/components/agents/panels/AgentDetailPanel";
 import { StageDetailPanel } from "@/components/agents/panels/StageDetailPanel";
+import { getAgentDisplayName } from "@/components/agents/constants";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
 import type { Selection, StageKey } from "@/components/agents/funnel/types";
-
-// The ONLY importer of three/react-three-fiber/drei → own vendor-three chunk,
-// downloaded only when a WebGL-capable, motion-OK client opens /agents.
-const FunnelScene = React.lazy(() => import("@/components/agents/funnel/FunnelScene"));
-
-// Demotes to the 2D SVG view if the scene throws (WebGL context loss, driver
-// quirks) — the page keeps working with the same data.
-class SceneBoundary extends React.Component<
-  { fallback: React.ReactNode; children: React.ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
-  }
-}
-
-const VIEW_PREF_KEY = "agents-funnel-view";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -48,23 +26,19 @@ const AgentsPage: React.FC = () => {
   const { snapshot, isLoading, error, live, lastEventAt, events } = useFunnelData();
   const reducedMotion = useReducedMotion();
   const [selection, setSelection] = useState<Selection>(null);
-  const [viewPref, setViewPref] = useState<"3d" | "2d">(
-    () => (localStorage.getItem(VIEW_PREF_KEY) === "2d" ? "2d" : "3d")
-  );
 
-  const use3D = viewPref === "3d" && supportsWebGL() && !reducedMotion;
-
-  // Live event ticker — the "it's really real-time" strip over the canvas
+  // Live event ticker — the "it's really real-time" strip over the office
   const [ticker, setTicker] = useState<TickerItem[]>([]);
   useEffect(() => {
     let id = 0;
     return events.onEvent((ev) => {
+      const name = ev.type === "lead_new" ? "" : getAgentDisplayName(ev.agentKey, cap(ev.agentKey), "");
       const item: TickerItem =
         ev.type === "lead_new"
           ? { id: ++id, text: ev.magnitude > 1 ? `🆕 +${ev.magnitude} leads nuevos` : "🆕 Lead nuevo", tone: "new" }
           : ev.type === "task_completed"
-            ? { id: ++id, text: `✓ ${cap(ev.agentKey)}${ev.magnitude > 1 ? ` +${ev.magnitude} tareas` : " completó una tarea"}`, tone: "ok" }
-            : { id: ++id, text: `${ev.failed ? "⚠️" : "⚡"} ${cap(ev.agentKey)} ${ev.failed ? "falló" : "en acción"}`, tone: ev.failed ? "fail" : "ok" };
+            ? { id: ++id, text: `✓ ${name}${ev.magnitude > 1 ? ` +${ev.magnitude} tareas` : " completó una tarea"}`, tone: "ok" }
+            : { id: ++id, text: `${ev.failed ? "⚠️" : "⚡"} ${name} ${ev.failed ? "falló" : "en acción"}`, tone: ev.failed ? "fail" : "ok" };
       setTicker((prev) => [item, ...prev].slice(0, 4));
     });
   }, [events]);
@@ -74,34 +48,17 @@ const AgentsPage: React.FC = () => {
     return () => clearTimeout(t);
   }, [ticker]);
 
-  const setView = useCallback((v: "3d" | "2d") => {
-    setViewPref(v);
-    localStorage.setItem(VIEW_PREF_KEY, v);
-  }, []);
-
   const hud = useMemo(() => {
     if (!snapshot) return null;
     const statuses = snapshot.funnel.statuses;
-    // Sum only the stages the funnel renders, so the headline always matches
-    // the picture (unused legacy statuses would silently inflate it).
-    const inFunnel = STAGES.filter((s) => s.key !== "lost")
-      .reduce((sum, s) => sum + (statuses[s.key] || 0), 0);
+    const inFunnel = STAGES.filter((s) => s.key !== "lost").reduce((sum, s) => sum + (statuses[s.key] || 0), 0);
     const doneToday = snapshot.agents.reduce((s, a) => s + a.tasks_today.completed, 0);
     const failedToday = snapshot.agents.reduce((s, a) => s + a.tasks_today.failed, 0);
-    const success = doneToday + failedToday > 0
-      ? Math.round((doneToday / (doneToday + failedToday)) * 100)
-      : null;
+    const success = doneToday + failedToday > 0 ? Math.round((doneToday / (doneToday + failedToday)) * 100) : null;
     return { inFunnel, doneToday, failedToday, success };
   }, [snapshot]);
 
-  const selectedAgent = selection?.type === "agent"
-    ? snapshot?.agents.find((a) => a.key === selection.key)
-    : undefined;
-
-  const ariaSummary = snapshot
-    ? `Embudo de leads: ${STAGES.map((s) => `${s.label} ${snapshot.funnel.statuses[s.key] || 0}`).join(", ")}. ` +
-      `${snapshot.agents.filter((a) => a.health === "active").length} agentes activos.`
-    : "Cargando embudo";
+  const selectedAgent = selection?.type === "agent" ? snapshot?.agents.find((a) => a.key === selection.key) : undefined;
 
   return (
     <div className="space-y-4">
@@ -110,44 +67,19 @@ const AgentsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Bot className="h-6 w-6 text-primary" />
-            Agents
+            La Fábrica de Agentes <span aria-hidden>🍫</span>
           </h1>
           <p className="text-sm text-muted-foreground">
-            El pipeline en vivo — leads fluyendo entre etapas y los agentes que los mueven
+            Tu oficina de IA en vivo — cada agente trabajando en tiempo real. Hacé clic en uno para ver sus tareas.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="secondary"
-            className={cn(
-              "gap-1.5 text-xs",
-              live ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-            )}
-          >
-            <Radio className={cn("h-3 w-3", live && "animate-pulse")} />
-            {live ? "LIVE" : "conectando…"}
-          </Badge>
-          <div className="flex rounded-lg border overflow-hidden">
-            <Button
-              variant={use3D ? "default" : "ghost"}
-              size="sm"
-              className="h-8 rounded-none gap-1.5"
-              onClick={() => setView("3d")}
-              disabled={!supportsWebGL() || reducedMotion}
-              title={reducedMotion ? "Deshabilitado por prefers-reduced-motion" : undefined}
-            >
-              <Boxes className="h-3.5 w-3.5" /> 3D
-            </Button>
-            <Button
-              variant={!use3D ? "default" : "ghost"}
-              size="sm"
-              className="h-8 rounded-none gap-1.5"
-              onClick={() => setView("2d")}
-            >
-              <Square className="h-3.5 w-3.5" /> 2D
-            </Button>
-          </div>
-        </div>
+        <Badge
+          variant="secondary"
+          className={cn("gap-1.5 text-xs", live ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}
+        >
+          <Radio className={cn("h-3 w-3", live && "animate-pulse")} />
+          {live ? "LIVE" : "conectando…"}
+        </Badge>
       </div>
 
       {/* ── HUD strip ──────────────────────────────────────── */}
@@ -182,26 +114,17 @@ const AgentsPage: React.FC = () => {
                 <span className="font-bold tabular-nums">{snapshot.flows.emails_sent_24h.toLocaleString()}</span>
                 <span className="text-muted-foreground">emails/24h</span>
                 {snapshot.flows.emails_bounced_24h > 0 && (
-                  <span className="text-xs text-destructive">
-                    {snapshot.flows.emails_bounced_24h} rebotes
-                  </span>
+                  <span className="text-xs text-destructive">{snapshot.flows.emails_bounced_24h} rebotes</span>
                 )}
               </span>
               <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
                 {snapshot.integrations.map((i) => (
                   <span key={i.service} className="flex items-center gap-1" title={`${i.service}: ${i.status}`}>
-                    <span
-                      className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        i.status === "healthy" ? "bg-success" : "bg-destructive animate-pulse"
-                      )}
-                    />
+                    <span className={cn("h-1.5 w-1.5 rounded-full", i.status === "healthy" ? "bg-success" : "bg-destructive animate-pulse")} />
                     {i.service}
                   </span>
                 ))}
-                {lastEventAt && (
-                  <span className="tabular-nums">último evento {format(lastEventAt, "HH:mm:ss")}</span>
-                )}
+                {lastEventAt && <span className="tabular-nums">último evento {format(lastEventAt, "HH:mm:ss")}</span>}
               </span>
             </div>
           )}
@@ -216,68 +139,24 @@ const AgentsPage: React.FC = () => {
         </Card>
       )}
 
-      {/* ── The funnel ─────────────────────────────────────── */}
-      <div
-        className="relative rounded-2xl border bg-white/40 dark:bg-card/40 backdrop-blur-sm overflow-hidden
-          h-[calc(100vh-320px)] min-h-[440px]"
-        role="img"
-        aria-label={ariaSummary}
-      >
-        {isLoading || !snapshot ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex gap-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 w-24 rounded-full" style={{ opacity: 1 - i * 0.15 }} />
-              ))}
-            </div>
-          </div>
-        ) : use3D ? (
-          <SceneBoundary
-            fallback={
-              <FunnelFlow2D
-                snapshot={snapshot}
-                selection={selection}
-                onSelect={setSelection}
-                animated={!reducedMotion}
-                className="absolute inset-0"
-              />
-            }
-          >
-            <Suspense
-              fallback={
-                <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                  Cargando escena 3D…
-                </div>
-              }
-            >
-              <FunnelScene
-                snapshot={snapshot}
-                events={events}
-                selection={selection}
-                onSelect={setSelection}
-                className="absolute inset-0"
-              />
-            </Suspense>
-          </SceneBoundary>
-        ) : (
-          <FunnelFlow2D
-            snapshot={snapshot}
-            selection={selection}
-            onSelect={setSelection}
-            animated={!reducedMotion}
-            className="absolute inset-0"
-          />
-        )}
+      {/* ── The office ─────────────────────────────────────── */}
+      <div className="relative rounded-2xl border border-[#3a2416] overflow-hidden h-[calc(100vh-210px)] min-h-[520px] bg-[#180f09] shadow-[inset_0_1px_0_rgba(255,208,120,0.08)]">
+        <AgentsOffice
+          snapshot={snapshot}
+          events={events}
+          selection={selection}
+          onSelect={setSelection}
+          reducedMotion={reducedMotion}
+        />
 
         {/* Live event ticker */}
         {ticker.length > 0 && (
-          <div className="absolute bottom-3 left-3 z-10 flex flex-col-reverse gap-1.5 pointer-events-none">
+          <div className="absolute bottom-3 left-3 z-20 flex flex-col-reverse gap-1.5 pointer-events-none">
             {ticker.map((t) => (
               <span
                 key={t.id}
                 className={cn(
-                  "text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm animate-fade-up",
-                  "bg-white/80 border",
+                  "text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm animate-fade-up bg-white/85 border",
                   t.tone === "new" && "text-primary border-primary/30",
                   t.tone === "ok" && "text-success border-success/30",
                   t.tone === "fail" && "text-destructive border-destructive/30"
@@ -302,7 +181,7 @@ const AgentsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Screen-reader mirror + keyboard access to nodes */}
+      {/* Screen-reader mirror + keyboard access to agents/stages */}
       <div className="sr-only">
         <dl>
           {STAGES.map((s) => (
@@ -314,7 +193,7 @@ const AgentsPage: React.FC = () => {
         </dl>
         {snapshot?.agents.map((a) => (
           <button key={a.key} onClick={() => setSelection({ type: "agent", key: a.key })}>
-            Abrir detalle de {a.name}
+            Abrir detalle de {getAgentDisplayName(a.key, a.name, a.role)}
           </button>
         ))}
         {STAGES.map((s) => (

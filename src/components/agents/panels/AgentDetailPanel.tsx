@@ -11,6 +11,8 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import type { AgentSnapshot } from "../funnel/types";
+import { getAgentDisplayName } from "../constants";
+import { homeFor } from "../office/room";
 
 // Legacy activity-log keys that roll up to each canonical agent (mirror of
 // constants.ts LEGACY_TO_CANONICAL, inverted for the feed filter)
@@ -24,6 +26,14 @@ const FEED_KEYS: Record<string, string[]> = {
   samuel: ["samuel", "showing_confirmation", "post_showing", "no_show_followup", "no_show_follow_up", "doorloop_pull"],
   zacchaeus: ["zacchaeus", "cost_tracker", "health_monitor", "alert_monitor"],
 };
+
+// nehemiah is the catch-all bucket (RPC maps every unlisted agent_type → it), so
+// its "doing now" query EXCLUDES the other four agents' types instead of listing.
+const OTHER_AGENT_TYPES = Object.entries(FEED_KEYS)
+  .filter(([k]) => k !== "nehemiah")
+  .flatMap(([, v]) => v);
+
+const ACTION_LABEL: Record<string, string> = { email: "Email", sms: "SMS", call: "Llamada" };
 
 // The dispatcher is the only executor that honors is_enabled — the toggle is
 // only shown for agents whose work actually flows through it.
@@ -66,6 +76,29 @@ export const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
     refetchInterval: 15_000,
   });
 
+  // "What it's doing now" — real pending/in-progress tasks for this agent.
+  const { data: pending, isLoading: pendingLoading } = useQuery({
+    queryKey: ["agent-panel-pending", orgId, agent?.key],
+    queryFn: async () => {
+      let q = supabase
+        .from("agent_tasks")
+        .select("id, agent_type, action_type, status, scheduled_for, leads(full_name)")
+        .eq("organization_id", orgId!)
+        .in("status", ["pending", "in_progress"])
+        .neq("action_type", "call")
+        .order("scheduled_for", { ascending: true })
+        .limit(6);
+      q = agent!.key === "nehemiah"
+        ? q.not("agent_type", "in", `(${OTHER_AGENT_TYPES.join(",")})`)
+        : q.in("agent_type", feedKeys);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; agent_type: string; action_type: string; status: string; scheduled_for: string | null; leads: { full_name: string | null } | null }>;
+    },
+    enabled: !!orgId && !!agent,
+    refetchInterval: 15_000,
+  });
+
   const toggleMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
       const { error } = await supabase
@@ -84,17 +117,20 @@ export const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
 
   if (!agent) return null;
 
+  const displayName = getAgentDisplayName(agent.key, agent.name, agent.role);
+  const room = homeFor(agent.key).room;
+
   return (
     <aside
       className="absolute top-0 right-0 h-full w-full sm:w-[380px] z-30 overflow-y-auto
         bg-white/[0.82] dark:bg-card/90 backdrop-blur-[20px] border-l shadow-xl p-5 space-y-4"
       role="dialog"
-      aria-label={`Detalle del agente ${agent.name}`}
+      aria-label={`Detalle del agente ${displayName}`}
     >
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2">
-            {agent.name}
+            {displayName}
             <Badge
               variant="secondary"
               className={cn(
@@ -107,7 +143,7 @@ export const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
               {agent.health}
             </Badge>
           </h2>
-          <p className="text-xs text-muted-foreground">{agent.role}</p>
+          <p className="text-xs text-muted-foreground">{agent.role} · 🍫 {room}</p>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar">
           <X className="h-4 w-4" />
@@ -163,6 +199,38 @@ export const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
           Este agente corre por webhooks/crons propios — siempre activo.
         </p>
       )}
+
+      <div>
+        <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-2">
+          <Clock className="h-3.5 w-3.5 text-warning" /> Qué está haciendo ahora
+        </h3>
+        {pendingLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+          </div>
+        ) : pending && pending.length > 0 ? (
+          <div className="space-y-1.5">
+            {pending.map((t) => (
+              <div key={t.id} className="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium truncate">
+                    {ACTION_LABEL[t.action_type] || t.action_type} · {t.leads?.full_name || "Lead"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {t.status === "in_progress"
+                      ? "en curso"
+                      : t.scheduled_for
+                        ? formatDistanceToNow(new Date(t.scheduled_for), { addSuffix: true })
+                        : "en cola"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Sin tareas en curso — al día ✨</p>
+        )}
+      </div>
 
       <div>
         <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-2">

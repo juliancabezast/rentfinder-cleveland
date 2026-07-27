@@ -20,7 +20,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
     color: "border-teal-500",
     bgColor: "bg-teal-50 dark:bg-teal-950/30",
     dotColor: "bg-teal-500",
-    agentKeys: ["aaron", "esther", "nehemiah"],
+    agentKeys: ["esther", "nehemiah"],
   },
   {
     key: "leasing",
@@ -51,36 +51,38 @@ export const DEPARTMENTS: DepartmentConfig[] = [
   },
 ];
 
-// 7 agents — canonical display names
+// Display-ONLY names: tech/AI-leader first names. The internal agent_key /
+// agent_type values are load-bearing (DB, edge fns, history) and are NOT
+// touched — only what the UI shows. 5 live agents (aaron/ruth were removed in
+// the 2026-07-20 purge). Legacy keys resolve to the same name so activity/task
+// rows render consistently.
 export const AGENT_DISPLAY_NAMES: Record<string, string> = {
-  // Primary agent_keys
-  aaron: "Inbound Lead Processing",
-  esther: "Email Reception",
-  nehemiah: "Qualification Analyst",
-  elijah: "Leasing Consultant",
-  samuel: "Closing Agent",
-  zacchaeus: "Health & Cost Monitor",
-  // Legacy agent_keys → mapped to 7 real agents
-  main_inbound: "Inbound Lead Processing",
-  hemlane_parser: "Email Reception",
-  scoring: "Qualification Analyst",
-  transcript_analyst: "Qualification Analyst",
-  task_dispatcher: "Qualification Analyst",
-  recapture: "Leasing Consultant",
-  showing_confirmation: "Closing Agent",
-  conversion_predictor: "Qualification Analyst",
-  insight_generator: "Qualification Analyst",
-  report_generator: "Qualification Analyst",
-  doorloop_pull: "Closing Agent",
-  cost_tracker: "Health & Cost Monitor",
-  no_show_followup: "Closing Agent",
-  no_show_follow_up: "Closing Agent",
-  post_showing: "Closing Agent",
-  campaign: "Leasing Consultant",
-  welcome_sequence: "Leasing Consultant",
-  notification_dispatcher: "Qualification Analyst",
-  health_monitor: "Health & Cost Monitor",
-  system_logger: "Qualification Analyst",
+  // Canonical agent_keys → tech-leader names
+  esther: "Sundar",     // intake / email reception
+  nehemiah: "Dario",    // qualification analyst (the brain)
+  elijah: "Elon",       // leasing / outreach
+  samuel: "Mark",       // closing
+  zacchaeus: "Satya",   // health & cost / system
+  // Legacy agent_keys → same tech name
+  hemlane_parser: "Sundar",
+  scoring: "Dario",
+  transcript_analyst: "Dario",
+  task_dispatcher: "Dario",
+  conversion_predictor: "Dario",
+  insight_generator: "Dario",
+  report_generator: "Dario",
+  notification_dispatcher: "Dario",
+  system_logger: "Dario",
+  recapture: "Elon",
+  campaign: "Elon",
+  welcome_sequence: "Elon",
+  showing_confirmation: "Mark",
+  doorloop_pull: "Mark",
+  no_show_followup: "Mark",
+  no_show_follow_up: "Mark",
+  post_showing: "Mark",
+  cost_tracker: "Satya",
+  health_monitor: "Satya",
 };
 
 // KPI definitions per agent — 3 KPIs each
