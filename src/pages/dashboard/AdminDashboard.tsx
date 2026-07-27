@@ -7,7 +7,6 @@ import {
   DoorOpen,
   Home,
   Mail,
-  Flame,
   FileText,
   TrendingUp,
   TrendingDown,
@@ -21,22 +20,23 @@ import { useDashboardLive } from "@/hooks/useDashboardLive";
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { data, isLoading, error, flashByKey } = useDashboardLive();
+  const { data, isLoading, error, live, flashByKey } = useDashboardLive();
 
   const leads = data?.leads;
   const showings = data?.showings;
   const portfolio = data?.portfolio;
   const comms = data?.comms;
 
-  // New-this-week trend vs the previous full week
+  // New-this-week trend — compare week-to-date against the SAME elapsed window
+  // of the previous week (prev_week_to_date), not the full previous week, so
+  // the % isn't a structural red drop every Monday/Tuesday.
   const weekTrend =
-    leads && leads.prev_week > 0
-      ? Math.round(((leads.this_week - leads.prev_week) / leads.prev_week) * 100)
+    leads && leads.prev_week_to_date > 0
+      ? Math.round(((leads.this_week - leads.prev_week_to_date) / leads.prev_week_to_date) * 100)
       : null;
 
   const leadSubs: SubStat[] = [
     { value: `+${leads?.this_week ?? 0}`, label: "esta semana", tone: "default" },
-    { value: `${leads?.hot ?? 0}`, label: "hot", tone: "hot", icon: Flame },
     ...(weekTrend != null
       ? [{
           value: `${weekTrend >= 0 ? "+" : ""}${weekTrend}%`,
@@ -48,9 +48,9 @@ export const AdminDashboard = () => {
   ];
 
   const showingSubs: SubStat[] = [
-    { value: showings?.show_up_rate != null ? `${showings.show_up_rate}%` : "—", label: "show-up", tone: "success", icon: CalendarCheck },
+    { value: showings?.show_up_rate != null ? `${showings.show_up_rate}%` : "—", label: "asistencia", tone: "success", icon: CalendarCheck },
     { value: `${showings?.upcoming ?? 0}`, label: "próximos" },
-    { value: `${leads?.applicants ?? 0}`, label: "applicants", icon: FileText },
+    { value: `${leads?.applicants ?? 0}`, label: "aplicantes", icon: FileText },
   ];
 
   const portfolioSubs: SubStat[] = [
@@ -75,7 +75,7 @@ export const AdminDashboard = () => {
         )}
 
         {/* ── Leads pulse — animated realtime lead charts ── */}
-        <LeadsPulse />
+        <LeadsPulse live={live} />
 
         {/* ── Hero KPIs — merged live cards ── */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -125,7 +125,12 @@ export const AdminDashboard = () => {
         {/* ── Widgets ── */}
         <div className="grid gap-4 lg:grid-cols-2 items-start">
           <TopPropertiesWidget />
-          <NextShowingsWidget showings={data?.next_showings} loading={isLoading} />
+          <NextShowingsWidget showings={data?.next_showings} upcoming={data?.showings?.upcoming} loading={isLoading} />
+        </div>
+
+        {/* Live agent queue — inline below the widgets when the right rail is hidden */}
+        <div className="xl:hidden">
+          <TaskQueuePanel />
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle, Upload, ImageIcon, X, CheckCircle, Building2 } from "lucide-react";
+import { Globe, Loader2, Check, Home, DollarSign, Bed, Bath, Ruler, AlertCircle, ImageIcon, X, CheckCircle, Building2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { loadListingConfig, renderPropertyDescription, type ListingTemplateConfig } from "@/lib/listingTemplate";
 
 interface ZillowProperty {
   address: string;
@@ -80,6 +81,10 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [property, setProperty] = useState<ZillowProperty | null>(null);
+  // Org listing template — imported rows get a rendered description immediately
+  // instead of null (which would leave them blank on the public site until a
+  // manual save or "apply to all").
+  const [listingConfig, setListingConfig] = useState<ListingTemplateConfig | null>(null);
 
   // Editable fields in review step
   const [editBedrooms, setEditBedrooms] = useState("");
@@ -131,13 +136,21 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
     setUnits((prev) => prev.map((u, i) => (i === index ? { ...u, [field]: value } : u)));
   };
 
+  // Load the org listing template while the dialog is open so handleSave can
+  // render a description for each imported property.
+  useEffect(() => {
+    if (!open || !userRecord?.organization_id) return;
+    loadListingConfig(supabase, userRecord.organization_id)
+      .then(setListingConfig)
+      .catch((e) => console.error("Error loading listing config:", e));
+  }, [open, userRecord?.organization_id]);
+
   const fieldLabels: Record<string, string> = {
     bedrooms: "Bedrooms",
     bathrooms: "Bathrooms",
     sqft: "Sq Ft",
     rent_price: "Monthly Rent",
     property_type: "Property Type",
-    description: "Description",
   };
 
   const handleScreenshotUpload = async (files: FileList | null) => {
@@ -295,27 +308,44 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
         if (groupErr) throw groupErr;
 
         // 2. Create individual unit rows
-        const unitRows = units.map((unit) => ({
-          organization_id: userRecord.organization_id,
-          address: property.address,
-          unit_number: unit.label,
-          city: property.city,
-          state: property.state,
-          zip_code: property.zip_code,
-          bedrooms: parseInt(unit.bedrooms) || 0,
-          bathrooms: parseFloat(unit.bathrooms) || 0,
-          square_feet: parseInt(unit.sqft) || null,
-          property_type: editPropertyType,
-          rent_price: parseFloat(unit.rent) || 0,
-          description: null,
-          photos: property.photos.length > 0 ? property.photos : [],
-          status: unit.status,
-          property_group_id: group.id,
-          special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
-        }));
+        const unitRows = units.map((unit) => {
+          const row = {
+            organization_id: userRecord.organization_id,
+            address: property.address,
+            unit_number: unit.label,
+            city: property.city,
+            state: property.state,
+            zip_code: property.zip_code,
+            bedrooms: parseInt(unit.bedrooms) || 0,
+            bathrooms: parseFloat(unit.bathrooms) || 0,
+            square_feet: parseInt(unit.sqft) || null,
+            property_type: editPropertyType,
+            rent_price: parseFloat(unit.rent) || 0,
+            photos: property.photos.length > 0 ? property.photos : [],
+            status: unit.status,
+            property_group_id: group.id,
+            special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
+          };
+          return {
+            ...row,
+            description: listingConfig ? renderPropertyDescription(listingConfig, row) : null,
+          };
+        });
 
         const { error: insertErr } = await supabase.from("properties").insert(unitRows);
-        if (insertErr) throw insertErr;
+        if (insertErr) {
+          // Roll back the group we just created — a failed unit insert would
+          // otherwise orphan an empty property_groups row, and every retry
+          // would add another one for the same address. Scope by org (project
+          // invariant) and surface a rollback failure instead of swallowing it.
+          const { error: rollbackErr } = await supabase
+            .from("property_groups")
+            .delete()
+            .eq("id", group.id)
+            .eq("organization_id", userRecord.organization_id);
+          if (rollbackErr) console.error("Failed to roll back orphaned property group:", rollbackErr);
+          throw insertErr;
+        }
 
         toast({
           title: "Property Imported",
@@ -328,7 +358,7 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
           throw new Error("Rent price is required and must be greater than $0.");
         }
 
-        const { error: insertErr } = await supabase.from("properties").insert({
+        const singleRow = {
           organization_id: userRecord.organization_id,
           address: property.address,
           city: property.city,
@@ -339,10 +369,13 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
           square_feet: parseInt(editSqft) || null,
           property_type: editPropertyType,
           rent_price: rentPrice,
-          description: null,
           photos: property.photos.length > 0 ? property.photos : [],
           status: editStatus,
           special_notes: `Imported from Zillow (ZPID: ${property._zpid})`,
+        };
+        const { error: insertErr } = await supabase.from("properties").insert({
+          ...singleRow,
+          description: listingConfig ? renderPropertyDescription(listingConfig, singleRow) : null,
         });
 
         if (insertErr) throw insertErr;
@@ -534,7 +567,10 @@ export const ZillowImportDialog: React.FC<ZillowImportDialogProps> = ({
 
                   <div className="space-y-2">
                     {Object.entries(aiResults).map(([key, value]) => {
-                      if (value == null || value === "") return null;
+                      // 'description' is intentionally not applied (the listing
+                      // description is template-owned), so don't offer it as an
+                      // approvable row that silently does nothing.
+                      if (value == null || value === "" || key === "description") return null;
                       const label = fieldLabels[key] || key;
                       const displayValue = key === "rent_price"
                         ? `$${value}`

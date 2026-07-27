@@ -32,10 +32,39 @@ import {
   UserCheck,
   Pencil,
   Save,
+  ClipboardCheck,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { getTimezoneForCity, formatTimeInTimezone, buildScheduledAt } from "@/lib/cityTimezone";
+import { getTimezoneForCity, formatTimeInTimezone, buildScheduledAt, todayInTimezone } from "@/lib/cityTimezone";
 import { fetchAvailableProperties, sendLeadShowingEmail, sendNotificationEmail } from "@/lib/notificationService";
+import { markApplicationGenerated, unmarkApplicationGenerated } from "@/lib/applications";
+import { renderEmailHtml, DEFAULT_CONFIGS } from "@/lib/emailTemplateDefaults";
+import type { EmailTemplatesMap } from "@/lib/emailTemplateDefaults";
+
+// Showings book only on the hour or half-hour (:00 / :30) — mirrors every
+// picker in the app and the DB guard (trg_enforce_showing_half_hour). Takes an
+// "HH:MM" value from an <input type="time">.
+const isOnHalfHour = (hhmm: string) => {
+  const min = parseInt((hhmm || "").slice(3, 5), 10);
+  return min === 0 || min === 30;
+};
+
+// Half-hour times a showing occupies, starting at "HH:MM:SS". A >30-min showing
+// spans several slots and the single agent can't be in two places, so every
+// spanned time must be guarded/blocked — shared by the reschedule + edit paths.
+const computeSpannedTimes = (slotTime: string, durationMinutes: number): string[] => {
+  const slotsSpanned = Math.max(1, Math.ceil((durationMinutes || 30) / 30));
+  const out: string[] = [];
+  const [sH, sM] = slotTime.split(":").map(Number);
+  for (let i = 0; i < slotsSpanned; i++) {
+    const total = sH * 60 + sM + i * 30;
+    if (Math.floor(total / 60) >= 24) break;
+    out.push(
+      `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}:00`,
+    );
+  }
+  return out;
+};
 
 interface ShowingDetailDialogProps {
   open: boolean;
@@ -63,7 +92,7 @@ interface ShowingData {
   lead_id: string;
   property_id: string;
   properties: { id: string; address: string; unit_number: string | null; city: string | null } | null;
-  leads: { id: string; full_name: string | null; phone: string; email: string | null; sms_consent: boolean | null; has_voucher: boolean | null } | null;
+  leads: { id: string; full_name: string | null; phone: string; email: string | null; sms_consent: boolean | null; has_voucher: boolean | null; applied_at: string | null } | null;
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -99,6 +128,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
   const [editTime, setEditTime] = useState("");
   const [editDuration, setEditDuration] = useState(30);
   const [saving, setSaving] = useState(false);
+  const [applyBusy, setApplyBusy] = useState(false);
 
   useEffect(() => {
     if (!open || !showingId) {
@@ -113,7 +143,10 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
 
     const fetchShowing = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      // Defense-in-depth org scoping (RLS is the only other backstop). Applied
+      // when the org is known — the dialog only opens inside an authenticated
+      // session, so userRecord is effectively always set by this point.
+      let query = supabase
         .from("showings")
         .select(`
           id, scheduled_at, status, duration_minutes, cancellation_reason,
@@ -121,10 +154,11 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
           completed_at, confirmation_attempts, prospect_interest_level,
           lead_id, property_id, booking_source, booked_by_name,
           properties(id, address, unit_number, city),
-          leads(id, full_name, phone, email, sms_consent, has_voucher)
+          leads(id, full_name, phone, email, sms_consent, has_voucher, applied_at)
         `)
-        .eq("id", showingId)
-        .single();
+        .eq("id", showingId);
+      if (userRecord?.organization_id) query = query.eq("organization_id", userRecord.organization_id);
+      const { data, error } = await query.single();
 
       if (error) {
         console.error("Error fetching showing:", error);
@@ -137,7 +171,100 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
     };
 
     fetchShowing();
-  }, [open, showingId]);
+  }, [open, showingId, userRecord?.organization_id]);
+
+  // True when a DIFFERENT property's active showing overlaps the interval
+  // [newScheduledAt, newScheduledAt + duration). The slot table can miss a
+  // >30-min tour's tail (no row exists to be flagged), so the real bookings
+  // are the authority — mirrors the load-bearing single-agent invariant.
+  const agentBusyElsewhere = async (newScheduledAt: string, durationMinutes: number): Promise<boolean> => {
+    if (!showing || !userRecord?.organization_id) return false;
+    const newStart = new Date(newScheduledAt).getTime();
+    const newEnd = newStart + (durationMinutes || 30) * 60 * 1000;
+    // Window: showings can be up to 180 min, so anything starting up to 3h
+    // before the new start could still overlap it.
+    const { data: nearby, error } = await supabase
+      .from("showings")
+      .select("id, scheduled_at, duration_minutes, property_id")
+      .eq("organization_id", userRecord.organization_id)
+      .in("status", ["scheduled", "confirmed"])
+      .gte("scheduled_at", new Date(newStart - 3 * 60 * 60 * 1000).toISOString())
+      .lt("scheduled_at", new Date(newEnd).toISOString())
+      .neq("id", showing.id);
+    if (error) {
+      console.error("Overlap check failed:", error);
+      return false; // the DB trigger still hard-blocks exact-instant conflicts
+    }
+    return (nearby || []).some((s: any) => {
+      if (s.property_id === showing.property_id) return false; // same address → group tour, OK
+      const sStart = new Date(s.scheduled_at).getTime();
+      const sEnd = sStart + (s.duration_minutes || 30) * 60 * 1000;
+      return sStart < newEnd && newStart < sEnd;
+    });
+  };
+
+  // A cancelled/rescheduled showing must not keep emailing the lead: kill its
+  // pending Samuel follow-up tasks (confirmation / no-show / post-showing).
+  // Best-effort — the status change is already committed.
+  const cancelPendingShowingTasks = async (showingIdToCancel: string) => {
+    if (!userRecord?.organization_id) return;
+    const { error } = await supabase
+      .from("agent_tasks")
+      .update({ status: "cancelled" })
+      .eq("organization_id", userRecord.organization_id)
+      .eq("status", "pending")
+      .eq("context->>showing_id", showingIdToCancel);
+    if (error) console.error("Cancel pending showing tasks failed:", error);
+  };
+
+  // When a showing MOVES, its pending follow-up tasks were scheduled off the
+  // OLD time — re-anchor them to the new one so the lead isn't reminded about
+  // (or chased after) a time that no longer exists. Best-effort; note that
+  // agent_tasks has NO updated_at column.
+  const retimePendingShowingTasks = async (showingIdToMove: string, newScheduledAt: string) => {
+    if (!userRecord?.organization_id) return;
+    const OFFSETS_MS: Record<string, number> = {
+      showing_confirmation: -24 * 60 * 60 * 1000,
+      no_show_followup: 60 * 60 * 1000,
+      post_showing: 24 * 60 * 60 * 1000,
+    };
+    const { data: tasks, error } = await supabase
+      .from("agent_tasks")
+      .select("id, agent_type, context")
+      .eq("organization_id", userRecord.organization_id)
+      .eq("status", "pending")
+      .eq("context->>showing_id", showingIdToMove);
+    if (error) {
+      console.error("Fetch pending showing tasks failed:", error);
+      return;
+    }
+    const base = new Date(newScheduledAt).getTime();
+    for (const t of tasks || []) {
+      const offset = OFFSETS_MS[t.agent_type as string];
+      if (offset === undefined) continue;
+      const newFor = new Date(base + offset);
+      if (t.agent_type === "showing_confirmation" && newFor.getTime() <= Date.now()) {
+        // A 24h-before confirmation that would fire immediately is noise —
+        // the reschedule confirmation email already covers it. Drop it.
+        const { error: cancelErr } = await supabase
+          .from("agent_tasks")
+          .update({ status: "cancelled" })
+          .eq("id", t.id)
+          .eq("status", "pending");
+        if (cancelErr) console.error("Cancel stale confirmation task failed:", cancelErr);
+        continue;
+      }
+      const { error: updErr } = await supabase
+        .from("agent_tasks")
+        .update({
+          scheduled_for: newFor.toISOString(),
+          context: { ...((t.context as Record<string, unknown>) || {}), scheduled_at: newScheduledAt },
+        })
+        .eq("id", t.id)
+        .eq("status", "pending");
+      if (updErr) console.error(`Retime task ${t.id} failed:`, updErr);
+    }
+  };
 
   const handleCancel = async () => {
     if (!showing || !userRecord?.organization_id) return;
@@ -152,17 +279,29 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
           cancellation_reason: cancelReason || "Cancelled by admin",
           cancelled_at: new Date().toISOString(),
         })
+        .eq("organization_id", userRecord.organization_id)
         .eq("id", showing.id);
 
       if (updateErr) throw updateErr;
 
-      // 2. Unbook the time slot
-      await supabase
-        .from("showing_available_slots")
-        .update({ is_booked: false, booked_showing_id: null })
-        .eq("booked_showing_id", showing.id);
+      // 2. Unbook the time slot (redundant with the status-sync DB trigger,
+      // kept as belt-and-braces — but at least LOG a failure).
+      {
+        const { error: relErr } = await supabase
+          .from("showing_available_slots")
+          .update({ is_booked: false, booked_showing_id: null })
+          .eq("organization_id", userRecord.organization_id)
+          .eq("booked_showing_id", showing.id);
+        if (relErr) console.error("Slot release failed (trigger should cover it):", relErr);
+      }
 
-      // 3. Send cancellation SMS to lead
+      // 2b. Kill pending follow-up tasks so the lead isn't reminded about a
+      // showing that no longer exists.
+      await cancelPendingShowingTasks(showing.id);
+
+      // 3. Send cancellation SMS to lead. Track the real outcome — a consent
+      // block or send failure must not produce a "notification sent" toast.
+      let smsSent = false;
       if (showing.leads?.phone) {
         const leadName = showing.leads.full_name || "there";
         const propertyAddr = showing.properties?.address || "the property";
@@ -172,7 +311,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         const smsBody = `Hi ${leadName}, your property showing at ${propertyAddr} on ${showingDate} has been cancelled. To reschedule, visit: ${window.location.origin}/p/book-showing`;
 
         try {
-          await supabase.functions.invoke("send-message", {
+          const { error: smsError } = await supabase.functions.invoke("send-message", {
             body: {
               lead_id: showing.lead_id,
               channel: "sms",
@@ -180,12 +319,18 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
               organization_id: userRecord.organization_id,
             },
           });
+          if (smsError) {
+            console.warn("SMS send failed (non-fatal):", smsError);
+          } else {
+            smsSent = true;
+          }
         } catch (smsErr) {
           console.warn("SMS send failed (non-fatal):", smsErr);
         }
       }
 
       // 3b. Send cancellation email to lead with other properties (same city)
+      let emailQueued = false;
       if (showing.leads?.email) {
         const otherProps = await fetchAvailableProperties(
           userRecord.organization_id,
@@ -205,26 +350,41 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
             otherProperties: otherProps,
           },
         });
+        emailQueued = true; // fire-and-forget queue — best signal we have
       }
 
       // 4. Log to system_logs
-      await supabase.from("system_logs").insert({
-        organization_id: userRecord.organization_id,
-        level: "info",
-        category: "general",
-        event_type: "showing_cancelled",
-        message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was cancelled`,
-        related_lead_id: showing.lead_id,
-        related_showing_id: showing.id,
-        details: {
-          reason: cancelReason,
-          cancelled_by: userRecord.id,
-        },
-      });
+      {
+        const { error: logErr } = await supabase.from("system_logs").insert({
+          organization_id: userRecord.organization_id,
+          level: "info",
+          category: "general",
+          event_type: "showing_cancelled",
+          message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was cancelled`,
+          related_lead_id: showing.lead_id,
+          related_showing_id: showing.id,
+          details: {
+            reason: cancelReason,
+            cancelled_by: userRecord.id,
+            sms_sent: smsSent,
+            email_queued: emailQueued,
+          },
+        });
+        if (logErr) console.error("System log insert failed:", logErr);
+      }
 
-      toast.success("Showing cancelled", {
-        description: `SMS notification sent to ${showing.leads?.full_name || "lead"} with rescheduling link.`,
-      });
+      // Honest toast: only claim what actually happened.
+      const leadLabel = showing.leads?.full_name || "the lead";
+      const notified = [smsSent && "SMS", emailQueued && "email"].filter(Boolean).join(" + ");
+      if (notified) {
+        toast.success("Showing cancelled", {
+          description: `${leadLabel} was notified by ${notified} with a rescheduling link.`,
+        });
+      } else {
+        toast.warning("Showing cancelled — lead NOT notified", {
+          description: `We couldn't reach ${leadLabel} automatically. Contact them directly.`,
+        });
+      }
 
       onOpenChange(false);
       onSuccess?.();
@@ -249,17 +409,28 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
           cancellation_reason: "Rescheduled by admin",
           cancelled_at: new Date().toISOString(),
         })
+        .eq("organization_id", userRecord.organization_id)
         .eq("id", showing.id);
 
       if (updateErr) throw updateErr;
 
-      // 2. Unbook the time slot
-      await supabase
-        .from("showing_available_slots")
-        .update({ is_booked: false, booked_showing_id: null })
-        .eq("booked_showing_id", showing.id);
+      // 2. Unbook the time slot (redundant with the status-sync DB trigger,
+      // kept as belt-and-braces — but at least LOG a failure).
+      {
+        const { error: relErr } = await supabase
+          .from("showing_available_slots")
+          .update({ is_booked: false, booked_showing_id: null })
+          .eq("organization_id", userRecord.organization_id)
+          .eq("booked_showing_id", showing.id);
+        if (relErr) console.error("Slot release failed (trigger should cover it):", relErr);
+      }
 
-      // 3. Send reschedule notifications
+      // 2b. Kill pending follow-up tasks — they were anchored to the old time.
+      await cancelPendingShowingTasks(showing.id);
+
+      // 3. Send reschedule notifications. Track real outcomes for the toast.
+      let smsSent = false;
+      let emailQueued = false;
       const leadName = showing.leads?.full_name || "there";
       const propertyAddr = showing.properties?.address || "the property";
       const propTz2 = getTimezoneForCity(showing.properties?.city);
@@ -286,12 +457,13 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
             scheduledTime: showingDate,
           },
         });
+        emailQueued = true; // fire-and-forget queue — best signal we have
       }
 
       // Also send SMS if phone available
       if (showing.leads?.phone) {
         try {
-          await supabase.functions.invoke("send-message", {
+          const { error: smsError } = await supabase.functions.invoke("send-message", {
             body: {
               lead_id: showing.lead_id,
               channel: "sms",
@@ -299,26 +471,43 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
               organization_id: userRecord.organization_id,
             },
           });
+          if (smsError) {
+            console.warn("SMS send failed (non-fatal):", smsError);
+          } else {
+            smsSent = true;
+          }
         } catch (smsErr) {
           console.warn("SMS send failed (non-fatal):", smsErr);
         }
       }
 
       // 4. Log
-      await supabase.from("system_logs").insert({
-        organization_id: userRecord.organization_id,
-        level: "info",
-        category: "general",
-        event_type: "showing_rescheduled",
-        message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${propertyAddr} was rescheduled`,
-        related_lead_id: showing.lead_id,
-        related_showing_id: showing.id,
-        details: { rescheduled_by: userRecord.id },
-      });
+      {
+        const { error: logErr } = await supabase.from("system_logs").insert({
+          organization_id: userRecord.organization_id,
+          level: "info",
+          category: "general",
+          event_type: "showing_rescheduled",
+          message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${propertyAddr} was rescheduled`,
+          related_lead_id: showing.lead_id,
+          related_showing_id: showing.id,
+          details: { rescheduled_by: userRecord.id, sms_sent: smsSent, email_queued: emailQueued },
+        });
+        if (logErr) console.error("System log insert failed:", logErr);
+      }
 
-      toast.success("Reschedule link sent", {
-        description: `${showing.leads?.full_name || "Lead"} was emailed/texted a link to pick a new time.`,
-      });
+      // Honest toast: only claim the channels that actually went out.
+      const leadLabel2 = showing.leads?.full_name || "The lead";
+      const sentVia = [emailQueued && "emailed", smsSent && "texted"].filter(Boolean).join(" + ");
+      if (sentVia) {
+        toast.success("Reschedule link sent", {
+          description: `${leadLabel2} was ${sentVia} a link to pick a new time.`,
+        });
+      } else {
+        toast.warning("Time freed — lead NOT notified", {
+          description: `We couldn't reach ${leadLabel2} automatically. Send them the booking link directly.`,
+        });
+      }
 
       setRescheduleChooser(false);
       onOpenChange(false);
@@ -346,29 +535,40 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
 
   const handleReactivate = async () => {
     if (!showing || !userRecord?.organization_id || !rescheduleDate || !rescheduleTime) return;
+    if (!isOnHalfHour(rescheduleTime)) {
+      toast.error("Showings can only be booked on the hour (:00) or half-hour (:30).");
+      return;
+    }
     setReactivating(true);
     try {
       const tz = getTimezoneForCity(showing.properties?.city);
       const newScheduledAt = buildScheduledAt(rescheduleDate, rescheduleTime, tz);
       const slotTime = rescheduleTime.length === 5 ? `${rescheduleTime}:00` : rescheduleTime;
 
-      // Half-hour times this showing occupies. A >30-min showing spans several
-      // slots and the single agent can't be in two places, so every spanned
-      // time must be free and gets blocked — mirrors ScheduleShowingDialog
-      // (the exact-time unique index only guards the first).
-      const durationMinutes = showing.duration_minutes || 30;
-      const slotsSpanned = Math.max(1, Math.ceil(durationMinutes / 30));
-      const spannedTimes: string[] = [];
-      {
-        const [sH, sM] = slotTime.split(":").map(Number);
-        for (let i = 0; i < slotsSpanned; i++) {
-          const total = sH * 60 + sM + i * 30;
-          if (Math.floor(total / 60) >= 24) break;
-          spannedTimes.push(
-            `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}:00`,
-          );
+      // Reject a move into the past (mirrors ScheduleShowingDialog) — a reschedule
+      // targets a NEW future time, never a bygone one. Compared against the
+      // property's calendar day/clock so a traveling admin can't backdate it.
+      const rescheduleToday = todayInTimezone(tz);
+      if (rescheduleDate < rescheduleToday) {
+        toast.error("That date is in the past", { description: "Pick a future date." });
+        setReactivating(false);
+        return;
+      }
+      if (rescheduleDate === rescheduleToday) {
+        const [rh, rm] = rescheduleTime.split(":").map(Number);
+        const nowParts = new Date().toLocaleString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).split(":").map(Number);
+        if (rh * 60 + rm + 30 <= nowParts[0] * 60 + nowParts[1]) {
+          toast.error("That time has already passed today", { description: "Pick a later time." });
+          setReactivating(false);
+          return;
         }
       }
+
+      // Half-hour times this showing occupies — every spanned time must be
+      // free and gets blocked (mirrors ScheduleShowingDialog; the DB trigger
+      // only guards the exact start instant).
+      const durationMinutes = showing.duration_minutes || 30;
+      const spannedTimes = computeSpannedTimes(slotTime, durationMinutes);
 
       // 0. Double-booking guard (load-bearing): refuse if ANY spanned time is
       // already booked by anything other than THIS showing — including a
@@ -382,6 +582,13 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         .eq("is_booked", true);
       if ((conflictRows || []).some((r: any) => r.booked_showing_id !== showing.id)) {
         toast.error("That time isn't free", { description: "The agent is already booked then — pick another time." });
+        setReactivating(false);
+        return;
+      }
+      // 0b. Slot rows can miss another tour's >30-min tail — check the real
+      // bookings for interval overlap too.
+      if (await agentBusyElsewhere(newScheduledAt, durationMinutes)) {
+        toast.error("That time isn't free", { description: "The agent is touring another property then — pick another time." });
         setReactivating(false);
         return;
       }
@@ -464,6 +671,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
           cancellation_reason: null,
           confirmed_at: null, // moved time needs re-confirmation; clear stale stamp
         })
+        .eq("organization_id", userRecord.organization_id)
         .eq("id", showing.id);
       if (updateErr) {
         // Roll back ONLY a slot we freshly booked — never a slot the still-active
@@ -489,6 +697,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         let rel = supabase
           .from("showing_available_slots")
           .update({ is_booked: false, booked_showing_id: null, booked_at: null })
+          .eq("organization_id", userRecord.organization_id)
           .eq("booked_showing_id", showing.id);
         if (slotRowId) rel = rel.neq("id", slotRowId);
         const { error: relErr } = await rel;
@@ -529,16 +738,49 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
         if (blkErr) console.error(`Block spanned slot ${t} (siblings) failed:`, blkErr);
       }
 
-      // 5. Send confirmation email to lead
+      // 4b. Re-anchor pending follow-up tasks (confirmation / no-show /
+      // post-showing) to the new time.
+      await retimePendingShowingTasks(showing.id, newScheduledAt);
+
+      // 5. Send confirmation email to lead — reuse the org's showing_confirmation
+      // template (mirrors ScheduleShowingDialog + ShowingsAgenda) so a rescheduled
+      // lead gets the same branded, org-customizable email as every other
+      // confirmation path instead of hardcoded inline English HTML.
       if (showing.leads?.email) {
         const propertyAddr = showing.properties?.address || "the property";
+        const fullAddr = `${propertyAddr}${showing.properties?.unit_number ? ` #${showing.properties.unit_number}` : ""}${showing.properties?.city ? `, ${showing.properties.city}` : ""}`;
         const showingDateStr = format(new Date(newScheduledAt), "EEEE, MMMM d") + " at " + formatTimeInTimezone(newScheduledAt, tz);
-        const leadName = showing.leads.full_name?.split(" ")[0] || "there";
+        const firstName = showing.leads.full_name?.trim().split(" ")[0] || "there";
+
+        const { data: settingsData } = await supabase
+          .from("organization_settings")
+          .select("value")
+          .eq("organization_id", userRecord.organization_id)
+          .eq("key", "email_templates")
+          .maybeSingle();
+        const templates = (settingsData?.value as unknown as EmailTemplatesMap) || {};
+        const templateConfig = templates.showing_confirmation || DEFAULT_CONFIGS.showing_confirmation;
+
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("name")
+          .eq("id", userRecord.organization_id)
+          .maybeSingle();
+
+        const html = renderEmailHtml(templateConfig, {
+          firstName,
+          fullName: showing.leads.full_name || firstName,
+          propertyAddress: fullAddr,
+          showingDate: showingDateStr,
+          orgName: org?.name || "Our Team",
+        });
 
         sendNotificationEmail({
           to: showing.leads.email,
-          subject: `Showing Confirmed — ${propertyAddr}`,
-          html: `<div style="margin-bottom:24px"><h2 style="margin:0;color:#1a1a1a;font-size:22px;font-weight:700">Hi ${leadName},</h2><p style="margin:12px 0 0 0;color:#666;font-size:16px;line-height:1.5">Your showing has been rescheduled! Here are your new details:</p></div><div style="background:#f8f8f8;border-left:4px solid #4F46E5;padding:16px 20px;border-radius:4px;margin:16px 0"><p style="margin:0;color:#1a1a1a;font-size:15px;font-weight:600">${showingDateStr}</p><p style="margin:8px 0 0 0;color:#666;font-size:14px">${propertyAddr}${showing.properties?.unit_number ? " #" + showing.properties.unit_number : ""}${showing.properties?.city ? ", " + showing.properties.city : ""}</p></div><p style="margin:16px 0;color:#666;font-size:14px">Please bring a valid photo ID and proof of income. We look forward to seeing you!</p>`,
+          subject: templateConfig.subject
+            .replace("{propertyAddress}", fullAddr)
+            .replace("{showingDate}", showingDateStr),
+          html,
           notificationType: "showing_rescheduled_confirmation",
           organizationId: userRecord.organization_id,
           relatedEntityId: showing.id,
@@ -547,20 +789,23 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       }
 
       // 6. Log
-      await supabase.from("system_logs").insert({
-        organization_id: userRecord.organization_id,
-        level: "info",
-        category: "general",
-        event_type: "showing_reactivated",
-        message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was rescheduled to ${rescheduleDate} ${rescheduleTime}`,
-        related_lead_id: showing.lead_id,
-        related_showing_id: showing.id,
-        details: {
-          old_scheduled_at: showing.scheduled_at,
-          new_scheduled_at: newScheduledAt,
-          reactivated_by: userRecord.id,
-        },
-      });
+      {
+        const { error: logErr } = await supabase.from("system_logs").insert({
+          organization_id: userRecord.organization_id,
+          level: "info",
+          category: "general",
+          event_type: "showing_reactivated",
+          message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was rescheduled to ${rescheduleDate} ${rescheduleTime}`,
+          related_lead_id: showing.lead_id,
+          related_showing_id: showing.id,
+          details: {
+            old_scheduled_at: showing.scheduled_at,
+            new_scheduled_at: newScheduledAt,
+            reactivated_by: userRecord.id,
+          },
+        });
+        if (logErr) console.error("System log insert failed:", logErr);
+      }
 
       } catch (postErr) {
         console.error("Post-reschedule bookkeeping failed (reschedule already committed):", postErr);
@@ -573,7 +818,13 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       onSuccess?.();
     } catch (err: any) {
       console.error("Reactivate error:", err);
-      toast.error(`Failed to reschedule: ${err.message}`);
+      if (err?.code === "23505") {
+        // trg_enforce_showing_agent_slot: a different property took the
+        // agent's time at this exact instant (concurrent booking).
+        toast.error("That time was just taken", { description: "A different property is booked then — pick another time." });
+      } else {
+        toast.error(`Failed to reschedule: ${err.message}`);
+      }
     } finally {
       setReactivating(false);
     }
@@ -592,48 +843,292 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
     setEditMode(true);
   };
 
+  // Pencil-edit of an ACTIVE showing's date/time/duration. Moving the showing
+  // must do the SAME slot dance as the reschedule path: guard the new time
+  // (incl. spanned tails), book the new primary slot atomically, move the
+  // showing (rollback on failure), release the old rows, block the new tails —
+  // otherwise the old time stays phantom-blocked and the new time unguarded.
   const handleSaveEdit = async () => {
     if (!showing || !userRecord?.organization_id || !editDate || !editTime) return;
+    if (!isOnHalfHour(editTime)) {
+      toast.error("Showings can only be booked on the hour (:00) or half-hour (:30).");
+      return;
+    }
     setSaving(true);
     try {
       const tz = getTimezoneForCity(showing.properties?.city);
-      const newScheduledAt = buildScheduledAt(editDate, `${editTime}:00`, tz);
+      const slotTime = `${editTime}:00`;
+      const newScheduledAt = buildScheduledAt(editDate, slotTime, tz);
+      const durationMinutes = editDuration || 30;
+      const spannedTimes = computeSpannedTimes(slotTime, durationMinutes);
 
+      // Did the TIME actually move? Drives both the past-date guard and the
+      // confirmation reset below. A duration-only edit leaves the instant (and
+      // the existing confirmation) untouched.
+      const editMovedTime = new Date(newScheduledAt).getTime() !== new Date(showing.scheduled_at).getTime();
+
+      // Reject a move into the past (mirrors ScheduleShowingDialog) — only when
+      // the time actually moves, so correcting a past-due showing's duration
+      // still saves. Compared against the property's calendar day/clock.
+      if (editMovedTime) {
+        const editToday = todayInTimezone(tz);
+        if (editDate < editToday) {
+          toast.error("That date is in the past", { description: "Pick a future date." });
+          setSaving(false);
+          return;
+        }
+        if (editDate === editToday) {
+          const [eh, em] = editTime.split(":").map(Number);
+          const nowParts = new Date().toLocaleString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).split(":").map(Number);
+          if (eh * 60 + em + 30 <= nowParts[0] * 60 + nowParts[1]) {
+            toast.error("That time has already passed today", { description: "Pick a later time." });
+            setSaving(false);
+            return;
+          }
+        }
+      }
+
+      // 0. Double-booking guard: refuse if ANY spanned time is already booked
+      // by anything other than THIS showing (incl. null-owner manual blocks).
+      const { data: conflictRows } = await supabase
+        .from("showing_available_slots")
+        .select("slot_time, booked_showing_id")
+        .eq("organization_id", userRecord.organization_id)
+        .eq("slot_date", editDate)
+        .in("slot_time", spannedTimes)
+        .eq("is_booked", true);
+      if ((conflictRows || []).some((r: any) => r.booked_showing_id !== showing.id)) {
+        toast.error("That time isn't free", { description: "The agent is already booked then — pick another time." });
+        setSaving(false);
+        return;
+      }
+      // 0b. Slot rows can miss another tour's >30-min tail — check the real
+      // bookings for interval overlap too.
+      if (await agentBusyElsewhere(newScheduledAt, durationMinutes)) {
+        toast.error("That time isn't free", { description: "The agent is touring another property then — pick another time." });
+        setSaving(false);
+        return;
+      }
+
+      // 1. Secure the PRIMARY slot FIRST (before touching the showing) —
+      // find-or-materialize the row, refuse an owner-off time, then book it
+      // ATOMICALLY (only if still free). slotRowId lets the old-slot release
+      // below skip the new primary; alreadyOurs marks a slot this showing
+      // already holds (edit onto an overlapping time) so rollback never frees it.
+      let slotRowId: string | null = null;
+      let alreadyOurs = false;
+      if (showing.property_id) {
+        const { data: existing } = await supabase
+          .from("showing_available_slots")
+          .select("id, is_booked, is_enabled, booked_showing_id")
+          .eq("organization_id", userRecord.organization_id)
+          .eq("property_id", showing.property_id)
+          .eq("slot_date", editDate)
+          .eq("slot_time", slotTime)
+          .maybeSingle();
+        if (existing && existing.is_enabled === false) {
+          toast.error("That time is turned off for this property", { description: "Enable it in the calendar first, or pick another." });
+          setSaving(false);
+          return;
+        }
+        alreadyOurs = !!(existing?.is_booked && existing.booked_showing_id === showing.id);
+        if (existing?.is_booked && existing.booked_showing_id !== showing.id) {
+          toast.error("That time was just taken", { description: "Pick another time." });
+          setSaving(false);
+          return;
+        }
+        if (existing) {
+          slotRowId = existing.id;
+        } else {
+          const { data: created, error: createErr } = await supabase
+            .from("showing_available_slots")
+            .insert({
+              organization_id: userRecord.organization_id,
+              property_id: showing.property_id,
+              slot_date: editDate,
+              slot_time: slotTime,
+              duration_minutes: durationMinutes,
+              is_enabled: true,
+              is_booked: false,
+            })
+            .select("id")
+            .single();
+          if (createErr || !created) throw createErr || new Error("Could not create the time slot");
+          slotRowId = created.id;
+        }
+        if (!alreadyOurs) {
+          const { data: bookedSlot, error: bookErr } = await supabase
+            .from("showing_available_slots")
+            .update({ is_booked: true, booked_showing_id: showing.id, booked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq("id", slotRowId)
+            .eq("is_booked", false) // atomic — only if still free
+            .select("id")
+            .single();
+          if (bookErr || !bookedSlot) {
+            toast.error("That time was just taken", { description: "Pick another time." });
+            setSaving(false);
+            return;
+          }
+        }
+      }
+
+      // 2. Move the showing. If this fails, ROLL BACK the fresh slot booking so
+      // we never leave a booked slot with no showing (or vice-versa). When the
+      // TIME actually moved, reset status→scheduled + clear confirmed_at (the lead
+      // never confirmed the new time; mirrors handleReactivate) so the dialog
+      // stops showing a stale "Confirmed" stamp and schedule_showing_confirmations
+      // re-requests confirmation. A duration-only edit keeps the confirmation.
+      const editUpdate: Record<string, any> = {
+        scheduled_at: newScheduledAt,
+        duration_minutes: durationMinutes,
+      };
+      if (editMovedTime) {
+        editUpdate.status = "scheduled";
+        editUpdate.confirmed_at = null;
+      }
       const { error } = await supabase
         .from("showings")
-        .update({
-          scheduled_at: newScheduledAt,
-          duration_minutes: editDuration,
-        })
+        .update(editUpdate)
+        .eq("organization_id", userRecord.organization_id)
         .eq("id", showing.id);
+      if (error) {
+        if (slotRowId && !alreadyOurs) {
+          await supabase
+            .from("showing_available_slots")
+            .update({ is_booked: false, booked_showing_id: null, booked_at: null })
+            .eq("id", slotRowId);
+        }
+        throw error;
+      }
 
-      if (error) throw error;
+      // The showing + primary slot are committed. Everything below is
+      // best-effort bookkeeping — a failure must NOT surface as "Failed".
+      try {
 
-      // Log the edit
-      await supabase.from("system_logs").insert({
-        organization_id: userRecord.organization_id,
-        level: "info",
-        category: "general",
-        event_type: "showing_edited",
-        message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was edited`,
-        related_lead_id: showing.lead_id,
-        related_showing_id: showing.id,
-        details: {
-          old_scheduled_at: showing.scheduled_at,
-          new_scheduled_at: newScheduledAt,
-          edited_by: userRecord.id,
-        },
-      });
+      // 3. Release every OTHER slot this showing held (old primary + old
+      // spanned + buffer), keeping the just-booked new primary.
+      {
+        let rel = supabase
+          .from("showing_available_slots")
+          .update({ is_booked: false, booked_showing_id: null, booked_at: null })
+          .eq("organization_id", userRecord.organization_id)
+          .eq("booked_showing_id", showing.id);
+        if (slotRowId) rel = rel.neq("id", slotRowId);
+        const { error: relErr } = await rel;
+        if (relErr) console.error("Release old slots failed:", relErr);
+      }
+
+      // 4. Block EVERY spanned time across ALL homes. For the primary property,
+      // materialize+book each tail half-hour (upsert — omitting is_enabled so an
+      // owner-off row stays off on conflict); for other homes, block their
+      // still-open rows.
+      for (const t of spannedTimes) {
+        if (showing.property_id && t !== slotTime) {
+          const { error: tailErr } = await supabase
+            .from("showing_available_slots")
+            .upsert({
+              organization_id: userRecord.organization_id,
+              property_id: showing.property_id,
+              slot_date: editDate,
+              slot_time: t,
+              is_booked: true,
+              booked_showing_id: showing.id,
+              booked_at: new Date().toISOString(),
+            }, { onConflict: "organization_id,property_id,slot_date,slot_time" });
+          if (tailErr) console.error(`Book spanned tail ${t} failed:`, tailErr);
+        }
+        let blk = supabase
+          .from("showing_available_slots")
+          .update({ is_booked: true, booked_showing_id: showing.id, booked_at: new Date().toISOString() })
+          .eq("organization_id", userRecord.organization_id)
+          .eq("slot_date", editDate)
+          .eq("slot_time", t)
+          .eq("is_booked", false);
+        if (showing.property_id) blk = blk.neq("property_id", showing.property_id);
+        const { error: blkErr } = await blk;
+        if (blkErr) console.error(`Block spanned slot ${t} (siblings) failed:`, blkErr);
+      }
+
+      // 5. Re-anchor pending follow-up tasks to the new time.
+      await retimePendingShowingTasks(showing.id, newScheduledAt);
+
+      // 6. Log the edit
+      {
+        const { error: logErr } = await supabase.from("system_logs").insert({
+          organization_id: userRecord.organization_id,
+          level: "info",
+          category: "general",
+          event_type: "showing_edited",
+          message: `Showing for ${showing.leads?.full_name || "Unknown"} at ${showing.properties?.address || "Unknown"} was edited`,
+          related_lead_id: showing.lead_id,
+          related_showing_id: showing.id,
+          details: {
+            old_scheduled_at: showing.scheduled_at,
+            new_scheduled_at: newScheduledAt,
+            edited_by: userRecord.id,
+          },
+        });
+        if (logErr) console.error("System log insert failed:", logErr);
+      }
+
+      } catch (postErr) {
+        console.error("Post-edit bookkeeping failed (edit already committed):", postErr);
+      }
 
       toast.success("Showing updated");
       setEditMode(false);
-      // Refresh showing data
-      setShowing({ ...showing, scheduled_at: newScheduledAt, duration_minutes: editDuration });
+      // Refresh showing data — mirror the confirmation reset when the time moved.
+      setShowing({
+        ...showing,
+        scheduled_at: newScheduledAt,
+        duration_minutes: durationMinutes,
+        ...(editMovedTime ? { status: "scheduled", confirmed_at: null } : {}),
+      });
       onSuccess?.();
     } catch (err: any) {
-      toast.error(`Failed to save: ${err.message}`);
+      console.error("Save edit error:", err);
+      if (err?.code === "23505") {
+        // trg_enforce_showing_agent_slot: a different property took the
+        // agent's time at this exact instant (concurrent booking).
+        toast.error("That time was just taken", { description: "A different property is booked then — pick another time." });
+      } else {
+        toast.error(`Failed to save: ${err.message}`);
+      }
     } finally {
       setSaving(false);
+    }
+  };
+
+  // The "applicant" milestone tag — status-neutral, set from a completed
+  // showing. Stamps leads.applied_at + a leasing_activity(application_generated)
+  // row; never changes the lead's status.
+  const toggleApplied = async () => {
+    if (!showing || !showing.leads || !userRecord?.organization_id) return;
+    const isApplied = !!showing.leads.applied_at;
+    setApplyBusy(true);
+    try {
+      if (isApplied) {
+        await unmarkApplicationGenerated(showing.lead_id);
+        setShowing({ ...showing, leads: { ...showing.leads, applied_at: null } });
+        toast.success("Application unmarked");
+      } else {
+        await markApplicationGenerated({
+          leadId: showing.lead_id,
+          organizationId: userRecord.organization_id,
+          showingId: showing.id,
+          propertyId: showing.property_id,
+        });
+        setShowing({ ...showing, leads: { ...showing.leads, applied_at: new Date().toISOString() } });
+        toast.success("✅ Application generated", {
+          description: "Marked as applicant — visible in the Leasing Tracker.",
+        });
+      }
+      onSuccess?.();
+    } catch (err: any) {
+      console.error("Applicant tag update failed:", err);
+      toast.error("Could not update the applicant tag. Try again.");
+    } finally {
+      setApplyBusy(false);
     }
   };
 
@@ -686,6 +1181,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                       <Label className="text-xs">Time</Label>
                       <Input
                         type="time"
+                        step={1800}
                         value={editTime}
                         onChange={(e) => setEditTime(e.target.value)}
                         className="h-9 text-sm"
@@ -837,6 +1333,41 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                     {format(parseISO(showing.completed_at), "MMM d 'at' h:mm a")}
                   </p>
                 )}
+
+                {/* Applicant milestone — status-neutral tag, feeds the Leasing
+                    Tracker. Mark it later, when the prospect actually applies. */}
+                <div className="pt-2 mt-1 border-t border-emerald-200">
+                  {showing.leads?.applied_at ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
+                        <ClipboardCheck className="h-3.5 w-3.5" />
+                        Application generated · {format(parseISO(showing.leads.applied_at), "MMM d")}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-emerald-700 hover:text-red-600"
+                        onClick={toggleApplied}
+                        disabled={applyBusy}
+                      >
+                        {applyBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Undo"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={toggleApplied}
+                      disabled={applyBusy}
+                      className="w-full bg-[#4F46E5] hover:bg-[#4F46E5]/90 gap-1.5"
+                    >
+                      {applyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
+                      Mark application generated
+                    </Button>
+                  )}
+                  <p className="mt-1.5 text-[11px] text-emerald-700/80">
+                    Applicant milestone — does not change the lead's status.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -870,7 +1401,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
               <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-3">
                 <p className="text-sm font-medium text-red-800">Cancel this showing?</p>
                 <p className="text-xs text-red-700">
-                  An SMS will be sent to {showing.leads?.full_name || "the lead"} with a link to reschedule.
+                  We'll try to notify {showing.leads?.full_name || "the lead"} by SMS/email with a link to reschedule.
                 </p>
                 <Textarea
                   placeholder="Reason for cancellation (optional)"
@@ -919,6 +1450,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
                     <Label className="text-xs text-indigo-700">Time</Label>
                     <Input
                       type="time"
+                      step={1800}
                       value={rescheduleTime}
                       onChange={(e) => setRescheduleTime(e.target.value)}
                       className="mt-1 text-sm"

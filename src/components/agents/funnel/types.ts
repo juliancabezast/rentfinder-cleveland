@@ -25,8 +25,6 @@ export interface FunnelSnapshot {
   agents: AgentSnapshot[];
   funnel: {
     statuses: Partial<Record<StageKey, number>>;
-    milestones: { ge50: number; ge80: number; eq100: number };
-    hot: number;
   };
   flows: {
     leads_created_1h: number;

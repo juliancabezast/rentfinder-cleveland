@@ -25,7 +25,7 @@ import {
 } from "@/lib/leadTags";
 import { DocumentsTab } from "@/components/insights/DocumentsTab";
 
-type SortField = "full_name" | "lead_score" | "created_at" | "last_contact_at";
+type SortField = "full_name" | "created_at" | "last_contact_at";
 type SortDirection = "asc" | "desc";
 type Lead = Tables<"leads">;
 type LeadWithTags = Lead & Parameters<typeof mapEmbeddedTags>[0];
@@ -90,7 +90,7 @@ const KnowledgeHub: React.FC = () => {
       let query = supabase
         .from("leads")
         .select(
-          `id, full_name, phone, source, status, lead_score,
+          `id, full_name, phone, source, status,
            has_voucher, preferred_language, created_at, last_contact_at,
            ${LEAD_TAGS_DISPLAY_EMBED}${appliedFilters.propertyId !== "all" ? ", ipi_filter:lead_property_interests!inner(property_id)" : ""}`,
           { count: "exact" }
@@ -110,12 +110,6 @@ const KnowledgeHub: React.FC = () => {
       if (appliedFilters.sources.length > 0) {
         query = query.in("source", appliedFilters.sources);
       }
-      if (appliedFilters.scoreMin) {
-        query = query.gte("lead_score", parseInt(appliedFilters.scoreMin));
-      }
-      if (appliedFilters.scoreMax) {
-        query = query.lte("lead_score", parseInt(appliedFilters.scoreMax));
-      }
       if (appliedFilters.language !== "all") {
         query = query.eq("preferred_language", appliedFilters.language);
       }
@@ -129,9 +123,6 @@ const KnowledgeHub: React.FC = () => {
       }
       if (appliedFilters.zipCode) {
         query = query.contains("interested_zip_codes", [appliedFilters.zipCode]);
-      }
-      if (appliedFilters.priorityOnly) {
-        query = query.eq("is_priority", true);
       }
 
       const { data, count, error } = await query
@@ -148,7 +139,6 @@ const KnowledgeHub: React.FC = () => {
         phone: lead.phone,
         source: lead.source,
         status: lead.status,
-        lead_score: lead.lead_score,
         has_voucher: lead.has_voucher,
         preferred_language: lead.preferred_language,
         created_at: lead.created_at || "",
@@ -217,12 +207,6 @@ const KnowledgeHub: React.FC = () => {
       if (appliedFilters.sources.length > 0) {
         query = query.in("source", appliedFilters.sources);
       }
-      if (appliedFilters.scoreMin) {
-        query = query.gte("lead_score", parseInt(appliedFilters.scoreMin));
-      }
-      if (appliedFilters.scoreMax) {
-        query = query.lte("lead_score", parseInt(appliedFilters.scoreMax));
-      }
       if (appliedFilters.language !== "all") {
         query = query.eq("preferred_language", appliedFilters.language);
       }
@@ -236,9 +220,6 @@ const KnowledgeHub: React.FC = () => {
       }
       if (appliedFilters.zipCode) {
         query = query.contains("interested_zip_codes", [appliedFilters.zipCode]);
-      }
-      if (appliedFilters.priorityOnly) {
-        query = query.eq("is_priority", true);
       }
 
       const { data: allLeads, error } = await query.order("created_at", {
@@ -275,7 +256,6 @@ const KnowledgeHub: React.FC = () => {
         "email",
         "source",
         "status",
-        "lead_score",
         "property_address",
         "has_voucher",
         "preferred_language",
@@ -301,7 +281,6 @@ const KnowledgeHub: React.FC = () => {
             `"${lead.email || ""}"`,
             `"${lead.source}"`,
             `"${lead.status}"`,
-            lead.lead_score ?? "",
             `"${propertyAddress.replace(/"/g, '""')}"`,
             lead.has_voucher ? "Yes" : "No",
             `"${lead.preferred_language || ""}"`,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Merge, Loader2, AlertTriangle, ArrowRight } from "lucide-react";
+import { Merge, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -34,7 +34,6 @@ interface LeadRow {
   phone: string | null;
   email: string | null;
   status: string;
-  lead_score: number | null;
   source: string | null;
   created_at: string;
   last_contact_at: string | null;
@@ -54,13 +53,6 @@ export const STATUS_ORDER = [
   "showing_scheduled", "showed", "in_application", "converted",
 ];
 
-interface MergeableField {
-  key: string;
-  label: string;
-  winnerVal: string | null;
-  loserVal: string | null;
-}
-
 function displayValue(val: any): string {
   if (val === null || val === undefined || val === "") return "(empty)";
   if (typeof val === "boolean") return val ? "Yes" : "No";
@@ -75,11 +67,6 @@ export function autoPickDefault(
   // If one is empty, pick the other
   if (!winnerVal && loserVal) return "loser";
   if (winnerVal && !loserVal) return "winner";
-
-  // For score, pick higher
-  if (key === "lead_score") {
-    return (Number(loserVal) || 0) > (Number(winnerVal) || 0) ? "loser" : "winner";
-  }
 
   // For status, pick more advanced
   if (key === "status") {
@@ -98,6 +85,7 @@ export function autoPickDefault(
   return "winner";
 }
 
+// Every key here must be in merge_leads' override whitelist — the RPC rejects anything else.
 export const MERGE_FIELDS = [
   { key: "full_name", label: "Full Name" },
   { key: "first_name", label: "First Name" },
@@ -105,7 +93,6 @@ export const MERGE_FIELDS = [
   { key: "phone", label: "Phone" },
   { key: "email", label: "Email" },
   { key: "status", label: "Status" },
-  { key: "lead_score", label: "Score" },
   { key: "source", label: "Source" },
   { key: "source_detail", label: "Source Detail" },
   { key: "budget_min", label: "Budget Min" },
@@ -119,85 +106,76 @@ export const MERGE_FIELDS = [
   { key: "call_consent", label: "Call Consent" },
 ];
 
-/** Perform a full merge of loser into winner using auto-picked defaults. */
+// User-visible tables counted for the "records to move" preview. The merge_leads
+// RPC itself re-points EVERY linked table (incl. lead_reminders, leasing_activity,
+// inbound_emails, notifications, referrals, system_logs) — this list is display-only.
+const PREVIEW_TABLES = [
+  "lead_notes", "calls", "showings", "agent_tasks", "consent_log",
+  "communications", "cost_records", "email_events", "lead_property_interests",
+];
+
+/**
+ * Collect the loser-side values chosen to survive the merge, in the shape
+ * merge_leads expects. Empty loser values are skipped — the RPC applies
+ * overrides with COALESCE, so they could never clear a winner field anyway.
+ */
+function buildOverrides(
+  loserFull: any,
+  pick: (key: string) => "winner" | "loser"
+): Record<string, any> {
+  const overrides: Record<string, any> = {};
+  for (const f of MERGE_FIELDS) {
+    const loserVal = loserFull[f.key];
+    if (pick(f.key) === "loser" && loserVal !== null && loserVal !== undefined && loserVal !== "") {
+      overrides[f.key] = loserVal;
+    }
+  }
+  // Keep first/last name in sync when the loser's full name wins
+  if (overrides.full_name) {
+    const parts = String(overrides.full_name).trim().split(" ");
+    if (parts[0]) overrides.first_name = parts[0];
+    const rest = parts.slice(1).join(" ");
+    if (rest) overrides.last_name = rest;
+  }
+  return overrides;
+}
+
+/**
+ * Merge loser into winner via the atomic merge_leads RPC. The RPC applies the
+ * field overrides, re-points ALL related tables (incl. email_events,
+ * lead_reminders, leasing_activity), logs the merge and deletes the loser —
+ * all in one transaction. Overrides are auto-picked: fill empty fields, most
+ * advanced status, consent = true.
+ */
 export async function performMerge(
   winnerId: string,
   loserId: string,
-  userId: string | null
+  userId: string | null,
+  orgId?: string | null
 ): Promise<void> {
-  // Fetch full records
+  // Fetch full records to auto-pick which values survive. Org-scope the selects
+  // for defense-in-depth (the RPC also validates org membership).
+  const scope = (q: any) => (orgId ? q.eq("organization_id", orgId) : q);
   const [winnerRes, loserRes] = await Promise.all([
-    supabase.from("leads").select("*").eq("id", winnerId).single(),
-    supabase.from("leads").select("*").eq("id", loserId).single(),
+    scope(supabase.from("leads").select("*").eq("id", winnerId)).single(),
+    scope(supabase.from("leads").select("*").eq("id", loserId)).single(),
   ]);
   if (winnerRes.error) throw new Error(winnerRes.error.message);
   if (loserRes.error) throw new Error(loserRes.error.message);
-  const winnerFull = winnerRes.data;
-  const loserFull = loserRes.data;
+  const winnerFull: any = winnerRes.data;
+  const loserFull: any = loserRes.data;
 
-  // Build overrides from auto-pick
-  const overrides: Record<string, any> = {};
-  for (const f of MERGE_FIELDS) {
-    if (autoPickDefault(f.key, winnerFull[f.key], loserFull[f.key]) === "loser") {
-      overrides[f.key] = loserFull[f.key];
-    }
-  }
-  if (overrides.full_name) {
-    const parts = String(overrides.full_name).trim().split(" ");
-    overrides.first_name = parts[0] || null;
-    overrides.last_name = parts.slice(1).join(" ") || null;
-  }
+  const overrides = buildOverrides(loserFull, (key) =>
+    autoPickDefault(key, winnerFull[key], loserFull[key])
+  );
 
-  // Apply overrides to winner
-  if (Object.keys(overrides).length > 0) {
-    overrides.updated_at = new Date().toISOString();
-    const { error } = await supabase.from("leads").update(overrides).eq("id", winnerId);
-    if (error) throw new Error(`Update winner: ${error.message}`);
-  }
-
-  // Re-point related records
-  const leadIdTables = [
-    "lead_notes", "calls", "showings", "agent_tasks",
-    "lead_score_history", "consent_log", "communications",
-    "cost_records", "lead_predictions", "competitor_mentions",
-    "conversion_predictions", "lead_field_changes",
-  ];
-  for (const table of leadIdTables) {
-    await (supabase as any).from(table as any).update({ lead_id: winnerId }).eq("lead_id", loserId);
-  }
-  await supabase.from("system_logs").update({ related_lead_id: winnerId }).eq("related_lead_id", loserId);
-  await supabase.from("referrals").update({ referrer_lead_id: winnerId }).eq("referrer_lead_id", loserId);
-  await supabase.from("referrals").update({ referred_lead_id: winnerId }).eq("referred_lead_id", loserId);
-
-  // Re-point CASCADE-linked tables with a unique (lead_id, X) constraint. Skip
-  // loser rows whose X already exists on the winner (they'd collide) — those are
-  // left on the loser and cascade-deleted with it.
-  const dedupTables = [
-    { table: "lead_property_interests", col: "property_id" },
-    { table: "campaign_leads", col: "campaign_id" },
-    { table: "campaign_recipients", col: "campaign_id" },
-  ];
-  for (const { table, col } of dedupTables) {
-    const { data: winnerRows } = await (supabase as any)
-      .from(table as any).select(col).eq("lead_id", winnerId);
-    const taken = (winnerRows || []).map((r: any) => r[col]).filter(Boolean);
-    const move = (supabase as any).from(table as any).update({ lead_id: winnerId }).eq("lead_id", loserId);
-    await (taken.length > 0 ? move.not(col, "in", `(${taken.join(",")})`) : move);
-  }
-
-  // Log merge note
-  const { error: noteErr } = await (supabase as any).from("lead_notes").insert({
-    organization_id: winnerFull.organization_id,
-    lead_id: winnerId,
-    created_by: userId,
-    content: `Merged duplicate lead "${loserFull.full_name || loserId.slice(0, 8)}" into this record on ${new Date().toLocaleString()}. Fields kept from duplicate: ${Object.keys(overrides).filter(k => k !== "updated_at").join(", ") || "none"}.`,
-    note_type: "system",
+  const { error } = await supabase.rpc("merge_leads", {
+    p_winner_id: winnerId,
+    p_loser_id: loserId,
+    p_field_overrides: overrides,
+    p_merged_by_user_id: userId ?? undefined,
   });
-  if (noteErr) console.error(`Merge note insert failed: ${noteErr.message}`);
-
-  // Delete loser
-  const { error: deleteErr } = await supabase.from("leads").delete().eq("id", loserId);
-  if (deleteErr) throw new Error(`Delete duplicate: ${deleteErr.message}`);
+  if (error) throw new Error(error.message);
 }
 
 export const MergeDialog: React.FC<MergeDialogProps> = ({
@@ -218,39 +196,53 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
 
   useEffect(() => {
     if (open) fetchFullLeads();
-  }, [open, winner.id, loser.id]);
+  }, [open, winner.id, loser.id, userRecord?.organization_id]);
 
   const fetchFullLeads = async () => {
+    if (!userRecord?.organization_id) return;
+    const orgId = userRecord.organization_id;
     setLoading(true);
+    setWinnerFull(null);
+    setLoserFull(null);
 
     const [winnerRes, loserRes] = await Promise.all([
-      supabase.from("leads").select("*").eq("id", winner.id).single(),
-      supabase.from("leads").select("*").eq("id", loser.id).single(),
+      supabase.from("leads").select("*").eq("id", winner.id).eq("organization_id", orgId).single(),
+      supabase.from("leads").select("*").eq("id", loser.id).eq("organization_id", orgId).single(),
     ]);
 
-    if (winnerRes.data) setWinnerFull(winnerRes.data);
-    if (loserRes.data) setLoserFull(loserRes.data);
-
-    // Set auto-defaults for selections
-    if (winnerRes.data && loserRes.data) {
-      const defaults: Record<string, "winner" | "loser"> = {};
-      for (const f of MERGE_FIELDS) {
-        defaults[f.key] = autoPickDefault(f.key, winnerRes.data[f.key], loserRes.data[f.key]);
-      }
-      setSelections(defaults);
+    // A merge must never run blind: abort the dialog if either record failed to load
+    if (winnerRes.error || loserRes.error || !winnerRes.data || !loserRes.data) {
+      toast.error("Could not load leads for merging", {
+        description:
+          winnerRes.error?.message || loserRes.error?.message || "Lead not found",
+      });
+      setLoading(false);
+      onOpenChange(false);
+      return;
     }
 
-    // Fetch related record counts for loser
-    const tables = [
-      "lead_notes", "calls", "showings", "agent_tasks",
-      "lead_score_history", "consent_log", "communications",
-    ];
+    setWinnerFull(winnerRes.data);
+    setLoserFull(loserRes.data);
+
+    // Set auto-defaults for selections
+    const defaults: Record<string, "winner" | "loser"> = {};
+    for (const f of MERGE_FIELDS) {
+      defaults[f.key] = autoPickDefault(
+        f.key,
+        (winnerRes.data as any)[f.key],
+        (loserRes.data as any)[f.key]
+      );
+    }
+    setSelections(defaults);
+
+    // Fetch related record counts for loser (preview only — the RPC moves everything)
     const counts: Record<string, number> = {};
     await Promise.all(
-      tables.map(async (table) => {
+      PREVIEW_TABLES.map(async (table) => {
         const { count } = await supabase
           .from(table as any)
           .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
           .eq("lead_id", loser.id);
         counts[table] = count || 0;
       })
@@ -261,114 +253,22 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
   };
 
   const handleMerge = async () => {
+    if (!winnerFull || !loserFull) return; // never merge on a failed fetch
     setMerging(true);
 
     try {
-      // 1. Build field overrides from selections
-      const overrides: Record<string, any> = {};
-      if (winnerFull && loserFull) {
-        for (const f of MERGE_FIELDS) {
-          if (selections[f.key] === "loser") {
-            overrides[f.key] = loserFull[f.key];
-          }
-        }
-        if (overrides.full_name) {
-          const parts = String(overrides.full_name).trim().split(" ");
-          overrides.first_name = parts[0] || null;
-          overrides.last_name = parts.slice(1).join(" ") || null;
-        }
-      }
-
-      // 2. Apply field overrides to winner
-      if (Object.keys(overrides).length > 0) {
-        overrides.updated_at = new Date().toISOString();
-        const { error: updateErr } = await supabase
-          .from("leads")
-          .update(overrides)
-          .eq("id", winner.id);
-        if (updateErr) throw new Error(`Update winner failed: ${updateErr.message}`);
-      }
-
-      // 3. Re-point ALL related records from loser → winner
-      // Tables with lead_id column
-      const leadIdTables = [
-        "lead_notes", "calls", "showings", "agent_tasks",
-        "lead_score_history", "consent_log", "communications",
-        "cost_records", "lead_predictions", "competitor_mentions",
-        "conversion_predictions", "lead_field_changes",
-      ];
-
-      for (const table of leadIdTables) {
-        const { error: moveErr } = await supabase
-          .from(table as any)
-          .update({ lead_id: winner.id })
-          .eq("lead_id", loser.id);
-        if (moveErr) {
-          console.warn(`Merge: moving ${table} records: ${moveErr.message}`);
-        }
-      }
-
-      // system_logs uses related_lead_id
-      await supabase
-        .from("system_logs")
-        .update({ related_lead_id: winner.id })
-        .eq("related_lead_id", loser.id);
-
-      // referrals has two FK columns
-      await supabase
-        .from("referrals")
-        .update({ referrer_lead_id: winner.id })
-        .eq("referrer_lead_id", loser.id);
-      await supabase
-        .from("referrals")
-        .update({ referred_lead_id: winner.id })
-        .eq("referred_lead_id", loser.id);
-
-      // 3b. Re-point CASCADE-linked tables with a unique (lead_id, X) constraint.
-      // Skip loser rows whose X already exists on the winner (they'd collide) —
-      // those are left on the loser and cascade-deleted with it.
-      const dedupTables = [
-        { table: "lead_property_interests", col: "property_id" },
-        { table: "campaign_leads", col: "campaign_id" },
-        { table: "campaign_recipients", col: "campaign_id" },
-      ];
-      for (const { table, col } of dedupTables) {
-        const { data: winnerRows } = await supabase
-          .from(table as any)
-          .select(col)
-          .eq("lead_id", winner.id);
-        const taken = (winnerRows || []).map((r: any) => r[col]).filter(Boolean);
-        const move = supabase
-          .from(table as any)
-          .update({ lead_id: winner.id })
-          .eq("lead_id", loser.id);
-        const { error: moveErr } = await (taken.length > 0
-          ? move.not(col, "in", `(${taken.join(",")})`)
-          : move);
-        if (moveErr) {
-          console.warn(`Merge: moving ${table} records: ${moveErr.message}`);
-        }
-      }
-
-      // 4. Log the merge as a note on the winner
-      const { error: noteErr } = await (supabase as any).from("lead_notes").insert({
-        organization_id: userRecord?.organization_id ?? winnerFull?.organization_id ?? null,
-        lead_id: winner.id,
-        created_by: userRecord?.id || null,
-        content: `Merged duplicate lead "${loser.full_name || loser.id.slice(0, 8)}" into this record by ${userRecord?.full_name || userRecord?.email || "a user"} on ${new Date().toLocaleString()}. Fields kept from duplicate: ${Object.keys(overrides).filter(k => k !== "updated_at").join(", ") || "none"}.`,
-        note_type: "system",
+      // Build field overrides from the user's selections, then run ONE atomic
+      // RPC: merge_leads applies the overrides, re-points ALL related records
+      // (notes, showings, emails, reminders, activity, ...), logs the merge
+      // and deletes the duplicate — in a single transaction.
+      const overrides = buildOverrides(loserFull, (key) => selections[key] || "winner");
+      const { error } = await supabase.rpc("merge_leads", {
+        p_winner_id: winner.id,
+        p_loser_id: loser.id,
+        p_field_overrides: overrides,
+        p_merged_by_user_id: userRecord?.id ?? undefined,
       });
-      if (noteErr) {
-        console.error("Merge note insert failed:", noteErr.message);
-        toast.error("Merge audit note could not be saved", { description: noteErr.message });
-      }
-
-      // 5. Delete the loser lead
-      const { error: deleteErr } = await supabase
-        .from("leads")
-        .delete()
-        .eq("id", loser.id);
-      if (deleteErr) throw new Error(`Delete duplicate failed: ${deleteErr.message}`);
+      if (error) throw new Error(error.message);
 
       setMerging(false);
       setConfirmOpen(false);
@@ -404,7 +304,8 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
             </DialogTitle>
             <DialogDescription>
               Choose which values to keep for each field. The losing lead will be deleted and all
-              its records (notes, calls, showings, etc.) will be moved to the winner.
+              its records (notes, showings, emails, etc.) will be moved to the winner in one
+              atomic operation.
             </DialogDescription>
           </DialogHeader>
 
@@ -520,6 +421,10 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
                         </Badge>
                       ))}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Any other linked records (reminders, activity, system logs, ...) are moved
+                    automatically as well.
+                  </p>
                 </div>
               )}
             </div>
@@ -531,7 +436,7 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
             </Button>
             <Button
               onClick={() => setConfirmOpen(true)}
-              disabled={loading}
+              disabled={loading || !winnerFull || !loserFull}
               className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
             >
               <Merge className="h-4 w-4 mr-1.5" />
@@ -551,10 +456,11 @@ export const MergeDialog: React.FC<MergeDialogProps> = ({
             </AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently merge "{loser.full_name || "duplicate"}" into "
-              {winner.full_name || "primary lead"}". The duplicate lead will be deleted and
+              {winner.full_name || "primary lead"}". All of the duplicate's related records
               {totalRecordsToMove > 0
-                ? ` ${totalRecordsToMove} related record${totalRecordsToMove !== 1 ? "s" : ""} will be moved.`
-                : " no related records need to be moved."}
+                ? ` (${totalRecordsToMove} counted, plus any linked system records)`
+                : ""}{" "}
+              will be moved to the primary lead, then the duplicate will be deleted.
               <br />
               <br />
               <strong>This action cannot be undone.</strong>

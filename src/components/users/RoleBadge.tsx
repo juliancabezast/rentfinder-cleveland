@@ -32,7 +32,7 @@ const roleConfig: Record<AppRole, { label: string; className: string }> = {
 };
 
 export const RoleBadge: React.FC<RoleBadgeProps> = ({ role, className }) => {
-  const config = roleConfig[role] || { label: role, className: 'bg-muted' };
+  const config = roleConfig[role] || { label: role, className: 'bg-muted text-foreground' };
 
   return (
     <Badge className={cn(config.className, className)}>

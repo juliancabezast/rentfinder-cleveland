@@ -2362,101 +2362,13 @@ export type Database = {
           },
         ]
       }
-      lead_score_history: {
-        Row: {
-          change_amount: number
-          changed_by_agent: string | null
-          changed_by_user_id: string | null
-          created_at: string | null
-          id: string
-          is_demo: boolean | null
-          lead_id: string
-          new_score: number
-          organization_id: string
-          previous_score: number
-          reason_code: string
-          reason_text: string
-          related_call_id: string | null
-          related_showing_id: string | null
-          triggered_by: string
-        }
-        Insert: {
-          change_amount: number
-          changed_by_agent?: string | null
-          changed_by_user_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_demo?: boolean | null
-          lead_id: string
-          new_score: number
-          organization_id: string
-          previous_score: number
-          reason_code: string
-          reason_text: string
-          related_call_id?: string | null
-          related_showing_id?: string | null
-          triggered_by: string
-        }
-        Update: {
-          change_amount?: number
-          changed_by_agent?: string | null
-          changed_by_user_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_demo?: boolean | null
-          lead_id?: string
-          new_score?: number
-          organization_id?: string
-          previous_score?: number
-          reason_code?: string
-          reason_text?: string
-          related_call_id?: string | null
-          related_showing_id?: string | null
-          triggered_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_score_history_call"
-            columns: ["related_call_id"]
-            isOneToOne: false
-            referencedRelation: "calls"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_score_history_showing"
-            columns: ["related_showing_id"]
-            isOneToOne: false
-            referencedRelation: "showings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_score_history_changed_by_user_id_fkey"
-            columns: ["changed_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_score_history_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_score_history_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       leads: {
         Row: {
           ai_brief: string | null
           ai_brief_generated_at: string | null
           ai_brief_generated_by: string | null
+          application_requested_at: string | null
+          applied_at: string | null
           assigned_leasing_agent_id: string | null
           budget_max: number | null
           budget_min: number | null
@@ -2486,21 +2398,26 @@ export type Database = {
           interested_zip_codes: string[] | null
           is_demo: boolean | null
           is_human_controlled: boolean | null
-          is_priority: boolean | null
           last_contact_at: string | null
+          last_contact_channel: string | null
           last_name: string | null
-          lead_score: number | null
           lost_reason: string | null
           managed_at: string | null
           move_in_date: string | null
           next_follow_up_at: string | null
+          nurture_completed_at: string | null
+          nurture_emails_sent: number
+          nurture_last_sent_at: string | null
+          nurture_outcome: string | null
+          nurture_started_at: string | null
           organization_id: string
           phone: string | null
           phone_verified: boolean | null
           preferred_language: string | null
-          priority_reason: string | null
+          request_stage: string | null
           sms_consent: boolean | null
           sms_consent_at: string | null
+          snoozed_until: string | null
           source: string
           source_detail: string | null
           stage: string
@@ -2521,6 +2438,8 @@ export type Database = {
           ai_brief?: string | null
           ai_brief_generated_at?: string | null
           ai_brief_generated_by?: string | null
+          application_requested_at?: string | null
+          applied_at?: string | null
           assigned_leasing_agent_id?: string | null
           budget_max?: number | null
           budget_min?: number | null
@@ -2550,21 +2469,26 @@ export type Database = {
           interested_zip_codes?: string[] | null
           is_demo?: boolean | null
           is_human_controlled?: boolean | null
-          is_priority?: boolean | null
           last_contact_at?: string | null
+          last_contact_channel?: string | null
           last_name?: string | null
-          lead_score?: number | null
           lost_reason?: string | null
           managed_at?: string | null
           move_in_date?: string | null
           next_follow_up_at?: string | null
+          nurture_completed_at?: string | null
+          nurture_emails_sent?: number
+          nurture_last_sent_at?: string | null
+          nurture_outcome?: string | null
+          nurture_started_at?: string | null
           organization_id: string
           phone?: string | null
           phone_verified?: boolean | null
           preferred_language?: string | null
-          priority_reason?: string | null
+          request_stage?: string | null
           sms_consent?: boolean | null
           sms_consent_at?: string | null
+          snoozed_until?: string | null
           source: string
           source_detail?: string | null
           stage?: string
@@ -2585,6 +2509,8 @@ export type Database = {
           ai_brief?: string | null
           ai_brief_generated_at?: string | null
           ai_brief_generated_by?: string | null
+          application_requested_at?: string | null
+          applied_at?: string | null
           assigned_leasing_agent_id?: string | null
           budget_max?: number | null
           budget_min?: number | null
@@ -2614,21 +2540,26 @@ export type Database = {
           interested_zip_codes?: string[] | null
           is_demo?: boolean | null
           is_human_controlled?: boolean | null
-          is_priority?: boolean | null
           last_contact_at?: string | null
+          last_contact_channel?: string | null
           last_name?: string | null
-          lead_score?: number | null
           lost_reason?: string | null
           managed_at?: string | null
           move_in_date?: string | null
           next_follow_up_at?: string | null
+          nurture_completed_at?: string | null
+          nurture_emails_sent?: number
+          nurture_last_sent_at?: string | null
+          nurture_outcome?: string | null
+          nurture_started_at?: string | null
           organization_id?: string
           phone?: string | null
           phone_verified?: boolean | null
           preferred_language?: string | null
-          priority_reason?: string | null
+          request_stage?: string | null
           sms_consent?: boolean | null
           sms_consent_at?: string | null
+          snoozed_until?: string | null
           source?: string
           source_detail?: string | null
           stage?: string
@@ -2736,6 +2667,75 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leasing_activity: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          lead_id: string | null
+          organization_id: string
+          property_id: string | null
+          showing_id: string | null
+          source: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          organization_id: string
+          property_id?: string | null
+          showing_id?: string | null
+          source?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          organization_id?: string
+          property_id?: string | null
+          showing_id?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leasing_activity_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leasing_activity_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leasing_activity_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leasing_activity_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_performance"
+            referencedColumns: ["property_id"]
+          },
+          {
+            foreignKeyName: "leasing_activity_showing_id_fkey"
+            columns: ["showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
             referencedColumns: ["id"]
           },
         ]
@@ -4981,7 +4981,6 @@ export type Database = {
         Row: {
           active_leads: number | null
           address: string | null
-          avg_lead_score: number | null
           city: string | null
           days_on_market: number | null
           investor_id: string | null
@@ -5053,20 +5052,6 @@ export type Database = {
           showings_scheduled: number
         }[]
       }
-      apply_milestone_score: {
-        Args: { p_lead_id: string; p_trigger?: string }
-        Returns: undefined
-      }
-      build_campaign_audience: {
-        Args: { p_criteria: Json; p_organization_id: string }
-        Returns: {
-          email: string
-          lead_id: string
-          lead_name: string
-          lead_score: number
-          phone: string
-        }[]
-      }
       can_manage_property_photos: {
         Args: { _auth_user_id: string }
         Returns: boolean
@@ -5124,7 +5109,6 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      compute_milestone_score: { Args: { p_lead_id: string }; Returns: number }
       count_complete_leads_today: {
         Args: { p_organization_id: string }
         Returns: number
@@ -5143,14 +5127,25 @@ export type Database = {
         }
         Returns: undefined
       }
-      dashboard_extra_stats: { Args: never; Returns: Json }
       dashboard_lead_charts: { Args: { p_days?: number }; Returns: Json }
       dashboard_live: { Args: never; Returns: Json }
+      enroll_showing_nurture: {
+        Args: {
+          p_dry_run?: boolean
+          p_limit?: number
+          p_max_age_days?: number
+          p_stagger_hours?: number
+        }
+        Returns: {
+          enrolled: number
+          newest_lead: string
+          oldest_lead: string
+        }[]
+      }
       execute_agent_task_now: {
         Args: { p_executed_by: string; p_task_id: string }
         Returns: Json
       }
-      format_lead_for_sheets: { Args: { p_lead_id: string }; Returns: Json }
       get_cron_jobs: {
         Args: never
         Returns: {
@@ -5160,8 +5155,6 @@ export type Database = {
         }[]
       }
       get_current_profile_role: { Args: never; Returns: string }
-      get_dashboard_summary: { Args: never; Returns: Json }
-      get_lead_full_context: { Args: { p_lead_id: string }; Returns: Json }
       get_lead_funnel: {
         Args: { _date_from?: string; _date_to?: string }
         Returns: Json
@@ -5174,16 +5167,6 @@ export type Database = {
         Args: { p_default?: Json; p_key: string; p_organization_id: string }
         Returns: Json
       }
-      get_property_performance: {
-        Args: {
-          p_end_date: string
-          p_organization_id: string
-          p_property_id: string
-          p_start_date: string
-        }
-        Returns: Json
-      }
-      get_source_performance: { Args: { _days?: number }; Returns: Json }
       get_user_id: { Args: { _auth_user_id: string }; Returns: string }
       get_user_internal_id: { Args: never; Returns: string }
       get_user_org_id: { Args: never; Returns: string }
@@ -5197,7 +5180,6 @@ export type Database = {
             Args: { _auth_user_id: string }
             Returns: Database["public"]["Enums"]["app_role"]
           }
-      get_zip_code_analytics: { Args: { _days?: number }; Returns: Json }
       habakkuk_check_alerts: { Args: never; Returns: Json }
       handle_sms_opt_out: {
         Args: { p_keyword: string; p_organization_id: string; p_phone: string }
@@ -5231,17 +5213,6 @@ export type Database = {
         }
         Returns: Json
       }
-      lead_counts: {
-        Args: { p_org: string }
-        Returns: {
-          active: number
-          applicants: number
-          hot: number
-          incomplete: number
-          lost: number
-          total: number
-        }[]
-      }
       leasing_tracker_response_stats: {
         Args: { p_organization_id: string }
         Returns: Json
@@ -5273,20 +5244,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      log_score_change: {
-        Args: {
-          _change_amount: number
-          _changed_by_agent?: string
-          _changed_by_user_id?: string
-          _lead_id: string
-          _reason_code: string
-          _reason_text: string
-          _related_call_id?: string
-          _related_showing_id?: string
-          _triggered_by: string
-        }
-        Returns: number
-      }
       log_user_activity: {
         Args: {
           p_action: string
@@ -5312,6 +5269,16 @@ export type Database = {
         Returns: Json
       }
       normalize_phone_e164: { Args: { p_phone: string }; Returns: string }
+      nurture_health_check: {
+        Args: { p_organization_id: string }
+        Returns: {
+          bounces: number
+          complaint_rate: number
+          complaints: number
+          is_healthy: boolean
+          recent_sends: number
+        }[]
+      }
       nurturing_widget_stats: {
         Args: never
         Returns: {
@@ -5349,13 +5316,6 @@ export type Database = {
           p_zip_codes?: string[]
         }
         Returns: Json
-      }
-      recalculate_lead_scores: {
-        Args: { p_org?: string }
-        Returns: {
-          leads_checked: number
-          leads_updated: number
-        }[]
       }
       report_costs_summary: {
         Args: { p_org: string; p_since: string; p_until: string }
@@ -5411,7 +5371,6 @@ export type Database = {
         }[]
       }
       reset_agent_daily_counters: { Args: never; Returns: undefined }
-      schedule_conversion_predictions: { Args: never; Returns: number }
       schedule_next_recapture: {
         Args: {
           p_current_attempt: number

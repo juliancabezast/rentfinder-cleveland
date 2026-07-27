@@ -13,7 +13,9 @@ import {
   ChevronLeft, ChevronRight, Phone, MessageSquare, Mail, Send,
   CalendarClock, FileText, Check, Ghost, Loader2, MapPin, CalendarDays,
 } from "lucide-react";
-import { format, parseISO, addDays, startOfDay, endOfDay, isToday, isTomorrow, isYesterday } from "date-fns";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { getTimezoneForCity, formatTimeInTimezone, todayInTimezone } from "@/lib/cityTimezone";
 import { sendNotificationEmail } from "@/lib/notificationService";
 import { renderEmailHtml, DEFAULT_CONFIGS } from "@/lib/emailTemplateDefaults";
 import type { EmailTemplatesMap } from "@/lib/emailTemplateDefaults";
@@ -25,6 +27,27 @@ import type { EmailTemplatesMap } from "@/lib/emailTemplateDefaults";
 //   ✅/👻 quick report · 📞 contact (tel/sms/mailto) · ✉️ templated email ·
 //   🔁 manage (reschedule/cancel/edit via the detail dialog) · 📝 full report.
 
+// The agenda day is the ORG's calendar day (Cleveland), not the browser's —
+// mirrors ManageSlotsTab, so a traveling admin sees the same day/times as HQ.
+const ORG_TZ = "America/New_York";
+
+// UTC instant for a "yyyy-MM-dd" boundary in the org timezone (DST-aware —
+// same pattern as ManageSlotsTab.clevelandBoundaryUTC).
+const orgBoundaryUTC = (dateStr: string, endOfDay: boolean) => {
+  const asUTC = new Date(`${dateStr}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}Z`);
+  const offset =
+    new Date(asUTC.toLocaleString("en-US", { timeZone: ORG_TZ })).getTime() -
+    new Date(asUTC.toLocaleString("en-US", { timeZone: "UTC" })).getTime();
+  return new Date(asUTC.getTime() - offset).toISOString();
+};
+
+// "yyyy-MM-dd" + n days → "yyyy-MM-dd" (anchored at noon UTC so the calendar
+// day never shifts regardless of the browser timezone).
+const addDaysStr = (d: string, n: number) =>
+  new Date(Date.parse(`${d}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 interface AgendaShowing {
   id: string;
   scheduled_at: string;
@@ -35,6 +58,7 @@ interface AgendaShowing {
   lead_phone?: string | null;
   lead_email?: string | null;
   property_address?: string;
+  property_city?: string | null;
   property_full?: string;
 }
 
@@ -59,13 +83,18 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
   const { toast } = useToast();
   const orgId = userRecord?.organization_id;
 
-  const [day, setDay] = useState<Date>(() => startOfDay(new Date()));
+  const [day, setDay] = useState<string>(() => todayInTimezone(ORG_TZ));
   const [showings, setShowings] = useState<AgendaShowing[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [contactFor, setContactFor] = useState<AgendaShowing | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [orgName, setOrgName] = useState("Our Team");
   const [templates, setTemplates] = useState<EmailTemplatesMap>({});
+
+  // Reset the send-in-progress guard whenever a fresh contact sheet opens, so a
+  // stuck flag from a previous card never disables the next card's send button.
+  useEffect(() => { if (contactFor) setSendingEmail(false); }, [contactFor]);
 
   // Org name + custom email templates (once) — for the ✉️ action.
   useEffect(() => {
@@ -83,13 +112,21 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
   const fetchDay = useCallback(async () => {
     if (!orgId) return;
     setLoading(true);
-    const { data } = await supabase.from("showings")
+    const { data, error } = await supabase.from("showings")
       .select("id, scheduled_at, status, duration_minutes, lead_id, properties(address, unit_number, city, state, zip_code), leads(full_name, phone, email)")
       .eq("organization_id", orgId)
       .in("status", ["scheduled", "confirmed", "completed", "no_show"])
-      .gte("scheduled_at", startOfDay(day).toISOString())
-      .lte("scheduled_at", endOfDay(day).toISOString())
+      .gte("scheduled_at", orgBoundaryUTC(day, false))
+      .lte("scheduled_at", orgBoundaryUTC(day, true))
       .order("scheduled_at", { ascending: true });
+    if (error) {
+      // Keep whatever was on screen — a failed fetch must NOT paint the
+      // "no showings" empty state (an agent would miss real appointments).
+      console.error("Agenda fetch failed:", error);
+      toast({ title: "Error", description: "No se pudieron cargar los showings. Intenta de nuevo.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
     setShowings((data || []).map((s: any) => {
       const p = s.properties || {};
       const full = [p.address, p.unit_number ? `#${p.unit_number}` : "", p.city, p.state, p.zip_code]
@@ -97,18 +134,23 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
       return {
         id: s.id, scheduled_at: s.scheduled_at, status: s.status, duration_minutes: s.duration_minutes,
         lead_id: s.lead_id, lead_name: s.leads?.full_name, lead_phone: s.leads?.phone, lead_email: s.leads?.email,
-        property_address: p.address, property_full: full,
+        property_address: p.address, property_city: p.city ?? null, property_full: full,
       };
     }));
     setLoading(false);
-  }, [orgId, day]);
+  }, [orgId, day, toast]);
 
   useEffect(() => { fetchDay(); }, [fetchDay, reloadSignal]);
 
-  const refresh = () => { fetchDay(); onReload?.(); };
+  // Reload after a quick action. When the parent is wired, onReload bumps
+  // reloadSignal, which drives our own fetchDay effect above — so a single
+  // round-trip refreshes us and calling fetchDay() here too would double-fetch
+  // the day (and flicker the list). Fall back to a local fetch only when there
+  // is no parent signal to ride.
+  const refresh = () => { if (onReload) onReload(); else fetchDay(); };
 
-  // One-tap outcome report (mirrors ManageSlotsTab.quickReport). DB triggers own
-  // score→80 + lead→showed; the agent_report marker clears the "missing report".
+  // One-tap outcome report (mirrors ManageSlotsTab.quickReport). The DB trigger
+  // owns lead→showed; the agent_report marker clears the "missing report".
   const quickReport = async (s: AgendaShowing, attended: boolean) => {
     if (!orgId) return;
     setBusyId(s.id);
@@ -117,7 +159,7 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
       const upd: Record<string, any> = attended
         ? { status: "completed", completed_at: nowIso, followed_up_at: nowIso }
         : { status: "no_show", followed_up_at: nowIso };
-      const { data: cur } = await supabase.from("showings").select("agent_report").eq("id", s.id).maybeSingle();
+      const { data: cur } = await supabase.from("showings").select("agent_report").eq("organization_id", orgId).eq("id", s.id).maybeSingle();
       if (!cur?.agent_report) upd.agent_report = attended ? "Asistió ✅ (reporte rápido)" : "No asistió 👻 (reporte rápido)";
       const { error } = await supabase.from("showings").update(upd).eq("organization_id", orgId).eq("id", s.id);
       if (error) throw error;
@@ -130,10 +172,17 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
 
   // Templated confirmation/reminder email (reuses the org's showing_confirmation).
   const sendConfirmationEmail = (s: AgendaShowing) => {
+    if (sendingEmail) return; // block a double-tap from queueing the email twice
     if (!s.lead_email) { toast({ title: "Sin email", description: "Este lead no tiene email.", variant: "destructive" }); return; }
+    setSendingEmail(true);
     const cfg = templates.showing_confirmation || DEFAULT_CONFIGS.showing_confirmation;
     const firstName = (s.lead_name || "").trim().split(" ")[0] || "there";
-    const displayDate = format(parseISO(s.scheduled_at), "EEEE, MMMM d 'at' h:mm a");
+    // The lead reads this — the time must be the PROPERTY's clock, never the
+    // admin's browser clock (a traveling owner would email the wrong hour).
+    const propTz = getTimezoneForCity(s.property_city);
+    const displayDate = new Date(s.scheduled_at).toLocaleDateString("en-US", {
+      timeZone: propTz, weekday: "long", month: "long", day: "numeric",
+    }) + " at " + formatTimeInTimezone(s.scheduled_at, propTz);
     const addr = s.property_full || s.property_address || "the property";
     const html = renderEmailHtml(cfg, {
       firstName, fullName: s.lead_name || firstName, propertyAddress: addr, showingDate: displayDate, orgName,
@@ -148,8 +197,15 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
     setContactFor(null);
   };
 
-  const go = (n: number) => setDay((d) => startOfDay(addDays(d, n)));
-  const dayShort = isToday(day) ? "Hoy" : isTomorrow(day) ? "Mañana" : isYesterday(day) ? "Ayer" : format(day, "EEE d");
+  const go = (n: number) => setDay((d) => addDaysStr(d, n));
+  const todayStr = todayInTimezone(ORG_TZ);
+  // Noon-UTC anchor: format() reads browser-local parts, and noon UTC stays on
+  // the same calendar day for any UTC−11…+11 browser, so labels never shift.
+  const dayDate = new Date(`${day}T12:00:00Z`);
+  const dayShort = day === todayStr ? "Hoy"
+    : day === addDaysStr(todayStr, 1) ? "Mañana"
+    : day === addDaysStr(todayStr, -1) ? "Ayer"
+    : cap(format(dayDate, "EEE d", { locale: es }));
   const isPast = (s: AgendaShowing) => new Date(s.scheduled_at).getTime() < Date.now();
   const reported = (s: AgendaShowing) => s.status === "completed" || s.status === "no_show";
 
@@ -162,15 +218,15 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
         </Button>
         <div className="text-center flex-1 min-w-0">
           <div className="text-base font-semibold">{dayShort}</div>
-          <div className="text-xs text-muted-foreground">{format(day, "EEEE, d 'de' MMMM")}</div>
+          <div className="text-xs text-muted-foreground">{cap(format(dayDate, "EEEE, d 'de' MMMM", { locale: es }))}</div>
         </div>
         <Button variant="ghost" size="icon" onClick={() => go(1)} aria-label="Día siguiente">
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
-      {!isToday(day) && (
+      {day !== todayStr && (
         <div className="flex justify-center">
-          <button onClick={() => setDay(startOfDay(new Date()))}
+          <button onClick={() => setDay(todayInTimezone(ORG_TZ))}
             className="text-xs px-3 py-1 rounded-full text-[#4F46E5] bg-[#4F46E5]/10 hover:bg-[#4F46E5]/20 transition-colors font-medium">
             Volver a hoy
           </button>
@@ -195,7 +251,8 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
             const badge = STATUS_BADGE[s.status] || { label: s.status, className: "bg-slate-100 text-slate-700 border-slate-200" };
             const busy = busyId === s.id;
             const showQuick = isPast(s) && !reported(s);
-            const time = format(parseISO(s.scheduled_at), "h:mm a");
+            // Property-timezone clock (matches the grid + detail dialog).
+            const time = formatTimeInTimezone(s.scheduled_at, getTimezoneForCity(s.property_city));
             return (
               <Card key={s.id} className="overflow-hidden">
                 <CardContent className="p-3 space-y-2.5">
@@ -271,8 +328,8 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
                 <Button variant="outline" className="justify-start h-11" asChild>
                   <a href={`mailto:${contactFor.lead_email}`}><Mail className="h-4 w-4 mr-2 text-slate-600" /> Abrir email <span className="ml-auto text-muted-foreground text-xs truncate max-w-[45%]">{contactFor.lead_email}</span></a>
                 </Button>
-                <Button className="justify-start h-11 bg-[#4F46E5] hover:bg-[#4F46E5]/90" onClick={() => contactFor && sendConfirmationEmail(contactFor)}>
-                  <Send className="h-4 w-4 mr-2" /> Enviar confirmación (plantilla)
+                <Button className="justify-start h-11 bg-[#4F46E5] hover:bg-[#4F46E5]/90 disabled:opacity-60" disabled={sendingEmail} onClick={() => contactFor && sendConfirmationEmail(contactFor)}>
+                  {sendingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />} Enviar confirmación (plantilla)
                 </Button>
               </>
             )}

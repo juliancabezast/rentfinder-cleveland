@@ -56,7 +56,7 @@ const CATEGORIES: Category[] = [
     icon: ClipboardCheck,
     kw: ["requirements", "qualify", "credit", "income", "background", "criteria", "requisitos", "proof"],
     resp:
-      "Great question! To apply you'll need a valid photo ID, your last 3 paystubs (income about 3× the rent), and a $50 application fee per household. We welcome housing vouchers too.",
+      "Great question! To apply you'll need a valid photo ID, your last 3 paystubs (income about 3× the rent), and a $59.90 screening fee (paid directly to TransUnion). We welcome housing vouchers too.",
   },
   {
     id: "vouchers",
@@ -144,7 +144,7 @@ const CATEGORIES: Category[] = [
     icon: FileText,
     kw: ["apply", "application", "aplicar", "how do i apply"],
     resp:
-      "Awesome — ready to apply! Start your rental application here: rentfindercleveland.com. You'll need a valid ID, your last 3 paystubs, and the $50 application fee per household.",
+      "Awesome — ready to apply! Start your rental application here: rentfindercleveland.com. You'll need a valid ID, your last 3 paystubs, and the $59.90 screening fee (paid directly to TransUnion).",
   },
 ];
 

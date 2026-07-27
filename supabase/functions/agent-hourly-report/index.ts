@@ -89,6 +89,13 @@ function sumField(rows: any[], field: string): number {
   return rows.reduce((sum: number, r: any) => sum + (parseFloat(r[field]) || 0), 0);
 }
 
+// Escape lead/DB-supplied strings before interpolating into a parse_mode:HTML
+// message — a stray '<' (error-log stack traces, lead-supplied `source` values,
+// property addresses) otherwise makes Telegram reject the ENTIRE report.
+function escapeHtml(s: unknown): string {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 // ── Main ─────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
@@ -99,6 +106,22 @@ serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  // Internal-only: the hourly cron and telegram-webhook's runReport both call
+  // with the service key. Accept it from Authorization OR apikey (functions.invoke
+  // puts it in apikey — see the send-notification-email 401 outage). Without this
+  // gate the fn is deployed verify_jwt:false and any anonymous caller could flood
+  // the owner's Telegram chat and read org metrics back in the response body.
+  {
+    const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const apikey = req.headers.get("apikey") || "";
+    if (bearer !== serviceRoleKey && apikey !== serviceRoleKey) {
+      return new Response(
+        JSON.stringify({ error: "unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+  }
 
   let organizationId = "";
 
@@ -203,7 +226,6 @@ serve(async (req: Request) => {
       dayEmailsRes,
       daySmsRes,
       dayErrorsRes,
-      dayHotLeadsRes,
       // ── Weekly ──
       weekLeadsRes,
       weekShowingsCompRes,
@@ -216,6 +238,8 @@ serve(async (req: Request) => {
       topPropertiesRes,
       // ── Agent queue ──
       agentQueueRes,
+      // ── Daily cost (honest source) ──
+      dayCostsRes,
     ] = await Promise.all([
       // ── HOURLY ──────────────────────────────────────────────
       // Leads (last hour)
@@ -253,20 +277,22 @@ serve(async (req: Request) => {
         .eq("organization_id", organizationId)
         .eq("status", "no_show")
         .gte("updated_at", sinceHour),
-      // Agent tasks completed (last hour)
+      // Agent tasks completed (last hour). agent_tasks has NO updated_at column
+      // (documented project rule) — the old query 400'd silently (error ignored)
+      // so this always read [] → "Agents: 0 tasks". Use completed_at.
       supabase
         .from("agent_tasks")
         .select("id, agent_type")
         .eq("organization_id", organizationId)
         .eq("status", "completed")
-        .gte("updated_at", sinceHour)
+        .gte("completed_at", sinceHour)
         .limit(500),
 
       // ── DAILY ───────────────────────────────────────────────
       // Leads today
       supabase
         .from("leads")
-        .select("id, source, lead_score")
+        .select("id, source")
         .eq("organization_id", organizationId)
         .gte("created_at", sinceDay)
         .limit(1000),
@@ -284,15 +310,14 @@ serve(async (req: Request) => {
         .eq("organization_id", organizationId)
         .eq("status", "completed")
         .gte("updated_at", sinceDay),
-      // Emails sent today — the real pipeline logs to email_events (event_type
-      // 'sent'), NOT communications; and communications has no created_at column
-      // (it's sent_at), so the old query silently returned 0 emails every hour.
-      supabase
-        .from("email_events")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", organizationId)
-        .eq("event_type", "sent")
-        .gte("created_at", sinceDay),
+      // Emails sent today — count queue-drained sends too. event_type='sent'
+      // alone misses ~99% (resend-webhook advances details.status past 'sent' to
+      // delivered/opened), so use the shared RPC that agent-daily-report uses.
+      supabase.rpc("report_emails_sent", {
+        p_org: organizationId,
+        p_since: sinceDay,
+        p_until: now.toISOString(),
+      }),
       // SMS sent today (communications uses sent_at, not created_at).
       supabase
         .from("communications")
@@ -311,13 +336,6 @@ serve(async (req: Request) => {
         .gte("created_at", sinceDay)
         .order("created_at", { ascending: false })
         .limit(10),
-      // Hot leads today (milestone: score >= 50)
-      supabase
-        .from("leads")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", organizationId)
-        .gte("lead_score", 50)
-        .gte("created_at", sinceDay),
 
       // ── WEEKLY ──────────────────────────────────────────────
       // Leads this week
@@ -333,13 +351,15 @@ serve(async (req: Request) => {
         .eq("organization_id", organizationId)
         .eq("status", "completed")
         .gte("updated_at", sinceWeek),
-      // Converted leads this week
+      // Converted leads this week — count by converted_at (the milestone), not
+      // status+updated_at: any later touch to an old converted lead used to
+      // re-count it, and a converted→lost move dropped it entirely.
       supabase
         .from("leads")
         .select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId)
-        .eq("status", "converted")
-        .gte("updated_at", sinceWeek),
+        .not("is_demo", "is", true)
+        .gte("converted_at", sinceWeek),
 
       // ── MONTHLY ─────────────────────────────────────────────
       // Leads this month
@@ -355,13 +375,13 @@ serve(async (req: Request) => {
         .eq("organization_id", organizationId)
         .eq("status", "completed")
         .gte("updated_at", sinceMonth),
-      // Converted leads this month
+      // Converted leads this month — by converted_at (see week note above).
       supabase
         .from("leads")
         .select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId)
-        .eq("status", "converted")
-        .gte("updated_at", sinceMonth),
+        .not("is_demo", "is", true)
+        .gte("converted_at", sinceMonth),
 
       // ── TOP 5 PROPERTIES ────────────────────────────────────
       // Grouped in the DB (RPC) so it isn't capped by PostgREST's 1000-row
@@ -379,6 +399,16 @@ serve(async (req: Request) => {
         .select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId)
         .in("status", ["pending", "in_progress"]),
+
+      // ── DAILY COST ──────────────────────────────────────────
+      // From cost_records (OpenAI/Resend/etc.) — the old calls.cost_bland/
+      // cost_total model is dead (voice/Bland removed) and ignored every real
+      // cost driver. report_costs_summary is the same source the daily report uses.
+      supabase.rpc("report_costs_summary", {
+        p_org: organizationId,
+        p_since: sinceDay,
+        p_until: now.toISOString(),
+      }),
     ]);
 
     // ══════════════════════════════════════════════════════════════
@@ -388,7 +418,8 @@ serve(async (req: Request) => {
     // ── HOURLY SECTION ──────────────────────────────────────────
     const hourLeads = hourLeadsRes.data || [];
     const hourLeadCount = hourLeads.length;
-    const hourSourceBreakdown = topN(countByField(hourLeads, "source"), 5, SOURCE_LABELS);
+    // `source` is lead-supplied via a public endpoint → escape (parse_mode:HTML).
+    const hourSourceBreakdown = escapeHtml(topN(countByField(hourLeads, "source"), 5, SOURCE_LABELS));
 
     const hourCalls = hourCallsRes.data || [];
     const hourCallCount = hourCalls.length;
@@ -400,7 +431,7 @@ serve(async (req: Request) => {
 
     const hourTasks = hourTasksRes.data || [];
     const hourTaskCount = hourTasks.length;
-    const hourTaskBreakdown = topN(countByField(hourTasks, "agent_type"), 5, AGENT_LABELS);
+    const hourTaskBreakdown = escapeHtml(topN(countByField(hourTasks, "agent_type"), 5, AGENT_LABELS));
 
     const hourConfirmed = hourShowingsConfRes.count || 0;
     const hourCompleted = hourShowingsCompRes.count || 0;
@@ -409,7 +440,6 @@ serve(async (req: Request) => {
     // ── DAILY SECTION ───────────────────────────────────────────
     const dayLeads = dayLeadsRes.data || [];
     const dayLeadCount = dayLeads.length;
-    const dayHotLeads = dayHotLeadsRes.count || 0;
 
     const dayCalls = dayCallsRes.data || [];
     const dayCallCount = dayCalls.length;
@@ -418,17 +448,12 @@ serve(async (req: Request) => {
     );
     const dayShowingsCompleted = dayShowingsCompRes.count || 0;
 
-    const dayEmailCount = dayEmailsRes.count || 0;
+    const dayEmailCount = Number(dayEmailsRes.data) || 0;
     const daySmsCount = daySmsRes.count || 0;
 
-    // ── DAILY COSTS ─────────────────────────────────────────────
-    const dayCostTwilio = sumField(dayCalls, "cost_twilio");
-    const dayCostBland = sumField(dayCalls, "cost_bland");
-    const dayCostOpenai = sumField(dayCalls, "cost_openai");
-    const dayCostCallsTotal = sumField(dayCalls, "cost_total");
-    // SMS costs from communications
-    const daySmsCost = sumField(daySmsRes.data || [], "cost_twilio");
-    const dayTotalCost = dayCostCallsTotal + daySmsCost;
+    // ── DAILY COSTS (from cost_records via report_costs_summary) ─
+    const dayCostRows = (dayCostsRes.data || []) as { service: string; total: number }[];
+    const dayTotalCost = dayCostRows.reduce((s, r) => s + Number(r.total || 0), 0);
 
     // ── ERRORS (with details) ───────────────────────────────────
     const dayErrors = dayErrorsRes.data || [];
@@ -454,20 +479,11 @@ serve(async (req: Request) => {
     const agentQueueCount = agentQueueRes.count || 0;
 
     // ── Needs attention — bounded to ACTIONABLE, not the whole history ──
-    // Raw all-time counts were pure noise: 55% of the base scores ≥85 and 96%
-    // sits in 'new', so "2200 hot / 3800 backlog" printed every hour and meant
-    // nothing. Scope to recently-created leads that genuinely need a first touch.
-    const dayAgoIso = new Date(now.getTime() - 86400000).toISOString();
+    // Raw all-time counts were pure noise (96% of the base sits in 'new'), so
+    // scope to recently-created leads that genuinely need a first touch.
     const twoDaysAgoIso = new Date(now.getTime() - 2 * 86400000).toISOString();
-    const sevenDaysAgoIso = new Date(now.getTime() - 7 * 86400000).toISOString();
     const tomorrowStart = startOfDay(new Date(now.getTime() + 86400000), timezone);
-    const [hotAwaitingRes, backlogRes, todayShowingsRes] = await Promise.all([
-      // Hot leads from the last 7 days still not contacted → worth calling now.
-      supabase.from("leads").select("id", { count: "exact", head: true })
-        .eq("organization_id", organizationId).eq("is_demo", false)
-        .gte("lead_score", 50).not("status", "in", "(lost,converted)")
-        .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`)
-        .gte("created_at", sevenDaysAgoIso),
+    const [backlogRes, todayShowingsRes] = await Promise.all([
       // New leads from the last 48h awaiting a first touch.
       supabase.from("leads").select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId).eq("is_demo", false)
@@ -476,7 +492,6 @@ serve(async (req: Request) => {
         .eq("organization_id", organizationId)
         .gte("scheduled_at", sinceDay).lt("scheduled_at", tomorrowStart),
     ]);
-    const hotAwaiting = hotAwaitingRes.count || 0;
     const uncontactedBacklog = backlogRes.count || 0;
     const todayScheduledShowings = todayShowingsRes.count || 0;
 
@@ -494,7 +509,7 @@ serve(async (req: Request) => {
     });
 
     const lines: string[] = [
-      `<b>📊 ${orgName} — ${hourLabel}</b>`,
+      `<b>📊 ${escapeHtml(orgName)} — ${hourLabel}</b>`,
     ];
 
     // ── LAST HOUR ───────────────────────────────────────────────
@@ -512,17 +527,16 @@ serve(async (req: Request) => {
 
     // ── TODAY ────────────────────────────────────────────────────
     lines.push(``, `━━ <b>TODAY</b> ━━`);
-    lines.push(`👥 ${dayLeadCount} leads${dayHotLeads > 0 ? ` · 🔥 ${dayHotLeads} hot (80+)` : ""}`);
+    lines.push(`👥 ${dayLeadCount} leads`);
     lines.push(`📞 ${dayCallCount} calls · ${dayCallMin} min`);
     lines.push(`🏠 ${todayScheduledShowings} showings scheduled · ${dayShowingsCompleted} completed`);
     lines.push(`✉️ ${dayEmailCount} emails · 💬 ${daySmsCount} SMS`);
     lines.push(`💰 Cost: $${dayTotalCost.toFixed(2)}`);
 
     // ── NEEDS ATTENTION ─────────────────────────────────────────
-    if (hotAwaiting > 0 || uncontactedBacklog > 0) {
+    if (uncontactedBacklog > 0) {
       lines.push(``, `━━ <b>⚡ NEEDS ATTENTION</b> ━━`);
-      if (hotAwaiting > 0) lines.push(`🔥 ${hotAwaiting} new hot leads to call (last 7d, uncontacted)`);
-      if (uncontactedBacklog > 0) lines.push(`📋 ${uncontactedBacklog} new leads awaiting first contact (48h)`);
+      lines.push(`📋 ${uncontactedBacklog} new leads awaiting first contact (48h)`);
       lines.push(`<i>La agenda de showings vive en LeasingAgent (escribile "update")</i>`);
     }
 
@@ -535,7 +549,7 @@ serve(async (req: Request) => {
     if (top5Props.length > 0) {
       lines.push(``, `━━ <b>TOP 5 PROPERTIES</b> ━━`);
       top5Props.forEach((p, i) => {
-        lines.push(`${i + 1}. ${p.address} — ${p.count} leads`);
+        lines.push(`${i + 1}. ${escapeHtml(p.address)} — ${p.count} leads`);
       });
     }
 
@@ -543,8 +557,9 @@ serve(async (req: Request) => {
     if (dayErrorCount > 0) {
       lines.push(``, `━━ <b>⚠️ ERRORS (${dayErrorCount})</b> ━━`);
       dayErrors.slice(0, 5).forEach((e: any) => {
-        // Truncate long messages to 80 chars
-        const msg = (e.message || "Unknown error").slice(0, 80);
+        // Truncate long messages to 80 chars; escape — error text routinely
+        // contains '<' (stack traces, HTML from failed fetches).
+        const msg = escapeHtml((e.message || "Unknown error").slice(0, 80));
         lines.push(`• ${msg}`);
       });
       if (dayErrorCount > 5) {
@@ -557,11 +572,9 @@ serve(async (req: Request) => {
     // ── DAILY COST BREAKDOWN ────────────────────────────────────
     if (dayTotalCost > 0) {
       lines.push(``, `━━ <b>💰 DAILY COST</b> ━━`);
-      const costParts: string[] = [];
-      if (dayCostTwilio > 0) costParts.push(`Twilio: $${dayCostTwilio.toFixed(2)}`);
-      if (dayCostBland > 0) costParts.push(`Bland: $${dayCostBland.toFixed(2)}`);
-      if (dayCostOpenai > 0) costParts.push(`OpenAI: $${dayCostOpenai.toFixed(2)}`);
-      if (daySmsCost > 0) costParts.push(`SMS: $${daySmsCost.toFixed(2)}`);
+      const costParts = dayCostRows
+        .filter((r) => Number(r.total) > 0)
+        .map((r) => `${escapeHtml(r.service)}: $${Number(r.total).toFixed(2)}`);
       if (costParts.length > 0) {
         lines.push(costParts.join(` · `));
       }

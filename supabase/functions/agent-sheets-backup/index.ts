@@ -20,10 +20,12 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Column order — MUST match the Apps Script + header row. Lead ID first (upsert key).
 const HEADERS = [
-  "Lead ID", "Name", "Phone", "Email", "Status", "Score", "Source",
+  "Lead ID", "Name", "Phone", "Email", "Status", "Source",
   "Interest Cities", "Interest Properties", "Voucher", "Voucher Amount",
-  "Move-in", "Created", "Last Contact",
+  "Move-in", "Created", "Last Contact", "Last Contact Via",
+  "Nurtured (last)", "Nurture Step", "Nurture Outcome",
 ];
+const NURTURE_MAX_STEPS = 7; // must match agent-task-dispatcher
 
 const NY = "America/New_York";
 function fmtDate(iso: string | null): string {
@@ -38,21 +40,51 @@ function fmtDate(iso: string | null): string {
 
 interface LeadRow {
   id: string; full_name: string | null; first_name: string | null; last_name: string | null;
-  phone: string | null; email: string | null; status: string | null; lead_score: number | null;
+  phone: string | null; email: string | null; status: string | null;
   source: string | null; has_voucher: boolean | null; voucher_amount: number | null;
   move_in_date: string | null; created_at: string | null; last_contact_at: string | null;
+  last_contact_channel: string | null; nurture_last_sent_at: string | null;
+  nurture_emails_sent: number | null; nurture_outcome: string | null;
 }
 type TagInfo = { cities: string[]; addresses: string[] };
 
+function prettyChannel(ch: string | null): string {
+  switch ((ch || "").toLowerCase()) {
+    case "sms": return "SMS";
+    case "email": return "Email";
+    case "web_form": return "Web form";
+    case "web_chat": return "Web chat";
+    case "call": return "Call";
+    case "note": return "Note";
+    case "": return "Direct";
+    default: return ch || "Direct";
+  }
+}
+
+// "Last Contact" = the single most recent time we touched the lead, folding the
+// nurture sequence in with direct/inbound contact. last_contact_at is sparse
+// (only ~11% of leads have it), so showing it alone would leave the column blank
+// for most rows; nurture sends live on the same leads row so this stays real-time
+// via the existing trigger. Untargeted campaign blasts are intentionally excluded.
+function deriveContact(l: LeadRow): { at: string | null; via: string } {
+  const direct = l.last_contact_at;
+  const nurture = l.nurture_last_sent_at;
+  if (nurture && (!direct || new Date(nurture) > new Date(direct))) {
+    return { at: nurture, via: "Email (nurture)" };
+  }
+  if (direct) return { at: direct, via: prettyChannel(l.last_contact_channel) };
+  return { at: null, via: "" };
+}
+
 function buildRow(l: LeadRow, tags: TagInfo): (string | number)[] {
   const name = l.full_name || [l.first_name, l.last_name].filter(Boolean).join(" ") || "Unknown";
+  const contact = deriveContact(l);
   return [
     l.id,
     name,
     l.phone || "",
     l.email || "",
     l.status || "",
-    l.lead_score ?? 0,
     l.source || "",
     tags.cities.join(", "),
     tags.addresses.join(", "),
@@ -60,12 +92,16 @@ function buildRow(l: LeadRow, tags: TagInfo): (string | number)[] {
     l.voucher_amount != null ? String(l.voucher_amount) : "",
     l.move_in_date || "",
     fmtDate(l.created_at),
-    fmtDate(l.last_contact_at),
+    fmtDate(contact.at),
+    contact.via,
+    fmtDate(l.nurture_last_sent_at),
+    l.nurture_emails_sent ? `${l.nurture_emails_sent}/${NURTURE_MAX_STEPS}` : "",
+    l.nurture_outcome || "",
   ];
 }
 
 const LEAD_COLS =
-  "id, full_name, first_name, last_name, phone, email, status, lead_score, source, has_voucher, voucher_amount, move_in_date, created_at, last_contact_at";
+  "id, full_name, first_name, last_name, phone, email, status, source, has_voucher, voucher_amount, move_in_date, created_at, last_contact_at, last_contact_channel, nurture_last_sent_at, nurture_emails_sent, nurture_outcome";
 
 async function postWebhook(url: string, secret: string, payload: Record<string, unknown>) {
   const resp = await fetch(url, {

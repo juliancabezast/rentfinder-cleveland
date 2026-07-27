@@ -125,13 +125,15 @@ export const IntegrationStatusMini: React.FC = () => {
 
     setIsRefreshing(true);
     try {
-      await supabase.functions.invoke("agent-health-checker", {
+      // functions.invoke does NOT throw on HTTP errors — check the error field
+      const { error } = await supabase.functions.invoke("agent-health-checker", {
         body: { organization_id: orgId, mode: "full" },
       });
-      if (!silent) toast.success("Pulse activated — scanning all services");
+      if (error) throw error;
+      if (!silent) toast.success("Pulse activado — escaneando todos los servicios");
     } catch (err) {
       console.error("Failed to trigger health check:", err);
-      if (!silent) toast.error("Failed to trigger health check");
+      if (!silent) toast.error("No se pudo iniciar el chequeo de salud");
     } finally {
       setTimeout(() => setIsRefreshing(false), 3000);
     }
@@ -161,11 +163,26 @@ export const IntegrationStatusMini: React.FC = () => {
     }
   }, [orgId, isLoading, healthMap, triggerHealthCheck]);
 
-  // Recurring auto-check every 60 minutes while dashboard is open
+  // Recurring auto-check every 60 minutes while dashboard is open — but only
+  // when the data is actually stale (same gate as the mount path), so N open
+  // tabs don't each fire redundant full external-API probes every hour.
+  const healthMapRef = React.useRef(healthMap);
+  useEffect(() => {
+    healthMapRef.current = healthMap;
+  }, [healthMap]);
+
   useEffect(() => {
     if (!orgId) return;
     const interval = setInterval(() => {
-      triggerHealthCheck(true);
+      let mostRecent: Date | null = null;
+      healthMapRef.current.forEach((h) => {
+        if (h.last_checked_at) {
+          const d = new Date(h.last_checked_at);
+          if (!mostRecent || d > mostRecent) mostRecent = d;
+        }
+      });
+      const isStale = !mostRecent || differenceInMinutes(new Date(), mostRecent) >= 60;
+      if (isStale) triggerHealthCheck(true);
     }, 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, [orgId, triggerHealthCheck]);
@@ -224,11 +241,11 @@ export const IntegrationStatusMini: React.FC = () => {
     const hasDegraded = statuses.some((s) => s === "degraded");
     const allHealthyOrIgnored = statuses.every((s) => s === "healthy" || s === "not_configured" || s === "unknown");
 
-    if (allUnknown) return { status: "unknown", label: "Checking..." };
-    if (hasDown) return { status: "down", label: "Issues" };
-    if (hasDegraded) return { status: "degraded", label: "Degraded" };
-    if (allHealthyOrIgnored) return { status: "healthy", label: "Live" };
-    return { status: "healthy", label: "Live" };
+    if (allUnknown) return { status: "unknown", label: "Verificando..." };
+    if (hasDown) return { status: "down", label: "Problemas" };
+    if (hasDegraded) return { status: "degraded", label: "Degradado" };
+    if (allHealthyOrIgnored) return { status: "healthy", label: "En vivo" };
+    return { status: "healthy", label: "En vivo" };
   }, [healthMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get the most recent last_checked_at across all services
@@ -251,16 +268,16 @@ export const IntegrationStatusMini: React.FC = () => {
   const getStatusLabel = (status: HealthStatus): string => {
     switch (status) {
       case "healthy":
-        return "Healthy";
+        return "Saludable";
       case "degraded":
-        return "Degraded";
+        return "Degradado";
       case "down":
-        return "Down";
+        return "Caído";
       case "not_configured":
-        return "Not configured";
+        return "Sin configurar";
       case "unknown":
       default:
-        return "Unknown";
+        return "Desconocido";
     }
   };
 
@@ -293,7 +310,7 @@ export const IntegrationStatusMini: React.FC = () => {
   if (isLoading && healthMap.size === 0) {
     return (
       <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50">
-        <span className="text-[10px] text-muted-foreground">Loading...</span>
+        <span className="text-[10px] text-muted-foreground">Cargando...</span>
       </div>
     );
   }
@@ -368,11 +385,11 @@ export const IntegrationStatusMini: React.FC = () => {
                       {displayName}: {getStatusLabel(status)}
                     </p>
                     {health?.response_ms != null && (
-                      <p className="text-muted-foreground">Response: {health.response_ms}ms</p>
+                      <p className="text-muted-foreground">Respuesta: {health.response_ms}ms</p>
                     )}
                     {health?.last_checked_at && (
                       <p className="text-muted-foreground">
-                        Checked:{" "}
+                        Verificado:{" "}
                         {formatDistanceToNow(new Date(health.last_checked_at), {
                           addSuffix: true,
                         })}
@@ -380,7 +397,8 @@ export const IntegrationStatusMini: React.FC = () => {
                     )}
                     {health?.consecutive_failures != null && health.consecutive_failures > 0 && (
                       <p className="text-amber-600">
-                        ⚠ {health.consecutive_failures} consecutive failure
+                        ⚠ {health.consecutive_failures} fallo
+                        {health.consecutive_failures > 1 ? "s" : ""} consecutivo
                         {health.consecutive_failures > 1 ? "s" : ""}
                       </p>
                     )}
@@ -412,6 +430,7 @@ export const IntegrationStatusMini: React.FC = () => {
               className="h-6 w-6 shrink-0 ml-1"
               onClick={handleRefresh}
               disabled={isRefreshing}
+              aria-label="Correr chequeo de salud"
             >
               <RefreshCw
                 className={cn("h-3.5 w-3.5 transition-transform", isRefreshing && "animate-spin")}
@@ -419,7 +438,7 @@ export const IntegrationStatusMini: React.FC = () => {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <p>Run Pulse health check</p>
+            <p>Correr chequeo de salud</p>
           </TooltipContent>
         </Tooltip>
       </div>

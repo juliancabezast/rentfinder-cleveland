@@ -59,6 +59,7 @@ import {
   Flag,
   Target,
   XCircle,
+  FileCheck2,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -154,6 +155,7 @@ interface TrackerData {
       follow_ups: number;
       showings_confirmed: number;
       nurture_emails?: number;
+      applications_generated?: number;
     };
     recent: { id: string; action: string; created_at: string }[];
     // Automated nurture rolled up per day — kept out of `recent` so thousands
@@ -250,6 +252,7 @@ const STRINGS = {
     activityMessages: "mensajes enviados",
     activityFollowUps: "seguimientos agendados",
     activityConfirmed: "showings confirmados",
+    activityApplications: "aplicaciones generadas",
     activityNurture: "correos de seguimiento",
     activityNurtureDay: (n: number) =>
       `${n} correo${n === 1 ? "" : "s"} de seguimiento automático`,
@@ -264,6 +267,7 @@ const STRINGS = {
       message_sent_sms: "Se envió un SMS",
       message_sent_email: "Se envió un email",
       showing_confirmed: "Se confirmó un showing",
+      application_generated: "Un prospecto generó su aplicación",
       showing_reschedule_requested: "Se gestionó una reprogramación",
       showing_attended: "Un prospecto asistió a la visita",
       showing_no_show: "Un prospecto no asistió",
@@ -391,6 +395,7 @@ const STRINGS = {
     activityMessages: "messages sent",
     activityFollowUps: "follow-ups scheduled",
     activityConfirmed: "showings confirmed",
+    activityApplications: "applications generated",
     activityNurture: "follow-up emails",
     activityNurtureDay: (n: number) =>
       `${n} automated follow-up email${n === 1 ? "" : "s"}`,
@@ -405,6 +410,7 @@ const STRINGS = {
       message_sent_sms: "An SMS was sent",
       message_sent_email: "An email was sent",
       showing_confirmed: "A showing was confirmed",
+      application_generated: "A prospect generated their application",
       showing_reschedule_requested: "A reschedule was handled",
       showing_attended: "A prospect attended the tour",
       showing_no_show: "A prospect did not attend",
@@ -591,6 +597,7 @@ const ACTION_STYLE: Record<
   message_sent_sms: { icon: Send, tone: "text-sky-600 bg-sky-500/10" },
   message_sent_email: { icon: Send, tone: "text-sky-600 bg-sky-500/10" },
   showing_confirmed: { icon: CheckCircle2, tone: "text-emerald-600 bg-emerald-500/10" },
+  application_generated: { icon: FileCheck2, tone: "text-[#4F46E5] bg-[#4F46E5]/10" },
   showing_reschedule_requested: { icon: CalendarClock, tone: "text-amber-600 bg-amber-500/10" },
   showing_attended: { icon: Flag, tone: "text-emerald-600 bg-emerald-500/10" },
   showing_no_show: { icon: XCircle, tone: "text-slate-500 bg-slate-500/10" },
@@ -1448,6 +1455,8 @@ function LeasingActivityCard({
     { value: c.messages, label: t.activityMessages },
     { value: c.follow_ups, label: t.activityFollowUps },
     { value: c.showings_confirmed, label: t.activityConfirmed },
+    // Applicant milestone — only shown once at least one has been marked.
+    ...(c.applications_generated ? [{ value: c.applications_generated, label: t.activityApplications }] : []),
     // Elijah's automated cadence — only shown once it has actually run.
     ...(c.nurture_emails ? [{ value: c.nurture_emails, label: t.activityNurture }] : []),
   ];

@@ -50,6 +50,7 @@ export const InvestorDashboard = () => {
         const { data: accessData, error: accessError } = await supabase
           .from("investor_property_access")
           .select("property_id")
+          .eq("organization_id", userRecord.organization_id)
           .eq("investor_id", userRecord.id);
 
         if (accessError) throw accessError;
@@ -65,6 +66,7 @@ export const InvestorDashboard = () => {
         const { data: propertiesData, error: propertiesError } = await supabase
           .from("properties")
           .select("id, address, unit_number, city, status, rent_price, photos, listed_date")
+          .eq("organization_id", userRecord.organization_id)
           .in("id", propertyIds);
 
         if (propertiesError) throw propertiesError;
@@ -78,6 +80,7 @@ export const InvestorDashboard = () => {
           const { data: tagData, error: tagError } = await supabase
             .from("lead_property_interests")
             .select("property_id")
+            .eq("organization_id", userRecord.organization_id)
             .in("property_id", propertyIds)
             .order("id", { ascending: true })
             .range(from, from + PAGE - 1);
@@ -91,26 +94,33 @@ export const InvestorDashboard = () => {
           if (!tagData || tagData.length < PAGE) break;
         }
 
-        // Fetch showings per property
-        const { data: showingsData, error: showingsError } = await supabase
-          .from("showings")
-          .select("property_id, status")
-          .in("property_id", propertyIds);
-        if (showingsError) console.error("Error fetching showings:", showingsError);
-
-        // Process metrics
+        // Fetch showings per property (paginated past the 1000-row cap, same
+        // pattern as the lead-count loop above)
         const showingCounts: Record<string, { scheduled: number; completed: number }> = {};
-
-        (showingsData || []).forEach((s) => {
-          if (!showingCounts[s.property_id]) {
-            showingCounts[s.property_id] = { scheduled: 0, completed: 0 };
+        for (let from = 0; from < 200000; from += PAGE) {
+          const { data: showingsData, error: showingsError } = await supabase
+            .from("showings")
+            .select("property_id, status")
+            .eq("organization_id", userRecord.organization_id)
+            .in("property_id", propertyIds)
+            .order("id", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (showingsError) {
+            console.error("Error fetching showings:", showingsError);
+            break;
           }
-          if (s.status === "completed") {
-            showingCounts[s.property_id].completed++;
-          } else if (s.status === "scheduled" || s.status === "confirmed") {
-            showingCounts[s.property_id].scheduled++;
-          }
-        });
+          (showingsData || []).forEach((s) => {
+            if (!showingCounts[s.property_id]) {
+              showingCounts[s.property_id] = { scheduled: 0, completed: 0 };
+            }
+            if (s.status === "completed") {
+              showingCounts[s.property_id].completed++;
+            } else if (s.status === "scheduled" || s.status === "confirmed") {
+              showingCounts[s.property_id].scheduled++;
+            }
+          });
+          if (!showingsData || showingsData.length < PAGE) break;
+        }
 
         setProperties(
           (propertiesData || []).map((p) => ({
@@ -126,6 +136,7 @@ export const InvestorDashboard = () => {
         const { data: insightsData, error: insightsError } = await supabase
           .from("investor_insights")
           .select("*")
+          .eq("organization_id", userRecord.organization_id)
           .in("property_id", propertyIds)
           .order("is_highlighted", { ascending: false })
           .order("created_at", { ascending: false })

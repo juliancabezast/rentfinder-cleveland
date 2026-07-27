@@ -3,10 +3,7 @@ import {
   MessageSquare,
   Mail,
   Calendar,
-  TrendingUp,
-  TrendingDown,
   Filter,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface TimelineEvent {
   id: string;
-  type: "sms" | "email" | "showing" | "score_change";
+  type: "sms" | "email" | "showing";
   timestamp: string;
   title: string;
   description?: string;
@@ -37,40 +35,35 @@ const FILTER_OPTIONS = [
   { value: "all", label: "All" },
   { value: "messages", label: "Messages" },
   { value: "showing", label: "Showings" },
-  { value: "score_change", label: "Score Changes" },
 ];
 
 export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
   leadId,
 }) => {
+  const { userRecord } = useAuth();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
   const [filter, setFilter] = useState("all");
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
 
   const fetchActivity = async () => {
+    if (!userRecord?.organization_id) return;
     setLoading(true);
     try {
-      const [commsRes, showingsRes, scoreRes] = await Promise.all([
+      const [commsRes, showingsRes] = await Promise.all([
         supabase
           .from("communications")
           .select("*")
           .eq("lead_id", leadId)
+          .eq("organization_id", userRecord.organization_id)
           .order("sent_at", { ascending: false })
           .limit(100),
         supabase
           .from("showings")
           .select("*, properties:property_id(address)")
           .eq("lead_id", leadId)
+          .eq("organization_id", userRecord.organization_id)
           .order("scheduled_at", { ascending: false })
-          .limit(100),
-        supabase
-          .from("lead_score_history")
-          .select("*")
-          .eq("lead_id", leadId)
-          .order("created_at", { ascending: false })
           .limit(100),
       ]);
 
@@ -113,31 +106,12 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
         });
       });
 
-      // Map score changes
-      (scoreRes.data || []).forEach((score: Tables<"lead_score_history">) => {
-        allEvents.push({
-          id: score.id,
-          type: "score_change",
-          timestamp: score.created_at || "",
-          title: `Score: ${score.previous_score} → ${score.new_score}`,
-          description: score.reason_text,
-          metadata: {
-            previous_score: score.previous_score,
-            new_score: score.new_score,
-            change_amount: score.change_amount,
-            reason_code: score.reason_code,
-            triggered_by: score.triggered_by,
-          },
-        });
-      });
-
       // Sort by timestamp descending
       allEvents.sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
 
       setEvents(allEvents);
-      setHasMore(allEvents.length > ITEMS_PER_PAGE);
     } catch (error) {
       console.error("Error fetching activity:", error);
     } finally {
@@ -147,7 +121,7 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
 
   useEffect(() => {
     fetchActivity();
-  }, [leadId]);
+  }, [leadId, userRecord?.organization_id]);
 
   const filteredEvents = useMemo(() => {
     if (filter === "all") return events;
@@ -158,19 +132,9 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
   const visibleEvents = filteredEvents.slice(0, displayCount);
   const canLoadMore = displayCount < filteredEvents.length;
 
+  // Events are already in memory — just reveal the next page synchronously.
   const loadMore = () => {
-    setLoadingMore(true);
-    setTimeout(() => {
-      setDisplayCount((prev) => prev + ITEMS_PER_PAGE);
-      setLoadingMore(false);
-    }, 300);
-  };
-
-  const formatAgentType = (type: string) => {
-    return type
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+    setDisplayCount((prev) => prev + ITEMS_PER_PAGE);
   };
 
   const getEventIcon = (event: TimelineEvent) => {
@@ -181,8 +145,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
         return Mail;
       case "showing":
         return Calendar;
-      case "score_change":
-        return event.metadata.change_amount >= 0 ? TrendingUp : TrendingDown;
       default:
         return Filter;
     }
@@ -198,10 +160,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
         return "bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300";
       case "showing":
         return "bg-amber-100 text-amber-600 dark:bg-amber-900 dark:text-amber-300";
-      case "score_change":
-        return event.metadata.change_amount >= 0
-          ? "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
-          : "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -215,8 +173,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
         return "border-l-indigo-500";
       case "showing":
         return "border-l-amber-500";
-      case "score_change":
-        return event.metadata.change_amount >= 0 ? "border-l-green-500" : "border-l-red-500";
       default:
         return "border-l-muted";
     }
@@ -298,28 +254,6 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
             {event.metadata.status === "no_show" && (
               <p className="text-sm text-destructive">Lead did not attend</p>
             )}
-          </div>
-        );
-
-      case "score_change":
-        const isPositive = event.metadata.change_amount >= 0;
-        return (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="font-medium">
-                Score: {event.metadata.previous_score} → {event.metadata.new_score}{" "}
-                <span className={isPositive ? "text-green-600" : "text-red-600"}>
-                  ({isPositive ? "+" : ""}
-                  {event.metadata.change_amount})
-                </span>
-              </span>
-            </div>
-            {event.description && (
-              <p className="text-sm text-muted-foreground">Reason: {event.description}</p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              Triggered by: {formatAgentType(event.metadata.triggered_by)}
-            </p>
           </div>
         );
 
@@ -431,19 +365,8 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
             {/* Load more */}
             {canLoadMore && (
               <div className="mt-6 text-center">
-                <Button
-                  variant="outline"
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    `Load more (${filteredEvents.length - displayCount} remaining)`
-                  )}
+                <Button variant="outline" onClick={loadMore}>
+                  Load more ({filteredEvents.length - displayCount} remaining)
                 </Button>
               </div>
             )}

@@ -150,20 +150,18 @@ const PropertyGroupDetail: React.FC = () => {
   }, [groupId, organization?.id]);
 
   const handleDelete = async () => {
-    if (!group) return;
+    if (!group || !organization?.id) return;
 
     setDeleting(true);
     try {
-      // Unlink units first (set property_group_id to null)
-      await supabase
-        .from("properties")
-        .update({ property_group_id: null })
-        .eq("property_group_id", group.id);
-
+      // No manual unit unlink needed: properties.property_group_id has
+      // ON DELETE SET NULL, so the DB detaches units atomically with the
+      // delete (the old two-step update could partially commit).
       const { error } = await supabase
         .from("property_groups")
         .delete()
-        .eq("id", group.id);
+        .eq("id", group.id)
+        .eq("organization_id", organization.id);
 
       if (error) throw error;
 
@@ -303,7 +301,8 @@ const PropertyGroupDetail: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {units
+              {/* Sort a copy — .sort() in place would mutate React state during render */}
+              {[...units]
                 .sort((a, b) => (a.unit_number || "").localeCompare(b.unit_number || ""))
                 .map((unit) => {
                   const s = STATUS_CONFIG[unit.status] || STATUS_CONFIG.available;
@@ -337,6 +336,7 @@ const PropertyGroupDetail: React.FC = () => {
                           "bg-amber-50 text-amber-700 border-amber-200": unit.status === "coming_soon",
                           "bg-blue-50 text-blue-700 border-blue-200": unit.status === "in_leasing_process",
                           "bg-gray-50 text-gray-500 border-gray-200": unit.status === "rented",
+                          "bg-slate-100 text-slate-500 border-slate-300": unit.status === "inactive",
                         })}>{s.label}</Badge>
                       </div>
                     </Link>

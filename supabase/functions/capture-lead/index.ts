@@ -15,11 +15,21 @@ interface LeadCaptureRequest {
   source: string
   source_detail?: string
   interested_property_id?: string
+  consent?: boolean
   consent_text: string
   user_agent: string
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Normalize a US phone to E.164 (+1XXXXXXXXXX). Returns null if not 10/11 digits. */
+function toE164(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const d = raw.replace(/\D/g, '')
+  if (d.length === 10) return `+1${d}`
+  if (d.length === 11 && d.startsWith('1')) return `+${d}`
+  return null
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -29,6 +39,22 @@ Deno.serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // ── Auth gate (service-role only) ───────────────────────────────────────
+    // This endpoint hard-asserts TCPA consent for whatever phone is posted and
+    // has NO live public caller (the real capture paths are submit-inquiry /
+    // book-public-showing / submit-application). Left open it was pure attack
+    // surface: an anonymous request could fabricate consent evidence for any
+    // victim number and mass-create consent-stamped spam leads. Require the
+    // service-role key so only internal automation can invoke it.
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
+    const callerToken = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim()
+    if (!callerToken || callerToken === anonKey || callerToken !== supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Get client IP from headers (works with various proxies/CDNs)
     const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -50,6 +76,12 @@ Deno.serve(async (req) => {
     const propertyId = body.interested_property_id && UUID_RE.test(body.interested_property_id)
       ? body.interested_property_id
       : null
+    // Consent must be explicitly granted — never asserted just because a phone
+    // was posted. Canonicalize the phone to E.164 so matching hits the stored
+    // value (noah dedup normalizes NEW.phone on INSERT).
+    const hasConsent = body.consent === true
+    const phoneE164 = toE164(body.phone)
+    const phoneForDb = phoneE164 || body.phone
 
     // Find-or-create by phone within the org. A blind INSERT used to be canceled
     // by the noah dedup trigger (BEFORE INSERT → RETURN NULL), which made
@@ -65,7 +97,7 @@ Deno.serve(async (req) => {
       .from('leads')
       .select('id, full_name')
       .eq('organization_id', body.organization_id)
-      .eq('phone', body.phone)
+      .eq('phone', phoneE164 || body.phone)
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
@@ -75,10 +107,14 @@ Deno.serve(async (req) => {
       const update: Record<string, unknown> = {
         updated_at: now,
         last_contact_at: now,
-        call_consent: true,
-        call_consent_at: now,
-        sms_consent: true,
-        sms_consent_at: now,
+        last_contact_channel: "web_form", // inbound public listing capture
+      }
+      // Only upgrade consent when it was explicitly granted (never revoke).
+      if (hasConsent) {
+        update.call_consent = true
+        update.call_consent_at = now
+        update.sms_consent = true
+        update.sms_consent_at = now
       }
       if (!existing.full_name && body.full_name) update.full_name = body.full_name
       const { error: updateError } = await supabase.from('leads').update(update).eq('id', leadId)
@@ -89,15 +125,14 @@ Deno.serve(async (req) => {
         .insert({
           organization_id: body.organization_id,
           full_name: body.full_name || null,
-          phone: body.phone,
+          phone: phoneForDb,
           source: body.source || 'website',
           source_detail: body.source_detail || 'Public listing page',
-          call_consent: true,
-          call_consent_at: now,
-          sms_consent: true,
-          sms_consent_at: now,
+          call_consent: hasConsent,
+          call_consent_at: hasConsent ? now : null,
+          sms_consent: hasConsent,
+          sms_consent_at: hasConsent ? now : null,
           status: 'new',
-          lead_score: 0, // milestone model: every lead starts NORMAL
         })
         .select('id')
         .single()
@@ -108,7 +143,7 @@ Deno.serve(async (req) => {
           .from('leads')
           .select('id')
           .eq('organization_id', body.organization_id)
-          .eq('phone', body.phone)
+          .eq('phone', phoneE164 || body.phone)
           .order('created_at', { ascending: true })
           .limit(1)
           .maybeSingle()
@@ -151,38 +186,40 @@ Deno.serve(async (req) => {
       } catch (_) { /* ignore */ }
     }
 
-    // Log consent for automated calls with IP address (TCPA compliance)
-    const { error: consentError } = await supabase
-      .from('consent_log')
-      .insert({
-        organization_id: body.organization_id,
-        lead_id: leadId,
-        consent_type: 'automated_calls',
-        granted: true,
-        method: 'web_form',
-        evidence_text: body.consent_text,
-        ip_address: clientIP,
-        user_agent: body.user_agent,
-      })
+    // Log consent evidence ONLY when consent was explicitly granted (TCPA).
+    if (hasConsent) {
+      const { error: consentError } = await supabase
+        .from('consent_log')
+        .insert({
+          organization_id: body.organization_id,
+          lead_id: leadId,
+          consent_type: 'automated_calls',
+          granted: true,
+          method: 'web_form',
+          evidence_text: body.consent_text,
+          ip_address: clientIP,
+          user_agent: body.user_agent,
+        })
 
-    if (consentError) {
-      console.error('Consent log error:', consentError)
-      // Don't fail the request, lead was created successfully
+      if (consentError) {
+        console.error('Consent log error:', consentError)
+        // Don't fail the request, lead was created successfully
+      }
+
+      // Also log SMS consent separately for completeness
+      await supabase
+        .from('consent_log')
+        .insert({
+          organization_id: body.organization_id,
+          lead_id: leadId,
+          consent_type: 'sms_marketing',
+          granted: true,
+          method: 'web_form',
+          evidence_text: body.consent_text,
+          ip_address: clientIP,
+          user_agent: body.user_agent,
+        })
     }
-
-    // Also log SMS consent separately for completeness
-    await supabase
-      .from('consent_log')
-      .insert({
-        organization_id: body.organization_id,
-        lead_id: leadId,
-        consent_type: 'sms_marketing',
-        granted: true,
-        method: 'web_form',
-        evidence_text: body.consent_text,
-        ip_address: clientIP,
-        user_agent: body.user_agent,
-      })
 
     // Log the successful capture
     await supabase.from('system_logs').insert({

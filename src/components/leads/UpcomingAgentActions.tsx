@@ -131,19 +131,20 @@ export const UpcomingAgentActions: React.FC<UpcomingAgentActionsProps> = ({
   const [executing, setExecuting] = useState(false);
 
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ["upcoming-agent-tasks", leadId],
+    queryKey: ["upcoming-agent-tasks", leadId, userRecord?.organization_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agent_tasks")
         .select("id, agent_type, action_type, scheduled_for, status, context, attempt_number, max_attempts")
         .eq("lead_id", leadId)
+        .eq("organization_id", userRecord!.organization_id)
         .in("status", ["pending", "in_progress", "paused_human_control"])
         .order("scheduled_for", { ascending: true });
 
       if (error) throw error;
       return data as AgentTask[];
     },
-    enabled: !!leadId,
+    enabled: !!leadId && !!userRecord?.organization_id,
   });
 
   const handleExecuteNow = async () => {
@@ -151,14 +152,22 @@ export const UpcomingAgentActions: React.FC<UpcomingAgentActionsProps> = ({
 
     setExecuting(true);
     try {
-      const { error } = await supabase.rpc("execute_agent_task_now", {
+      const { data, error } = await supabase.rpc("execute_agent_task_now", {
         p_task_id: confirmDialog.task.id,
         p_executed_by: userRecord.id,
       });
 
       if (error) throw error;
 
-      toast.success("Task execution triggered successfully");
+      // The RPC returns failures in-band ({success:false, error}) without raising,
+      // e.g. "Unauthorized" or "Task is not in a launchable state". Surface those
+      // instead of a lying success toast.
+      const result = data as { success?: boolean; error?: string } | null;
+      if (result && result.success === false) {
+        toast.error(result.error || "Task could not be executed");
+      } else {
+        toast.success("Task execution triggered successfully");
+      }
       queryClient.invalidateQueries({ queryKey: ["upcoming-agent-tasks", leadId] });
     } catch (error) {
       console.error("Error executing task:", error);

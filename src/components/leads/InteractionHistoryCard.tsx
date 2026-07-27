@@ -4,6 +4,7 @@ import { MessageSquare, Calendar, Mail, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Communication {
   id: string;
@@ -43,10 +44,14 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
   leadId,
   onSeeAll,
 }) => {
+  const { userRecord } = useAuth();
   const [interactions, setInteractions] = useState<InteractionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const organizationId = userRecord?.organization_id;
+    if (!organizationId) return;
+
     const fetchInteractions = async () => {
       try {
         const [commsRes, showingsRes] = await Promise.all([
@@ -54,12 +59,14 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
             .from("communications")
             .select("id, channel, direction, status, body, subject, sent_at")
             .eq("lead_id", leadId)
+            .eq("organization_id", organizationId)
             .order("sent_at", { ascending: false })
             .limit(15),
           supabase
             .from("showings")
             .select("id, status, scheduled_at, property:property_id(address)")
             .eq("lead_id", leadId)
+            .eq("organization_id", organizationId)
             .order("scheduled_at", { ascending: false })
             .limit(10),
         ]);
@@ -116,7 +123,7 @@ export const InteractionHistoryCard: React.FC<InteractionHistoryCardProps> = ({
     if (leadId) {
       fetchInteractions();
     }
-  }, [leadId]);
+  }, [leadId, userRecord?.organization_id]);
 
   const formatTimestamp = (ts: string) => {
     if (!ts) return "";

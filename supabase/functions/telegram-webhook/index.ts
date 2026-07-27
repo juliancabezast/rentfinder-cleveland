@@ -32,9 +32,9 @@ const HELP_TEXT = `<b>🗓️ Showing Setter</b>
 
 Comandos:
 • <b>menu</b> — Menú de acciones (agendar showing)
-• <b>update</b> — Próximos showings agendados (con teléfono, propiedad e info del formulario)
 • <b>help</b> — Este mensaje
 
+La <b>agenda</b> de showings vive en el bot <b>🗓️ Showings</b> (mandale <b>update</b>).
 Los reportes viven en el bot <b>📊 RFC</b> (diario 5:00 AM · digest 9:00 PM).`;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
 
   // Per-bot callback permissions: LeasingAgent owns the operational menu;
   // `act:*`/`ast:*`/`asms:*` (lead actions) run anywhere a lead card lives —
-  // the Funnel bot today, plus legacy cards on the old Hot Leads bot; `rp:*`
+  // the Funnel bot today, plus legacy cards on older bots; `rp:*`
   // belongs to RFC; `fnl:*`/`fl:*` to the Funnel menu. Everything else redirects.
   const LEAD_ACTION = data.startsWith("act:") || data.startsWith("ast:") || data.startsWith("asms:") || data.startsWith("aem");
   // The scheduling + create-lead flow's callback vocabulary (shared Setter/Funnel).
@@ -388,8 +388,8 @@ function menuFor(ctx: Ctx): { text: string; kb: any[][] } {
   if (ctx.bot === "general") return { text: RFC_GREETING, kb: rfcMenuKeyboard() };
   return { text: MENU_GREETING, kb: mainMenuKeyboard() };
 }
-// Wrong-bot nudge: "parked" wording only fits the old Hot Leads bot; on active
-// bots (a stale button, e.g.) route neutrally instead.
+// Wrong-bot nudge: "parked" wording only fits the retired showings bot; on
+// active bots (a stale button, e.g.) route neutrally instead.
 async function redirectToLeasing(ctx: Ctx, messageId?: number) {
   const routes = "👥 Leads → <b>FunnelRFC</b> · 📅 Agendas → <b>Showing Setter</b> · 📊 Datos → <b>RFC Report</b>.";
   const msg = ctx.bot === "showings"
@@ -615,7 +615,7 @@ async function startCustomTime(ctx: Ctx, messageId: number | undefined) {
   }
   await setSession(ctx, "custom_time", session.data);
   await editOrSend(ctx, messageId,
-    `🕐 <b>${slotDayLabel(session.data.slot_day)}</b>\nEscribí la hora del showing.\nEj: <code>2:30 PM</code> · <code>14:30</code> · <code>10 am</code>`,
+    `🕐 <b>${slotDayLabel(session.data.slot_day)}</b>\nEscribí la hora del showing (solo <b>en punto</b> o <b>y media</b>).\nEj: <code>2:30 PM</code> · <code>14:30</code> · <code>10 am</code>`,
     [[{ text: "◀️ Volver a horarios", callback_data: "bk2" }], [{ text: "❌ Cancelar", callback_data: "m:x" }]]);
 }
 
@@ -628,20 +628,32 @@ async function handleCustomTime(ctx: Ctx, session: Session, raw: string) {
       [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
     return;
   }
+  // Showings are only bookable on the hour or half-hour (:00 / :30) — mirrors
+  // the admin/public pickers and the DB guard (trg_enforce_showing_half_hour).
+  const tMin = parseInt(t.slice(3, 5), 10);
+  if (tMin !== 0 && tMin !== 30) {
+    await send(ctx, "🕐 Solo se puede agendar en <b>hora en punto</b> o <b>y media</b> (ej: <code>9:00</code> o <code>9:30</code>). Probá de nuevo.",
+      [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
+    return;
+  }
   const cutoffMs = await leadTimeCutoffMs(ctx.supabase, ctx.organizationId);
   if (slotToUtcMs(day, t) <= cutoffMs) {
     await send(ctx, "⏰ Esa hora ya pasó. Elegí una hora futura.",
       [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
     return;
   }
-  // Don't offer a time an active showing already occupies (agent-hour guard).
+  // Don't offer a time a DIFFERENT property already occupies (one agent, one
+  // place). Mirror the DB trigger enforce_showing_agent_slot: same property +
+  // same instant is allowed → group tour, so exclude this property from the
+  // conflict count (the trigger/book-public-showing still 409s a real clash).
   const { count } = await ctx.supabase
     .from("showing_available_slots")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", ctx.organizationId)
-    .eq("slot_date", day).eq("slot_time", t).eq("is_booked", true);
+    .eq("slot_date", day).eq("slot_time", t).eq("is_booked", true)
+    .neq("property_id", session.data.property_id);
   if ((count || 0) > 0) {
-    await send(ctx, "❌ Ya hay un showing a esa hora. Probá otra.",
+    await send(ctx, "❌ Ya hay un showing de otra propiedad a esa hora. Probá otra.",
       [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
     return;
   }
@@ -724,9 +736,9 @@ async function handleLeadSearch(ctx: Ctx, session: Session, rawQuery: string) {
   // is used to look someone up and communicate, not only to book).
   let query = ctx.supabase
     .from("leads")
-    .select("id, full_name, first_name, last_name, phone, lead_score")
+    .select("id, full_name, first_name, last_name, phone")
     .eq("organization_id", ctx.organizationId)
-    .order("lead_score", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(8);
 
   const orClauses: string[] = [];
@@ -1111,7 +1123,7 @@ async function generateLeasingReport(ctx: Ctx, messageId: number | undefined, la
 function rfcMenuKeyboard() {
   return [
     [{ text: "📈 Hoy", callback_data: "rp:today" }, { text: "📅 Semana", callback_data: "rp:week" }, { text: "🗓️ Mes", callback_data: "rp:month" }],
-    [{ text: "🧭 Funnel + hot pendientes", callback_data: "rp:funnel" }],
+    [{ text: "🧭 Funnel del pipeline", callback_data: "rp:funnel" }],
     [{ text: "🏠 Top propiedades + 💰 costos", callback_data: "rp:props" }],
     [{ text: "📄 Reporte de leasing (PDF)", callback_data: "m:lr" }],
     [{ text: "🤖 Pregunta libre (IA)", callback_data: "rp:ai" }],
@@ -1158,6 +1170,15 @@ async function handleRfcText(ctx: Ctx, rawText: string) {
     if (kb === "📄 pdf")    { await startLeasingReport(ctx); return; }
     if (kb === "📊 completo") { await typing(ctx); await runReport(ctx); return; }
   }
+  // MENU_TRIGGERS must be consulted BEFORE the in-flight leasing-PDF steps —
+  // otherwise typing "menu" (the very word the leasing_lang nudge tells you to
+  // send) is swallowed: leasing_search searches for a building named "menu" and
+  // leasing_lang loops the same nudge forever. Mirrors the default-bot ordering.
+  if (MENU_TRIGGERS.has(t)) {
+    await clearSession(ctx);
+    await send(ctx, RFC_GREETING, rfcMenuKeyboard());
+    return;
+  }
   // In-flight leasing-PDF flow (moved here from the Setter): free-text step.
   {
     const session = await getSession(ctx);
@@ -1166,11 +1187,6 @@ async function handleRfcText(ctx: Ctx, rawText: string) {
       await send(ctx, "👆 Usá los botones de arriba, o mandá <b>menu</b> para reiniciar.");
       return;
     }
-  }
-  if (MENU_TRIGGERS.has(t)) {
-    await clearSession(ctx);
-    await send(ctx, RFC_GREETING, rfcMenuKeyboard());
-    return;
   }
   const session = await getSession(ctx);
   if (session?.step === "rfc_ai") { await handleRfcAiQuestion(ctx, session, raw); return; }
@@ -1265,15 +1281,11 @@ async function rfcPeriodReport(ctx: Ctx, period: "today" | "week" | "month") {
   const prevStartUtc = nyMidnightUtcIso(prevStart);
   const prevEndUtc = nyMidnightUtcIso(prevEnd);
 
-  const [seriesRes, curSourcesRes, hotRes, hotPrevRes, emailsRes, emailsPrevRes,
+  const [seriesRes, curSourcesRes, emailsRes, emailsPrevRes,
     smsRes, smsPrevRes, convRes, convPrevRes, costsRes, costsPrevRes] = await Promise.all([
     ctx.supabase.rpc("report_time_series", { p_org: ctx.organizationId, p_days: 70 }),
     // Source breakdown grouped in the DB (raw selects cap at 1000 rows silently).
     ctx.supabase.rpc("report_source_breakdown", { p_org: ctx.organizationId, p_since: curStartUtc, p_until: curEndUtc, p_limit: 4 }),
-    ctx.supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
-      .eq("is_demo", false).gte("lead_score", 50).gte("created_at", curStartUtc).lt("created_at", curEndUtc),
-    ctx.supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", ctx.organizationId)
-      .eq("is_demo", false).gte("lead_score", 50).gte("created_at", prevStartUtc).lt("created_at", prevEndUtc),
     // Counts queue-drained sends too (event_type='sent' alone misses ~99%).
     ctx.supabase.rpc("report_emails_sent", { p_org: ctx.organizationId, p_since: curStartUtc, p_until: curEndUtc }),
     ctx.supabase.rpc("report_emails_sent", { p_org: ctx.organizationId, p_since: prevStartUtc, p_until: prevEndUtc }),
@@ -1316,7 +1328,6 @@ async function rfcPeriodReport(ctx: Ctx, period: "today" | "week" | "month") {
     `<b>${title}</b> <i>(${note})</i>`,
     ``,
     `👥 <b>${cur.l} leads</b> (${rfcDelta(cur.l, prev.l)})${srcLine ? ` — ${srcLine}` : ""}`,
-    `🔥 ${hotRes.count || 0} hot (${rfcDelta(hotRes.count || 0, hotPrevRes.count || 0)})`,
     `🏠 ${cur.s} showings (${rfcDelta(cur.s, prev.s)})`,
     `✉️ ${curEmails} emails (${rfcDelta(curEmails, prevEmails)}) · 💬 ${smsRes.count || 0} SMS (${rfcDelta(smsRes.count || 0, smsPrevRes.count || 0)})`,
     `🎉 ${convRes.count || 0} convertidos (${rfcDelta(convRes.count || 0, convPrevRes.count || 0)})`,
@@ -1325,25 +1336,11 @@ async function rfcPeriodReport(ctx: Ctx, period: "today" | "week" | "month") {
   await send(ctx, lines.join("\n"), RFC_BACK);
 }
 
-// 🧭 Funnel + hot pendientes
+// 🧭 Funnel del pipeline
 async function rfcFunnelReport(ctx: Ctx) {
-  const now = new Date();
-  const dayAgoIso = new Date(now.getTime() - 86400000).toISOString();
-  const sevenDaysAgoIso = new Date(now.getTime() - 7 * 86400000).toISOString();
-  const [funnelRes, hotListRes] = await Promise.all([
-    ctx.supabase.rpc("report_status_funnel", { p_org: ctx.organizationId }),
-    ctx.supabase.from("leads")
-      .select("id, full_name, first_name, last_name, phone, lead_score, source")
-      .eq("organization_id", ctx.organizationId).eq("is_demo", false)
-      .gte("lead_score", 50).not("status", "in", "(lost,converted)")
-      .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`)
-      .gte("created_at", sevenDaysAgoIso)
-      .not("phone", "is", null)
-      .order("lead_score", { ascending: false })
-      .limit(10),
-  ]);
+  const { data: funnelRows } = await ctx.supabase.rpc("report_status_funnel", { p_org: ctx.organizationId });
   const funnel = new Map<string, number>(
-    ((funnelRes.data || []) as any[]).map((r) => [String(r.status), Number(r.cnt) || 0])
+    ((funnelRows || []) as any[]).map((r) => [String(r.status), Number(r.cnt) || 0])
   );
   const fn = (s: string) => funnel.get(s) || 0;
   const FLOW: [string, string][] = [
@@ -1352,13 +1349,6 @@ async function rfcFunnelReport(ctx: Ctx) {
   ];
   const lines: string[] = [`🧭 <b>Funnel del pipeline</b> (histórico vivo)`, ``];
   for (const [em, st] of FLOW) lines.push(`${em} ${st.replace(/_/g, " ")}: <b>${fn(st)}</b>`);
-
-  const hot = hotListRes.data || [];
-  lines.push(``, `━━ <b>🔥 HOT PENDIENTES</b> (7d, sin contactar) ━━`);
-  if (!hot.length) lines.push(`✅ Nada pendiente — todo contactado.`);
-  hot.forEach((l: any, i: number) => {
-    lines.push(`${i + 1}. <b>${escapeHtml(leadName(l))}</b> · ${l.lead_score} pts\n   📞 ${escapeHtml(l.phone || "—")}`);
-  });
   await sendChunks(ctx, lines.join("\n"));
   await send(ctx, "¿Algo más?", RFC_BACK);
 }
@@ -1433,7 +1423,6 @@ function funnelMenuKeyboard(queueN?: number) {
   return [
     [{ text: `▶️ Gestionar pendientes${queueN != null ? ` (${queueN})` : ""}`, callback_data: "fnl:q" }],
     [{ text: "📅 Agendar showing", callback_data: "m:sch" }, { text: "➕ Crear lead", callback_data: "m:new" }],
-    [{ text: "🔥 Hot sin contactar", callback_data: "fnl:hot" }],
     [{ text: "⏰ Seguimientos de hoy", callback_data: "fnl:rem" }],
     [{ text: "🆕 Últimos leads", callback_data: "fnl:new" }],
   ];
@@ -1466,7 +1455,6 @@ async function handleFunnelText(ctx: Ctx, rawText: string) {
     const cmd = t.slice(1).split("@")[0].split(/\s/)[0];
     const fake = { id: "", message: {} };
     if (cmd === "gestionar") { await handleFunnelMenuCb(ctx, fake, "fnl:q"); return; }
-    if (cmd === "hot")       { await handleFunnelMenuCb(ctx, fake, "fnl:hot"); return; }
     if (cmd === "hoy")       { await handleFunnelMenuCb(ctx, fake, "fnl:rem"); return; }
     if (cmd === "nuevos")    { await handleFunnelMenuCb(ctx, fake, "fnl:new"); return; }
     if (cmd === "buscar")    { await handleFunnelMenuCb(ctx, fake, "fnl:find"); return; }
@@ -1482,7 +1470,6 @@ async function handleFunnelText(ctx: Ctx, rawText: string) {
     const kb = t.replace(/️/g, "");
     const fake = { id: "", message: {} };
     if (kb === "▶ gestionar") { await handleFunnelMenuCb(ctx, fake, "fnl:q"); return; }
-    if (kb === "🔥 hot")      { await handleFunnelMenuCb(ctx, fake, "fnl:hot"); return; }
     if (kb === "⏰ hoy")      { await handleFunnelMenuCb(ctx, fake, "fnl:rem"); return; }
     if (kb === "🆕 nuevos")   { await handleFunnelMenuCb(ctx, fake, "fnl:new"); return; }
     if (kb === "📅 agendar")  { await startSchedule(ctx); return; }
@@ -1548,27 +1535,13 @@ async function handleFunnelMenuCb(ctx: Ctx, cbq: any, data: string) {
     return;
   }
   if (data === "fnl:find") { await answer(); await setSession(ctx, "find_lead_comm", {}); await editOrSend(ctx, messageId, "🔍 Escribí el <b>nombre</b> o <b>teléfono</b> del lead 👇"); return; }
-  if (data === "fnl:hot") {
-    await answer("Buscando…"); await typing(ctx);
-    const dayAgoIso = new Date(Date.now() - 86400000).toISOString();
-    const sevenDaysAgoIso = new Date(Date.now() - 7 * 86400000).toISOString();
-    const { data: rows } = await ctx.supabase.from("leads")
-      .select("id, full_name, first_name, last_name, phone, lead_score, status")
-      .eq("organization_id", ctx.organizationId).eq("is_demo", false)
-      .gte("lead_score", 50).not("status", "in", "(lost,converted)")
-      .or(`last_contact_at.is.null,last_contact_at.lt.${dayAgoIso}`)
-      .gte("created_at", sevenDaysAgoIso).not("phone", "is", null)
-      .order("lead_score", { ascending: false }).limit(8);
-    await funnelShowList(ctx, messageId, "🔥 <b>Hot sin contactar</b> (últimos 7d)", rows || []);
-    return;
-  }
   if (data === "fnl:rem") {
     await answer("Buscando…"); await typing(ctx);
     const todayStartIso = nyMidnightUtcIso(todayNY());
     const tomorrowStartIso = nyMidnightUtcIso(shiftDay(todayNY(), 1));
     // "Hoy" = pending due through today (overdue included) + already sent today.
     const { data: rems } = await ctx.supabase.from("lead_reminders")
-      .select("lead_id, status, leads:lead_id(id, full_name, first_name, last_name, phone, lead_score, status)")
+      .select("lead_id, status, leads:lead_id(id, full_name, first_name, last_name, phone, status)")
       .eq("organization_id", ctx.organizationId)
       .neq("reason", "closing")
       .or(`and(status.eq.pending,due_at.lt.${tomorrowStartIso}),and(status.eq.sent,sent_at.gte.${todayStartIso})`)
@@ -1585,7 +1558,7 @@ async function handleFunnelMenuCb(ctx: Ctx, cbq: any, data: string) {
   if (data === "fnl:new") {
     await answer("Buscando…"); await typing(ctx);
     const { data: rows } = await ctx.supabase.from("leads")
-      .select("id, full_name, first_name, last_name, phone, lead_score, status")
+      .select("id, full_name, first_name, last_name, phone, status")
       .eq("organization_id", ctx.organizationId).eq("is_demo", false)
       .not("phone", "is", null)
       .order("created_at", { ascending: false }).limit(8);
@@ -1603,7 +1576,7 @@ async function funnelShowList(ctx: Ctx, messageId: number | undefined, title: st
     return;
   }
   const kb = rows.map((l: any) => [{
-    text: `${leadName(l)} · ${l.lead_score ?? "–"} pts`.slice(0, 62),
+    text: `${leadName(l)}${l.phone ? ` · ${prettyPhone(l.phone)}` : ""}`.slice(0, 62),
     callback_data: `fl:${l.id}`,
   }]);
   kb.push([{ text: "🎯 Menú", callback_data: "fnl:menu" }]);
@@ -1620,7 +1593,7 @@ async function funnelSearchLeads(ctx: Ctx, raw: string) {
   let rows: any[] = [];
   if (phone10) {
     const { data } = await ctx.supabase.from("leads")
-      .select("id, full_name, first_name, last_name, phone, lead_score, status")
+      .select("id, full_name, first_name, last_name, phone, status")
       .eq("organization_id", ctx.organizationId)
       .ilike("phone", `%${phone10}%`)
       .limit(8);
@@ -1631,7 +1604,7 @@ async function funnelSearchLeads(ctx: Ctx, raw: string) {
     const digits = raw.replace(/\D/g, "");
     if (digits.length >= 7) {
       const { data } = await ctx.supabase.from("leads")
-        .select("id, full_name, first_name, last_name, phone, lead_score, status")
+        .select("id, full_name, first_name, last_name, phone, status")
         .eq("organization_id", ctx.organizationId)
         .ilike("phone", `%${digits}%`)
         .limit(8);
@@ -1646,7 +1619,7 @@ async function funnelSearchLeads(ctx: Ctx, raw: string) {
     const tokens = sanitizeLike(cleanNameQuery(raw)).split(/\s+/).filter((t) => t.length >= 2);
     if (tokens.length) {
       let q = ctx.supabase.from("leads")
-        .select("id, full_name, first_name, last_name, phone, lead_score, status")
+        .select("id, full_name, first_name, last_name, phone, status")
         .eq("organization_id", ctx.organizationId)
         .order("created_at", { ascending: false })
         .limit(8);
@@ -1668,7 +1641,7 @@ async function funnelSearchLeads(ctx: Ctx, raw: string) {
 // E.164 so Telegram mobile auto-detects a tappable call link.
 async function funnelLeadCard(ctx: Ctx, messageId: number | undefined, leadId: string) {
   const { data: l } = await ctx.supabase.from("leads")
-    .select("id, full_name, first_name, last_name, phone, email, status, lead_score, source, has_voucher, voucher_amount, housing_authority, move_in_date, budget_min, budget_max, created_at, last_contact_at")
+    .select("id, full_name, first_name, last_name, phone, email, status, source, has_voucher, voucher_amount, housing_authority, move_in_date, budget_min, budget_max, created_at, last_contact_at")
     .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
   if (!l) { await editOrSend(ctx, messageId, "❌ Lead no encontrado."); return; }
   const [{ data: tags }, { data: lastNote }] = await Promise.all([
@@ -1680,7 +1653,7 @@ async function funnelLeadCard(ctx: Ctx, messageId: number | undefined, leadId: s
   ]);
   const tel = String(l.phone ?? "").replace(/[^\d+]/g, "");
   const lines: string[] = [];
-  lines.push(`🎯 <b>${escapeHtml(leadName(l))}</b> · ${l.lead_score ?? "–"} pts`);
+  lines.push(`🎯 <b>${escapeHtml(leadName(l))}</b>`);
   lines.push(`📊 Etapa: <b>${FNL_STATUS_LABEL[l.status] || escapeHtml(l.status || "—")}</b>`);
   if (tel) lines.push(`📞 ${escapeHtml(tel)}`);
   if (l.email) lines.push(`✉️ ${escapeHtml(l.email)}`);
@@ -1844,12 +1817,6 @@ async function armRebookReminder(ctx: Ctx, leadId: string) {
 // Idempotent and guarded: only a live ('scheduled'/'confirmed') showing moves,
 // so the post-tour "re-agendar" button on an already-resolved no_show is a
 // no-op, and tapping twice does nothing the second time.
-//
-// NOTE the score side effect: compute_milestone_score maps 'rescheduled' to the
-// ELSE branch (10), so a lead whose ONLY showing is rescheduled drops 50 → 10
-// until they rebook. That is the milestone engine being honest — the booking is
-// gone — and it self-heals: rebooking inserts a NEW showing row and MAX() takes
-// the lead back to 50.
 async function markShowingRescheduled(
   ctx: Ctx, leadId: string, explicit?: { id: string; property_id?: string | null; status?: string },
 ): Promise<boolean> {
@@ -1882,7 +1849,7 @@ function isShellName(n: unknown): boolean {
     low.startsWith("detail") || /\d{7,}/.test(s);
 }
 
-const QUEUE_LEAD_FIELDS = "id, full_name, first_name, last_name, phone, email, status, lead_score, has_voucher, voucher_amount, move_in_date, source, created_at";
+const QUEUE_LEAD_FIELDS = "id, full_name, first_name, last_name, phone, email, status, has_voucher, voucher_amount, move_in_date, source, created_at";
 
 // The queue: (a) due pending reminders (follow-ups + call retries — they STAY
 // pending until worked, so accumulation is inherent), then (b) complete
@@ -1967,7 +1934,7 @@ async function queueCardBody(
     : "🆕 Nuevo";
   const lines = [
     ...headerLines,
-    `${via} — <b>${escapeHtml(leadName(l))}</b> · ${l.lead_score ?? "–"} pts`,
+    `${via} — <b>${escapeHtml(leadName(l))}</b>`,
     `📞 ${escapeHtml(tel)}`,
   ];
   if (l.email) lines.push(`✉️ ${escapeHtml(l.email)}`);
@@ -2029,12 +1996,19 @@ async function showQueuePicker(ctx: Ctx, messageId?: number) {
   // Top available properties by waiting-lead count.
   const byProp = new Map<string, { n: number; label: string }>();
   if (freshIds.length) {
-    const { data: tags } = await ctx.supabase.from("lead_property_interests")
-      .select("lead_id, property_id, properties:property_id(address, unit_number, city, status)")
-      .eq("organization_id", ctx.organizationId)
-      .in("lead_id", freshIds);
+    // Chunk the .in(): up to 200 UUIDs (~7 KB) in a single querystring risks the
+    // gateway URL-length limit on a hot week (>~180 queue leads). Batches of 50
+    // stay well under it and the picker keeps working.
+    const tags: any[] = [];
+    for (let i = 0; i < freshIds.length; i += 50) {
+      const { data } = await ctx.supabase.from("lead_property_interests")
+        .select("lead_id, property_id, properties:property_id(address, unit_number, city, status)")
+        .eq("organization_id", ctx.organizationId)
+        .in("lead_id", freshIds.slice(i, i + 50));
+      if (data) tags.push(...(data as any[]));
+    }
     const seenPair = new Set<string>();
-    for (const t of (tags || []) as any[]) {
+    for (const t of tags) {
       const p = t.properties;
       if (!p || p.status !== "available") continue;
       const pair = `${t.property_id}:${t.lead_id}`;
@@ -2321,14 +2295,14 @@ const FNL_EMAIL_TEMPLATES: {
   {
     code: "ap1", label: "📝 Invitación a aplicar", ntype: "application_invite",
     subject: "Apply Now — Rent Finder Cleveland",
-    text: (f) => `Hi ${f}, ready to move forward? Start your rental application here: ${APPLY_URL} — You'll need a valid ID, your last 3 paystubs (income 3× the rent) and the $50 application fee per household.`,
-    html: (f) => `<p>Hi ${f},</p><p>Ready to move forward? Start your rental application here:</p><p><a href="${APPLY_URL}">${APPLY_URL}</a></p><p>You'll need: a valid ID, your last 3 paystubs (income 3× the rent), and the $50 application fee per household.</p><p>— Rent Finder Cleveland</p>`,
+    text: (f) => `Hi ${f}, ready to move forward? Start your rental application here: ${APPLY_URL} — You'll need a valid ID, your last 3 paystubs (income 3× the rent) and the $59.90 screening fee (paid directly to TransUnion).`,
+    html: (f) => `<p>Hi ${f},</p><p>Ready to move forward? Start your rental application here:</p><p><a href="${APPLY_URL}">${APPLY_URL}</a></p><p>You'll need: a valid ID, your last 3 paystubs (income 3× the rent), and the $59.90 screening fee (paid directly to TransUnion).</p><p>— Rent Finder Cleveland</p>`,
   },
   {
     code: "ap2", label: "📝 Aplicar + otras propiedades", ntype: "application_invite",
     subject: "Apply Now — Rent Finder Cleveland",
-    text: (f) => `Hi ${f}, ready to move forward? Apply here: ${APPLY_URL} (ID + 3 paystubs + $50 fee). Not sure this home is the one? Browse all our available homes: ${MARKETPLACE_URL}`,
-    html: (f) => `<p>Hi ${f},</p><p>Ready to move forward? Start your rental application here:</p><p><a href="${APPLY_URL}">${APPLY_URL}</a></p><p>You'll need: a valid ID, your last 3 paystubs (income 3× the rent), and the $50 application fee per household.</p><p>Not sure this home is the one? Browse all our available homes at <a href="${MARKETPLACE_URL}">rentfindercleveland.com</a> — new listings every week.</p><p>— Rent Finder Cleveland</p>`,
+    text: (f) => `Hi ${f}, ready to move forward? Apply here: ${APPLY_URL} (ID + 3 paystubs + $59.90 screening fee). Not sure this home is the one? Browse all our available homes: ${MARKETPLACE_URL}`,
+    html: (f) => `<p>Hi ${f},</p><p>Ready to move forward? Start your rental application here:</p><p><a href="${APPLY_URL}">${APPLY_URL}</a></p><p>You'll need: a valid ID, your last 3 paystubs (income 3× the rent), and the $59.90 screening fee (paid directly to TransUnion).</p><p>Not sure this home is the one? Browse all our available homes at <a href="${MARKETPLACE_URL}">rentfindercleveland.com</a> — new listings every week.</p><p>— Rent Finder Cleveland</p>`,
   },
   {
     code: "shw", label: "📅 Invitación a agendar showing", ntype: "showing_invite",
@@ -2387,9 +2361,20 @@ async function handleEmailSend(ctx: Ctx, cbq: any, data: string) {
   const t = FNL_EMAIL_TEMPLATES.find((x) => x.code === code);
   if (!leadId || !t) { await answer(); return; }
   const { data: lead } = await ctx.supabase.from("leads")
-    .select("id, full_name, first_name, last_name, email")
+    .select("id, full_name, first_name, last_name, email, unsubscribed_at")
     .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
   if (!lead?.email) { await answer("Sin email"); return; }
+  // Compliance: the "agendar showing" / "mover showing" templates are marketing
+  // in substance (ntype 'showing_invite'). send-notification-email exempts that
+  // ntype from its unsubscribe gate, so enforce it here at the operator's tap —
+  // don't email a lead who opted out. application_invite stays transactional
+  // (the lead is actively moving to apply).
+  if (t.ntype === "showing_invite" && lead.unsubscribed_at) {
+    await answer("Se dio de baja");
+    await editOrSend(ctx, messageId,
+      `🚫 <b>${escapeHtml(leadName(lead))}</b> se dio de baja de emails — no le mandes la invitación a agendar/mover. Podés llamarlo o mandarle 💬 SMS.`);
+    return;
+  }
   await answer("Enviando…");
   // Kill the ✅ button IMMEDIATELY (no keyboard) — closes the double-tap window
   // that would otherwise queue the email twice.
@@ -2575,6 +2560,11 @@ async function handleShowingsText(ctx: Ctx, rawText: string) {
       }
     }
   }
+  // The agenda-refresh words ("update"/"agenda"/"showings"/…) route here — this
+  // is the bot the agenda lives on, so the "Mandá update…" recovery hints after
+  // an expired SMS-target list actually work. Checked after in-flight report
+  // steps so a report body isn't hijacked.
+  if (UPDATE_TRIGGERS.has(t)) { await showAgenda(ctx); return; }
   await send(ctx, SHW_GREETING, shwMenuKeyboard());
 }
 
@@ -2728,8 +2718,8 @@ async function handleAttendance(ctx: Ctx, cbq: any, data: string) {
       ? { status: "completed", completed_at: new Date().toISOString(), followed_up_at: new Date().toISOString() }
       : { status: "no_show", followed_up_at: new Date().toISOString() }
   ).eq("organization_id", ctx.organizationId).eq("id", showingId);
-  // Attended advances the lead (milestone engine picks the score up from here)
-  // and starts the 🚀 closing cadence (D+1/3/7 pushes until they apply).
+  // Attended advances the lead lifecycle and starts the 🚀 closing cadence
+  // (D+1/3/7 pushes until they apply).
   if (attended && l.status === "showing_scheduled") {
     await ctx.supabase.from("leads").update({ status: "showed" })
       .eq("organization_id", ctx.organizationId).eq("id", l.id);
@@ -2776,15 +2766,31 @@ async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
 
   try {
     if (verb === "c") {
-      await answer("✅ Confirmado");
-      // 'confirmed' is a real showing status — it turns GREEN ("Confirmado") in
-      // the owner's Leasing Tracker. Milestone score is unchanged (scheduled and
-      // confirmed are both 50). Only advance from a live status: never resurrect
-      // a cancelled/completed/no-show row.
-      if (["scheduled", "rescheduled"].includes(String(s.status))) {
-        await ctx.supabase.from("showings").update({ status: "confirmed" })
+      // 'confirmed' turns GREEN ("Confirmado") in the owner's Leasing Tracker.
+      // Only advance from 'scheduled' (the state a 30-min reminder card is emitted
+      // in). 'confirmed' is already the target; anything else — cancelled/completed/
+      // no_show, or a 'rescheduled' that freed its slot — must NOT be silently
+      // resurrected. And check the update error: enforce_showing_agent_slot can
+      // 23505 if a DIFFERENT property took this instant meanwhile, so we must not
+      // log a confirmation (note + leasing_activity) the DB actually refused.
+      if (String(s.status) === "scheduled") {
+        const { error: upErr } = await ctx.supabase.from("showings").update({ status: "confirmed" })
           .eq("organization_id", ctx.organizationId).eq("id", showingId);
+        if (upErr) {
+          await answer("No se pudo confirmar");
+          await editOrSend(ctx, messageId,
+            `⚠️ No pude confirmar el showing de <b>${escapeHtml(name)}</b>${where} — puede que ese horario ya esté tomado por otra propiedad. Revisá el calendario.`,
+            [moreRow]);
+          return;
+        }
+      } else if (String(s.status) !== "confirmed") {
+        await answer("Ese showing ya no está activo");
+        await editOrSend(ctx, messageId,
+          `⚠️ El showing de <b>${escapeHtml(name)}</b>${where} ya no está agendado (${escapeHtml(String(s.status))}) — no lo confirmé.`,
+          [moreRow]);
+        return;
       }
+      await answer("✅ Confirmado");
       await logLeadNote(ctx, l.id, "general",
         `✅ Confirmó el showing de las ${when}${addr ? ` en ${addr}` : ""}`);
       // property comes from the showing itself — no interest-tag lookup needed.
@@ -2981,7 +2987,7 @@ async function leadTimeCutoffMs(_supabase?: any, _organizationId?: string): Prom
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Hot Leads — "Registrar acción" (runs on the showings bot too; stateless)
+// Lead cards — "Registrar acción" (runs on the showings bot too; stateless)
 // ═══════════════════════════════════════════════════════════════════════════════
 function actionMenuKeyboard(leadId: string) {
   return [
@@ -3327,8 +3333,8 @@ async function handleCapture(ctx: Ctx, cbq: any, data: string) {
 
 // ── 🗣️ Natural-language edit on an OPEN lead ──
 // Reached from the lead card's "🗣️ Editar" button (act:nl:<leadId>). The next
-// typed message is parsed by an LLM into a command and applied — a stage change
-// (never lead_score; the DB milestone engine owns it), a note, or nothing.
+// typed message is parsed by an LLM into a command and applied — a stage
+// change, a note, or nothing.
 const NL_STATUSES = ["new","contacted","engaged","nurturing","qualified","showing_scheduled","showed","in_application","converted","lost"];
 async function nlParse(ctx: Ctx, text: string): Promise<{ action: string; status?: string; note?: string }> {
   const key = await getOpenAIKey(ctx);
@@ -4058,7 +4064,7 @@ function prefsLines(prefs: unknown): string[] {
   if (p.pets) out.push(`🐾 Mascotas: ${p.pets}`);
   if (p.income_source) out.push(`💼 ${p.income_source}`);
   if (p.move_urgency) out.push(`⏱️ ${p.move_urgency}`);
-  if (p.fee_acknowledged) out.push(`✅ Aceptó fee $50 + Términos`);
+  if (p.fee_acknowledged) out.push(`✅ Aceptó fee $59.90 + Términos`);
   return out;
 }
 

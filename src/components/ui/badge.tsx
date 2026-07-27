@@ -8,9 +8,14 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        // No hover:bg on the colored variants: badges are decorative <div>s, and
+        // a call site that overrides the base bg/text (e.g. bg-white/text-slate)
+        // otherwise KEEPS this inherited hover — flipping to indigo bg on hover
+        // while the dark text stays = unreadable dark-on-dark. Interactive badges
+        // can opt back in with an explicit hover: class.
+        default: "border-transparent bg-primary text-primary-foreground",
+        secondary: "border-transparent bg-secondary text-secondary-foreground",
+        destructive: "border-transparent bg-destructive text-destructive-foreground",
         outline: "text-foreground",
       },
     },

@@ -19,6 +19,9 @@ const MARKETING_NOTIFICATION_TYPES = new Set([
   "featured_property",
   "newsletter",
   "promotion",
+  // CSV-import blast — consent-filtered client-side too, but the queue-time
+  // gate is the fail-closed backstop (audit 2026-07-25).
+  "campaign_showing_invitation",
   // Elijah's 7-step showing nurture. Marketing by any honest reading of
   // CAN-SPAM (most recipients inquired 90+ days ago), so it MUST carry the
   // consent gate, the {{unsubscribe_url}} substitution and List-Unsubscribe.

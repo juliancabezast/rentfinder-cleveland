@@ -18,11 +18,11 @@ const getTimeOfDay = () => {
 const getGreeting = (timeOfDay: string) => {
   switch (timeOfDay) {
     case "morning":
-      return "Good morning";
+      return "Buenos días";
     case "afternoon":
-      return "Good afternoon";
+      return "Buenas tardes";
     default:
-      return "Good evening";
+      return "Buenas noches";
   }
 };
 
@@ -40,11 +40,11 @@ const getEmoji = (timeOfDay: string) => {
 const getSubtitle = (timeOfDay: string) => {
   switch (timeOfDay) {
     case "morning":
-      return "Here's what's happening with your properties today";
+      return "Esto es lo que está pasando con tus propiedades hoy";
     case "afternoon":
-      return "Here's your afternoon update";
+      return "Tu resumen de la tarde";
     default:
-      return "Here's your evening summary";
+      return "Tu resumen de la noche";
   }
 };
 
@@ -64,13 +64,14 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const firstName = userRecord?.full_name?.split(" ")[0] || "there";
+  const firstName = userRecord?.full_name?.split(" ")[0] || "";
+  const greeting = firstName ? `${getGreeting(timeOfDay)}, ${firstName}` : getGreeting(timeOfDay);
 
   if (compact) {
     return (
       <div className={cn("min-w-0 leading-tight", className)}>
         <h1 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-1.5 truncate">
-          <span className="truncate">{getGreeting(timeOfDay)}, {firstName}</span>
+          <span className="truncate">{greeting}</span>
           <span aria-hidden>{getEmoji(timeOfDay)}</span>
         </h1>
         <p className="text-[11px] text-muted-foreground truncate hidden sm:block">
@@ -83,7 +84,7 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
   return (
     <div className={cn("mb-6", className)}>
       <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2 flex-wrap">
-        <span>{getGreeting(timeOfDay)}, {firstName}</span>
+        <span>{greeting}</span>
         <span className="text-2xl sm:text-3xl">{getEmoji(timeOfDay)}</span>
       </h1>
       <p className="text-muted-foreground mt-1">

@@ -111,13 +111,24 @@ serve(async (req: Request) => {
     }
 
     // ── 6. Nullify all FK references to this user ───────────────────
+    // MUST cover EVERY NO-ACTION FK that references public.users(id). Deleting
+    // the auth user cascades to delete this public.users row, and that cascade
+    // fails (leaving a half-deleted/unrecoverable state) if any inbound
+    // NO-ACTION FK still points here. Verified against the live FK graph.
     const nullifyOps = [
       supabase.from("leads").update({ assigned_leasing_agent_id: null }).eq("assigned_leasing_agent_id", user_id),
       supabase.from("leads").update({ human_controlled_by: null }).eq("human_controlled_by", user_id),
+      supabase.from("leads").update({ ai_brief_generated_by: null }).eq("ai_brief_generated_by", user_id),
       supabase.from("showings").update({ leasing_agent_id: null }).eq("leasing_agent_id", user_id),
+      supabase.from("showings").update({ booked_by: null }).eq("booked_by", user_id),
+      supabase.from("showing_available_slots").update({ created_by: null }).eq("created_by", user_id),
       supabase.from("agent_tasks").update({ paused_by: null }).eq("paused_by", user_id),
       supabase.from("property_alerts").update({ read_by: null }).eq("read_by", user_id),
-      supabase.from("lead_score_history").update({ changed_by_user_id: null }).eq("changed_by_user_id", user_id),
+      supabase.from("properties").update({ investor_id: null }).eq("investor_id", user_id),
+      supabase.from("campaigns").update({ created_by: null }).eq("created_by", user_id),
+      supabase.from("lead_notes").update({ created_by: null }).eq("created_by", user_id),
+      supabase.from("lead_field_changes").update({ changed_by_user_id: null }).eq("changed_by_user_id", user_id),
+      supabase.from("user_feature_toggles").update({ toggled_by: null }).eq("toggled_by", user_id),
       supabase.from("system_logs").update({ resolved_by: null }).eq("resolved_by", user_id),
       supabase.from("system_settings").update({ updated_by: null }).eq("updated_by", user_id),
       supabase.from("users").update({ invited_by: null }).eq("invited_by", user_id),
@@ -129,6 +140,11 @@ serve(async (req: Request) => {
       console.error("Nullify errors (non-fatal):", nullifyErrors);
     }
 
+    // user_notifications_custom.recipient_user_id / sent_by are NOT NULL FKs,
+    // so they can't be nullified — delete the rows that reference this user.
+    await supabase.from("user_notifications_custom").delete().eq("recipient_user_id", user_id);
+    await supabase.from("user_notifications_custom").delete().eq("sent_by", user_id);
+
     // Delete investor_property_access rows for this user
     await supabase.from("investor_property_access").delete().eq("investor_id", user_id);
     // Also clean up any granted_by references
@@ -139,11 +155,19 @@ serve(async (req: Request) => {
     if (targetUser.auth_user_id) {
       const { error: authDeleteErr } = await supabase.auth.admin.deleteUser(targetUser.auth_user_id);
       if (authDeleteErr) {
-        console.error("Failed to delete auth user:", authDeleteErr);
-        return new Response(
-          JSON.stringify({ error: `Failed to delete auth user: ${authDeleteErr.message}` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        // "user not found" means a prior run already removed the auth account —
+        // tolerate it so a retry can finish cleanly instead of 500-ing forever.
+        const notFound =
+          (authDeleteErr as { status?: number }).status === 404 ||
+          /not.?found/i.test(authDeleteErr.message || "");
+        if (!notFound) {
+          console.error("Failed to delete auth user:", authDeleteErr);
+          return new Response(
+            JSON.stringify({ error: `Failed to delete auth user: ${authDeleteErr.message}` }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        console.warn("Auth user already absent, continuing:", authDeleteErr.message);
       }
     }
 

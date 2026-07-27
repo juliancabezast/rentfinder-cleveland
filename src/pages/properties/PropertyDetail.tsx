@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -43,8 +43,6 @@ import {
   Bath,
   Square,
   MapPin,
-  DollarSign,
-  Calendar,
   AlertTriangle,
   Home,
   Users,
@@ -59,7 +57,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { format, differenceInDays, isPast } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
 
 interface Property {
@@ -86,6 +84,7 @@ interface Property {
   investor_id?: string | null;
   property_group_id?: string | null;
   section_8_accepted?: boolean | null;
+  pet_policy?: string | null;
   created_at?: string;
   listed_date?: string | null;
 }
@@ -112,6 +111,13 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   in_leasing_process: { label: 'In Leasing', className: 'bg-primary text-primary-foreground' },
   rented: { label: 'Rented', className: 'bg-muted text-muted-foreground' },
   inactive: { label: 'Inactive', className: 'bg-slate-200 text-slate-600' },
+};
+
+/** Parse a date-only string (YYYY-MM-DD) as a LOCAL date. new Date() reads it
+ *  as UTC midnight, which renders one day early for Eastern viewers. */
+const parseDateOnly = (value: string): Date => {
+  const [y, m, d] = value.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
 };
 
 const amenityLabels: Record<string, string> = {
@@ -147,131 +153,149 @@ const PropertyDetail: React.FC = () => {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [editingPhotos, setEditingPhotos] = useState(false);
 
-  useEffect(() => {
-    const fetchProperty = async () => {
-      if (!id || !organization?.id) return;
+  const fetchProperty = useCallback(async () => {
+    if (!id || !organization?.id) return;
 
-      setLoading(true);
-      try {
-        // Fetch property
-        const { data: propertyData, error: propertyError } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', id)
-          .eq('organization_id', organization.id)
-          .single();
+    setLoading(true);
+    try {
+      // Fetch property
+      const { data: propertyData, error: propertyError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', id)
+        .eq('organization_id', organization.id)
+        .single();
 
-        if (propertyError) throw propertyError;
+      if (propertyError) throw propertyError;
 
-        const parsedProperty: Property = {
-          id: propertyData.id,
-          address: propertyData.address,
-          unit_number: propertyData.unit_number,
-          city: propertyData.city,
-          state: propertyData.state,
-          zip_code: propertyData.zip_code,
-          bedrooms: propertyData.bedrooms,
-          bathrooms: propertyData.bathrooms,
-          square_feet: propertyData.square_feet,
-          property_type: propertyData.property_type,
-          rent_price: propertyData.rent_price,
-          status: propertyData.status,
-          coming_soon_date: propertyData.coming_soon_date,
-          video_tour_url: propertyData.video_tour_url,
-          virtual_tour_url: propertyData.virtual_tour_url,
-          description: propertyData.description,
-          special_notes: propertyData.special_notes,
-          investor_id: propertyData.investor_id,
-          property_group_id: propertyData.property_group_id,
-          section_8_accepted: propertyData.section_8_accepted,
-          created_at: propertyData.created_at,
-          listed_date: propertyData.listed_date,
-          photos: Array.isArray(propertyData.photos) 
-            ? propertyData.photos.map((p: any) => String(p)) 
-            : [],
-          amenities: Array.isArray(propertyData.amenities) 
-            ? propertyData.amenities.map((a: any) => String(a)) 
-            : [],
-          alternative_property_ids: Array.isArray(propertyData.alternative_property_ids) 
-            ? propertyData.alternative_property_ids.map((id: any) => String(id)) 
-            : [],
-        };
+      const parsedProperty: Property = {
+        id: propertyData.id,
+        address: propertyData.address,
+        unit_number: propertyData.unit_number,
+        city: propertyData.city,
+        state: propertyData.state,
+        zip_code: propertyData.zip_code,
+        bedrooms: propertyData.bedrooms,
+        bathrooms: propertyData.bathrooms,
+        square_feet: propertyData.square_feet,
+        property_type: propertyData.property_type,
+        rent_price: propertyData.rent_price,
+        status: propertyData.status,
+        coming_soon_date: propertyData.coming_soon_date,
+        video_tour_url: propertyData.video_tour_url,
+        virtual_tour_url: propertyData.virtual_tour_url,
+        description: propertyData.description,
+        special_notes: propertyData.special_notes,
+        investor_id: propertyData.investor_id,
+        property_group_id: propertyData.property_group_id,
+        section_8_accepted: propertyData.section_8_accepted,
+        // Carried through so PropertyForm can re-render the template
+        // description with the property's real pet policy instead of the org default.
+        pet_policy: (propertyData as any).pet_policy ?? null,
+        created_at: propertyData.created_at,
+        listed_date: propertyData.listed_date,
+        photos: Array.isArray(propertyData.photos)
+          ? propertyData.photos.map((p: any) => String(p))
+          : [],
+        amenities: Array.isArray(propertyData.amenities)
+          ? propertyData.amenities.map((a: any) => String(a))
+          : [],
+        alternative_property_ids: Array.isArray(propertyData.alternative_property_ids)
+          ? propertyData.alternative_property_ids.map((id: any) => String(id))
+          : [],
+      };
 
-        setProperty(parsedProperty);
+      setProperty(parsedProperty);
 
-        // Fetch alternative properties
-        if (parsedProperty.alternative_property_ids && parsedProperty.alternative_property_ids.length > 0) {
-          const { data: altData } = await supabase
-            .from('properties')
-            .select('id, address, unit_number, city, bedrooms, rent_price, status, photos')
-            .in('id', parsedProperty.alternative_property_ids);
-
-          if (altData) {
-            setAlternativeProperties(
-              altData.map((p) => ({
-                ...p,
-                photos: Array.isArray(p.photos) 
-                  ? (p.photos as any[]).map((photo: any) => String(photo)) 
-                  : [],
-              })) as Property[]
-            );
-          }
-        }
-
-        // Fetch recent leads interested in this property (via property-interest tags)
-        const { data: interestData } = await supabase
+      // Alternatives, interested leads and upcoming showings are independent
+      // of each other — fetch them in parallel instead of a serial waterfall.
+      const altIds = parsedProperty.alternative_property_ids || [];
+      const [altRes, interestRes, showingsRes] = await Promise.all([
+        altIds.length > 0
+          ? supabase
+              .from('properties')
+              .select('id, address, unit_number, city, bedrooms, rent_price, status, photos')
+              .in('id', altIds)
+              .eq('organization_id', organization.id)
+          : Promise.resolve({ data: null }),
+        supabase
           .from('lead_property_interests')
           .select('created_at, leads(id, full_name, first_name, last_name, status, created_at)')
           .eq('property_id', id)
+          .eq('organization_id', organization.id)
           .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (interestData) {
-          setRecentLeads(interestData.flatMap((row) => (row.leads ? [row.leads] : [])));
-        }
-
-        // Fetch upcoming showings
-        const { data: showingsData } = await supabase
+          .limit(5),
+        supabase
           .from('showings')
           .select('id, scheduled_at, status, lead:leads(full_name, first_name, last_name)')
           .eq('property_id', id)
-          .gte('scheduled_at', new Date().toISOString())
-          .order('scheduled_at', { ascending: true })
-          .limit(5);
-
-        if (showingsData) {
-          setUpcomingShowings(showingsData as Showing[]);
-        }
-
-        // Fetch all org properties for reassign dialog
-        const { data: allPropsData } = await supabase
-          .from('properties')
-          .select('*')
           .eq('organization_id', organization.id)
-          .order('address');
+          .gte('scheduled_at', new Date().toISOString())
+          // Only genuinely-active tours — cancelled/rescheduled/no_show rows
+          // would otherwise consume slots in the limited "Upcoming" list.
+          .in('status', ['scheduled', 'confirmed'])
+          .order('scheduled_at', { ascending: true })
+          .limit(5),
+      ]);
 
-        if (allPropsData) {
-          setAllProperties(allPropsData);
-        }
-      } catch (error) {
-        console.error('Error fetching property:', error);
-        toast.error('Failed to load property');
-      } finally {
-        setLoading(false);
+      setAlternativeProperties(
+        (altRes.data || []).map((p: any) => ({
+          ...p,
+          photos: Array.isArray(p.photos)
+            ? (p.photos as any[]).map((photo: any) => String(photo))
+            : [],
+        })) as Property[]
+      );
+
+      if (interestRes.data) {
+        setRecentLeads(interestRes.data.flatMap((row) => (row.leads ? [row.leads] : [])));
       }
-    };
 
-    fetchProperty();
+      if (showingsRes.data) {
+        setUpcomingShowings(showingsRes.data as Showing[]);
+      }
+    } catch (error) {
+      console.error('Error fetching property:', error);
+      toast.error('Failed to load property');
+    } finally {
+      setLoading(false);
+    }
   }, [id, organization?.id]);
 
+  useEffect(() => {
+    fetchProperty();
+  }, [fetchProperty]);
+
+  // The full property list only exists to feed the Reassign dialog, which
+  // most visits never open — load it lazily (narrow columns) on demand.
+  const openReassign = async () => {
+    setReassignOpen(true);
+    if (allProperties.length === 0 && organization?.id) {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('id, address, unit_number, city, state, zip_code, bedrooms, bathrooms, rent_price, status')
+        .eq('organization_id', organization.id)
+        .order('address');
+      // Surface the failure instead of silently leaving the picker empty —
+      // allProperties stays [] so the next open retries the fetch.
+      if (error) {
+        console.error('Error loading properties for reassignment:', error);
+        toast.error('Could not load properties to reassign to. Please try again.');
+        return;
+      }
+      if (data) setAllProperties(data);
+    }
+  };
+
   const handleStatusChange = async (newStatus: string) => {
-    if (!property) return;
+    if (!property || !organization?.id) return;
 
     try {
       const { error } = await supabase
         .from('properties')
         .update({ status: newStatus })
-        .eq('id', property.id);
+        .eq('id', property.id)
+        .eq('organization_id', organization.id);
 
       if (error) throw error;
 
@@ -284,33 +308,95 @@ const PropertyDetail: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!property) return;
+    if (!property || !organization?.id) return;
 
     setDeleting(true);
     try {
+      // Pre-check children. Deleting a property either fails on a NO-ACTION FK
+      // (showings) or silently CASCADEs away history — interest tags, slots,
+      // and the financial/tenancy chain (leases, tenants, transactions) that
+      // DoorLoop sync populates. Block and point the user at "Inactive" instead.
+      const headCount = (table: string) =>
+        supabase
+          .from(table as any)
+          .select('id', { count: 'exact', head: true })
+          .eq('property_id', property.id)
+          .eq('organization_id', organization.id);
+      const [showingsRes, slotsRes, tagsRes, leasesRes, tenantsRes, txRes] = await Promise.all([
+        headCount('showings'),
+        headCount('showing_available_slots'),
+        headCount('lead_property_interests'),
+        headCount('leases'),
+        headCount('tenants'),
+        headCount('transactions'),
+      ]);
+      const showingCount = showingsRes.count ?? 0;
+      const slotCount = slotsRes.count ?? 0;
+      const tagCount = tagsRes.count ?? 0;
+      const leaseCount = leasesRes.count ?? 0;
+      const tenantCount = tenantsRes.count ?? 0;
+      const txCount = txRes.count ?? 0;
+
+      if (showingCount + slotCount + tagCount + leaseCount + tenantCount + txCount > 0) {
+        const parts = [
+          showingCount > 0 ? `${showingCount} showing${showingCount === 1 ? '' : 's'}` : null,
+          slotCount > 0 ? `${slotCount} availability slot${slotCount === 1 ? '' : 's'}` : null,
+          tagCount > 0 ? `${tagCount} lead interest tag${tagCount === 1 ? '' : 's'}` : null,
+          leaseCount > 0 ? `${leaseCount} lease${leaseCount === 1 ? '' : 's'}` : null,
+          tenantCount > 0 ? `${tenantCount} tenant${tenantCount === 1 ? '' : 's'}` : null,
+          txCount > 0 ? `${txCount} transaction${txCount === 1 ? '' : 's'}` : null,
+        ].filter(Boolean);
+        toast.error(`Cannot delete — this property has ${parts.join(', ')}.`, {
+          description:
+            'Set its status to "Inactive" instead: it hides the property from all public pages without destroying its history.',
+          duration: 8000,
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('properties')
         .delete()
-        .eq('id', property.id);
+        .eq('id', property.id)
+        .eq('organization_id', organization.id);
 
       if (error) throw error;
+
+      // Best-effort storage cleanup — the row is gone, so any photo objects
+      // under properties/{id}/ would otherwise leak in the bucket forever.
+      supabase.storage
+        .from('property-photos')
+        .list(`properties/${property.id}`, { limit: 1000 })
+        .then(({ data: objects }) => {
+          if (objects && objects.length > 0) {
+            return supabase.storage
+              .from('property-photos')
+              .remove(objects.map((o) => `properties/${property.id}/${o.name}`));
+          }
+        })
+        .then(() => undefined)
+        .catch((err) => console.error('Photo storage cleanup failed:', err));
 
       toast.success('Property deleted');
       navigate('/properties');
     } catch (error) {
       console.error('Error deleting property:', error);
-      toast.error('Failed to delete property');
+      // Surface the real reason (usually a foreign-key block) instead of a
+      // generic message the user can't act on.
+      const message = (error as { message?: string })?.message;
+      toast.error('Failed to delete property', message ? { description: message } : undefined);
     } finally {
       setDeleting(false);
     }
   };
 
   const handlePhotosChange = async (newPhotos: string[]) => {
-    if (!property) return;
+    if (!property || !organization?.id) return;
     const { error } = await supabase
       .from('properties')
       .update({ photos: newPhotos, updated_at: new Date().toISOString() })
-      .eq('id', property.id);
+      .eq('id', property.id)
+      .eq('organization_id', organization.id);
     if (error) {
       toast.error('Failed to save photos');
       return;
@@ -321,8 +407,9 @@ const PropertyDetail: React.FC = () => {
 
   const handleFormSuccess = () => {
     setFormOpen(false);
-    // Refetch property data
-    window.location.reload();
+    // Refetch in place — a full window.location.reload() re-bootstrapped the
+    // whole SPA (bundles, auth, scroll) just to refresh one record.
+    fetchProperty();
   };
 
   if (loading) {
@@ -357,21 +444,30 @@ const PropertyDetail: React.FC = () => {
     ? `${property.address}, Unit ${property.unit_number}`
     : property.address;
 
-  // Coming soon date warning
+  // Coming soon date warning (date-only column — parse as local, not UTC).
+  // Compare midnight-to-midnight so the banner reads "Available today" on the
+  // day itself and only flips to the overdue/error state strictly after it.
   let comingSoonWarning = null;
   if (property.status === 'coming_soon' && property.coming_soon_date) {
-    const daysUntil = differenceInDays(new Date(property.coming_soon_date), new Date());
-    const isExpired = isPast(new Date(property.coming_soon_date));
+    const comingSoonDate = parseDateOnly(property.coming_soon_date);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const daysUntil = differenceInDays(comingSoonDate, todayStart);
 
-    if (isExpired) {
+    if (daysUntil < 0) {
       comingSoonWarning = {
         type: 'error',
         message: 'This property was expected to be available. Update the status.',
       };
+    } else if (daysUntil === 0) {
+      comingSoonWarning = {
+        type: 'warning',
+        message: 'Available today. Consider updating the status.',
+      };
     } else if (daysUntil <= 7) {
       comingSoonWarning = {
         type: 'warning',
-        message: `Available in ${daysUntil} day(s). Consider updating status soon.`,
+        message: `Available in ${daysUntil} day${daysUntil === 1 ? '' : 's'}. Consider updating status soon.`,
       };
     }
   }
@@ -421,8 +517,11 @@ const PropertyDetail: React.FC = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Property</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete this property? This action cannot be undone.
-                    All associated leads and showings will be affected.
+                    Deleting permanently removes this property and destroys its lead interest
+                    tags, availability slots, leases and related records. Properties with
+                    showings, slots or tagged leads cannot be deleted — set the status to
+                    "Inactive" instead to hide them everywhere while keeping the history.
+                    This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -515,6 +614,7 @@ const PropertyDetail: React.FC = () => {
                         {photos.map((_, i) => (
                           <button
                             key={i}
+                            aria-label={`Go to photo ${i + 1}`}
                             className={cn(
                               'w-2 h-2 rounded-full transition-colors',
                               i === currentPhotoIndex ? 'bg-white' : 'bg-white/50'
@@ -549,6 +649,7 @@ const PropertyDetail: React.FC = () => {
                   {photos.map((photo, i) => (
                     <button
                       key={i}
+                      aria-label={`Go to photo ${i + 1}`}
                       onClick={() => setCurrentPhotoIndex(i)}
                       className={cn(
                         'w-16 h-16 rounded overflow-hidden shrink-0 border-2 transition-colors',
@@ -622,7 +723,7 @@ const PropertyDetail: React.FC = () => {
                   <div>
                     <span className="text-muted-foreground">Available Date</span>
                     <p className="font-medium">
-                      {format(new Date(property.coming_soon_date), 'MMM d, yyyy')}
+                      {format(parseDateOnly(property.coming_soon_date), 'MMM d, yyyy')}
                     </p>
                   </div>
                 )}
@@ -795,7 +896,7 @@ const PropertyDetail: React.FC = () => {
                   variant="outline"
                   size="sm"
                   className="h-7 text-xs gap-1.5 border-[#4F46E5]/30 text-[#4F46E5] hover:bg-[#4F46E5]/5"
-                  onClick={() => setReassignOpen(true)}
+                  onClick={openReassign}
                 >
                   <ArrowRightLeft className="h-3.5 w-3.5" />
                   Reassign
@@ -844,6 +945,7 @@ const PropertyDetail: React.FC = () => {
                   .from('lead_property_interests')
                   .select('created_at, leads(id, full_name, first_name, last_name, status, created_at)')
                   .eq('property_id', id!)
+                  .eq('organization_id', organization!.id)
                   .order('created_at', { ascending: false })
                   .limit(5)
                   .then(({ data, error }) => {
@@ -871,7 +973,13 @@ const PropertyDetail: React.FC = () => {
                     <div key={showing.id} className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium">
-                          {format(new Date(showing.scheduled_at), 'MMM d,')} {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(property.city))}
+                          {/* Date and time must render in the SAME zone — date-fns format()
+                              uses the browser zone and can show the wrong day off-ET. */}
+                          {new Date(showing.scheduled_at).toLocaleDateString('en-US', {
+                            timeZone: getTimezoneForCity(property.city),
+                            month: 'short',
+                            day: 'numeric',
+                          })}, {formatTimeInTimezone(showing.scheduled_at, getTimezoneForCity(property.city))}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {showing.lead?.full_name ||

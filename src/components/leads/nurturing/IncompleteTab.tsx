@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserX, Check, X, Loader2, Trash2, AlertTriangle } from "lucide-react";
+import { UserX, Check, X, Loader2, Trash2, AlertTriangle, CalendarClock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -25,20 +25,45 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-// Agent name mapping (same as LeadsList)
+// Agent name mapping (same as LeadsList). Keys must match the UNDERSCORE
+// agent_type values the DB actually writes (welcome_sequence, showing_nurture,
+// notification_dispatcher, ...) — the earlier hyphenated keys never matched and
+// leaked raw slugs into the Next Action column.
 const AGENT_NAMES: Record<string, string> = {
   aaron: "Aaron", esther: "Esther", nehemiah: "Nehemiah",
   elijah: "Elijah", samuel: "Samuel", zacchaeus: "Zacchaeus",
   main_inbound: "Aaron",
   hemlane_parser: "Esther", scoring: "Nehemiah", transcript_analyst: "Nehemiah",
   task_dispatcher: "Nehemiah", recapture: "Elijah", showing_confirmation: "Samuel",
+  // Canonical underscore agent_types (see agent_tasks in prod)
+  welcome_sequence: "Elijah", showing_nurture: "Samuel",
+  notification_dispatcher: "Nehemiah", conversion_predictor: "Nehemiah",
+  sms_inbound: "Aaron", post_showing: "Samuel", no_show_followup: "Samuel",
+  sheets_backup: "Zacchaeus",
   "twilio-inbound": "Aaron", "hemlane-parser": "Esther",
   "notification-dispatcher": "Nehemiah", campaign: "Elijah",
   "welcome-sequence": "Elijah",
 };
+
+/** Extract the real error message from a Supabase FunctionsHttpError body — its
+ *  .message is only the generic "non-2xx status code" string; the reason (e.g.
+ *  "Only admins can delete leads") lives in the response body. */
+async function readEdgeError(error: any): Promise<string | null> {
+  try {
+    const ctx = error?.context;
+    if (ctx && typeof ctx.json === "function") {
+      const body = await ctx.json();
+      return body?.error || null;
+    }
+  } catch {
+    /* fall through to caller's fallback */
+  }
+  return null;
+}
 
 interface IncompleteLead {
   id: string;
@@ -46,7 +71,6 @@ interface IncompleteLead {
   phone: string | null;
   email: string | null;
   status: string;
-  lead_score: number | null;
   source: string | null;
   created_at: string;
   nextAgent?: string | null;
@@ -63,55 +87,78 @@ type EditingCell = { leadId: string; field: "full_name" | "phone" | "email" } | 
 
 export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCountChange }) => {
   const { userRecord } = useAuth();
+  const permissions = usePermissions();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [leads, setLeads] = useState<IncompleteLead[]>([]);
   const [editing, setEditing] = useState<EditingCell>(null);
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<IncompleteLead | null>(null);
+  const [deleteShowings, setDeleteShowings] = useState<{ date: string; property: string }[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [localRefresh, setLocalRefresh] = useState(0);
 
   useEffect(() => {
     fetchIncomplete();
-  }, [userRecord?.organization_id, refreshKey]);
+  }, [userRecord?.organization_id, refreshKey, localRefresh]);
 
   const fetchIncomplete = async () => {
     if (!userRecord?.organization_id) return;
     setLoading(true);
+    setError(null);
 
     // "Hemlane Lead (216) 555-0123"-style placeholders count as missing a name
     // even when phone/email are set — they were invisible here before (F33)
-    const { data, error } = await supabase
-      .from("leads")
-      .select("id, full_name, phone, email, status, lead_score, source, created_at")
-      .eq("organization_id", userRecord.organization_id)
-      .neq("status", "lost")
-      .or("full_name.is.null,phone.is.null,email.is.null,full_name.like.Hemlane Lead*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Failed to fetch incomplete leads:", error.message);
-      setLoading(false);
-      return;
+    // Paginate — the other tabs already learned the 1000-row PostgREST cap lesson.
+    // Secondary sort by id keeps page boundaries deterministic.
+    const data: any[] = [];
+    const PAGE = 1000;
+    for (let from = 0; from < 100000; from += PAGE) {
+      const { data: page, error } = await supabase
+        .from("leads")
+        .select("id, full_name, phone, email, status, source, created_at")
+        .eq("organization_id", userRecord.organization_id)
+        .neq("status", "lost")
+        .or("full_name.is.null,phone.is.null,email.is.null,full_name.like.Hemlane Lead*")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        // Never render the success "all complete" empty state on a failed fetch —
+        // surface the error and stop reporting a count so the page verdict is honest.
+        console.error("Failed to fetch incomplete leads:", error.message);
+        setError(error.message);
+        toast.error("Could not load incomplete leads", { description: error.message });
+        setLoading(false);
+        return;
+      }
+      data.push(...(page || []));
+      if (!page || page.length < PAGE) break;
     }
 
     const incomplete = (data || []).filter(
       (l) => !l.full_name || l.full_name.startsWith("Hemlane Lead") || !l.phone || !l.email
     );
 
-    // Fetch next agent_task for each incomplete lead
+    // Fetch next agent_task for each incomplete lead (chunked — .in() lists live
+    // in the URL, so hundreds of UUIDs in one request blow past gateway limits)
     if (incomplete.length > 0) {
       const ids = incomplete.map((l) => l.id);
-      const { data: tasks } = await supabase
-        .from("agent_tasks")
-        .select("lead_id, agent_type, action_type, scheduled_for")
-        .in("lead_id", ids)
-        .in("status", ["pending", "in_progress"])
-        .order("scheduled_for", { ascending: true });
-
       const taskMap: Record<string, { agent_type: string; action_type: string; scheduled_for: string }> = {};
-      if (tasks) {
-        for (const t of tasks) {
+      // Keep worst-case rows under PostgREST's 1000-row cap: a lead in the
+      // welcome sequence carries ~7 pending tasks, so 100 leads ≈ 700 rows.
+      // A larger chunk could silently truncate and drop a lead's earliest task.
+      const CHUNK = 100;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const { data: tasks } = await supabase
+          .from("agent_tasks")
+          .select("lead_id, agent_type, action_type, scheduled_for")
+          .eq("organization_id", userRecord.organization_id)
+          .in("lead_id", ids.slice(i, i + CHUNK))
+          .in("status", ["pending", "in_progress"])
+          .order("scheduled_for", { ascending: true });
+        for (const t of tasks || []) {
           if (!taskMap[t.lead_id]) taskMap[t.lead_id] = t;
         }
       }
@@ -142,24 +189,33 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
   };
 
   const saveEdit = async () => {
-    if (!editing || !editValue.trim()) return;
+    if (!editing || !editValue.trim() || !userRecord?.organization_id) return;
     setSaving(true);
 
+    const editedField = editing.field;
+    const editedId = editing.leadId;
+
     const updateData: Record<string, any> = {
-      [editing.field]: editValue.trim(),
+      [editedField]: editValue.trim(),
       updated_at: new Date().toISOString(),
     };
 
-    if (editing.field === "full_name") {
+    if (editedField === "full_name") {
       const parts = editValue.trim().split(" ");
       updateData.first_name = parts[0] || null;
       updateData.last_name = parts.slice(1).join(" ") || null;
     }
 
-    const { error } = await supabase
+    // Return the stored row: the capitalize_lead_name trigger rewrites names via
+    // initcap, so the DB value can differ from what was typed. Org-scoped for
+    // defense-in-depth (never rely on RLS alone).
+    const { data: updatedRow, error } = await supabase
       .from("leads")
       .update(updateData)
-      .eq("id", editing.leadId);
+      .eq("id", editedId)
+      .eq("organization_id", userRecord.organization_id)
+      .select("full_name, phone, email")
+      .single();
 
     setSaving(false);
 
@@ -168,12 +224,19 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
       return;
     }
 
-    toast.success("Updated", { description: `${editing.field.replace(/_/g, " ")} saved.` });
+    toast.success("Updated", { description: `${editedField.replace(/_/g, " ")} saved.` });
 
-    // Update local state and remove from list if now complete
+    // Reflect the DB-normalized values, then drop the row if it is now complete
     setLeads((prev) => {
       const updated = prev.map((l) =>
-        l.id === editing.leadId ? { ...l, [editing.field]: editValue.trim() } : l
+        l.id === editedId
+          ? {
+              ...l,
+              full_name: updatedRow?.full_name ?? l.full_name,
+              phone: updatedRow?.phone ?? l.phone,
+              email: updatedRow?.email ?? l.email,
+            }
+          : l
       );
       const stillIncomplete = updated.filter(
         (l) => !l.full_name || l.full_name.startsWith("Hemlane Lead") || !l.phone || !l.email
@@ -194,24 +257,22 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
     if (!deleteTarget) return;
     setDeleting(true);
 
-    const leadIdTables = [
-      "lead_notes", "calls", "showings", "agent_tasks",
-      "lead_score_history", "consent_log", "communications",
-      "cost_records", "lead_predictions", "competitor_mentions",
-    ];
-    for (const table of leadIdTables) {
-      await (supabase as any).from(table as any).delete().eq("lead_id", deleteTarget.id);
-    }
-    await supabase.from("system_logs").update({ related_lead_id: null }).eq("related_lead_id", deleteTarget.id);
-    await supabase.from("referrals").delete().eq("referrer_lead_id", deleteTarget.id);
-    await supabase.from("referrals").update({ referred_lead_id: null }).eq("referred_lead_id", deleteTarget.id);
-
-    const { error } = await supabase.from("leads").delete().eq("id", deleteTarget.id);
+    // Route through the delete-lead edge function (same as SuspectTab) — it owns
+    // the full FK cascade (email_events, showing deps, etc.) with the service role.
+    // Hand-rolled client-side cascades destroyed child rows and then failed on the
+    // lead delete itself.
+    const { data, error } = await supabase.functions.invoke("delete-lead", {
+      body: { lead_id: deleteTarget.id },
+    });
     setDeleting(false);
 
-    if (error) {
-      toast.error("Delete failed", { description: error.message });
+    if (error || (data && data.error)) {
+      // FunctionsHttpError's .message is the generic "non-2xx" string — the real
+      // reason (e.g. "Only admins can delete leads") lives in the response body.
+      const reason = data?.error || (await readEdgeError(error)) || error?.message;
+      toast.error("Delete failed", { description: reason });
       setDeleteTarget(null);
+      setDeleteShowings([]);
       return;
     }
 
@@ -225,6 +286,32 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
       return remaining;
     });
     setDeleteTarget(null);
+    setDeleteShowings([]);
+  };
+
+  const openDeleteDialog = async (lead: IncompleteLead) => {
+    if (!userRecord?.organization_id) return;
+    // Phone-only / email-only leads often book via Telegram or phone — warn
+    // before a delete would silently cancel their upcoming showings (same guard
+    // the For Review tab already had).
+    const { data: upcoming, error: showErr } = await supabase
+      .from("showings")
+      .select("scheduled_at, properties:property_id(address)")
+      .eq("organization_id", userRecord.organization_id)
+      .eq("lead_id", lead.id)
+      .gte("scheduled_at", new Date().toISOString())
+      .in("status", ["scheduled", "confirmed"]);
+    if (showErr) {
+      toast.error("Could not check upcoming showings", { description: showErr.message });
+      return;
+    }
+    setDeleteShowings(
+      (upcoming || []).map((s: any) => ({
+        date: s.scheduled_at,
+        property: (s.properties as any)?.address || "Unknown property",
+      }))
+    );
+    setDeleteTarget(lead);
   };
 
   const getSeverity = (lead: IncompleteLead): { label: string; color: string } => {
@@ -279,13 +366,14 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
     }
 
     return (
-      <span
-        className="text-sm cursor-pointer hover:text-blue-600"
+      <button
+        type="button"
+        className="text-sm text-left cursor-pointer hover:text-blue-600"
         onClick={() => startEdit(lead.id, field, value)}
         title="Click to edit"
       >
         {value}
-      </span>
+      </button>
     );
   };
 
@@ -295,6 +383,19 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
         {[1, 2, 3, 4, 5].map((i) => (
           <Skeleton key={i} className="h-12 w-full" />
         ))}
+      </div>
+    );
+  }
+
+  // A failed fetch must never masquerade as a clean database
+  if (error) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 p-6 text-center space-y-3">
+        <p className="text-sm text-red-700">Couldn't load incomplete leads: {error}</p>
+        <Button variant="outline" size="sm" onClick={() => setLocalRefresh((k) => k + 1)}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
       </div>
     );
   }
@@ -367,15 +468,19 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
                     {format(new Date(lead.created_at), "MMM d")}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => setDeleteTarget(lead)}
-                      title="Delete this lead"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {/* Only admins can delete (delete-lead edge fn is admin-only);
+                        showing the button to editors/leasing_agents only 403s. */}
+                    {permissions.canDeleteLead && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => openDeleteDialog(lead)}
+                        title="Delete this lead"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -384,18 +489,39 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
         </Table>
       </div>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteShowings([]); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               Delete Lead
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Permanently delete <strong>{deleteTarget?.full_name || "this lead"}</strong> and all
-              associated records?
-              <br /><br />
-              <strong>This cannot be undone.</strong>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Permanently delete <strong>{deleteTarget?.full_name || "this lead"}</strong> and all
+                  associated records?
+                </p>
+                {deleteShowings.length > 0 && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2">
+                    <div className="flex items-center gap-2 font-medium text-amber-800">
+                      <CalendarClock className="h-4 w-4" />
+                      This lead has {deleteShowings.length} upcoming showing{deleteShowings.length > 1 ? "s" : ""}!
+                    </div>
+                    <ul className="text-sm text-amber-700 space-y-1 ml-6 list-disc">
+                      {deleteShowings.map((s, i) => (
+                        <li key={i}>
+                          {format(new Date(s.date), "MMM d, yyyy 'at' h:mm a")} — {s.property}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-sm font-medium text-amber-800">
+                      Deleting will cancel these showings.
+                    </p>
+                  </div>
+                )}
+                <p><strong>This cannot be undone.</strong></p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -411,7 +537,7 @@ export const IncompleteTab: React.FC<IncompleteTabProps> = ({ refreshKey, onCoun
                   Deleting...
                 </>
               ) : (
-                "Delete Lead"
+                deleteShowings.length > 0 ? "Delete Anyway" : "Delete Lead"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

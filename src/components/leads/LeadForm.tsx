@@ -120,12 +120,13 @@ export const LeadForm: React.FC<LeadFormProps> = ({
 
       if (data) setProperties(data);
 
-      // Load existing property interests from junction table
+      // Load existing property interests from junction table (org-scoped alongside RLS)
       if (lead?.id) {
         const { data: interests } = await supabase
           .from("lead_property_interests")
           .select("property_id")
-          .eq("lead_id", lead.id);
+          .eq("lead_id", lead.id)
+          .eq("organization_id", userRecord.organization_id);
 
         const existing = (interests || []).map((i: any) => i.property_id);
         setSelectedPropertyIds(existing);
@@ -140,12 +141,63 @@ export const LeadForm: React.FC<LeadFormProps> = ({
     fetchData();
   }, [userRecord?.organization_id, lead?.id]);
 
+  // TCPA: every consent flip is recorded in consent_log with evidence text
+  const logConsentChanges = async (targetLeadId: string) => {
+    const organizationId = userRecord?.organization_id;
+    if (!organizationId) return;
+
+    const changes: { consent_type: string; granted: boolean }[] = [];
+    if (formData.sms_consent !== (lead?.sms_consent ?? false)) {
+      changes.push({ consent_type: "sms_marketing", granted: formData.sms_consent });
+    }
+    if (formData.call_consent !== (lead?.call_consent ?? false)) {
+      changes.push({ consent_type: "automated_calls", granted: formData.call_consent });
+    }
+    if (changes.length === 0) return;
+
+    const operator = userRecord?.full_name || userRecord?.id || "unknown user";
+    const { error } = await supabase.from("consent_log").insert(
+      changes.map((c) => ({
+        organization_id: organizationId,
+        lead_id: targetLeadId,
+        consent_type: c.consent_type,
+        granted: c.granted,
+        method: "manual_ui",
+        evidence_text: `${c.granted ? "Granted" : "Revoked"} via ${
+          lead ? "Edit" : "Create"
+        } Lead form by ${operator}`,
+      }))
+    );
+    if (error) {
+      console.error("Failed to write consent_log:", error);
+      // TCPA evidence is non-negotiable — surface the failure instead of losing
+      // it to the console. The lead itself already saved; only the audit row failed.
+      toast({
+        title: "Consent change not logged",
+        description:
+          "The lead was saved, but its consent change could not be recorded for compliance. Please retry or log it manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userRecord?.organization_id) return;
 
+    // At least one contact point is required (email-only shell leads are valid)
+    if (!formData.phone.trim() && !formData.email.trim()) {
+      toast({
+        title: "Contact info required",
+        description: "Provide at least a phone number or an email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      const nowIso = new Date().toISOString();
       // Base lead data — property interests live in lead_property_interests
       const leadData = {
         organization_id: userRecord.organization_id,
@@ -155,8 +207,8 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         full_name: [formData.first_name, formData.last_name]
           .filter(Boolean)
           .join(" ") || lead?.full_name || null,
-        phone: formData.phone,
-        email: formData.email || null,
+        phone: formData.phone.trim() || null,
+        email: formData.email.trim() || null,
         preferred_language: formData.preferred_language,
         status: formData.status,
         source: formData.source,
@@ -171,17 +223,18 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         housing_authority: formData.housing_authority || null,
         contact_preference: formData.contact_preference,
         sms_consent: formData.sms_consent,
-        // Preserve the original grant timestamp (TCPA evidence); only stamp now() on a new grant
+        // Preserve the original grant timestamp (TCPA evidence) even on
+        // withdrawal — consent_log records the flip; only stamp now() on a new grant
         sms_consent_at: formData.sms_consent
-          ? (lead?.sms_consent_at ?? new Date().toISOString())
-          : null,
+          ? (lead?.sms_consent ? (lead?.sms_consent_at ?? nowIso) : nowIso)
+          : (lead?.sms_consent_at ?? null),
         call_consent: formData.call_consent,
         call_consent_at: formData.call_consent
-          ? (lead?.call_consent_at ?? new Date().toISOString())
-          : null,
+          ? (lead?.call_consent ? (lead?.call_consent_at ?? nowIso) : nowIso)
+          : (lead?.call_consent_at ?? null),
         // If creating a new lead and user is a leasing_agent, auto-assign to themselves
-        assigned_leasing_agent_id: !lead && userRecord.role === "leasing_agent" 
-          ? userRecord.id 
+        assigned_leasing_agent_id: !lead && userRecord.role === "leasing_agent"
+          ? userRecord.id
           : (lead?.assigned_leasing_agent_id ?? null),
       };
 
@@ -189,8 +242,11 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         const { error } = await supabase
           .from("leads")
           .update(leadData)
-          .eq("id", lead.id);
+          .eq("id", lead.id)
+          .eq("organization_id", userRecord.organization_id);
         if (error) throw error;
+
+        await logConsentChanges(lead.id);
 
         // Diff-sync junction table: only insert new tags and delete removed
         // ones, so kept tags preserve their created_at / last_interest_at /
@@ -242,58 +298,119 @@ export const LeadForm: React.FC<LeadFormProps> = ({
           .insert(leadData)
           .select("id")
           .single();
-        if (error) throw error;
-        
-        // Sync junction table for new lead
-        if (newLead?.id && selectedPropertyIds.length > 0) {
+
+        // The BEFORE INSERT dedup trigger (noah_deduplicate_lead) merges a
+        // matching lead (normalized phone, else exact email) into the existing
+        // row and RETURNs NULL — so .single() sees 0 rows (PGRST116). That's a
+        // successful merge, not a failure: recover the surviving lead id.
+        let leadId = newLead?.id ?? null;
+        let mergedIntoExisting = false;
+
+        if (error) {
+          if (error.code === "PGRST116") {
+            mergedIntoExisting = true;
+            const orgId = userRecord.organization_id;
+
+            // Match the trigger's precedence: normalized phone first, then email.
+            // Stored phones are E.164, so match on the trailing 10 digits to be
+            // format-proof; take the oldest, which is the survivor the trigger keeps.
+            const digits = (leadData.phone || "").replace(/\D/g, "");
+            const last10 = digits.length >= 10 ? digits.slice(-10) : "";
+            if (last10) {
+              const { data: byPhone } = await supabase
+                .from("leads")
+                .select("id")
+                .eq("organization_id", orgId)
+                .ilike("phone", `%${last10}`)
+                .order("created_at", { ascending: true })
+                .limit(1)
+                .maybeSingle();
+              leadId = byPhone?.id ?? null;
+            }
+            if (!leadId && leadData.email) {
+              const { data: byEmail } = await supabase
+                .from("leads")
+                .select("id")
+                .eq("organization_id", orgId)
+                .eq("email", leadData.email)
+                .order("created_at", { ascending: true })
+                .limit(1)
+                .maybeSingle();
+              leadId = byEmail?.id ?? null;
+            }
+          } else {
+            throw error;
+          }
+        }
+
+        if (leadId) {
+          await logConsentChanges(leadId);
+        }
+
+        // Sync junction table onto whichever lead we ended up with
+        // (capture a const so the value narrows to string inside the map closure)
+        if (leadId && selectedPropertyIds.length > 0) {
+          const targetLeadId = leadId;
           await supabase.from("lead_property_interests").insert(
             selectedPropertyIds.map((pid) => ({
               organization_id: userRecord.organization_id,
-              lead_id: newLead.id,
+              lead_id: targetLeadId,
               property_id: pid,
               source: "manual",
             }))
           );
         }
 
-        toast({ title: "Success", description: "Lead created successfully." });
-
-        // Trigger smart matching for the new lead
-        if (newLead?.id) {
-          try {
-            const { data: matchData } = await supabase.functions.invoke('match-properties', {
-              body: {
-                organization_id: userRecord.organization_id,
-                lead_id: newLead.id,
-              },
-            });
-            
-            const matches = matchData?.matches || [];
-            const highScoreMatches = matches.filter((m: any) => m.match_score > 70);
-            
-            if (highScoreMatches.length > 0) {
-              toast({
-                title: `✨ Found ${highScoreMatches.length} matching properties!`,
-                description: "View the lead details to see property recommendations.",
-              });
-              
-              // Auto-populate with top match if lead didn't specify any properties
-              if (selectedPropertyIds.length === 0 && matches.length > 0) {
-                await supabase.from("lead_property_interests").insert({
-                  organization_id: userRecord.organization_id,
-                  lead_id: newLead.id,
-                  property_id: matches[0].property_id,
-                  source: "auto_match",
-                });
-              }
-            }
-          } catch (matchError) {
-            // Don't fail the lead creation if matching fails
-            console.error("Error running property matching:", matchError);
-          }
+        if (mergedIntoExisting) {
+          toast({
+            title: "Merged with existing lead",
+            description:
+              "A lead with this phone or email already existed — your changes were merged into it.",
+          });
+        } else {
+          toast({ title: "Success", description: "Lead created successfully." });
         }
-        
+
+        // Close the dialog immediately — property matching is decorative and
+        // should not keep the Create button spinning after we've reported success.
         onSuccess();
+
+        // Fire smart matching for a freshly created lead without awaiting it.
+        if (leadId && !mergedIntoExisting) {
+          const matchLeadId = leadId;
+          const orgId = userRecord.organization_id;
+          const hadNoSelection = selectedPropertyIds.length === 0;
+          void (async () => {
+            try {
+              const { data: matchData } = await supabase.functions.invoke("match-properties", {
+                body: { organization_id: orgId, lead_id: matchLeadId },
+              });
+
+              const matches = matchData?.matches || [];
+              const highScoreMatches = matches.filter((m: any) => m.match_score > 70);
+
+              if (highScoreMatches.length > 0) {
+                toast({
+                  title: `✨ Found ${highScoreMatches.length} matching properties!`,
+                  description: "Open the lead to see property recommendations.",
+                });
+
+                // Auto-populate with top match if the lead specified no properties
+                if (hadNoSelection && matches.length > 0) {
+                  await supabase.from("lead_property_interests").insert({
+                    organization_id: orgId,
+                    lead_id: matchLeadId,
+                    property_id: matches[0].property_id,
+                    source: "auto_match",
+                  });
+                }
+              }
+            } catch (matchError) {
+              // Matching is best-effort — never surfaces as a save failure.
+              console.error("Error running property matching:", matchError);
+            }
+          })();
+        }
       }
     } catch (error) {
       console.error("Error saving lead:", error);
@@ -338,11 +455,10 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone *</Label>
+            <Label htmlFor="phone">Phone</Label>
             <Input
               id="phone"
               type="tel"
-              required
               className="min-h-[44px]"
               value={formData.phone}
               onChange={(e) =>
@@ -363,6 +479,9 @@ export const LeadForm: React.FC<LeadFormProps> = ({
             />
           </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          At least one of phone or email is required.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Preferred Language</Label>
@@ -443,7 +562,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2 sm:col-span-3">
+          <div className="space-y-2 sm:col-span-2">
             <Label>Interested Properties</Label>
             <Popover open={propertyPopoverOpen} onOpenChange={setPropertyPopoverOpen}>
               <PopoverTrigger asChild>
@@ -490,7 +609,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
                       return (
                         <div
                           key={p.id}
-                          className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-foreground/10 cursor-pointer"
                           onClick={() => {
                             setSelectedPropertyIds((ids) =>
                               isSelected

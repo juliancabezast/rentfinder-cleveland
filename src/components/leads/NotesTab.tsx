@@ -78,11 +78,13 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
   const [deleting, setDeleting] = useState(false);
 
   const fetchNotes = async () => {
+    if (!userRecord?.organization_id) return;
     try {
       const { data, error } = await supabase
         .from("lead_notes")
         .select("id, content, note_type, is_pinned, created_at, created_by")
         .eq("lead_id", leadId)
+        .eq("organization_id", userRecord.organization_id)
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -124,7 +126,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
 
   useEffect(() => {
     fetchNotes();
-  }, [leadId]);
+  }, [leadId, userRecord?.organization_id]);
 
   const handleAddNote = async () => {
     if (!newContent.trim()) return;
@@ -182,13 +184,22 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
   };
 
   const handleTogglePin = async (noteId: string, currentPinned: boolean) => {
+    if (!userRecord?.organization_id) return;
     try {
-      const { error } = await supabase
+      // .select() returns the affected rows so we can detect a 0-row mutation
+      // (RLS filtered it out / row gone) and surface an error instead of a
+      // lying success toast + optimistic state that reverts on next fetch.
+      const { data, error } = await supabase
         .from("lead_notes")
         .update({ is_pinned: !currentPinned })
-        .eq("id", noteId);
+        .eq("id", noteId)
+        .eq("organization_id", userRecord.organization_id)
+        .select("id");
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Note not updated — it may have been removed or you lack permission.");
+      }
 
       setNotes((prev) =>
         prev.map((n) => (n.id === noteId ? { ...n, is_pinned: !currentPinned } : n))
@@ -196,25 +207,41 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
       toast.success({ title: currentPinned ? "Note unpinned" : "Note pinned" });
     } catch (error) {
       console.error("Error toggling pin:", error);
-      toast.error({ title: "Error", description: "Failed to update note" });
+      toast.error({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update note",
+      });
     }
   };
 
   const handleDeleteNote = async () => {
-    if (!deleteNoteId) return;
+    if (!deleteNoteId || !userRecord?.organization_id) return;
 
     setDeleting(true);
     try {
-      const { error } = await supabase.from("lead_notes").delete().eq("id", deleteNoteId);
+      // Confirm the delete actually removed a row (0-row deletes succeed silently
+      // in PostgREST) so a no-op never shows "Note deleted".
+      const { data, error } = await supabase
+        .from("lead_notes")
+        .delete()
+        .eq("id", deleteNoteId)
+        .eq("organization_id", userRecord.organization_id)
+        .select("id");
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Note not deleted — it may have already been removed or you lack permission.");
+      }
 
       setNotes((prev) => prev.filter((n) => n.id !== deleteNoteId));
       onNotesCountChange?.(notes.length - 1);
       toast.success({ title: "Note deleted" });
     } catch (error) {
       console.error("Error deleting note:", error);
-      toast.error({ title: "Error", description: "Failed to delete note" });
+      toast.error({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete note",
+      });
     } finally {
       setDeleting(false);
       setDeleteNoteId(null);
@@ -237,7 +264,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
     <div className="space-y-6">
       {/* Pinned Notes Section */}
       {pinnedNotes.length > 0 && (
-        <div className="bg-[#fefce8] border border-amber-200 rounded-lg p-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-3">
             <Pin className="h-4 w-4 text-amber-600" />
             <h3 className="text-sm font-semibold text-amber-800">Pinned Notes</h3>
@@ -269,7 +296,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
       )}
 
       {/* Add Note Section */}
-      <div className="bg-white border border-border rounded-lg p-4">
+      <div className="glass-card rounded-2xl p-4">
         <Textarea
           placeholder="Add an internal note..."
           value={newContent}
@@ -309,7 +336,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({ leadId, onNotesCountChange }
       </div>
 
       {/* Notes Timeline */}
-      <div className="bg-white border border-border rounded-lg p-4">
+      <div className="glass-card rounded-2xl p-4">
         <h3 className="text-sm font-semibold mb-4">All Notes</h3>
         {unpinnedNotes.length === 0 && pinnedNotes.length === 0 ? (
           <div className="text-center py-8">

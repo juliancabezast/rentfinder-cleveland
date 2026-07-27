@@ -112,7 +112,7 @@ serve(async (req: Request) => {
     ] = await Promise.all([
       supabase
         .from("leads")
-        .select("id, full_name, phone, email, status, lead_score, source, has_voucher, preferred_language, budget_min, budget_max, bedrooms_needed, interested_zip_codes, created_at, last_contact_at")
+        .select("id, full_name, phone, email, status, source, has_voucher, preferred_language, budget_min, budget_max, bedrooms_needed, interested_zip_codes, created_at, last_contact_at")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(200),
@@ -169,9 +169,6 @@ serve(async (req: Request) => {
       sample_leads_by_status: groupBy(leads, "status"),
       sample_leads_by_language: groupBy(leads, "preferred_language"),
       sample_leads_with_voucher: leads.filter((l) => l.has_voucher).length,
-      sample_avg_lead_score: leads.length > 0
-        ? Math.round(leads.reduce((sum, l) => sum + (l.lead_score || 0), 0) / leads.length)
-        : 0,
       total_properties: properties.length,
       properties_by_zip: groupBy(properties, "zip_code"),
       properties_by_status: groupBy(properties, "status"),
@@ -211,7 +208,6 @@ NEWEST ${leads.length} LEADS (sample only${oldestSampleDate ? ` — reaches back
 ${JSON.stringify(leads.map((l) => ({
   name: l.full_name,
   status: l.status,
-  score: l.lead_score,
   source: l.source,
   language: l.preferred_language,
   voucher: l.has_voucher,

@@ -8,18 +8,49 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Normalize a phone to its last-10 US digits for comparison.
+function normPhone10(p: string | null | undefined): string {
+  const d = (p || "").replace(/\D/g, "");
+  const trimmed = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
+  return trimmed.slice(-10);
+}
+
+// Does a DoorLoop tenant record actually belong to this lead? DoorLoop's
+// `filter_text` is a fuzzy full-text search (matches names, partial numbers,
+// addresses), so we MUST confirm an exact email or phone match before linking —
+// otherwise a lead gets bound to a stranger's tenant and pull/push then write
+// the wrong person's status onto it.
+function tenantMatchesLead(t: any, email: string | null, phone10: string): boolean {
+  if (email) {
+    const el = email.toLowerCase();
+    const emails: string[] = [];
+    if (typeof t?.email === "string") emails.push(t.email);
+    if (Array.isArray(t?.emails)) for (const e of t.emails) if (e?.address) emails.push(e.address);
+    if (emails.some((e) => String(e).toLowerCase() === el)) return true;
+  }
+  if (phone10 && phone10.length === 10) {
+    const phones: string[] = [];
+    if (typeof t?.phone === "string") phones.push(t.phone);
+    if (Array.isArray(t?.phones)) for (const p of t.phones) if (p?.number) phones.push(p.number);
+    if (phones.some((p) => normPhone10(p) === phone10)) return true;
+  }
+  return false;
+}
+
 // Look up an existing DoorLoop tenant by email/phone before creating a new one.
 // This makes the sync idempotent: if a prior run POSTed the tenant but died before
 // writing doorloop_prospect_id back locally, the next run finds it here and links
-// to it instead of creating a duplicate. Returns the DoorLoop id or null.
+// to it instead of creating a duplicate. Only an IDENTITY-VERIFIED candidate is
+// returned; otherwise null (fall through to create).
 async function findExistingDoorLoopTenant(
   dlHeaders: Record<string, string>,
   email: string | null,
   phone: string,
 ): Promise<string | null> {
+  const phone10 = normPhone10(phone);
   const searchTerms: string[] = [];
   if (email) searchTerms.push(email);
-  if (phone && phone.length >= 10) searchTerms.push(phone);
+  if (phone10.length === 10) searchTerms.push(phone10);
 
   for (const term of searchTerms) {
     try {
@@ -30,8 +61,10 @@ async function findExistingDoorLoopTenant(
       if (!resp.ok) continue;
       const json = await resp.json();
       const items = Array.isArray(json) ? json : (json?.data ?? []);
-      if (items.length > 0 && items[0]?.id != null) {
-        return String(items[0].id);
+      for (const item of items) {
+        if (item?.id != null && tenantMatchesLead(item, email, phone10)) {
+          return String(item.id);
+        }
       }
     } catch {
       // Search is best-effort — on failure fall through to create.
@@ -121,6 +154,9 @@ serve(async (req: Request) => {
         .select("id, full_name, phone, email, status")
         .eq("organization_id", org.id)
         .is("doorloop_prospect_id", null)
+        // Skip contactless Hemlane shells (email + phone both NULL): with no
+        // search term they can't dedupe and would create junk "X N/A" tenants.
+        .or("email.not.is.null,phone.not.is.null")
         .order("created_at", { ascending: false })
         .limit(BATCH_LIMIT);
 

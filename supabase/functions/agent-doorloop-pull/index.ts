@@ -33,6 +33,61 @@ interface DoorloopApplication {
   unitId?: string;
 }
 
+// Our lead status ladder (higher = further along). Pull uses this so it can only
+// ever move a lead FORWARD — a DoorLoop prospect status must never demote an
+// advanced lead (e.g. in_application/showed) back to 'new'/'engaged'.
+const STATUS_RANK: Record<string, number> = {
+  new: 0,
+  contacted: 1,
+  engaged: 1,
+  nurturing: 2,
+  qualified: 3,
+  showing_scheduled: 4,
+  showed: 5,
+  in_application: 6,
+  converted: 7,
+};
+
+// Map a DoorLoop tenant/prospect status to our lead status. Handles BOTH the
+// UPPERCASE enums this codebase pushes (sync-leads-to-doorloop:
+// NEW/CONTACT_MADE/SHOWING_SCHEDULED/APPLICATION_SENT/APPROVED/CLOSED) and
+// DoorLoop's own lowercase values. Returns null when unrecognized so pull
+// no-ops instead of defaulting a real lead down to 'engaged'/'new'.
+function mapDoorloopStatus(raw: string | null | undefined): string | null {
+  const s = String(raw || "").trim().toLowerCase();
+  if (!s) return null;
+  switch (s) {
+    case "new":
+    case "inquiry":
+      return "new";
+    case "contact_made":
+    case "contacted":
+    case "tour_scheduled":
+      return "contacted";
+    case "showing_scheduled":
+      return "showing_scheduled";
+    case "tour_completed":
+    case "showed":
+      return "showed";
+    case "application_sent":
+    case "application_pending":
+    case "application_submitted":
+    case "in_application":
+      return "in_application";
+    case "approved":
+    case "lease_signed":
+    case "converted":
+      return "converted";
+    case "denied":
+    case "cancelled":
+    case "closed":
+    case "lost":
+      return "lost";
+    default:
+      return null; // unrecognized — leave the lead's status untouched
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -150,28 +205,42 @@ serve(async (req) => {
             // Try to match to our lead
             const { data: lead } = await supabase
               .from("leads")
-              .select("id, status, doorloop_prospect_id")
+              .select("id, status, doorloop_prospect_id, applied_at")
               .eq("organization_id", organization_id)
               .or(orConditions.join(","))
               .maybeSingle();
 
             if (lead) {
-              // Map Doorloop status to our status
-              const { data: mappedStatus } = await supabase.rpc("map_doorloop_status", {
-                doorloop_status: prospect.status || "new",
-              });
+              // Map Doorloop status → ours (case-insensitive, unknown = no-op)
+              const mapped = mapDoorloopStatus(prospect.status);
 
-              const newStatus = mappedStatus || lead.status;
+              // Forward-only guard: never demote. 'lost' is terminal and only
+              // applied when DoorLoop explicitly denies/closes/cancels — and
+              // never un-converts an already-converted lead.
+              let newStatus: string | null = null;
+              if (mapped && mapped !== lead.status) {
+                if (mapped === "lost") {
+                  if (lead.status !== "converted") newStatus = "lost";
+                } else {
+                  const cur = STATUS_RANK[lead.status] ?? 0;
+                  const next = STATUS_RANK[mapped] ?? -1;
+                  if (next > cur) newStatus = mapped;
+                }
+              }
 
-              if (newStatus !== lead.status) {
-                await supabase
-                  .from("leads")
-                  .update({
-                    status: newStatus,
-                    doorloop_prospect_id: prospect.id,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq("id", lead.id);
+              if (newStatus) {
+                const updateData: Record<string, unknown> = {
+                  status: newStatus,
+                  doorloop_prospect_id: prospect.id,
+                  updated_at: new Date().toISOString(),
+                };
+                // Stamp the 'applied' fact the facts-based funnel reads, only
+                // when not already set (submit-application stamps it on the site path).
+                if ((newStatus === "in_application" || newStatus === "converted") && !lead.applied_at) {
+                  updateData.applied_at = new Date().toISOString();
+                }
+
+                await supabase.from("leads").update(updateData).eq("id", lead.id);
 
                 // Log sync
                 await supabase.from("doorloop_sync_log").insert({
@@ -240,7 +309,7 @@ serve(async (req) => {
               // Find lead with this tenant ID (stored as doorloop_prospect_id)
               const { data: lead } = await supabase
                 .from("leads")
-                .select("id, status")
+                .select("id, status, applied_at")
                 .eq("organization_id", organization_id)
                 .eq("doorloop_prospect_id", app.tenantId)
                 .maybeSingle();
@@ -249,9 +318,12 @@ serve(async (req) => {
                 let newStatus = lead.status;
 
                 if (app.status === "approved" || app.status === "pending") {
-                  newStatus = "in_application";
+                  // Advance only — never demote an already-converted lead.
+                  if ((STATUS_RANK[lead.status] ?? 0) < STATUS_RANK["in_application"]) {
+                    newStatus = "in_application";
+                  }
                 } else if (app.status === "denied") {
-                  newStatus = "lost";
+                  if (lead.status !== "converted") newStatus = "lost";
                 }
 
                 if (newStatus !== lead.status) {
@@ -259,6 +331,10 @@ serve(async (req) => {
                     status: newStatus,
                     updated_at: new Date().toISOString(),
                   };
+
+                  if (newStatus === "in_application" && !lead.applied_at) {
+                    updateData.applied_at = new Date().toISOString();
+                  }
 
                   if (app.status === "denied") {
                     updateData.lost_reason = "does_not_qualify";
@@ -327,19 +403,20 @@ serve(async (req) => {
             // Match by doorloop_prospect_id
             const { data: lead } = await supabase
               .from("leads")
-              .select("id, status")
+              .select("id, status, applied_at")
               .eq("organization_id", organization_id)
               .eq("doorloop_prospect_id", tenant.id)
               .maybeSingle();
 
             if (lead && lead.status !== "converted") {
-              // Update lead to converted (milestone engine scores 100 on this
-              // status change)
+              // A tenant on an active lease has converted. Stamp applied_at (the
+              // facts-based funnel's 'applied' fact) if it was never recorded.
               await supabase
                 .from("leads")
                 .update({
                   status: "converted",
                   updated_at: new Date().toISOString(),
+                  ...(lead.applied_at ? {} : { applied_at: new Date().toISOString() }),
                 })
                 .eq("id", lead.id);
 
@@ -381,20 +458,28 @@ serve(async (req) => {
         console.error(`[Esther] Error syncing org ${organization_id}:`, errorMessage);
         errors++;
 
-        await supabase.from("doorloop_sync_log").insert({
+        // NOTE: doorloop_sync_log CHECK constraints only allow
+        // entity_type ∈ (prospect|application|lease|property) and
+        // status ∈ (success|failed|skipped|conflict). The previous values
+        // ("sync"/"error") were silently rejected, so this outage was invisible.
+        const { error: logInsertErr } = await supabase.from("doorloop_sync_log").insert({
           organization_id,
-          entity_type: "sync",
+          entity_type: "prospect",
           sync_direction: "pull",
-          status: "error",
+          status: "failed",
           error_message: errorMessage,
         });
+        if (logInsertErr) {
+          console.error(`[Esther] Failed to write doorloop_sync_log error row:`, logInsertErr.message);
+        }
 
         // Check for repeated failures
         const { count } = await supabase
           .from("doorloop_sync_log")
           .select("*", { count: "exact", head: true })
           .eq("organization_id", organization_id)
-          .eq("status", "error")
+          .eq("status", "failed")
+          .eq("sync_direction", "pull")
           .gte("created_at", new Date(Date.now() - 3600000).toISOString()); // Last hour
 
         if (count && count >= 3) {

@@ -25,7 +25,6 @@ export interface LeadResult {
   phone: string;
   source: string;
   status: string;
-  lead_score: number | null;
   property_addresses?: string[];
   has_voucher: boolean | null;
   preferred_language: string | null;
@@ -33,7 +32,7 @@ export interface LeadResult {
   last_contact_at: string | null;
 }
 
-type SortField = "full_name" | "lead_score" | "created_at" | "last_contact_at";
+type SortField = "full_name" | "created_at" | "last_contact_at";
 type SortDirection = "asc" | "desc";
 
 interface LeadsResultsTableProps {
@@ -135,7 +134,6 @@ export const LeadsResultsTable: React.FC<LeadsResultsTableProps> = ({
                 <TableHead>Phone</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Status</TableHead>
-                <SortableHeader field="lead_score">Score</SortableHeader>
                 <TableHead>Property</TableHead>
                 <TableHead>Voucher</TableHead>
                 <TableHead>Language</TableHead>
@@ -163,23 +161,6 @@ export const LeadsResultsTable: React.FC<LeadsResultsTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={lead.status} type="lead" />
-                  </TableCell>
-                  <TableCell>
-                    {lead.lead_score !== null ? (
-                      <span
-                        className={`font-medium ${
-                          lead.lead_score >= 70
-                            ? "text-emerald-600"
-                            : lead.lead_score >= 40
-                              ? "text-amber-600"
-                              : "text-rose-600"
-                        }`}
-                      >
-                        {lead.lead_score}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
                   </TableCell>
                   <TableCell className="max-w-[180px]">
                     {lead.property_addresses && lead.property_addresses.length > 0 ? (

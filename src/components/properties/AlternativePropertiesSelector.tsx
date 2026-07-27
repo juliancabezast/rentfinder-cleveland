@@ -52,10 +52,18 @@ export const AlternativePropertiesSelector: React.FC<AlternativePropertiesSelect
       ['available', 'coming_soon'].includes(p.status)
   );
 
-  // Show badges for ALL selected properties (even if status changed to rented/in_leasing)
+  // Show badges for ALL selected properties (even if status changed to
+  // rented/in_leasing) — availableProperties must therefore be fed the full
+  // org list; the pickable list above is filtered by status here.
   const selectedProperties = availableProperties.filter(
     (p) => p.id !== excludePropertyId && selectedIds.includes(p.id)
   );
+
+  const STALE_STATUS_LABELS: Record<string, string> = {
+    in_leasing_process: 'In Leasing',
+    rented: 'Rented',
+    inactive: 'Inactive',
+  };
 
   const toggleProperty = (propertyId: string) => {
     if (selectedIds.includes(propertyId)) {
@@ -171,10 +179,17 @@ export const AlternativePropertiesSelector: React.FC<AlternativePropertiesSelect
                 {property.address}
                 {property.unit_number && ` #${property.unit_number}`}
               </span>
+              {/* Flag redirects that are no longer bookable so they can be pruned */}
+              {STALE_STATUS_LABELS[property.status] && (
+                <span className="text-[10px] text-muted-foreground">
+                  ({STALE_STATUS_LABELS[property.status]})
+                </span>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-4 w-4 hover:bg-transparent"
+                aria-label="Remove alternative property"
                 onClick={() => removeProperty(property.id)}
               >
                 <X className="h-3 w-3" />

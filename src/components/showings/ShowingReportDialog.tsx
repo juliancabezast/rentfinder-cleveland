@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAvailableProperties, sendLeadShowingEmail } from "@/lib/notificationService";
 import { upsertLeadTag } from "@/lib/leadTags";
+import { markApplicationGenerated } from "@/lib/applications";
 
 interface ShowingReportDialogProps {
   open: boolean;
@@ -64,7 +65,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [leadData, setLeadData] = useState<{ full_name: string | null; phone: string; email: string | null } | null>(null);
   const [showingData, setShowingData] = useState<{ scheduled_at: string; property_id: string | null; properties: { address: string; unit_number: string | null; city: string | null; rent_price: number | null } | null } | null>(null);
-  const [moveToApplicant, setMoveToApplicant] = useState(false);
+  const [markApplied, setMarkApplied] = useState(false);
   const [reassignPropertyId, setReassignPropertyId] = useState<string>("");
   const [properties, setProperties] = useState<{ id: string; label: string }[]>([]);
   const [enhancing, setEnhancing] = useState(false);
@@ -73,9 +74,15 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
   // Fetch lead, showing, and properties data
   useEffect(() => {
     if (open && leadId && showingId && userRecord?.organization_id) {
+      // The dialog instance is reused across showings — clear any form state
+      // left over from a previously-opened (and cancelled) report so showing
+      // A's outcome/notes/photo never pre-fill showing B's form.
+      resetForm();
+      setLeadData(null);
+      setShowingData(null);
       Promise.all([
-        supabase.from("leads").select("full_name, phone, email").eq("id", leadId).single(),
-        supabase.from("showings").select("scheduled_at, property_id, properties(address, unit_number, city, rent_price)").eq("id", showingId).single(),
+        supabase.from("leads").select("full_name, phone, email").eq("organization_id", userRecord.organization_id).eq("id", leadId).single(),
+        supabase.from("showings").select("scheduled_at, property_id, properties(address, unit_number, city, rent_price)").eq("organization_id", userRecord.organization_id).eq("id", showingId).single(),
         supabase.from("properties").select("id, address, unit_number, city").eq("organization_id", userRecord.organization_id).order("address"),
       ]).then(([leadRes, showingRes, propsRes]) => {
         if (leadRes.data) setLeadData(leadRes.data);
@@ -98,7 +105,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
     setAgentReport("");
     setCancellationReason("");
     setPhotoFile(null);
-    setMoveToApplicant(false);
+    setMarkApplied(false);
     setReassignPropertyId("");
     setOriginalReport(null);
   };
@@ -141,6 +148,14 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
   };
 
   const handleSubmit = async () => {
+    // Org context is required — every write below is scoped by it (never rely on
+    // RLS alone; see the project's "org scoping on every query" rule).
+    if (!userRecord?.organization_id) {
+      toast.error("Missing organization context. Please refresh and try again.");
+      return;
+    }
+    const orgId = userRecord.organization_id;
+
     // Validation
     if (!status) {
       toast.error("Please select a status");
@@ -205,88 +220,15 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
         if (agentReport.trim()) {
           updateData.agent_report = agentReport;
         }
-
-        // Send re-engagement email to lead (fire-and-forget)
-        if (userRecord?.organization_id && leadData?.email && showingData) {
-          const otherProps = await fetchAvailableProperties(
-            userRecord.organization_id,
-            showingData.property_id || undefined,
-            5,
-            showingData.properties?.city || undefined,
-          );
-          const bookingUrl = `${window.location.origin}/p/book-showing`;
-          sendLeadShowingEmail({
-            leadEmail: leadData.email,
-            organizationId: userRecord.organization_id,
-            showingId,
-            type: "no_show",
-            emailData: {
-              leadName: leadData.full_name || "there",
-              propertyAddress: propertyAddress || "your scheduled property",
-              bookingUrl,
-              otherProperties: otherProps,
-              scheduledTime: new Date(showingData.scheduled_at).toLocaleString("en-US", {
-                weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-              }),
-            },
-          });
-        }
       }
 
       if (status === "cancelled") {
         updateData.cancelled_at = new Date().toISOString();
         updateData.cancellation_reason = cancellationReason;
-
-        // Send cancellation email to lead
-        if (userRecord?.organization_id && leadData?.email && showingData) {
-          const otherProps = await fetchAvailableProperties(
-            userRecord.organization_id,
-            showingData.property_id || undefined,
-            5,
-            showingData.properties?.city || undefined,
-          );
-          sendLeadShowingEmail({
-            leadEmail: leadData.email,
-            organizationId: userRecord.organization_id,
-            showingId,
-            type: "cancelled",
-            emailData: {
-              leadName: leadData.full_name || "there",
-              propertyAddress: propertyAddress || "your scheduled property",
-              bookingUrl: `${window.location.origin}/p/book-showing`,
-              otherProperties: otherProps,
-            },
-          });
-        }
       }
 
       if (status === "rescheduled") {
         updateData.cancellation_reason = cancellationReason;
-
-        // Send rescheduled email to lead
-        if (userRecord?.organization_id && leadData?.email && showingData) {
-          const otherProps = await fetchAvailableProperties(
-            userRecord.organization_id,
-            showingData.property_id || undefined,
-            5,
-            showingData.properties?.city || undefined,
-          );
-          sendLeadShowingEmail({
-            leadEmail: leadData.email,
-            organizationId: userRecord.organization_id,
-            showingId,
-            type: "rescheduled",
-            emailData: {
-              leadName: leadData.full_name || "there",
-              propertyAddress: propertyAddress || "your scheduled property",
-              bookingUrl: `${window.location.origin}/p/book-showing`,
-              otherProperties: otherProps,
-              scheduledTime: new Date(showingData.scheduled_at).toLocaleString("en-US", {
-                weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-              }),
-            },
-          });
-        }
       }
 
       // Update showing — verify a row actually changed so a silent no-op
@@ -294,6 +236,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
       const { data: updatedRows, error: showingError } = await supabase
         .from("showings")
         .update(updateData)
+        .eq("organization_id", orgId)
         .eq("id", showingId)
         .select("id");
 
@@ -302,20 +245,82 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
         throw new Error("The report didn't save — this showing may have been changed or removed. Refresh and try again.");
       }
 
-      // Update lead status if completed
-      if (status === "completed") {
-        const leadUpdate: Record<string, any> = {
-          status: moveToApplicant ? "in_application" : "showed",
-          updated_at: new Date().toISOString(),
-        };
+      // A cancelled/rescheduled showing must not keep emailing the lead: kill its
+      // still-pending Samuel follow-up tasks (confirmation / no-show / post-showing)
+      // — this surface never touched agent_tasks, so those tasks used to keep
+      // firing for a showing that no longer exists (mirrors
+      // ShowingDetailDialog.cancelPendingShowingTasks). Best-effort.
+      if (status === "cancelled" || status === "rescheduled") {
+        const { error: cancelTasksErr } = await supabase
+          .from("agent_tasks")
+          .update({ status: "cancelled" })
+          .eq("organization_id", orgId)
+          .eq("status", "pending")
+          .eq("context->>showing_id", showingId);
+        if (cancelTasksErr) console.error("Cancel pending showing tasks failed:", cancelTasksErr);
+      }
 
+      // ── Post-commit side effects — only AFTER the report actually saved, so a
+      // failed/stale update can never email the lead about an outcome that was
+      // never recorded (and a retry can't double-email). ──
+
+      // Lead-facing outcome email (fire-and-forget once queued).
+      if ((status === "no_show" || status === "cancelled" || status === "rescheduled") &&
+          userRecord?.organization_id && leadData?.email && showingData) {
+        const otherProps = await fetchAvailableProperties(
+          userRecord.organization_id,
+          showingData.property_id || undefined,
+          5,
+          showingData.properties?.city || undefined,
+        );
+        const scheduledTime = new Date(showingData.scheduled_at).toLocaleString("en-US", {
+          weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+        });
+        sendLeadShowingEmail({
+          leadEmail: leadData.email,
+          organizationId: userRecord.organization_id,
+          showingId,
+          type: status as "no_show" | "cancelled" | "rescheduled",
+          emailData: {
+            leadName: leadData.full_name || "there",
+            propertyAddress: propertyAddress || "your scheduled property",
+            bookingUrl: `${window.location.origin}/p/book-showing`,
+            otherProperties: otherProps,
+            ...(status !== "cancelled" ? { scheduledTime } : {}),
+          },
+        });
+      }
+
+      // Update lead status if completed. Completion means the prospect attended
+      // → "showed". Never DEMOTE a lead that already advanced past that point
+      // (in_application/converted) — reporting an old showing's outcome must not
+      // drag an applicant back down the funnel. Whether they generated an
+      // application is a SEPARATE, status-neutral milestone tag (below).
+      if (status === "completed") {
         const { error: leadError } = await supabase
           .from("leads")
-          .update(leadUpdate)
-          .eq("id", leadId);
+          .update({ status: "showed", updated_at: new Date().toISOString() })
+          .eq("organization_id", orgId)
+          .eq("id", leadId)
+          .not("status", "in", '("in_application","converted")');
 
         if (leadError) {
           console.error("Error updating lead status:", leadError);
+        }
+
+        // Applicant milestone tag (optional) — stamps applied_at + logs a
+        // leasing_activity(application_generated) row for the Leasing Tracker.
+        if (markApplied && userRecord?.organization_id) {
+          try {
+            await markApplicationGenerated({
+              leadId,
+              organizationId: userRecord.organization_id,
+              showingId,
+              propertyId: showingData?.property_id ?? null,
+            });
+          } catch (applyErr) {
+            console.error("Error marking application generated:", applyErr);
+          }
         }
 
         // Additive interest tag — existing tags are kept
@@ -329,8 +334,8 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
       }
 
       const statusMessages: Record<string, string> = {
-        completed: moveToApplicant
-          ? "Showing completed — lead moved to Applicants"
+        completed: markApplied
+          ? "Showing completed — application generated"
           : "Showing marked as completed",
         no_show: "Showing marked as no-show",
         cancelled: "Showing marked as cancelled",
@@ -356,7 +361,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
   const showPhotoUpload = status === "completed";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!submitting) onOpenChange(o); }}>
       <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Submit Showing Report</DialogTitle>
@@ -544,20 +549,20 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
                 </Select>
               </div>
 
-              {/* Move to applicants */}
+              {/* Applicant milestone tag (optional) — status-neutral. */}
               <div className="flex items-center justify-between rounded-lg border p-3 bg-indigo-50/50">
                 <div className="flex items-center gap-2">
                   <ArrowRight className="h-4 w-4 text-indigo-600" />
                   <div>
-                    <p className="text-sm font-medium">Move to Applicants</p>
+                    <p className="text-sm font-medium">Application generated</p>
                     <p className="text-xs text-muted-foreground">
-                      Change lead status to "In Application"
+                      Marks the applicant milestone — does not change the lead's status
                     </p>
                   </div>
                 </div>
                 <Switch
-                  checked={moveToApplicant}
-                  onCheckedChange={setMoveToApplicant}
+                  checked={markApplied}
+                  onCheckedChange={setMarkApplied}
                 />
               </div>
             </div>
@@ -565,7 +570,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancel
           </Button>
           <Button

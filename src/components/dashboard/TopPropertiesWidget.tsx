@@ -9,8 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Building2, Users, Calendar, ChevronDown, Check } from "lucide-react";
+import { Building2, Users, Calendar, ChevronDown, Check, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PropertyInterest {
   property_id: string;
@@ -22,10 +23,10 @@ interface PropertyInterest {
 type InterestRange = "3d" | "week" | "month" | "all";
 
 const RANGE_OPTIONS: { value: InterestRange; label: string }[] = [
-  { value: "3d", label: "3 days" },
-  { value: "week", label: "Week" },
-  { value: "month", label: "Month" },
-  { value: "all", label: "All time" },
+  { value: "3d", label: "3 días" },
+  { value: "week", label: "Semana" },
+  { value: "month", label: "Mes" },
+  { value: "all", label: "Histórico" },
 ];
 
 const RANK_COLORS = [
@@ -35,10 +36,12 @@ const RANK_COLORS = [
 ];
 
 export const TopPropertiesWidget: React.FC = () => {
+  const { userRecord } = useAuth();
+  const orgId = userRecord?.organization_id;
   const [range, setRange] = useState<InterestRange>("3d");
 
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["top-properties-by-interest", range],
+  const { data = [], isLoading, isError } = useQuery({
+    queryKey: ["top-properties-by-interest", orgId, range],
     queryFn: async (): Promise<PropertyInterest[]> => {
       const { data, error } = await supabase.rpc("top_properties_by_interest", {
         p_limit: 5,
@@ -52,10 +55,11 @@ export const TopPropertiesWidget: React.FC = () => {
         lead_count: Number(r.lead_count) || 0,
       }));
     },
+    enabled: !!orgId,
     staleTime: 60_000,
   });
 
-  const activeLabel = RANGE_OPTIONS.find((o) => o.value === range)?.label ?? "3 days";
+  const activeLabel = RANGE_OPTIONS.find((o) => o.value === range)?.label ?? "3 días";
 
   return (
     <Card variant="glass">
@@ -63,13 +67,13 @@ export const TopPropertiesWidget: React.FC = () => {
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
-            Top Properties by Interest
+            Top propiedades por interés
           </CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                aria-label="Change time range"
+                aria-label="Cambiar rango"
                 className={cn(
                   "group inline-flex items-center gap-1.5 rounded-full border border-slate-200/70 bg-white/70 py-1 pl-2.5 pr-2 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur transition-all",
                   "hover:border-primary/40 hover:bg-primary/10 hover:text-primary",
@@ -113,9 +117,16 @@ export const TopPropertiesWidget: React.FC = () => {
               </div>
             ))}
           </div>
+        ) : isError ? (
+          // A failed RPC must NOT masquerade as "zero interest" — that empty
+          // state lies. Surface the error like the LeadsPulse WifiOff branch.
+          <div className="flex flex-col items-center justify-center gap-1.5 py-4 text-muted-foreground">
+            <WifiOff className="h-4 w-4" />
+            <p className="text-xs">No se pudieron cargar los datos — reintentando…</p>
+          </div>
         ) : data.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            No property interest in this range
+            Sin interés en propiedades en este rango
           </p>
         ) : (
           <div className="space-y-3">

@@ -40,9 +40,26 @@ serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Parse the body ONCE into outer-scope vars. The request body is a one-shot
+  // stream — the error handler below cannot re-read it (that always throws
+  // "Body already consumed"), which previously left failed pushes with no log
+  // and the agent_task stuck in_progress forever.
+  let task_id: string | undefined;
+  let lead_id: string | undefined;
+  let organization_id: string | undefined;
+  let context: Record<string, unknown> | undefined;
   try {
-    const { task_id, lead_id, organization_id, context } = await req.json();
-    const { trigger, new_status } = context || {};
+    const body = await req.json();
+    task_id = body?.task_id;
+    lead_id = body?.lead_id;
+    organization_id = body?.organization_id;
+    context = body?.context;
+  } catch {
+    // Invalid/empty JSON — leave vars undefined; handled below.
+  }
+
+  try {
+    const { trigger, new_status } = (context || {}) as Record<string, unknown>;
 
     console.log(`[Mordecai] Starting Doorloop push for lead ${lead_id}`);
 
@@ -54,11 +71,13 @@ serve(async (req) => {
         .eq("id", task_id);
     }
 
-    // Fetch lead
+    // Fetch lead — scoped to the org so a mismatched lead_id/organization_id
+    // can never push another org's lead into this org's DoorLoop account.
     const { data: lead, error: leadError } = await supabase
       .from("leads")
       .select("*")
       .eq("id", lead_id)
+      .eq("organization_id", organization_id)
       .single();
 
     if (leadError || !lead) {
@@ -84,7 +103,7 @@ serve(async (req) => {
         p_action: "skip_push",
         p_status: "success",
         p_message: "No Doorloop API key configured, push skipped",
-        p_related_lead_id: lead_id,
+        p_lead_id: lead_id,
       });
 
       if (task_id) {
@@ -127,7 +146,7 @@ serve(async (req) => {
       email: lead.email || "",
       phone: lead.phone,
       type: "PROSPECT_TENANT",
-      notes: `Source: ${lead.source}, Score: ${lead.lead_score || "N/A"}${propertyNote}`,
+      notes: `Source: ${lead.source}${propertyNote}`,
     };
 
     let doorloopProspectId = lead.doorloop_prospect_id;
@@ -204,7 +223,7 @@ serve(async (req) => {
       p_action: action === "create" ? "create_prospect" : "update_prospect",
       p_status: "success",
       p_message: `${action === "create" ? "Created" : "Updated"} Doorloop prospect ${doorloopProspectId}`,
-      p_related_lead_id: lead_id,
+      p_lead_id: lead_id,
       p_details: { doorloop_prospect_id: doorloopProspectId, trigger, new_status },
     });
 
@@ -228,17 +247,15 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("[Mordecai] Error:", errorMessage);
 
-    // Log error
+    // Log error (uses the body vars parsed once above — the stream is gone here)
     try {
-      const { task_id, lead_id, organization_id } = await req.json().catch(() => ({}));
-
       if (organization_id) {
         await supabase.from("doorloop_sync_log").insert({
           organization_id,
           entity_type: "prospect",
           sync_direction: "push",
           local_id: lead_id,
-          status: "error",
+          status: "failed", // CHECK allows success|failed|skipped|conflict — never "error"
           error_message: errorMessage,
         });
 
@@ -248,7 +265,7 @@ serve(async (req) => {
           p_action: "push_error",
           p_status: "error",
           p_message: errorMessage,
-          p_related_lead_id: lead_id,
+          p_lead_id: lead_id,
         });
       }
 

@@ -58,16 +58,33 @@ serve(async (req: Request) => {
         continue;
       }
 
-      // Get existing resend_email_ids to avoid duplicates
-      const { data: existingEvents } = await supabase
-        .from("email_events")
-        .select("resend_email_id")
-        .eq("organization_id", org.id)
-        .not("resend_email_id", "is", null);
-
-      const existingIds = new Set(
-        (existingEvents || []).map((e: any) => e.resend_email_id).filter(Boolean)
-      );
+      // Get existing resend_email_ids to avoid duplicates. PostgREST caps a
+      // single SELECT at 1000 rows, but this org has ~49k rows with a
+      // resend_email_id — an unpaginated fetch saw <2% of them, so ~98% of
+      // known emails were misclassified as "new" and every re-insert then
+      // failed on the unique index. Page through with .range() to see them all.
+      const existingIds = new Set<string>();
+      {
+        const PAGE = 1000;
+        let from = 0;
+        while (true) {
+          const { data: page, error: pageErr } = await supabase
+            .from("email_events")
+            .select("resend_email_id")
+            .eq("organization_id", org.id)
+            .not("resend_email_id", "is", null)
+            .range(from, from + PAGE - 1);
+          if (pageErr) {
+            console.error("Existing resend_email_id fetch failed:", pageErr.message);
+            break;
+          }
+          for (const e of (page as Array<{ resend_email_id: string | null }> | null) || []) {
+            if (e.resend_email_id) existingIds.add(e.resend_email_id);
+          }
+          if (!page || page.length < PAGE) break;
+          from += PAGE;
+        }
+      }
 
       // Paginate through all Resend emails
       let allEmails: any[] = [];

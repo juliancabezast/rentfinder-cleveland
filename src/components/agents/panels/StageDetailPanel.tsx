@@ -26,7 +26,7 @@ export const StageDetailPanel: React.FC<Props> = ({ stageKey, count, onClose }) 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leads")
-        .select("id, full_name, phone, lead_score, created_at")
+        .select("id, full_name, phone, created_at")
         .eq("organization_id", orgId!)
         .eq("status", stageKey)
         .not("is_demo", "is", true)
@@ -77,7 +77,7 @@ export const StageDetailPanel: React.FC<Props> = ({ stageKey, count, onClose }) 
                     {formatDistanceToNow(new Date(l.created_at), { addSuffix: true })}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">{l.phone || "sin teléfono"} · score {l.lead_score ?? 0}</p>
+                <p className="text-xs text-muted-foreground">{l.phone || "sin teléfono"}</p>
               </Link>
             ))}
           </div>

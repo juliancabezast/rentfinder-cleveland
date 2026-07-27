@@ -509,13 +509,14 @@ serve(async (req) => {
       return count || 0;
     };
     const [
-      actContacts, actMessages, actFollowUps, actConfirmed, actNurture, recentActivityRes,
+      actContacts, actMessages, actFollowUps, actConfirmed, actNurture, actApplications, recentActivityRes,
     ] = await Promise.all([
       actCount(["contacted", "contact_attempt"]),
       actCount(["message_sent_sms", "message_sent_email"]),
       actCount(["follow_up_scheduled"]),
       actCount(["showing_confirmed"]),
       actCount(["nurture_email_sent"]),
+      actCount(["application_generated"]),
       // Elijah's nurture runs at thousands of sends a day, so it is EXCLUDED
       // from the timeline — otherwise the last 15 rows would be nothing but
       // automated email and the human work would be invisible, which is the
@@ -547,6 +548,7 @@ serve(async (req) => {
         follow_ups: actFollowUps,
         showings_confirmed: actConfirmed,
         nurture_emails: actNurture,
+        applications_generated: actApplications,
       },
       recent: ((recentActivityRes.data || []) as any[]).map((a) => ({
         id: a.id, action: a.action, created_at: a.created_at,

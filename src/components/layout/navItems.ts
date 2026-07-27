@@ -13,7 +13,6 @@ import {
   Sparkles,
   Send,
   Briefcase,
-  ClipboardList,
   MessageSquareText,
   Settings,
 } from 'lucide-react';
@@ -48,7 +47,6 @@ export const NAV_PIPELINE: NavItem[] = [
   { title: 'Leads', href: '/leads', icon: Users, end: true },
   { title: 'Nurturing Leads', href: '/leads/nurturing', icon: Sparkles, permission: 'canEditLeadInfo' },
   { title: 'Showings', href: '/showings', icon: CalendarDays },
-  { title: 'Requests', href: '/requests', icon: ClipboardList },
 ];
 
 /** Single entry, no section label. */

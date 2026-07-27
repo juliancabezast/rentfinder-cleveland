@@ -170,7 +170,7 @@ export default function ApplicationStarted() {
         <div className="space-y-4">
           {[
             { icon: PhoneCall, title: "We'll contact you", body: "A real person from our Cleveland team will call or text you to walk through the next steps and answer any questions." },
-            { icon: DollarSign, title: "Formalize with the $50 application fee", body: "Your application becomes formal once the $50 non-refundable application fee (per household) is paid. We'll explain exactly how — you don't pay anything here." },
+            { icon: DollarSign, title: "Formalize with the $59.90 screening fee", body: "Your application becomes formal once the $59.90 non-refundable screening fee is paid directly to TransUnion. We'll explain exactly how — you don't pay anything here." },
             { icon: FileText, title: "Have your documents ready", body: "To verify income we'll ask for a photo ID and your last 3 pay stubs. Income generally needs to be about 3× the monthly rent. Voucher holders: have your voucher details handy instead." },
           ].map((s, i) => (
             <Card key={i} className="p-4 flex gap-4 items-start">

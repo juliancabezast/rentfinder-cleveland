@@ -51,7 +51,8 @@ export const DEFAULT_SETTINGS = {
 
   // Showings landing page
   city_cover_images: {} as Record<string, string>,
-  featured_property_id: "" as string,
+  featured_property_id: "" as string, // legacy single-featured (read as fallback)
+  featured_property_ids: [] as string[], // up to 4, rendered as a 5s carousel
 
   // Security settings
   photo_upload_restricted: false,

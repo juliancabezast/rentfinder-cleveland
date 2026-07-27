@@ -2,19 +2,19 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 export interface FilterCounts {
-  priority: number;
   humanControlled: number;
   moveInSoon: number;
   section8: number;
   hasShowing: number;
+  applicant: number;
 }
 
 export interface ActiveFilters {
-  priority: boolean;
   humanControlled: boolean;
   moveInSoon: boolean;
   section8: boolean;
   hasShowing: boolean;
+  applicant: boolean;
 }
 
 interface LeadFilterPillsProps {
@@ -25,11 +25,11 @@ interface LeadFilterPillsProps {
 }
 
 const FILTER_LABELS: Record<keyof ActiveFilters, string> = {
-  priority: "Priority",
   humanControlled: "Human Controlled",
   moveInSoon: "Move-in Soon",
   section8: "Section 8",
   hasShowing: "Has Showing",
+  applicant: "Applicant",
 };
 
 const LeadFilterPills: React.FC<LeadFilterPillsProps> = ({
@@ -39,11 +39,11 @@ const LeadFilterPills: React.FC<LeadFilterPillsProps> = ({
   loading = false,
 }) => {
   const filters: (keyof ActiveFilters)[] = [
-    "priority",
     "humanControlled",
     "moveInSoon",
     "section8",
     "hasShowing",
+    "applicant",
   ];
 
   return (

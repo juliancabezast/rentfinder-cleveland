@@ -124,7 +124,7 @@ const createPermissions = (role: AppRole | null): Permissions => {
     canViewAllShowings: isEditorOrAbove,
     canViewAssignedShowings: isEditorOrAbove || isLeasingAgent,
     // Booking is editor-or-above only: a leasing_agent's dependent writes
-    // (lead_score_history, agent_tasks) are RLS-denied and silently lost.
+    // (agent_tasks) are RLS-denied and silently lost.
     canScheduleShowing: isEditorOrAbove,
     canSubmitShowingReport: isEditorOrAbove || isLeasingAgent,
     canCancelRescheduleShowing: isEditorOrAbove || isLeasingAgent,

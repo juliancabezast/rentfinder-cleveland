@@ -16,13 +16,15 @@ import {
   ShieldCheck, FileSignature, Home as HomeIcon,
 } from "lucide-react";
 
-/** Version of the fee / privacy acknowledgment text, logged with the consent. */
-export const APP_CONSENT_VERSION = "1.0";
+/** Version of the fee / privacy acknowledgment text, logged with the consent.
+ *  Bumped to 1.1 on 2026-07-25 when the fee wording changed from a $50
+ *  application fee to the $59.90 TransUnion screening fee. */
+export const APP_CONSENT_VERSION = "1.1";
 
 /** The exact text the applicant acknowledges — stored verbatim as consent evidence. */
 const FEE_ACK_TEXT =
   "I understand that submitting this form does NOT reserve a home and is NOT a formal application. " +
-  "A formal application requires a $50 non-refundable application fee per household. I authorize Rent " +
+  "A formal application requires a $59.90 non-refundable screening fee, paid directly to TransUnion. I authorize Rent " +
   "Finder Cleveland to contact me about my application, and I agree to the Privacy Policy and Terms of Service.";
 
 const HOUSEHOLD_OPTIONS = ["1", "2", "3", "4", "5", "6+"];
@@ -351,7 +353,7 @@ export function ApplicationDialog({
                   className="mt-0.5" />
                 <label htmlFor="fee-ack" className={`text-xs leading-snug cursor-pointer select-none ${feeAckError ? "text-destructive" : "text-muted-foreground"}`}>
                   I understand this is <strong>not a formal application</strong> and does not reserve a home.
-                  A formal application requires a <strong>$50 non-refundable application fee per household</strong>.
+                  A formal application requires a <strong>$59.90 non-refundable screening fee, paid directly to TransUnion</strong>.
                   I agree to the{" "}
                   <a href="/p/privacy-policy" target="_blank" rel="noopener noreferrer"
                     className="text-primary underline hover:no-underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>{" "}

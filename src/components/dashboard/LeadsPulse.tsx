@@ -15,9 +15,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LiveNumber } from "./LiveNumber";
 import { useLeadCharts } from "@/hooks/useLeadCharts";
-import { Activity, Flame, Calendar, ChevronDown, Check, TrendingUp, TrendingDown } from "lucide-react";
+import { Activity, Calendar, ChevronDown, Check, TrendingUp, TrendingDown, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Range chip options (trend window). "7 días" is the default active range.
@@ -51,12 +50,24 @@ const Panel: React.FC<{ title: string; className?: string; children: React.React
   </div>
 );
 
-export const LeadsPulse: React.FC = () => {
+interface LeadsPulseProps {
+  /** Real realtime-subscription state from useDashboardLive — drives the dot */
+  live?: boolean;
+}
+
+export const LeadsPulse: React.FC<LeadsPulseProps> = ({ live }) => {
   const [range, setRange] = useState(7);
-  const { data, isLoading } = useLeadCharts(range);
+  const { data, isLoading, error } = useLeadCharts(range);
   const activeLabel = RANGES.find((r) => r.days === range)?.label ?? "7 días";
 
-  const peak = useMemo(() => Math.max(1, ...(data.daily || []).map((d) => d.count)), [data.daily]);
+  // Defensive copy for the chart: recharts needs plain finite numbers on the
+  // series key — coerce whatever the RPC's jsonb gave us.
+  const daily = useMemo(
+    () => (data.daily || []).map((r) => ({ ...r, count: Number(r.count) || 0 })),
+    [data.daily],
+  );
+
+  const peak = useMemo(() => Math.max(1, ...daily.map((d) => d.count)), [daily]);
 
   // "Hoy vs. histórico" — leads per day: today vs trailing daily averages.
   const compare = useMemo(() => {
@@ -71,14 +82,23 @@ export const LeadsPulse: React.FC = () => {
     return { rows, max, delta };
   }, [data.today, data.avg_prev_week, data.avg_prev_month, data.avg_all]);
 
-  if (isLoading && data.daily.length === 0) {
+  // Honest status dot: the hardcoded green pulse used to lie during outages.
+  const status: "live" | "connecting" | "error" = error ? "error" : live === false ? "connecting" : "live";
+  const STATUS_DOT = {
+    live: { color: "bg-emerald-500", ping: true, title: "En vivo" },
+    connecting: { color: "bg-slate-400", ping: false, title: "Conectando…" },
+    error: { color: "bg-amber-500", ping: false, title: "Sin conexión — reintentando" },
+  }[status];
+
+  if (isLoading && daily.length === 0) {
     return (
       <Card variant="glass">
         <CardContent className="p-4 sm:p-5">
           <Skeleton className="h-5 w-40 mb-3" />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Skeleton className="h-[130px] rounded-xl xl:col-span-2" />
-            <Skeleton className="h-[130px] rounded-xl" />
+          {/* Mirror the loaded grid exactly (2 panels, 3-col with a col-span-2
+              hero) so there's no third-panel phantom + layout shift on load. */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Skeleton className="h-[130px] rounded-xl lg:col-span-2" />
             <Skeleton className="h-[130px] rounded-xl" />
           </div>
         </CardContent>
@@ -101,10 +121,6 @@ export const LeadsPulse: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 text-base font-bold tabular-nums leading-none text-amber-500" title="Leads hot">
-              <Flame className="h-3.5 w-3.5" />
-              <LiveNumber value={data.hot} />
-            </div>
             {/* Range chip */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -135,9 +151,11 @@ export const LeadsPulse: React.FC = () => {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <span className="relative flex h-2.5 w-2.5" title="En vivo">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <span className="relative flex h-2.5 w-2.5" title={STATUS_DOT.title}>
+              {STATUS_DOT.ping && (
+                <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping", STATUS_DOT.color)} />
+              )}
+              <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", STATUS_DOT.color)} />
             </span>
           </div>
         </div>
@@ -146,37 +164,49 @@ export const LeadsPulse: React.FC = () => {
         <div className="grid gap-4 lg:grid-cols-3">
           {/* Nuevos por día — the hero trend (window from the range chip) */}
           <Panel title={`Nuevos por día · ${activeLabel}`} className="lg:col-span-2">
-            <ResponsiveContainer width="100%" height={110}>
-              <AreaChart data={data.daily} margin={{ top: 6, right: 4, left: -28, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="leadPulseGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.04} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="d"
-                  tick={{ fontSize: 9, fill: "#94a3b8" }}
-                  interval="preserveStartEnd"
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={22}
-                />
-                <YAxis hide domain={[0, peak * 1.15]} />
-                <Tooltip content={<AreaTip />} cursor={{ stroke: "#c7d2fe", strokeWidth: 1 }} />
-                <Area
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#4F46E5"
-                  strokeWidth={2.5}
-                  fill="url(#leadPulseGrad)"
-                  isAnimationActive
-                  animationDuration={900}
-                  dot={false}
-                  activeDot={{ r: 4, fill: "#4F46E5", stroke: "#fff", strokeWidth: 2 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {error && daily.length === 0 ? (
+              <div className="flex h-[110px] flex-col items-center justify-center gap-1.5 text-muted-foreground">
+                <WifiOff className="h-4 w-4" />
+                <p className="text-xs">No se pudieron cargar los datos — reintentando…</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={110}>
+                {/* NOTE: entrance animation intentionally OFF — recharts draws the
+                    animated series inside a clip-path that starts at width 0, and a
+                    stalled animation leaves the chart permanently blank (axes only).
+                    The static render path always paints. left margin 0 (not negative):
+                    with a hidden YAxis the plot origin IS margin.left, so a negative
+                    value draws the first day off-canvas. */}
+                <AreaChart data={daily} margin={{ top: 6, right: 4, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="leadPulseGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.45} />
+                      <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.04} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="d"
+                    tick={{ fontSize: 9, fill: "#94a3b8" }}
+                    interval="preserveStartEnd"
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={22}
+                  />
+                  <YAxis hide domain={[0, Math.ceil(peak * 1.15)]} />
+                  <Tooltip content={<AreaTip />} cursor={{ stroke: "#c7d2fe", strokeWidth: 1 }} />
+                  <Area
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#4F46E5"
+                    strokeWidth={2.5}
+                    fill="url(#leadPulseGrad)"
+                    isAnimationActive={false}
+                    dot={false}
+                    activeDot={{ r: 4, fill: "#4F46E5", stroke: "#fff", strokeWidth: 2 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </Panel>
 
           {/* Hoy vs. histórico — leads por día (today vs trailing daily averages) */}

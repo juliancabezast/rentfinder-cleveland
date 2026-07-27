@@ -272,14 +272,12 @@ serve(async (req: Request) => {
       const yday = shiftDateStr(today, -1);
       const ydayStartUtc = localMidnightToUtc(yday);
 
-      const [seriesRes, monthsRes, ydaySourcesRes, ydayHotRes, ydayShowCompRes, ydayShowNSRes,
-        ydayEmailsRes, ydaySmsRes, ydayConvRes, ydayCostsRes, hotAwaitingRes, backlogRes] = await Promise.all([
+      const [seriesRes, monthsRes, ydaySourcesRes, ydayShowCompRes, ydayShowNSRes,
+        ydayEmailsRes, ydaySmsRes, ydayConvRes, ydayCostsRes, backlogRes] = await Promise.all([
         supabase.rpc("report_time_series", { p_org: organizationId, p_days: 70 }),
         supabase.rpc("report_monthly_series", { p_org: organizationId, p_months: 6 }),
         // Source breakdown grouped in the DB (raw selects cap at 1000 rows silently).
         supabase.rpc("report_source_breakdown", { p_org: organizationId, p_since: ydayStartUtc, p_until: todayStartUtc, p_limit: 4 }),
-        supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-          .not("is_demo", "is", true).gte("lead_score", 50).gte("created_at", ydayStartUtc).lt("created_at", todayStartUtc),
         supabase.from("showings").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
           .eq("status", "completed").gte("scheduled_at", ydayStartUtc).lt("scheduled_at", todayStartUtc),
         supabase.from("showings").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
@@ -292,10 +290,6 @@ serve(async (req: Request) => {
           .not("is_demo", "is", true).gte("converted_at", ydayStartUtc).lt("converted_at", todayStartUtc),
         supabase.rpc("report_costs_summary", { p_org: organizationId, p_since: ydayStartUtc, p_until: todayStartUtc }),
         // Needs-attention, bounded to actionable (same scoping as the on-demand report).
-        supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-          .not("is_demo", "is", true).gte("lead_score", 50).not("status", "in", "(lost,converted)")
-          .or(`last_contact_at.is.null,last_contact_at.lt.${new Date(now.getTime() - 86400000).toISOString()}`)
-          .gte("created_at", new Date(now.getTime() - 7 * 86400000).toISOString()),
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
           .not("is_demo", "is", true).eq("status", "new")
           .gte("created_at", new Date(now.getTime() - 2 * 86400000).toISOString()),
@@ -338,7 +332,6 @@ serve(async (req: Request) => {
       const costParts = costRows.filter((r) => Number(r.total) > 0)
         .map((r) => `${r.service} ${money(Number(r.total))}`).join(" · ");
 
-      const hotAwaiting = hotAwaitingRes.count || 0;
       const backlog = backlogRes.count || 0;
       const todayShowings = dayShowings(today);
 
@@ -347,7 +340,6 @@ serve(async (req: Request) => {
         ``,
         `━━ <b>AYER</b> ━━`,
         `👥 <b>${ydayLeadCount} leads</b> (${deltaBadge(ydayLeadCount, dayBeforeCount)} vs anteayer)${ydaySourcesLine ? ` — ${ydaySourcesLine}` : ""}`,
-        `🔥 ${ydayHotRes.count || 0} hot (milestone)`,
         `🏠 ${dayShowings(yday)} showings · ✅ ${ydayShowCompRes.count || 0} completados${(ydayShowNSRes.count || 0) > 0 ? ` · 👻 ${ydayShowNSRes.count} no-show` : ""}`,
         `✉️ ${Number(ydayEmailsRes.data) || 0} emails · 💬 ${ydaySmsRes.count || 0} SMS`,
         `${(ydayConvRes.count || 0) > 0 ? `🎉 ${ydayConvRes.count} convertidos\n` : ""}💰 Costo: <b>${money(costTotal)}</b>${costParts ? ` (${costParts})` : ""}`,
@@ -358,10 +350,9 @@ serve(async (req: Request) => {
         `━━ <b>MES</b> (al día ${dayOfMonth} vs mes pasado) ━━`,
         `👥 ${mtd} leads (${deltaBadge(mtd, mtdPrev)}) · 🏠 ${mtdShow} showings (${deltaBadge(mtdShow, mtdShowPrev)})`,
       ];
-      if (hotAwaiting > 0 || backlog > 0) {
+      if (backlog > 0) {
         lines.push(``, `━━ <b>⚡ PARA HOY</b> ━━`);
-        if (hotAwaiting > 0) lines.push(`🔥 ${hotAwaiting} hot sin contactar (últimos 7d)`);
-        if (backlog > 0) lines.push(`📋 ${backlog} nuevos sin primer contacto (48h)`);
+        lines.push(`📋 ${backlog} nuevos sin primer contacto (48h)`);
       }
       lines.push(``, `📅 Hoy: ${todayShowings} showing${todayShowings === 1 ? "" : "s"} en agenda`);
 
@@ -400,14 +391,12 @@ serve(async (req: Request) => {
     const tomorrowStartUtc = localMidnightToUtc(shiftDateStr(today, 1));
     const dayAfterStartUtc = localMidnightToUtc(shiftDateStr(today, 2));
 
-    const [todayCountRes, todaySourcesRes, todayHotRes, digestLogsRes, funnelRes, tomorrowShowRes,
+    const [todayCountRes, todaySourcesRes, digestLogsRes, funnelRes, tomorrowShowRes,
       todayEmailsRes, todaySmsRes, todayCostsRes] = await Promise.all([
       // Exact headline count (raw row selects cap at 1000 silently).
       supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
         .not("is_demo", "is", true).gte("created_at", todayStartUtc),
       supabase.rpc("report_source_breakdown", { p_org: organizationId, p_since: todayStartUtc, p_until: tomorrowStartUtc, p_limit: 4 }),
-      supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
-        .not("is_demo", "is", true).gte("lead_score", 50).gte("created_at", todayStartUtc),
       // Hemlane digests processed today — the parser logs one row per digest email.
       supabase.from("system_logs").select("details").eq("organization_id", organizationId)
         .eq("event_type", "esther_digest_processed").gte("created_at", todayStartUtc).limit(100),
@@ -443,7 +432,6 @@ serve(async (req: Request) => {
       `🌙 <b>Digest del día — ${fmtDayEs(today)}</b>`,
       ``,
       `🆕 <b>Entraron hoy: ${todayLeadCount} leads</b>${todaySourcesLine ? ` — ${todaySourcesLine}` : ""}`,
-      `🔥 ${todayHotRes.count || 0} hot (milestone)`,
       ``,
       `📧 <b>Hemlane</b>: ${dCount} digest${dCount === 1 ? "" : "s"} procesado${dCount === 1 ? "" : "s"}` +
         (dCount ? ` — ${dCreated} nuevos · 🌱 ${dUpdated} nutridos${dSkipped ? ` · ${dSkipped} omitidos` : ""}` : ""),

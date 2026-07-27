@@ -9,7 +9,6 @@ import {
   Calendar,
   DollarSign,
   Download,
-  Flame,
   Home,
   Inbox,
   Mail,
@@ -61,7 +60,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { MilestoneFunnel } from "@/components/analytics/MilestoneFunnel";
 import { InvestorReportsTab } from "@/components/settings/InvestorReportsTab";
 import {
   useAnalytics,
@@ -399,7 +397,7 @@ const Analytics: React.FC = () => {
 
         {/* ═══ TAB: RESUMEN ═══════════════════════════════════ */}
         <TabsContent value="resumen" className="space-y-5 mt-4">
-          <div className="grid gap-2 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Leads nuevos"
               value={o?.leads_in_range ?? 0}
@@ -410,13 +408,6 @@ const Analytics: React.FC = () => {
                   ? { value: Math.abs(leadsTrend), isPositive: leadsTrend > 0 }
                   : undefined
               }
-              loading={isLoading || !data}
-            />
-            <StatCard
-              title="Hot ahora"
-              value={o?.snapshot.hot ?? 0}
-              icon={Flame}
-              subtitle="Agendó o más · ahora"
               loading={isLoading || !data}
             />
             <StatCard
@@ -432,9 +423,9 @@ const Analytics: React.FC = () => {
             />
             <StatCard
               title="Aplicó"
-              value={o?.funnel.eq100 ?? 0}
+              value={o?.funnel.applied ?? 0}
               icon={TrendingUp}
-              subtitle={o ? `${o.snapshot.aplico_total} total` : "cargando"}
+              subtitle={o ? `${o.snapshot.applicants} total` : "cargando"}
               loading={isLoading || !data}
             />
             <StatCard
@@ -452,7 +443,7 @@ const Analytics: React.FC = () => {
             />
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-5">
             {/* Leads over time */}
             <Card variant="glass">
               <CardHeader className="pb-2">
@@ -509,9 +500,6 @@ const Analytics: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-
-            {/* Milestone funnel */}
-            <MilestoneFunnel funnel={o?.funnel} milestones={o?.milestones} loading={isLoading || !data} />
           </div>
 
           {/* Ops tiles */}
@@ -595,7 +583,6 @@ const Analytics: React.FC = () => {
                       <TableRow>
                         <TableHead>Fuente</TableHead>
                         <TableHead className="text-center">Leads</TableHead>
-                        <TableHead className="text-center">Hito prom.</TableHead>
                         <TableHead className="text-center">Con showing</TableHead>
                         <TableHead className="text-center">% a showing</TableHead>
                       </TableRow>
@@ -609,7 +596,6 @@ const Analytics: React.FC = () => {
                           <TableCell className="text-center font-semibold tabular-nums">
                             {s.leads.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-center tabular-nums">{s.avg_score ?? 0}</TableCell>
                           <TableCell className="text-center tabular-nums">{s.with_showing}</TableCell>
                           <TableCell className="text-center">
                             <span
@@ -859,7 +845,6 @@ const Analytics: React.FC = () => {
                         <TableHead>Propiedad</TableHead>
                         <TableHead className="text-center">Leads</TableHead>
                         <TableHead className="text-center">Showings</TableHead>
-                        <TableHead className="text-center">Hito prom.</TableHead>
                         <TableHead className="text-right">Renta</TableHead>
                         <TableHead className="text-center">Estado</TableHead>
                       </TableRow>
@@ -893,7 +878,6 @@ const Analytics: React.FC = () => {
                             {p.leads.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center tabular-nums">{p.showings}</TableCell>
-                          <TableCell className="text-center tabular-nums">{p.avg_score ?? 0}</TableCell>
                           <TableCell className="text-right font-mono text-sm">
                             {p.rent_price ? `$${p.rent_price.toLocaleString()}` : "—"}
                           </TableCell>
@@ -1293,8 +1277,8 @@ const Analytics: React.FC = () => {
                 }
                 icon={DollarSign}
                 subtitle={
-                  o && o.funnel.eq100 > 0 && estimatedCosts
-                    ? `${fmtMoneyCents(estimatedCosts.combined / o.funnel.eq100)} por aplicación`
+                  o && o.funnel.applied > 0 && estimatedCosts
+                    ? `${fmtMoneyCents(estimatedCosts.combined / o.funnel.applied)} por aplicación`
                     : "real + estimado ÷ leads"
                 }
                 loading={isLoading || !data}

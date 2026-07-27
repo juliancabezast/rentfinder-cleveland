@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { format, parseISO } from "date-fns";
 
 interface LeasingReportTabProps {
@@ -48,14 +49,18 @@ const interestBadge: Record<string, { label: string; color: string }> = {
 };
 
 export const LeasingReportTab: React.FC<LeasingReportTabProps> = ({ leadId, leadName }) => {
+  const { userRecord } = useAuth();
   const [reports, setReports] = useState<ShowingReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!userRecord?.organization_id) return;
+    const orgId = userRecord.organization_id;
     const fetchReports = async () => {
       setLoading(true);
+      // Org-scope alongside RLS (defense-in-depth, per project rule)
       const { data, error } = await supabase
         .from("showings")
         .select(`
@@ -64,6 +69,7 @@ export const LeasingReportTab: React.FC<LeasingReportTabProps> = ({ leadId, lead
           properties(address, unit_number, city, rent_price)
         `)
         .eq("lead_id", leadId)
+        .eq("organization_id", orgId)
         .order("scheduled_at", { ascending: false });
 
       if (!error && data) {
@@ -73,7 +79,7 @@ export const LeasingReportTab: React.FC<LeasingReportTabProps> = ({ leadId, lead
     };
 
     fetchReports();
-  }, [leadId]);
+  }, [leadId, userRecord?.organization_id]);
 
   const escapeHtml = (val: unknown): string =>
     String(val ?? "")

@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Bot, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface ReleaseControlModalProps {
@@ -29,12 +30,55 @@ export const ReleaseControlModal: React.FC<ReleaseControlModalProps> = ({
   leadName,
   onSuccess,
 }) => {
+  const { userRecord } = useAuth();
   const [taskAction, setTaskAction] = useState<"resume" | "new">("resume");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+    const orgId = userRecord?.organization_id;
+    if (!orgId) return;
+
     setLoading(true);
     try {
+      // Handle paused tasks FIRST (while the lead is still human-controlled the
+      // dispatcher can't claim them), then release the lead — so a task-update
+      // failure never leaves a released lead with stuck paused tasks.
+      if (taskAction === "resume") {
+        // Push past-due tasks slightly forward so a long takeover doesn't
+        // release a burst of stale follow-ups in one dispatcher tick
+        const nowIso = new Date().toISOString();
+        const staggerIso = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+        const { error: bumpError } = await supabase
+          .from("agent_tasks")
+          .update({ scheduled_for: staggerIso })
+          .eq("lead_id", leadId)
+          .eq("organization_id", orgId)
+          .eq("status", "paused_human_control")
+          .lt("scheduled_for", nowIso);
+
+        if (bumpError) throw bumpError;
+
+        // Resume paused tasks
+        const { error: resumeError } = await supabase
+          .from("agent_tasks")
+          .update({ status: "pending", paused_by: null, paused_at: null, pause_reason: null })
+          .eq("lead_id", leadId)
+          .eq("organization_id", orgId)
+          .eq("status", "paused_human_control");
+
+        if (resumeError) throw resumeError;
+      } else {
+        // Cancel paused tasks — nothing new is scheduled automatically
+        const { error: cancelError } = await supabase
+          .from("agent_tasks")
+          .update({ status: "cancelled" })
+          .eq("lead_id", leadId)
+          .eq("organization_id", orgId)
+          .eq("status", "paused_human_control");
+
+        if (cancelError) throw cancelError;
+      }
+
       // Update the lead record
       const { error: updateError } = await supabase
         .from("leads")
@@ -44,34 +88,10 @@ export const ReleaseControlModal: React.FC<ReleaseControlModalProps> = ({
           human_controlled_at: null,
           human_control_reason: null,
         })
-        .eq("id", leadId);
+        .eq("id", leadId)
+        .eq("organization_id", orgId);
 
       if (updateError) throw updateError;
-
-      // Handle paused tasks based on user choice
-      if (taskAction === "resume") {
-        // Resume paused tasks
-        const { error: resumeError } = await supabase
-          .from("agent_tasks")
-          .update({ status: "pending", paused_by: null, paused_at: null, pause_reason: null })
-          .eq("lead_id", leadId)
-          .eq("status", "paused_human_control");
-
-        if (resumeError) {
-          console.error("Error resuming tasks:", resumeError);
-        }
-      } else {
-        // Cancel paused tasks (new ones will be created based on current status)
-        const { error: cancelError } = await supabase
-          .from("agent_tasks")
-          .update({ status: "cancelled" })
-          .eq("lead_id", leadId)
-          .eq("status", "paused_human_control");
-
-        if (cancelError) {
-          console.error("Error cancelling tasks:", cancelError);
-        }
-      }
 
       toast.success("Control Released", {
         description: `${leadName} has been released back to automation.`,
@@ -106,7 +126,7 @@ export const ReleaseControlModal: React.FC<ReleaseControlModalProps> = ({
             <p className="font-medium text-primary">What happens next:</p>
             <ul className="mt-2 list-disc pl-4 space-y-1 text-muted-foreground">
               <li>The AI will resume managing this lead</li>
-              <li>Automated follow-ups will be scheduled</li>
+              <li>Paused follow-ups are resumed or cancelled based on your choice below</li>
               <li>You can always take control again if needed</li>
             </ul>
           </div>
@@ -126,7 +146,7 @@ export const ReleaseControlModal: React.FC<ReleaseControlModalProps> = ({
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="new" id="new" />
                 <Label htmlFor="new" className="font-normal">
-                  Cancel old tasks and create new ones based on current status
+                  Cancel paused tasks (no new follow-ups will be scheduled)
                 </Label>
               </div>
             </RadioGroup>

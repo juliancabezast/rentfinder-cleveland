@@ -571,6 +571,7 @@ async function upsertLead(
       .from("leads")
       .update({
         last_contact_at: new Date().toISOString(),
+        last_contact_channel: "email", // inbound Hemlane email
         updated_at: new Date().toISOString(),
         source_detail: detail,
         ...(lead.email && !(existing as any).email ? { email: lead.email } : {}),
@@ -1152,7 +1153,7 @@ async function createShellLead(
       // Bump recency so the re-inquiry surfaces as fresh activity for nurture.
       await supabase
         .from("leads")
-        .update({ last_contact_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .update({ last_contact_at: new Date().toISOString(), last_contact_channel: "email", updated_at: new Date().toISOString() })
         .eq("id", hit.id);
       try {
         await supabase.from("system_logs").insert({

@@ -20,7 +20,6 @@ interface ReportMetrics {
   showings_completed: number;
   no_shows: number;
   conversions: number;
-  avg_lead_score: number;
   voucher_leads: number;
   by_property: Record<string, PropertyMetrics>;
 }
@@ -31,7 +30,8 @@ function generateReportHTML(
   insights: any[],
   monthName: string,
   year: number,
-  orgName: string
+  orgName: string,
+  siteUrl: string
 ): string {
   const firstName = investor.full_name?.split(" ")[0] || "Investor";
 
@@ -149,14 +149,14 @@ function generateReportHTML(
       <div style="background: #fef3c7; border-radius: 8px; padding: 16px;">
         <p style="margin: 0; color: #92400e; font-size: 14px;">
           📊 <strong>Additional Stats:</strong> ${metrics.voucher_leads} voucher leads ·
-          ${metrics.no_shows} no-shows · Avg. milestone score: ${metrics.avg_lead_score}
+          ${metrics.no_shows} no-shows
         </p>
       </div>
     </div>
 
     <!-- CTA -->
     <div style="padding: 0 32px 32px; text-align: center;">
-      <a href="https://rentfindercleveland.com"
+      <a href="${siteUrl}"
          style="display: inline-block; background: #1e40af; color: white; padding: 14px 32px;
                 border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
         View Full Dashboard →
@@ -169,7 +169,7 @@ function generateReportHTML(
         ${orgName} · Automated Property Intelligence
       </p>
       <p style="margin: 0; font-size: 12px;">
-        <a href="https://rentfindercleveland.com/p/privacy" style="color: #9ca3af;">Privacy Policy</a>
+        <a href="${siteUrl}/p/privacy" style="color: #9ca3af;">Privacy Policy</a>
       </p>
     </div>
   </div>
@@ -202,7 +202,7 @@ function generateNarrativeSummary(
     narrative += `There were ${metrics.no_shows} no-shows. `;
   }
 
-  narrative += `The average milestone score was ${metrics.avg_lead_score}.\n\n`;
+  narrative += `\n\n`;
 
   if (insights.length > 0) {
     narrative += "Key Insights:\n";
@@ -296,6 +296,19 @@ serve(async (req) => {
 
     const orgName = org?.name || "Rent Finder Cleveland";
 
+    // Derive the public site URL from the org's sender_domain (no hardcoded domain).
+    let senderDomain = "rentfindercleveland.com";
+    {
+      const { data: domainSetting } = await supabase
+        .from("organization_settings")
+        .select("value")
+        .eq("organization_id", organization_id)
+        .eq("key", "sender_domain")
+        .maybeSingle();
+      if (domainSetting?.value) senderDomain = String(domainSetting.value);
+    }
+    const siteUrl = `https://${senderDomain}`;
+
     // 3. Get investor's properties
     const { data: access } = await supabase
       .from("investor_property_access")
@@ -318,10 +331,14 @@ serve(async (req) => {
       .in("id", propertyIds);
 
     // 5. Calculate period dates
+    // periodStart / periodEnd are the query window (periodEnd is EXCLUSIVE, i.e.
+    // first-of-next-month, used with .lt()). periodEndDate is the stored,
+    // inclusive last-day-of-month value for the investor_reports.period_end column.
     const periodStart = `${year}-${String(month).padStart(2, "0")}-01`;
     const nextMonth = month === 12 ? 1 : month + 1;
     const nextYear = month === 12 ? year + 1 : year;
     const periodEnd = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+    const periodEndDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 
     // 6. Get lead-property interest pairs for these properties, then the distinct leads this month
     const { data: interestPairs } = await supabase
@@ -335,7 +352,7 @@ serve(async (req) => {
     for (let i = 0; i < distinctLeadIds.length; i += 200) {
       const { data: leadChunk } = await supabase
         .from("leads")
-        .select("id, status, lead_score, source, has_voucher")
+        .select("id, status, source, has_voucher")
         .in("id", distinctLeadIds.slice(i, i + 200))
         .gte("created_at", periodStart)
         .lt("created_at", periodEnd);
@@ -367,9 +384,6 @@ serve(async (req) => {
       showings_completed: showings?.filter((s) => s.status === "completed").length || 0,
       no_shows: showings?.filter((s) => s.status === "no_show").length || 0,
       conversions: leads?.filter((l) => l.status === "converted").length || 0,
-      avg_lead_score: leads?.length
-        ? Math.round(leads.reduce((sum, l) => sum + (l.lead_score || 0), 0) / leads.length)
-        : 0,
       voucher_leads: leads?.filter((l) => l.has_voucher).length || 0,
       by_property: {},
     };

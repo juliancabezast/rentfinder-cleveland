@@ -20,7 +20,9 @@ function dayLabel(iso: string): string {
   const diff = Math.round((nyD.getTime() - nyToday.getTime()) / 86400000);
   if (diff === 0) return "Hoy";
   if (diff === 1) return "Mañana";
-  return d.toLocaleDateString("en-US", { timeZone: NY, weekday: "short", month: "short", day: "numeric" });
+  // Spanish locale so the fallback matches "Hoy"/"Mañana" instead of mixing in
+  // an English "Sat, Jul 26" in the same column.
+  return d.toLocaleDateString("es-ES", { timeZone: NY, weekday: "short", month: "short", day: "numeric" });
 }
 
 function timeLabel(iso: string): string {
@@ -29,12 +31,16 @@ function timeLabel(iso: string): string {
 
 interface Props {
   showings: DashboardLive["next_showings"] | undefined;
+  /** True total of upcoming showings (next_showings is capped at 6) — drives
+   *  the header badge so it agrees with the "próximos" KPI shown above. */
+  upcoming?: number;
   loading?: boolean;
 }
 
-export const NextShowingsWidget: React.FC<Props> = ({ showings, loading }) => {
+export const NextShowingsWidget: React.FC<Props> = ({ showings, upcoming, loading }) => {
   const navigate = useNavigate();
   const list = (showings ?? []).slice(0, 5);
+  const badgeCount = upcoming ?? list.length;
 
   return (
     <Card variant="glass">
@@ -44,8 +50,8 @@ export const NextShowingsWidget: React.FC<Props> = ({ showings, loading }) => {
             <Calendar className="h-4 w-4 text-amber-500" />
           </span>
           Próximos showings
-          {!loading && list.length > 0 && (
-            <Badge variant="secondary" className="text-xs">{list.length}</Badge>
+          {!loading && badgeCount > 0 && (
+            <Badge variant="secondary" className="text-xs">{badgeCount}</Badge>
           )}
         </CardTitle>
         <Button variant="ghost" size="sm" onClick={() => navigate("/showings")}>

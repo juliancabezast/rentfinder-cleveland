@@ -80,11 +80,15 @@ serve(async (req: Request) => {
       // Force the caller's own org — ignore any body-supplied organization_id.
       organization_id = callerRec.organization_id;
     }
+    // A validated user JWT = a HUMAN sender; the service-role key = automation
+    // (other edge functions / agent tasks). Used below for the human-takeover
+    // exemption in the compliance gate.
+    const isHumanSender = !isServiceRole;
 
     // ── Get lead info ──────────────────────────────────────────────
     const { data: lead, error: leadErr } = await supabase
       .from("leads")
-      .select("id, phone, email, full_name, sms_consent, call_consent")
+      .select("id, phone, email, full_name, sms_consent, call_consent, whatsapp_consent")
       .eq("id", lead_id)
       .eq("organization_id", organization_id)
       .single();
@@ -107,26 +111,43 @@ serve(async (req: Request) => {
       const { data: compliance, error: complianceErr } = await supabase.rpc(
         "joseph_compliance_check",
         {
+          // WhatsApp is checked as "sms" — joseph has no whatsapp branch, and
+          // "sms" enforces the shared DNC / sms_consent / TCPA-hours gates.
+          // whatsapp_consent itself is enforced explicitly below (server-side).
           p_organization_id: organization_id,
           p_lead_id: lead_id,
           p_action_type: channel === "email" ? "email" : "sms",
-          p_agent_key: "manual",
+          p_agent_key: isHumanSender ? "manual" : "automation",
         }
       );
       if (complianceErr) throw complianceErr;
 
       if (compliance?.passed === false) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Compliance check failed — contact is not permitted for this lead.",
-            violations: compliance?.violations ?? [],
-          }),
-          {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+        // Human-takeover exemption: an authenticated HUMAN sender may message a
+        // human-controlled lead — taking control makes them responsible for the
+        // lead's communications (HumanTakeoverModal), so the HUMAN_CONTROLLED
+        // block only applies to AUTOMATED callers. Every other blocking
+        // violation (DNC, consent, TCPA hours/days) still blocks humans too.
+        const violations: Array<{ code?: string; severity?: string }> =
+          Array.isArray(compliance?.violations) ? compliance.violations : [];
+        const hardViolations = violations.filter(
+          (v) =>
+            v?.severity !== "warning" &&
+            !(isHumanSender && v?.code === "HUMAN_CONTROLLED")
         );
+        if (hardViolations.length > 0) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "Compliance check failed — contact is not permitted for this lead.",
+              violations: hardViolations,
+            }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
       }
     } catch (complianceErr) {
       // Fail CLOSED: if the compliance gate cannot run, do NOT send.
@@ -151,6 +172,7 @@ serve(async (req: Request) => {
       .single();
 
     let messageId: string | null = null;
+    let emailQueued = false; // email path returns queued:true (drained later)
 
     if (channel === "sms" || channel === "whatsapp") {
       if (!lead.phone) {
@@ -158,6 +180,21 @@ serve(async (req: Request) => {
           JSON.stringify({ success: false, error: "Lead has no phone number" }),
           {
             status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Channel-specific consent at the trust boundary: the UI also checks
+      // whatsapp_consent, but a direct API call must not bypass it (TCPA).
+      if (channel === "whatsapp" && !lead.whatsapp_consent) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Lead has not consented to WhatsApp messages.",
+          }),
+          {
+            status: 403,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
@@ -239,13 +276,20 @@ serve(async (req: Request) => {
         );
       }
 
-      // Send via our email function
-      const { data: emailData, error: emailErr } =
-        await supabase.functions.invoke("send-notification-email", {
-          body: {
-            to: lead.email,
-            subject: "Message from Rent Finder Cleveland",
-            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+      // Send via our email function. Use a RAW fetch with the service-role
+      // Bearer (project rule: edge→edge through a service-role gate must NOT go
+      // via functions.invoke, which puts the key in `apikey` — the exact bug
+      // that 401'd confirmations for 7 days in the 2026-07-10 outage).
+      const emailResp = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({
+          to: lead.email,
+          subject: "Message from Rent Finder Cleveland",
+          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
               <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
                 <h1 style="margin:0;color:#ffb22c;font-size:20px;">Rent Finder Cleveland</h1>
               </div>
@@ -256,16 +300,22 @@ serve(async (req: Request) => {
                 <p style="color:#666;font-size:14px;">— Rent Finder Cleveland</p>
               </div>
             </div>`,
-            notification_type: "manual_message",
-            organization_id,
-            related_entity_id: lead_id,
-            related_entity_type: "lead",
-            queue: true,
-          },
-        });
+          notification_type: "manual_message",
+          organization_id,
+          related_entity_id: lead_id,
+          related_entity_type: "lead",
+          queue: true,
+        }),
+      });
 
-      if (emailErr) throw emailErr;
-      messageId = emailData?.resend_email_id || "sent";
+      const emailData = await emailResp.json().catch(() => ({}));
+      if (!emailResp.ok) {
+        throw new Error(emailData?.error || `Email send failed (HTTP ${emailResp.status})`);
+      }
+      // queue:true → the email is enqueued, not yet delivered. Record that state
+      // distinctly instead of pretending it was sent.
+      emailQueued = emailData?.queued === true || !emailData?.resend_email_id;
+      messageId = emailData?.resend_email_id || null;
     } else {
       return new Response(
         JSON.stringify({
@@ -279,23 +329,31 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Log message to messages table ──────────────────────────────
-    await supabase.from("messages").insert({
+    // ── Log message to the communications table ────────────────────
+    // (The old target `messages` never existed, so every outbound touch was
+    // lost silently — the whole app reads history from `communications`.)
+    // Email sent with queue:true is recorded as "queued", not "sent".
+    const commStatus = channel === "email" ? (emailQueued ? "queued" : "sent") : "sent";
+    const { error: commErr } = await supabase.from("communications").insert({
       organization_id,
       lead_id,
       direction: "outbound",
       channel,
+      recipient: channel === "email" ? lead.email : lead.phone,
+      subject: channel === "email" ? "Message from Rent Finder Cleveland" : null,
       body: messageBody,
-      external_id: messageId,
-      status: "sent",
-      sent_at: new Date().toISOString(),
+      status: commStatus,
+      twilio_message_sid: channel === "email" ? null : messageId,
+      sent_at: commStatus === "sent" ? new Date().toISOString() : null,
     });
+    if (commErr) console.error("communications insert failed:", commErr);
 
     // ── Update lead contact timestamp ──────────────────────────────
     await supabase
       .from("leads")
       .update({
         last_contact_at: new Date().toISOString(),
+        last_contact_channel: channel, // "sms" | "whatsapp" | "email" — the medium of this outbound touch
         updated_at: new Date().toISOString(),
       })
       .eq("id", lead_id);

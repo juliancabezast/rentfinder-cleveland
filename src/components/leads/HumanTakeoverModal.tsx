@@ -39,20 +39,19 @@ export const HumanTakeoverModal: React.FC<HumanTakeoverModalProps> = ({
   const isValid = reason.length >= 20 && confirmed;
 
   const handleSubmit = async () => {
-    if (!isValid || !userRecord) return;
+    if (!isValid || !userRecord?.organization_id) return;
 
     setLoading(true);
     try {
-      // Call the pause_lead_agent_tasks function
+      // Call the pause_lead_agent_tasks function — fatal on failure so we never
+      // flag the lead as controlled while its tasks are still 'pending'
       const { error: pauseError } = await supabase.rpc("pause_lead_agent_tasks", {
         _lead_id: leadId,
         _reason: reason,
         _user_id: userRecord.id,
       });
 
-      if (pauseError) {
-        console.error("Error pausing tasks:", pauseError);
-      }
+      if (pauseError) throw pauseError;
 
       // Update the lead record
       const { error: updateError } = await supabase
@@ -63,7 +62,8 @@ export const HumanTakeoverModal: React.FC<HumanTakeoverModalProps> = ({
           human_controlled_at: new Date().toISOString(),
           human_control_reason: reason,
         })
-        .eq("id", leadId);
+        .eq("id", leadId)
+        .eq("organization_id", userRecord.organization_id);
 
       if (updateError) throw updateError;
 
@@ -101,7 +101,7 @@ export const HumanTakeoverModal: React.FC<HumanTakeoverModalProps> = ({
           <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive">
             <p className="font-medium">What happens when you take control:</p>
             <ul className="mt-2 list-disc pl-4 space-y-1">
-              <li>All scheduled AI calls will be paused</li>
+              <li>All scheduled agent tasks will be paused</li>
               <li>Automated SMS/email follow-ups will stop</li>
               <li>You become responsible for all communications</li>
               <li>The lead will be marked with a "Human Controlled" badge</li>

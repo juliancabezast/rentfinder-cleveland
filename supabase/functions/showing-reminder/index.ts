@@ -36,6 +36,15 @@ function formatDateShort(dateStr: string): string {
   });
 }
 
+// Escape lead-supplied strings (full_name, address, email…) before building a
+// parse_mode:HTML message. Without this a lead whose name/address contains '<'
+// (e.g. "<3", pasted markup, a malicious form submission) makes Telegram reject
+// the whole sendMessage → the 30-min reminder silently never fires and the cron
+// retries until the window passes (no-show risk + HTML-injection into the chat).
+function escapeHtml(v: unknown): string {
+  return String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 // N Cleveland days ahead at 09:00, as UTC ISO. DST-safe: 9 AM is well past the
 // 2 AM switch, so the noon-sampled offset of that date is always correct.
 function plusDays9amET(days: number): string {
@@ -443,20 +452,22 @@ serve(async (req: Request) => {
           `${prop?.address || ""}, ${prop?.city || ""}, ${prop?.state || ""} ${prop?.zip_code || ""}`
         );
 
+        // Escape every lead/property-supplied value — see escapeHtml note above.
+        const telHref = encodeURIComponent(String(leadPhone)).replace(/'/g, "%27");
         const msg = [
           `⏰ <b>Showing in 30 min!</b>`,
           ``,
-          `📍 <b>${fullAddr}</b>`,
-          specs ? `🏠 ${specs}` : "",
+          `📍 <b>${escapeHtml(fullAddr)}</b>`,
+          specs ? `🏠 ${escapeHtml(specs)}` : "",
           s8 || "",
           `📅 ${dateStr} at ${timeStr}`,
           ``,
-          `👤 <b>${leadName}</b>${voucher ? ` — ${voucher}` : ""}`,
-          `📞 ${leadPhone}`,
-          leadEmail ? `✉️ ${leadEmail}` : "",
+          `👤 <b>${escapeHtml(leadName)}</b>${voucher ? ` — ${voucher}` : ""}`,
+          `📞 ${escapeHtml(leadPhone)}`,
+          leadEmail ? `✉️ ${escapeHtml(leadEmail)}` : "",
           ``,
           `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Navigate with Google Maps</a>`,
-          `📱 <a href="tel:${leadPhone}">Call ${leadName.split(" ")[0]}</a>`,
+          `📱 <a href="tel:${telHref}">Call ${escapeHtml(leadName.split(" ")[0])}</a>`,
         ]
           .filter(Boolean)
           .join("\n");

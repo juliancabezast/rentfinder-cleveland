@@ -88,6 +88,31 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // ── Optional shared-secret gate ───────────────────────────────────────────
+  // This endpoint is deployed --no-verify-jwt and the cron posts without a
+  // bearer, so it is world-invokable: an attacker can hammer it, and because
+  // claim_queued_emails uses FOR UPDATE SKIP LOCKED, N parallel calls claim N
+  // disjoint batches, blow past the Resend rate limit, exhaust attempt_number,
+  // and permanently fail queued transactional mail. When PROCESS_QUEUE_SECRET
+  // is set we require it (x-queue-secret header) or a service-role Bearer;
+  // when unset the gate is a no-op so the existing header-less cron keeps
+  // draining. To lock it down: set PROCESS_QUEUE_SECRET and add the header to
+  // the cron command.
+  {
+    const gateSecret = Deno.env.get("PROCESS_QUEUE_SECRET") || "";
+    if (gateSecret) {
+      const provided = req.headers.get("x-queue-secret") || "";
+      const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      if (provided !== gateSecret && !(serviceKey && bearer === serviceKey)) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -244,6 +269,48 @@ serve(async (req: Request) => {
         }
       }
 
+      // ── Marketing consent / unsubscribe suppression ──────────────────
+      // Campaign rows are queued via direct SQL (INSERT…SELECT), bypassing the
+      // queue-time gate in send-notification-email. This drain is the only
+      // chokepoint ALL queued mail flows through, so enforce unsubscribe +
+      // marketing-consent here for marketing rows (CAN-SPAM). Batch-fetch the
+      // targeted leads (by lead_id, plus recipient email as a fallback) and
+      // suppress any that opted out.
+      const mktLeadIds = new Set<string>();
+      const mktRecipients = new Set<string>();
+      for (const e of queued) {
+        if (!isMarketingEmail(e.details)) continue;
+        const lid = e.details?.related_entity_type === "lead"
+          ? (e.details?.related_entity_id as string | undefined)
+          : undefined;
+        if (lid) mktLeadIds.add(lid);
+        if (e.recipient_email) mktRecipients.add(e.recipient_email);
+      }
+      const unsubLeadIds = new Set<string>();
+      const unsubEmails = new Set<string>();
+      const isOptedOut = (r: { unsubscribed_at?: unknown; email_marketing_consent?: unknown }) =>
+        r.unsubscribed_at != null || r.email_marketing_consent === false;
+      if (mktLeadIds.size > 0) {
+        const { data: leadRows } = await supabase
+          .from("leads")
+          .select("id, unsubscribed_at, email_marketing_consent")
+          .eq("organization_id", org.id)
+          .in("id", Array.from(mktLeadIds));
+        for (const r of (leadRows as Array<Record<string, unknown>> | null) || []) {
+          if (isOptedOut(r)) unsubLeadIds.add(r.id as string);
+        }
+      }
+      if (mktRecipients.size > 0) {
+        const { data: emailRows } = await supabase
+          .from("leads")
+          .select("email, unsubscribed_at, email_marketing_consent")
+          .eq("organization_id", org.id)
+          .in("email", Array.from(mktRecipients));
+        for (const r of (emailRows as Array<Record<string, unknown>> | null) || []) {
+          if (r.email && isOptedOut(r)) unsubEmails.add(String(r.email).toLowerCase().trim());
+        }
+      }
+
       for (const email of queued) {
         // Skip emails belonging to a paused campaign — re-queue them as-is
         // so they sit in queued status until the campaign resumes.
@@ -273,6 +340,29 @@ serve(async (req: Request) => {
             .eq("id", email.id);
           suppressed++;
           continue;
+        }
+
+        // Suppress marketing mail to leads who unsubscribed or lack marketing
+        // consent. Terminal status ("suppressed") — never re-claimed. (CAN-SPAM)
+        if (isMarketingEmail(email.details)) {
+          const lid = email.details?.related_entity_type === "lead"
+            ? (email.details?.related_entity_id as string | undefined)
+            : undefined;
+          if ((lid && unsubLeadIds.has(lid)) || (rcptKey && unsubEmails.has(rcptKey))) {
+            await supabase
+              .from("email_events")
+              .update({
+                details: {
+                  ...email.details,
+                  status: "suppressed",
+                  error: "Recipient unsubscribed / no marketing consent — suppressed (CAN-SPAM)",
+                  suppressed_at: new Date().toISOString(),
+                },
+              })
+              .eq("id", email.id);
+            suppressed++;
+            continue;
+          }
         }
 
         // Read attempt limits explicitly — the claim RPC may not project these

@@ -23,9 +23,7 @@ import {
   DollarSign,
   BedDouble,
   Bath,
-  Phone,
   Mail,
-  Target,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,7 +56,6 @@ export const DataHealthDashboard: React.FC = () => {
   const [leadFindings, setLeadFindings] = useState<Finding[]>([]);
   const [staleFindings, setStaleFindings] = useState<Finding[]>([]);
   const [duplicateFindings, setDuplicateFindings] = useState<Finding[]>([]);
-  const [scoreFindings, setScoreFindings] = useState<Finding[]>([]);
   const [loading, setLoading] = useState(true);
 
   const runChecks = useCallback(async () => {
@@ -75,7 +72,7 @@ export const DataHealthDashboard: React.FC = () => {
           .in("status", ["available", "coming_soon"]),
         supabase
           .from("leads")
-          .select("id, full_name, phone, email, lead_score, status, last_contact_at, updated_at, created_at")
+          .select("id, full_name, phone, email, status, last_contact_at, updated_at, created_at")
           .eq("organization_id", orgId)
           .neq("status", "lost"),
       ]);
@@ -194,24 +191,6 @@ export const DataHealthDashboard: React.FC = () => {
       });
       setDuplicateFindings(dupes);
 
-      // ── Off-ladder scores (milestone domain is {0,10,50,80,100}) ──
-      const MILESTONE_DOMAIN = new Set([0, 10, 50, 80, 100]);
-      const stuck: Finding[] = [];
-      leads.forEach((l) => {
-        if (l.lead_score != null && !MILESTONE_DOMAIN.has(l.lead_score)) {
-          stuck.push({
-            id: l.id,
-            type: "lead",
-            severity: "warning",
-            icon: <Target className="h-4 w-4" />,
-            title: l.full_name || l.phone || "Unknown",
-            description: `Off-ladder score ${l.lead_score} (milestone domain is 0/10/50/80/100) — a stray writer bypassed the engine`,
-            link: `/leads/${l.id}`,
-          });
-        }
-      });
-      setScoreFindings(stuck);
-
       setLastChecked(new Date());
     } catch (error) {
       console.error("Data health check error:", error);
@@ -231,8 +210,8 @@ export const DataHealthDashboard: React.FC = () => {
     setRefreshing(false);
   };
 
-  const totalIssues = propertyFindings.length + leadFindings.length + staleFindings.length + duplicateFindings.length + scoreFindings.length;
-  const errorCount = [propertyFindings, leadFindings, staleFindings, duplicateFindings, scoreFindings]
+  const totalIssues = propertyFindings.length + leadFindings.length + staleFindings.length + duplicateFindings.length;
+  const errorCount = [propertyFindings, leadFindings, staleFindings, duplicateFindings]
     .flat()
     .filter((f) => f.severity === "error").length;
 
@@ -259,12 +238,6 @@ export const DataHealthDashboard: React.FC = () => {
       label: "Duplicate Leads",
       icon: <Copy className="h-4 w-4" />,
       findings: duplicateFindings,
-      loading,
-    },
-    {
-      label: "Score Stuck at Default (50)",
-      icon: <Target className="h-4 w-4" />,
-      findings: scoreFindings,
       loading,
     },
   ];

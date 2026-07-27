@@ -40,6 +40,25 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Optional shared-secret gate (see process-email-queue). Deployed
+  // --no-verify-jwt with a header-less cron, so world-invokable by default.
+  // When PROCESS_QUEUE_SECRET is set we require it (x-queue-secret header) or a
+  // service-role Bearer; unset = no-op so the existing cron keeps working.
+  {
+    const gateSecret = Deno.env.get("PROCESS_QUEUE_SECRET") || "";
+    if (gateSecret) {
+      const provided = req.headers.get("x-queue-secret") || "";
+      const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+      const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      if (provided !== gateSecret && !(svcKey && bearer === svcKey)) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -288,13 +307,21 @@ async function syncOneOrg(
       updated += chunk.length;
     }
 
-    // Bulk-insert net-new rows in chunks of 100
+    // Bulk-insert net-new rows in chunks of 100. If a chunk fails (usually a
+    // single row raced process-email-queue stamping resend_email_id between our
+    // lookup and this insert → hits the partial unique index and rolls back the
+    // WHOLE statement), fall back to per-row inserts so only the truly-duplicate
+    // rows are dropped and the rest still land.
     for (let i = 0; i < toInsert.length; i += 100) {
       const chunk = toInsert.slice(i, i + 100);
       const { error: insertErr } = await supabase.from("email_events").insert(chunk);
       if (insertErr) {
-        skipped += chunk.length;
-        console.warn(`Insert chunk ${i}-${i + chunk.length} failed:`, insertErr.message);
+        console.warn(`Insert chunk ${i}-${i + chunk.length} failed (${insertErr.message}); retrying per-row`);
+        for (const row of chunk) {
+          const { error: rowErr } = await supabase.from("email_events").insert(row);
+          if (rowErr) skipped += 1;
+          else created += 1;
+        }
       } else {
         created += chunk.length;
       }

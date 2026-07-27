@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { DoorOpen, ExternalLink, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import {
   Tooltip,
@@ -22,24 +23,27 @@ export const DoorloopStatusBadge: React.FC<DoorloopStatusBadgeProps> = ({
   doorloopProspectId,
   showLastSync = true,
 }) => {
+  const { userRecord } = useAuth();
+
   // Fetch last sync timestamp if enabled
   const { data: lastSync } = useQuery({
-    queryKey: ["doorloop-sync", leadId],
+    queryKey: ["doorloop-sync", leadId, userRecord?.organization_id],
     queryFn: async () => {
       if (!showLastSync) return null;
-      
+
       const { data } = await supabase
         .from("doorloop_sync_log")
         .select("created_at, action_taken, status")
         .eq("local_id", leadId)
+        .eq("organization_id", userRecord!.organization_id)
         .eq("status", "success")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      
+
       return data;
     },
-    enabled: showLastSync && !!doorloopProspectId,
+    enabled: showLastSync && !!doorloopProspectId && !!userRecord?.organization_id,
     staleTime: 60000, // 1 minute
   });
 

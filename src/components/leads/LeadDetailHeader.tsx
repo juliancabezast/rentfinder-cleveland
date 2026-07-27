@@ -22,6 +22,8 @@ import {
   Edit,
   AlertTriangle,
   Loader2,
+  Mail,
+  Phone,
   Sparkles,
   Building2,
   StickyNote,
@@ -32,7 +34,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import { DoorloopStatusBadge } from "./DoorloopStatusBadge";
 import { LeadTagChips } from "./LeadTagChips";
@@ -44,10 +45,9 @@ interface LeadDetailHeaderProps {
     full_name?: string | null;
     first_name?: string | null;
     last_name?: string | null;
-    phone: string;
+    phone: string | null;
     email?: string | null;
     status: string;
-    lead_score?: number | null;
     is_human_controlled?: boolean;
     doorloop_prospect_id?: string | null;
     ai_brief?: string | null;
@@ -58,7 +58,6 @@ interface LeadDetailHeaderProps {
     budget_min?: number | null;
     budget_max?: number | null;
     move_in_date?: string | null;
-    bedrooms_needed?: number | null;
     has_voucher?: boolean | null;
     voucher_amount?: number | null;
     housing_authority?: string | null;
@@ -79,58 +78,29 @@ interface LeadDetailHeaderProps {
   onPropertyMatched?: () => void;
   notesCount?: number;
   onNotesClick?: () => void;
+  /** True while the delete edge function is running — disables the delete controls. */
+  deleting?: boolean;
 }
 
+// Keep in sync with the canonical LEAD_SOURCES list (LeadsList/LeadForm)
 const SOURCE_LABELS: Record<string, string> = {
   inbound_call: "Inbound Call",
   web_form: "Web Form",
+  website: "Website",
   referral: "Referral",
   zillow: "Zillow",
   craigslist: "Craigslist",
   walk_in: "Walk-in",
   hemlane: "Hemlane",
+  hemlane_email: "Hemlane Email",
+  sms: "SMS",
+  csv_import: "CSV Import",
   manual: "Manual Entry",
   campaign: "Campaign",
 };
 
-// Small score circle (40px)
-const SmallScoreCircle: React.FC<{ score: number }> = ({ score }) => {
-  const getColor = (s: number) => {
-    if (s <= 30) return { ring: "stroke-red-500", text: "text-red-600", bg: "bg-red-50" };
-    if (s <= 50) return { ring: "stroke-amber-500", text: "text-amber-600", bg: "bg-amber-50" };
-    if (s <= 70) return { ring: "stroke-green-500", text: "text-green-600", bg: "bg-green-50" };
-    return { ring: "stroke-emerald-500", text: "text-emerald-600", bg: "bg-emerald-50" };
-  };
-
-  const colors = getColor(score);
-  const circumference = 2 * Math.PI * 16;
-  const progress = (score / 100) * circumference;
-
-  return (
-    <div className="relative w-10 h-10 shrink-0">
-      <svg className="transform -rotate-90" width={40} height={40}>
-        <circle cx={20} cy={20} r={16} fill="none" stroke="#e5e7eb" strokeWidth="3" />
-        <circle
-          cx={20}
-          cy={20}
-          r={16}
-          fill="none"
-          strokeWidth="3"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference - progress}
-          strokeLinecap="round"
-          className={colors.ring}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className={cn("text-xs font-bold", colors.text)}>{score}</span>
-      </div>
-    </div>
-  );
-};
-
-// Standard button styling
-const headerButtonClass = "bg-white border border-[#d1d5db] text-[#374151] hover:bg-[#f3f4f6] h-9";
+// Standard button styling — design tokens so it tracks the theme (not opaque hex)
+const headerButtonClass = "bg-background border border-input text-foreground hover:bg-muted h-9";
 
 export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   lead,
@@ -144,6 +114,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
   onPropertyMatched,
   notesCount = 0,
   onNotesClick,
+  deleting = false,
 }) => {
   const { userRecord } = useAuth();
   const [generatingBrief, setGeneratingBrief] = useState(false);
@@ -284,7 +255,10 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
 
   const formatMoveIn = () => {
     if (!lead.move_in_date) return null;
-    return new Date(lead.move_in_date).toLocaleDateString("en-US", {
+    // move_in_date is a DATE column ("YYYY-MM-DD"); parse as local time so the
+    // displayed day never shifts (new Date("YYYY-MM-DD") parses as UTC midnight)
+    const [y, m, d] = lead.move_in_date.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     });
@@ -297,25 +271,56 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
     { label: "Source", value: SOURCE_LABELS[lead.source || ""] || lead.source },
     { label: "Budget", value: formatBudget() },
     { label: "Move-in", value: formatMoveIn() },
-    { label: "Bedrooms", value: lead.bedrooms_needed ? `${lead.bedrooms_needed} BR` : null },
     { label: "Voucher", value: lead.has_voucher ? (lead.voucher_amount ? `$${lead.voucher_amount.toLocaleString()}` : "Yes") : null },
     { label: "Authority", value: lead.has_voucher && lead.housing_authority ? lead.housing_authority : null },
   ].filter(f => f.value);
 
   return (
     <>
-      <div className="bg-[#ffffff] border border-[#e5e7eb] rounded-lg p-4 space-y-3">
-        {/* Row 1: Name, badges, score, and actions */}
+      <div className="glass-card rounded-2xl p-4 space-y-3">
+        {/* Row 1: Name, badges, contact info, and actions */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          {/* Left: Name + badges + score */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-bold text-foreground">{leadName}</h1>
-            <LeadStatusBadge status={lead.status} />
-            <DoorloopStatusBadge
-              leadId={lead.id}
-              doorloopProspectId={lead.doorloop_prospect_id}
-            />
-            <SmallScoreCircle score={lead.lead_score ?? 0} />
+          {/* Left: Name + badges + contact */}
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-bold text-foreground">{leadName}</h1>
+              <LeadStatusBadge status={lead.status} />
+              <DoorloopStatusBadge
+                leadId={lead.id}
+                doorloopProspectId={lead.doorloop_prospect_id}
+              />
+            </div>
+            {/* Contact info — clickable phone + email */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              {lead.phone ? (
+                <a
+                  href={`tel:${lead.phone}`}
+                  className="flex items-center gap-1.5 font-medium text-primary hover:underline"
+                >
+                  <Phone className="h-4 w-4 shrink-0" />
+                  {lead.phone}
+                </a>
+              ) : (
+                <span className="flex items-center gap-1.5 text-muted-foreground italic">
+                  <Phone className="h-4 w-4 shrink-0" />
+                  No phone
+                </span>
+              )}
+              {lead.email ? (
+                <a
+                  href={`mailto:${lead.email}`}
+                  className="flex items-center gap-1.5 font-medium text-primary hover:underline min-w-0"
+                >
+                  <Mail className="h-4 w-4 shrink-0" />
+                  <span className="truncate max-w-[280px]">{lead.email}</span>
+                </a>
+              ) : (
+                <span className="flex items-center gap-1.5 text-muted-foreground italic">
+                  <Mail className="h-4 w-4 shrink-0" />
+                  No email
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Right: Action buttons - all same style */}
@@ -347,7 +352,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={onTakeControl}
-                className="bg-white border-[#ef4444] text-[#ef4444] hover:bg-red-50 h-9"
+                className="bg-background border-destructive text-destructive hover:bg-destructive/10 h-9"
               >
                 <AlertTriangle className="mr-2 h-4 w-4" />
                 Take Control
@@ -358,9 +363,14 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setDeleteOpen(true)}
-                className="bg-white border-[#ef4444] text-[#ef4444] hover:bg-red-50 h-9"
+                disabled={deleting}
+                className="bg-background border-destructive text-destructive hover:bg-destructive/10 h-9"
               >
-                <Trash2 className="mr-2 h-4 w-4" />
+                {deleting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
                 Delete
               </Button>
             )}
@@ -368,7 +378,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
         </div>
 
         {/* Row 2: Property-interest tags + AI Brief */}
-        <div className="flex flex-col lg:flex-row lg:items-start gap-4 pt-2 border-t border-[#e5e7eb]">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-4 pt-2 border-t border-border">
           {/* Left: property tags (flat — every property the lead ever asked about) */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2 text-sm">
@@ -496,7 +506,7 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
 
         {/* Row 3: Profile fields inline */}
         {profileFields.length > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 border-t border-[#e5e7eb]">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 border-t border-border">
             {profileFields.map((field, i) => (
               <div key={i} className="text-xs">
                 <span className="text-muted-foreground">{field.label}:</span>{" "}
@@ -513,15 +523,17 @@ export const LeadDetailHeader: React.FC<LeadDetailHeaderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Lead</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete <strong>{leadName}</strong>? This will remove the lead and all associated data (showings, tasks, score history). This action cannot be undone.
+              Are you sure you want to permanently delete <strong>{leadName}</strong>? This will remove the lead and all associated data (showings, tasks, messages). This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => { setDeleteOpen(false); onDelete(); }}
-              className="bg-[#ef4444] hover:bg-[#dc2626] text-white"
+              disabled={deleting}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete Lead
             </AlertDialogAction>
           </AlertDialogFooter>

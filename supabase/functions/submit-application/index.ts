@@ -9,12 +9,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // creates/finds a lead and returns its id, and every later step complements the
 // SAME lead — so a visitor who drops off after step 1 is still captured and not
 // lost. Only the FINAL step promotes the lead to `in_application` (the app's
-// "Applicants" queue) and logs the $50-fee + privacy/terms acknowledgment.
+// "Applicants" queue) and logs the $59.90-fee + privacy/terms acknowledgment.
 //
 // A separate `quiz` action lets the confirmation page enrich the lead one answer
 // at a time (each click persists independently).
 //
-// NOTE: no payment is collected here. The $50 fee is only *acknowledged*; the
+// NOTE: no payment is collected here. The $59.90 fee is only *acknowledged*; the
 // team collects it later. This function never sees card/bank data.
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -88,9 +88,9 @@ function buildIntakeNote(lead: Record<string, any>, prefs: Record<string, any>):
   if (prefs.income_source) lines.push(`• Income source: ${prefs.income_source}`);
   if (prefs.move_urgency) lines.push(`• Timeline: ${prefs.move_urgency}`);
   if (prefs.fee_acknowledged) {
-    lines.push(`• ✅ Acknowledged $50 non-refundable application fee + Privacy/Terms`);
+    lines.push(`• ✅ Acknowledged $59.90 non-refundable screening fee (TransUnion) + Privacy/Terms`);
   }
-  lines.push(`⚠️ Not a formal application until the $50 fee is paid. Needs ID + last 3 paystubs (income 3× rent).`);
+  lines.push(`⚠️ Not a formal application until the $59.90 screening fee is paid. Needs ID + last 3 paystubs (income 3× rent).`);
   return lines.join("\n");
 }
 
@@ -305,7 +305,7 @@ serve(async (req: Request) => {
     // ── Load the current lead so we merge (never blank out) existing data ───
     const { data: lead } = await supabase
       .from("leads")
-      .select("id, organization_id, full_name, email, has_voucher, housing_authority, move_in_date, budget_min, budget_max, intake_preferences, status")
+      .select("id, organization_id, full_name, email, has_voucher, housing_authority, move_in_date, budget_min, budget_max, intake_preferences, status, applied_at")
       .eq("id", leadId)
       .eq("organization_id", orgId)
       .maybeSingle();
@@ -326,8 +326,9 @@ serve(async (req: Request) => {
       update.first_name = first || null;
       update.last_name = last || null;
     }
-    if (email && !lead.email) update.email = email; // don't clobber a good email
-    else if (email) update.email = email;
+    // Don't clobber an email already on file (matches the noah dedup merge rule
+    // COALESCE(existing, new) — an import/earlier step keeps its good email).
+    if (email && !lead.email) update.email = email;
     if (hasVoucher !== undefined) update.has_voucher = hasVoucher;
     if (housingAuthority) update.housing_authority = housingAuthority;
     if (moveInDate) update.move_in_date = moveInDate;
@@ -347,10 +348,12 @@ serve(async (req: Request) => {
     if (isFinal) {
       nextPrefs.fee_acknowledged = true;
       update.intake_preferences = nextPrefs;
-      // Scoring/priority handled by the DB milestone engine on this status
-      // change (aplicó = 100 + is_priority).
       update.status = "in_application";
       update.stage = "lead";
+      // Applicant tag: stamp once (never overwrite an earlier application date).
+      // Every applicant surface (dashboard, Applicant filter, Leasing Tracker)
+      // keys off applied_at, so the live writer must set it, not just status.
+      if (!lead.applied_at) update.applied_at = new Date().toISOString();
 
       // Optional SMS/TCPA consent (NOT required to apply)
       const consent = body.consent;
@@ -367,13 +370,27 @@ serve(async (req: Request) => {
         return json({ error: "Could not submit your application. Please try again." }, 500);
       }
 
-      // ── Consent log: $50 fee + Privacy/Terms acknowledgment (REQUIRED) ────
+      // ── Leasing Tracker: typed activity row for the application event ────────
+      // Best-effort (never fails the submit); keeps the tracker in sync with the
+      // applied_at stamp above.
+      {
+        const { error: activityErr } = await supabase.from("leasing_activity").insert({
+          organization_id: orgId,
+          lead_id: leadId,
+          property_id: propertyId || null,
+          action: "application_generated",
+          source: "web_form",
+        });
+        if (activityErr) console.error("leasing_activity insert error:", activityErr);
+      }
+
+      // ── Consent log: $59.90 fee + Privacy/Terms acknowledgment (REQUIRED) ────
       const feeAck = body.fee_ack || {};
       const ip = clientIp(req);
       const ua = clampStr(body.user_agent, 400) || req.headers.get("user-agent");
       const feeEvidence =
-        `Applicant acknowledged a $50 non-refundable application fee per household and agreed to the ` +
-        `Privacy Policy and Terms of Service (v${clampStr(feeAck.version, 12) || "1.0"}) via web form` +
+        `Applicant acknowledged a $59.90 non-refundable screening fee, paid directly to TransUnion, and agreed to the ` +
+        `Privacy Policy and Terms of Service (v${clampStr(feeAck.version, 12) || "1.1"}) via web form` +
         `${feeAck.source_url ? ` at ${clampStr(feeAck.source_url, 300)}` : ""} on ${new Date().toISOString()}.` +
         `${feeAck.text ? ` Text shown: "${clampStr(feeAck.text, 600)}"` : ""}`;
 
@@ -480,7 +497,7 @@ serve(async (req: Request) => {
             nextPrefs.move_urgency ? `⏱️ Urgencia: ${esc(nextPrefs.move_urgency)}` : null,
             consent?.sms_consent ? `📱 Consintió SMS/llamadas ✅` : `📱 Sin consentimiento SMS`,
             ``,
-            `⚠️ No es formal hasta pagar el fee de $50 · Necesita ID + 3 paystubs (3× renta).`,
+            `⚠️ No es formal hasta pagar el fee de $59.90 (TransUnion) · Necesita ID + 3 paystubs (3× renta).`,
             `➡️ Ya está en Applicants.`,
           ].filter((l) => l !== null).join("\n");
           await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {

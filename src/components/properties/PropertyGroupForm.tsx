@@ -139,7 +139,8 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
         const { error } = await supabase
           .from("property_groups")
           .update(data)
-          .eq("id", group.id);
+          .eq("id", group.id)
+          .eq("organization_id", organization.id);
         if (error) throw error;
         toast.success("Property updated");
       } else {

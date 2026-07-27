@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { PriorityLeadCard, PriorityLeadCardSkeleton } from "@/components/dashboard/PriorityLeadCard";
+import { AssignedLeadCard, AssignedLeadCardSkeleton } from "@/components/dashboard/AssignedLeadCard";
+import { HumanTakeoverModal } from "@/components/leads/HumanTakeoverModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,7 +15,7 @@ import {
   ChevronRight,
   FileText,
 } from "lucide-react";
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -25,35 +26,11 @@ interface AgentStats {
   assignedLeads: number;
 }
 
-interface TodayShowing {
-  id: string;
-  scheduled_at: string;
-  status: string;
-  duration_minutes: number | null;
-  property: {
-    address: string;
-    unit_number: string | null;
-    city: string;
-    bedrooms: number;
-    bathrooms: number;
-    rent_price: number;
-  } | null;
-  lead: {
-    id: string;
-    full_name: string | null;
-    phone: string;
-    lead_score: number | null;
-    is_priority: boolean | null;
-  } | null;
-}
-
 interface AssignedLead {
   id: string;
   full_name: string | null;
   phone: string;
-  lead_score: number | null;
   status: string;
-  priority_reason: string | null;
   is_human_controlled: boolean | null;
   property_address?: string;
 }
@@ -66,14 +43,36 @@ interface RecentReport {
   completed_at: string | null;
 }
 
+// Cleveland day/month windows (DST-aware) — never the browser's local timezone.
+const ORG_TZ = "America/New_York";
+
+function clevelandWindows() {
+  const now = new Date();
+  const clevNow = new Date(now.toLocaleString("en-US", { timeZone: ORG_TZ }));
+  const offset = now.getTime() - clevNow.getTime();
+
+  const dayStart = new Date(clevNow);
+  dayStart.setHours(0, 0, 0, 0);
+  const monthStart = new Date(clevNow.getFullYear(), clevNow.getMonth(), 1);
+  const nextMonthStart = new Date(clevNow.getFullYear(), clevNow.getMonth() + 1, 1);
+
+  return {
+    todayStart: new Date(dayStart.getTime() + offset).toISOString(),
+    todayEnd: new Date(dayStart.getTime() + 86_400_000 - 1 + offset).toISOString(),
+    monthStart: new Date(monthStart.getTime() + offset).toISOString(),
+    monthEnd: new Date(nextMonthStart.getTime() - 1 + offset).toISOString(),
+  };
+}
+
 export const AgentDashboard = () => {
   const { userRecord } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<AgentStats | null>(null);
-  const [todayShowings, setTodayShowings] = useState<TodayShowing[]>([]);
   const [assignedLeads, setAssignedLeads] = useState<AssignedLead[]>([]);
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
+  // Lead pending manual takeover — routes through the canonical HumanTakeoverModal
+  const [takeoverLead, setTakeoverLead] = useState<AssignedLead | null>(null);
 
   const fetchAgentData = useCallback(async () => {
       if (!userRecord?.id || !userRecord?.organization_id) return;
@@ -81,52 +80,60 @@ export const AgentDashboard = () => {
       setLoading(true);
 
       try {
-        const today = new Date();
-        const todayStart = startOfDay(today).toISOString();
-        const todayEnd = endOfDay(today).toISOString();
-        const monthStart = startOfMonth(today).toISOString();
-        const monthEnd = endOfMonth(today).toISOString();
+        const { todayStart, todayEnd, monthStart, monthEnd } = clevelandWindows();
 
         // Fetch all data in parallel
         const [
           showingsTodayResult,
           showingsMonthResult,
           assignedLeadsResult,
+          assignedCountResult,
           recentReportsResult,
         ] = await Promise.all([
-          // Today's showings assigned to this agent
+          // Today's showings assigned to this agent (count only).
+          // Exclude cancelled/no_show/rescheduled + demo rows, matching the
+          // admin dashboard_live() definition — otherwise a day with 3
+          // cancellations + 1 real tour would read "Showings Today: 4".
           supabase
             .from("showings")
-            .select(`
-              id, scheduled_at, status, duration_minutes,
-              properties:property_id (address, unit_number, city, bedrooms, bathrooms, rent_price),
-              leads:lead_id (id, full_name, phone, lead_score, is_priority)
-            `)
+            .select("id", { count: "exact", head: true })
             .eq("organization_id", userRecord.organization_id)
             .eq("leasing_agent_id", userRecord.id)
+            .not("status", "in", '("cancelled","no_show","rescheduled")')
+            .not("is_demo", "is", true)
             .gte("scheduled_at", todayStart)
-            .lte("scheduled_at", todayEnd)
-            .order("scheduled_at", { ascending: true }),
-          // Month's showings for stats
+            .lte("scheduled_at", todayEnd),
+          // Month's showings for stats (same exclusion set as above; "completed"
+          // is still included, so completedThisMonth below is unaffected)
           supabase
             .from("showings")
             .select("id, status")
             .eq("organization_id", userRecord.organization_id)
             .eq("leasing_agent_id", userRecord.id)
+            .not("status", "in", '("cancelled","no_show","rescheduled")')
+            .not("is_demo", "is", true)
             .gte("scheduled_at", monthStart)
             .lte("scheduled_at", monthEnd),
-          // Assigned leads that need attention
+          // Assigned leads that need attention (top 5 for the card list)
           supabase
             .from("leads")
             .select(`
-              id, full_name, phone, lead_score, status, priority_reason, is_human_controlled,
+              id, full_name, phone, status, is_human_controlled,
               lead_property_interests(last_interest_at, properties(address))
             `)
             .eq("organization_id", userRecord.organization_id)
             .eq("assigned_leasing_agent_id", userRecord.id)
             .in("status", ["nurturing", "qualified", "engaged"])
-            .order("lead_score", { ascending: false })
+            .order("created_at", { ascending: false })
             .limit(5),
+          // TOTAL assigned-leads count — the stat must not be capped by the
+          // list's .limit(5)
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", userRecord.organization_id)
+            .eq("assigned_leasing_agent_id", userRecord.id)
+            .in("status", ["nurturing", "qualified", "engaged"]),
           // Recent completed showings with reports
           supabase
             .from("showings")
@@ -149,29 +156,11 @@ export const AgentDashboard = () => {
         ).length;
 
         setStats({
-          showingsToday: showingsTodayResult.data?.length || 0,
+          showingsToday: showingsTodayResult.count || 0,
           showingsThisMonth: showingsMonth.length,
           completedThisMonth,
-          assignedLeads: assignedLeadsResult.data?.length || 0,
+          assignedLeads: assignedCountResult.count || 0,
         });
-
-        // Process today's showings for route card
-        setTodayShowings(
-          (showingsTodayResult.data || []).map((s: any) => ({
-            id: s.id,
-            scheduled_at: s.scheduled_at,
-            status: s.status,
-            duration_minutes: s.duration_minutes,
-            property: s.properties,
-            lead: s.leads ? {
-              id: s.leads.id,
-              full_name: s.leads.full_name,
-              phone: s.leads.phone,
-              lead_score: s.leads.lead_score,
-              is_priority: s.leads.is_priority,
-            } : null,
-          }))
-        );
 
         // Process assigned leads (address = most recent property-interest tag)
         setAssignedLeads(
@@ -184,9 +173,7 @@ export const AgentDashboard = () => {
               id: l.id,
               full_name: l.full_name,
               phone: l.phone,
-              lead_score: l.lead_score,
               status: l.status,
-              priority_reason: l.priority_reason,
               is_human_controlled: l.is_human_controlled,
               property_address: latestTag?.properties?.address,
             };
@@ -216,41 +203,10 @@ export const AgentDashboard = () => {
     fetchAgentData();
   }, [fetchAgentData]);
 
-  // Refresh function for route card — actually re-runs the fetch
-  const refreshShowings = () => {
-    fetchAgentData();
-  };
-
-  const handleGetDirections = (address: string) => {
-    const encoded = encodeURIComponent(address);
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, "_blank");
-  };
-
-  const handleTakeControl = async (leadId: string) => {
-    if (!userRecord) return;
-
-    try {
-      const { error } = await supabase
-        .from("leads")
-        .update({
-          is_human_controlled: true,
-          human_controlled_by: userRecord.id,
-          human_controlled_at: new Date().toISOString(),
-        })
-        .eq("id", leadId);
-
-      if (error) throw error;
-
-      setAssignedLeads((prev) =>
-        prev.map((l) =>
-          l.id === leadId ? { ...l, is_human_controlled: true } : l
-        )
-      );
-      toast.success("You've taken control of this lead");
-    } catch (error) {
-      console.error("Error taking control:", error);
-      toast.error("Failed to take control of lead");
-    }
+  // Open the canonical takeover flow (mandatory 20-char reason + pause RPC)
+  const handleTakeControl = (leadId: string) => {
+    const lead = assignedLeads.find((l) => l.id === leadId);
+    if (lead) setTakeoverLead(lead);
   };
 
   const getInterestBadge = (level: string | null) => {
@@ -330,11 +286,11 @@ export const AgentDashboard = () => {
               <div className="space-y-3">
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <PriorityLeadCardSkeleton key={i} />
+                    <AssignedLeadCardSkeleton key={i} />
                   ))
                 ) : assignedLeads.length > 0 ? (
                   assignedLeads.map((lead) => (
-                    <PriorityLeadCard
+                    <AssignedLeadCard
                       key={lead.id}
                       lead={lead}
                       onTakeControl={handleTakeControl}
@@ -353,8 +309,10 @@ export const AgentDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Reports */}
-        <Card variant="glass" className="lg:col-span-2">
+        {/* Recent Reports — sits beside "Leads Requiring Attention" on lg+
+            (no col-span, so the two cards share the row instead of leaving a
+            blank half-width column next to the leads card) */}
+        <Card variant="glass">
           <CardHeader>
             <CardTitle className="text-lg">Recent Showing Reports</CardTitle>
           </CardHeader>
@@ -404,6 +362,24 @@ export const AgentDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Canonical takeover flow: >=20-char reason + pause_lead_agent_tasks RPC */}
+      {takeoverLead && (
+        <HumanTakeoverModal
+          open={!!takeoverLead}
+          onOpenChange={(open) => { if (!open) setTakeoverLead(null); }}
+          leadId={takeoverLead.id}
+          leadName={takeoverLead.full_name || "Unknown"}
+          onSuccess={() => {
+            setAssignedLeads((prev) =>
+              prev.map((l) =>
+                l.id === takeoverLead.id ? { ...l, is_human_controlled: true } : l
+              )
+            );
+            setTakeoverLead(null);
+          }}
+        />
+      )}
     </div>
   );
 };

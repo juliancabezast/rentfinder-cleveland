@@ -114,7 +114,10 @@ serve(async (req: Request) => {
     // 6. Clean up FK references to showings BEFORE deleting showings
     if (showingIds.length > 0) {
       await Promise.all([
-        safe("slots.booked_showing_id", supabase.from("showing_available_slots").update({ booked_showing_id: null }).in("booked_showing_id", showingIds)),
+        // Fully FREE the slot — nulling booked_showing_id while leaving
+        // is_booked=true left a phantom block (agent time reserved for a showing
+        // that no longer exists). Reset all three so the slot is bookable again.
+        safe("slots.free", supabase.from("showing_available_slots").update({ is_booked: false, booked_showing_id: null, booked_at: null }).in("booked_showing_id", showingIds)),
         safe("cost_records.related_showing_id", supabase.from("cost_records").update({ related_showing_id: null }).in("related_showing_id", showingIds)),
         safe("agent_activity_log.related_showing_id", supabase.from("agent_activity_log").update({ related_showing_id: null }).in("related_showing_id", showingIds)),
         safe("lead_notes.related_showing_id", supabase.from("lead_notes").update({ related_showing_id: null }).in("related_showing_id", showingIds)),

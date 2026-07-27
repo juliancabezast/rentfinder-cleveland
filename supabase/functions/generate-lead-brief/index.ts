@@ -103,14 +103,6 @@ serve(async (req: Request) => {
       .order("scheduled_at", { ascending: false })
       .limit(5);
 
-    // Get score history
-    const { data: scores } = await supabase
-      .from("lead_score_history")
-      .select("score, change_reason, created_at")
-      .eq("lead_id", lead_id)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
     // ── Get OpenAI key ─────────────────────────────────────────────
     const { data: creds } = await supabase
       .from("organization_credentials")
@@ -132,7 +124,6 @@ serve(async (req: Request) => {
           email: lead.email,
           status: lead.status,
           source: lead.source,
-          score: lead.lead_score,
           budget: `$${lead.budget_min || "?"} - $${lead.budget_max || "?"}`,
           bedrooms_needed: lead.bedrooms_needed,
           has_voucher: lead.has_voucher,
@@ -158,11 +149,6 @@ serve(async (req: Request) => {
         showings: (showings || []).map((s) => ({
           status: s.status,
           scheduled: s.scheduled_at,
-        })),
-        scores: (scores || []).map((s) => ({
-          score: s.score,
-          reason: s.change_reason,
-          date: s.created_at,
         })),
       };
 
@@ -230,10 +216,6 @@ serve(async (req: Request) => {
       parts.push(
         `Activity: ${callCount} calls, ${msgCount} messages, ${showingCount} showings.`
       );
-
-      if (lead.lead_score) {
-        parts.push(`Current score: ${lead.lead_score}/100.`);
-      }
 
       brief = parts.join(" ");
     }

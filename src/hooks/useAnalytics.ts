@@ -49,12 +49,10 @@ export function bucketForRange(from: Date, to: Date): "day" | "week" | "month" {
 
 // ── RPC result types ─────────────────────────────────────────────────
 
-export interface OverviewMilestones {
-  m0: number; m10: number; m50: number; m80: number; m100: number;
-}
-
+// Facts-based funnel (scoring demolished 2026-07-26): counts derive from real
+// events — showings booked/attended and applications — never from a score.
 export interface OverviewFunnel {
-  total: number; ge10: number; ge50: number; ge80: number; eq100: number;
+  total: number; booked: number; showed: number; applied: number;
 }
 
 export interface OverviewShowings {
@@ -68,13 +66,13 @@ export interface OverviewFirstResponse {
 }
 
 export interface OverviewSource {
-  source: string; leads: number; avg_score: number | null; with_showing: number;
+  source: string; leads: number; with_showing: number;
 }
 
 export interface OverviewTopProperty {
   id: string; address: string; unit_number: string | null; bedrooms: number | null;
   rent_price: number | null; status: string; leads: number;
-  avg_score: number | null; showings: number;
+  showings: number;
 }
 
 export interface OverviewPeakHour {
@@ -102,9 +100,7 @@ export interface OverviewCosts {
 export interface AnalyticsOverview {
   leads_in_range: number;
   prev_period_leads: number;
-  milestones: OverviewMilestones;
   funnel: OverviewFunnel;
-  avg_milestone: number | null;
   showings: OverviewShowings;
   first_response: OverviewFirstResponse;
   sources: OverviewSource[];
@@ -119,7 +115,7 @@ export interface AnalyticsOverview {
   team_activity: { notes: number; leads_touched: number };
   inbound: { messages: number; outcomes: Record<string, number> };
   snapshot: {
-    total_leads: number; hot: number; aplico_total: number;
+    total_leads: number; applicants: number;
     statuses: Record<string, number> | null;
   };
 }
@@ -226,9 +222,9 @@ export function useAnalytics(filters: AnalyticsFilters) {
       };
 
       return {
-        overview: overviewRes.data as AnalyticsOverview,
+        overview: overviewRes.data as unknown as AnalyticsOverview,
         series: (seriesRes.data || []) as TimeSeriesPoint[],
-        email: emailRes.data as EmailCampaignsData,
+        email: emailRes.data as unknown as EmailCampaignsData,
         unitCosts,
         bucket,
         fetchedAt: new Date().toISOString(),
@@ -267,14 +263,6 @@ export function usePropertyOptions() {
 
 // ── CSV export ───────────────────────────────────────────────────────
 
-export const MILESTONE_TIER_LABELS: Record<string, string> = {
-  m0: "Normal (0)",
-  m10: "Intentó (10)",
-  m50: "Agendó (50)",
-  m80: "Asistió (80)",
-  m100: "Aplicó (100)",
-};
-
 export function exportAnalyticsToCSV(data: AnalyticsData, range: { from: Date; to: Date }) {
   const o = data.overview;
   const rows: string[][] = [
@@ -283,32 +271,29 @@ export function exportAnalyticsToCSV(data: AnalyticsData, range: { from: Date; t
     ["Leads (range)", o.leads_in_range.toString()],
     ["Leads (previous period)", o.prev_period_leads.toString()],
     ["Total leads (all-time)", o.snapshot.total_leads.toString()],
-    ["Hot now (Agendó+)", o.snapshot.hot.toString()],
+    ["Applicants (all-time)", o.snapshot.applicants.toString()],
     ["Showings (range)", o.showings.total.toString()],
     ["Showings completed", o.showings.completed.toString()],
     ["Showings no-show", o.showings.no_show.toString()],
     ["Showings cancelled", o.showings.cancelled.toString()],
     ["Show rate", o.showings.show_rate != null ? `${o.showings.show_rate}%` : "N/A"],
-    ["Avg milestone (scored leads)", o.avg_milestone != null ? o.avg_milestone.toString() : "N/A"],
     ["AI cost (range)", `$${Number(o.costs.total).toFixed(2)}`],
     [""],
-    ["Milestone", "Leads"],
-    ...(Object.entries(o.milestones) as [string, number][]).map(([k, v]) => [
-      MILESTONE_TIER_LABELS[k] || k, v.toString(),
-    ]),
+    ["Funnel", "Leads"],
+    ["Total", o.funnel.total.toString()],
+    ["Booked showing", o.funnel.booked.toString()],
+    ["Attended", o.funnel.showed.toString()],
+    ["Applied", o.funnel.applied.toString()],
     [""],
-    ["Source", "Leads", "Avg Milestone", "With Showing"],
+    ["Source", "Leads", "With Showing"],
     ...o.sources.map((s) => [
-      s.source, s.leads.toString(),
-      s.avg_score != null ? s.avg_score.toString() : "N/A",
-      s.with_showing.toString(),
+      s.source, s.leads.toString(), s.with_showing.toString(),
     ]),
     [""],
-    ["Property", "Leads", "Showings", "Avg Milestone", "Rent"],
+    ["Property", "Leads", "Showings", "Rent"],
     ...o.top_properties.map((p) => [
       p.unit_number ? `${p.address} · ${p.unit_number}` : p.address,
       p.leads.toString(), p.showings.toString(),
-      p.avg_score != null ? p.avg_score.toString() : "N/A",
       p.rent_price ? `$${p.rent_price}` : "N/A",
     ]),
     [""],

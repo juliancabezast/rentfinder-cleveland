@@ -154,6 +154,11 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
   // Fetch options when dialog opens
   useEffect(() => {
     if (open && userRecord?.organization_id) {
+      // Clear any state left over from a previously-abandoned draft so property/
+      // date/notes from lead A can't silently ride into lead B's booking
+      // (mirrors ShowingReportDialog's reset-on-open). resetForm keeps a
+      // preselectedLeadId intact, applied just below.
+      resetForm();
       fetchOptions();
       if (preselectedLeadId) {
         setSelectedLeadId(preselectedLeadId);
@@ -253,6 +258,11 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       // "today" must be the property's calendar day (Cleveland), not the browser's.
       const propTz = getTimezoneForCity(properties.find((p) => p.id === selectedPropertyId)?.city);
       const today = todayInTimezone(propTz);
+      // We only need to know whether ANY future open slot exists — the result
+      // powers a single "no public slots yet" hint and the calendar no longer
+      // restricts to available dates — so fetch at most one row instead of the
+      // whole open horizon (which silently truncated at PostgREST's 1000 cap).
+      // A 0- or 1-element Set keeps `size === 0` a correct emptiness signal.
       const { data, error } = await supabase
         .from("showing_available_slots")
         .select("slot_date")
@@ -261,7 +271,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         .eq("is_enabled", true)
         .eq("is_booked", false)
         .gte("slot_date", today)
-        .order("slot_date");
+        .limit(1);
 
       if (error) throw error;
       const dates = new Set((data || []).map((d) => d.slot_date));
@@ -307,13 +317,13 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       // us — the agent-scoped sibling-blocking marks OTHER properties' slots
       // is_booked too — so read the showings table (the real bookings). A time
       // booked by a DIFFERENT property = agent busy → disabled. A time booked by
-      // the SAME (selected) property = a group tour → still bookable.
+      // the SAME (selected) property at its START = a group tour → still bookable.
       const propTz = getTimezoneForCity(properties.find((p) => p.id === selectedPropertyId)?.city);
       const dayStart = buildScheduledAt(dateStr, "00:00:00", propTz);
       const dayEnd = new Date(new Date(dayStart).getTime() + 24 * 60 * 60 * 1000).toISOString();
       const { data: dayShowings } = await supabase
         .from("showings")
-        .select("scheduled_at, property_id")
+        .select("scheduled_at, property_id, duration_minutes")
         .eq("organization_id", userRecord.organization_id)
         .in("status", ["scheduled", "confirmed"])
         .gte("scheduled_at", dayStart)
@@ -321,11 +331,21 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       const otherTimes = new Set<string>();
       const groupTimes = new Set<string>();
       (dayShowings || []).forEach((s: any) => {
-        const t = new Date(s.scheduled_at).toLocaleString("en-GB", {
-          timeZone: propTz, hour: "2-digit", minute: "2-digit", hour12: false,
-        }) + ":00";
-        if (s.property_id === selectedPropertyId) groupTimes.add(t);
-        else otherTimes.add(t);
+        // Expand each showing across EVERY half-hour it spans — a 45/60-min
+        // tour's tail keeps the agent busy too, even when no slot row exists
+        // there to be flagged is_booked.
+        const start = new Date(s.scheduled_at).getTime();
+        const spans = Math.max(1, Math.ceil((s.duration_minutes || 30) / 30));
+        for (let i = 0; i < spans; i++) {
+          const t = new Date(start + i * 30 * 60 * 1000).toLocaleString("en-GB", {
+            timeZone: propTz, hour: "2-digit", minute: "2-digit", hour12: false,
+          }) + ":00";
+          if (s.property_id === selectedPropertyId) {
+            if (i === 0) groupTimes.add(t); // group tour = same property, same START
+          } else {
+            otherTimes.add(t);
+          }
+        }
       });
       setBookedTimes(otherTimes);
       setSameGroupTimes(groupTimes);
@@ -411,10 +431,212 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     setNewLeadEmail("");
   };
 
+  // ── Post-booking side effects, shared by the normal AND group-add paths
+  // (a 2nd group attendee deserves the same confirmation email / follow-up
+  // tasks / Telegram ping as the 1st — only the slot claim is skipped).
+  // The showing row is ALREADY saved when this runs: failures must never
+  // surface as "Failed to schedule", but every write is error-checked so a
+  // silent RLS/constraint failure at least leaves a console trail
+  // (supabase-js returns { error } instead of throwing — bare try/catch
+  // around these calls is dead code).
+  const runBookingSideEffects = async (args: {
+    showingId: string;
+    scheduledAt: string;
+    dateStr: string;
+    slotTime: string;
+    slotId: string | null;
+    isGroupAdd: boolean;
+  }) => {
+    if (!userRecord?.organization_id || !selectedDate) return;
+    const { showingId, scheduledAt, dateStr, slotTime, slotId, isGroupAdd } = args;
+    const showingDate = new Date(scheduledAt);
+    const propertyAddr = selectedProperty ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ""}` : "Property";
+    const lead = selectedLeadObj;
+
+    // Advance the lead down the funnel (status flow only). Guard against
+    // DEMOTING a lead that already advanced past this stage — booking a second
+    // tour for an applicant/converted lead (or one written off as lost) must not
+    // drag them back to showing_scheduled. Mirrors the DB trigger
+    // update_lead_status_on_showing's invariant and ShowingReportDialog's guard.
+    {
+      const { error } = await supabase
+        .from("leads")
+        .update({
+          status: "showing_scheduled",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedLeadId)
+        .eq("organization_id", userRecord.organization_id)
+        .not("status", "in", '("in_application","converted","lost")');
+      if (error) console.error("Lead status update failed (showing still created):", error);
+    }
+
+    // Persist the admin's internal notes as a lead note (mirrors public booking flow)
+    const trimmedNotes = notes.trim();
+    if (trimmedNotes) {
+      const { error } = await supabase.from("lead_notes").insert({
+        organization_id: userRecord.organization_id,
+        lead_id: selectedLeadId,
+        created_by: userRecord.id,
+        content: trimmedNotes,
+        note_type: "showing_note",
+        related_showing_id: showingId,
+      });
+      if (error) console.error("Showing note save failed (showing still created):", error);
+    }
+
+    // Samuel follow-up tasks (email-based). ONLY the 24h-before confirmation is
+    // pre-created here, and it's skipped when it would already be in the past
+    // (same-day bookings) — otherwise the */5 dispatcher fires it immediately and
+    // the lead gets a duplicate of the instant confirmation below
+    // (book-public-showing has the same guard).
+    //
+    // The no-show and post-showing follow-ups are NOT pre-created: the DB triggers
+    // auto_task_noshow / auto_task_post_showing insert them ONLY when a showing is
+    // actually reported no_show / completed. Pre-creating them fired a "Missed
+    // Showing" email 1h after and a "Next Steps" email 24h after EVERY booking
+    // regardless of outcome (attendees + cancelled/rescheduled included) and
+    // double-emailed genuine no-shows/completions (the trigger added a second one).
+    {
+      const taskContext = {
+        showing_id: showingId,
+        property_id: selectedPropertyId,
+        property_address: propertyAddr,
+        scheduled_at: scheduledAt,
+        source: "admin_manual",
+      };
+      const taskRows: Record<string, unknown>[] = [];
+      const confirmationTime = new Date(showingDate.getTime() - 24 * 60 * 60 * 1000);
+      if (confirmationTime.getTime() > Date.now()) {
+        taskRows.push({
+          organization_id: userRecord.organization_id,
+          lead_id: selectedLeadId,
+          agent_type: "showing_confirmation",
+          action_type: "email",
+          scheduled_for: confirmationTime.toISOString(),
+          max_attempts: 2,
+          status: "pending",
+          context: taskContext,
+        });
+      }
+      if (taskRows.length > 0) {
+        const { error } = await supabase
+          .from("agent_tasks")
+          .insert(taskRows as import("@/integrations/supabase/types").TablesInsert<"agent_tasks">[]);
+        if (error) console.error("Follow-up tasks scheduling failed (showing still created):", error);
+      }
+    }
+
+    // Send immediate confirmation email to lead (if they have email)
+    if (lead?.email) {
+      try {
+        // Try to use custom template, fall back to default
+        const { data: settingsData } = await supabase
+          .from("organization_settings")
+          .select("value")
+          .eq("organization_id", userRecord.organization_id)
+          .eq("key", "email_templates")
+          .single();
+
+        const templates = (settingsData?.value as unknown as EmailTemplatesMap) || {};
+        const templateConfig = templates.showing_confirmation || DEFAULT_CONFIGS.showing_confirmation;
+
+        const displayDate = format(selectedDate, "EEEE, MMMM d, yyyy");
+        const firstName = lead.first_name?.trim() || (lead.full_name || "").trim().split(" ")[0] || "there";
+
+        // Fetch org name for template variables
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("name")
+          .eq("id", userRecord.organization_id)
+          .single();
+
+        const html = renderEmailHtml(templateConfig, {
+          firstName,
+          fullName: leadDisplayName(lead),
+          propertyAddress: propertyAddr,
+          showingDate: `${displayDate} at ${formatTimeDisplay(slotTime)}`,
+          orgName: org?.name || "Our Team",
+        });
+
+        sendNotificationEmail({
+          to: lead.email,
+          subject: templateConfig.subject
+            .replace("{propertyAddress}", propertyAddr)
+            .replace("{showingDate}", displayDate),
+          html,
+          notificationType: "showing_confirmation",
+          organizationId: userRecord.organization_id,
+          relatedEntityId: showingId,
+          relatedEntityType: "showing",
+          queue: true,
+        });
+      } catch (emailErr) {
+        console.error("Confirmation email failed:", emailErr);
+      }
+    }
+
+    // System log
+    {
+      const { error } = await supabase.from("system_logs").insert({
+        organization_id: userRecord.organization_id,
+        level: "info",
+        category: "general",
+        event_type: "admin_showing_scheduled",
+        message: `Showing scheduled by admin: ${propertyAddr} on ${dateStr} at ${formatTimeDisplay(slotTime)}${isGroupAdd ? " (group tour)" : ""}`,
+        details: {
+          showing_id: showingId,
+          lead_id: selectedLeadId,
+          property_id: selectedPropertyId,
+          scheduled_by: userRecord.id,
+          source: "admin_manual",
+          slot_id: slotId,
+          group_add: isGroupAdd,
+          email_sent: !!lead?.email,
+        },
+        related_lead_id: selectedLeadId,
+        related_showing_id: showingId,
+      });
+      if (error) console.error("System log insert failed (showing still created):", error);
+    }
+
+    // ── Telegram notification (server-side) ────────────────────────
+    try {
+      const displayDateFull = format(selectedDate, "EEEE, MMMM d, yyyy");
+      const leadName = lead ? leadDisplayName(lead) : "—";
+      const leadPhone = lead?.phone || "—";
+      const leadEmailAddr = lead?.email || "—";
+      const rentStr = selectedProperty?.rent_price ? `$${Number(selectedProperty.rent_price).toLocaleString()}/mo` : "";
+      const fullAddr = `${propertyAddr}${selectedProperty?.city ? `, ${selectedProperty.city}` : ""}`;
+      const mapsQuery = encodeURIComponent(`${selectedProperty?.address || ""}, ${selectedProperty?.city || ""}, ${selectedProperty?.state || ""} ${selectedProperty?.zip_code || ""}`);
+
+      const msg = [
+        `🏠 <b>New Showing Scheduled</b>${isGroupAdd ? " 👥 (added to group tour)" : ""}`,
+        ``,
+        `📍 <b>${fullAddr}</b>${rentStr ? ` — ${rentStr}` : ""}`,
+        `📅 ${displayDateFull} at ${formatTimeDisplay(slotTime)}`,
+        ``,
+        `👤 <b>${leadName}</b>`,
+        `📞 ${leadPhone}`,
+        `✉️ ${leadEmailAddr}`,
+        `🔗 Source: Admin (${userRecord.full_name || "team"})`,
+        ``,
+        `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
+      ].join("\n");
+
+      const { error: tgError } = await supabase.functions.invoke("send-telegram-notification", {
+        body: { message: msg, channel: "showings" },
+      });
+      if (tgError) console.warn("Telegram notification failed:", tgError);
+    } catch (tgErr) {
+      console.warn("Telegram notification failed:", tgErr);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!userRecord?.organization_id) return;
 
-    // Only editor-or-above can book: a leasing_agent's score/task/showing writes
+    // Only editor-or-above can book: a leasing_agent's task/showing writes
     // are RLS-denied (silently lost, or the booking hard-fails), so gate here too.
     if (!["super_admin", "admin", "editor"].includes(userRecord.role)) {
       toast.error("You don't have permission to schedule showings.");
@@ -443,6 +665,14 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     const todayStr = todayInTimezone(getTimezoneForCity(selectedProperty?.city));
     if (format(selectedDate, "yyyy-MM-dd") < todayStr) {
       toast.error("Date must be in the future");
+      return;
+    }
+
+    // Same-day bookings can't target an already-elapsed half-hour (slot end <=
+    // now in the property's clock) — mirrors ManageSlotsTab's isPastCell guard.
+    if (format(selectedDate, "yyyy-MM-dd") === todayStr &&
+        timeToMinutes(selectedTime) + 30 <= nowMinutesInPropertyTz()) {
+      toast.error("That time has already passed today. Pick a later time.");
       return;
     }
 
@@ -481,9 +711,57 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       // is a 2nd+ attendee. The slot is already booked and the agent-time already
       // blocked by the first attendee, and the DB guard permits same-property/
       // same-time. So add the showing directly (no slot claim, no mass-block),
-      // then the essential side-effects; trg_milestone_showings still scores it.
+      // then the SAME side-effects as a solo booking (confirmation email,
+      // follow-up tasks, log, Telegram) — the 2nd attendee must not be invisible.
       const isGroupAdd = sameGroupTimes.has(slotTime);
       if (isGroupAdd) {
+        // The primary slot + start instant are already claimed by the first
+        // attendee (same property = group tour, allowed by the DB guard). But a
+        // group add can pick a LONGER duration than the first attendee, and every
+        // extra half-hour keeps the single agent busy — so the spanned TAIL must
+        // be guarded and blocked exactly like the solo path (only the primary
+        // slot claim is skipped). Without this, another property can still sell a
+        // tail half-hour and the agent is silently double-booked.
+        const groupSpanned: string[] = [];
+        {
+          const [sH, sM] = slotTime.split(":").map(Number);
+          const spans = Math.max(1, Math.ceil(durationMinutes / 30));
+          for (let i = 1; i < spans; i++) {
+            const total = sH * 60 + sM + i * 30;
+            if (Math.floor(total / 60) >= 24) break;
+            groupSpanned.push(
+              `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}:00`
+            );
+          }
+        }
+
+        // Guard the tail: refuse if another property already holds any tail time
+        // (stale-snapshot check, then a fresh server-side re-check that also
+        // catches manual blocks with no showings row).
+        const groupConflict = groupSpanned.find((t) => bookedTimes.has(t));
+        if (groupConflict) {
+          toast.error(`The agent is busy at ${formatTimeDisplay(groupConflict)} — pick a shorter duration or another time.`);
+          setSubmitting(false);
+          return;
+        }
+        if (groupSpanned.length > 0) {
+          const { data: busyRows, error: busyErr } = await supabase
+            .from("showing_available_slots")
+            .select("slot_time")
+            .eq("organization_id", userRecord.organization_id)
+            .eq("slot_date", dateStr)
+            .in("slot_time", groupSpanned)
+            .eq("is_booked", true)
+            .limit(1);
+          if (busyErr) console.error("Group-add spanned-time busy check failed:", busyErr);
+          if ((busyRows || []).length > 0) {
+            toast.error("The agent is already booked during that time — pick another time.");
+            await fetchAvailableSlots();
+            setSubmitting(false);
+            return;
+          }
+        }
+
         const { data: gShowing, error: gErr } = await supabase
           .from("showings")
           .insert({
@@ -502,27 +780,42 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           .single();
         if (gErr || !gShowing) throw gErr || new Error("Could not add to the group tour");
 
-        // Advance the lead (scoring is handled by the DB milestone engine).
-        try {
-          await supabase.from("leads")
-            .update({ status: "showing_scheduled", updated_at: new Date().toISOString() })
-            .eq("id", selectedLeadId);
-        } catch (e) { console.error("Group add: lead status update failed", e); }
-
-        // Save the admin's note, if any.
-        const gNotes = notes.trim();
-        if (gNotes) {
-          try {
-            await supabase.from("lead_notes").insert({
+        // Block every tail half-hour across ALL properties (single agent). For
+        // THIS property, materialize+book each tail row (upsert — omitting
+        // is_enabled so an owner-off row stays off on conflict); for other homes,
+        // block their still-open rows. Best-effort — the showing is committed.
+        for (const t of groupSpanned) {
+          const { error: tailErr } = await supabase
+            .from("showing_available_slots")
+            .upsert({
               organization_id: userRecord.organization_id,
-              lead_id: selectedLeadId,
-              created_by: userRecord.id,
-              content: gNotes,
-              note_type: "showing_note",
-              related_showing_id: gShowing.id,
-            });
-          } catch (e) { console.error("Group add: note failed", e); }
+              property_id: selectedPropertyId,
+              slot_date: dateStr,
+              slot_time: t,
+              is_booked: true,
+              booked_showing_id: gShowing.id,
+              booked_at: new Date().toISOString(),
+            }, { onConflict: "organization_id,property_id,slot_date,slot_time" });
+          if (tailErr) console.error(`Book group-add tail ${t} failed:`, tailErr);
+          const { error: blockErr } = await supabase
+            .from("showing_available_slots")
+            .update({ is_booked: true, booked_showing_id: gShowing.id, booked_at: new Date().toISOString() })
+            .eq("organization_id", userRecord.organization_id)
+            .eq("slot_date", dateStr)
+            .eq("slot_time", t)
+            .eq("is_booked", false)
+            .neq("property_id", selectedPropertyId);
+          if (blockErr) console.error(`Block group-add spanned slot ${t} failed:`, blockErr);
         }
+
+        await runBookingSideEffects({
+          showingId: gShowing.id,
+          scheduledAt,
+          dateStr,
+          slotTime,
+          slotId: null,
+          isGroupAdd: true,
+        });
 
         toast.success(`Added to the group tour at ${formatTimeDisplay(slotTime)} ✅`);
         resetForm();
@@ -533,7 +826,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
 
       // A showing longer than one 30-min slot spans multiple slot times. The
       // single agent can't be in two places, so every spanned time must be free
-      // and gets blocked below — the exact-time unique index only guards the first.
+      // and gets blocked below — the DB trigger only guards the exact start instant.
       const slotsSpanned = Math.max(1, Math.ceil(durationMinutes / 30));
       const spannedTimes: string[] = [];
       {
@@ -551,6 +844,27 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         toast.error(`The agent is busy at ${formatTimeDisplay(conflictTime)} — pick a shorter duration or another time.`);
         setSubmitting(false);
         return;
+      }
+
+      // Fresh server-side guard: the bookedTimes snapshot can be stale, and a
+      // manual block (is_booked=true with no showing) has no showings row to be
+      // caught above — refuse if ANY spanned time already has a booked slot row.
+      {
+        const { data: busyRows, error: busyErr } = await supabase
+          .from("showing_available_slots")
+          .select("slot_time")
+          .eq("organization_id", userRecord.organization_id)
+          .eq("slot_date", dateStr)
+          .in("slot_time", spannedTimes)
+          .eq("is_booked", true)
+          .limit(1);
+        if (busyErr) console.error("Spanned-time busy check failed:", busyErr);
+        if ((busyRows || []).length > 0) {
+          toast.error("The agent is already booked during that time — pick another time.");
+          await fetchAvailableSlots();
+          setSubmitting(false);
+          return;
+        }
       }
 
       // Find (or materialize) the slot row for this property+date+time. Admins
@@ -667,15 +981,35 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           .eq("id", slot.id);
         if (linkErr) console.error("Link slot → showing failed:", linkErr);
 
-        // Block every time this showing spans, across ALL properties (single agent).
+        // Block every time this showing spans, across ALL properties (single
+        // agent). For the PRIMARY property, materialize+book each tail
+        // half-hour (upsert — omitting is_enabled so an owner-off row stays off
+        // on conflict) so a tail with no slot row can't be silently
+        // double-booked later; for other homes, block their still-open rows
+        // (mirrors ShowingDetailDialog.handleReactivate).
         for (const t of spannedTimes) {
+          if (t !== slotTime) {
+            const { error: tailErr } = await supabase
+              .from("showing_available_slots")
+              .upsert({
+                organization_id: userRecord.organization_id,
+                property_id: selectedPropertyId,
+                slot_date: dateStr,
+                slot_time: t,
+                is_booked: true,
+                booked_showing_id: showingData.id,
+                booked_at: new Date().toISOString(),
+              }, { onConflict: "organization_id,property_id,slot_date,slot_time" });
+            if (tailErr) console.error(`Book spanned tail ${t} failed:`, tailErr);
+          }
           const { error: blockErr } = await supabase
             .from("showing_available_slots")
             .update(bufferUpdate)
             .eq("organization_id", userRecord.organization_id)
             .eq("slot_date", dateStr)
             .eq("slot_time", t)
-            .eq("is_booked", false);
+            .eq("is_booked", false)
+            .neq("property_id", selectedPropertyId);
           if (blockErr) console.error(`Block spanned slot ${t} failed:`, blockErr);
         }
 
@@ -715,212 +1049,16 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         console.error("Slot bookkeeping failed (showing still created):", bookkeepingErr);
       }
 
-      // ── SIDE EFFECTS (showing is already saved; don't fail the booking) ──
-      // Each side effect runs in its own try/catch so a single failure
-      // (RLS, constraint, etc.) doesn't surface to the user as "Failed to
-      // schedule showing" when the showing actually got created.
-
-      const showingDate = new Date(scheduledAt);
-      const propertyAddr = selectedProperty ? `${selectedProperty.address}${selectedProperty.unit_number ? ` #${selectedProperty.unit_number}` : ''}` : "Property";
-      const lead = selectedLeadObj;
-
-      // Advance lead status. Scoring is handled by the DB milestone engine
-      // (trg_milestone_showings fired by the showings INSERT → agendó = 50).
-      try {
-        await supabase
-          .from("leads")
-          .update({
-            status: "showing_scheduled",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", selectedLeadId);
-      } catch (statusErr) {
-        console.error("Lead status update failed (showing still created):", statusErr);
-      }
-
-      // Persist the admin's internal notes as a lead note (mirrors public booking flow)
-      const trimmedNotes = notes.trim();
-      if (trimmedNotes) {
-        try {
-          await supabase.from("lead_notes").insert({
-            organization_id: userRecord.organization_id,
-            lead_id: selectedLeadId,
-            created_by: userRecord.id,
-            content: trimmedNotes,
-            note_type: "showing_note",
-            related_showing_id: showingData.id,
-          });
-        } catch (noteErr) {
-          console.error("Showing note save failed (showing still created):", noteErr);
-        }
-      }
-
-      // Schedule Samuel confirmation task (24h before) — uses email since voice/SMS not configured
-      try {
-        const confirmationTime = new Date(showingDate.getTime() - 24 * 60 * 60 * 1000);
-
-        await supabase.from("agent_tasks").insert({
-          organization_id: userRecord.organization_id,
-          lead_id: selectedLeadId,
-          agent_type: "showing_confirmation",
-          action_type: "email",
-          scheduled_for: confirmationTime.toISOString(),
-          max_attempts: 2,
-          status: "pending",
-          context: {
-            showing_id: showingData.id,
-            property_id: selectedPropertyId,
-            property_address: propertyAddr,
-            scheduled_at: scheduledAt,
-            source: "admin_manual",
-          },
-        });
-
-        // Schedule no-show follow-up (1 hour after showing) — email
-        const noShowTime = new Date(showingDate.getTime() + 60 * 60 * 1000);
-        await supabase.from("agent_tasks").insert({
-          organization_id: userRecord.organization_id,
-          lead_id: selectedLeadId,
-          agent_type: "no_show_followup",
-          action_type: "email",
-          scheduled_for: noShowTime.toISOString(),
-          max_attempts: 1,
-          status: "pending",
-          context: {
-            showing_id: showingData.id,
-            property_id: selectedPropertyId,
-            property_address: propertyAddr,
-            scheduled_at: scheduledAt,
-            source: "admin_manual",
-          },
-        });
-
-        // Schedule post-showing follow-up (24h after showing)
-        const postShowingTime = new Date(showingDate.getTime() + 24 * 60 * 60 * 1000);
-        await supabase.from("agent_tasks").insert({
-          organization_id: userRecord.organization_id,
-          lead_id: selectedLeadId,
-          agent_type: "post_showing",
-          action_type: "email",
-          scheduled_for: postShowingTime.toISOString(),
-          max_attempts: 1,
-          status: "pending",
-          context: {
-            showing_id: showingData.id,
-            property_id: selectedPropertyId,
-            property_address: propertyAddr,
-            scheduled_at: scheduledAt,
-            source: "admin_manual",
-          },
-        });
-      } catch (tasksErr) {
-        console.error("Follow-up tasks scheduling failed (showing still created):", tasksErr);
-      }
-
-      // Send immediate confirmation email to lead (if they have email)
-      if (lead?.email) {
-        try {
-          // Try to use custom template, fall back to default
-          const { data: settingsData } = await supabase
-            .from("organization_settings")
-            .select("value")
-            .eq("organization_id", userRecord.organization_id)
-            .eq("key", "email_templates")
-            .single();
-
-          const templates = (settingsData?.value as unknown as EmailTemplatesMap) || {};
-          const templateConfig = templates.showing_confirmation || DEFAULT_CONFIGS.showing_confirmation;
-
-          const displayDate = format(selectedDate, "EEEE, MMMM d, yyyy");
-          const firstName = lead.first_name?.trim() || (lead.full_name || "").trim().split(" ")[0] || "there";
-
-          // Fetch org name for template variables
-          const { data: org } = await supabase
-            .from("organizations")
-            .select("name")
-            .eq("id", userRecord.organization_id)
-            .single();
-
-          const html = renderEmailHtml(templateConfig, {
-            firstName,
-            fullName: leadDisplayName(lead),
-            propertyAddress: propertyAddr,
-            showingDate: `${displayDate} at ${formatTimeDisplay(slotTime)}`,
-            orgName: org?.name || "Our Team",
-          });
-
-          sendNotificationEmail({
-            to: lead.email,
-            subject: templateConfig.subject
-              .replace("{propertyAddress}", propertyAddr)
-              .replace("{showingDate}", displayDate),
-            html,
-            notificationType: "showing_confirmation",
-            organizationId: userRecord.organization_id,
-            relatedEntityId: showingData.id,
-            relatedEntityType: "showing",
-            queue: true,
-          });
-        } catch (emailErr) {
-          console.error("Confirmation email failed:", emailErr);
-        }
-      }
-
-      // System log
-      try {
-        await supabase.from("system_logs").insert({
-          organization_id: userRecord.organization_id,
-          level: "info",
-          category: "general",
-          event_type: "admin_showing_scheduled",
-          message: `Showing scheduled by admin: ${propertyAddr} on ${dateStr} at ${formatTimeDisplay(slotTime)}`,
-          details: {
-            showing_id: showingData.id,
-            lead_id: selectedLeadId,
-            property_id: selectedPropertyId,
-            scheduled_by: userRecord.id,
-            source: "admin_manual",
-            slot_id: slot.id,
-            email_sent: !!lead?.email,
-          },
-          related_lead_id: selectedLeadId,
-          related_showing_id: showingData.id,
-        });
-      } catch (logErr) {
-        console.error("System log insert failed (showing still created):", logErr);
-      }
-
-      // ── Telegram notification (server-side) ────────────────────────
-      try {
-        const displayDateFull = format(selectedDate, "EEEE, MMMM d, yyyy");
-        const leadName = lead ? leadDisplayName(lead) : "—";
-        const leadPhone = lead?.phone || "—";
-        const leadEmailAddr = lead?.email || "—";
-        const rentStr = selectedProperty?.rent_price ? `$${Number(selectedProperty.rent_price).toLocaleString()}/mo` : "";
-        const fullAddr = `${propertyAddr}${selectedProperty?.city ? `, ${selectedProperty.city}` : ""}`;
-        const mapsQuery = encodeURIComponent(`${selectedProperty?.address || ""}, ${selectedProperty?.city || ""}, ${selectedProperty?.state || ""} ${selectedProperty?.zip_code || ""}`);
-
-        const msg = [
-          `🏠 <b>New Showing Scheduled</b>`,
-          ``,
-          `📍 <b>${fullAddr}</b>${rentStr ? ` — ${rentStr}` : ""}`,
-          `📅 ${displayDateFull} at ${formatTimeDisplay(slotTime)}`,
-          ``,
-          `👤 <b>${leadName}</b>`,
-          `📞 ${leadPhone}`,
-          `✉️ ${leadEmailAddr}`,
-          `🔗 Source: Admin (${userRecord.full_name || "team"})`,
-          ``,
-          `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Open in Google Maps</a>`,
-        ].join("\n");
-
-        await supabase.functions.invoke("send-telegram-notification", {
-          body: { message: msg, channel: "showings" },
-        });
-      } catch (tgErr) {
-        console.warn("Telegram notification failed:", tgErr);
-      }
-
+      // ── SIDE EFFECTS (showing is already saved; don't fail the booking).
+      // Shared with the group-add path — see runBookingSideEffects.
+      await runBookingSideEffects({
+        showingId: showingData.id,
+        scheduledAt,
+        dateStr,
+        slotTime,
+        slotId: slot.id,
+        isGroupAdd: false,
+      });
 
       const displayDate = format(selectedDate, "MMM d, yyyy");
       toast.success(`Showing scheduled for ${displayDate} at ${formatTimeDisplay(slotTime)}`);
@@ -931,8 +1069,9 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     } catch (error: any) {
       console.error("Error scheduling showing:", error);
       if (error?.code === "23505") {
-        // Unique violation on showings_one_active_per_org_time — the agent's slot
-        // was taken at this exact instant by a concurrent booking.
+        // trg_enforce_showing_agent_slot raised showing_slot_conflict — a
+        // different property took the agent's time at this exact instant
+        // (concurrent booking).
         toast.error("That time was just booked. Please pick another.");
       } else {
         const detail = error?.message || error?.error?.message || error?.hint || "Unknown error";
@@ -953,11 +1092,24 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
     return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
   };
 
-  // Check if a date has available slots
-  const isDateAvailable = (date: Date) => {
-    const dateStr = format(date, "yyyy-MM-dd");
-    return availableDates.has(dateStr);
+  // Minutes-since-midnight for a "HH:MM[:SS]" time (mirrors ManageSlotsTab)
+  const timeToMinutes = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
   };
+
+  // Current minutes-since-midnight on the PROPERTY's clock — for disabling
+  // today's already-elapsed half-hours.
+  const nowMinutesInPropertyTz = () => {
+    const parts = new Date().toLocaleString("en-GB", {
+      timeZone: getTimezoneForCity(selectedProperty?.city), hour: "2-digit", minute: "2-digit", hour12: false,
+    }).split(":").map(Number);
+    return parts[0] * 60 + parts[1];
+  };
+
+  const isTodaySelected =
+    !!selectedDate &&
+    format(selectedDate, "yyyy-MM-dd") === todayInTimezone(getTimezoneForCity(selectedProperty?.city));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1219,10 +1371,12 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
                       const booked = bookedTimes.has(t);       // other property → agent busy
                       const group = sameGroupTimes.has(t);     // same property already here → group tour
                       const open = availableSlots.some((s) => s.slot_time === t);
+                      // Today's already-elapsed half-hours are not bookable.
+                      const past = isTodaySelected && timeToMinutes(t) + 30 <= nowMinutesInPropertyTz();
                       return (
-                        <SelectItem key={t} value={t} disabled={booked}>
+                        <SelectItem key={t} value={t} disabled={booked || past}>
                           {formatTimeDisplay(t)}
-                          {booked ? " · booked" : group ? " · +grupo" : open ? "" : " · add"}
+                          {past ? " · past" : booked ? " · booked" : group ? " · +group" : open ? "" : " · add"}
                         </SelectItem>
                       );
                     })}

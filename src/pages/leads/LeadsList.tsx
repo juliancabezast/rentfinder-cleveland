@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
@@ -44,10 +44,6 @@ import {
   Download,
   Sparkles,
   Building2,
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,7 +51,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { format, addDays, startOfDay } from "date-fns";
-import { ScoreDisplay } from "@/components/leads/ScoreDisplay";
 import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
 import { LeadForm } from "@/components/leads/LeadForm";
 import { CsvImportDialog, type PropertyInfo } from "@/components/leads/CsvImportDialog";
@@ -64,7 +59,7 @@ import { LeadTagChips } from "@/components/leads/LeadTagChips";
 import { LEAD_TAGS_DISPLAY_EMBED, formatTagAddress, mapEmbeddedTags } from "@/lib/leadTags";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Agent name mapping — 7 agents across 4 departments
+// Agent name mapping — 6 canonical agents across 4 departments
 // Qualification: Aaron (inbound), Esther (email), Nehemiah (analyst)
 // Leasing: Elijah (consultant)
 // Closing: Samuel | System: Zacchaeus
@@ -76,7 +71,7 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
   elijah: "Elijah",
   samuel: "Samuel",
   zacchaeus: "Zacchaeus",
-  // Legacy DB agent_keys → mapped to 7 real agents
+  // Legacy DB agent_keys → mapped to the 6 canonical agents
   main_inbound: "Aaron",
   hemlane_parser: "Esther",
   scoring: "Nehemiah",
@@ -118,6 +113,9 @@ const AGENT_BIBLICAL_NAMES: Record<string, string> = {
 
 type Lead = Tables<"leads">;
 type AgentTask = Tables<"agent_tasks">;
+// Only the columns the list renders for a lead's next action — keeps the
+// agent_tasks fetch off select("*") (which shipped the unused context jsonb).
+type NextActionTask = Pick<AgentTask, "lead_id" | "agent_type" | "action_type" | "scheduled_for">;
 
 interface LeadWithProperty extends Lead {
   lead_property_interests?: {
@@ -125,7 +123,7 @@ interface LeadWithProperty extends Lead {
     last_interest_at: string | null;
     properties: { address: string; unit_number: string | null; city: string | null } | null;
   }[] | null;
-  nextAction?: AgentTask | null;
+  nextAction?: NextActionTask | null;
 }
 
 const LEAD_STATUSES = [
@@ -142,37 +140,41 @@ const LEAD_STATUSES = [
   { value: "converted", label: "Converted" },
 ];
 
+// Source filter options — ordered by real prevalence. 'hemlane' is 78% of all
+// leads and was previously unselectable; the dead voice/SMS-era sources
+// (inbound_call, sms) are dropped since those channels were removed and always
+// returned an empty table.
 const LEAD_SOURCES = [
   { value: "all", label: "All Sources" },
-  { value: "inbound_call", label: "Inbound Call" },
+  { value: "hemlane", label: "Hemlane" },
   { value: "hemlane_email", label: "Hemlane Email" },
-  { value: "website", label: "Website" },
-  { value: "referral", label: "Referral" },
-  { value: "manual", label: "Manual" },
-  { value: "sms", label: "SMS" },
   { value: "campaign", label: "Campaign" },
+  { value: "website", label: "Website" },
+  { value: "manual", label: "Manual" },
+  { value: "zillow", label: "Zillow" },
+  { value: "referral", label: "Referral" },
   { value: "csv_import", label: "CSV Import" },
 ];
 
 const ITEMS_PER_PAGE = 20;
 
-type SortField = "full_name" | "lead_score" | "status" | "created_at" | "last_contact_at";
+type SortField = "full_name" | "status" | "created_at" | "last_contact_at";
 type SortDirection = "asc" | "desc";
 
 const DEFAULT_FILTERS: ActiveFilters = {
-  priority: false,
   humanControlled: false,
   moveInSoon: false,
   section8: false,
   hasShowing: false,
+  applicant: false,
 };
 
 const DEFAULT_COUNTS: FilterCounts = {
-  priority: 0,
   humanControlled: 0,
   moveInSoon: 0,
   section8: 0,
   hasShowing: 0,
+  applicant: 0,
 };
 
 const LeadsList: React.FC = () => {
@@ -193,12 +195,14 @@ const LeadsList: React.FC = () => {
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [properties, setProperties] = useState<PropertyInfo[]>([]);
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(() => {
-    if (filterParam === "priority") return { ...DEFAULT_FILTERS, priority: true };
     if (filterParam === "human_controlled") return { ...DEFAULT_FILTERS, humanControlled: true };
     return DEFAULT_FILTERS;
   });
   const [filterCounts, setFilterCounts] = useState<FilterCounts>(DEFAULT_COUNTS);
   const [searchQuery, setSearchQuery] = useState("");
+  // Debounced copy of the search box — the fetch effect keys off this so each
+  // keystroke doesn't fire a full count-exact query over the whole leads table.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Sorting
   const [sortField, setSortField] = useState<SortField>("created_at");
@@ -208,23 +212,24 @@ const LeadsList: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [recalculating, setRecalculating] = useState(false);
-  const [recalcResult, setRecalcResult] = useState<{
-    checked: number;
-    updated: number;
-    avgBefore: number;
-    avgAfter: number;
-  } | null>(null);
 
   // IDs of leads with active showings (for filter)
   const [leadsWithShowings, setLeadsWithShowings] = useState<Set<string>>(new Set());
 
+  // Monotonic id per fetchLeads call — a stale (older) response never commits
+  // state over a newer one when responses resolve out of order.
+  const fetchSeqRef = useRef(0);
+
+  // Debounce the search input (~300ms)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
   // Handle URL filter changes
   useEffect(() => {
     const filter = searchParams.get("filter");
-    if (filter === "priority") {
-      setActiveFilters({ ...DEFAULT_FILTERS, priority: true });
-    } else if (filter === "human_controlled") {
+    if (filter === "human_controlled") {
       setActiveFilters({ ...DEFAULT_FILTERS, humanControlled: true });
     }
   }, [searchParams]);
@@ -238,16 +243,16 @@ const LeadsList: React.FC = () => {
     const in20Days = addDays(today, 20);
 
     try {
-      // Parallel count queries — over ALL org leads (unified totals, 2026-07-19)
+      // Parallel count queries — over ALL org leads (unified totals, 2026-07-19).
+      // is_demo IS NOT TRUE matches dashboard_live() so all surfaces agree.
       const completeLeadBase = () =>
         supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId);
+          .eq("organization_id", orgId)
+          .not("is_demo", "is", true);
 
-      const [priorityRes, humanRes, moveInRes, section8Res, showingsRes] = await Promise.all([
-        // Priority count
-        completeLeadBase().eq("is_priority", true),
+      const [humanRes, moveInRes, section8Res, applicantRes] = await Promise.all([
         // Human controlled count
         completeLeadBase().eq("is_human_controlled", true),
         // Move-in soon count
@@ -256,29 +261,42 @@ const LeadsList: React.FC = () => {
           .lte("move_in_date", in20Days.toISOString().split("T")[0]),
         // Section 8 count (has_voucher = true OR voucher_status = 'active')
         completeLeadBase().or("has_voucher.eq.true,voucher_status.eq.active"),
-        // Get lead IDs with active showings
-        supabase
+        // Applicant count — the status-neutral applied_at milestone tag
+        completeLeadBase().not("applied_at", "is", null),
+      ]);
+
+      // Lead IDs with an active showing — paginate past PostgREST's 1000-row
+      // cap so both the "Has Showing" pill count and the server-side id-set
+      // filter stay correct as active showings accumulate (an un-ranged select
+      // silently truncates at 1000).
+      const showingLeadIds = new Set<string>();
+      const SHOWINGS_PAGE = 1000;
+      for (let from = 0; ; from += SHOWINGS_PAGE) {
+        const { data: showingsPage, error: showingsErr } = await supabase
           .from("showings")
           .select("lead_id")
           .eq("organization_id", orgId)
-          .in("status", ["scheduled", "confirmed"]),
-      ]);
-
-      // Process showings to get unique lead IDs
-      const showingLeadIds = new Set<string>();
-      if (showingsRes.data) {
-        showingsRes.data.forEach((s) => {
+          .in("status", ["scheduled", "confirmed"])
+          .order("id", { ascending: true })
+          .range(from, from + SHOWINGS_PAGE - 1);
+        if (showingsErr) {
+          console.error("Failed to fetch showings for filter:", showingsErr.message);
+          break;
+        }
+        const page = showingsPage || [];
+        page.forEach((s) => {
           if (s.lead_id) showingLeadIds.add(s.lead_id);
         });
+        if (page.length < SHOWINGS_PAGE) break;
       }
       setLeadsWithShowings(showingLeadIds);
 
       setFilterCounts({
-        priority: priorityRes.count || 0,
         humanControlled: humanRes.count || 0,
         moveInSoon: moveInRes.count || 0,
         section8: section8Res.count || 0,
         hasShowing: showingLeadIds.size,
+        applicant: applicantRes.count || 0,
       });
     } catch (error) {
       console.error("Error fetching filter counts:", error);
@@ -306,6 +324,7 @@ const LeadsList: React.FC = () => {
   const fetchLeads = async () => {
     if (!userRecord?.organization_id) return;
 
+    const seq = ++fetchSeqRef.current;
     setLoading(true);
     try {
       const today = startOfDay(new Date());
@@ -326,8 +345,6 @@ const LeadsList: React.FC = () => {
           email,
           status,
           source,
-          lead_score,
-          is_priority,
           is_human_controlled,
           has_voucher,
           voucher_status,
@@ -339,7 +356,10 @@ const LeadsList: React.FC = () => {
         `,
           { count: "exact" }
         )
-        .eq("organization_id", userRecord.organization_id);
+        .eq("organization_id", userRecord.organization_id)
+        // is_demo IS NOT TRUE — same predicate as dashboard_live() so the page
+        // total always matches the Dashboard headline.
+        .not("is_demo", "is", true);
       // 2026-07-19 (owner decision): the list counts ALL leads — the old
       // completeness/junk filter hid 665 real leads and made this page disagree
       // with every other count in the system. Incomplete leads are still
@@ -357,9 +377,6 @@ const LeadsList: React.FC = () => {
       }
 
       // Apply toggle filters
-      if (activeFilters.priority) {
-        query = query.eq("is_priority", true);
-      }
       if (activeFilters.humanControlled) {
         query = query.eq("is_human_controlled", true);
       }
@@ -376,12 +393,16 @@ const LeadsList: React.FC = () => {
       if (activeFilters.hasShowing) {
         query = query.in("id", [...leadsWithShowings]);
       }
+      // "Applicant" — the status-neutral applied_at milestone tag.
+      if (activeFilters.applicant) {
+        query = query.not("applied_at", "is", null);
+      }
 
       // Search filter
-      if (searchQuery) {
+      if (debouncedSearch) {
         // Search name + email + phone (sanitized against PostgREST .or() grammar).
-        const q = searchQuery.replace(/[,()%*]/g, " ").trim();
-        const digits = searchQuery.replace(/\D/g, "");
+        const q = debouncedSearch.replace(/[,()%*]/g, " ").trim();
+        const digits = debouncedSearch.replace(/\D/g, "");
         const ors = [
           `full_name.ilike.%${q}%`,
           `first_name.ilike.%${q}%`,
@@ -392,8 +413,11 @@ const LeadsList: React.FC = () => {
         query = query.or(ors.join(","));
       }
 
-      // Apply sorting
-      query = query.order(sortField, { ascending: sortDirection === "asc" });
+      // Apply sorting — nulls last (Postgres DESC defaults to NULLS FIRST, which
+      // buried Last Contact under ~16k blank rows), with id as a stable tiebreaker.
+      query = query
+        .order(sortField, { ascending: sortDirection === "asc", nullsFirst: false })
+        .order("id", { ascending: true });
 
       // Apply pagination
       const from = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -409,17 +433,29 @@ const LeadsList: React.FC = () => {
       const leadIds = leadsData.map((l: any) => l.id);
 
       // Fetch next actions for all leads in a single query
-      let nextActionsMap: Record<string, AgentTask> = {};
+      let nextActionsMap: Record<string, NextActionTask> = {};
       if (leadIds.length > 0) {
+        // Only the 4 rendered columns (was select("*"), which shipped the
+        // context jsonb we never read). Explicit cap at PostgREST's page size;
+        // if we ever hit it, the earliest task for some page leads could sort
+        // past the cap, so log instead of silently rendering a blank cell.
+        const NEXT_ACTION_CAP = 1000;
         const { data: tasksData } = await supabase
           .from("agent_tasks")
-          .select("*")
+          .select("lead_id, agent_type, action_type, scheduled_for")
+          .eq("organization_id", userRecord.organization_id)
           .in("lead_id", leadIds)
           .in("status", ["pending", "in_progress", "paused_human_control"])
-          .order("scheduled_for", { ascending: true });
+          .order("scheduled_for", { ascending: true })
+          .limit(NEXT_ACTION_CAP);
 
         // Group by lead_id and take first (earliest) for each
         if (tasksData) {
+          if (tasksData.length >= NEXT_ACTION_CAP) {
+            console.warn(
+              `Next Action lookup hit the ${NEXT_ACTION_CAP}-row cap for ${leadIds.length} leads — some earliest tasks may be missing.`,
+            );
+          }
           for (const task of tasksData) {
             if (!nextActionsMap[task.lead_id]) {
               nextActionsMap[task.lead_id] = task;
@@ -434,15 +470,24 @@ const LeadsList: React.FC = () => {
         nextAction: nextActionsMap[lead.id] || null,
       }));
 
+      // Drop stale responses — only the latest in-flight fetch commits state.
+      if (seq !== fetchSeqRef.current) return;
+
       setLeads(processedLeads);
       setTotalCount(count || 0);
     } catch (error) {
+      if (seq !== fetchSeqRef.current) return;
       console.error("Error fetching leads:", error);
       toast.error("Failed to load leads");
     } finally {
-      setLoading(false);
+      if (seq === fetchSeqRef.current) setLoading(false);
     }
   };
+
+  // The showings id-set only affects the query while the Has Showing filter is
+  // active; gating the dep prevents the Set-identity churn from
+  // fetchFilterCounts double-fetching the list on mount.
+  const showingsDep = activeFilters.hasShowing ? leadsWithShowings : null;
 
   useEffect(() => {
     fetchLeads();
@@ -452,8 +497,8 @@ const LeadsList: React.FC = () => {
     sourceFilter,
     propertyFilter,
     activeFilters,
-    leadsWithShowings,
-    searchQuery,
+    showingsDep,
+    debouncedSearch,
     sortField,
     sortDirection,
     currentPage,
@@ -475,60 +520,6 @@ const LeadsList: React.FC = () => {
     }
   };
 
-  const handleRecalculateScores = async () => {
-    if (!userRecord?.organization_id) return;
-    setRecalculating(true);
-    setRecalcResult(null);
-
-    try {
-      // Get avg score BEFORE
-      const { data: beforeData } = await supabase
-        .from("leads")
-        .select("lead_score")
-        .eq("organization_id", userRecord.organization_id)
-        .not("status", "in", "(lost,converted)");
-
-      const scoresBefore = (beforeData || []).map((l) => l.lead_score || 0);
-      const avgBefore = scoresBefore.length > 0
-        ? Math.round(scoresBefore.reduce((a, b) => a + b, 0) / scoresBefore.length)
-        : 0;
-
-      // Run recalculation via the org-scoped edge function (recalculate-scores).
-      // The legacy recalculate_lead_scores() RPC rewrote leads across ALL orgs and was
-      // anon-executable; this edge fn is scoped to the caller's organization.
-      const { data, error } = await supabase.functions.invoke("recalculate-scores", {
-        body: { organization_id: userRecord.organization_id },
-      });
-      if (error) throw error;
-
-      const result = (data || {}) as { updated?: number; leads_updated?: number };
-      const checked = scoresBefore.length;
-      const updated = result?.updated ?? result?.leads_updated ?? 0;
-
-      // Get avg score AFTER
-      const { data: afterData } = await supabase
-        .from("leads")
-        .select("lead_score")
-        .eq("organization_id", userRecord.organization_id)
-        .not("status", "in", "(lost,converted)");
-
-      const scoresAfter = (afterData || []).map((l) => l.lead_score || 0);
-      const avgAfter = scoresAfter.length > 0
-        ? Math.round(scoresAfter.reduce((a, b) => a + b, 0) / scoresAfter.length)
-        : 0;
-
-      setRecalcResult({ checked, updated, avgBefore, avgAfter });
-
-      // Refresh the leads list
-      fetchLeads();
-    } catch (err) {
-      console.error("Recalculate error:", err);
-      toast.error("Failed to recalculate scores.");
-    } finally {
-      setRecalculating(false);
-    }
-  };
-
   const handleExportCsv = async () => {
     if (!userRecord?.organization_id) return;
     setExporting(true);
@@ -537,75 +528,87 @@ const LeadsList: React.FC = () => {
       const today = startOfDay(new Date());
       const in20Days = addDays(today, 20);
 
-      let query = supabase
-        .from("leads")
-        .select(
-          `id, full_name, first_name, last_name, email, phone, status, source, lead_score, is_priority, is_human_controlled, has_voucher, voucher_status, move_in_date, created_at, last_contact_at, preferred_language, ${LEAD_TAGS_DISPLAY_EMBED}${propertyFilter !== "all" ? ", ipi_filter:lead_property_interests!inner(property_id)" : ""}`
-        )
-        .eq("organization_id", userRecord.organization_id)
-        .not("full_name", "is", null)
-        .not("phone", "is", null)
-        .not("email", "is", null)
-        .not("full_name", "ilike", "%.com%")
-        .not("full_name", "ilike", "%http%")
-        .not("full_name", "ilike", "%@%")
-        .not("full_name", "ilike", "%comments%")
-        .not("full_name", "ilike", "%unsubscribe%")
-        .not("full_name", "ilike", "%click here%")
-        .not("full_name", "ilike", "%mailto:%")
-        .not("full_name", "ilike", "%subject:%")
-        .not("full_name", "ilike", "%reply%");
+      // Builds the export query with EXACTLY the same predicates as fetchLeads —
+      // the old export carried a NOT-NULL/junk-name filter the list dropped by
+      // owner decision (2026-07-19), silently excluding ~587 visible leads.
+      // A fresh builder per call because .range() differs per page.
+      const buildExportQuery = () => {
+        let q = supabase
+          .from("leads")
+          .select(
+            `id, full_name, first_name, last_name, email, phone, status, source, is_human_controlled, has_voucher, voucher_status, move_in_date, created_at, last_contact_at, preferred_language, ${LEAD_TAGS_DISPLAY_EMBED}${propertyFilter !== "all" ? ", ipi_filter:lead_property_interests!inner(property_id)" : ""}`
+          )
+          .eq("organization_id", userRecord.organization_id)
+          .not("is_demo", "is", true);
 
-      if (statusFilter !== "all") query = query.eq("status", statusFilter);
-      if (sourceFilter !== "all") query = query.eq("source", sourceFilter);
-      if (propertyFilter !== "all") query = query.eq("ipi_filter.property_id", propertyFilter);
-      if (activeFilters.priority) query = query.eq("is_priority", true);
-      if (activeFilters.humanControlled) query = query.eq("is_human_controlled", true);
-      if (activeFilters.moveInSoon) {
-        query = query
-          .gte("move_in_date", today.toISOString().split("T")[0])
-          .lte("move_in_date", in20Days.toISOString().split("T")[0]);
-      }
-      if (activeFilters.section8) query = query.or("has_voucher.eq.true,voucher_status.eq.active");
-      // "Has Showing" — filter server-side against the full set of lead IDs with
-      // active showings so the export matches the list view exactly.
-      if (activeFilters.hasShowing) {
-        query = query.in("id", [...leadsWithShowings]);
-      }
-      if (searchQuery) {
-        // Search name + email + phone (sanitized against PostgREST .or() grammar).
-        const q = searchQuery.replace(/[,()%*]/g, " ").trim();
-        const digits = searchQuery.replace(/\D/g, "");
-        const ors = [
-          `full_name.ilike.%${q}%`,
-          `first_name.ilike.%${q}%`,
-          `last_name.ilike.%${q}%`,
-          `email.ilike.%${q}%`,
-        ];
-        if (digits.length >= 3) ors.push(`phone.ilike.%${digits}%`);
-        query = query.or(ors.join(","));
+        if (statusFilter !== "all") q = q.eq("status", statusFilter);
+        if (sourceFilter !== "all") q = q.eq("source", sourceFilter);
+        if (propertyFilter !== "all") q = q.eq("ipi_filter.property_id", propertyFilter);
+        if (activeFilters.humanControlled) q = q.eq("is_human_controlled", true);
+        if (activeFilters.moveInSoon) {
+          q = q
+            .gte("move_in_date", today.toISOString().split("T")[0])
+            .lte("move_in_date", in20Days.toISOString().split("T")[0]);
+        }
+        if (activeFilters.section8) q = q.or("has_voucher.eq.true,voucher_status.eq.active");
+        // "Has Showing" — filter server-side against the full set of lead IDs with
+        // active showings so the export matches the list view exactly.
+        if (activeFilters.hasShowing) {
+          q = q.in("id", [...leadsWithShowings]);
+        }
+        if (activeFilters.applicant) {
+          q = q.not("applied_at", "is", null);
+        }
+        if (debouncedSearch) {
+          // Search name + email + phone (sanitized against PostgREST .or() grammar).
+          const sq = debouncedSearch.replace(/[,()%*]/g, " ").trim();
+          const digits = debouncedSearch.replace(/\D/g, "");
+          const ors = [
+            `full_name.ilike.%${sq}%`,
+            `first_name.ilike.%${sq}%`,
+            `last_name.ilike.%${sq}%`,
+            `email.ilike.%${sq}%`,
+          ];
+          if (digits.length >= 3) ors.push(`phone.ilike.%${digits}%`);
+          q = q.or(ors.join(","));
+        }
+
+        // Same sort as the list, with id tiebreaker so .range() pages never
+        // skip/duplicate rows on non-unique sort columns.
+        return q
+          .order(sortField, { ascending: sortDirection === "asc", nullsFirst: false })
+          .order("id", { ascending: true });
+      };
+
+      // PostgREST caps un-ranged selects at 1,000 rows — paginate until a short
+      // page so the export always contains the FULL filtered set (~18k leads).
+      const PAGE_SIZE = 1000;
+      const rows: any[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await buildExportQuery().range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        const page = data || [];
+        rows.push(...(page as any[]));
+        if (page.length < PAGE_SIZE) break;
       }
 
-      query = query.order(sortField, { ascending: sortDirection === "asc" });
-
-      const { data, error } = await query;
-      if (error) throw error;
-      if (!data || data.length === 0) {
+      if (rows.length === 0) {
         toast.info("No leads to export with current filters");
         return;
       }
 
-      const rows = data as any[];
-
       const headers = [
         "Name", "First Name", "Last Name", "Email", "Phone", "Status", "Source",
-        "Score", "Priority", "Human Controlled", "Voucher", "Move-in Date",
+        "Human Controlled", "Voucher", "Move-in Date",
         "Language", "Created", "Last Contact", "Properties",
       ];
 
       const escape = (v: string | null | undefined) => {
         if (v == null) return "";
-        const s = String(v);
+        let s = String(v);
+        // Neutralize spreadsheet formula injection (OWASP): lead names/emails come
+        // from public forms, so =/+/-/@/tab/CR-leading cells get a ' prefix.
+        if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
         return s.includes(",") || s.includes('"') || s.includes("\n")
           ? `"${s.replace(/"/g, '""')}"`
           : s;
@@ -619,8 +622,6 @@ const LeadsList: React.FC = () => {
         escape(l.phone),
         escape(l.status),
         escape(l.source),
-        l.lead_score ?? "",
-        l.is_priority ? "Yes" : "No",
         l.is_human_controlled ? "Yes" : "No",
         l.has_voucher ? "Yes" : "No",
         escape(l.move_in_date),
@@ -660,8 +661,17 @@ const LeadsList: React.FC = () => {
 
     return (
       <TableHead
+        role="button"
+        tabIndex={0}
+        aria-sort={isActive ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
         className={`cursor-pointer select-none hover:bg-muted/50 ${extraClassName || ""}`}
         onClick={() => handleSort(field)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleSort(field);
+          }
+        }}
       >
         <div className="flex items-center gap-1">
           {children}
@@ -802,22 +812,6 @@ const LeadsList: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleRecalculateScores}
-                disabled={recalculating}
-                className="shrink-0"
-              >
-                {recalculating ? (
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-1.5" />
-                )}
-                <span className="hidden sm:inline">{recalculating ? "Recalculating..." : "Recalculate Scores"}</span>
-              </Button>
-            )}
-            {permissions.canEditLeadInfo && (
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={() => navigate("/leads/nurturing")}
                 className="shrink-0"
               >
@@ -828,53 +822,6 @@ const LeadsList: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Score Recalculation Result Banner */}
-      {recalcResult && (
-        <div className="rounded-xl border bg-white/80 backdrop-blur p-4 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm">
-              <RefreshCw className="h-4 w-4 text-[#4F46E5]" />
-              <span className="font-medium">{recalcResult.updated}</span>
-              <span className="text-muted-foreground">of {recalcResult.checked} updated</span>
-            </div>
-            <div className="h-4 w-px bg-border" />
-            <div className="flex items-center gap-3 text-sm">
-              <span className="text-muted-foreground">Avg score:</span>
-              <span className="font-mono text-muted-foreground">{recalcResult.avgBefore}</span>
-              <span className="text-muted-foreground">&rarr;</span>
-              <span className="font-mono font-bold">{recalcResult.avgAfter}</span>
-              {recalcResult.avgAfter !== recalcResult.avgBefore && (
-                <span className={`flex items-center gap-0.5 text-xs font-semibold ${
-                  recalcResult.avgAfter > recalcResult.avgBefore ? "text-green-600" : "text-red-600"
-                }`}>
-                  {recalcResult.avgAfter > recalcResult.avgBefore ? (
-                    <TrendingUp className="h-3.5 w-3.5" />
-                  ) : (
-                    <TrendingDown className="h-3.5 w-3.5" />
-                  )}
-                  {recalcResult.avgAfter > recalcResult.avgBefore ? "+" : ""}
-                  {recalcResult.avgAfter - recalcResult.avgBefore}
-                </span>
-              )}
-              {recalcResult.avgAfter === recalcResult.avgBefore && (
-                <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                  <Minus className="h-3.5 w-3.5" />
-                  No change
-                </span>
-              )}
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 shrink-0"
-            onClick={() => setRecalcResult(null)}
-          >
-            &times;
-          </Button>
-        </div>
-      )}
 
       {/* Table */}
       <Card variant="glass">
@@ -890,11 +837,11 @@ const LeadsList: React.FC = () => {
               <UserX className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium">No leads found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchQuery || statusFilter !== "all" || sourceFilter !== "all" || Object.values(activeFilters).some(Boolean)
+                {searchQuery || statusFilter !== "all" || sourceFilter !== "all" || propertyFilter !== "all" || Object.values(activeFilters).some(Boolean)
                   ? "Try adjusting your filters."
                   : "Import leads via CSV or create one manually."}
               </p>
-              {permissions.canCreateLead && !searchQuery && statusFilter === "all" && sourceFilter === "all" && !Object.values(activeFilters).some(Boolean) && (
+              {permissions.canCreateLead && !searchQuery && statusFilter === "all" && sourceFilter === "all" && propertyFilter === "all" && !Object.values(activeFilters).some(Boolean) && (
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setImportOpen(true)}>
                     <Upload className="h-4 w-4 mr-2" />
@@ -913,7 +860,6 @@ const LeadsList: React.FC = () => {
                 <TableHeader>
                   <TableRow>
                     <SortableHeader field="full_name">Name</SortableHeader>
-                    <SortableHeader field="lead_score">Score</SortableHeader>
                     <SortableHeader field="status">Status</SortableHeader>
                     <TableHead className="hidden sm:table-cell">Property</TableHead>
                     <SortableHeader field="created_at" className="hidden sm:table-cell">Created</SortableHeader>
@@ -941,11 +887,6 @@ const LeadsList: React.FC = () => {
                                 .join(" ") ||
                               "Unknown"}
                           </span>
-                          {lead.is_priority && (
-                            <Badge className="bg-amber-500 hover:bg-amber-600">
-                              Priority
-                            </Badge>
-                          )}
                           {lead.is_human_controlled && (
                             <Badge variant="destructive" className="gap-1">
                               <AlertTriangle className="h-3 w-3" />
@@ -953,13 +894,6 @@ const LeadsList: React.FC = () => {
                             </Badge>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <ScoreDisplay
-                          score={lead.lead_score ?? 0}
-                          size="sm"
-                          showPriorityBadge={false}
-                        />
                       </TableCell>
                       <TableCell>
                         <LeadStatusBadge status={lead.status} />
@@ -1046,6 +980,7 @@ const LeadsList: React.FC = () => {
             onSuccess={() => {
               setFormOpen(false);
               fetchLeads();
+              fetchFilterCounts();
             }}
             onCancel={() => setFormOpen(false)}
           />
@@ -1056,7 +991,10 @@ const LeadsList: React.FC = () => {
       <CsvImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}
-        onSuccess={fetchLeads}
+        onSuccess={() => {
+          fetchLeads();
+          fetchFilterCounts();
+        }}
         properties={properties}
       />
     </div>

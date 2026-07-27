@@ -3,7 +3,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import {
-  priorityLeadTemplate,
   noShowTemplate,
   criticalErrorTemplate,
   leadNoShowTemplate,
@@ -19,11 +18,9 @@ import {
 
 // Default notification preferences
 export const DEFAULT_NOTIFICATION_PREFS = {
-  priority_lead: true,
   no_show: true,
   critical_error: true,
   daily_summary: false,
-  score_jump: false,
   notification_email: "",
 };
 
@@ -69,45 +66,6 @@ function getAppUrl(): string {
     return window.location.origin;
   }
   return "https://rentfindercleveland.com";
-}
-
-// Send priority lead notification
-export function sendPriorityLeadNotification(params: {
-  adminEmail: string;
-  organizationId: string;
-  lead: {
-    id: string;
-    full_name: string | null;
-    phone: string;
-    email: string | null;
-    lead_score: number | null;
-    priority_reason: string | null;
-    source: string;
-  };
-  propertyAddress?: string;
-}): void {
-  const { adminEmail, organizationId, lead, propertyAddress } = params;
-  const leadName = lead.full_name || "Unknown Lead";
-
-  sendNotificationEmail({
-    to: adminEmail,
-    subject: `🔥 Priority Lead: ${leadName}${propertyAddress ? ` — ${propertyAddress}` : ""}`,
-    html: priorityLeadTemplate({
-      leadName,
-      phone: lead.phone,
-      email: lead.email || undefined,
-      leadScore: lead.lead_score || 0,
-      priorityReason: lead.priority_reason || "High lead score",
-      propertyAddress,
-      source: lead.source,
-      appUrl: getAppUrl(),
-      leadId: lead.id,
-    }),
-    notificationType: "priority_lead",
-    organizationId,
-    relatedEntityId: lead.id,
-    relatedEntityType: "lead",
-  });
 }
 
 // Send showing no-show notification

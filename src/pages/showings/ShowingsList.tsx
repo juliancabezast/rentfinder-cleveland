@@ -1,26 +1,24 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Calendar,
-  MapPin,
-  User,
   CalendarDays,
   Plus,
-  FileText,
-  Map as MapIcon,
   Settings2,
-  DollarSign,
-  TrendingUp,
   Phone,
   Loader2,
   Link2,
   Clock,
-  Download,
   Image,
   ExternalLink,
+  FileText,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -31,9 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -47,8 +43,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/hooks/use-toast";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, addDays, parseISO, isToday, isTomorrow } from "date-fns";
-import { getTimezoneForCity, formatTimeInTimezone } from "@/lib/cityTimezone";
+import { format, addDays, parseISO, startOfWeek } from "date-fns";
 import { ScheduleShowingDialog } from "@/components/showings/ScheduleShowingDialog";
 import { ShowingReportDialog } from "@/components/showings/ShowingReportDialog";
 import { ManageSlotsTab } from "@/components/showings/ManageSlotsTab";
@@ -56,75 +51,15 @@ import { BookingPageTab } from "@/components/showings/BookingPageTab";
 import { ShowingDetailDialog } from "@/components/showings/ShowingDetailDialog";
 import { ShowingsAgenda } from "@/components/showings/ShowingsAgenda";
 
-interface ShowingWithDetails {
-  id: string;
-  scheduled_at: string;
-  status: string;
-  duration_minutes: number | null;
-  lead_id: string;
-  property_id?: string;
-  property_address?: string;
-  property_unit?: string | null;
-  property_city?: string;
-  property_state?: string | null;
-  property_zip?: string | null;
-  rent_price?: number | null;
-  lead_name?: string;
-  lead_phone?: string;
-  lead_email?: string | null;
-  lead_has_voucher?: boolean | null;
-  booking_source?: string;
-  booked_by_name?: string | null;
-}
-
-const STATUS_OPTIONS = [
-  { value: "active", label: "Active (Scheduled + Confirmed)" },
-  { value: "all", label: "All Statuses" },
-  { value: "scheduled", label: "Scheduled" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "completed", label: "Completed" },
-  { value: "no_show", label: "No Show" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "missing_report", label: "Missing Report" },
-];
-
-const DATE_OPTIONS = [
-  { value: "today", label: "Today" },
-  { value: "tomorrow", label: "Tomorrow" },
-  { value: "3days", label: "Next 3 Days" },
-  { value: "week", label: "This Week" },
-  { value: "15days", label: "Next 15 Days" },
-  { value: "month", label: "This Month" },
-  { value: "all", label: "All Time" },
-];
-
-const statusColors: Record<string, string> = {
-  scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  confirmed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  completed: "bg-muted text-muted-foreground",
-  no_show: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  cancelled: "bg-muted text-muted-foreground line-through",
-  rescheduled: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-};
-
-// ── Day label helper ─────────────────────────────────────────────────
-function getDayLabel(dateStr: string): string {
-  const date = parseISO(dateStr);
-  if (isToday(date)) return `Today — ${format(date, "EEEE, MMMM d")}`;
-  if (isTomorrow(date)) return `Tomorrow — ${format(date, "EEEE, MMMM d")}`;
-  return format(date, "EEEE, MMMM d");
-}
+// Matches the grid's slot-visibility gate in ManageSlotsTab (bookable =
+// 'available' only) so the header chip and the grid agree on what's open.
+const BOOKABLE_STATUSES = ["available"];
 
 const ShowingsList: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { userRecord } = useAuth();
   const permissions = usePermissions();
   const { toast } = useToast();
-
-  const [showings, setShowings] = useState<ShowingWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("active");
-  const [dateFilter, setDateFilter] = useState("week");
 
   // Tab state from URL
   const rawTab = searchParams.get("tab") || "slots";
@@ -151,61 +86,139 @@ const ShowingsList: React.FC = () => {
   const bumpCalendar = () => setCalendarReload((n) => n + 1);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Fetch slot totals for current week (available across all tabs)
+  // Mount only the ACTIVE view variant. The previous CSS-only hiding
+  // (lg:hidden / hidden lg:block) mounted BOTH the mobile Agenda and the
+  // desktop grid on every viewport, so phones ran the page's heaviest fetches
+  // (the paginated week slot query + 4 side queries) for an invisible grid,
+  // and desktop's Agenda toggle double-fetched the same day.
+  const [isDesktop, setIsDesktop] = useState<boolean>(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  // Header "available · booked" chip — the SINGLE source of truth (the grid no
+  // longer overwrites it, so the numbers can't flip between two definitions).
+  // Window = the current Cleveland Mon–Sun week (the grid's default week).
+  // PAGINATED: a bulk "Open all day" writes 1,000+ slot rows, and PostgREST
+  // silently truncates unpaginated queries at 1,000. Counts one time-slot per
+  // (date, time) group: booked if any real booking exists, otherwise available
+  // if any enabled slot on a still-listable property exists — mirroring the
+  // grid's definitions in ManageSlotsTab.
   const fetchSlotTotals = useMemo(() => async () => {
     if (!userRecord?.organization_id) return;
-    const today = format(startOfDay(new Date()), "yyyy-MM-dd");
-    const weekEnd = format(addDays(startOfDay(new Date()), 6), "yyyy-MM-dd");
-    const { data } = await supabase
-      .from("showing_available_slots")
-      .select("slot_date, slot_time, is_booked, is_enabled, booked_showing_id")
-      .eq("organization_id", userRecord.organization_id!)
-      .gte("slot_date", today)
-      .lte("slot_date", weekEnd);
-    if (data) {
-      // Group by date+time to count time slots (not individual property slots)
-      const groups = new Map<string, { hasBooking: boolean; allDisabled: boolean }>();
-      for (const s of data as any[]) {
-        const key = `${s.slot_date}-${s.slot_time}`;
-        const g = groups.get(key) || { hasBooking: false, allDisabled: true };
-        if (s.is_enabled) g.allDisabled = false;
-        if (s.is_booked && s.booked_showing_id && s.is_enabled) g.hasBooking = true;
+    const todayCleveland = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const monday = startOfWeek(parseISO(todayCleveland), { weekStartsOn: 1 });
+    const start = format(monday, "yyyy-MM-dd");
+    const end = format(addDays(monday, 6), "yyyy-MM-dd");
+    const PAGE = 1000;
+    const rows: any[] = [];
+    for (let from = 0; from < 20000; from += PAGE) {
+      const { data, error } = await supabase
+        .from("showing_available_slots")
+        .select("slot_date, slot_time, is_booked, is_enabled, booked_showing_id, properties(status)")
+        .eq("organization_id", userRecord.organization_id!)
+        .gte("slot_date", start)
+        .lte("slot_date", end)
+        .order("slot_date")
+        .order("slot_time")
+        .range(from, from + PAGE - 1);
+      if (error || !data) break;
+      rows.push(...data);
+      if (data.length < PAGE) break;
+    }
+    const groups = new Map<string, { booked: boolean; open: boolean }>();
+    for (const s of rows) {
+      const key = `${s.slot_date}|${s.slot_time}`;
+      const g = groups.get(key) || { booked: false, open: false };
+      if (s.is_booked && s.booked_showing_id) g.booked = true;
+      if (!s.is_booked && s.is_enabled && BOOKABLE_STATUSES.includes((s.properties as any)?.status)) g.open = true;
+      groups.set(key, g);
+    }
+
+    // Fold in ACTIVE showings whose (Cleveland date, time) has no booked slot
+    // row (edit-time desync, external/Telegram bookings) — the grid already
+    // paints these (ManageSlotsTab's bookedMap merge), so without this the chip
+    // undercounts booked and can even count that time as available, disagreeing
+    // with the grid it claims to single-source. Bounded to the week window.
+    {
+      const orgTz = "America/New_York";
+      const clevelandBoundaryUTC = (dateStr: string, endOfDay: boolean) => {
+        const asUTC = new Date(`${dateStr}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}Z`);
+        const offset =
+          new Date(asUTC.toLocaleString("en-US", { timeZone: orgTz })).getTime() -
+          new Date(asUTC.toLocaleString("en-US", { timeZone: "UTC" })).getTime();
+        return new Date(asUTC.getTime() - offset).toISOString();
+      };
+      const { data: activeShowings } = await supabase
+        .from("showings")
+        .select("scheduled_at")
+        .eq("organization_id", userRecord.organization_id!)
+        .in("status", ["scheduled", "confirmed", "completed"])
+        .gte("scheduled_at", clevelandBoundaryUTC(start, false))
+        .lte("scheduled_at", clevelandBoundaryUTC(end, true));
+      for (const s of activeShowings || []) {
+        const d = new Date(s.scheduled_at);
+        const dateKey = d.toLocaleDateString("en-CA", { timeZone: orgTz });
+        const timeKey = d.toLocaleString("en-GB", { timeZone: orgTz, hour: "2-digit", minute: "2-digit", hour12: false }) + ":00";
+        const key = `${dateKey}|${timeKey}`;
+        const g = groups.get(key) || { booked: false, open: false };
+        g.booked = true; // booked wins over open (matches the grid)
         groups.set(key, g);
       }
-      let available = 0, booked = 0;
-      groups.forEach((g) => {
-        if (g.allDisabled) return;
-        if (g.hasBooking) booked++; else available++;
-      });
-      setSlotTotals({ available, booked });
     }
+
+    let available = 0, booked = 0;
+    groups.forEach((g) => {
+      if (g.booked) booked++;
+      else if (g.open) available++;
+    });
+    setSlotTotals({ available, booked });
   }, [userRecord?.organization_id]);
 
-  useEffect(() => { fetchSlotTotals(); }, [fetchSlotTotals]);
-
-  // All-time metrics (independent of filters)
-  const [allTimeMetrics, setAllTimeMetrics] = useState({ totalScheduled: 0, potentialRent: 0, completionRate: 0 });
+  // Refresh on mount AND after every showing mutation (calendarReload) — the
+  // chip used to go stale on mobile/Agenda where the grid never reported.
+  useEffect(() => { fetchSlotTotals(); }, [fetchSlotTotals, calendarReload]);
 
   // Organization settings
-  const { getSetting, updateSetting } = useOrganizationSettings();
+  const { getSetting, updateSetting, loading: settingsLoading } = useOrganizationSettings();
 
   // Lead time config
   const [leadTimeMinutes, setLeadTimeMinutes] = useState<number>(60);
   const [leadTimeSaving, setLeadTimeSaving] = useState(false);
   const [leadTimeLoaded, setLeadTimeLoaded] = useState(false);
 
+  // Hydrate the dialog's lead-time value ONLY once org settings have finished
+  // loading. useOrganizationSettings starts with settings={} and populates
+  // async, so reading getSetting before that always returns the 60 default and
+  // would latch it — then a Save silently reverts the owner's stored value
+  // (e.g. 180) to 60. Gating on settingsLoading (mirrors BookingPageTab) fixes
+  // it. (When there's no org context the hook resolves loading=false and 60 is
+  // the correct fallback anyway.)
   useEffect(() => {
-    if (leadTimeLoaded) return;
+    if (settingsLoading || leadTimeLoaded) return;
     const saved = getSetting("showing_lead_time_minutes", 60);
     setLeadTimeMinutes(typeof saved === "number" ? saved : 60);
     setLeadTimeLoaded(true);
-  }, [getSetting, leadTimeLoaded]);
+  }, [getSetting, leadTimeLoaded, settingsLoading]);
 
   const saveLeadTime = async () => {
     setLeadTimeSaving(true);
-    await updateSetting("showing_lead_time_minutes", leadTimeMinutes, "showings", "Minimum minutes before current time for same-day bookings");
-    toast({ title: "Saved", description: "Lead time updated." });
-    setLeadTimeSaving(false);
+    try {
+      await updateSetting("showing_lead_time_minutes", leadTimeMinutes, "showings", "Minimum minutes before current time for same-day bookings");
+      toast({ title: "Saved", description: "Lead time updated." });
+    } catch (err: any) {
+      // updateSetting throws on network/RLS errors and on an RLS no-op write.
+      // Without this catch the Save button would spin forever with no feedback.
+      console.error("Lead time save failed:", err);
+      toast({ title: "Save failed", description: err?.message || "Could not save the lead time.", variant: "destructive" });
+    } finally {
+      setLeadTimeSaving(false);
+    }
   };
 
   // Call Now button config
@@ -240,170 +253,37 @@ const ShowingsList: React.FC = () => {
     if (!userRecord?.organization_id) return;
     setCallNowSaving(true);
     const value = { enabled: callNowEnabled, phone: callNowPhone, label: callNowLabel };
-    await supabase
-      .from("organization_settings")
-      .upsert({
-        organization_id: userRecord.organization_id!,
-        key: "call_now_button",
-        value: value as unknown as string, // JSONB column accepts object
-        category: "showings",
-      }, { onConflict: "organization_id,key" });
-    setCallNowSaving(false);
-    toast({ title: "Saved", description: "Call Now button settings updated." });
-  };
-
-  // Fetch all-time metrics (independent of filters)
-  useEffect(() => {
-    if (!userRecord?.organization_id) return;
-    (async () => {
-      const { data } = await supabase
-        .from("showings")
-        .select("id, status, property_id, properties(rent_price)")
-        .eq("organization_id", userRecord.organization_id!);
-      if (data) {
-        const total = data.length;
-        const completed = data.filter((s: any) => s.status === "completed").length;
-        const propRentMap = new Map<string, number>();
-        data.forEach((s: any) => {
-          if (s.property_id && s.properties?.rent_price && !propRentMap.has(s.property_id)) {
-            propRentMap.set(s.property_id, s.properties.rent_price);
-          }
-        });
-        setAllTimeMetrics({
-          totalScheduled: total,
-          potentialRent: Array.from(propRentMap.values()).reduce((sum, r) => sum + r, 0),
-          completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-        });
-      }
-    })();
-  }, [userRecord?.organization_id]);
-
-  const fetchShowings = async () => {
-    if (!userRecord?.organization_id) return;
-
-    setLoading(true);
     try {
-      let query = supabase
-        .from("showings")
-        .select(
-          `
-          id, scheduled_at, status, duration_minutes, lead_id, property_id,
-          booking_source, booked_by_name,
-          properties(address, unit_number, city, state, zip_code, rent_price),
-          leads(full_name, phone, email, has_voucher)
-        `
-        )
-        .eq("organization_id", userRecord.organization_id)
-        .order("scheduled_at", { ascending: true });
-
-      // Date filter
-      const now = new Date();
-      if (dateFilter === "today") {
-        query = query
-          .gte("scheduled_at", startOfDay(now).toISOString())
-          .lte("scheduled_at", endOfDay(now).toISOString());
-      } else if (dateFilter === "tomorrow") {
-        const tomorrow = addDays(now, 1);
-        query = query
-          .gte("scheduled_at", startOfDay(tomorrow).toISOString())
-          .lte("scheduled_at", endOfDay(tomorrow).toISOString());
-      } else if (dateFilter === "3days") {
-        query = query
-          .gte("scheduled_at", startOfDay(now).toISOString())
-          .lte("scheduled_at", endOfDay(addDays(now, 3)).toISOString());
-      } else if (dateFilter === "week") {
-        query = query
-          .gte("scheduled_at", startOfDay(now).toISOString())
-          .lte("scheduled_at", endOfDay(addDays(now, 7)).toISOString());
-      } else if (dateFilter === "15days") {
-        query = query
-          .gte("scheduled_at", startOfDay(now).toISOString())
-          .lte("scheduled_at", endOfDay(addDays(now, 15)).toISOString());
-      } else if (dateFilter === "month") {
-        query = query
-          .gte("scheduled_at", startOfMonth(now).toISOString())
-          .lte("scheduled_at", endOfMonth(now).toISOString());
-      }
-
-      // Status filter
-      if (statusFilter === "active") {
-        query = query.in("status", ["scheduled", "confirmed"]);
-      } else if (statusFilter === "missing_report") {
-        query = query.in("status", ["completed", "no_show"]).is("agent_report", null);
-      } else if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
-      }
-
-      const { data, error } = await query;
-
+      // Destructure { error } AND chain .select() so a network/DB failure or an
+      // RLS-blocked no-op surfaces instead of firing a lying "Saved" toast
+      // (supabase-js resolves — never throws — so an unchecked upsert is silent).
+      const { data, error } = await supabase
+        .from("organization_settings")
+        .upsert({
+          organization_id: userRecord.organization_id!,
+          key: "call_now_button",
+          value: value as unknown as string, // JSONB column accepts object
+          category: "showings",
+        }, { onConflict: "organization_id,key" })
+        .select("id")
+        .single();
       if (error) throw error;
-
-      setShowings(
-        (data || []).map((s: any) => ({
-          id: s.id,
-          scheduled_at: s.scheduled_at,
-          status: s.status,
-          duration_minutes: s.duration_minutes,
-          lead_id: s.lead_id,
-          property_id: s.property_id,
-          property_address: s.properties?.address,
-          property_unit: s.properties?.unit_number || null,
-          property_city: s.properties?.city,
-          property_state: s.properties?.state || null,
-          property_zip: s.properties?.zip_code || null,
-          rent_price: s.properties?.rent_price,
-          lead_name: s.leads?.full_name,
-          lead_phone: s.leads?.phone,
-          lead_email: s.leads?.email || null,
-          lead_has_voucher: s.leads?.has_voucher ?? null,
-          booking_source: s.booking_source || "admin",
-          booked_by_name: s.booked_by_name || null,
-        }))
-      );
-    } catch (error) {
-      console.error("Error fetching showings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load showings.",
-        variant: "destructive",
-      });
+      if (!data) throw new Error("Settings write returned no row — RLS may be blocking this change.");
+      toast({ title: "Saved", description: "Call Now button settings updated." });
+    } catch (err: any) {
+      console.error("Call Now save failed:", err);
+      toast({ title: "Save failed", description: err?.message || "Could not save Call Now settings.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      setCallNowSaving(false);
     }
   };
-
-  useEffect(() => {
-    fetchShowings();
-  }, [userRecord?.organization_id, statusFilter, dateFilter]);
-
-  // (metrics are now computed in allTimeMetrics via separate useEffect)
-
-  // ── Group showings by day ──────────────────────────────────────────
-  const groupedByDay = useMemo(() => {
-    const groups: { dateKey: string; label: string; showings: ShowingWithDetails[] }[] = [];
-    const dayMap = new Map<string, ShowingWithDetails[]>();
-
-    showings.forEach((s) => {
-      const dayKey = format(parseISO(s.scheduled_at), "yyyy-MM-dd");
-      if (!dayMap.has(dayKey)) dayMap.set(dayKey, []);
-      dayMap.get(dayKey)!.push(s);
-    });
-
-    dayMap.forEach((items, dateKey) => {
-      groups.push({
-        dateKey,
-        label: getDayLabel(dateKey),
-        showings: items,
-      });
-    });
-
-    groups.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
-    return groups;
-  }, [showings]);
 
   // Showing Schedule tab: mobile shows the action-first day Agenda; desktop can
   // toggle between the Agenda and the availability grid (default = grid).
   const [desktopView, setDesktopView] = useState<"grid" | "agenda">("grid");
+  // Portal target: ManageSlotsTab renders its "Missing reports" bar into this
+  // header node so the tabs, the view toggle, and that bar all sit on one row.
+  const [mrSlot, setMrSlot] = useState<HTMLElement | null>(null);
   const openReport = (showingId: string, leadId: string, propertyAddress?: string) => {
     setSelectedShowingForReport({ id: showingId, leadId, propertyAddress });
     setReportDialogOpen(true);
@@ -413,90 +293,88 @@ const ShowingsList: React.FC = () => {
     setDetailDialogOpen(true);
   };
 
-  const handleOpenReport = (e: React.MouseEvent, showing: ShowingWithDetails) => {
-    e.stopPropagation();
-    setSelectedShowingForReport({
-      id: showing.id,
-      leadId: showing.lead_id,
-      propertyAddress: showing.property_address,
-    });
-    setReportDialogOpen(true);
-  };
+  // ── Missing-reports queue for the surfaces ManageSlotsTab does NOT cover ──
+  // The availability grid renders its own "Missing reports" bar (portaled into
+  // the header), but it is UNMOUNTED on mobile and on the desktop Agenda toggle
+  // — so a phone-only agent (the Agenda's primary audience) never saw the
+  // past-unreported backlog and it silently regrew. Lift a compact, actionable
+  // copy here for exactly those surfaces; the desktop grid keeps its own bar,
+  // so the query never double-runs (only one surface is active at a time).
+  const showLiftedMissingReports = activeTab === "slots" && (!isDesktop || desktopView === "agenda");
+  const [liftedMissingReports, setLiftedMissingReports] = useState<
+    { id: string; leadId: string; leadName: string; address: string; date: string; status: string }[]
+  >([]);
+  const [liftedReportingId, setLiftedReportingId] = useState<string | null>(null);
 
-  const ShowingCardSkeleton = () => (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          <Skeleton className="h-12 w-12 rounded-lg shrink-0" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-4 w-24" />
-          </div>
-          <Skeleton className="h-6 w-20" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const canSubmitReport = (status: string) =>
-    status === "scheduled" || status === "confirmed" || status === "rescheduled";
-
-  // ── Download agenda ──────────────────────────────────────────────────
-  const downloadAgenda = () => {
-    if (groupedByDay.length === 0) return;
-
-    const lines: string[] = [];
-    lines.push("═══════════════════════════════════════════════════");
-    lines.push("  SHOWING AGENDA");
-    lines.push(`  Generated: ${format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm a")}`);
-    lines.push("═══════════════════════════════════════════════════");
-    lines.push("");
-
-    for (const group of groupedByDay) {
-      lines.push(`━━━ ${group.label} ━━━`);
-      lines.push("");
-
-      group.showings.forEach((s, i) => {
-        const tz = getTimezoneForCity(s.property_city);
-        const time = formatTimeInTimezone(s.scheduled_at, tz);
-        const duration = s.duration_minutes ? `${s.duration_minutes} min` : "30 min";
-        const unit = s.property_unit ? ` #${s.property_unit}` : "";
-        const fullAddress = [
-          `${s.property_address || ""}${unit}`,
-          s.property_city,
-          s.property_state,
-          s.property_zip,
-        ].filter(Boolean).join(", ");
-        const mapsQuery = encodeURIComponent(fullAddress);
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
-
-        lines.push(`  ${i + 1}. ${time} (${duration}) — ${s.status.replace("_", " ").toUpperCase()}`);
-        lines.push(`     Property: ${fullAddress}`);
-        if (s.rent_price) lines.push(`     Rent: $${s.rent_price.toLocaleString()}/mo`);
-        lines.push(`     Lead: ${s.lead_name || "—"}`);
-        if (s.lead_phone) lines.push(`     Phone: ${s.lead_phone}`);
-        if (s.lead_email) lines.push(`     Email: ${s.lead_email}`);
-        lines.push(`     Maps: ${mapsUrl}`);
-        lines.push("");
-      });
+  const loadLiftedMissingReports = useCallback(async () => {
+    const orgId = userRecord?.organization_id;
+    if (!orgId || !showLiftedMissingReports) {
+      setLiftedMissingReports([]);
+      return;
     }
+    // Mirrors ManageSlotsTab.loadMissingReports: past showings still awaiting an
+    // outcome (scheduled/confirmed) or auto-completed with no write-up. 'no_show'
+    // is a recorded outcome so it's excluded. .limit mirrors the 1000-row cap.
+    const nowIso = new Date().toISOString();
+    const { data } = await supabase
+      .from("showings")
+      .select("id, scheduled_at, status, lead_id, leads(full_name), properties(address)")
+      .eq("organization_id", orgId)
+      .lt("scheduled_at", nowIso)
+      .in("status", ["scheduled", "confirmed", "completed"])
+      .is("agent_report", null)
+      .order("scheduled_at", { ascending: true })
+      .limit(500);
+    setLiftedMissingReports(
+      (data || []).map((s: any) => ({
+        id: s.id,
+        leadId: s.lead_id,
+        leadName: s.leads?.full_name || "Unknown lead",
+        address: s.properties?.address || "Unknown property",
+        date: new Date(s.scheduled_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" }),
+        status: s.status,
+      })),
+    );
+  }, [userRecord?.organization_id, showLiftedMissingReports]);
+  useEffect(() => { loadLiftedMissingReports(); }, [loadLiftedMissingReports, calendarReload]);
 
-    lines.push("═══════════════════════════════════════════════════");
+  const liftedMissingByDate = useMemo(() => {
+    const m = new Map<string, typeof liftedMissingReports>();
+    for (const r of liftedMissingReports) {
+      if (!m.has(r.date)) m.set(r.date, []);
+      m.get(r.date)!.push(r);
+    }
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [liftedMissingReports]);
 
-    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const dateLabel = groupedByDay.length === 1
-      ? format(parseISO(groupedByDay[0].dateKey), "yyyy-MM-dd")
-      : `${format(parseISO(groupedByDay[0].dateKey), "MMM-d")}_to_${format(parseISO(groupedByDay[groupedByDay.length - 1].dateKey), "MMM-d")}`;
-    a.download = `showings-agenda-${dateLabel}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  // One-click outcome report — mirrors ManageSlotsTab.quickReport, then bumps
+  // calendarReload so this bar, the Agenda, and the chip all refresh.
+  const liftedQuickReport = useCallback(async (showingId: string, attended: boolean) => {
+    const orgId = userRecord?.organization_id;
+    if (!orgId) return;
+    setLiftedReportingId(showingId);
+    try {
+      const nowIso = new Date().toISOString();
+      const upd: Record<string, any> = attended
+        ? { status: "completed", completed_at: nowIso, followed_up_at: nowIso }
+        : { status: "no_show", followed_up_at: nowIso };
+      const { data: cur } = await supabase
+        .from("showings").select("agent_report")
+        .eq("organization_id", orgId).eq("id", showingId).maybeSingle();
+      if (!cur?.agent_report) {
+        upd.agent_report = attended ? "Asistió ✅ (reporte rápido)" : "No asistió 👻 (reporte rápido)";
+      }
+      const { error } = await supabase
+        .from("showings").update(upd).eq("organization_id", orgId).eq("id", showingId);
+      if (error) throw error;
+      toast({ title: attended ? "✅ Asistió" : "👻 No asistió", description: "Reporte guardado." });
+      bumpCalendar();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "No se pudo guardar el reporte.", variant: "destructive" });
+    } finally {
+      setLiftedReportingId(null);
+    }
+  }, [userRecord?.organization_id, toast]);
 
   return (
     <div className="space-y-4">
@@ -552,7 +430,7 @@ const ShowingsList: React.FC = () => {
                 onClick={() => setSettingsOpen(true)}
               >
                 <Settings2 className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Ajustes</span>
+                <span className="hidden sm:inline">Settings</span>
               </Button>
             </>
           )}
@@ -570,36 +448,28 @@ const ShowingsList: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
-        <TabsList className="inline-flex w-full sm:w-auto h-auto">
-          <TabsTrigger value="slots" className="flex-1 sm:flex-initial gap-2">
-            <CalendarDays className="h-4 w-4" />
-            <span>Showing Schedule</span>
-          </TabsTrigger>
-          <TabsTrigger value="booking" className="flex-1 sm:flex-initial gap-2">
-            <Image className="h-4 w-4" />
-            <span>Booking Page</span>
-          </TabsTrigger>
-        </TabsList>
+        {/* One header row: the tabs, the desktop view toggle, and (portaled in
+            by ManageSlotsTab) the "Missing reports" bar — instead of 3 stacked rows. */}
+        <div className="flex flex-wrap items-center gap-3">
+          <TabsList className="inline-flex w-full sm:w-auto h-auto">
+            <TabsTrigger value="slots" className="flex-1 sm:flex-initial gap-2">
+              <CalendarDays className="h-4 w-4" />
+              <span>Showing Schedule</span>
+            </TabsTrigger>
+            <TabsTrigger value="booking" className="flex-1 sm:flex-initial gap-2">
+              <Image className="h-4 w-4" />
+              <span>Booking Page</span>
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="slots" className="space-y-6">
-          {/* Mobile: the action-first day Agenda replaces the slot grid. */}
-          <div className="lg:hidden">
-            <ShowingsAgenda
-              reloadSignal={calendarReload}
-              onReload={bumpCalendar}
-              onOpenReport={openReport}
-              onShowingClick={openDetail}
-            />
-          </div>
-
-          {/* Desktop: toggle between the Agenda and the availability grid. */}
-          <div className="hidden lg:block space-y-3">
-            <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+          {/* Desktop-only view toggle, only meaningful on the Showing Schedule tab. */}
+          {activeTab === "slots" && (
+            <div className="hidden lg:inline-flex rounded-lg border bg-muted/40 p-0.5">
               <button
                 onClick={() => setDesktopView("grid")}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${desktopView === "grid" ? "bg-white shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
               >
-                📅 Disponibilidad
+                📅 Availability
               </button>
               <button
                 onClick={() => setDesktopView("agenda")}
@@ -608,22 +478,94 @@ const ShowingsList: React.FC = () => {
                 📋 Agenda
               </button>
             </div>
-            {desktopView === "agenda" ? (
+          )}
+
+          {/* Portal target for ManageSlotsTab's "Missing reports" bar (desktop). */}
+          <div ref={setMrSlot} className="hidden lg:flex items-center gap-2 flex-wrap" />
+        </div>
+
+        <TabsContent value="slots" className="space-y-6">
+          {/* Missing-reports bar for the surfaces the grid's own (portaled) bar
+              can't reach — mobile + the desktop Agenda toggle. Chips open the
+              day's report-less showings for a one-click outcome or full report. */}
+          {showLiftedMissingReports && liftedMissingReports.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap rounded-lg border border-red-200 bg-red-50/60 px-3 py-2">
+              <span className="text-xs font-medium text-red-600 shrink-0">
+                Missing reports ({liftedMissingReports.length}):
+              </span>
+              {liftedMissingByDate.map(([dateStr, items]) => (
+                <Popover key={dateStr}>
+                  <PopoverTrigger asChild>
+                    <button className="text-xs px-2 py-1 rounded-md bg-white border border-red-200 text-red-700 hover:bg-red-100 transition-colors font-medium">
+                      {format(parseISO(dateStr), "MMM d")} · {items.length}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-2" side="bottom" align="start">
+                    <div className="px-1 pb-2 mb-1 border-b">
+                      <span className="text-xs font-semibold">{format(parseISO(dateStr), "EEE, MMM d")}</span>
+                    </div>
+                    <div className="space-y-1">
+                      {items.map((r) => {
+                        const busyThis = liftedReportingId === r.id;
+                        return (
+                          <div key={r.id} className="rounded-md px-2 py-1.5 bg-red-50/60 border border-red-100 space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-medium truncate">{r.leadName}</div>
+                                <div className="text-[10px] text-muted-foreground truncate">{r.address}</div>
+                              </div>
+                              <button onClick={() => openDetail(r.id)} className="text-slate-500 hover:text-[#4F46E5] shrink-0" title="Ver showing" aria-label="Ver showing"><Eye className="h-3.5 w-3.5" /></button>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <Button size="sm" disabled={busyThis} onClick={() => liftedQuickReport(r.id, true)} className="flex-1 h-7 text-xs bg-green-600 hover:bg-green-700 text-white">
+                                {busyThis ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅ Fue"}
+                              </Button>
+                              <Button size="sm" variant="outline" disabled={busyThis} onClick={() => liftedQuickReport(r.id, false)} className="flex-1 h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50">
+                                👻 No fue
+                              </Button>
+                              <Button size="sm" variant="outline" disabled={busyThis} onClick={() => openReport(r.id, r.leadId, r.address)} className="h-7 text-xs shrink-0" title="Reporte completo">
+                                <FileText className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              ))}
+            </div>
+          )}
+
+          {/* Only the active variant mounts (JS media query, not CSS hiding):
+              phone → the action-first day Agenda; desktop → Agenda or the
+              availability grid per the header toggle. */}
+          {!isDesktop ? (
+            <ShowingsAgenda
+              reloadSignal={calendarReload}
+              onReload={bumpCalendar}
+              onOpenReport={openReport}
+              onShowingClick={openDetail}
+            />
+          ) : desktopView === "agenda" ? (
+            <div className="space-y-3">
               <ShowingsAgenda
                 reloadSignal={calendarReload}
                 onReload={bumpCalendar}
                 onOpenReport={openReport}
                 onShowingClick={openDetail}
               />
-            ) : (
+            </div>
+          ) : (
+            <div className="space-y-3">
               <ManageSlotsTab
-                onTotalsChange={setSlotTotals}
                 reloadSignal={calendarReload}
                 onOpenReport={openReport}
                 onShowingClick={openDetail}
+                headerSlot={mrSlot}
               />
-            )}
-          </div>
+            </div>
+          )}
         </TabsContent>
 
 
@@ -636,7 +578,7 @@ const ShowingsList: React.FC = () => {
       <ScheduleShowingDialog
         open={scheduleDialogOpen}
         onOpenChange={setScheduleDialogOpen}
-        onSuccess={() => { fetchShowings(); bumpCalendar(); }}
+        onSuccess={bumpCalendar}
       />
 
       {/* Showing Report Dialog */}
@@ -647,7 +589,7 @@ const ShowingsList: React.FC = () => {
           showingId={selectedShowingForReport.id}
           leadId={selectedShowingForReport.leadId}
           propertyAddress={selectedShowingForReport.propertyAddress}
-          onSuccess={() => { fetchShowings(); bumpCalendar(); }}
+          onSuccess={bumpCalendar}
         />
       )}
 
@@ -656,7 +598,7 @@ const ShowingsList: React.FC = () => {
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         showingId={selectedShowingId}
-        onSuccess={() => { fetchShowings(); bumpCalendar(); }}
+        onSuccess={bumpCalendar}
         onOpenReport={(showingId, leadId, propertyAddress) => {
           setSelectedShowingForReport({ id: showingId, leadId, propertyAddress });
           setReportDialogOpen(true);
@@ -755,7 +697,7 @@ const ShowingsList: React.FC = () => {
                       <Label htmlFor="call-now-phone" className="text-xs">Phone number</Label>
                       <Input
                         id="call-now-phone"
-                        placeholder="+1 (221) 220-29323"
+                        placeholder="+1 (216) 555-0123"
                         value={callNowPhone}
                         onChange={(e) => setCallNowPhone(e.target.value)}
                       />

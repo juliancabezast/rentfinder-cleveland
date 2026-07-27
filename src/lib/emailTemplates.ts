@@ -37,56 +37,6 @@ function cardSection(title: string, content: string, borderColor: string = BRAND
   `;
 }
 
-interface PriorityLeadData {
-  leadName: string;
-  phone: string;
-  email?: string;
-  leadScore: number;
-  priorityReason: string;
-  propertyAddress?: string;
-  source: string;
-  appUrl: string;
-  leadId: string;
-}
-
-export function priorityLeadTemplate(data: PriorityLeadData): string {
-  const leadUrl = `${data.appUrl}/leads/${data.leadId}`;
-  
-  return `
-    <div style="margin-bottom: 24px;">
-      <div style="display: inline-block; background-color: #fee2e2; color: #dc2626; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; margin-bottom: 16px;">
-        🔥 PRIORITY LEAD
-      </div>
-      <h2 style="margin: 0; color: ${BRAND.textDark}; font-size: 22px; font-weight: 700;">
-        ${data.leadName}
-      </h2>
-      <p style="margin: 8px 0 0 0; color: ${BRAND.textLight}; font-size: 14px;">
-        A new high-priority lead requires immediate attention.
-      </p>
-    </div>
-    
-    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; margin-bottom: 24px;">
-      ${infoRow("Phone", data.phone)}
-      ${data.email ? infoRow("Email", data.email) : ""}
-      ${infoRow("Lead Score", `<span style="background-color: #dc2626; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${data.leadScore}</span>`)}
-      ${infoRow("Priority Reason", data.priorityReason)}
-      ${data.propertyAddress ? infoRow("Interested In", data.propertyAddress) : ""}
-      ${infoRow("Source", data.source)}
-    </table>
-    
-    ${cardSection("Recommended Action", `
-      <p style="margin: 0; color: ${BRAND.textLight}; font-size: 14px;">
-        This lead has a score of ${data.leadScore}+, indicating high purchase intent. 
-        Contact them within the next 30 minutes for best results.
-      </p>
-    `, "#dc2626")}
-    
-    <div style="text-align: center; margin-top: 24px;">
-      ${ctaButton("View Lead Details →", leadUrl)}
-    </div>
-  `;
-}
-
 interface NoShowData {
   leadName: string;
   phone: string;

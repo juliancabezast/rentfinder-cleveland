@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft,
-  Phone,
   MessageSquare,
   AlertTriangle,
   Bot,
@@ -20,9 +19,6 @@ import {
   CheckCircle,
   XCircle,
   Ban,
-  Sparkles,
-  RefreshCw,
-  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,7 +38,6 @@ import { AIBriefSection } from "@/components/leads/AIBriefSection";
 import { LeadDetailHeader } from "@/components/leads/LeadDetailHeader";
 import { InteractionHistoryCard } from "@/components/leads/InteractionHistoryCard";
 import { UpcomingActionsPreview } from "@/components/leads/UpcomingActionsPreview";
-import { ScoreHistoryPreview } from "@/components/leads/ScoreHistoryPreview";
 import { NotesTab } from "@/components/leads/NotesTab";
 import { PinnedNotesPreview } from "@/components/leads/PinnedNotesPreview";
 import { LeasingReportTab } from "@/components/leads/LeasingReportTab";
@@ -50,7 +45,6 @@ import { LEAD_TAGS_EMBED, mapEmbeddedTags } from "@/lib/leadTags";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
-type ScoreHistory = Tables<"lead_score_history">;
 type ConsentLog = Tables<"consent_log">;
 
 interface Property {
@@ -67,13 +61,13 @@ interface LeadWithRelations extends Lead {
   ai_brief_user?: { full_name: string } | null;
 }
 
+// Voice-only consent types were pruned (product is SMS/email only);
+// historical rows fall back to the generic Shield icon.
 const CONSENT_TYPE_ICONS: Record<string, React.ElementType> = {
   sms_marketing: MessageSquare,
-  call_recording: Phone,
-  automated_calls: Bot,
+  sms_and_call: MessageSquare,
   data_processing: Shield,
   email_marketing: MessageSquare,
-  whatsapp_marketing: MessageSquare,
 };
 
 
@@ -85,13 +79,13 @@ const LeadDetail: React.FC = () => {
   const { toast } = useToast();
 
   const [lead, setLead] = useState<LeadWithRelations | null>(null);
-  const [scoreHistory, setScoreHistory] = useState<ScoreHistory[]>([]);
   const [consentLogs, setConsentLogs] = useState<ConsentLog[]>([]);
   const [prediction, setPrediction] = useState<LeadPrediction | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [notesCount, setNotesCount] = useState(0);
+  const [deleting, setDeleting] = useState(false);
 
   // Modals
   const [editOpen, setEditOpen] = useState(false);
@@ -101,14 +95,15 @@ const LeadDetail: React.FC = () => {
 
   // Fetch notes count for header badge
   const fetchNotesCount = useCallback(async () => {
-    if (!id) return;
+    if (!id || !userRecord?.organization_id) return;
     const { count, error } = await supabase
       .from("lead_notes")
       .select("id", { count: "exact", head: true })
-      .eq("lead_id", id);
+      .eq("lead_id", id)
+      .eq("organization_id", userRecord.organization_id);
     if (error) { console.error("Error fetching notes count:", error); return; }
     setNotesCount(count || 0);
-  }, [id]);
+  }, [id, userRecord?.organization_id]);
 
   useEffect(() => {
     fetchNotesCount();
@@ -118,6 +113,8 @@ const LeadDetail: React.FC = () => {
     if (!id || !userRecord?.organization_id) return;
 
     setLoading(true);
+    // Reset per-lead state so a previous lead's prediction can't bleed into this one
+    setPrediction(null);
     try {
       const { data: leadData, error: leadError } = await supabase
         .from("leads")
@@ -128,25 +125,38 @@ const LeadDetail: React.FC = () => {
 
       if (leadError) throw leadError;
 
-      let humanControllerName: string | null = null;
-      if (leadData.human_controlled_by) {
-        const { data: userData } = await supabase
-          .from("users")
-          .select("full_name")
-          .eq("id", leadData.human_controlled_by)
-          .single();
-        humanControllerName = userData?.full_name || null;
-      }
+      // Single parallel batch: related user names + consent log + prediction
+      const relatedUserIds = [
+        leadData.human_controlled_by,
+        leadData.ai_brief_generated_by,
+      ].filter(Boolean) as string[];
 
-      let aiBriefUserName: string | null = null;
-      if (leadData.ai_brief_generated_by) {
-        const { data: briefUserData } = await supabase
-          .from("users")
-          .select("full_name")
-          .eq("id", leadData.ai_brief_generated_by)
-          .single();
-        aiBriefUserName = briefUserData?.full_name || null;
-      }
+      const [usersRes, consentRes, predictionRes] = await Promise.all([
+        relatedUserIds.length > 0
+          ? supabase.from("users").select("id, full_name").in("id", relatedUserIds)
+          : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+        supabase
+          .from("consent_log")
+          .select("*")
+          .eq("lead_id", id)
+          .eq("organization_id", userRecord.organization_id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("lead_predictions")
+          .select("*")
+          .eq("lead_id", id)
+          .eq("organization_id", userRecord.organization_id)
+          .maybeSingle(),
+      ]);
+
+      const nameById: Record<string, string> = {};
+      (usersRes.data || []).forEach((u) => { nameById[u.id] = u.full_name; });
+      const humanControllerName = leadData.human_controlled_by
+        ? nameById[leadData.human_controlled_by] || null
+        : null;
+      const aiBriefUserName = leadData.ai_brief_generated_by
+        ? nameById[leadData.ai_brief_generated_by] || null
+        : null;
 
       setLead({
         ...leadData,
@@ -154,26 +164,6 @@ const LeadDetail: React.FC = () => {
         ai_brief_user: aiBriefUserName ? { full_name: aiBriefUserName } : null,
       });
 
-      const [historyRes, consentRes, predictionRes] = await Promise.all([
-        supabase
-          .from("lead_score_history")
-          .select("*")
-          .eq("lead_id", id)
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("consent_log")
-          .select("*")
-          .eq("lead_id", id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("lead_predictions")
-          .select("*")
-          .eq("lead_id", id)
-          .maybeSingle(),
-      ]);
-
-      setScoreHistory(historyRes.data || []);
       setConsentLogs(consentRes.data || []);
 
       if (predictionRes.data && !predictionRes.error) {
@@ -247,7 +237,7 @@ const LeadDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 bg-[#f4f1f1] min-h-screen p-6">
+      <div className="space-y-6 bg-background min-h-screen p-6">
         <Skeleton className="h-10 w-48" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-96 w-full" />
@@ -257,7 +247,7 @@ const LeadDetail: React.FC = () => {
 
   if (!lead) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 bg-[#f4f1f1] min-h-screen">
+      <div className="flex flex-col items-center justify-center py-12 bg-background min-h-screen">
         <h2 className="text-xl font-medium">Lead not found</h2>
         <Button variant="outline" className="mt-4" onClick={() => navigate("/leads")}>
           Back to Leads
@@ -272,7 +262,7 @@ const LeadDetail: React.FC = () => {
     "Unknown Lead";
 
   return (
-    <div className="space-y-4 bg-[#f4f1f1] min-h-screen p-4 md:p-6">
+    <div className="space-y-4 bg-background min-h-screen p-4 md:p-6">
       {/* Back Button */}
       <Button variant="ghost" size="sm" onClick={() => navigate("/leads")}>
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -328,7 +318,8 @@ const LeadDetail: React.FC = () => {
         onEdit={() => setEditOpen(true)}
         onTakeControl={() => setTakeoverOpen(true)}
         onDelete={async () => {
-          if (!lead) return;
+          if (!lead || deleting) return;
+          setDeleting(true);
           try {
             const { data, error } = await supabase.functions.invoke("delete-lead", {
               body: { lead_id: lead.id },
@@ -348,17 +339,19 @@ const LeadDetail: React.FC = () => {
             navigate("/leads");
           } catch (err: any) {
             toast({ title: "Error", description: `Failed to delete lead: ${err.message}`, variant: "destructive" });
+            setDeleting(false);
           }
         }}
         onBriefGenerated={fetchLead}
         onPropertyMatched={fetchLead}
         notesCount={notesCount}
         onNotesClick={() => setActiveTab("notes")}
+        deleting={deleting}
       />
 
-      {/* 5 Tabs */}
+      {/* 7 Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="inline-flex h-auto gap-1 w-full sm:w-auto overflow-x-auto">
+        <TabsList className="inline-flex h-auto gap-1 w-full sm:w-auto justify-start overflow-x-auto">
           <TabsTrigger value="overview" className="shrink-0">Overview</TabsTrigger>
           <TabsTrigger value="messages" className="shrink-0">Messages</TabsTrigger>
           <TabsTrigger value="activity" className="shrink-0">Activity</TabsTrigger>
@@ -372,7 +365,7 @@ const LeadDetail: React.FC = () => {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Top-left: Interaction History (replaces Lead Profile) */}
-            <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+            <div className="glass-card rounded-2xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold">Interaction History</h3>
               </div>
@@ -380,7 +373,7 @@ const LeadDetail: React.FC = () => {
             </div>
 
             {/* Top-right: Conversion Prediction */}
-            <div className="bg-white border border-[#e5e7eb] rounded-lg">
+            <div className="glass-card rounded-2xl">
               <PredictionCard
                 prediction={prediction}
                 loading={predictionLoading}
@@ -389,8 +382,8 @@ const LeadDetail: React.FC = () => {
               />
             </div>
 
-            {/* Bottom-left: Upcoming Actions Preview */}
-            <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+            {/* Bottom: Upcoming Actions Preview */}
+            <div className="glass-card rounded-2xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold">Upcoming Actions</h3>
                 <Button
@@ -404,12 +397,6 @@ const LeadDetail: React.FC = () => {
               </div>
               <UpcomingActionsPreview leadId={lead.id} onSeeAll={() => setActiveTab("activity")} />
             </div>
-
-            {/* Bottom-right: Score History */}
-            <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
-              <h3 className="text-sm font-semibold mb-4">Score History</h3>
-              <ScoreHistoryPreview history={scoreHistory} />
-            </div>
           </div>
 
           {/* Pinned Notes Preview (if any) */}
@@ -418,17 +405,14 @@ const LeadDetail: React.FC = () => {
 
         {/* TAB 2: Messages - Full width MessagingCenter */}
         <TabsContent value="messages">
-          <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+          <div className="glass-card rounded-2xl p-4">
             <MessagingCenter
               lead={{
                 id: lead.id,
                 phone: lead.phone,
-                whatsapp_number: (lead as any).whatsapp_number,
                 full_name: lead.full_name,
                 sms_consent: lead.sms_consent ?? false,
-                whatsapp_consent: (lead as any).whatsapp_consent ?? false,
                 sms_consent_at: lead.sms_consent_at,
-                whatsapp_consent_at: (lead as any).whatsapp_consent_at,
               }}
               onConsentUpdate={fetchLead}
             />
@@ -438,7 +422,7 @@ const LeadDetail: React.FC = () => {
         {/* TAB 3: Activity */}
         <TabsContent value="activity" className="space-y-4">
           {/* AI Brief Section - Full version */}
-          <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+          <div className="glass-card rounded-2xl p-4">
             <AIBriefSection
               leadId={lead.id}
               aiBrief={lead.ai_brief}
@@ -450,12 +434,12 @@ const LeadDetail: React.FC = () => {
           </div>
 
           {/* Activity Timeline */}
-          <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+          <div className="glass-card rounded-2xl p-4">
             <LeadActivityTimeline leadId={lead.id} />
           </div>
 
           {/* Upcoming Agent Actions - Full version */}
-          <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+          <div className="glass-card rounded-2xl p-4">
             <UpcomingAgentActions leadId={lead.id} />
           </div>
         </TabsContent>
@@ -467,7 +451,7 @@ const LeadDetail: React.FC = () => {
 
         {/* TAB 5: Matching */}
         <TabsContent value="matching">
-          <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+          <div className="glass-card rounded-2xl p-4">
             <SmartMatches leadId={lead.id} leadName={leadName} />
           </div>
         </TabsContent>
@@ -475,12 +459,12 @@ const LeadDetail: React.FC = () => {
         {/* TAB 6: Consent Log */}
         <TabsContent value="consent" className="space-y-4">
           {/* Consent Summary */}
-          <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+          <div className="glass-card rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-4">
               <Shield className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-sm font-semibold">Consent Summary</h3>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                 <span className="text-sm font-medium">SMS Consent</span>
                 {lead.sms_consent ? (
@@ -520,25 +504,6 @@ const LeadDetail: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <span className="text-sm font-medium">WhatsApp Consent</span>
-                {(lead as any).whatsapp_consent ? (
-                  <div className="flex items-center gap-2 text-green-600">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="text-xs">
-                      {(lead as any).whatsapp_consent_at
-                        ? format(new Date((lead as any).whatsapp_consent_at), "MMM d, yyyy")
-                        : "Granted"}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <XCircle className="h-4 w-4" />
-                    <span className="text-xs">Not granted</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                 <span className="text-sm font-medium">Do Not Contact</span>
                 {lead.do_not_contact ? (
                   <div className="flex items-center gap-2 text-destructive">
@@ -556,7 +521,7 @@ const LeadDetail: React.FC = () => {
           </div>
 
           {/* Consent History */}
-          <div className="bg-white border border-[#e5e7eb] rounded-lg p-4">
+          <div className="glass-card rounded-2xl p-4">
             <h3 className="text-sm font-semibold mb-4">Consent History</h3>
             {consentLogs.length === 0 ? (
               <div className="text-center py-8">

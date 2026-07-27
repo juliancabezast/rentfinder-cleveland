@@ -24,6 +24,11 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
   const { canUploadPhotos } = usePermissions();
   const [uploading, setUploading] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  // During a drag the reorder lives in local state only and is committed to
+  // the parent ONCE on drag end — calling onChange per position crossed fired
+  // one racing DB UPDATE each in PropertyDetail, so an intermediate order
+  // could persist as the final one.
+  const [dragPhotos, setDragPhotos] = useState<string[] | null>(null);
   const [canManagePhotos, setCanManagePhotos] = useState(true);
   const [checkingPermission, setCheckingPermission] = useState(true);
 
@@ -82,11 +87,18 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
           try {
             uploadFile = await convertToWebP(file);
           } catch {
-            // Fallback to original if conversion fails
+            // Conversion failed (e.g. the browser can't decode HEIC/TIFF in a
+            // <canvas>) — upload the original bytes, but NOT under a .webp name,
+            // or the stored object serves as a broken/blank image.
             uploadFile = file;
           }
 
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
+          // Extension + content-type follow the ACTUAL bytes being uploaded
+          // (webp on success, the original format on fallback), so an object is
+          // never a non-webp file mislabeled .webp.
+          const extMatch = uploadFile.name.match(/\.([a-zA-Z0-9]+)$/);
+          const ext = (extMatch ? extMatch[1] : "jpg").toLowerCase();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
           // New-property uploads go to an org-scoped temp prefix so storage RLS can authorize
           // them (a bare properties/temp/ path matched no property row and failed for non-admins).
           const filePath = propertyId
@@ -95,7 +107,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
 
           const { error: uploadError } = await supabase.storage
             .from('property-photos')
-            .upload(filePath, uploadFile);
+            .upload(filePath, uploadFile, uploadFile.type ? { contentType: uploadFile.type } : undefined);
 
           if (uploadError) {
             console.error('Upload error:', uploadError);
@@ -132,28 +144,63 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
     maxSize: 10 * 1024 * 1024, // 10MB
   });
 
+  /** Best-effort storage cleanup for a removed photo. Only touches objects in
+   *  our property-photos bucket, and only once no property row references the
+   *  URL anymore (imports can share one upload across units). Never blocks
+   *  the UI — a leaked object is better than a broken gallery. */
+  const cleanupStorageObject = (url: string) => {
+    const marker = '/storage/v1/object/public/property-photos/';
+    const idx = url.indexOf(marker);
+    if (idx === -1) return; // external URL (e.g. imported listing photo)
+    const path = decodeURIComponent(url.slice(idx + marker.length).split('?')[0]);
+    // Give the parent's persist a moment, then delete only if unreferenced.
+    setTimeout(async () => {
+      try {
+        const { count } = await supabase
+          .from('properties')
+          .select('id', { count: 'exact', head: true })
+          .contains('photos', JSON.stringify([url]));
+        if (count === 0) {
+          await supabase.storage.from('property-photos').remove([path]);
+        }
+      } catch (err) {
+        console.error('Photo storage cleanup failed:', err);
+      }
+    }, 2000);
+  };
+
   const removePhoto = (index: number) => {
+    const removed = photos[index];
     const newPhotos = photos.filter((_, i) => i !== index);
     onChange(newPhotos);
+    if (removed) cleanupStorageObject(removed);
   };
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
+    setDragPhotos(photos);
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
 
-    const newPhotos = [...photos];
-    const draggedPhoto = newPhotos[draggedIndex];
-    newPhotos.splice(draggedIndex, 1);
-    newPhotos.splice(index, 0, draggedPhoto);
-    onChange(newPhotos);
+    setDragPhotos((prev) => {
+      const base = prev ?? photos;
+      const newPhotos = [...base];
+      const [draggedPhoto] = newPhotos.splice(draggedIndex, 1);
+      newPhotos.splice(index, 0, draggedPhoto);
+      return newPhotos;
+    });
     setDraggedIndex(index);
   };
 
   const handleDragEnd = () => {
+    // Persist the final order exactly once.
+    if (dragPhotos && dragPhotos.some((p, i) => p !== photos[i])) {
+      onChange(dragPhotos);
+    }
+    setDragPhotos(null);
     setDraggedIndex(null);
   };
 
@@ -247,14 +294,14 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
         )}
       </div>
 
-      {/* Photo Thumbnails */}
+      {/* Photo Thumbnails (dragPhotos = in-flight reorder preview) */}
       {photos.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">
             Photos ({photos.length}) - Drag to reorder, first photo is the main image
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {photos.map((photo, index) => (
+            {(dragPhotos ?? photos).map((photo, index) => (
               <div
                 key={photo}
                 draggable
@@ -287,6 +334,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
                   variant="destructive"
                   size="icon"
                   className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove photo"
                   onClick={() => removePhoto(index)}
                 >
                   <X className="h-3 w-3" />

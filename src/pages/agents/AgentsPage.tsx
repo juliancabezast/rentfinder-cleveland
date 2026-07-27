@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { Bot, Boxes, Flame, Inbox, Mail, Radio, Square, Users, Zap } from "lucide-react";
+import { Bot, Boxes, Inbox, Mail, Radio, Square, Users, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -161,11 +161,6 @@ const AgentsPage: React.FC = () => {
                 <Users className="h-4 w-4 text-primary" />
                 <span className="font-bold tabular-nums">{hud.inFunnel.toLocaleString()}</span>
                 <span className="text-muted-foreground">en el funnel</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Flame className="h-4 w-4 text-accent-foreground" />
-                <span className="font-bold tabular-nums">{snapshot.funnel.hot}</span>
-                <span className="text-muted-foreground">hot</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <Zap className="h-4 w-4 text-success" />

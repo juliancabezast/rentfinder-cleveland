@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Mail,
   Plus,
   X,
   RotateCcw,
@@ -56,6 +55,9 @@ import {
 
 interface EmailTemplatesTabProps {
   refreshKey: number;
+  /** Reports unsaved-edit state up to LeadHygiene so it can confirm before the
+   *  parent tab switch unmounts (and discards) this editor. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const TEMPLATE_ICONS: Record<EmailTemplateType, React.ElementType> = {
@@ -137,7 +139,7 @@ const VariableDropdown: React.FC<{
   );
 };
 
-export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey }) => {
+export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey, onDirtyChange }) => {
   const { toast } = useToast();
   const { userRecord } = useAuth();
   const { getSetting, updateSetting, loading: settingsLoading } = useOrganizationSettings();
@@ -147,6 +149,13 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
+
+  // Keep the parent informed of unsaved edits, and always clear the flag on
+  // unmount so a discarded/saved editor never leaves a stale "dirty" guard behind.
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   // Load saved templates from org settings
   const loadConfig = useCallback(
@@ -159,8 +168,18 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
     [getSetting]
   );
 
+  // Page-level Refresh must not silently discard unsaved edits — tab switches
+  // already get a confirm in handleTypeChange, so refreshKey gets the same one.
+  const prevRefreshKey = useRef(refreshKey);
   useEffect(() => {
-    if (!settingsLoading) loadConfig(selectedType);
+    if (settingsLoading) return;
+    const isRefresh = prevRefreshKey.current !== refreshKey;
+    prevRefreshKey.current = refreshKey;
+    if (isRefresh && isDirty && !window.confirm("You have unsaved changes. Discard them?")) {
+      return;
+    }
+    loadConfig(selectedType);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isDirty is read, not a trigger
   }, [selectedType, settingsLoading, refreshKey, loadConfig]);
 
   // Update a config field
@@ -232,7 +251,21 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const existing = getSetting<EmailTemplatesMap>("email_templates", {});
+      // Read-modify-write over the whole template map. Fetch the CURRENT row
+      // straight from the DB (bypassing the 5-min settings cache) so a concurrent
+      // edit to a DIFFERENT template type isn't clobbered by a stale snapshot.
+      let existing = getSetting<EmailTemplatesMap>("email_templates", {});
+      if (userRecord?.organization_id) {
+        const { data: fresh } = await supabase
+          .from("organization_settings")
+          .select("value")
+          .eq("organization_id", userRecord.organization_id)
+          .eq("key", "email_templates")
+          .maybeSingle();
+        if (fresh?.value && typeof fresh.value === "object" && !Array.isArray(fresh.value)) {
+          existing = fresh.value as EmailTemplatesMap;
+        }
+      }
       const updated: EmailTemplatesMap = { ...existing, [selectedType]: config };
       await (updateSetting as any)("email_templates", updated as unknown as Record<string, unknown>, "communications");
       setIsDirty(false);
@@ -263,7 +296,8 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
         (s, [k, v]) => s.split(k).join(v),
         config.subject
       );
-      await supabase.functions.invoke("send-notification-email", {
+      // invoke() returns errors instead of throwing — a bare await always "succeeds"
+      const { data, error } = await supabase.functions.invoke("send-notification-email", {
         body: {
           to: userRecord.email,
           subject: `[TEST] ${subject}`,
@@ -273,7 +307,15 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
           queue: false,
         },
       });
-      toast({ title: "Test sent", description: `Preview email sent to ${userRecord.email}` });
+      if (error || (data as any)?.error) {
+        toast({
+          title: "Send failed",
+          description: (data as any)?.error || error?.message || "The test email could not be sent.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Test sent", description: `Preview email sent to ${userRecord.email}` });
+      }
     } catch {
       toast({ title: "Send failed", variant: "destructive" });
     } finally {
@@ -315,6 +357,10 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
       </Tabs>
 
       <p className="text-sm text-muted-foreground">{TEMPLATE_META[selectedType].description}</p>
+      <p className="text-xs text-muted-foreground">
+        Note: the 7-step nurture email sequence (Elijah) is managed in the agent dispatcher
+        and is not editable from this tab.
+      </p>
 
       {/* Split layout: editor + preview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -338,6 +384,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
               <div className="flex gap-1">
                 <Input
                   ref={subjectRef}
+                  aria-label="Subject Line"
                   value={config.subject}
                   onChange={(e) => update("subject", e.target.value)}
                   placeholder="Email subject..."
@@ -359,6 +406,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
                 <div className="flex gap-1">
                   <Input
                     ref={headerTitleRef}
+                    aria-label="Header Title"
                     value={config.headerTitle}
                     onChange={(e) => update("headerTitle", e.target.value)}
                     className="flex-1"
@@ -376,6 +424,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
                 <div className="flex gap-1">
                   <Input
                     ref={subtitleRef}
+                    aria-label="Subtitle"
                     value={config.headerSubtitle || ""}
                     onChange={(e) => update("headerSubtitle", e.target.value || undefined)}
                     placeholder="Optional subtitle..."
@@ -538,6 +587,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
               <div className="flex gap-1">
                 <Input
                   ref={footerRef}
+                  aria-label="Footer Text"
                   value={config.footerText}
                   onChange={(e) => update("footerText", e.target.value)}
                   className="flex-1"
@@ -608,7 +658,7 @@ export const EmailTemplatesTab: React.FC<EmailTemplatesTabProps> = ({ refreshKey
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-lg overflow-hidden bg-[#f4f1f1]">
+            <div className="border rounded-lg overflow-hidden bg-[#f3f4f6]">
               <iframe
                 title="Email Preview"
                 srcDoc={previewHtml}

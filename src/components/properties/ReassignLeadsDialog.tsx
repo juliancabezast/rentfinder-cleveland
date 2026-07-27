@@ -26,6 +26,7 @@ import {
 import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -46,6 +47,7 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
   allProperties,
   onSuccess,
 }) => {
+  const { organization } = useAuth();
   const [leadCount, setLeadCount] = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(false);
   const [targetPropertyId, setTargetPropertyId] = useState<string>("");
@@ -61,13 +63,15 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
   }, [open, sourceProperty.id]);
 
   const fetchLeadCount = async () => {
+    if (!organization?.id) return;
     setLoadingCount(true);
     try {
       // One tag row per lead (UNIQUE lead_id+property_id) ⇒ rows = leads
       const { count, error } = await supabase
         .from("lead_property_interests")
         .select("id", { count: "exact", head: true })
-        .eq("property_id", sourceProperty.id);
+        .eq("property_id", sourceProperty.id)
+        .eq("organization_id", organization.id);
 
       if (error) throw error;
       setLeadCount(count ?? 0);
@@ -86,82 +90,63 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
   const targetProperty = allProperties.find((p) => p.id === targetPropertyId);
 
   const handleReassign = async () => {
-    if (!targetPropertyId || !leadCount) return;
+    if (!targetPropertyId || !leadCount || !organization?.id) return;
 
     setReassigning(true);
     try {
-      const CHUNK = 200;
-
-      // (a) Every lead currently tagged with the source property (paginated
-      // past the 1000-row cap so collision detection never misses rows)
-      const sourceLeadIds: string[] = [];
-      const PAGE = 1000;
-      for (let from = 0; from < 200000; from += PAGE) {
-        const { data, error } = await supabase
-          .from("lead_property_interests")
-          .select("lead_id")
-          .eq("property_id", sourceProperty.id)
-          .order("id", { ascending: true })
-          .range(from, from + PAGE - 1);
-
-        if (error) throw error;
-        sourceLeadIds.push(...((data || []).map((r) => r.lead_id)));
-        if (!data || data.length < PAGE) break;
-      }
-
-      // (b) Leads already tagged with the target property (collisions)
-      const collidingIds: string[] = [];
-      for (let i = 0; i < sourceLeadIds.length; i += CHUNK) {
-        const { data, error } = await supabase
-          .from("lead_property_interests")
-          .select("lead_id")
-          .eq("property_id", targetPropertyId)
-          .in("lead_id", sourceLeadIds.slice(i, i + CHUNK));
-
-        if (error) throw error;
-        collidingIds.push(...((data || []).map((r) => r.lead_id)));
-      }
-
-      // (c) Drop the colliding SOURCE tags — those leads already carry the
-      // target tag, so moving would violate UNIQUE(lead_id, property_id)
-      for (let i = 0; i < collidingIds.length; i += CHUNK) {
-        const { error } = await supabase
-          .from("lead_property_interests")
-          .delete()
-          .eq("property_id", sourceProperty.id)
-          .in("lead_id", collidingIds.slice(i, i + CHUNK));
-
-        if (error) throw error;
-      }
-
-      // (d) Move the remaining tags to the target property
-      const { error } = await supabase
-        .from("lead_property_interests")
-        .update({
-          property_id: targetPropertyId,
-          source: "reassign",
-          last_interest_at: new Date().toISOString(),
-        })
-        .eq("property_id", sourceProperty.id);
+      // Delete-collisions + move in ONE server-side transaction. The former
+      // client-side scan → delete → blanket-update sequence could half-apply if
+      // a parser tagged one of these leads with the TARGET property in the
+      // window between the collision scan and the final update: the UNIQUE
+      // (lead_id, property_id) violation then aborted only the update, after
+      // the source collisions had already been deleted. The RPC does both
+      // atomically (deriving/scoping org from auth) and returns honest counts.
+      // NOTE: `as never` casts until types.ts is regenerated with the new RPC.
+      const { data, error } = await supabase.rpc(
+        "reassign_lead_property_interests" as never,
+        {
+          p_source_property_id: sourceProperty.id,
+          p_target_property_id: targetPropertyId,
+        } as never,
+      );
 
       if (error) throw error;
 
-      toast.success(`${leadCount} lead${leadCount > 1 ? "s" : ""} retagged`, {
-        description: `From ${sourceProperty.address} → ${targetProperty?.address}`,
-      });
+      // Honest counts straight from the transaction: collisions were dropped
+      // (already tagged), the rest moved.
+      const result = (data ?? {}) as { moved?: number; collided?: number };
+      const movedCount = result.moved ?? 0;
+      const collidedCount = result.collided ?? 0;
+      toast.success(
+        collidedCount > 0
+          ? `${movedCount} lead${movedCount === 1 ? "" : "s"} retagged · ${collidedCount} already had the target tag`
+          : `${movedCount} lead${movedCount === 1 ? "" : "s"} retagged`,
+        {
+          description: `From ${sourceProperty.address} → ${targetProperty?.address}`,
+        },
+      );
 
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
       console.error("Error retagging leads:", error);
-      toast.error("Failed to retag leads");
+      const message = (error as { message?: string })?.message;
+      toast.error("Failed to retag leads", message ? { description: message } : undefined);
     } finally {
       setReassigning(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // Don't let ESC / overlay-click dismiss a retag that's mid-flight —
+        // the user would think nothing happened while the tags still moved.
+        if (reassigning && !next) return;
+        onOpenChange(next);
+      }}
+    >
       <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -304,7 +289,7 @@ export const ReassignLeadsDialog: React.FC<ReassignLeadsDialogProps> = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={reassigning}>
             Cancel
           </Button>
           <Button

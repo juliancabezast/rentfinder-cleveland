@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { AlertTriangle, Trash2, Pencil, Check, X, Loader2, Wand2, CalendarClock } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { AlertTriangle, Trash2, Check, X, Loader2, Wand2, CalendarClock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,25 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { format } from "date-fns";
+
+/** Extract the real error message from a Supabase FunctionsHttpError body — its
+ *  .message is only the generic "non-2xx status code" string; the reason (e.g.
+ *  "Only admins can delete leads") lives in the response body. */
+async function readEdgeError(error: any): Promise<string | null> {
+  try {
+    const ctx = error?.context;
+    if (ctx && typeof ctx.json === "function") {
+      const body = await ctx.json();
+      return body?.error || null;
+    }
+  } catch {
+    /* fall through to caller's fallback */
+  }
+  return null;
+}
 
 interface SuspectLead {
   id: string;
@@ -35,7 +52,6 @@ interface SuspectLead {
   phone: string | null;
   email: string | null;
   status: string;
-  lead_score: number | null;
   source: string | null;
   created_at: string;
   alerts: Alert[];
@@ -247,7 +263,10 @@ type EditingCell = { leadId: string; field: "full_name" | "phone" | "email" } | 
 
 export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChange }) => {
   const { userRecord } = useAuth();
+  const permissions = usePermissions();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [localRefresh, setLocalRefresh] = useState(0);
   const [leads, setLeads] = useState<SuspectLead[]>([]);
   const [editing, setEditing] = useState<EditingCell>(null);
   const [editValue, setEditValue] = useState("");
@@ -260,37 +279,74 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     suggestions: Record<string, string>;
   } | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [restoreAllOpen, setRestoreAllOpen] = useState(false);
   const [restoreAllProgress, setRestoreAllProgress] = useState<{
     current: number;
     total: number;
   } | null>(null);
 
+  // Only leads actually flagged for their NAME are auto-restorable — leads flagged
+  // solely for phone/email issues must not get their names rewritten. Skip
+  // suggestions that wouldn't change anything.
+  const restorableLeads = useMemo(
+    () =>
+      leads
+        .map((lead) => ({ lead, cleaned: suggestCleanedName(lead) }))
+        .filter(
+          (r): r is { lead: SuspectLead; cleaned: string } =>
+            r.cleaned !== null && hasNameAlert(r.lead) && r.cleaned !== r.lead.full_name
+        ),
+    [leads]
+  );
+
   useEffect(() => {
     fetchSuspect();
-  }, [userRecord?.organization_id, refreshKey]);
+  }, [userRecord?.organization_id, refreshKey, localRefresh]);
 
   const fetchSuspect = async () => {
     if (!userRecord?.organization_id) return;
+    const orgId = userRecord.organization_id;
     setLoading(true);
+    setError(null);
 
-    // Paginate — a 1000-row cap analyzed only the newest ~5% of leads.
-    const data: any[] = [];
+    // Fire all 1000-row pages in parallel (mirrors DuplicatesTab) — the old
+    // sequential loop made ~19 round-trips over all non-lost leads on every visit.
     const PAGE = 1000;
-    for (let from = 0; from < 100000; from += PAGE) {
-      const { data: page, error } = await supabase
+    let data: any[] = [];
+    try {
+      const cols = "id, full_name, phone, email, status, source, created_at";
+      const head = await supabase
         .from("leads")
-        .select("id, full_name, phone, email, status, lead_score, source, created_at")
-        .eq("organization_id", userRecord.organization_id)
-        .neq("status", "lost")
-        .order("id", { ascending: true })
-        .range(from, from + PAGE - 1);
-      if (error) {
-        console.error("Failed to fetch leads for analysis:", error.message);
-        setLoading(false);
-        return;
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .neq("status", "lost");
+      if (head.error) throw new Error(head.error.message);
+      const pages = Math.max(1, Math.ceil((head.count || 0) / PAGE));
+      const results = await Promise.all(
+        Array.from({ length: pages }, (_, i) =>
+          supabase
+            .from("leads")
+            .select(cols)
+            .eq("organization_id", orgId)
+            .neq("status", "lost")
+            .order("id", { ascending: true })
+            .range(i * PAGE, i * PAGE + PAGE - 1)
+        )
+      );
+      // Keyed by id — parallel pages can overlap if rows are inserted mid-scan
+      const byId = new Map<string, any>();
+      for (const res of results) {
+        if (res.error) throw new Error(res.error.message);
+        for (const row of res.data || []) byId.set(row.id, row);
       }
-      data.push(...(page || []));
-      if (!page || page.length < PAGE) break;
+      data = Array.from(byId.values());
+    } catch (err: any) {
+      // Never render the success "nothing to review" empty state on a failed fetch
+      console.error("Failed to fetch leads for analysis:", err.message);
+      setError(err.message);
+      toast.error("Could not load leads for review", { description: err.message });
+      setLoading(false);
+      return;
     }
 
     const suspects: SuspectLead[] = [];
@@ -325,24 +381,33 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
   };
 
   const saveEdit = async () => {
-    if (!editing || !editValue.trim()) return;
+    if (!editing || !editValue.trim() || !userRecord?.organization_id) return;
     setSaving(true);
 
+    const editedField = editing.field;
+    const editedId = editing.leadId;
+
     const updateData: Record<string, any> = {
-      [editing.field]: editValue.trim(),
+      [editedField]: editValue.trim(),
       updated_at: new Date().toISOString(),
     };
 
-    if (editing.field === "full_name") {
+    if (editedField === "full_name") {
       const parts = editValue.trim().split(" ");
       updateData.first_name = parts[0] || null;
       updateData.last_name = parts.slice(1).join(" ") || null;
     }
 
-    const { error } = await supabase
+    // Return the stored row: the capitalize_lead_name trigger initcaps names, so
+    // re-analyzing the typed value would keep a stale "no capitalization" flag.
+    // Org-scoped for defense-in-depth (never rely on RLS alone).
+    const { data: updatedRow, error } = await supabase
       .from("leads")
       .update(updateData)
-      .eq("id", editing.leadId);
+      .eq("id", editedId)
+      .eq("organization_id", userRecord.organization_id)
+      .select("full_name, phone, email")
+      .single();
 
     setSaving(false);
 
@@ -353,11 +418,16 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
 
     toast.success("Updated");
 
-    // Re-analyze the updated lead
+    // Re-analyze against the DB-normalized values
     setLeads((prev) => {
       const updated = prev.map((l) => {
-        if (l.id !== editing.leadId) return l;
-        const newLead = { ...l, [editing.field]: editValue.trim() };
+        if (l.id !== editedId) return l;
+        const newLead = {
+          ...l,
+          full_name: updatedRow?.full_name ?? l.full_name,
+          phone: updatedRow?.phone ?? l.phone,
+          email: updatedRow?.email ?? l.email,
+        };
         const newAlerts = analyzeLead(newLead);
         return { ...newLead, alerts: newAlerts };
       });
@@ -380,8 +450,11 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     setDeleting(false);
 
     if (error || (data && data.error)) {
-      toast.error("Delete failed", { description: data?.error || error?.message });
+      // FunctionsHttpError's .message is generic — read the real reason from the body
+      const reason = data?.error || (await readEdgeError(error)) || error?.message;
+      toast.error("Delete failed", { description: reason });
       setDeleteTarget(null);
+      setDeleteShowings([]);
       return;
     }
 
@@ -409,7 +482,7 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
   };
 
   const handleRestoreConfirm = async () => {
-    if (!restoreTarget) return;
+    if (!restoreTarget || !userRecord?.organization_id) return;
     setRestoring(true);
 
     const { lead, suggestions } = restoreTarget;
@@ -424,10 +497,13 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
       updateData.last_name = parts.slice(1).join(" ") || null;
     }
 
-    const { error } = await supabase
+    const { data: updatedRow, error } = await supabase
       .from("leads")
       .update(updateData)
-      .eq("id", lead.id);
+      .eq("id", lead.id)
+      .eq("organization_id", userRecord.organization_id)
+      .select("full_name, phone, email")
+      .single();
 
     setRestoring(false);
 
@@ -437,14 +513,19 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     }
 
     toast.success("Lead restored", {
-      description: `${lead.full_name} → ${suggestions.full_name || lead.full_name}`,
+      description: `${lead.full_name} → ${updatedRow?.full_name || suggestions.full_name || lead.full_name}`,
     });
 
-    // Re-analyze
+    // Re-analyze against the DB-normalized values
     setLeads((prev) => {
       const updated = prev.map((l) => {
         if (l.id !== lead.id) return l;
-        const newLead = { ...l, ...suggestions };
+        const newLead = {
+          ...l,
+          full_name: updatedRow?.full_name ?? l.full_name,
+          phone: updatedRow?.phone ?? l.phone,
+          email: updatedRow?.email ?? l.email,
+        };
         const newAlerts = analyzeLead(newLead);
         return { ...newLead, alerts: newAlerts } as SuspectLead;
       });
@@ -456,20 +537,28 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     setRestoreTarget(null);
   };
 
-  const handleRestoreAll = async () => {
-    // Collect all leads with a valid auto-clean suggestion
-    const restorable = leads
-      .map((lead) => ({ lead, cleaned: suggestCleanedName(lead) }))
-      .filter((r): r is { lead: SuspectLead; cleaned: string } => r.cleaned !== null)
-      .map((r) => ({ lead: r.lead, suggestions: { full_name: r.cleaned } }));
-
-    if (restorable.length === 0) {
+  const handleRestoreAllClick = () => {
+    if (restorableLeads.length === 0) {
       toast.info("No leads can be auto-restored. Edit or delete them manually.");
       return;
     }
+    // Never bulk-rewrite names without showing the Before → After list first
+    setRestoreAllOpen(true);
+  };
+
+  const handleRestoreAllConfirm = async () => {
+    if (!userRecord?.organization_id) return;
+    const orgId = userRecord.organization_id;
+    const restorable = restorableLeads.map((r) => ({
+      lead: r.lead,
+      suggestions: { full_name: r.cleaned },
+    }));
+    setRestoreAllOpen(false);
 
     setRestoreAllProgress({ current: 0, total: restorable.length });
     let succeeded = 0;
+    let failed = 0;
+    let firstError: string | null = null;
 
     for (let i = 0; i < restorable.length; i++) {
       const { lead, suggestions } = restorable[i];
@@ -488,13 +577,30 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
       const { error } = await supabase
         .from("leads")
         .update(updateData)
-        .eq("id", lead.id);
+        .eq("id", lead.id)
+        .eq("organization_id", orgId);
 
-      if (!error) succeeded++;
+      if (error) {
+        failed++;
+        if (!firstError) firstError = error.message;
+      } else {
+        succeeded++;
+      }
     }
 
     setRestoreAllProgress(null);
-    toast.success(`Restored ${succeeded} of ${restorable.length} leads`);
+    // Don't report a green success when some (or all) rows failed
+    if (succeeded === 0 && failed > 0) {
+      toast.error(`Restore failed: 0 of ${restorable.length} restored`, {
+        description: firstError || undefined,
+      });
+    } else if (failed > 0) {
+      toast.warning(`Restored ${succeeded} of ${restorable.length} — ${failed} failed`, {
+        description: firstError || undefined,
+      });
+    } else {
+      toast.success(`Restored ${succeeded} of ${restorable.length} leads`);
+    }
     fetchSuspect();
   };
 
@@ -536,13 +642,14 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
     }
 
     return (
-      <span
-        className={`text-sm cursor-pointer hover:text-blue-600 ${hasAlert ? "text-red-600 font-medium" : ""}`}
+      <button
+        type="button"
+        className={`text-sm text-left cursor-pointer hover:text-blue-600 ${hasAlert ? "text-red-600 font-medium" : ""}`}
         onClick={() => startEdit(lead.id, field, value)}
         title="Click to edit"
       >
         {value || "—"}
-      </span>
+      </button>
     );
   };
 
@@ -552,6 +659,19 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
         {[1, 2, 3, 4, 5].map((i) => (
           <Skeleton key={i} className="h-12 w-full" />
         ))}
+      </div>
+    );
+  }
+
+  // A failed fetch must never masquerade as a clean database
+  if (error) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 p-6 text-center space-y-3">
+        <p className="text-sm text-red-700">Couldn't load leads for review: {error}</p>
+        <Button variant="outline" size="sm" onClick={() => setLocalRefresh((k) => k + 1)}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
       </div>
     );
   }
@@ -573,10 +693,10 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
           {leads.length} lead{leads.length !== 1 ? "s" : ""} need review.
           Click on flagged fields to fix them, or delete junk leads.
         </p>
-        {!restoreAllProgress && leads.some((l) => suggestCleanedName(l)) && (
-          <Button onClick={handleRestoreAll} className="bg-[#4F46E5] hover:bg-[#4F46E5]/90">
+        {!restoreAllProgress && restorableLeads.length > 0 && (
+          <Button onClick={handleRestoreAllClick} className="bg-[#4F46E5] hover:bg-[#4F46E5]/90">
             <Wand2 className="h-4 w-4 mr-1.5" />
-            Restore All ({leads.filter((l) => suggestCleanedName(l)).length})
+            Restore All ({restorableLeads.length})
           </Button>
         )}
       </div>
@@ -645,36 +765,49 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-[#4F46E5] hover:text-[#4F46E5] hover:bg-purple-50"
+                        className="h-8 w-8 text-[#4F46E5] hover:text-[#4F46E5] hover:bg-indigo-50"
                         onClick={() => handleRestoreClick(lead)}
                         title="Restore — clean up this lead"
                       >
                         <Wand2 className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                      onClick={async () => {
-                        const { data: upcomingShowings } = await supabase
-                          .from("showings")
-                          .select("showing_date, properties:property_id(name)")
-                          .eq("lead_id", lead.id)
-                          .gte("showing_date", new Date().toISOString())
-                          .in("status", ["scheduled", "confirmed"]);
-                        setDeleteShowings(
-                          (upcomingShowings || []).map((s: any) => ({
-                            date: s.showing_date,
-                            property: (s.properties as any)?.name || "Unknown property",
-                          }))
-                        );
-                        setDeleteTarget(lead);
-                      }}
-                      title="Delete this lead"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {/* Only admins can delete (delete-lead edge fn is admin-only);
+                        showing the button to editors/leasing_agents only 403s. */}
+                    {permissions.canDeleteLead && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={async () => {
+                          if (!userRecord?.organization_id) return;
+                          const { data: upcomingShowings, error: showingsError } = await supabase
+                            .from("showings")
+                            .select("scheduled_at, properties:property_id(address)")
+                            .eq("organization_id", userRecord.organization_id)
+                            .eq("lead_id", lead.id)
+                            .gte("scheduled_at", new Date().toISOString())
+                            .in("status", ["scheduled", "confirmed"]);
+                          if (showingsError) {
+                            // Don't open the delete dialog with a silently-broken warning
+                            toast.error("Could not check upcoming showings", {
+                              description: showingsError.message,
+                            });
+                            return;
+                          }
+                          setDeleteShowings(
+                            (upcomingShowings || []).map((s: any) => ({
+                              date: s.scheduled_at,
+                              property: (s.properties as any)?.address || "Unknown property",
+                            }))
+                          );
+                          setDeleteTarget(lead);
+                        }}
+                        title="Delete this lead"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -734,6 +867,49 @@ export const SuspectTab: React.FC<SuspectTabProps> = ({ refreshKey, onCountChang
               ) : (
                 deleteShowings.length > 0 ? "Delete Anyway" : "Delete Lead"
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore All confirmation — bulk name rewrites always get a preview */}
+      <AlertDialog open={restoreAllOpen} onOpenChange={setRestoreAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5 text-[#4F46E5]" />
+              Restore All ({restorableLeads.length})
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  This will rewrite the name on {restorableLeads.length} lead
+                  {restorableLeads.length !== 1 ? "s" : ""}. Review the changes before
+                  confirming — this cannot be undone.
+                </p>
+                <div className="rounded-lg border p-3 bg-muted/30 max-h-64 overflow-y-auto space-y-2">
+                  {restorableLeads.map(({ lead, cleaned }) => (
+                    <div key={lead.id} className="text-sm">
+                      <span className="line-through text-red-600">{lead.full_name}</span>
+                      <span className="text-muted-foreground mx-1.5">→</span>
+                      <span className="font-medium text-green-700">{cleaned}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Phones and emails will be kept as-is.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRestoreAllConfirm}
+              className="bg-[#4F46E5] hover:bg-[#4F46E5]/90"
+            >
+              <Wand2 className="h-4 w-4 mr-1.5" />
+              Restore {restorableLeads.length}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

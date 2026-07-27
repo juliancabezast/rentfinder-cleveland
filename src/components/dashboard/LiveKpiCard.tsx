@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export interface SubStat {
   label: string;
   value: string;
-  tone?: "default" | "up" | "down" | "hot" | "success" | "warning";
+  tone?: "default" | "up" | "down" | "success" | "warning";
   icon?: LucideIcon;
 }
 
@@ -26,7 +26,6 @@ const TONE: Record<NonNullable<SubStat["tone"]>, string> = {
   default: "text-foreground",
   up: "text-success",
   down: "text-destructive",
-  hot: "text-amber-500",
   success: "text-success",
   warning: "text-warning",
 };
@@ -68,6 +67,19 @@ export const LiveKpiCard: React.FC<Props> = ({
     <Card
       variant="glass"
       onClick={onClick}
+      // Keyboard operability: the card is a navigation control, not just a div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e: React.KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       className={cn(
         "relative overflow-hidden border-l-[3px] group transition-all",
         a.border,

@@ -56,6 +56,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { loadListingConfig, renderPropertyDescription, type ListingTemplateConfig } from "@/lib/listingTemplate";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Property = Tables<"properties">;
@@ -95,7 +96,7 @@ function fmtCompact(n: number): string {
 }
 
 /** Right-hand "Performance" column group: leads · 7-day lead delta · scheduled
- *  showings · views (detail · impressions). Renders 4 grid cells — a fragment
+ *  showings · views (detail views · CTR%). Renders 4 grid cells — a fragment
  *  adds no grid item, so the 4 divs become direct children of the row grid. */
 function PerfCells({
   leads, delta, showings, viewsDetail, viewsImpr,
@@ -128,13 +129,21 @@ function PerfCells({
       </div>
       <div className="flex justify-center">
         {viewsDetail > 0 || viewsImpr > 0 ? (
+          /* Detail views + CTR%. Raw impressions are near-identical across
+             listed homes (the homepage fires one per listed property per
+             load), so they carry no per-property signal — the click-through
+             rate does. */
           <span
             className="inline-flex items-center gap-0.5 text-[11px] font-medium text-slate-700"
-            title={`${viewsDetail} detail views · ${viewsImpr} impressions`}
+            title={`${viewsDetail} detail views${viewsImpr > 0 ? ` · ${((viewsDetail / viewsImpr) * 100).toFixed(1)}% of ${viewsImpr} impressions` : ""}`}
           >
             <Eye className="h-3.5 w-3.5 text-slate-400" />{fmtCompact(viewsDetail)}
-            <span className="px-0.5 text-muted-foreground/40">·</span>
-            <span className="font-normal text-muted-foreground">{fmtCompact(viewsImpr)}</span>
+            {viewsImpr > 0 && (
+              <>
+                <span className="px-0.5 text-muted-foreground/40">·</span>
+                <span className="font-normal text-muted-foreground">{((viewsDetail / viewsImpr) * 100).toFixed(1)}%</span>
+              </>
+            )}
           </span>
         ) : dash}
       </div>
@@ -175,6 +184,8 @@ function InlineNumber({
 
   const commit = () => {
     setEditing(false);
+    // Empty input = no change — Number("") is 0 and would silently save $0.
+    if (draft.trim() === "") return;
     const n = Number(draft);
     if (!Number.isFinite(n) || n < 0 || n === value) return;
     onSave(n);
@@ -205,6 +216,7 @@ function InlineNumber({
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
+        e.stopPropagation(); // keep Enter/Space from also toggling the row
         if (e.key === "Enter") commit();
         if (e.key === "Escape") setEditing(false);
       }}
@@ -298,14 +310,15 @@ const PropertiesList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
   const [zillowOpen, setZillowOpen] = useState(false);
-  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [checkOpen, setCheckOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [addingUnitTo, setAddingUnitTo] = useState<{ address: string; city: string; state: string; zip_code: string; property_group_id: string | null } | null>(null);
   const [leadCounts, setLeadCounts] = useState<Map<string, number>>(new Map());
   const [showingsCounts, setShowingsCounts] = useState<Map<string, number>>(new Map());
   const [leadsWeek, setLeadsWeek] = useState<Map<string, { cur: number; prev: number }>>(new Map());
   const [live, setLive] = useState(false);
+  // Org listing template — inline beds/baths/rent edits regenerate the public
+  // description from it so the listing text never contradicts the new numbers.
+  const [listingConfig, setListingConfig] = useState<ListingTemplateConfig | null>(null);
   // Collapsible tree: every property collapsed by default (one compact row),
   // cities expanded. Search/filter auto-expands so matches stay visible.
   const [expandedBuildings, setExpandedBuildings] = useState<Set<string>>(new Set());
@@ -333,91 +346,105 @@ const PropertiesList: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     if (!userRecord?.organization_id) return;
+    const orgId = userRecord.organization_id;
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from("properties")
         .select("*")
-        .eq("organization_id", userRecord.organization_id)
+        .eq("organization_id", orgId)
         .order("address")
         .order("unit_number");
       if (error) throw error;
       setProperties(data || []);
-
-      // Count interested leads per property from lead_property_interests tags
-      // (a lead counts under EVERY property it's tagged with). Paginate past
-      // PostgREST's 1000-row cap — this org has 4k+ tags and a single
-      // high-volume property (1k+ leads) would otherwise fill the whole first
-      // page, leaving every other property showing "—". Order by the id for
-      // stable, non-overlapping pages.
-      const counts = new Map<string, number>();
-      const LEAD_PAGE = 1000;
-      for (let from = 0; from < 500000; from += LEAD_PAGE) {
-        const { data: tagData, error: tagError } = await supabase
-          .from("lead_property_interests")
-          .select("property_id")
-          .eq("organization_id", userRecord.organization_id)
-          .order("id", { ascending: true })
-          .range(from, from + LEAD_PAGE - 1);
-        if (tagError) break;
-        const rows = tagData || [];
-        for (const tag of rows) {
-          const pid = tag.property_id as string;
-          counts.set(pid, (counts.get(pid) || 0) + 1);
-        }
-        if (rows.length < LEAD_PAGE) break;
-      }
-      setLeadCounts(counts);
-
-      // Scheduled showings per property (via the purpose-built property_performance view).
-      const showings = new Map<string, number>();
-      const { data: perf } = await supabase
-        .from("property_performance")
-        .select("property_id, showings_scheduled")
-        .eq("organization_id", userRecord.organization_id)
-        .limit(5000);
-      for (const r of (perf as any[]) || []) {
-        if (r.property_id) showings.set(r.property_id as string, Number(r.showings_scheduled) || 0);
-      }
-      setShowingsCounts(showings);
-
-      // New-interest delta: rolling last-7-days vs the prior 7 days, per
-      // property. Tag created_at = FIRST time a lead showed interest in the
-      // property, so this counts genuinely new interest events.
-      const DAY = 86400000;
-      const curStart = new Date(Date.now() - 7 * DAY).toISOString();
-      const prevStart = new Date(Date.now() - 14 * DAY).toISOString();
-      const week = new Map<string, { cur: number; prev: number }>();
-      for (let from = 0; from < 500000; from += LEAD_PAGE) {
-        const { data: recent, error: rErr } = await supabase
-          .from("lead_property_interests")
-          .select("property_id, created_at")
-          .eq("organization_id", userRecord.organization_id)
-          .gte("created_at", prevStart)
-          .order("id", { ascending: true })
-          .range(from, from + LEAD_PAGE - 1);
-        if (rErr) break;
-        const rws = recent || [];
-        for (const l of rws) {
-          const pid = l.property_id as string;
-          const ts = l.created_at as string | null;
-          if (!pid || !ts) continue;
-          const e = week.get(pid) || { cur: 0, prev: 0 };
-          if (ts >= curStart) e.cur += 1; else e.prev += 1;
-          week.set(pid, e);
-        }
-        if (rws.length < LEAD_PAGE) break;
-      }
-      setLeadsWeek(week);
     } catch (error) {
       console.error("Error fetching properties:", error);
       toast({ title: "Error", description: "Failed to load properties.", variant: "destructive" });
-    } finally {
       setLoading(false);
+      return;
+    }
+    // The grid paints as soon as the properties arrive — the per-property
+    // aggregates below stream into the Performance cells afterwards.
+    setLoading(false);
+
+    try {
+      const DAY = 86400000;
+      const curStart = new Date(Date.now() - 7 * DAY).toISOString();
+      const prevStart = new Date(Date.now() - 14 * DAY).toISOString();
+      const counts = new Map<string, number>();
+      const week = new Map<string, { cur: number; prev: number }>();
+      const showings = new Map<string, number>();
+
+      // Total leads + scheduled showings per property come straight from the
+      // property_performance view, which computes both in-DB and excludes demo
+      // leads/showings — so the Leads and Showings cells on a row share the
+      // same demo semantics (a raw tag scan counted demo tags, diverging).
+      const perfScan = async () => {
+        const { data: perf, error: perfError } = await supabase
+          .from("property_performance")
+          .select("property_id, total_leads, showings_scheduled")
+          .eq("organization_id", orgId)
+          .limit(5000);
+        if (perfError) throw perfError;
+        for (const r of (perf as any[]) || []) {
+          if (!r.property_id) continue;
+          counts.set(r.property_id as string, Number(r.total_leads) || 0);
+          showings.set(r.property_id as string, Number(r.showings_scheduled) || 0);
+        }
+      };
+
+      // Rolling 7-day vs prior-7-day new-interest delta. Only the last 14 days
+      // of tags are needed, so scan just that window (not the whole 15k+ table).
+      // Tag created_at = FIRST time a lead showed interest, so this counts
+      // genuinely new interest events.
+      const LEAD_PAGE = 1000;
+      const deltaScan = async () => {
+        for (let from = 0; from < 500000; from += LEAD_PAGE) {
+          const { data: tagData, error: tagError } = await supabase
+            .from("lead_property_interests")
+            .select("property_id, created_at")
+            .eq("organization_id", orgId)
+            .gte("created_at", prevStart)
+            .order("id", { ascending: true })
+            .range(from, from + LEAD_PAGE - 1);
+          if (tagError) throw tagError;
+          const rows = tagData || [];
+          for (const tag of rows) {
+            const pid = tag.property_id as string;
+            if (!pid) continue;
+            const ts = tag.created_at as string | null;
+            if (ts && ts >= prevStart) {
+              const e = week.get(pid) || { cur: 0, prev: 0 };
+              if (ts >= curStart) e.cur += 1; else e.prev += 1;
+              week.set(pid, e);
+            }
+          }
+          if (rows.length < LEAD_PAGE) break;
+        }
+      };
+
+      await Promise.all([perfScan(), deltaScan()]);
+      setLeadCounts(counts);
+      setLeadsWeek(week);
+      setShowingsCounts(showings);
+    } catch (error) {
+      // Say so instead of silently truncating the counts mid-pagination.
+      console.error("Error fetching property aggregates:", error);
+      toast({ title: "Heads up", description: "Lead/showing counts could not be fully loaded." });
     }
   }, [userRecord?.organization_id, toast]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Load the org listing template once so inline edits can regenerate the
+  // template-driven description (mirrors PropertyForm).
+  useEffect(() => {
+    const orgId = userRecord?.organization_id;
+    if (!orgId) return;
+    loadListingConfig(supabase, orgId)
+      .then(setListingConfig)
+      .catch((e) => console.error("Error loading listing config:", e));
+  }, [userRecord?.organization_id]);
 
   // ── Realtime: any change to this org's properties (from any device/user/
   //    automation) merges straight into the grid, no refresh needed.
@@ -455,12 +482,24 @@ const PropertiesList: React.FC = () => {
 
   // ── Optimistic inline update: grid changes instantly, reverts on error.
   const updateProperty = async (id: string, patch: Partial<Property>) => {
+    if (!userRecord?.organization_id) return;
     const before = properties.find((p) => p.id === id);
     setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+    // Beds/baths/rent/type feed the {beds}/{baths}/{rent} merge tags, so
+    // regenerate the template description in the same write — otherwise the
+    // public listing keeps advertising the old numbers (PropertyForm and the
+    // Rules "apply to all" path both regenerate; the inline grid must too).
+    const dbPatch: Partial<Property> = { ...patch, updated_at: new Date().toISOString() };
+    const touchesDescription =
+      "bedrooms" in patch || "bathrooms" in patch || "rent_price" in patch || "property_type" in patch;
+    if (touchesDescription && listingConfig && before) {
+      dbPatch.description = renderPropertyDescription(listingConfig, { ...before, ...patch } as any);
+    }
     const { error } = await supabase
       .from("properties")
-      .update({ ...patch, updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .update(dbPatch)
+      .eq("id", id)
+      .eq("organization_id", userRecord.organization_id);
     if (error) {
       if (before) setProperties((prev) => prev.map((p) => (p.id === id ? before : p)));
       toast({ title: "Error", description: "Change could not be saved — reverted.", variant: "destructive" });
@@ -490,7 +529,9 @@ const PropertiesList: React.FC = () => {
   const grouped = useMemo(() => {
     const map = new Map<string, Property[]>();
     for (const p of filtered) {
-      const key = `${p.address.trim().toLowerCase()}|${p.city}`;
+      // Normalize BOTH address and city (case/whitespace) so units of one
+      // building don't split into separate rows over inconsistent city casing.
+      const key = `${p.address.trim().toLowerCase()}|${p.city.trim().toLowerCase()}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(p);
     }
@@ -517,15 +558,19 @@ const PropertiesList: React.FC = () => {
       if (statuses.some((s) => s === "rented")) return 3;
       return 4; // inactive / everything else last
     };
-    const map = new Map<string, typeof grouped>();
+    const map = new Map<string, { display: string; buildings: typeof grouped }>();
     for (const g of grouped) {
-      const key = `${g.city}, ${g.state}`;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(g);
+      // Normalize the grouping key (case/whitespace) but keep the first-seen
+      // casing for display, so "Cleveland" and "cleveland " don't produce two
+      // separate city headers.
+      const normKey = `${g.city.trim().toLowerCase()}|${g.state.trim().toLowerCase()}`;
+      const entry = map.get(normKey);
+      if (entry) entry.buildings.push(g);
+      else map.set(normKey, { display: `${g.city}, ${g.state}`, buildings: [g] });
     }
-    return [...map.entries()]
-      .map(([city, buildings]) => ({
-        city,
+    return [...map.values()]
+      .map(({ display, buildings }) => ({
+        city: display,
         buildings: [...buildings].sort(
           (a, b) => buildingRank(a) - buildingRank(b) || a.address.localeCompare(b.address),
         ),
@@ -570,7 +615,12 @@ const PropertiesList: React.FC = () => {
     const publicCount = properties.filter((p) => PUBLIC_STATUSES.has(p.status)).length;
     const addresses = new Set(properties.map((p) => p.address.trim().toLowerCase()));
     const potentialRent = available.reduce((sum, p) => sum + (p.rent_price || 0), 0);
-    const currentRent = rented.reduce((sum, p) => sum + (p.rent_price || 0), 0);
+    // "If full" = every non-inactive door earning its listed rent. Includes
+    // coming_soon / in_leasing doors so the headline doesn't dip as units
+    // move through transitional statuses.
+    const totalPossible = properties
+      .filter((p) => p.status !== "inactive")
+      .reduce((sum, p) => sum + (p.rent_price || 0), 0);
     return {
       buildings: addresses.size,
       totalDoors: properties.length,
@@ -579,41 +629,14 @@ const PropertiesList: React.FC = () => {
       inactive: inactive.length,
       publicCount,
       potentialRent,
-      totalPossible: potentialRent + currentRent,
+      totalPossible,
     };
   }, [properties]);
 
   const handleFormSuccess = () => {
     setFormOpen(false);
-    setEditingProperty(null);
-    setAddingUnitTo(null);
     fetchData();
   };
-
-  const propertyForForm = editingProperty
-    ? {
-        ...editingProperty,
-        photos: Array.isArray(editingProperty.photos) ? (editingProperty.photos as string[]) : null,
-        amenities: Array.isArray(editingProperty.amenities) ? (editingProperty.amenities as string[]) : null,
-        alternative_property_ids: Array.isArray(editingProperty.alternative_property_ids) ? (editingProperty.alternative_property_ids as string[]) : null,
-      }
-    : addingUnitTo
-    ? {
-        id: "",
-        address: addingUnitTo.address,
-        unit_number: "",
-        city: addingUnitTo.city,
-        state: addingUnitTo.state,
-        zip_code: addingUnitTo.zip_code,
-        bedrooms: 0,
-        bathrooms: 1,
-        rent_price: 0,
-        status: "available",
-        photos: null,
-        amenities: null,
-        alternative_property_ids: null,
-      }
-    : null;
 
   const canEdit = permissions.canEditProperty;
 
@@ -705,7 +728,7 @@ const PropertiesList: React.FC = () => {
 
         {/* Edit */}
         <div className="flex justify-center">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditor(unit)}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Edit unit" onClick={() => openEditor(unit)}>
             <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
         </div>
@@ -733,7 +756,12 @@ const PropertiesList: React.FC = () => {
         role="button"
         tabIndex={0}
         onClick={() => toggleBuilding(group.key)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleBuilding(group.key); } }}
+        onKeyDown={(e) => {
+          // Only toggle when the key lands on the row itself — Enter inside
+          // an inline-edit input or the status select must not collapse it.
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleBuilding(group.key); }
+        }}
         className={cn(
           GRID_COLS,
           "h-11 cursor-pointer select-none transition-colors",
@@ -868,6 +896,7 @@ const PropertiesList: React.FC = () => {
           <Button
             variant="ghost" size="icon" className="h-7 w-7"
             title="Open the public property page"
+            aria-label="Open the public property page"
             onClick={() => window.open(`${window.location.origin}/property/${u0.id}`, "_blank", "noopener,noreferrer")}
           >
             <ExternalLink className="h-3.5 w-3.5 text-indigo-500" />
@@ -875,6 +904,7 @@ const PropertiesList: React.FC = () => {
           <Button
             variant="ghost" size="icon" className="h-7 w-7"
             title="Edit property"
+            aria-label="Edit property"
             onClick={() => navigate(group.groupId ? `/properties/group/${group.groupId}` : `/properties/${u0.id}`)}
           >
             <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
@@ -904,23 +934,23 @@ const PropertiesList: React.FC = () => {
           )}
         </div>
         <div className="flex gap-2 items-center">
-          <Button variant="outline" onClick={() => setCheckOpen(true)} size="sm" disabled={properties.length === 0}>
+          <Button variant="outline" onClick={() => setCheckOpen(true)} size="sm" disabled={properties.length === 0} aria-label="Property health check">
             <ClipboardCheck className="h-4 w-4 sm:mr-1.5" />
             <span className="hidden sm:inline">Check</span>
           </Button>
           {permissions.canEditProperty && (
-            <Button variant="outline" onClick={() => setRulesOpen(true)} size="sm">
+            <Button variant="outline" onClick={() => setRulesOpen(true)} size="sm" aria-label="Listing template and rules">
               <Settings2 className="h-4 w-4 sm:mr-1.5" />
               <span className="hidden sm:inline">Rules</span>
             </Button>
           )}
           {permissions.canCreateProperty && (
             <>
-              <Button variant="outline" onClick={() => setZillowOpen(true)} size="sm">
+              <Button variant="outline" onClick={() => setZillowOpen(true)} size="sm" aria-label="Import from Zillow">
                 <Globe className="h-4 w-4 sm:mr-1.5" />
                 <span className="hidden sm:inline">Import</span>
               </Button>
-              <Button onClick={() => { setEditingProperty(null); setFormOpen(true); }} size="sm" className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white">
+              <Button onClick={() => setFormOpen(true)} size="sm" className="bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white" aria-label="Add property">
                 <Plus className="h-4 w-4 sm:mr-1.5" />
                 <span className="hidden sm:inline">Add Property</span>
               </Button>
@@ -1006,7 +1036,10 @@ const PropertiesList: React.FC = () => {
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border/50 bg-white/80 divide-y divide-border/30">
           {/* Column headers */}
-          <div className={cn(GRID_COLS, "hidden md:grid py-2 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground")}>
+          {/* Header scrolls inside the same overflow-x-auto container as the
+              1108px-wide rows, so keep it visible on phones too — otherwise the
+              horizontally-scrolled number cells are unlabeled. */}
+          <div className={cn(GRID_COLS, "py-2 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground")}>
             <span>Property</span>
             <span className="text-center">Beds</span>
             <span className="text-center">Baths</span>
@@ -1106,28 +1139,17 @@ const PropertiesList: React.FC = () => {
       <ZillowImportDialog open={zillowOpen} onOpenChange={setZillowOpen} onSuccess={fetchData} />
       <CheckPropertiesDialog open={checkOpen} onOpenChange={setCheckOpen} />
 
-      <Dialog
-        open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) { setEditingProperty(null); setAddingUnitTo(null); }
-        }}
-      >
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingProperty ? "Edit Property" : addingUnitTo ? `Add Unit to ${addingUnitTo.address}` : "Add New Property"}
-            </DialogTitle>
+            <DialogTitle>Add New Property</DialogTitle>
           </DialogHeader>
+          {/* Edits route through the grid → /properties/:id (or /group/:gid);
+              this dialog only ever adds a new property. */}
           <PropertyForm
-            property={propertyForForm}
-            propertyGroupId={addingUnitTo?.property_group_id || undefined}
-            propertyGroupAddress={addingUnitTo?.address}
-            propertyGroupCity={addingUnitTo?.city}
-            propertyGroupState={addingUnitTo?.state}
-            propertyGroupZip={addingUnitTo?.zip_code}
+            property={null}
             onSuccess={handleFormSuccess}
-            onCancel={() => { setFormOpen(false); setEditingProperty(null); setAddingUnitTo(null); }}
+            onCancel={() => setFormOpen(false)}
           />
         </DialogContent>
       </Dialog>

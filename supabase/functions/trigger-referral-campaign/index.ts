@@ -37,6 +37,10 @@ serve(async (req) => {
       const authHeader = req.headers.get("Authorization") || "";
       const callerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
       const isServiceRole = callerToken.length > 0 && callerToken === serviceRoleKey;
+      // The org the caller is allowed to act within — used to scope the referrer
+      // lead lookup so a user of org A can't mint reward-bearing codes against a
+      // lead in org B (defense-in-depth for the retained multi-tenant plumbing).
+      let callerOrgId: string | null = null;
       if (!isServiceRole) {
         if (!callerToken || callerToken === anonKey) {
           return new Response(
@@ -63,17 +67,22 @@ serve(async (req) => {
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+        callerOrgId = callerRec.organization_id || null;
+      } else {
+        // Service-role callers must name the org they're acting in.
+        callerOrgId = (typeof organization_id === "string" && organization_id) ? organization_id : null;
       }
 
       // Create a new referral invitation for a converted lead
       const { referred_name, referred_phone, referred_email, referral_channel } = body;
 
-      // Get the referrer lead info
-      const { data: referrerLead, error: leadError } = await supabase
+      // Get the referrer lead info (scoped to the caller's org when known)
+      let leadQuery = supabase
         .from("leads")
         .select("id, full_name, phone, organization_id")
-        .eq("id", lead_id)
-        .single();
+        .eq("id", lead_id);
+      if (callerOrgId) leadQuery = leadQuery.eq("organization_id", callerOrgId);
+      const { data: referrerLead, error: leadError } = await leadQuery.single();
 
       if (leadError || !referrerLead) {
         return new Response(
@@ -218,6 +227,32 @@ serve(async (req) => {
         );
       }
 
+      // Reject already-used codes and atomically CLAIM the referral before doing
+      // anything else. Previously submit_referral only checked expiry (unlike
+      // validate_code), so a valid code could be replayed forever — each replay
+      // minted a fresh sms/call-consented lead and OVERWROTE the original
+      // referred person's linkage on the referral row. The `.eq("status",
+      // "pending")` guard makes the flip win-once even under concurrent submits.
+      if (referral.status !== "pending") {
+        return new Response(
+          JSON.stringify({ error: "Referral code has already been used" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: claimed, error: claimErr } = await supabase
+        .from("referrals")
+        .update({ status: "contacted", referred_name: name, referred_email: email })
+        .eq("id", referral.id)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      if (claimErr || !claimed) {
+        return new Response(
+          JSON.stringify({ error: "Referral code has already been used" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Create the new lead
       const { data: newLead, error: leadError } = await supabase
         .from("leads")
@@ -245,15 +280,10 @@ serve(async (req) => {
         );
       }
 
-      // Update the referral with the new lead
+      // Link the newly-created lead to the (already-claimed) referral.
       await supabase
         .from("referrals")
-        .update({
-          referred_lead_id: newLead.id,
-          referred_name: name,
-          referred_email: email,
-          status: "contacted",
-        })
+        .update({ referred_lead_id: newLead.id })
         .eq("id", referral.id);
 
       // Log consent

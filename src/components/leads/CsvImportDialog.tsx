@@ -25,8 +25,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { sendNotificationEmail } from "@/lib/notificationService";
 import { showingInvitationTemplate } from "@/lib/emailTemplates";
+import {
+  UNSUBSCRIBE_URL_PLACEHOLDER,
+  DEFAULT_MARKETING_POSTAL_ADDRESS,
+} from "@/lib/emailTemplateDefaults";
 import { upsertLeadTags } from "@/lib/leadTags";
 
 export interface PropertyInfo {
@@ -139,8 +142,17 @@ interface ImportResult {
   skippedMissingContact: number;
   issues: Array<{ row: number; reason: string }>;
   propertyName?: string;
-  // For email campaign
+  // For email campaign — consent-eligible recipients only
   leadsWithEmail: Array<{ id: string; email: string; full_name: string | null }>;
+  // Leads with email excluded from the campaign (unsubscribed / declined
+  // marketing consent / do_not_contact)
+  campaignSuppressed: number;
+  // Rows the client counted as "new" but the DB dedup trigger merged into an
+  // existing lead on insert (e.g. a lead created between analysis and import),
+  // so they never became new rows.
+  mergedByDedup: number;
+  // An insert batch failed mid-import: not every "new" row was committed.
+  partialFailure: boolean;
 }
 
 interface AnalyzedLead {
@@ -186,12 +198,10 @@ function normalizePhoneE164(phone: string): string {
   return trimmed;
 }
 
-// calculateImportScore deleted 2026-07-19 — milestone model: imported leads
-// start at 0; the DB milestone engine is the only score writer.
-
 // Robustly parse a move-in date from CSV/Excel input. Handles Excel date
-// serials (e.g. "46000"), ISO yyyy-mm-dd, and DD/MM/YYYY. Returns a
-// YYYY-MM-DD string, or null when the value can't be parsed (no garbage).
+// serials (e.g. "46000"), ISO yyyy-mm-dd, and US slash dates (MM/DD/YYYY,
+// falling back to DD/MM/YYYY only when the first number can't be a month).
+// Returns a YYYY-MM-DD string, or null when the value can't be parsed.
 function parseMoveInDate(value: string): string | null {
   const v = value.trim();
   if (!v) return null;
@@ -214,12 +224,14 @@ function parseMoveInDate(value: string): string | null {
     return null;
   }
 
-  // DD/MM/YYYY (or DD-MM-YYYY)
-  const dmy = v.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  if (dmy) {
-    const day = Number(dmy[1]);
-    const month = Number(dmy[2]);
-    const year = Number(dmy[3]);
+  // Slash/dash dates — US locale first: MM/DD/YYYY (or MM-DD-YYYY). Fall back
+  // to DD/MM/YYYY only when the first number can't be a month (e.g. "25/07/2026").
+  const mdy = v.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (mdy) {
+    const first = Number(mdy[1]);
+    const second = Number(mdy[2]);
+    const [month, day] = first > 12 ? [second, first] : [first, second];
+    const year = Number(mdy[3]);
     const d = new Date(Date.UTC(year, month - 1, day));
     if (
       d.getUTCFullYear() === year &&
@@ -389,11 +401,15 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       const hasPhoneOnly = !!phoneValue;
       const lead: Record<string, unknown> & { _rowNum: number } = {
         _rowNum: rowNum,
-        source: "campaign",
+        source: "csv_import",
         status: hasPhoneOnly ? "new" : "nurturing",
       };
       if (phoneValue) lead.phone = phoneValue;
       if (emailValue) lead.email = emailValue;
+
+      // Values that couldn't be parsed into their column — preserved as notes
+      // instead of being silently dropped
+      const unparsedParts: string[] = [];
 
       // Map known fields
       Object.entries(mapping).forEach(([fileCol, ourField]) => {
@@ -412,7 +428,9 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
             lead[ourField] = ["true", "yes", "1", "y"].includes(value.toLowerCase());
             break;
           case "move_in_date": {
-            lead[ourField] = parseMoveInDate(value);
+            const parsed = parseMoveInDate(value);
+            if (parsed) lead[ourField] = parsed;
+            else unparsedParts.push(`Move-in date (unparsed): ${value}`);
             break;
           }
           default:
@@ -420,19 +438,17 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         }
       });
 
-      // Append unmapped columns as extra notes
-      if (unmappedCols.length > 0) {
-        const extraParts: string[] = [];
-        unmappedCols.forEach((col) => {
-          const val = row[col]?.trim();
-          if (val) extraParts.push(`${col}: ${val}`);
-        });
-        if (extraParts.length > 0) {
-          const existingNotes = (lead.notes as string) || "";
-          lead.notes = existingNotes
-            ? `${existingNotes}\n${extraParts.join(" | ")}`
-            : extraParts.join(" | ");
-        }
+      // Append unmapped columns + unparsed values as extra notes
+      const extraParts: string[] = [...unparsedParts];
+      unmappedCols.forEach((col) => {
+        const val = row[col]?.trim();
+        if (val) extraParts.push(`${col}: ${val}`);
+      });
+      if (extraParts.length > 0) {
+        const existingNotes = (lead.notes as string) || "";
+        lead.notes = existingNotes
+          ? `${existingNotes}\n${extraParts.join(" | ")}`
+          : extraParts.join(" | ");
       }
 
       validLeads.push(lead);
@@ -579,10 +595,6 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         if (phone) seenPhones.add(phone);
         if (email) seenEmails.add(email);
 
-        // Milestone model (2026-07-19): every imported lead starts NORMAL (0).
-        // Score moves only on agendó/asistió/aplicó facts via the DB engine.
-        lead.lead_score = 0;
-
         newLeads.push({
           rowNum: lead._rowNum,
           name: fullName || "—",
@@ -641,14 +653,19 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         const phoneE164 = phone ? normalizePhoneE164(phone) : "";
         const dedupKey = phone ? normalizePhone(phone) : email.toLowerCase().trim();
         if (lead.notes) leadNoteTexts.set(dedupKey, lead.notes as string);
-        // Strip fields that are not DB columns (lead_score IS a real column — keep it)
+        // Strip fields that are not DB columns
         const { notes, _rowNum, ...cleanLead } = lead;
-        const VALID_SOURCES = ["inbound_call", "hemlane_email", "website", "referral", "manual", "sms", "campaign"];
+        // Mirror of the DB leads_source_check constraint
+        const VALID_SOURCES = [
+          "website", "phone", "referral", "zillow", "apartments_com", "facebook",
+          "hemlane", "hemlane_email", "csv_import", "manual", "campaign",
+          "inbound_call", "sms", "other",
+        ];
         const csvSource = (cleanLead.source as string) || "";
         return {
           ...cleanLead,
           organization_id: userRecord.organization_id,
-          source: VALID_SOURCES.includes(csvSource) ? csvSource : "campaign",
+          source: VALID_SOURCES.includes(csvSource) ? csvSource : "csv_import",
           stage: "prospect",
           full_name: analyzed.name !== "—" ? analyzed.name : null,
           ...(phoneE164 ? { phone: phoneE164 } : {}),
@@ -656,37 +673,45 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         };
       });
 
-      // Insert in batches of 50 to avoid payload limits
+      // Insert in batches of 50 to avoid payload limits. `.select()` returns
+      // the inserted rows directly — no phone/email refetch (which silently
+      // capped at PostgREST's 1000 rows and lost notes/tags on large imports).
+      type InsertedLead = {
+        id: string;
+        phone: string | null;
+        email: string | null;
+        full_name: string | null;
+        unsubscribed_at: string | null;
+        email_marketing_consent: boolean | null;
+        do_not_contact: boolean | null;
+      };
+      const LEAD_RETURN_COLS =
+        "id, phone, email, full_name, unsubscribed_at, email_marketing_consent, do_not_contact";
+      const insertedLeads: InsertedLead[] = [];
+      let insertFailed = false;
+      let insertErrorMsg = "";
       if (leadsWithOrg.length > 0) {
         const BATCH_SIZE = 50;
         for (let i = 0; i < leadsWithOrg.length; i += BATCH_SIZE) {
           const batch = leadsWithOrg.slice(i, i + BATCH_SIZE);
-          const { error } = await supabase.from("leads").insert(batch as any);
+          const { data, error } = await supabase
+            .from("leads")
+            .insert(batch as any)
+            .select(LEAD_RETURN_COLS);
           if (error) {
             console.error(`Batch ${i / BATCH_SIZE + 1} failed:`, error.message, error.details, error.hint);
             console.error("First row in failed batch:", JSON.stringify(batch[0], null, 2));
-            throw error;
+            // Don't throw: earlier batches are already committed (no transaction
+            // spans them). Stop inserting and record a PARTIAL result so the UI
+            // advances to the "Done" screen instead of re-offering "Import N" —
+            // a naive retry would re-send already-committed rows, which the DB
+            // dedup trigger merges, bumping last_contact_at across the batch.
+            insertFailed = true;
+            insertErrorMsg = error.message || "insert failed";
+            break;
           }
+          insertedLeads.push(...((data || []) as InsertedLead[]));
         }
-      }
-
-      // Fetch inserted lead IDs for notes
-      const insertedPhones = leadsWithOrg.map((l) => l.phone).filter(Boolean);
-      const insertedEmails = leadsWithOrg.filter((l) => !l.phone).map((l) => l.email).filter(Boolean);
-      let insertedLeads: { id: string; phone: string | null; email: string | null; full_name: string | null }[] = [];
-      if (insertedPhones.length > 0) {
-        const { data } = await supabase
-          .from("leads").select("id, phone, email, full_name")
-          .eq("organization_id", userRecord.organization_id)
-          .in("phone", insertedPhones);
-        if (data) insertedLeads.push(...(data as typeof insertedLeads));
-      }
-      if (insertedEmails.length > 0) {
-        const { data } = await supabase
-          .from("leads").select("id, phone, email, full_name")
-          .eq("organization_id", userRecord.organization_id)
-          .in("email", insertedEmails);
-        if (data) insertedLeads.push(...(data as typeof insertedLeads));
       }
 
       const allNotes: Record<string, unknown>[] = [];
@@ -716,37 +741,49 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       }
 
       // ── 2. Update existing (duplicate) leads ──
-      let updatedCount = 0;
+      // One batched, org-scoped UPDATE per chunk instead of a serial
+      // round-trip per row (a 500-dup re-import used to keep the dialog on
+      // "Processing..." for minutes).
+      const dupIds = [...new Set(duplicates.map((d) => d.existingLeadId))];
       const updatedLeadIds: string[] = [];
-      for (const dup of duplicates) {
-        const { error: updateErr } = await supabase
+      const UPDATE_CHUNK = 100;
+      for (let i = 0; i < dupIds.length; i += UPDATE_CHUNK) {
+        const chunk = dupIds.slice(i, i + UPDATE_CHUNK);
+        const { data: touched, error: updateErr } = await supabase
           .from("leads")
           .update({ updated_at: new Date().toISOString() })
-          .eq("id", dup.existingLeadId);
-
-        if (!updateErr) {
-          updatedCount++;
-          updatedLeadIds.push(dup.existingLeadId);
-          const noteContent = effectivePropertyId
-            ? `Property tagged: ${detectedProp?.address || "new property"} via CSV import by ${uploaderName}`
-            : `Re-imported via CSV by ${uploaderName} (existing lead updated)`;
+          .in("id", chunk)
+          .eq("organization_id", userRecord.organization_id)
+          .select("id");
+        if (updateErr) {
+          console.error(`Duplicate update chunk ${i / UPDATE_CHUNK + 1} failed:`, updateErr.message);
+          continue;
+        }
+        updatedLeadIds.push(...((touched || []) as { id: string }[]).map((t) => t.id));
+      }
+      const updatedCount = updatedLeadIds.length;
+      const updatedIdSet = new Set(updatedLeadIds);
+      for (const dup of duplicates) {
+        if (!updatedIdSet.has(dup.existingLeadId)) continue;
+        const noteContent = effectivePropertyId
+          ? `Property tagged: ${detectedProp?.address || "new property"} via CSV import by ${uploaderName}`
+          : `Re-imported via CSV by ${uploaderName} (existing lead updated)`;
+        allNotes.push({
+          lead_id: dup.existingLeadId,
+          organization_id: userRecord.organization_id,
+          created_by: userRecord.id,
+          content: noteContent,
+          note_type: "system",
+        });
+        const csvNote = dup.data.notes as string | undefined;
+        if (csvNote) {
           allNotes.push({
             lead_id: dup.existingLeadId,
             organization_id: userRecord.organization_id,
             created_by: userRecord.id,
-            content: noteContent,
-            note_type: "system",
+            content: csvNote,
+            note_type: "manual",
           });
-          const csvNote = dup.data.notes as string | undefined;
-          if (csvNote) {
-            allNotes.push({
-              lead_id: dup.existingLeadId,
-              organization_id: userRecord.organization_id,
-              created_by: userRecord.id,
-              content: csvNote,
-              note_type: "manual",
-            });
-          }
         }
       }
 
@@ -764,39 +801,86 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
       }
 
       if (allNotes.length > 0) {
-        await supabase.from("lead_notes").insert(allNotes as any);
+        // supabase-js returns { error } rather than throwing, so an unchecked
+        // insert here silently dropped the whole batch (audit note + per-lead
+        // CSV notes + preserved unmapped/unparsed columns). Surface failures.
+        const { error: notesError } = await supabase
+          .from("lead_notes")
+          .insert(allNotes as any);
+        if (notesError) {
+          console.error("Failed to save import notes:", notesError.message, notesError.details);
+          toast.error("Leads imported, but the import notes could not be saved");
+        }
       }
 
-      // ── Collect leads with email for campaign ──
+      // ── Collect leads with email for campaign (consent-gated) ──
+      // The post-import blast is marketing mail: never target leads that
+      // unsubscribed, declined email marketing consent, or are flagged
+      // do_not_contact — same fail-closed gate as the Spotlight sender.
+      const isSuppressed = (l: InsertedLead) =>
+        l.unsubscribed_at != null ||
+        l.email_marketing_consent === false ||
+        l.do_not_contact === true;
+
       const leadsWithEmail: ImportResult["leadsWithEmail"] = [];
+      let campaignSuppressed = 0;
+      const collectRecipient = (l: InsertedLead) => {
+        if (!l.email) return;
+        if (isSuppressed(l)) {
+          campaignSuppressed++;
+          return;
+        }
+        leadsWithEmail.push({ id: l.id, email: l.email, full_name: l.full_name });
+      };
       // From newly inserted
-      insertedLeads.forEach((l) => {
-        if (l.email) leadsWithEmail.push({ id: l.id, email: l.email, full_name: l.full_name });
-      });
-      // From updated duplicates — fetch their emails
-      if (updatedLeadIds.length > 0) {
-        const { data: updatedData } = await supabase
+      insertedLeads.forEach(collectRecipient);
+      // From updated duplicates — fetch emails + consent flags, chunked to stay
+      // under PostgREST's 1000-row cap and URL length limits
+      for (let i = 0; i < updatedLeadIds.length; i += 500) {
+        const chunk = updatedLeadIds.slice(i, i + 500);
+        const { data: updatedData, error: updatedErr } = await supabase
           .from("leads")
-          .select("id, email, full_name")
-          .in("id", updatedLeadIds);
-        (updatedData || []).forEach((l: any) => {
-          if (l.email) leadsWithEmail.push({ id: l.id, email: l.email, full_name: l.full_name });
-        });
+          .select(LEAD_RETURN_COLS)
+          .eq("organization_id", userRecord.organization_id)
+          .in("id", chunk);
+        if (updatedErr) {
+          // Fail closed: if consent can't be read, keep the chunk out of the
+          // campaign list entirely.
+          console.error("Consent fetch for updated leads failed:", updatedErr.message);
+          campaignSuppressed += chunk.length;
+          continue;
+        }
+        ((updatedData || []) as InsertedLead[]).forEach(collectRecipient);
       }
+
+      // Report the rows that ACTUALLY committed — not the analyzed count. The DB
+      // dedup trigger can silently merge a row the client snapshot saw as "new"
+      // into an existing lead, so insertedLeads.length is the truth.
+      const mergedByDedup = insertFailed
+        ? 0
+        : Math.max(0, newLeads.length - insertedLeads.length);
 
       setImportResult({
-        imported: newLeads.length,
+        imported: insertedLeads.length,
         updated: updatedCount,
         skippedMissingContact: missingContact.length,
         issues: missingContact.map((m) => ({ row: m.rowNum, reason: "Missing phone & email" })),
         propertyName: detectedProp?.address,
         leadsWithEmail,
+        campaignSuppressed,
+        mergedByDedup,
+        partialFailure: insertFailed,
       });
 
       const parts: string[] = [];
-      if (newLeads.length > 0) parts.push(`${newLeads.length} imported`);
+      if (insertedLeads.length > 0) parts.push(`${insertedLeads.length} imported`);
       if (updatedCount > 0) parts.push(`${updatedCount} updated`);
-      toast.success(`Successfully ${parts.join(", ")}`);
+      if (mergedByDedup > 0) parts.push(`${mergedByDedup} merged into existing`);
+      if (insertFailed) {
+        toast.error(`Import stopped after an error: ${parts.join(", ") || "no rows saved"} (${insertErrorMsg})`);
+      } else {
+        toast.success(`Successfully ${parts.join(", ") || "processed the file"}`);
+      }
     } catch (error: any) {
       console.error("Import error:", error);
       const msg = error?.message || error?.details || "Unknown error";
@@ -807,6 +891,11 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
   };
 
   // ── Email campaign ───────────────────────────────────────────────
+  // Queues one email per recipient through the send-notification-email edge
+  // function (service-role inserts the email_events row — the frontend has no
+  // INSERT policy on that table). process-email-queue drains at the org's send
+  // rate, fills the per-recipient {{unsubscribe_url}} and adds List-Unsubscribe
+  // headers because the notification_type is "campaign"-prefixed.
   const handleSendCampaign = async () => {
     if (!importResult || !preImportAnalysis?.detectedProperty || !userRecord?.organization_id) return;
 
@@ -819,12 +908,10 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
     const bookingUrl = `${window.location.origin}/p/schedule-showing/${prop.id}`;
 
-    let sentCount = 0;
-    for (const lead of leads) {
-      const html = `
+    const buildHtml = (lead: { full_name: string | null }) => `
 <!DOCTYPE html>
 <html>
-<body style="margin:0;padding:0;background-color:#f4f1f1;font-family:'Helvetica Neue',Arial,sans-serif;">
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:24px;">
     <div style="background-color:#4F46E5;padding:20px 24px;border-radius:12px 12px 0 0;">
       <h1 style="margin:0;color:#ffb22c;font-size:20px;">Rent Finder Cleveland</h1>
@@ -838,28 +925,66 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         rentPrice: prop.rent_price,
         bookingUrl,
       })}
+      <p style="margin:20px 0 0;font-size:12px;line-height:1.5;color:#9ca3af;">
+        You are receiving this email because you inquired about a rental home with Rent Finder Cleveland.
+      </p>
+      <p style="margin:6px 0 0;font-size:12px;line-height:1.5;color:#9ca3af;">
+        ${DEFAULT_MARKETING_POSTAL_ADDRESS}
+      </p>
+      <p style="margin:6px 0 0;font-size:12px;line-height:1.5;color:#9ca3af;">
+        <a href="${UNSUBSCRIBE_URL_PLACEHOLDER}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a> from marketing emails.
+      </p>
     </div>
   </div>
 </body>
 </html>`;
 
-      sendNotificationEmail({
-        to: lead.email,
-        subject: `Schedule a Showing — ${prop.address}`,
-        html,
-        notificationType: "showing_invitation_campaign",
-        organizationId: userRecord.organization_id,
-        relatedEntityId: lead.id,
-        relatedEntityType: "lead",
-      });
-
-      sentCount++;
-      setCampaignProgress({ sent: sentCount, total: leads.length });
+    // Queue in small parallel batches and count real results — the progress
+    // counter reflects invoke outcomes, not loop laps.
+    let queued = 0;
+    let failed = 0;
+    const INVOKE_BATCH = 10;
+    for (let i = 0; i < leads.length; i += INVOKE_BATCH) {
+      const batch = leads.slice(i, i + INVOKE_BATCH);
+      const results = await Promise.allSettled(
+        batch.map((lead) =>
+          supabase.functions.invoke("send-notification-email", {
+            body: {
+              to: lead.email,
+              subject: `Schedule a Showing — ${prop.address}`,
+              html: buildHtml(lead),
+              notification_type: "campaign_showing_invitation",
+              organization_id: userRecord.organization_id,
+              related_entity_id: lead.id,
+              related_entity_type: "lead",
+              queue: true,
+            },
+          }),
+        ),
+      );
+      for (const r of results) {
+        // invoke resolves with { error } on HTTP 4xx/5xx and rejects on
+        // network failures — both count as NOT queued.
+        if (r.status === "fulfilled" && !r.value.error) {
+          queued++;
+        } else {
+          failed++;
+          console.error(
+            "Campaign email failed to queue:",
+            r.status === "rejected" ? r.reason : r.value.error,
+          );
+        }
+      }
+      setCampaignProgress({ sent: queued, total: leads.length });
     }
 
-    setCampaignDone(true);
+    setCampaignDone(queued > 0);
     setSendingCampaign(false);
-    toast.success(`Campaign sent to ${sentCount} leads`);
+    if (failed > 0) {
+      toast.error(`${queued} emails queued, ${failed} failed to queue`);
+    } else {
+      toast.success(`Campaign queued for ${queued} leads`);
+    }
   };
 
   // ── Download template ────────────────────────────────────────────
@@ -874,7 +999,10 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
 
   // ── Reset / Navigation ───────────────────────────────────────────
   const handleClose = (isOpen: boolean) => {
-    if (!importing) {
+    // Block dismissal while an import OR an email campaign is still running.
+    // Closing mid-campaign wipes the progress UI while background invokes keep
+    // firing, and a re-run would double-queue the same recipients.
+    if (!importing && !sendingCampaign) {
       onOpenChange(isOpen);
       if (!isOpen) {
         setStep(1);
@@ -949,7 +1077,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
           {/* Step 1: File Upload Only */}
           {step === 1 && (
             <div className="space-y-4">
-              <div className="rounded-lg bg-[#f4f1f1] p-4 text-sm space-y-3">
+              <div className="rounded-lg bg-[#f3f4f6] p-4 text-sm space-y-3">
                 <p className="font-medium text-[#4F46E5]">Supported formats:</p>
                 <div className="flex flex-wrap gap-2">
                   {[".csv", ".tsv", ".xlsx", ".xls"].map((ext) => (
@@ -994,7 +1122,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
             <div className="space-y-3">
               {/* Summary stats bar */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="rounded-lg bg-[#f4f1f1] p-2.5 text-center">
+                <div className="rounded-lg bg-[#f3f4f6] p-2.5 text-center">
                   <p className="text-lg font-bold text-[#374151]">{preImportAnalysis.totalRows}</p>
                   <p className="text-[10px] text-muted-foreground uppercase">Total Rows</p>
                 </div>
@@ -1020,20 +1148,15 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                     {preImportAnalysis.detectedProperty.address}
                   </span>
                 ) : (
-                  <span className="px-2 py-1 bg-[#f4f1f1] text-muted-foreground rounded font-medium">
+                  <span className="px-2 py-1 bg-[#f3f4f6] text-muted-foreground rounded font-medium">
                     No property detected
                   </span>
                 )}
                 <span className="px-2 py-1 bg-[#4F46E5]/10 text-[#4F46E5] rounded font-medium">
                   Stage: Prospect
                 </span>
-                {preImportAnalysis.newLeads.length > 0 && (
-                  <span className="px-2 py-1 bg-[#f4f1f1] text-muted-foreground rounded font-medium">
-                    Score: 0 (milestone model — leads earn points by acting)
-                  </span>
-                )}
                 {preImportAnalysis.mappedFields.map((field) => (
-                  <span key={field} className="px-2 py-1 bg-[#f4f1f1] text-[#6b7280] rounded">
+                  <span key={field} className="px-2 py-1 bg-[#f3f4f6] text-[#6b7280] rounded">
                     {field}
                   </span>
                 ))}
@@ -1085,13 +1208,12 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                     </div>
                   ) : (
                     <table className="w-full text-xs">
-                      <thead className="bg-[#f4f1f1] sticky top-0">
+                      <thead className="bg-[#f3f4f6] sticky top-0">
                         <tr>
                           <th className="px-2 py-1.5 text-left font-medium text-[#374151] w-10">Row</th>
                           <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Name</th>
                           <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Phone</th>
                           <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Email</th>
-                          <th className="px-2 py-1.5 text-right font-medium text-[#374151] w-14">Score</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1105,11 +1227,6 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                             <td className="px-2 py-1.5 truncate max-w-[140px]">
                               {lead.email || <span className="text-muted-foreground">—</span>}
                             </td>
-                            <td className="px-2 py-1.5 text-right">
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#f4f1f1] text-[#6b7280]">
-                                0
-                              </span>
-                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1122,7 +1239,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
               {reviewTab === "updates" && (
                 <ScrollArea className="h-[220px] border border-[#e5e7eb] rounded-lg">
                   <table className="w-full text-xs">
-                    <thead className="bg-[#f4f1f1] sticky top-0">
+                    <thead className="bg-[#f3f4f6] sticky top-0">
                       <tr>
                         <th className="px-2 py-1.5 text-left font-medium text-[#374151] w-10">Row</th>
                         <th className="px-2 py-1.5 text-left font-medium text-[#374151]">Name</th>
@@ -1181,6 +1298,26 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 )}
               </div>
 
+              {importResult.partialFailure && (
+                <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                    <p className="text-sm text-red-800">
+                      The import stopped early after an error — only {importResult.imported} new lead
+                      {importResult.imported === 1 ? "" : "s"} were saved. Re-importing the same file is
+                      safe (already-saved leads are detected as existing), but review the source before retrying.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {importResult.mergedByDedup > 0 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  {importResult.mergedByDedup} row{importResult.mergedByDedup === 1 ? "" : "s"} matched a lead
+                  created since analysis and were merged instead of added.
+                </p>
+              )}
+
               {importResult.skippedMissingContact > 0 && (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
                   <div className="flex items-start gap-2">
@@ -1219,6 +1356,12 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                         Send a branded email inviting {importResult.leadsWithEmail.length} leads to schedule a showing at{" "}
                         <strong>{preImportAnalysis.detectedProperty.address}</strong>.
                       </p>
+                      {importResult.campaignSuppressed > 0 && (
+                        <p className="text-xs text-amber-700 mt-1">
+                          {importResult.campaignSuppressed} lead{importResult.campaignSuppressed === 1 ? "" : "s"} excluded
+                          (unsubscribed, no marketing consent, or do-not-contact).
+                        </p>
+                      )}
                       <Button
                         size="sm"
                         className="mt-3 bg-[#4F46E5] hover:bg-[#4F46E5]/90"
@@ -1228,7 +1371,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                         {sendingCampaign ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Sending {campaignProgress.sent} of {campaignProgress.total}...
+                            Queuing {campaignProgress.sent} of {campaignProgress.total}...
                           </>
                         ) : (
                           <>
@@ -1242,12 +1385,26 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
                 </div>
               )}
 
+              {importResult.leadsWithEmail.length === 0 &&
+                importResult.campaignSuppressed > 0 &&
+                preImportAnalysis?.detectedProperty && (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                    <p className="text-sm text-amber-800">
+                      Invitation campaign unavailable — all {importResult.campaignSuppressed} leads with email
+                      are excluded (unsubscribed, no marketing consent, or do-not-contact).
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {campaignDone && (
                 <div className="rounded-lg bg-green-50 border border-green-200 p-4">
                   <div className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600" />
                     <p className="text-sm font-medium text-green-800">
-                      Campaign sent to {campaignProgress.sent} leads!
+                      Campaign queued for {campaignProgress.sent} leads — emails go out automatically at the send rate.
                     </p>
                   </div>
                 </div>

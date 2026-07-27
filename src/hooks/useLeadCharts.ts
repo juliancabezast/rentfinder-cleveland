@@ -6,17 +6,15 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface LeadCharts {
   daily: { d: string; iso: string; count: number }[];
-  by_source: { source: string; count: number }[];
   today: number;
   week_total: number;
-  hot: number;
   avg_prev_week: number;
   avg_prev_month: number;
   avg_all: number;
 }
 
 const EMPTY: LeadCharts = {
-  daily: [], by_source: [], today: 0, week_total: 0, hot: 0,
+  daily: [], today: 0, week_total: 0,
   avg_prev_week: 0, avg_prev_month: 0, avg_all: 0,
 };
 
@@ -41,10 +39,8 @@ export function useLeadCharts(days = 7) {
       const d = (data as unknown as Partial<LeadCharts>) || {};
       return {
         daily: d.daily || [],
-        by_source: d.by_source || [],
         today: d.today || 0,
         week_total: d.week_total || 0,
-        hot: d.hot || 0,
         avg_prev_week: d.avg_prev_week || 0,
         avg_prev_month: d.avg_prev_month || 0,
         avg_all: d.avg_all || 0,

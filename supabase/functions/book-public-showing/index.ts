@@ -445,20 +445,27 @@ serve(async (req: Request) => {
       if (tagError) console.error("Property tag error:", tagError);
     }
 
-    // ── Log consent ───────────────────────────────────────────────────
+    // ── Log consent (TCPA — non-negotiable) ──────────────────────────
+    // Only real consent_log columns: source_url/consent_language/consent_version
+    // do NOT exist on the table and previously 400'd the whole insert (consent
+    // silently unrecorded). Their content is folded into evidence_text instead.
     if (consent) {
-      await supabase.from("consent_log").insert({
+      const evidenceBits = [
+        consent.consent_source_url ? `url=${consent.consent_source_url}` : null,
+        consent.consent_language ? `lang=${consent.consent_language}` : null,
+        consent.consent_version ? `v=${consent.consent_version}` : null,
+      ].filter(Boolean).join(" · ");
+      const { error: consentErr } = await supabase.from("consent_log").insert({
         organization_id,
         lead_id: leadId,
         consent_type: "sms_and_call",
         granted: consent.sms_consent ?? false,
-        method: consent.consent_method ?? "web",
-        source_url: consent.consent_source_url ?? null,
-        consent_language: consent.consent_language ?? null,
-        consent_version: consent.consent_version ?? null,
+        method: consent.consent_method ?? "web_form",
+        evidence_text: evidenceBits || "Public showing booking form",
         ip_address: req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || null,
         user_agent: consent.user_agent ?? null,
       });
+      if (consentErr) console.error("consent_log insert failed:", consentErr.message);
     }
 
     // ── Build scheduled_at datetime ───────────────────────────────────
@@ -492,8 +499,8 @@ serve(async (req: Request) => {
 
     if (showingErr || !showing) {
       console.error("Showing creation error:", showingErr);
-      // Partial unique index showings_one_active_per_org_time: another booking
-      // (any property) already holds this exact time for the single agent.
+      // trg_enforce_showing_agent_slot raises 23505 when another active showing
+      // at a DIFFERENT property already holds this exact time (single agent).
       if ((showingErr as any)?.code === "23505") {
         return new Response(
           JSON.stringify({ error: "This time was just booked. Please select another." }),
@@ -620,8 +627,6 @@ serve(async (req: Request) => {
     }
 
     // ── Advance lead status ────────────────────────────────────────────
-    // Scoring is owned by the DB milestone engine (trg_milestone_showings on
-    // the showings INSERT → agendó = 50 + is_priority). No manual boosts.
     await supabase
       .from("leads")
       .update({
@@ -878,8 +883,8 @@ serve(async (req: Request) => {
       };
       const lm = new Map((leasingSettings || []).map((s: any) => [s.key, unwrapVal(s.value)]));
       // "New Showing Booked!" alerts go to LeasingAgent (the showings/scheduling
-      // bot), NOT to the Hot Leads bot. Pair token+chat atomically; fall back to
-      // the general (RFC) bot only if the route pair is missing.
+      // bot). Pair token+chat atomically; fall back to the general (RFC) bot
+      // only if the route pair is missing.
       const lTok = creds?.telegram_route_bot_token || lm.get("telegram_route_bot_token");
       const lChat = creds?.telegram_route_chat_id || lm.get("telegram_route_chat_id");
       const useLeasing = !!lTok && !!lChat;

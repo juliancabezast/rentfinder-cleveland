@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -22,13 +22,22 @@ const routeTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/properties': 'Properties',
   '/leads': 'Leads',
-  '/requests': 'Requests',
   '/playbook': 'Playbook',
   '/showings': 'Showings',
+  '/analytics/heat-map': 'Heat Map',
+  '/analytics/competitor-radar': 'Rent Benchmark',
   '/analytics': 'Analytics',
   '/knowledge': 'Knowledge Hub',
+  '/insights': 'Insight Generator',
+  '/documents': 'Documents',
+  '/agents': 'Agents',
+  '/business': 'Business',
+  '/campaigns': 'Campaigns',
+  '/communications': 'Communications',
+  '/emails': 'Emails',
   '/users': 'User Management',
   '/settings': 'Settings',
+  '/demo-requests': 'Demo Requests',
 };
 
 interface HeaderProps {
@@ -53,6 +62,14 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     }
     return 'Dashboard';
   };
+
+  // Admin pages otherwise keep the renter-facing SEO <title> from index.html —
+  // stamp a per-page tab title on every route change (Header renders on every
+  // MainLayout page, so this is the one place that covers the whole admin app).
+  const pageTitle = getPageTitle();
+  useEffect(() => {
+    document.title = `${pageTitle} · Rent Finder`;
+  }, [pageTitle]);
 
   const getUserInitials = () => {
     if (!userRecord?.full_name) return 'U';

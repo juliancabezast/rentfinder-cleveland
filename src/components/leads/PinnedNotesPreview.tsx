@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Pin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PinnedNote {
   id: string;
@@ -18,16 +19,21 @@ export const PinnedNotesPreview: React.FC<PinnedNotesPreviewProps> = ({
   leadId,
   onSeeAll,
 }) => {
+  const { userRecord } = useAuth();
   const [notes, setNotes] = useState<PinnedNote[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const organizationId = userRecord?.organization_id;
+    if (!organizationId) return;
+
     const fetchPinnedNotes = async () => {
       try {
         const { data, error } = await supabase
           .from("lead_notes")
           .select("id, content, created_by")
           .eq("lead_id", leadId)
+          .eq("organization_id", organizationId)
           .eq("is_pinned", true)
           .order("created_at", { ascending: false })
           .limit(3);
@@ -64,12 +70,12 @@ export const PinnedNotesPreview: React.FC<PinnedNotesPreviewProps> = ({
     };
 
     fetchPinnedNotes();
-  }, [leadId]);
+  }, [leadId, userRecord?.organization_id]);
 
   if (loading || notes.length === 0) return null;
 
   return (
-    <div className="bg-[#fefce8] border border-amber-200 rounded-lg p-4">
+    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Pin className="h-4 w-4 text-amber-600" />

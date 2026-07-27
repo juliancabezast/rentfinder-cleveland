@@ -14,7 +14,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Sparkles, Trash2, AlertTriangle, Building, Users, Phone, Calendar, BarChart3, Loader2, X, Skull, CheckCircle } from 'lucide-react';
+import { Sparkles, Trash2, AlertTriangle, Building, Users, Phone, Calendar, Loader2, X, Skull, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { upsertLeadTag } from '@/lib/leadTags';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +25,6 @@ interface DemoStats {
   leads: number;
   calls: number;
   showings: number;
-  scoreHistory: number;
   communications: number;
 }
 
@@ -51,17 +50,15 @@ export const DemoDataTab: React.FC = () => {
     leads: 0,
     calls: 0,
     showings: 0,
-    scoreHistory: 0,
     communications: 0,
   });
-  
+
   // Total org counts (all records regardless of is_demo flag)
   const [orgTotalStats, setOrgTotalStats] = useState<DemoStats>({
     properties: 0,
     leads: 0,
     calls: 0,
     showings: 0,
-    scoreHistory: 0,
     communications: 0,
   });
 
@@ -79,14 +76,12 @@ export const DemoDataTab: React.FC = () => {
         leadsDemoResult,
         callsDemoResult,
         showingsDemoResult,
-        scoreHistoryDemoResult,
         communicationsDemoResult,
       ] = await Promise.all([
         supabase.from('properties').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
         supabase.from('leads').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
         supabase.from('calls').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
         supabase.from('showings').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
-        supabase.from('lead_score_history').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
         supabase.from('communications').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_demo', true),
       ]);
 
@@ -96,21 +91,19 @@ export const DemoDataTab: React.FC = () => {
         leadsTotalResult,
         callsTotalResult,
         showingsTotalResult,
-        scoreHistoryTotalResult,
         communicationsTotalResult,
       ] = await Promise.all([
         supabase.from('properties').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
         supabase.from('leads').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
         supabase.from('calls').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
         supabase.from('showings').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
-        supabase.from('lead_score_history').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
         supabase.from('communications').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
       ]);
 
-      [propertiesDemoResult, leadsDemoResult, callsDemoResult, showingsDemoResult, scoreHistoryDemoResult, communicationsDemoResult].forEach((res, i) => {
+      [propertiesDemoResult, leadsDemoResult, callsDemoResult, showingsDemoResult, communicationsDemoResult].forEach((res, i) => {
         if (res.error) console.error(`Error fetching demo count [${i}]:`, res.error);
       });
-      [propertiesTotalResult, leadsTotalResult, callsTotalResult, showingsTotalResult, scoreHistoryTotalResult, communicationsTotalResult].forEach((res, i) => {
+      [propertiesTotalResult, leadsTotalResult, callsTotalResult, showingsTotalResult, communicationsTotalResult].forEach((res, i) => {
         if (res.error) console.error(`Error fetching total count [${i}]:`, res.error);
       });
 
@@ -119,7 +112,6 @@ export const DemoDataTab: React.FC = () => {
         leads: leadsDemoResult.count || 0,
         calls: callsDemoResult.count || 0,
         showings: showingsDemoResult.count || 0,
-        scoreHistory: scoreHistoryDemoResult.count || 0,
         communications: communicationsDemoResult.count || 0,
       });
 
@@ -128,7 +120,6 @@ export const DemoDataTab: React.FC = () => {
         leads: leadsTotalResult.count || 0,
         calls: callsTotalResult.count || 0,
         showings: showingsTotalResult.count || 0,
-        scoreHistory: scoreHistoryTotalResult.count || 0,
         communications: communicationsTotalResult.count || 0,
       });
 
@@ -166,7 +157,7 @@ export const DemoDataTab: React.FC = () => {
       // Fetch demo leads
       const { data: leads } = await supabase
         .from('leads')
-        .select('id, full_name, phone, status, lead_score')
+        .select('id, full_name, phone, status')
         .eq('organization_id', userRecord.organization_id)
         .eq('is_demo', true);
 
@@ -175,7 +166,7 @@ export const DemoDataTab: React.FC = () => {
           id: l.id,
           type: 'lead',
           name: l.full_name || 'Unknown',
-          details: `Score: ${l.lead_score || 0} - ${l.status}`,
+          details: `${l.phone || 'no phone'} - ${l.status}`,
         });
       });
 
@@ -234,18 +225,20 @@ export const DemoDataTab: React.FC = () => {
           await supabase.from('calls').delete().eq('property_id', item.id);
           await supabase.from('properties').delete().eq('id', item.id);
           break;
-        case 'lead':
-          await supabase.from('lead_score_history').delete().eq('lead_id', item.id);
-          await supabase.from('showings').delete().eq('lead_id', item.id);
-          await supabase.from('calls').delete().eq('lead_id', item.id);
-          await supabase.from('communications').delete().eq('lead_id', item.id);
-          await supabase.from('leads').delete().eq('id', item.id);
+        case 'lead': {
+          // Lead deletes go through the delete-lead edge function — it owns
+          // the full FK cleanup (showings, notes, email_events, etc.)
+          const { data, error } = await supabase.functions.invoke('delete-lead', {
+            body: { lead_id: item.id },
+          });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
           break;
+        }
         case 'showing':
           await supabase.from('showings').delete().eq('id', item.id);
           break;
         case 'call':
-          await supabase.from('lead_score_history').delete().eq('related_call_id', item.id);
           await supabase.from('calls').delete().eq('id', item.id);
           break;
       }
@@ -323,8 +316,6 @@ export const DemoDataTab: React.FC = () => {
           housing_authority: 'CMHA',
           voucher_status: 'active',
           status: 'engaged',
-          lead_score: 72,
-          is_priority: false,
           sms_consent: true,
           sms_consent_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
           call_consent: true,
@@ -366,9 +357,6 @@ export const DemoDataTab: React.FC = () => {
           housing_authority: 'CMHA',
           voucher_status: 'expiring_soon',
           status: 'qualified',
-          lead_score: 91,
-          is_priority: true,
-          priority_reason: 'Voucher expiring in 14 days. Has deposit ready. Needs to move ASAP.',
           sms_consent: true,
           sms_consent_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
           call_consent: true,
@@ -390,7 +378,7 @@ export const DemoDataTab: React.FC = () => {
       }
 
       // 4. Create demo call with is_demo = true
-      const { data: call, error: callError } = await supabase
+      const { error: callError } = await supabase
         .from('calls')
         .insert({
           organization_id: orgId,
@@ -414,92 +402,17 @@ export const DemoDataTab: React.FC = () => {
           ]),
           unanswered_questions: JSON.stringify([]),
           agent_type: 'main_inbound',
-          score_change: 22,
           cost_twilio: 0.0346,
           cost_bland: 0.3705,
           cost_openai: 0.0089,
           cost_total: 0.4140,
           recording_disclosure_played: true,
           is_demo: true,
-        })
-        .select()
-        .single();
+        });
 
       if (callError) throw callError;
 
-      // 5. Create score history entries with is_demo = true
-      const scoreHistoryRecords = [
-        {
-          organization_id: orgId,
-          lead_id: lead1.id,
-          previous_score: 50,
-          new_score: 65,
-          change_amount: 15,
-          reason_code: 'voucher_active',
-          reason_text: 'Lead has an active CMHA housing voucher',
-          triggered_by: 'call_analysis',
-          related_call_id: call.id,
-          changed_by_agent: 'scoring_agent',
-          is_demo: true,
-        },
-        {
-          organization_id: orgId,
-          lead_id: lead1.id,
-          previous_score: 65,
-          new_score: 72,
-          change_amount: 7,
-          reason_code: 'detailed_questions',
-          reason_text: 'Lead asked 4 detailed questions about the property showing high engagement',
-          triggered_by: 'call_analysis',
-          related_call_id: call.id,
-          changed_by_agent: 'scoring_agent',
-          is_demo: true,
-        },
-        {
-          organization_id: orgId,
-          lead_id: lead2.id,
-          previous_score: 50,
-          new_score: 70,
-          change_amount: 20,
-          reason_code: 'voucher_expiring',
-          reason_text: "Lead's housing voucher is expiring within 30 days — high urgency",
-          triggered_by: 'call_analysis',
-          changed_by_agent: 'scoring_agent',
-          is_demo: true,
-        },
-        {
-          organization_id: orgId,
-          lead_id: lead2.id,
-          previous_score: 70,
-          new_score: 85,
-          change_amount: 15,
-          reason_code: 'ready_to_move',
-          reason_text: 'Lead indicated they have deposit ready and need to move immediately',
-          triggered_by: 'manual_update',
-          changed_by_agent: 'scoring_agent',
-          is_demo: true,
-        },
-        {
-          organization_id: orgId,
-          lead_id: lead2.id,
-          previous_score: 85,
-          new_score: 91,
-          change_amount: 6,
-          reason_code: 'priority_flagged',
-          reason_text: 'Lead flagged as priority by system due to voucher expiration urgency',
-          triggered_by: 'system',
-          changed_by_agent: 'scoring_agent',
-          is_demo: true,
-        },
-      ];
-
-      const { error: scoreError } = await supabase
-        .from('lead_score_history')
-        .insert(scoreHistoryRecords);
-
-      if (scoreError) throw scoreError;
-
-      // 6. Create demo showing with is_demo = true
+      // 5. Create demo showing with is_demo = true
       const showingDate = new Date();
       showingDate.setDate(showingDate.getDate() + 2);
       showingDate.setHours(14, 0, 0, 0);
@@ -521,7 +434,7 @@ export const DemoDataTab: React.FC = () => {
       // Refresh counts from database
       await fetchDemoDataCounts();
 
-      toast.success('✨ Demo data seeded! — Created 1 property, 2 leads, 1 call, 1 showing, and 5 score history entries');
+      toast.success('✨ Demo data seeded! — Created 1 property, 2 leads, 1 call, and 1 showing');
     } catch (error) {
       console.error('Error seeding demo data:', error);
       toast.error('Failed to seed demo data. Some records may have been created');
@@ -538,17 +451,26 @@ export const DemoDataTab: React.FC = () => {
     let totalDeleted = 0;
 
     try {
-      // Delete in reverse order to respect foreign keys
-      // 1. Delete score history where is_demo = true
-      const { count: scoreCount, error: scoreErr } = await supabase
-        .from('lead_score_history')
-        .delete({ count: 'exact' })
+      // 1. Delete demo leads through the delete-lead edge function — it owns
+      // the full per-lead FK cleanup (showings, notes, email_events, etc.)
+      const { data: demoLeads, error: demoLeadsErr } = await supabase
+        .from('leads')
+        .select('id')
         .eq('organization_id', orgId)
         .eq('is_demo', true);
-      if (scoreErr) throw new Error(`lead_score_history: ${scoreErr.message}`);
-      totalDeleted += scoreCount || 0;
+      if (demoLeadsErr) throw new Error(`leads: ${demoLeadsErr.message}`);
 
-      // 2. Delete communications where is_demo = true
+      for (const l of demoLeads || []) {
+        const { data, error } = await supabase.functions.invoke('delete-lead', {
+          body: { lead_id: l.id },
+        });
+        if (error) throw new Error(`delete-lead: ${error.message}`);
+        if (data?.error) throw new Error(`delete-lead: ${data.error}`);
+        totalDeleted += 1;
+      }
+
+      // 2. Delete remaining demo records not attached to a demo lead
+      // (delete in reverse order to respect foreign keys)
       const { count: commCount, error: commErr } = await supabase
         .from('communications')
         .delete({ count: 'exact' })
@@ -575,16 +497,7 @@ export const DemoDataTab: React.FC = () => {
       if (callErr) throw new Error(`calls: ${callErr.message}`);
       totalDeleted += callCount || 0;
 
-      // 5. Delete leads where is_demo = true
-      const { count: leadCount, error: leadErr } = await supabase
-        .from('leads')
-        .delete({ count: 'exact' })
-        .eq('organization_id', orgId)
-        .eq('is_demo', true);
-      if (leadErr) throw new Error(`leads: ${leadErr.message}`);
-      totalDeleted += leadCount || 0;
-
-      // 6. Delete properties where is_demo = true
+      // 5. Delete properties where is_demo = true
       const { count: propCount, error: propErr } = await supabase
         .from('properties')
         .delete({ count: 'exact' })
@@ -626,11 +539,10 @@ export const DemoDataTab: React.FC = () => {
       ) => results.find((r) => r.error);
 
       // First wave: tables with no critical FK dependencies
-      const [consentResult, insightsResult, costResult, scoreResult, commResult, tasksResult] = await Promise.all([
+      const [consentResult, insightsResult, costResult, commResult, tasksResult] = await Promise.all([
         supabase.from('consent_log').delete({ count: 'exact' }).eq('organization_id', orgId),
         supabase.from('investor_insights').delete({ count: 'exact' }).eq('organization_id', orgId),
         supabase.from('cost_records').delete({ count: 'exact' }).eq('organization_id', orgId),
-        supabase.from('lead_score_history').delete({ count: 'exact' }).eq('organization_id', orgId),
         supabase.from('communications').delete({ count: 'exact' }).eq('organization_id', orgId),
         supabase.from('agent_tasks').delete({ count: 'exact' }).eq('organization_id', orgId),
       ]);
@@ -638,13 +550,12 @@ export const DemoDataTab: React.FC = () => {
         { table: 'consent_log', error: consentResult.error },
         { table: 'investor_insights', error: insightsResult.error },
         { table: 'cost_records', error: costResult.error },
-        { table: 'lead_score_history', error: scoreResult.error },
         { table: 'communications', error: commResult.error },
         { table: 'agent_tasks', error: tasksResult.error },
       ]);
       if (wave1Err) throw new Error(`${wave1Err.table}: ${wave1Err.error!.message}`);
       totalDeleted += (consentResult.count || 0) + (insightsResult.count || 0) + (costResult.count || 0) +
-                      (scoreResult.count || 0) + (commResult.count || 0) + (tasksResult.count || 0);
+                      (commResult.count || 0) + (tasksResult.count || 0);
 
       // Second wave: showings, calls, property_alerts, investor_property_access, referrals, competitor_mentions
       const [showingsResult, callsResult, alertsResult, accessResult, referralsResult, competitorResult] = await Promise.all([
@@ -694,8 +605,8 @@ export const DemoDataTab: React.FC = () => {
     }
   };
 
-  const totalDemoCount = stats.properties + stats.leads + stats.calls + stats.showings + stats.scoreHistory + stats.communications;
-  const totalOrgCount = orgTotalStats.properties + orgTotalStats.leads + orgTotalStats.calls + orgTotalStats.showings + orgTotalStats.scoreHistory + orgTotalStats.communications;
+  const totalDemoCount = stats.properties + stats.leads + stats.calls + stats.showings + stats.communications;
+  const totalOrgCount = orgTotalStats.properties + orgTotalStats.leads + orgTotalStats.calls + orgTotalStats.showings + orgTotalStats.communications;
   
   // Orphan records = total - demo flagged
   const orphanStats = {
@@ -780,7 +691,7 @@ export const DemoDataTab: React.FC = () => {
           {/* Current Status - Demo Counts */}
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Demo-Flagged Records (is_demo = true)</h3>
-            <div className="grid gap-4 sm:grid-cols-5">
+            <div className="grid gap-4 sm:grid-cols-4">
               <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
                 <Building className="h-5 w-5 text-muted-foreground" />
                 <div>
@@ -807,13 +718,6 @@ export const DemoDataTab: React.FC = () => {
                 <div>
                   <p className="text-2xl font-bold">{stats.showings}</p>
                   <p className="text-xs text-muted-foreground">Showings</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
-                <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.scoreHistory}</p>
-                  <p className="text-xs text-muted-foreground">Score History</p>
                 </div>
               </div>
             </div>
@@ -934,7 +838,7 @@ export const DemoDataTab: React.FC = () => {
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription className="space-y-2">
                     <p>
-                      This will delete ALL demo records from all tables (properties, leads, calls, showings, score history). This action cannot be undone.
+                      This will delete ALL demo records from all tables (properties, leads, calls, showings, communications). This action cannot be undone.
                     </p>
                     {totalOrphanCount > 0 && (
                       <p className="text-amber-600 dark:text-amber-400 font-medium">
@@ -988,7 +892,6 @@ export const DemoDataTab: React.FC = () => {
                       <li>{orgTotalStats.leads} leads</li>
                       <li>{orgTotalStats.calls} calls</li>
                       <li>{orgTotalStats.showings} showings</li>
-                      <li>{orgTotalStats.scoreHistory} score history records</li>
                       <li>{orgTotalStats.communications} communications</li>
                       <li>+ related records (consent_log, alerts, tasks, etc.)</li>
                     </ul>

@@ -79,6 +79,7 @@ interface Property {
   investor_id?: string | null;
   property_group_id?: string | null;
   section_8_accepted?: boolean | null;
+  pet_policy?: string | null;
 }
 
 interface PropertyFormProps {
@@ -156,12 +157,14 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
     const fetchData = async () => {
       if (!organization?.id) return;
 
-      // Fetch other properties for alternatives
+      // Fetch other properties for the alternatives selector — ALL statuses,
+      // so previously-selected alternatives that have since rented still
+      // render as removable chips (the selector itself keeps the pickable
+      // list restricted to available/coming_soon).
       const { data: propertiesData } = await supabase
         .from('properties')
         .select('id, address, unit_number, city, rent_price, bedrooms, status')
-        .eq('organization_id', organization.id)
-        .in('status', ['available', 'coming_soon']);
+        .eq('organization_id', organization.id);
 
       if (propertiesData) {
         setAvailableProperties(propertiesData as Property[]);
@@ -198,7 +201,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
     square_feet: 'Sq Ft',
     rent_price: 'Monthly Rent',
     property_type: 'Property Type',
-    description: 'Description',
   };
 
   const handleZillowSync = async () => {
@@ -231,7 +233,10 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
         { key: 'square_feet', formKey: 'square_feet' },
         { key: 'rent_price', formKey: 'rent_price' },
         { key: 'property_type', formKey: 'property_type' },
-        { key: 'description', formKey: 'description' },
+        // NOTE: 'description' is intentionally NOT compared — it is template-
+        // owned (regenerated from the org Listing Template on every save), so a
+        // Zillow marketing blurb can never be applied and would otherwise show
+        // a spurious "difference" on every sync.
       ];
 
       for (const { key, formKey } of fieldsToCompare) {
@@ -306,8 +311,12 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
         coming_soon_date: data.status === 'coming_soon' && data.coming_soon_date ? data.coming_soon_date : null,
         video_tour_url: data.video_tour_url || null,
         virtual_tour_url: data.virtual_tour_url || null,
+        // Carry the stored row's pet_policy into the render input — the form
+        // schema doesn't include it, so without this the description would fall
+        // back to the org-default pet policy and silently overwrite the real
+        // one (matching applyDescriptionToAllProperties, the other writer).
         description: listingConfig
-          ? renderPropertyDescription(listingConfig, data as any)
+          ? renderPropertyDescription(listingConfig, { ...data, pet_policy: property?.pet_policy } as any)
           : (data.description || null),
         special_notes: data.special_notes || null,
         investor_id: data.investor_id || null,
@@ -323,7 +332,8 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
         const { error } = await supabase
           .from('properties')
           .update(propertyData)
-          .eq('id', property.id);
+          .eq('id', property.id)
+          .eq('organization_id', organization.id);
 
         if (error) throw error;
         toast.success(isUnit ? 'Unit updated' : 'Property updated successfully');
@@ -609,7 +619,10 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Property Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  {/* Controlled (value=), not defaultValue= — an applied Zillow
+                      property_type change comes in via form.setValue and an
+                      uncontrolled Radix Select would keep showing the old value. */}
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
@@ -654,12 +667,14 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
 
             {/* Payment Type */}
             <div className="flex flex-col justify-center gap-3 md:col-span-2">
-              <Label className="text-sm font-medium">Payment Type</Label>
+              <Label htmlFor="section8-accepted" className="text-sm font-medium">Payment Type</Label>
               <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
                 <span className={`text-sm font-medium ${!section8Accepted ? 'text-slate-900' : 'text-slate-400'}`}>
                   Private Rent
                 </span>
                 <Switch
+                  id="section8-accepted"
+                  aria-label="Section 8 accepted"
                   checked={section8Accepted}
                   onCheckedChange={setSection8Accepted}
                 />
@@ -845,14 +860,19 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
                 name="investor_id"
                 render={({ field }) => (
                   <FormItem>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    {/* Radix Select throws on empty-string item values — use a
+                        "none" sentinel and map it back to '' for the form. */}
+                    <Select
+                      onValueChange={(v) => field.onChange(v === 'none' ? '' : v)}
+                      value={field.value || 'none'}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select an investor" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No investor assigned</SelectItem>
+                        <SelectItem value="none">No investor assigned</SelectItem>
                         {investors.map((investor) => (
                           <SelectItem key={investor.id} value={investor.id}>
                             {investor.full_name}

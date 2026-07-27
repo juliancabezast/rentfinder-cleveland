@@ -49,12 +49,45 @@ interface AvailableSlot {
   duration_minutes: number;
 }
 
+// ── Same-day tour (back-to-back showings for one visitor) ────────────────
+interface TourStop {
+  propertyId: string;
+  label: string;
+  time: string; // "HH:MM:SS"
+}
+interface TourHome {
+  id: string;
+  address: string;
+  unit_number: string | null;
+  city: string | null;
+  rent_price: number | null;
+  photos: unknown;
+  bedrooms: number | null;
+  bathrooms: number | null;
+}
+const MAX_TOUR_STOPS = 3;
+
 function formatTime(t: string) {
   const [h, m] = t.split(":");
   const hour = parseInt(h, 10);
   const ampm = hour >= 12 ? "PM" : "AM";
   const display = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   return `${display}:${m} ${ampm}`;
+}
+
+// Add minutes to an "HH:MM:SS" time, returning "HH:MM:SS" — or null once it
+// runs past a sane evening cutoff (no back-to-back tour stop after ~9:30pm).
+function addMinutesToTime(hms: string, mins: number): string | null {
+  const [h, m] = hms.split(":").map(Number);
+  const total = h * 60 + m + mins;
+  if (total >= 22 * 60) return null;
+  const nh = Math.floor(total / 60);
+  const nm = total % 60;
+  return `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}:00`;
+}
+
+function homeLabel(p: { address: string; unit_number?: string | null }): string {
+  return `${p.address}${p.unit_number ? ` #${p.unit_number}` : ""}`;
 }
 
 function getAllPhotoUrls(property: Property | null | undefined): string[] {
@@ -682,8 +715,9 @@ const ScheduleShowing: React.FC = () => {
   // City cover images from org settings
   const [cityCoverImages, setCityCoverImages] = useState<Record<string, string>>({});
 
-  // Featured property
-  const [featuredProperty, setFeaturedProperty] = useState<Property | null>(null);
+  // Featured properties (up to 4 — rendered as a 5s auto-rotating carousel).
+  const [featuredProperties, setFeaturedProperties] = useState<Property[]>([]);
+  const [featuredIdx, setFeaturedIdx] = useState(0);
 
   // Booking
   const [submitting, setSubmitting] = useState(false);
@@ -692,6 +726,14 @@ const ScheduleShowing: React.FC = () => {
   const [bookedLeadId, setBookedLeadId] = useState<string | null>(null);
   const [applyingSent, setApplyingSent] = useState(false);
   const [applyingLoading, setApplyingLoading] = useState(false);
+
+  // Same-day tour: booked stops for this visitor + the next back-to-back offer
+  const [tourStops, setTourStops] = useState<TourStop[]>([]);
+  const [nextSlot, setNextSlot] = useState<string | null>(null);
+  const [nextHomes, setNextHomes] = useState<TourHome[]>([]);
+  const [tourLoading, setTourLoading] = useState(false);
+  const [addingHomeId, setAddingHomeId] = useState<string | null>(null);
+  const [tourError, setTourError] = useState<string | null>(null);
 
   // ---- Multi-mode: fetch properties with available slots ----
   useEffect(() => {
@@ -811,9 +853,10 @@ const ScheduleShowing: React.FC = () => {
         .from("organization_settings")
         .select("key, value")
         .eq("organization_id", orgId)
-        .in("key", ["call_now_button", "city_cover_images", "featured_property_id"]);
+        .in("key", ["call_now_button", "city_cover_images", "featured_property_id", "featured_property_ids"]);
 
       let featuredId: string | null = null;
+      let featuredIds: string[] = [];
       for (const row of settingsData || []) {
         if (row.key === "call_now_button" && row.value) {
           const val = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
@@ -831,19 +874,41 @@ const ScheduleShowing: React.FC = () => {
         if (row.key === "featured_property_id" && row.value && typeof row.value === "string" && row.value.length > 0) {
           featuredId = row.value;
         }
+        if (row.key === "featured_property_ids" && Array.isArray(row.value)) {
+          featuredIds = (row.value as unknown[]).filter(
+            (v): v is string => typeof v === "string" && v.length > 0
+          );
+        }
       }
 
-      if (featuredId) {
-        const { data: fp } = await supabase
+      // Prefer the multi list; fall back to the legacy single id. Feature ANY
+      // property regardless of availability — the carousel adapts its CTA.
+      const ids = featuredIds.length ? featuredIds : featuredId ? [featuredId] : [];
+      if (ids.length) {
+        const { data: fps } = await supabase
           .from("properties")
           .select("*")
-          .eq("id", featuredId)
-          .in("status", ["available"]) // bookable = available only
-          .maybeSingle();
-        if (fp) setFeaturedProperty(fp as Property);
+          .in("id", ids);
+        if (fps && fps.length) {
+          const byId = new Map((fps as Property[]).map((p) => [p.id, p]));
+          setFeaturedProperties(ids.map((id) => byId.get(id)).filter(Boolean) as Property[]);
+        }
       }
     })();
   }, [property?.organization_id, properties, orgSettingsFetched]);
+
+  // Rotate the featured carousel every 5s.
+  useEffect(() => {
+    if (featuredProperties.length <= 1) {
+      setFeaturedIdx(0);
+      return;
+    }
+    const t = setInterval(
+      () => setFeaturedIdx((i) => (i + 1) % featuredProperties.length),
+      5000
+    );
+    return () => clearInterval(t);
+  }, [featuredProperties.length]);
 
   // Group properties by building address
   const buildingGroups = useMemo<BuildingGroup[]>(() => {
@@ -1140,6 +1205,14 @@ const ScheduleShowing: React.FC = () => {
       } else {
         setBooked(true);
         if (data?.lead_id) setBookedLeadId(data.lead_id);
+        // Seed the tour with this first stop and offer the next back-to-back slot.
+        const firstStops: TourStop[] = [{
+          propertyId: effectivePropertyId,
+          label: homeLabel(property),
+          time: selectedTime,
+        }];
+        setTourStops(firstStops);
+        computeNextTourSlot(firstStops);
         // Remember visitor info for next time
         try {
           localStorage.setItem("rf_name", fullName.trim());
@@ -1156,6 +1229,111 @@ const ScheduleShowing: React.FC = () => {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // ---- Same-day tour: find the next free back-to-back slot + its homes ----
+  // The single agent can be in one place at a time, so booking a stop blocks
+  // that time across ALL homes. The next stop is therefore the next 30-min slot
+  // where NO home is booked (agent free) and at least one OTHER bookable home is
+  // open. If that slot is taken, the tour simply ends — which is exactly the
+  // "only 5:00 & 5:30 free → offer just 2" rule the owner described.
+  const computeNextTourSlot = async (stops: TourStop[]) => {
+    setTourError(null);
+    if (!selectedDate || !property?.organization_id || stops.length === 0 || stops.length >= MAX_TOUR_STOPS) {
+      setNextSlot(null); setNextHomes([]); return;
+    }
+    const lastTime = stops.reduce((mx, s) => (s.time > mx ? s.time : mx), stops[0].time);
+    const nt = addMinutesToTime(lastTime, 30);
+    if (!nt) { setNextSlot(null); setNextHomes([]); return; }
+
+    setTourLoading(true);
+    try {
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("showing_available_slots")
+        .select("property_id, is_booked, properties:property_id(id, address, unit_number, city, rent_price, status, photos, bedrooms, bathrooms)")
+        .eq("organization_id", property.organization_id)
+        .eq("slot_date", dateStr)
+        .eq("slot_time", nt)
+        .eq("is_enabled", true);
+
+      if (error || !data) { setNextSlot(null); setNextHomes([]); return; }
+      // Agent busy at this time if ANY property's slot is booked.
+      if (data.some((r: any) => r.is_booked)) { setNextSlot(null); setNextHomes([]); return; }
+
+      const chosen = new Set(stops.map((s) => s.propertyId));
+      const seen = new Set<string>();
+      const homes: TourHome[] = [];
+      for (const r of data as any[]) {
+        const p = Array.isArray(r.properties) ? r.properties[0] : r.properties;
+        if (!p || p.status !== "available") continue;
+        if (chosen.has(p.id) || seen.has(p.id)) continue;
+        seen.add(p.id);
+        homes.push({
+          id: p.id, address: p.address, unit_number: p.unit_number, city: p.city,
+          rent_price: p.rent_price, photos: p.photos, bedrooms: p.bedrooms, bathrooms: p.bathrooms,
+        });
+      }
+      if (homes.length === 0) { setNextSlot(null); setNextHomes([]); return; }
+      setNextSlot(nt); setNextHomes(homes);
+    } finally {
+      setTourLoading(false);
+    }
+  };
+
+  // Book an added home for the SAME visitor (same phone → same lead) at nextSlot.
+  const handleAddTourStop = async (home: TourHome) => {
+    if (!nextSlot || !selectedDate || !property?.organization_id) return;
+    setAddingHomeId(home.id);
+    setTourError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("book-public-showing", {
+        body: {
+          property_id: home.id,
+          organization_id: property.organization_id,
+          slot_date: format(selectedDate, "yyyy-MM-dd"),
+          slot_time: nextSlot,
+          full_name: fullName.trim(),
+          phone: phone.trim(),
+          email: email.trim() || null,
+          has_voucher: paymentType === "" ? undefined : paymentType === "voucher",
+          note: "Same-day tour",
+          consent: buildConsentPayload(consent),
+          src: attribSrc,
+          campaign_id: attribCid,
+          prefill_token: prefillToken,
+        },
+      });
+
+      let errMsg: string | null = null;
+      if (error) {
+        errMsg = "That home couldn't be added — the time may have just been taken.";
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === "function") {
+            const b = await ctx.json();
+            if (b?.error) errMsg = b.error;
+          }
+        } catch {}
+      } else if (data?.error) {
+        errMsg = data.error;
+      }
+
+      if (errMsg) {
+        setTourError(errMsg);
+        computeNextTourSlot(tourStops); // agent may now be busy — re-check
+        return;
+      }
+
+      const updated: TourStop[] = [...tourStops, { propertyId: home.id, label: homeLabel(home), time: nextSlot }];
+      setTourStops(updated);
+      computeNextTourSlot(updated);
+    } catch (err) {
+      console.error("Tour add error:", err);
+      setTourError("Something went wrong adding that home. Please try again.");
+    } finally {
+      setAddingHomeId(null);
     }
   };
 
@@ -1225,6 +1403,11 @@ const ScheduleShowing: React.FC = () => {
     setBookedLeadId(null);
     setApplyingSent(false);
     setApplyingLoading(false);
+    setTourStops([]);
+    setNextSlot(null);
+    setNextHomes([]);
+    setTourError(null);
+    setAddingHomeId(null);
     if (isMultiMode) {
       setProperty(null);
       setSelectedPropertyId(null);
@@ -1286,14 +1469,17 @@ const ScheduleShowing: React.FC = () => {
 
       <div className="max-w-[760px] mx-auto px-4 -mt-5 space-y-6 relative z-10">
 
-        {/* Featured Property Card — compact horizontal */}
-        {isMultiMode && !property && !selectedBuilding && featuredProperty && (() => {
-          const fp = featuredProperty;
+        {/* Featured Properties — up to 4, auto-rotating every 5s */}
+        {isMultiMode && !property && !selectedBuilding && featuredProperties.length > 0 && (() => {
+          const fp = featuredProperties[featuredIdx % featuredProperties.length];
+          if (!fp) return null;
           const fpPhotos = getAllPhotoUrls(fp);
           const specs: string[] = [];
           if (fp.bedrooms != null) specs.push(`${fp.bedrooms} BR`);
           if (fp.bathrooms != null) specs.push(`${fp.bathrooms} BA`);
           if (fp.square_feet) specs.push(`${fp.square_feet.toLocaleString()} SF`);
+          const isAvail = fp.status === "available";
+          const activeIdx = featuredIdx % featuredProperties.length;
           return (
             <div className="rounded-xl border-2 border-amber-300 bg-white overflow-hidden shadow-md relative">
               {/* Featured ribbon */}
@@ -1306,6 +1492,7 @@ const ScheduleShowing: React.FC = () => {
 
               <div className="flex gap-3 p-3">
                 <PhotoCarousel
+                  key={fp.id}
                   photos={fpPhotos}
                   alt={fp.address}
                   className="h-40 w-44 sm:h-44 sm:w-52 rounded-lg shrink-0"
@@ -1313,17 +1500,13 @@ const ScheduleShowing: React.FC = () => {
                 />
 
                 <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
-                  {fp.rent_price != null && (
-                    <div className="flex items-baseline gap-1 leading-none pr-16">
-                      <span className="text-2xl font-extrabold text-slate-900">
-                        ${fp.rent_price.toLocaleString()}
-                      </span>
-                      <span className="text-xs font-medium text-muted-foreground">/mo</span>
-                    </div>
-                  )}
+                  {/* 1) Specs — highlighted first */}
                   {specs.length > 0 && (
-                    <p className="text-sm text-slate-600 truncate">{specs.join(" · ")}</p>
+                    <p className="text-xl font-extrabold text-slate-900 truncate leading-tight pr-16">
+                      {specs.join(" · ")}
+                    </p>
                   )}
+                  {/* 2) Address + location */}
                   <div className="min-w-0">
                     <p className="font-semibold text-base text-slate-900 truncate leading-tight">
                       {fp.address}{fp.unit_number ? ` #${fp.unit_number}` : ""}
@@ -1333,25 +1516,57 @@ const ScheduleShowing: React.FC = () => {
                       {[fp.city, fp.state].filter(Boolean).join(", ")}
                     </p>
                   </div>
-
-                  {fp.section_8_accepted && (
-                    <div>
-                      <Badge className="text-[11px] h-6 px-2 bg-blue-100 text-blue-700 border-0">
-                        Section 8
-                      </Badge>
+                  {/* 3) Price — last */}
+                  {fp.rent_price != null && (
+                    <div className="flex items-baseline gap-1 leading-none">
+                      <span className="text-lg font-bold text-slate-900">
+                        ${fp.rent_price.toLocaleString()}
+                      </span>
+                      <span className="text-xs font-medium text-muted-foreground">/mo</span>
                     </div>
                   )}
+                  {/* Section 8 — shown on every featured card */}
+                  <div>
+                    <Badge className="text-[11px] h-6 px-2 bg-blue-100 text-blue-700 border-0">
+                      Section 8
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
-              <Button
-                className="w-full h-10 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
-                onClick={() => setSelectedPropertyId(fp.id)}
-              >
-                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                Schedule a Showing
-                <ChevronRight className="h-3.5 w-3.5 ml-auto" />
-              </Button>
+              {/* Carousel dots */}
+              {featuredProperties.length > 1 && (
+                <div className="flex items-center justify-center gap-1.5 pb-2">
+                  {featuredProperties.map((p, i) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setFeaturedIdx(i)}
+                      aria-label={`Ver propiedad destacada ${i + 1}`}
+                      className={
+                        "inline-button h-1.5 rounded-full transition-all " +
+                        (i === activeIdx
+                          ? "w-5 bg-amber-500"
+                          : "w-1.5 bg-amber-200 hover:bg-amber-300")
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+
+              {isAvail ? (
+                <Button
+                  className="w-full h-10 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                  onClick={() => setSelectedPropertyId(fp.id)}
+                >
+                  <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+                  Schedule a Showing
+                  <ChevronRight className="h-3.5 w-3.5 ml-auto" />
+                </Button>
+              ) : (
+                <div className="w-full h-10 flex items-center justify-center bg-slate-100 text-slate-500 font-bold text-xs border-t border-slate-200">
+                  Próximamente
+                </div>
+              )}
             </div>
           );
         })()}
@@ -1649,6 +1864,95 @@ const ScheduleShowing: React.FC = () => {
                 You'll receive a confirmation call or text shortly. If you need to reschedule,
                 please call us directly.
               </p>
+
+              {/* Same-day tour: itinerary summary (once there are 2+ stops) */}
+              {tourStops.length >= 2 && (
+                <div className="border-t pt-4 mt-4 text-left">
+                  <p className="text-sm font-semibold flex items-center gap-1.5 mb-2">
+                    <MapPin className="h-4 w-4 text-[#4F46E5]" />
+                    Your visit — {tourStops.length} homes, back-to-back
+                  </p>
+                  <ul className="space-y-1.5">
+                    {[...tourStops].sort((a, b) => a.time.localeCompare(b.time)).map((s) => (
+                      <li key={`${s.propertyId}-${s.time}`} className="flex items-center gap-2 text-sm">
+                        <Badge variant="outline" className="gap-1 shrink-0">
+                          <Clock className="h-3 w-3" />
+                          {formatTime(s.time)}
+                        </Badge>
+                        <span className="truncate text-foreground">{s.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Same-day tour: offer the next back-to-back home */}
+              {tourStops.length < MAX_TOUR_STOPS && nextSlot && nextHomes.length > 0 && (
+                <div className="border-t pt-4 mt-4 text-left space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold flex items-center gap-1.5">
+                      🚗 See more the same day?
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Add a home to visit right after, at{" "}
+                      <span className="font-medium text-foreground">{formatTime(nextSlot)}</span> — 30 min each,
+                      up to {MAX_TOUR_STOPS} homes.
+                    </p>
+                  </div>
+                  {tourError && (
+                    <p className="text-xs text-destructive bg-destructive/10 p-2 rounded-lg">{tourError}</p>
+                  )}
+                  <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+                    {nextHomes.map((home) => {
+                      const thumb = getPhotoUrl(home as any);
+                      const specs = [
+                        home.bedrooms != null ? `${home.bedrooms} BR` : null,
+                        home.bathrooms != null ? `${home.bathrooms} BA` : null,
+                      ].filter(Boolean).join(" · ");
+                      return (
+                        <div key={home.id} className="min-w-[196px] max-w-[196px] rounded-xl border border-slate-200 overflow-hidden bg-white shrink-0">
+                          {thumb ? (
+                            <img src={thumb} alt={home.address} className="h-24 w-full object-cover" />
+                          ) : (
+                            <div className="h-24 w-full bg-slate-100 flex items-center justify-center">
+                              <Home className="h-6 w-6 text-slate-300" />
+                            </div>
+                          )}
+                          <div className="p-2.5 space-y-1.5">
+                            <p className="text-sm font-semibold truncate leading-tight">
+                              {home.address}{home.unit_number ? ` #${home.unit_number}` : ""}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {specs}{home.rent_price ? `${specs ? " · " : ""}$${home.rent_price.toLocaleString()}` : ""}
+                            </p>
+                            <Button
+                              size="sm"
+                              className="w-full h-9 bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white"
+                              onClick={() => handleAddTourStop(home)}
+                              disabled={!!addingHomeId}
+                            >
+                              {addingHomeId === home.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>Add at {formatTime(nextSlot)}</>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Same-day tour: reached the cap */}
+              {tourStops.length >= MAX_TOUR_STOPS && (
+                <div className="border-t pt-4 mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    That's {MAX_TOUR_STOPS} homes — the most we can fit in one visit. 🎉
+                  </p>
+                </div>
+              )}
 
               {/* Apply Now section */}
               {!applyingSent ? (

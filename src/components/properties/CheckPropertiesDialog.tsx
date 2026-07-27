@@ -48,8 +48,12 @@ function getIssues(property: Property): PropertyIssue[] {
   if (!property.rent_price || property.rent_price <= 0) {
     issues.push({ field: "rent_price", label: "No rent price", severity: "critical", icon: <DollarSign className="h-3 w-3" /> });
   }
-  if (!property.bedrooms || property.bedrooms <= 0) {
+  if (property.bedrooms == null || property.bedrooms < 0) {
     issues.push({ field: "bedrooms", label: "No bedrooms", severity: "critical", icon: <Home className="h-3 w-3" /> });
+  } else if (property.bedrooms === 0) {
+    // 0 is a legal value (studio) — nudge for confirmation instead of a
+    // permanent "critical" that trains the owner to ignore the count.
+    issues.push({ field: "bedrooms", label: "0 bedrooms — studio?", severity: "warning", icon: <Home className="h-3 w-3" /> });
   }
   if (!property.bathrooms || property.bathrooms <= 0) {
     issues.push({ field: "bathrooms", label: "No bathrooms", severity: "critical", icon: <Home className="h-3 w-3" /> });

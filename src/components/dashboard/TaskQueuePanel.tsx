@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useId } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { resolveAgentKey } from "@/components/agents/constants";
 import { getLeadName } from "@/components/agents/types";
@@ -101,20 +102,14 @@ const fmtEta = (h: number): string => {
   return `~${Math.round(h / 24)}d`;
 };
 
-// ── Agent biblical names ─────────────────────────────────────────────
-
-const BIBLICAL_NAMES: Record<string, string> = {
-  aaron: "Mercury",
-  esther: "Venus",
-  nehemiah: "Neptune",
-  elijah: "Mars",
-  samuel: "Jupiter",
-  zacchaeus: "Saturn",
-};
+// ── Agent names ──────────────────────────────────────────────────────
+// Canonical biblical names — resolveAgentKey (agents/constants) collapses
+// legacy agent_types to the 6 canonical agents; the capitalized key IS the
+// biblical name (samuel → Samuel), same identity the /agents page shows.
 
 const getAgentName = (key: string) => {
   const canonical = resolveAgentKey(key);
-  return BIBLICAL_NAMES[canonical] || canonical;
+  return canonical.charAt(0).toUpperCase() + canonical.slice(1);
 };
 
 // Compact display: first name only (the queue column is narrow).
@@ -123,29 +118,29 @@ const firstOnly = (s: string) => (s || "").trim().split(/\s+/)[0] || s;
 // ── Action labels & icons ────────────────────────────────────────────
 
 const ACTION_LABELS: Record<string, string> = {
-  sms: "send SMS",
-  email: "send email",
-  score: "score lead",
-  confirm_showing: "confirm showing",
-  outbound_callback: "make callback",
-  send_application: "send application",
-  recapture: "recapture",
-  follow_up: "follow up",
-  sequence: "run sequence",
-  notify: "send notification",
+  sms: "enviar SMS",
+  email: "enviar email",
+  score: "evaluar lead",
+  confirm_showing: "confirmar showing",
+  outbound_callback: "devolver llamada",
+  send_application: "enviar aplicación",
+  recapture: "recapturar",
+  follow_up: "hacer seguimiento",
+  sequence: "correr secuencia",
+  notify: "enviar notificación",
 };
 
 // More descriptive labels based on agent_type (overrides action_type labels)
 const AGENT_TYPE_LABELS: Record<string, string> = {
-  welcome_sequence: "send welcome email",
-  recapture: "recapture lead",
-  campaign: "run outreach campaign",
-  showing_confirmation: "confirm showing",
-  no_show_followup: "follow up no-show",
-  no_show_follow_up: "follow up no-show",
-  post_showing: "do post-showing follow-up",
-  doorloop_pull: "sync with DoorLoop",
-  notification_dispatcher: "send notification",
+  welcome_sequence: "enviar bienvenida",
+  recapture: "recapturar lead",
+  campaign: "correr campaña",
+  showing_confirmation: "confirmar showing",
+  no_show_followup: "seguimiento no-show",
+  no_show_follow_up: "seguimiento no-show",
+  post_showing: "seguimiento post-showing",
+  doorloop_pull: "sincronizar DoorLoop",
+  notification_dispatcher: "enviar notificación",
 };
 
 const ACTION_ICONS: Record<string, React.ElementType> = {
@@ -189,11 +184,11 @@ function fireCountdown(scheduledIso: string, nowMs: number): { label: string; im
   const h = Math.floor(m / 60);
   const d = Math.floor(h / 24);
 
-  if (s <= 0) return { label: "now…", imminent: true, firing: true };
-  if (s < 60) return { label: `in ${s}s`, imminent: s <= 30, firing: false };
-  if (m < 60) return { label: `in ${m}m ${s % 60}s`, imminent: false, firing: false };
-  if (h < 24) return { label: `in ${h}h ${m % 60}m`, imminent: false, firing: false };
-  return { label: `in ${d}d ${h % 24}h`, imminent: false, firing: false };
+  if (s <= 0) return { label: "ahora…", imminent: true, firing: true };
+  if (s < 60) return { label: `en ${s}s`, imminent: s <= 30, firing: false };
+  if (m < 60) return { label: `en ${m}m ${s % 60}s`, imminent: false, firing: false };
+  if (h < 24) return { label: `en ${h}h ${m % 60}m`, imminent: false, firing: false };
+  return { label: `en ${d}d ${h % 24}h`, imminent: false, firing: false };
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -203,6 +198,8 @@ export const TaskQueuePanel = () => {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  // Real realtime-subscription state — the LIVE chip must not lie.
+  const [rtLive, setRtLive] = useState(false);
   // 1s heartbeat: re-render so countdowns/"updated Xs ago" tick visibly.
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
@@ -212,9 +209,17 @@ export const TaskQueuePanel = () => {
 
   const orgId = userRecord?.organization_id;
   const queryKey = ["live-task-queue", orgId];
+  // Stable per-instance suffix for the realtime channel topic. AdminDashboard
+  // mounts this panel twice (mobile inline + desktop sticky rail, CSS-hidden),
+  // and supabase-js dedupes channels by topic — a shared hardcoded topic makes
+  // the second .on() append a duplicate postgres_changes binding, so the join
+  // ack errors ("mismatch between server and client bindings") and realtime
+  // dies for BOTH instances. A unique topic per instance keeps each subscription
+  // independent and SUBSCRIBED.
+  const instanceId = useId();
 
   // ── Query: next 10 + totals + recent completions, one snapshot ──────
-  const { data: snap, isLoading } = useQuery({
+  const { data: snap, isLoading, isError } = useQuery({
     queryKey,
     queryFn: async (): Promise<QueueSnapshot> => {
       if (!orgId) return { tasks: [], totalPending: 0, completedToday: 0, recent: [], insights: null };
@@ -264,7 +269,13 @@ export const TaskQueuePanel = () => {
         supabase.rpc("task_queue_insights"),
       ]);
 
+      // Check ALL five results — a silent failure in any of them used to zero
+      // out totals/forecast/ticker while the panel still claimed to be live.
       if (tasksRes.error) throw tasksRes.error;
+      if (pendingRes.error) throw pendingRes.error;
+      if (doneTodayRes.error) throw doneTodayRes.error;
+      if (recentRes.error) throw recentRes.error;
+      if (insightsRes.error) throw insightsRes.error;
       setLastUpdate(new Date());
       return {
         tasks: (tasksRes.data as unknown as QueuedTask[]) || [],
@@ -279,10 +290,14 @@ export const TaskQueuePanel = () => {
   });
 
   // ── Realtime subscription ────────────────────────────────────────────
+  // Debounced invalidation (same pattern as useDashboardLive): the dispatcher
+  // emits 2+ events per task and drains run to thousands — coalesce the burst
+  // into one refetch every ~4s instead of a refetch storm of 5 queries each.
   useEffect(() => {
     if (!orgId) return;
+    let invalidateTimer: ReturnType<typeof setTimeout> | null = null;
     const channel: RealtimeChannel = supabase
-      .channel("live-panel-task-queue")
+      .channel(`live-panel-task-queue-${instanceId}`)
       .on(
         "postgres_changes",
         {
@@ -292,15 +307,20 @@ export const TaskQueuePanel = () => {
           filter: `organization_id=eq.${orgId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey });
-          setLastUpdate(new Date());
+          if (invalidateTimer) return;
+          invalidateTimer = setTimeout(() => {
+            invalidateTimer = null;
+            queryClient.invalidateQueries({ queryKey: ["live-task-queue", orgId] });
+          }, 4_000);
         }
       )
-      .subscribe();
+      .subscribe((status) => setRtLive(status === "SUBSCRIBED"));
     return () => {
+      if (invalidateTimer) clearTimeout(invalidateTimer);
+      setRtLive(false);
       supabase.removeChannel(channel);
     };
-  }, [orgId, queryClient]);
+  }, [orgId, queryClient, instanceId]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -319,7 +339,13 @@ export const TaskQueuePanel = () => {
   const forecast = useMemo(() => {
     const ins = snap?.insights;
     if (!ins) return null;
-    const pending = ins.pending_total;
+    // Use the SAME pending count the timeline list and footer use
+    // (agent_tasks in status pending OR in_progress, 'call' excluded) as the
+    // single source of truth. ins.pending_total counts only status='pending',
+    // so relying on it made the banner claim "queue empty / agents caught up"
+    // while EN CURSO (in_progress) rows were visibly running and the footer
+    // still said "N en cola" — three contradictory statements in one card.
+    const pending = snap?.totalPending ?? 0;
     if (pending === 0) return { empty: true } as const;
 
     // Cleveland midnight → hours elapsed today (fallback rate source)
@@ -332,7 +358,7 @@ export const TaskQueuePanel = () => {
     // Prefer the last-hour throughput; fall back to today's average.
     const rate = ins.completed_1h > 0 ? ins.completed_1h : ins.completed_today / hoursElapsed;
 
-    // What actually inthe next hour ≈ min(what's due, what throughput allows)
+    // What actually goes out in the next hour ≈ min(what's due, what throughput allows)
     const nextHourOut = rate > 0 ? Math.min(ins.due_next_hour, Math.round(rate)) : ins.due_next_hour;
     const etaLabel = rate >= 1 ? fmtEta(pending / rate) : null;
 
@@ -344,7 +370,7 @@ export const TaskQueuePanel = () => {
       .join(" · ");
 
     return { empty: false as const, pending, rate: Math.round(rate), nextHourOut, etaLabel, composition };
-  }, [snap?.insights, nowMs]);
+  }, [snap?.insights, snap?.totalPending, nowMs]);
 
   // ── Render ───────────────────────────────────────────────────────────
 
@@ -355,15 +381,22 @@ export const TaskQueuePanel = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <ListChecks className="h-4 w-4 text-emerald-500" />
-            Task Queue
-            {/* LIVE chip — broadcast-style pulse */}
-            <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 animate-ping opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            Cola de tareas
+            {/* Status chip — reflects the REAL realtime subscription state */}
+            {rtLive ? (
+              <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 animate-ping opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                <span className="text-[11px] font-bold tracking-wider text-emerald-700">EN VIVO</span>
               </span>
-              <span className="text-[11px] font-bold tracking-wider text-emerald-700">LIVE</span>
-            </span>
+            ) : (
+              <span className="flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5">
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                <span className="text-[11px] font-bold tracking-wider text-amber-700">CONECTANDO</span>
+              </span>
+            )}
           </CardTitle>
           <Button
             variant="ghost"
@@ -371,6 +404,7 @@ export const TaskQueuePanel = () => {
             className="h-8 w-8"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            aria-label="Actualizar cola"
           >
             <RefreshCw
               className={cn(
@@ -421,7 +455,7 @@ export const TaskQueuePanel = () => {
         )}
 
         <p className="text-xs text-muted-foreground tabular-nums mt-2">
-          Updated {secondsSinceUpdate <= 1 ? "just now" : `${secondsSinceUpdate}s ago`}
+          {secondsSinceUpdate <= 1 ? "Actualizado justo ahora" : `Actualizado hace ${secondsSinceUpdate}s`}
         </p>
       </CardHeader>
 
@@ -445,7 +479,7 @@ export const TaskQueuePanel = () => {
                   <span className="font-medium">{firstOnly(getLeadName(r.leads))}</span>
                 </span>
                 <span className="shrink-0 whitespace-nowrap text-muted-foreground">
-                  {formatDistanceToNow(new Date(r.completed_at), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(r.completed_at), { addSuffix: true, locale: es })}
                 </span>
               </div>
             ))}
@@ -464,11 +498,16 @@ export const TaskQueuePanel = () => {
               </div>
             ))}
           </div>
+        ) : isError && !snap ? (
+          // A failed load must NOT masquerade as an empty queue.
+          <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            No se pudo cargar la cola de tareas. Reintentando automáticamente…
+          </div>
         ) : tasks.length === 0 ? (
           <EmptyState
             icon={ListChecks}
-            title="Queue empty"
-            description="No pending tasks — agents are all caught up"
+            title="Cola vacía"
+            description="Sin tareas pendientes — los agentes están al día"
           />
         ) : (
           <div className="max-h-[calc(100vh-16rem)] overflow-y-auto pr-1">
@@ -528,11 +567,11 @@ export const TaskQueuePanel = () => {
                           </p>
                           {isInProgress ? (
                             <Badge className="h-5 px-2 text-[11px] shrink-0 bg-blue-500 hover:bg-blue-500 animate-pulse">
-                              RUNNING
+                              EN CURSO
                             </Badge>
                           ) : isUpNext ? (
                             <Badge className="h-5 px-2 text-[11px] shrink-0 bg-emerald-500 hover:bg-emerald-500">
-                              UP NEXT
+                              SIGUIENTE
                             </Badge>
                           ) : null}
                         </div>
@@ -571,12 +610,12 @@ export const TaskQueuePanel = () => {
           <div className="pt-3 mt-2 border-t flex items-center justify-between text-sm text-muted-foreground">
             <span>
               {hiddenCount > 0
-                ? `+${hiddenCount} more queued`
-                : `${totalPending} in queue`}
+                ? `+${hiddenCount} más en cola`
+                : `${totalPending} en cola`}
             </span>
             <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
               <CheckCircle2 className="h-4 w-4" />
-              {completedToday} done today
+              {completedToday} completadas hoy
             </span>
           </div>
         )}

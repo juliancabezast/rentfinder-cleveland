@@ -3,7 +3,6 @@ import { Settings as SettingsIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrganizationTab } from '@/components/settings/OrganizationTab';
 import { LeadCaptureTab } from '@/components/settings/LeadCaptureTab';
-import { ScoringTab } from '@/components/settings/ScoringTab';
 import { CommunicationsTab } from '@/components/settings/CommunicationsTab';
 import { ComplianceTab } from '@/components/settings/ComplianceTab';
 import { IntegrationKeysTab } from '@/components/settings/IntegrationKeysTab';
@@ -33,7 +32,6 @@ const Settings: React.FC = () => {
           <TabsTrigger value="general">General</TabsTrigger>
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
           <TabsTrigger value="lead-capture">Lead Capture</TabsTrigger>
-          <TabsTrigger value="scoring">Scoring</TabsTrigger>
           <TabsTrigger value="communications">Communications</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
@@ -56,10 +54,6 @@ const Settings: React.FC = () => {
 
         <TabsContent value="lead-capture">
           <LeadCaptureTab />
-        </TabsContent>
-
-        <TabsContent value="scoring">
-          <ScoringTab />
         </TabsContent>
 
         <TabsContent value="communications">

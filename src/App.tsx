@@ -34,7 +34,6 @@ const Settings = lazy(() => import("./pages/settings/Settings"));
 const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
 
 const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
-const RequestsKanban = lazy(() => import("./pages/requests/RequestsKanban"));
 const ResponsesPlaybook = lazy(() => import("./pages/playbook/ResponsesPlaybook"));
 const BusinessPage = lazy(() => import("./pages/business/BusinessPage"));
 const EmailsPage = lazy(() => import("./pages/emails/EmailsPage"));
@@ -53,7 +52,7 @@ const TermsOfService = lazy(() => import("./pages/public/TermsOfService"));
 const SmsSignup = lazy(() => import("./pages/public/SmsSignup"));
 const ScheduleShowing = lazy(() => import("./pages/public/ScheduleShowing"));
 const PropertyDetailPublic = lazy(() => import("./pages/public/PropertyDetailPublic"));
-const ApplyRedirect = lazy(() => import("./pages/public/ApplyRedirect"));
+const ApplyGuide = lazy(() => import("./pages/public/ApplyGuide"));
 const ApplicationStarted = lazy(() => import("./pages/public/ApplicationStarted"));
 const LeasingTracker = lazy(() => import("./pages/public/LeasingTracker"));
 const Section8StressFree = lazy(() => import("./pages/public/Section8StressFree"));
@@ -106,8 +105,8 @@ const App = () => (
                 {/* Public property detail (renter-facing "view the property") */}
                 <Route path="/property/:id" element={<PropertyDetailPublic />} />
                 <Route path="/p/property/:id" element={<PropertyDetailPublic />} />
-                <Route path="/p/apply" element={<ApplyRedirect />} />
-                <Route path="/apply" element={<ApplyRedirect />} />
+                <Route path="/p/apply" element={<ApplyGuide />} />
+                <Route path="/apply" element={<ApplyGuide />} />
                 <Route path="/apply/started" element={<ApplicationStarted />} />
                 <Route path="/leasingtracker" element={<LeasingTracker />} />
                 <Route path="/section8stressfree" element={<Section8StressFree />} />
@@ -219,18 +218,11 @@ const App = () => (
               element={<Navigate to="/showings" replace />}
             />
 
-            {/* Applicants → replaced by the Requests Kanban */}
-            <Route path="/applicants" element={<Navigate to="/requests" replace />} />
-            <Route
-              path="/requests"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <RequestsKanban />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
+            {/* Requests Kanban + Applicants list removed (2026-07-25). The
+                "applicant" milestone is now a status-neutral tag set from a
+                completed showing; old links land on Leads. */}
+            <Route path="/applicants" element={<Navigate to="/leads" replace />} />
+            <Route path="/requests" element={<Navigate to="/leads" replace />} />
             <Route
               path="/playbook"
               element={

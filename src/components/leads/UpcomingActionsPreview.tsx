@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Mail, Calendar, Zap, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -59,13 +60,15 @@ export const UpcomingActionsPreview: React.FC<UpcomingActionsPreviewProps> = ({
   leadId,
   onSeeAll,
 }) => {
+  const { userRecord } = useAuth();
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ["upcoming-agent-tasks-preview", leadId],
+    queryKey: ["upcoming-agent-tasks-preview", leadId, userRecord?.organization_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agent_tasks")
         .select("id, agent_type, action_type, scheduled_for, status, context")
         .eq("lead_id", leadId)
+        .eq("organization_id", userRecord!.organization_id)
         .in("status", ["pending", "in_progress", "paused_human_control"])
         .order("scheduled_for", { ascending: true })
         .limit(5);
@@ -73,7 +76,7 @@ export const UpcomingActionsPreview: React.FC<UpcomingActionsPreviewProps> = ({
       if (error) throw error;
       return data as AgentTask[];
     },
-    enabled: !!leadId,
+    enabled: !!leadId && !!userRecord?.organization_id,
   });
 
   if (isLoading) {

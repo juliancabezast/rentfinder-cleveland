@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,8 +33,9 @@ import {
   X,
   FileText,
 } from "lucide-react";
-import { format, addDays, parseISO, startOfDay, startOfWeek } from "date-fns";
-import { buildScheduledAt } from "@/lib/cityTimezone";
+import { format, addDays, parseISO, startOfWeek } from "date-fns";
+import { buildScheduledAt, formatTimeInTimezone } from "@/lib/cityTimezone";
+import { sendNotificationEmail } from "@/lib/notificationService";
 
 // ── The single "bookable" definition: a property whose slots may be shown /
 // opened / booked. Only 'available' — coming_soon is visible in the public
@@ -189,21 +191,24 @@ const CityPicker: React.FC<{
 };
 
 interface ManageSlotsTabProps {
-  onTotalsChange?: (totals: { available: number; booked: number }) => void;
   onShowingClick?: (showingId: string) => void;
   // Open the report form for a specific showing (missing-report chips).
   onOpenReport?: (showingId: string, leadId: string, propertyAddress: string) => void;
   // Bumped by the parent when a report/detail action mutates showings, so the
   // grid + missing-report list refetch without a manual reload.
   reloadSignal?: number;
+  // Optional DOM node the parent exposes so the "Missing reports" bar can be
+  // PORTALED into the shared header row (tabs + view toggle + this bar on one
+  // line). When null, the bar renders inline above the week nav (fallback).
+  headerSlot?: HTMLElement | null;
 }
 
 // ── Component ────────────────────────────────────────────────────────
 export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
-  onTotalsChange,
   onShowingClick,
   onOpenReport,
   reloadSignal = 0,
+  headerSlot = null,
 }) => {
   const { userRecord } = useAuth();
   const { toast } = useToast();
@@ -287,7 +292,9 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
   const jumpToDate = (dateStr: string) => {
     const targetMon = startOfWeek(parseISO(dateStr), { weekStartsOn: 1 });
-    const todayMon = startOfWeek(startOfDay(new Date()), { weekStartsOn: 1 });
+    // Anchor to CLEVELAND's today (todayStr), not the browser's — a viewer in
+    // another timezone would otherwise land on the wrong week near midnight.
+    const todayMon = startOfWeek(parseISO(todayStr), { weekStartsOn: 1 });
     const diffDays = Math.round((targetMon.getTime() - todayMon.getTime()) / (1000 * 60 * 60 * 24));
     setWeekOffset(Math.round(diffDays / 7));
   };
@@ -318,10 +325,13 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   }, [orgId]);
 
   // ── Week dates (weeks start on MONDAY) ──────────────────────────────
+  // Derived from CLEVELAND's today (todayStr) so the week/day boundaries agree
+  // with the Cleveland-anchored past/today checks below — a viewer in another
+  // timezone otherwise sees the columns shift a day near midnight.
   const weekDates = useMemo(() => {
-    const monday = addDays(startOfWeek(startOfDay(new Date()), { weekStartsOn: 1 }), weekOffset * 7);
+    const monday = addDays(startOfWeek(parseISO(todayStr), { weekStartsOn: 1 }), weekOffset * 7);
     return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
-  }, [weekOffset]);
+  }, [weekOffset, todayStr]);
   const weekStart = weekDates[0];
   const weekEnd = weekDates[6];
 
@@ -374,6 +384,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       const { data: showingsData } = await supabase
         .from("showings")
         .select("id, status, property_id, leads(full_name)")
+        .eq("organization_id", orgId)
         .in("id", bookedShowingIds);
       (showingsData || []).forEach((s: any) => {
         showingInfoMap.set(s.id, {
@@ -520,6 +531,29 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
           timeSlots.set(time, { time, properties: [], bookings: [], bookedCount: 0, cancelledShowings: cs });
         }
       });
+      // Fold booked-only times too: an ACTIVE showing whose (date,time) has no
+      // slot row at all (edit-time desync, external/Telegram bookings) must
+      // still paint — otherwise the cell renders as an empty "+" and the agent
+      // can miss the appointment. Deduped by showingId (idempotent with the
+      // group-tour merge above).
+      dayBooked?.forEach((bk, time) => {
+        const g = timeSlots.get(time);
+        if (!g) {
+          timeSlots.set(time, {
+            time, properties: [], bookings: [...bk], bookedCount: bk.length,
+            cancelledShowings: dayCancelled?.get(time) || [],
+          });
+          return;
+        }
+        const shown = new Set(g.bookings.map((b) => b.showingId).filter(Boolean));
+        for (const extra of bk) {
+          if (extra.showingId && !shown.has(extra.showingId)) {
+            g.bookings.push(extra);
+            shown.add(extra.showingId);
+          }
+        }
+        g.bookedCount = g.bookings.length;
+      });
       return { date: dateStr, timeSlots };
     });
 
@@ -542,9 +576,8 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   // completed (+completed_at); no-show → no_show. Both set followed_up_at
   // (parity with Telegram) and, when no write-up exists yet, a tiny
   // agent_report marker so the "Missing reports" chip — which keys off
-  // agent_report IS NULL — clears. DB triggers own the rest: trg_milestone_showings
-  // bumps the lead score (completed → 80) and update_lead_status_on_showing flips
-  // the lead to 'showed'. NEVER write lead_score from here (milestone engine owns it).
+  // agent_report IS NULL — clears. DB triggers own the rest:
+  // update_lead_status_on_showing flips the lead to 'showed'.
   const quickReport = useCallback(async (showingId: string, attended: boolean) => {
     if (!orgId) return;
     setReportingId(showingId);
@@ -554,7 +587,8 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         ? { status: "completed", completed_at: nowIso, followed_up_at: nowIso }
         : { status: "no_show", followed_up_at: nowIso };
       const { data: cur } = await supabase
-        .from("showings").select("agent_report").eq("id", showingId).maybeSingle();
+        .from("showings").select("agent_report")
+        .eq("organization_id", orgId).eq("id", showingId).maybeSingle();
       if (!cur?.agent_report) {
         upd.agent_report = attended ? "Asistió ✅ (reporte rápido)" : "No asistió 👻 (reporte rápido)";
       }
@@ -570,28 +604,197 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     }
   }, [orgId, toast, fetchSlots, loadMissingReports]);
 
+  // When a showing MOVES, its pending Samuel follow-up tasks were scheduled
+  // off the OLD time — re-anchor them to the new one so the lead isn't
+  // reminded about (or chased after) a time that no longer exists. Mirrors
+  // ShowingDetailDialog.retimePendingShowingTasks. Best-effort; note that
+  // agent_tasks has NO updated_at column.
+  const retimePendingShowingTasks = useCallback(async (showingIdToMove: string, newScheduledAt: string) => {
+    if (!orgId) return;
+    const OFFSETS_MS: Record<string, number> = {
+      showing_confirmation: -24 * 60 * 60 * 1000,
+      no_show_followup: 60 * 60 * 1000,
+      post_showing: 24 * 60 * 60 * 1000,
+    };
+    const { data: tasks, error } = await supabase
+      .from("agent_tasks")
+      .select("id, agent_type, context")
+      .eq("organization_id", orgId)
+      .eq("status", "pending")
+      .eq("context->>showing_id", showingIdToMove);
+    if (error) {
+      console.error("Fetch pending showing tasks failed:", error);
+      return;
+    }
+    const base = new Date(newScheduledAt).getTime();
+    for (const t of tasks || []) {
+      const offset = OFFSETS_MS[t.agent_type as string];
+      if (offset === undefined) continue;
+      const newFor = new Date(base + offset);
+      if (t.agent_type === "showing_confirmation" && newFor.getTime() <= Date.now()) {
+        // A 24h-before confirmation that would fire immediately is noise — the
+        // reschedule confirmation email already covers it. Drop it.
+        const { error: cancelErr } = await supabase
+          .from("agent_tasks")
+          .update({ status: "cancelled" })
+          .eq("id", t.id)
+          .eq("status", "pending");
+        if (cancelErr) console.error("Cancel stale confirmation task failed:", cancelErr);
+        continue;
+      }
+      const { error: updErr } = await supabase
+        .from("agent_tasks")
+        .update({
+          scheduled_for: newFor.toISOString(),
+          context: { ...((t.context as Record<string, unknown>) || {}), scheduled_at: newScheduledAt },
+        })
+        .eq("id", t.id)
+        .eq("status", "pending");
+      if (updErr) console.error(`Retime task ${t.id} failed:`, updErr);
+    }
+  }, [orgId]);
+
   // ── Drag-and-drop reschedule (desktop only) ──
   // Drag a booked chip onto a future cell to move it. Time is stored as
   // showings.scheduled_at (Cleveland tz); slot rows only MIRROR it (sync trigger
   // fires on status changes, not scheduled_at) so we move the slot booking by
-  // hand: free the old slot(s) linked to this showing, book the new (property,
-  // date, time) slot. The DB guard (trg_enforce_showing_agent_slot) validates the
-  // new instant on the UPDATE — a DIFFERENT property already there → 23505.
+  // hand. MIRRORS ShowingDetailDialog's reschedule flow: spanned-tail guard →
+  // secure the new primary slot atomically → move the showing (rollback the
+  // slot on failure) → release old slots → book tails + block sibling homes.
+  // The DB guard (trg_enforce_showing_agent_slot) only validates the exact
+  // primary instant, so the spanned pre-check is load-bearing for 45/60-min tours.
   const rescheduleShowing = useCallback(async (showingId: string, newDate: string, newTime: string) => {
     if (!orgId || !showingId) return;
     try {
       const { data: sh } = await supabase
-        .from("showings").select("property_id, scheduled_at").eq("id", showingId).maybeSingle();
+        .from("showings")
+        .select("property_id, scheduled_at, duration_minutes, leads(full_name, email), properties(address, unit_number, city)")
+        .eq("organization_id", orgId).eq("id", showingId).maybeSingle();
       if (!sh?.property_id) { toast({ title: "Error", description: "No encontré ese showing.", variant: "destructive" }); return; }
       const propertyId = sh.property_id as string;
       const newScheduledAt = buildScheduledAt(newDate, newTime, "America/New_York");
       if (sh.scheduled_at === newScheduledAt) return; // dropped on its own cell → no-op
 
-      // 1. Move the showing (guard validates different-property conflict → 23505).
+      // Half-hour times the showing spans (a 45/60-min tour occupies tail
+      // blocks too — the single agent can't be in two places).
+      const durationMinutes = (sh as any).duration_minutes || 30;
+      const slotsSpanned = Math.max(1, Math.ceil(durationMinutes / 30));
+      const spannedTimes: string[] = [];
+      {
+        const [sH, sM] = newTime.split(":").map(Number);
+        for (let i = 0; i < slotsSpanned; i++) {
+          const total = sH * 60 + sM + i * 30;
+          if (Math.floor(total / 60) >= 24) break;
+          spannedTimes.push(
+            `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}:00`,
+          );
+        }
+      }
+
+      // 0. Double-booking guard: refuse if ANY spanned time is already booked
+      // by anything other than THIS showing — including a null-owner manual
+      // block (is_booked=true, booked_showing_id=NULL).
+      const { data: conflictRows, error: confErr } = await supabase
+        .from("showing_available_slots")
+        .select("slot_time, booked_showing_id")
+        .eq("organization_id", orgId)
+        .eq("slot_date", newDate)
+        .in("slot_time", spannedTimes)
+        .eq("is_booked", true);
+      if (confErr) throw confErr;
+      if ((conflictRows || []).some((r: any) => r.booked_showing_id !== showingId)) {
+        toast({ title: "Ocupado", description: "El agente ya tiene un showing en ese horario.", variant: "destructive" });
+        return;
+      }
+
+      // 0b. The slot-row check above can miss another property's >30-min tour
+      // tail (no slot row exists to be flagged) — the single agent can't be in
+      // two places, so check the REAL active bookings for interval overlap too.
+      // Mirrors ShowingDetailDialog.agentBusyElsewhere (the DB trigger only
+      // hard-blocks the exact-instant conflict). Fail-open on query error.
+      {
+        const newStart = new Date(newScheduledAt).getTime();
+        const newEnd = newStart + durationMinutes * 60 * 1000;
+        const { data: nearby, error: overlapErr } = await supabase
+          .from("showings")
+          .select("id, scheduled_at, duration_minutes, property_id")
+          .eq("organization_id", orgId)
+          .in("status", ["scheduled", "confirmed"])
+          .gte("scheduled_at", new Date(newStart - 3 * 60 * 60 * 1000).toISOString())
+          .lt("scheduled_at", new Date(newEnd).toISOString())
+          .neq("id", showingId);
+        const busyElsewhere = !overlapErr && (nearby || []).some((s: any) => {
+          if (s.property_id === propertyId) return false; // same address → group tour, OK
+          const sStart = new Date(s.scheduled_at).getTime();
+          const sEnd = sStart + (s.duration_minutes || 30) * 60 * 1000;
+          return sStart < newEnd && newStart < sEnd;
+        });
+        if (busyElsewhere) {
+          toast({ title: "Ocupado", description: "El agente está en otra propiedad a esa hora.", variant: "destructive" });
+          return;
+        }
+      }
+
+      // 1. Secure the PRIMARY slot first: find-or-materialize the row for this
+      // property + date + time, then book it ATOMICALLY (only if still free) so
+      // a concurrent booking is never clobbered. alreadyOurs = rescheduling
+      // onto a time this showing currently holds (overlapping move).
+      let slotRowId: string | null = null;
+      let alreadyOurs = false;
+      {
+        const { data: existing, error: exErr } = await supabase
+          .from("showing_available_slots")
+          .select("id, is_booked, booked_showing_id")
+          .eq("organization_id", orgId).eq("property_id", propertyId)
+          .eq("slot_date", newDate).eq("slot_time", newTime).maybeSingle();
+        if (exErr) throw exErr;
+        alreadyOurs = !!(existing?.is_booked && existing.booked_showing_id === showingId);
+        if (existing?.is_booked && existing.booked_showing_id !== showingId) {
+          toast({ title: "Ocupado", description: "Ese horario acaba de ocuparse.", variant: "destructive" });
+          await fetchSlots();
+          return;
+        }
+        if (existing) {
+          slotRowId = existing.id;
+        } else {
+          const { data: created, error: createErr } = await supabase
+            .from("showing_available_slots")
+            .insert({
+              organization_id: orgId, property_id: propertyId, slot_date: newDate, slot_time: newTime,
+              duration_minutes: durationMinutes, is_enabled: true, is_booked: false,
+            })
+            .select("id").single();
+          if (createErr || !created) throw createErr || new Error("No se pudo crear el horario.");
+          slotRowId = created.id;
+        }
+        if (!alreadyOurs) {
+          const nowIso = new Date().toISOString();
+          const { data: bookedSlot, error: bookErr } = await supabase
+            .from("showing_available_slots")
+            .update({ is_booked: true, booked_showing_id: showingId, booked_at: nowIso, updated_at: nowIso })
+            .eq("id", slotRowId)
+            .eq("is_booked", false) // atomic — only if still free
+            .select("id").single();
+          if (bookErr || !bookedSlot) {
+            toast({ title: "Ocupado", description: "Ese horario acaba de ocuparse.", variant: "destructive" });
+            await fetchSlots();
+            return;
+          }
+        }
+      }
+
+      // 2. Move the showing (guard validates different-property conflict → 23505).
+      // On failure, roll back ONLY a slot we freshly booked — never one the
+      // still-active showing already held.
       const { error: updErr } = await supabase
-        .from("showings").update({ scheduled_at: newScheduledAt, status: "scheduled" })
+        .from("showings").update({ scheduled_at: newScheduledAt, status: "scheduled", confirmed_at: null })
         .eq("organization_id", orgId).eq("id", showingId);
       if (updErr) {
+        if (slotRowId && !alreadyOurs) {
+          await supabase.from("showing_available_slots")
+            .update({ is_booked: false, booked_showing_id: null, booked_at: null })
+            .eq("id", slotRowId);
+        }
         if ((updErr as any).code === "23505") {
           toast({ title: "Ocupado", description: "Ese horario ya está tomado por otra propiedad.", variant: "destructive" });
         } else {
@@ -600,45 +803,82 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         await fetchSlots();
         return;
       }
-      // 2. Free the old slot(s) this showing occupied.
-      await supabase.from("showing_available_slots")
-        .update({ is_booked: false, booked_showing_id: null, booked_at: null })
-        .eq("organization_id", orgId).eq("booked_showing_id", showingId);
-      // 3. Book the new slot (find or create for this property + date + time).
-      const { data: existingSlot } = await supabase.from("showing_available_slots")
-        .select("id").eq("organization_id", orgId).eq("property_id", propertyId)
-        .eq("slot_date", newDate).eq("slot_time", newTime).maybeSingle();
-      const nowIso = new Date().toISOString();
-      if (existingSlot) {
-        await supabase.from("showing_available_slots")
-          .update({ is_booked: true, booked_showing_id: showingId, booked_at: nowIso })
-          .eq("id", existingSlot.id);
-      } else {
-        await supabase.from("showing_available_slots").insert({
-          organization_id: orgId, property_id: propertyId, slot_date: newDate, slot_time: newTime,
-          duration_minutes: 30, is_enabled: true, is_booked: true, booked_showing_id: showingId, booked_at: nowIso,
-        });
+
+      // Showing + primary slot are committed. Steps 3-4 are best-effort
+      // bookkeeping (logged, never surfaced as failure — mirrors the dialog).
+      // 3. Release every OTHER slot this showing held (old primary + tails),
+      // keeping the just-booked new primary.
+      {
+        let rel = supabase.from("showing_available_slots")
+          .update({ is_booked: false, booked_showing_id: null, booked_at: null })
+          .eq("organization_id", orgId).eq("booked_showing_id", showingId);
+        if (slotRowId) rel = rel.neq("id", slotRowId);
+        const { error: relErr } = await rel;
+        if (relErr) console.error("Release old slots failed:", relErr);
       }
+      // 4. Block EVERY spanned time: materialize+book each tail half-hour for
+      // the primary property, and block still-open rows on OTHER homes (one
+      // showing blocks that time across all homes — single agent).
+      for (const t of spannedTimes) {
+        if (t !== newTime) {
+          const { error: tailErr } = await supabase
+            .from("showing_available_slots")
+            .upsert({
+              organization_id: orgId, property_id: propertyId, slot_date: newDate, slot_time: t,
+              is_booked: true, booked_showing_id: showingId, booked_at: new Date().toISOString(),
+            }, { onConflict: "organization_id,property_id,slot_date,slot_time" });
+          if (tailErr) console.error(`Book spanned tail ${t} failed:`, tailErr);
+        }
+        const { error: blkErr } = await supabase
+          .from("showing_available_slots")
+          .update({ is_booked: true, booked_showing_id: showingId, booked_at: new Date().toISOString() })
+          .eq("organization_id", orgId).eq("slot_date", newDate).eq("slot_time", t)
+          .eq("is_booked", false).neq("property_id", propertyId);
+        if (blkErr) console.error(`Block spanned slot ${t} (siblings) failed:`, blkErr);
+      }
+
+      // 5. Re-anchor pending follow-up tasks to the new time and email the lead
+      // the NEW date/time — mirrors ShowingDetailDialog's reschedule steps 4b/5.
+      // Best-effort: the showing + primary slot are already committed, so a
+      // failure here must never surface as "Failed" or block the success toast.
+      try {
+        await retimePendingShowingTasks(showingId, newScheduledAt);
+        const lead = (sh as any).leads;
+        if (lead?.email) {
+          const prop = (sh as any).properties;
+          // rescheduleShowing builds newScheduledAt in America/New_York (the
+          // Cleveland-anchored grid), so display it in that same tz — otherwise
+          // the email could quote a wall-clock shifted from the dropped cell.
+          const tz = "America/New_York";
+          const propertyAddr = prop?.address || "the property";
+          const showingDateStr =
+            format(new Date(newScheduledAt), "EEEE, MMMM d") + " at " + formatTimeInTimezone(newScheduledAt, tz);
+          const leadName = (lead.full_name as string | null)?.split(" ")[0] || "there";
+          sendNotificationEmail({
+            to: lead.email,
+            subject: `Showing Confirmed — ${propertyAddr}`,
+            html: `<div style="margin-bottom:24px"><h2 style="margin:0;color:#1a1a1a;font-size:22px;font-weight:700">Hi ${leadName},</h2><p style="margin:12px 0 0 0;color:#666;font-size:16px;line-height:1.5">Your showing has been rescheduled! Here are your new details:</p></div><div style="background:#f8f8f8;border-left:4px solid #4F46E5;padding:16px 20px;border-radius:4px;margin:16px 0"><p style="margin:0;color:#1a1a1a;font-size:15px;font-weight:600">${showingDateStr}</p><p style="margin:8px 0 0 0;color:#666;font-size:14px">${propertyAddr}${prop?.unit_number ? " #" + prop.unit_number : ""}${prop?.city ? ", " + prop.city : ""}</p></div><p style="margin:16px 0;color:#666;font-size:14px">Please bring a valid photo ID and proof of income. We look forward to seeing you!</p>`,
+            notificationType: "showing_rescheduled_confirmation",
+            organizationId: orgId,
+            relatedEntityId: showingId,
+            relatedEntityType: "showing",
+          });
+        }
+      } catch (postErr) {
+        console.error("Post-reschedule notify failed (reschedule already committed):", postErr);
+      }
+
       toast({ title: "Reagendado ✅", description: `Movido a ${formatTime(newTime)}` });
       await fetchSlots();
     } catch (e: any) {
       toast({ title: "Error", description: e?.message || "No se pudo reagendar.", variant: "destructive" });
       await fetchSlots();
     }
-  }, [orgId, toast, fetchSlots]);
+  }, [orgId, toast, fetchSlots, retimePendingShowingTasks]);
 
-  // ── Totals ──────────────────────────────────────────────────────────
-  const totals = useMemo(() => {
-    let available = 0, booked = 0;
-    slotData.forEach((day) => {
-      day.timeSlots.forEach((ts) => {
-        if (ts.bookedCount > 0) booked += 1;
-        else if (ts.properties.length > 0) available += 1;
-      });
-    });
-    return { available, booked };
-  }, [slotData]);
-  useEffect(() => { onTotalsChange?.(totals); }, [totals.available, totals.booked]);
+  // (Header "available · booked" totals are now single-sourced in ShowingsList's
+  // fetchSlotTotals — this grid no longer writes them, so the chip can't flip
+  // between two disagreeing definitions/windows as the grid mounts/navigates.)
 
   // A booking is agent-time-scoped: one showing blocks that time across ALL
   // homes. So a time is "taken" if ANY booked row exists for that date+time —
@@ -823,16 +1063,6 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   const isPast = (dateStr: string) => dateStr < todayStr;
   const isPastCell = (dateStr: string, time: string) =>
     dateStr < todayStr || (dateStr === todayStr && timeToMinutes(time) + 30 <= nowMinutes);
-
-  // Which day the phone view is showing. Follows the visible week: today when
-  // it's in range (the common case), otherwise the first day — so paging weeks
-  // or hiding empty days never leaves the list pointing at a day that is gone.
-  const [mobileDay, setMobileDay] = useState<string>(todayStr);
-  useEffect(() => {
-    if (!visibleDays.length) return;
-    if (visibleDays.some((d) => d.date === mobileDay)) return;
-    setMobileDay(visibleDays.find((d) => d.date === todayStr)?.date ?? visibleDays[0].date);
-  }, [visibleDays, mobileDay, todayStr]);
 
   // ── Now-line: measured from the real DOM (row heights vary, off-ladder
   // times create gaps — arithmetic on a fixed header/row height mispaints).
@@ -1020,11 +1250,11 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     setRangeSel(null);
   };
 
-  return (
-    <div className="space-y-3">
-      {/* Missing report alerts — each chip opens that day's report-less
-          showings; one click files the report (was a dead-end before). */}
-      {missingReports.length > 0 && (
+  // Missing report alerts — each chip opens that day's report-less showings;
+  // one click files the report (was a dead-end before). On desktop this bar is
+  // PORTALED into the shared header row (headerSlot) so tabs + view toggle +
+  // this bar sit on ONE line; with no slot it renders inline (fallback).
+  const missingReportsBar = missingReports.length > 0 ? (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium text-red-600 shrink-0">
             Missing reports ({missingReports.length}):
@@ -1060,7 +1290,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                           <div className="text-[10px] text-muted-foreground truncate">{r.address}</div>
                         </div>
                         {onShowingClick && (
-                          <button onClick={() => onShowingClick(r.id)} className="text-slate-500 hover:text-[#4F46E5] shrink-0" title="Ver showing"><Eye className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => onShowingClick(r.id)} className="text-slate-500 hover:text-[#4F46E5] shrink-0" title="Ver showing" aria-label="Ver showing"><Eye className="h-3.5 w-3.5" /></button>
                         )}
                       </div>
                       <div className="flex gap-1.5">
@@ -1084,11 +1314,17 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
             </Popover>
           ))}
         </div>
-      )}
+  ) : null;
+
+  return (
+    <div className="space-y-3">
+      {headerSlot && missingReportsBar
+        ? createPortal(missingReportsBar, headerSlot)
+        : missingReportsBar}
 
       {/* Week navigation */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => setWeekOffset((w) => w - 1)}>
+        <Button variant="ghost" size="sm" aria-label="Previous week" onClick={() => setWeekOffset((w) => w - 1)}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center justify-center gap-2 flex-1">
@@ -1106,12 +1342,13 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
           <button
             onClick={() => setHideEmptyDays((v) => !v)}
             title={hideEmptyDays ? "Show all days" : "Hide empty days"}
+            aria-label={hideEmptyDays ? "Show all days" : "Hide empty days"}
             className={`h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${hideEmptyDays ? "text-[#4F46E5] bg-[#4F46E5]/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
           >
             {hideEmptyDays ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setWeekOffset((w) => w + 1)}>
+        <Button variant="ghost" size="sm" aria-label="Next week" onClick={() => setWeekOffset((w) => w + 1)}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -1122,148 +1359,23 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
         </div>
       ) : cityNames.length === 0 ? (
-        <Card>
+        <Card variant="glass">
           <CardContent className="py-12 text-center">
             <Home className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
             <p className="font-medium text-muted-foreground">No listable properties</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Set a property to <b>Available</b> or <b>Coming soon</b> to open showing times for it.
+              Set a property to <b>Available</b> to open showing times for it.
             </p>
           </CardContent>
         </Card>
       ) : (
         <>
-        {/* ── Phone: one day at a time ──────────────────────────────────────
-            The week grid below is 640px of table on a 390px screen — you had
-            to pan sideways to reach Thursday. Same data, same SlotCell, same
-            actions; just stacked, so every slot is a full-width tap target. */}
-        <div className="lg:hidden space-y-3">
-          {/* Day picker. Scrolls inside itself — never widens the page. */}
-          <div className="-mx-1 overflow-x-auto px-1 pb-1">
-            <div className="flex gap-2 w-max">
-              {visibleDays.map((day) => {
-                const dateObj = parseISO(day.date);
-                const isToday = todayStr === day.date;
-                const active = mobileDay === day.date;
-                const past = isPast(day.date);
-                const busy = dayHasContent(day);
-                return (
-                  <button
-                    key={day.date}
-                    onClick={() => setMobileDay(day.date)}
-                    className={`flex w-[62px] shrink-0 flex-col items-center rounded-xl border px-2 py-2 transition-colors ${
-                      active
-                        ? "border-[#4F46E5] bg-[#4F46E5] text-white"
-                        : isToday
-                        ? "border-[#4F46E5]/40 bg-[#4F46E5]/5"
-                        : "border-border bg-white"
-                    } ${past && !active ? "opacity-45" : ""}`}
-                  >
-                    <span className={`text-[10px] uppercase ${active ? "text-white/70" : "text-muted-foreground"}`}>
-                      {format(dateObj, "EEE")}
-                    </span>
-                    <span className="text-base font-bold leading-tight">{format(dateObj, "d")}</span>
-                    <span
-                      className={`mt-1 h-1.5 w-1.5 rounded-full ${
-                        busy ? (active ? "bg-white" : "bg-[#4F46E5]") : "bg-transparent"
-                      }`}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {(() => {
-            const dIdx = visibleDays.findIndex((d) => d.date === mobileDay);
-            const day = dIdx >= 0 ? visibleDays[dIdx] : visibleDays[0];
-            if (!day) return null;
-            const dateObj = parseISO(day.date);
-            const past = isPast(day.date);
-            const dayBusy = busyKey === `day-${day.date}`;
-            return (
-              <Card>
-                <CardContent className="p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold">{format(dateObj, "EEEE, MMM d")}</p>
-                    {!past && (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-7 text-xs">
-                            {dayBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Open / close day"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-56 p-3" side="bottom" align="end">
-                          <CityPicker
-                            cities={cityNames}
-                            counts={cityCounts}
-                            busy={dayBusy}
-                            defaultAll
-                            actionLabel="Open all day"
-                            onConfirm={(cities) => openDay(day.date, cities)}
-                          />
-                          {dayHasContent(day) && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full h-7 text-xs mt-2 text-red-600 border-red-200 hover:bg-red-50"
-                              disabled={dayBusy}
-                              onClick={() => closeDay(day.date)}
-                            >
-                              <X className="h-3 w-3 mr-1" /> Close whole day
-                            </Button>
-                          )}
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  </div>
-
-                  <div className="divide-y divide-border/60">
-                    {allTimes.map((time, tIdx) => {
-                      const ts = day.timeSlots.get(time);
-                      const cellPast = isPastCell(day.date, time);
-                      const cellBusy = busyKey === `${day.date}-${time}`;
-                      return (
-                        <div key={time} className="flex items-center gap-3 py-1.5">
-                          <span className="w-[68px] shrink-0 text-xs font-medium text-muted-foreground">
-                            {formatTime(time)}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <SlotCell
-                              day={day}
-                              time={time}
-                              ts={ts}
-                              past={cellPast}
-                              cellBusy={cellBusy}
-                              cityNames={cityNames}
-                              cityCounts={cityCounts}
-                              dayIdx={dIdx < 0 ? 0 : dIdx}
-                              timeIdx={tIdx}
-                              highlighted={false}
-                              movedRef={movedRef}
-                              /* Drag-to-select is a mouse gesture; on a phone it
-                                 would fight the scroll, so it is not wired up. */
-                              onDragBegin={() => {}}
-                              onOpen={(cities) => openSlot(day.date, time, cities)}
-                              onSetCities={(cities) => setSlotCities(day.date, time, cities)}
-                              onClose={() => closeSlot(day.date, time)}
-                              onShowingClick={onShowingClick}
-                              onQuickReport={quickReport}
-                              reportingId={reportingId}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })()}
-        </div>
-
-        {/* ── Desktop: the week grid, unchanged ─────────────────────────── */}
-        <Card className="hidden lg:block overflow-hidden">
+        {/* ── Availability week grid. Desktop-grid view only: the parent
+            (ShowingsList) mounts ManageSlotsTab solely when isDesktop && the
+            "Availability" toggle is active; mobile + the Agenda toggle render
+            ShowingsAgenda instead. The old lg:hidden phone day-view was dead
+            once that JS mount-gate replaced the CSS-only hiding. ─────────── */}
+        <Card variant="glass" className="overflow-hidden">
           <CardContent className="p-0">
             <div className="relative overflow-x-auto" ref={gridRef}>
               <table className="w-full min-w-[640px] text-xs border-separate border-spacing-0 select-none">
@@ -1282,7 +1394,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                         <th
                           key={day.date}
                           ref={isToday ? todayColRef : undefined}
-                          className={`p-1.5 text-center font-medium min-w-[92px] ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""}`}
+                          className={`p-1.5 text-center font-medium min-w-[92px] ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-70" : ""}`}
                         >
                           <div className="text-[10px] text-muted-foreground uppercase">{format(dateObj, "EEE")}</div>
                           <div className={`text-sm font-bold ${isToday ? "text-[#4F46E5]" : ""}`}>{format(dateObj, "d")}</div>
@@ -1353,7 +1465,10 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                               const id = e.dataTransfer.getData("text/plain");
                               if (id) rescheduleShowing(id, day.date, time);
                             }}
-                            className={`p-1 text-center align-middle ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-40" : ""} ${inDrag(dIdx, tIdx) ? "bg-[#4F46E5]/15" : ""}`}
+                            /* past keeps a dim treatment but stays READABLE —
+                               opacity-40 rendered last week's names at ~15-20%
+                               apparent opacity (illegible as a weekly record) */
+                            className={`p-1 text-center align-middle ${isToday ? "bg-[#4F46E5]/5" : ""} ${past ? "opacity-75" : ""} ${inDrag(dIdx, tIdx) ? "bg-[#4F46E5]/15" : ""}`}
                           >
                             <SlotCell
                               day={day}
@@ -1509,7 +1624,7 @@ const SlotCell: React.FC<{
           <button className="w-full rounded-md border bg-green-50 border-green-200 text-green-700 px-2 py-1 text-[10px] text-left hover:bg-green-100 transition-colors">
             <div className="font-bold truncate">{firstName(bookings[0]?.leadName || "Done")}</div>
             <div className="opacity-70 truncate">
-              {bookedCount > 1 ? `+${bookedCount - 1} más · ${bookings[0]?.address || ""}` : (bookings[0]?.address || "")}
+              {bookedCount > 1 ? `+${bookedCount - 1} more · ${bookings[0]?.address || ""}` : (bookings[0]?.address || "")}
             </div>
           </button>
         </PopoverTrigger>
@@ -1531,7 +1646,7 @@ const SlotCell: React.FC<{
                       <div className="text-[10px] text-muted-foreground truncate">{b.address}</div>
                     </div>
                     {b.showingId && onShowingClick && (
-                      <button onClick={() => onShowingClick(b.showingId!)} className="text-slate-500 hover:text-[#4F46E5] shrink-0"><Eye className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => onShowingClick(b.showingId!)} className="text-slate-500 hover:text-[#4F46E5] shrink-0" title="Ver showing" aria-label="Ver showing"><Eye className="h-3.5 w-3.5" /></button>
                     )}
                   </div>
                   {done ? (
@@ -1561,7 +1676,7 @@ const SlotCell: React.FC<{
         <div className="opacity-80">{cancelStatusLabel(cancelled[0].status)}</div>
       </div>
     );
-    return <span className="text-slate-300">—</span>;
+    return <span className="text-slate-400">—</span>;
   }
 
   // Cell style
@@ -1666,7 +1781,7 @@ const SlotCell: React.FC<{
                     <div className="text-[10px] text-orange-600">{cs.property_address}</div>
                   </div>
                   {onShowingClick && (
-                    <button onClick={() => onShowingClick(cs.id)} className="text-orange-600 hover:text-orange-800"><Eye className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => onShowingClick(cs.id)} className="text-orange-600 hover:text-orange-800" title="Ver showing" aria-label="Ver showing"><Eye className="h-3.5 w-3.5" /></button>
                   )}
                 </div>
               ))}

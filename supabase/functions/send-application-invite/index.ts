@@ -30,7 +30,7 @@ serve(async (req: Request) => {
     // ── Get lead info ──────────────────────────────────────────────────
     const { data: lead, error: leadErr } = await supabase
       .from("leads")
-      .select("id, full_name, email, phone, doorloop_prospect_id")
+      .select("id, full_name, email, phone, doorloop_prospect_id, applied_at")
       .eq("id", lead_id)
       .eq("organization_id", organization_id)
       .single();
@@ -169,19 +169,10 @@ serve(async (req: Request) => {
       ? `https://homeguard.app.doorloop.com/prospects/${doorloopProspectId}/rental-applications/new`
       : null;
 
-    // Instead of emailing the admin "Action Required" (that noise moved to the
-    // in-app Requests board), mark the lead as an application request so it
-    // shows up as "Pending" on the Kanban. Never downgrade a further-along
-    // stage — only stamp it the first time (request_stage IS NULL).
-    try {
-      await supabase
-        .from("leads")
-        .update({ application_requested_at: new Date().toISOString(), request_stage: "pending" })
-        .eq("id", lead_id)
-        .is("request_stage", null);
-    } catch (reqErr) {
-      console.error("Failed to flag application request on lead:", reqErr);
-    }
+    // (The Requests Kanban was removed 2026-07-25. This function still sends the
+    // application invite below. Since this writer promotes the lead to
+    // in_application, it also stamps applied_at — every applicant surface keys
+    // off that tag, so status and tag must move together.)
 
     // ── Send notification email to lead ────────────────────────────────
     if (lead.email) {
@@ -215,14 +206,25 @@ serve(async (req: Request) => {
       }
     }
 
-    // ── Update lead status ─────────────────────────────────────────────
-    await supabase
-      .from("leads")
-      .update({
-        status: "in_application",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", lead_id);
+    // ── Update lead status (+ applicant tag, stamped once) ─────────────
+    const statusUpdate: Record<string, unknown> = {
+      status: "in_application",
+      updated_at: new Date().toISOString(),
+    };
+    if (!lead.applied_at) statusUpdate.applied_at = new Date().toISOString();
+    await supabase.from("leads").update(statusUpdate).eq("id", lead_id);
+
+    // ── Leasing Tracker: typed activity row (best-effort) ──────────────
+    {
+      const { error: activityErr } = await supabase.from("leasing_activity").insert({
+        organization_id,
+        lead_id,
+        property_id,
+        action: "application_generated",
+        source: "web_form",
+      });
+      if (activityErr) console.error("leasing_activity insert error:", activityErr);
+    }
 
     // ── System log ─────────────────────────────────────────────────────
     await supabase.from("system_logs").insert({

@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Mail, CheckCircle, XCircle, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -50,27 +51,29 @@ export const InvestorReportsSection: React.FC = () => {
 
   useEffect(() => {
     const fetchReports = async () => {
-      if (!userRecord?.id) return;
+      if (!userRecord?.id || !userRecord?.organization_id) return;
 
       try {
         const { data, error } = await supabase
           .from("investor_reports")
           .select("*")
+          .eq("organization_id", userRecord.organization_id)
           .eq("investor_id", userRecord.id)
           .order("created_at", { ascending: false })
           .limit(12);
 
         if (error) throw error;
         setReports((data || []) as InvestorReport[]);
-      } catch {
-        // Error logged server-side
+      } catch (error) {
+        console.error("Error fetching investor reports:", error);
+        toast.error("Failed to load reports");
       } finally {
         setLoading(false);
       }
     };
 
     fetchReports();
-  }, [userRecord?.id]);
+  }, [userRecord?.id, userRecord?.organization_id]);
 
   const getReportPeriod = (report: InvestorReport) => {
     try {
@@ -140,8 +143,16 @@ export const InvestorReportsSection: React.FC = () => {
           return (
             <Card
               key={report.id}
+              role="button"
+              tabIndex={0}
               className="cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => setSelectedReport(report)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelectedReport(report);
+                }
+              }}
             >
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">

@@ -8,8 +8,13 @@ import { useAuth } from "@/contexts/AuthContext";
 export interface DashboardLive {
   generated_at: string;
   leads: {
-    total: number; hot: number; applicants: number;
-    this_week: number; prev_week: number; created_today: number; created_24h: number;
+    total: number; applicants: number;
+    // this_week = week-to-date; prev_week = full previous week;
+    // prev_week_to_date = previous week counted only up to the same elapsed
+    // offset into the week, so the week-over-week % compares like-for-like
+    // (a partial-vs-full comparison read as a big red drop every Monday).
+    this_week: number; prev_week: number; prev_week_to_date: number;
+    created_today: number; created_24h: number;
   };
   showings: {
     total: number; today: number; completed: number; no_show: number;
@@ -22,7 +27,6 @@ export interface DashboardLive {
   comms: {
     emails_sent_24h: number; emails_sent_total: number; inbound_24h: number;
     email_queue: number;               // email_events awaiting send (the real email queue)
-    queue_pending: number; queue_overdue: number; // pending AGENT TASKS (Task Queue panel)
   };
   next_showings: {
     id: string; scheduled_at: string; status: string; duration_minutes: number | null;
@@ -51,12 +55,21 @@ export function useDashboardLive() {
   const lastPulse = useRef(0);
   const flashTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
-  // Reset the diff baseline + clear stale flashes when the org changes, so the
-  // first poll of a new org never diffs against the previous org's snapshot.
+  // Reset the diff baseline when the org changes (synchronously, BEFORE the
+  // diff effect runs) so the first poll of a new org never diffs against the
+  // previous org's snapshot.
   if (prevOrgRef.current !== orgId) {
     prevOrgRef.current = orgId;
     prevRef.current = null;
   }
+
+  // Clear stale flashes + their timers when the org changes — a "+N" computed
+  // from the previous org must never float over the new org's cards.
+  useEffect(() => {
+    flashTimers.current.forEach(clearTimeout);
+    flashTimers.current.clear();
+    setFlashes([]);
+  }, [orgId]);
 
   // Clear any pending flash timers on unmount (they call setState otherwise)
   useEffect(() => () => {

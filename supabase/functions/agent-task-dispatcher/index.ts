@@ -15,18 +15,18 @@ const DELAY_MS = 300;
 const TASK_TIMEOUT_MS = 30_000; // 30s per task
 
 // Task types the product no longer supports — cancelled on sight so the queue
-// self-cleans instead of fail-looping (voice + SMS removed; these agent_types
-// have no handler and never will).
+// self-cleans instead of fail-looping (voice + SMS removed, scoring demolished;
+// these agent_types have no handler and never will).
 const DEAD_AGENT_TYPES = new Set([
   "recapture",
   "campaign",
   "campaign_voice",
   "conversion_predictor",
   "lead_scoring",
+  "scoring",
   "doorloop_pull",
   "sms_inbound",
 ]);
-const ROUTABLE_NOTIFICATION_TYPES = new Set(["priority_lead", "hot_lead"]);
 
 // Exponential backoff schedule (minutes)
 const BACKOFF_MINUTES = [5, 15, 60, 240, 720, 1440, 2880];
@@ -516,7 +516,7 @@ const NURTURE_STEPS: {
   {
     subject: () => `Do you accept Section 8? (and other common questions)`,
     heading: "The questions we get most",
-    body: (f) => `Hi ${f}, in case it's what's holding you back: yes, many of our homes accept Section 8 vouchers. Applying takes a valid ID, your last 3 paystubs, and a $50 fee per household. Nothing else.`,
+    body: (f) => `Hi ${f}, in case it's what's holding you back: yes, many of our homes accept Section 8 vouchers. Applying takes a valid ID, your last 3 paystubs, and a $59.90 screening fee (paid directly to TransUnion). Nothing else.`,
     cta: "Find a home and tour it",
   },
   {
@@ -820,90 +820,6 @@ async function handlePostShowing(
   throw new Error("Lead has no email for post-showing follow-up (SMS removed)");
 }
 
-async function handleNotificationDispatch(
-  supabase: SupabaseClient,
-  task: AgentTask
-): Promise<string> {
-  const ctx = (task.context as Record<string, unknown>) || {};
-  const ntype = String(ctx.notification_type ?? "unknown");
-
-  // ── priority_lead → push a 🔥 "call now" card to the Hot Leads (showings) bot.
-  // These tasks are enqueued by the `lead_became_priority` DB trigger. The
-  // formatter + delivery live in telegram-notify (event:"hot_lead"); here we
-  // just gather the lead's current contact + top tagged property and post it.
-  if (ntype === "priority_lead" || ntype === "hot_lead") {
-    if (!task.lead_id) return "skipped: priority_lead task has no lead_id";
-
-    const { data: lead } = await supabase
-      .from("leads")
-      .select("id, full_name, phone, lead_score, source, has_voucher, voucher_amount, move_in_date")
-      .eq("id", task.lead_id)
-      .maybeSingle();
-    if (!lead) return "skipped: lead not found";
-
-    const phone = String((lead as Record<string, unknown>).phone ?? "").trim();
-    // A hot lead is a call-now opportunity — no phone, nothing to call. Skip
-    // gracefully (return, don't throw) so the task closes without retry churn.
-    if (!phone) return "skipped: hot lead has no phone (not callable)";
-
-    // Top (most-recent) tagged property; count the rest for the "+N more" hint.
-    let property: string | null = null;
-    let moreCount = 0;
-    const { data: tags } = await supabase
-      .from("lead_property_interests")
-      .select("created_at, properties(address, unit_number)")
-      .eq("lead_id", lead.id)
-      .order("created_at", { ascending: false });
-    if (tags && tags.length) {
-      const top = (tags[0] as Record<string, unknown>).properties as
-        | { address?: string; unit_number?: string }
-        | null;
-      if (top) property = [top.address, top.unit_number].filter(Boolean).join(", ") || null;
-      moreCount = Math.max(0, tags.length - 1);
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resp = await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
-      body: JSON.stringify({
-        organization_id: task.organization_id,
-        channel: "funnel",
-        event: "hot_lead",
-        payload: {
-          lead_id: lead.id,
-          name: (lead as Record<string, unknown>).full_name || ctx.lead_name || "Lead",
-          phone,
-          property,
-          more_count: moreCount,
-          score: (lead as Record<string, unknown>).lead_score ?? ctx.lead_score ?? "",
-          source: (lead as Record<string, unknown>).source ?? null,
-          has_voucher: !!(lead as Record<string, unknown>).has_voucher,
-          voucher_amount: (lead as Record<string, unknown>).voucher_amount ?? null,
-          move_in: (lead as Record<string, unknown>).move_in_date ?? null,
-        },
-      }),
-    });
-    if (!resp.ok) {
-      throw new Error(`hot_lead telegram-notify HTTP ${resp.status}: ${(await resp.text().catch(() => "")).slice(0, 200)}`);
-    }
-    const r = (await resp.json().catch(() => ({}))) as Record<string, unknown>;
-    if (r?.ok === false) return `hot_lead not sent (${r.skipped || r.error || "unknown"})`;
-    return `Hot-lead alert sent for ${(lead as Record<string, unknown>).full_name || lead.id}`;
-  }
-
-  // Other notification_types (e.g. "human_review_needed" from the conversion
-  // predictor) are still NOT wired to a delivery channel. Throw so the task is
-  // marked failed rather than silently "completed" — which previously hid the
-  // gap (2,200+ tasks marked done without ever notifying anyone).
-  const err = new Error(
-    `Notification dispatch not implemented for notification_type="${ntype}". Wire agent-notification-dispatcher (routing + invocation) before enabling.`,
-  );
-  console.error(err.message, { taskId: task.id, context: task.context });
-  throw err;
-}
-
 // ── Config-driven Email Renderer ─────────────────────────────────────────────
 
 function interpolateVars(text: string, vars: Record<string, string>): string {
@@ -1203,8 +1119,6 @@ async function dispatchTask(
       return handleNoShowFollowup(supabase, task, lead, settings);
     case "post_showing":
       return handlePostShowing(supabase, task, lead, settings);
-    case "notification_dispatcher":
-      return handleNotificationDispatch(supabase, task);
     case "sheets_backup":
       return handleSheetsBackup(task);
     default:
@@ -1368,9 +1282,11 @@ serve(async (req: Request) => {
         const canonicalAgent = resolveAgentKey(task.agent_type);
 
         // ── Dead capability guard: cancel-on-sight ──────────────────────
-        // Voice + SMS were removed from the product, several agent_types have
-        // no handler, and only priority/hot notifications are routable. Cancel
-        // these instead of letting them fail-loop so the queue self-cleans.
+        // Voice + SMS were removed from the product and several agent_types
+        // have no handler. notification_dispatcher died with the scoring
+        // demolition (priority_lead/hot_lead were its only routable types).
+        // Cancel these instead of letting them fail-loop so the queue
+        // self-cleans.
         const notifType =
           task.agent_type === "notification_dispatcher"
             ? String((task.context as Record<string, unknown> | null)?.notification_type ?? "unknown")
@@ -1382,7 +1298,7 @@ serve(async (req: Request) => {
               ? "SMS capability removed — task auto-cancelled"
               : DEAD_AGENT_TYPES.has(task.agent_type)
                 ? `Dead agent_type "${task.agent_type}" — task auto-cancelled`
-                : notifType && !ROUTABLE_NOTIFICATION_TYPES.has(notifType)
+                : notifType
                   ? `Unroutable notification_type "${notifType}" — task auto-cancelled`
                   : null;
         if (deadReason) {
