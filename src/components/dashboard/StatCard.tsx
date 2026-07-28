@@ -41,7 +41,7 @@ const useCountUp = (targetValue: string | number, duration: number = 600) => {
   const { num: target, suffix } = parseValue(targetValue);
   const [displayValue, setDisplayValue] = useState<string | number>(targetValue);
   const hasAnimated = useRef(false);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     // Only animate once on first valid non-zero target

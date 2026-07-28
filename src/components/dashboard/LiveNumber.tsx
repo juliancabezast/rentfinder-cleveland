@@ -16,7 +16,7 @@ interface Props {
 export const LiveNumber: React.FC<Props> = ({ value, duration = 700, format, className }) => {
   const [display, setDisplay] = useState(value);
   const displayRef = useRef(value); // always holds the currently-shown value
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     // Start each tween from what is CURRENTLY on screen — interrupting a tween

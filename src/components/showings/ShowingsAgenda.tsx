@@ -19,6 +19,7 @@ import { getTimezoneForCity, formatTimeInTimezone, todayInTimezone } from "@/lib
 import { sendNotificationEmail } from "@/lib/notificationService";
 import { renderEmailHtml, DEFAULT_CONFIGS } from "@/lib/emailTemplateDefaults";
 import type { EmailTemplatesMap } from "@/lib/emailTemplateDefaults";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // Day-focused, action-first list of a single day's showings — the mobile
 // Showings view (replaces the slot grid on phones) and a desktop toggle option.
@@ -156,7 +157,7 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
     setBusyId(s.id);
     try {
       const nowIso = new Date().toISOString();
-      const upd: Record<string, any> = attended
+      const upd: TablesUpdate<"showings"> = attended
         ? { status: "completed", completed_at: nowIso, followed_up_at: nowIso }
         : { status: "no_show", followed_up_at: nowIso };
       const { data: cur } = await supabase.from("showings").select("agent_report").eq("organization_id", orgId).eq("id", s.id).maybeSingle();

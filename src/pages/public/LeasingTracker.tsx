@@ -687,7 +687,7 @@ export default function LeasingTracker() {
 
   const skipSearchRef = useRef(false);
   const reqIdRef = useRef(0);
-  const blurTimer = useRef<number>();
+  const blurTimer = useRef<number | undefined>(undefined);
 
   const qStr = query.trim();
 

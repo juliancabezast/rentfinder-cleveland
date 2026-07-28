@@ -50,6 +50,7 @@ import { ManageSlotsTab } from "@/components/showings/ManageSlotsTab";
 import { BookingPageTab } from "@/components/showings/BookingPageTab";
 import { ShowingDetailDialog } from "@/components/showings/ShowingDetailDialog";
 import { ShowingsAgenda } from "@/components/showings/ShowingsAgenda";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // Matches the grid's slot-visibility gate in ManageSlotsTab (bookable =
 // 'available' only) so the header chip and the grid agree on what's open.
@@ -355,7 +356,7 @@ const ShowingsList: React.FC = () => {
     setLiftedReportingId(showingId);
     try {
       const nowIso = new Date().toISOString();
-      const upd: Record<string, any> = attended
+      const upd: TablesUpdate<"showings"> = attended
         ? { status: "completed", completed_at: nowIso, followed_up_at: nowIso }
         : { status: "no_show", followed_up_at: nowIso };
       const { data: cur } = await supabase

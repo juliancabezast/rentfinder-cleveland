@@ -36,6 +36,7 @@ import {
 import { format, addDays, parseISO, startOfWeek } from "date-fns";
 import { buildScheduledAt, formatTimeInTimezone } from "@/lib/cityTimezone";
 import { sendNotificationEmail } from "@/lib/notificationService";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // ── The single "bookable" definition: a property whose slots may be shown /
 // opened / booked. Only 'available' — coming_soon is visible in the public
@@ -583,7 +584,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     setReportingId(showingId);
     try {
       const nowIso = new Date().toISOString();
-      const upd: Record<string, any> = attended
+      const upd: TablesUpdate<"showings"> = attended
         ? { status: "completed", completed_at: nowIso, followed_up_at: nowIso }
         : { status: "no_show", followed_up_at: nowIso };
       const { data: cur } = await supabase

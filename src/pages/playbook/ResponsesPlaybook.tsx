@@ -288,7 +288,14 @@ export default function ResponsesPlaybook() {
           const Icon = c.icon;
           const isEditing = editing === c.id;
           return (
-            <div key={c.id} ref={(el) => (cardRefs.current[c.id] = el)}>
+            <div
+              key={c.id}
+              ref={(el) => {
+                // React 19: ref callbacks must return void (a returned value is
+                // now treated as a cleanup function), so assign in a block body.
+                cardRefs.current[c.id] = el;
+              }}
+            >
               <Card
                 variant="glass"
                 className={cn(

@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchAvailableProperties, sendLeadShowingEmail } from "@/lib/notificationService";
 import { upsertLeadTag } from "@/lib/leadTags";
 import { markApplicationGenerated } from "@/lib/applications";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 interface ShowingReportDialogProps {
   open: boolean;
@@ -202,7 +203,7 @@ export const ShowingReportDialog: React.FC<ShowingReportDialogProps> = ({
       }
 
       // Build update data
-      const updateData: Record<string, any> = {
+      const updateData: TablesUpdate<"showings"> = {
         status,
         updated_at: new Date().toISOString(),
       };

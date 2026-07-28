@@ -40,6 +40,7 @@ import { fetchAvailableProperties, sendLeadShowingEmail, sendNotificationEmail }
 import { markApplicationGenerated, unmarkApplicationGenerated } from "@/lib/applications";
 import { renderEmailHtml, DEFAULT_CONFIGS } from "@/lib/emailTemplateDefaults";
 import type { EmailTemplatesMap } from "@/lib/emailTemplateDefaults";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // Showings book only on the hour or half-hour (:00 / :30) — mirrors every
 // picker in the app and the DB guard (trg_enforce_showing_half_hour). Takes an
@@ -978,7 +979,7 @@ export const ShowingDetailDialog: React.FC<ShowingDetailDialogProps> = ({
       // never confirmed the new time; mirrors handleReactivate) so the dialog
       // stops showing a stale "Confirmed" stamp and schedule_showing_confirmations
       // re-requests confirmation. A duration-only edit keeps the confirmation.
-      const editUpdate: Record<string, any> = {
+      const editUpdate: TablesUpdate<"showings"> = {
         scheduled_at: newScheduledAt,
         duration_minutes: durationMinutes,
       };
