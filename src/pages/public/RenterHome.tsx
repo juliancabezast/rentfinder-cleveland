@@ -482,6 +482,19 @@ export default function RenterHome() {
   // City defaults to Cleveland — the portfolio also has homes in East
   // Cleveland, Milwaukee, Detroit and Akron, but the site is Cleveland-first.
   const DEFAULT_CITY = "Cleveland";
+
+  // East Cleveland is its own municipality, but it borders Cleveland and to
+  // someone looking for a home it is the same market — nobody searches for
+  // "East Cleveland" on purpose, so the default Cleveland filter used to hide
+  // those homes outright. Group them under "Cleveland" in the SEARCH only:
+  // the data is untouched and every card still shows its real city, because
+  // East Cleveland has its own housing authority, inspections and SAFMR caps
+  // and a voucher holder has to know which one a home is actually in.
+  const CITY_GROUPS: Record<string, string[]> = {
+    Cleveland: ["Cleveland", "East Cleveland"],
+  };
+  const cityGroupOf = (c: string) =>
+    Object.keys(CITY_GROUPS).find((g) => CITY_GROUPS[g].includes(c)) ?? c;
   const [city, setCity] = useState(DEFAULT_CITY);
   const [area, setArea] = useState("all");
   const [beds, setBeds] = useState("any");   // exact match; "0" = Studio, "5" = 5+
@@ -499,7 +512,7 @@ export default function RenterHome() {
     const [pMin, pMax] = priceRange;
     const priceFilterOn = pMin > PRICE_MIN || pMax < PRICE_MAX;
 
-    if (skip !== "city" && city !== "all" && l.city !== city) return false;
+    if (skip !== "city" && city !== "all" && cityGroupOf(l.city) !== city) return false;
     if (skip !== "area" && area !== "all" && l.neighborhood !== area) return false;
     if (skip !== "beds" && !bedMatches(l, beds)) return false;
     if (skip !== "baths" && !bathMatches(l, baths)) return false;
@@ -523,7 +536,11 @@ export default function RenterHome() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const cityOptions = useMemo(() => {
     const opts = [...new Set(
-      listings.filter((l) => passes(l, "city")).map((l) => l.city).filter(Boolean) as string[],
+      listings
+        .filter((l) => passes(l, "city"))
+        .map((l) => l.city)
+        .filter(Boolean)
+        .map((c) => cityGroupOf(c as string)) as string[],
     )].sort((a, b) => (a === DEFAULT_CITY ? -1 : b === DEFAULT_CITY ? 1 : a.localeCompare(b)));
     if (city !== "all" && !opts.includes(city)) opts.push(city);
     return opts;
