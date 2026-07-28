@@ -51,7 +51,7 @@ AI-powered lead management SaaS for property management. Automates the rental le
 ### Reorientation (2026-06-29)
 - **Single-domain focus**: only `rentfindercleveland.com`. HomeGuard & Portafolio removed from product scope (the legacy "3 apps / 3 domains" model is historical/aspirational). The 10DLC/SMS legal text referencing those brands is flagged for separate legal review; functional `homeguard.app.doorloop.com` DoorLoop URLs are retained because they are the live apply portal, not the brand.
 - **Single-tenant consolidation** (not a destructive collapse): exactly one organization ("Rent Finder Cleveland", slug `rent-finder-cleveland`). `organization_id` columns and RLS policies stay as defense-in-depth.
-- **Doc drift corrected**: 6 canonical agents / 4 departments, voice fully removed, real DB counts (67 tables, 291 RLS, 77 functions, 33 triggers).
+- **Doc drift corrected**: 6 canonical agents / 4 departments, voice fully removed. (DB counts as of that date were 67 tables / 291 RLS / 77 functions / 33 triggers — see the Tech Stack section above for the current, verified numbers.)
 - **Security hardening in progress**: users self-update privilege-escalation blocked via trigger; `send-message` now authenticates callers; `joseph_compliance_check()` calls fixed to fail-closed. (The scoring RPCs mentioned here historically were dropped outright in the 2026-07-26 demolition.)
 
 ## Tech Stack
