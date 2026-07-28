@@ -24,7 +24,6 @@ import { ListingsMap } from "@/components/public/ListingsMap";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
-import { ApplicationDialog } from "@/components/public/ApplicationDialog";
 import { SiteFooter } from "@/components/public/SiteFooter";
 
 const PHONE_DISPLAY = "(440) 444-4737";
@@ -285,7 +284,7 @@ function FilterPanel({
 }
 
 /** A single listing card. */
-function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void }) {
+function ListingCard({ l }: { l: Listing }) {
   const [imgOk, setImgOk] = useState(true);
   const navigate = useNavigate();
   const coming = l.status === "coming_soon";
@@ -405,16 +404,17 @@ function ListingCard({ l, onApply }: { l: Listing; onApply: (l: Listing) => void
         <div className="mt-4 pt-3 border-t border-border flex-1 flex flex-col justify-end gap-2">
           {coming ? (
             /* Coming soon: no showings yet — voucher holders can apply early */
-            <Button
-              className="w-full bg-amber-400 text-amber-950 hover:bg-amber-300 font-bold"
-              onClick={(e) => { e.stopPropagation(); onApply(l); }}
-            >
-              <ShieldCheck className="h-4 w-4 mr-2" /> Apply with Section 8 Voucher
+            <Button asChild className="w-full bg-amber-400 text-amber-950 hover:bg-amber-300 font-bold">
+              <Link to="/apply" onClick={(e) => e.stopPropagation()}>
+                <ShieldCheck className="h-4 w-4 mr-2" /> Apply with Section 8 Voucher
+              </Link>
             </Button>
           ) : (
             <>
-              <Button className="w-full" onClick={(e) => { e.stopPropagation(); onApply(l); }}>
-                <FileSignature className="h-4 w-4 mr-2" /> Start Application
+              <Button asChild className="w-full">
+                <Link to="/apply" onClick={(e) => e.stopPropagation()}>
+                  <FileSignature className="h-4 w-4 mr-2" /> Start Application
+                </Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
                 <Link to={`/p/schedule-showing/${l.property_id}`} onClick={(e) => e.stopPropagation()}>
@@ -645,9 +645,6 @@ export default function RenterHome() {
     setPriceRange([PRICE_MIN, PRICE_MAX]);
     setHomeType("any");
   };
-
-  // Application dialog: the listing the visitor is applying for (null = closed)
-  const [applyListing, setApplyListing] = useState<Listing | null>(null);
 
   // Voucher bottom banner: fixed to the viewport bottom, slides away once the
   // real footer scrolls into view (so it never covers the footer).
@@ -1060,7 +1057,6 @@ export default function RenterHome() {
         {viewMode === "map" ? (
           <ListingsMap
             listings={qFiltered}
-            onApply={(l) => setApplyListing(l as Listing)}
             className="h-[calc(100vh-230px)] min-h-[440px] overflow-hidden rounded-2xl border border-border shadow-sm"
           />
         ) : isLoading ? (
@@ -1093,7 +1089,7 @@ export default function RenterHome() {
           </Card>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {qFiltered.map((l) => <ListingCard key={l.key} l={l} onApply={setApplyListing} />)}
+            {qFiltered.map((l) => <ListingCard key={l.key} l={l} />)}
           </div>
         )}
 
@@ -1278,14 +1274,6 @@ export default function RenterHome() {
         </div>
       </div>
 
-      {/* Rental application — 4-step, progressive save */}
-      <ApplicationDialog
-        open={!!applyListing}
-        onOpenChange={(o) => { if (!o) setApplyListing(null); }}
-        propertyId={applyListing?.property_id ?? ""}
-        propertyLabel={applyListing ? `${applyListing.address}, ${applyListing.city}` : undefined}
-        comingSoon={applyListing?.status === "coming_soon"}
-      />
     </div>
   );
 }

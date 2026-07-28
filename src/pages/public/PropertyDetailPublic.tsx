@@ -7,7 +7,6 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "@/integrations/supabase/client";
 import { trackPropertyView } from "@/lib/trackView";
-import { ApplicationDialog } from "@/components/public/ApplicationDialog";
 import { InquiryDialog } from "@/components/public/InquiryDialog";
 import { loadListingConfig, type ListingTemplateConfig } from "@/lib/listingTemplate";
 import { Button } from "@/components/ui/button";
@@ -308,7 +307,6 @@ export default function PropertyDetailPublic() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const [lightbox, setLightbox] = useState<number | null>(null);
-  const [applyUnit, setApplyUnit] = useState<Property | null>(null);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -439,7 +437,6 @@ export default function PropertyDetailPublic() {
   ].filter((r) => r.v && r.v.trim());
 
   const label = `${p.address}${p.city ? `, ${p.city}` : ""}`;
-  const openApply = (u: Property) => setApplyUnit(u);
   const share = async () => {
     try {
       await navigator.clipboard?.writeText(window.location.href);
@@ -561,7 +558,7 @@ export default function PropertyDetailPublic() {
                         <div className="flex shrink-0 items-center gap-3">
                           <div className="text-lg font-extrabold tabular-nums text-foreground">{money(u.rent_price)}<span className="text-xs font-medium text-muted-foreground">/mo</span></div>
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => openApply(u)}>Apply</Button>
+                            <Button asChild size="sm"><Link to="/apply">Apply</Link></Button>
                             {!uComing && (openSlots[u.id] || 0) > 0 && (
                               <Button asChild size="sm" variant="outline">
                                 <Link to={`/p/schedule-showing/${u.id}`}>Tour</Link>
@@ -687,8 +684,10 @@ export default function PropertyDetailPublic() {
               </div>
 
               <div className="mt-4 flex flex-col gap-2">
-                <Button className="w-full font-semibold" onClick={() => openApply(p)}>
-                  {coming ? <><ShieldCheck className="mr-2 h-4 w-4" /> Apply with voucher</> : <><FileSignature className="mr-2 h-4 w-4" /> Start application</>}
+                <Button asChild className="w-full font-semibold">
+                  <Link to="/apply">
+                    {coming ? <><ShieldCheck className="mr-2 h-4 w-4" /> Apply with voucher</> : <><FileSignature className="mr-2 h-4 w-4" /> Start application</>}
+                  </Link>
                 </Button>
                 {!coming && buildingHasSlots && (
                   <Button asChild variant="outline" className="w-full font-semibold">
@@ -734,8 +733,10 @@ export default function PropertyDetailPublic() {
                 <Link to={`/p/schedule-showing/${slotUnitId}`} aria-label="Schedule a showing"><CalendarCheck className="h-4 w-4" /></Link>
               </Button>
             )}
-            <Button size="sm" className="font-semibold" onClick={() => openApply(p)}>
-              {coming ? <><ShieldCheck className="mr-1.5 h-4 w-4" /> Apply</> : <><FileSignature className="mr-1.5 h-4 w-4" /> Apply</>}
+            <Button asChild size="sm" className="font-semibold">
+              <Link to="/apply">
+                {coming ? <><ShieldCheck className="mr-1.5 h-4 w-4" /> Apply</> : <><FileSignature className="mr-1.5 h-4 w-4" /> Apply</>}
+              </Link>
             </Button>
           </div>
         </div>
@@ -744,14 +745,6 @@ export default function PropertyDetailPublic() {
       {lightbox != null && photos.length > 0 && (
         <Lightbox photos={photos} index={lightbox} onClose={() => setLightbox(null)} onNav={setLightbox} />
       )}
-
-      <ApplicationDialog
-        open={!!applyUnit}
-        onOpenChange={(o) => { if (!o) setApplyUnit(null); }}
-        propertyId={applyUnit?.id ?? ""}
-        propertyLabel={applyUnit ? `${applyUnit.address}${applyUnit.unit_number ? ` · Unit ${applyUnit.unit_number}` : ""}, ${applyUnit.city}` : ""}
-        comingSoon={applyUnit?.status === "coming_soon"}
-      />
 
       <InquiryDialog
         open={inquiryOpen}
