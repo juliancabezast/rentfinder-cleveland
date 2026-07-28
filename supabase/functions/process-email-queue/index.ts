@@ -8,7 +8,11 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Rate limit: max emails per org per batch to stay within Resend limits
+// Rate limit: max emails per org per batch to stay within Resend limits.
+// Temporarily raised to 30 (1,800/h) for the Jul-2026 Cleveland tour campaign
+// and restored to 10 once it drained. If you raise it again, keep
+// BATCH_SIZE × DELAY_MS under the 1-minute cron interval: overlapping runs
+// claim disjoint batches (FOR UPDATE SKIP LOCKED) and multiply the send rate.
 const BATCH_SIZE = 10;
 const DELAY_MS = 1500; // 1.5s between emails (safe for Resend 10/sec limit)
 
