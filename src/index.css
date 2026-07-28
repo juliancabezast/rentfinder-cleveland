@@ -437,6 +437,14 @@
   background: #eef2ff !important;
   color: #4F46E5 !important;
 }
+/* Leaflet ships `.leaflet-container a { color:#0078A8 }`, whose specificity
+   (0,1,1) beats Tailwind's single-class text utilities — so any button we
+   render as a link inside a popup gets its label repainted teal, e.g. the
+   white-on-indigo "Start Application" CTA came out dark and unreadable.
+   Plain text links in a popup can keep Leaflet's colour; the button-shaped
+   ones opt out with Tailwind's `!` prefix at the call site (see ListingsMap),
+   since NO plain rule here can help: any rule specific enough to beat Leaflet
+   also beats the very utility class whose colour we want to win. */
 
 /* Living-dashboard "+N" flash — floats up and fades on each metric bump */
 @keyframes dash-flash-up {
