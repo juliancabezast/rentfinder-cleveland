@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm install              # Required first — node_modules not in repo
 npm run dev              # Vite dev server
-npx vite build           # Production build (also serves as TypeScript check — no standalone tsc)
+npx vite build           # Production build
+npm run typecheck        # tsc --noEmit -p tsconfig.app.json (this DOES exist)
 npm run lint             # ESLint
 npm test                 # vitest run
 npm run test:watch       # vitest watch mode
@@ -51,12 +52,12 @@ AI-powered lead management SaaS for property management. Automates the rental le
 - **Single-domain focus**: only `rentfindercleveland.com`. HomeGuard & Portafolio removed from product scope (the legacy "3 apps / 3 domains" model is historical/aspirational). The 10DLC/SMS legal text referencing those brands is flagged for separate legal review; functional `homeguard.app.doorloop.com` DoorLoop URLs are retained because they are the live apply portal, not the brand.
 - **Single-tenant consolidation** (not a destructive collapse): exactly one organization ("Rent Finder Cleveland", slug `rent-finder-cleveland`). `organization_id` columns and RLS policies stay as defense-in-depth.
 - **Doc drift corrected**: 6 canonical agents / 4 departments, voice fully removed, real DB counts (67 tables, 291 RLS, 77 functions, 33 triggers).
-- **Security hardening in progress**: users self-update privilege-escalation blocked via trigger; `recalculate_lead_scores`/`log_score_change` anon EXECUTE revoked; `send-message` now authenticates callers; `joseph_compliance_check()` calls fixed to fail-closed.
+- **Security hardening in progress**: users self-update privilege-escalation blocked via trigger; `send-message` now authenticates callers; `joseph_compliance_check()` calls fixed to fail-closed. (The scoring RPCs mentioned here historically were dropped outright in the 2026-07-26 demolition.)
 
 ## Tech Stack
 - **Frontend**: React + TypeScript, Vite, Tailwind CSS, shadcn/ui (mandatory for all UI)
-- **Backend**: Supabase (PostgreSQL) — 67 tables, 254 RLS policies (after 2026-06-30 perf consolidation), 77 DB functions, 33 triggers
-- **Edge Functions**: Deno (not Node.js) — **54 functions, all in `supabase/functions/` and all deployed (repo↔prod byte-exact parity)**. 12 obsolete voice/Bland + SMS-era functions deprecated 2026-06-30 (`agent-sms-inbound` retained pending n8n inbound-SMS migration).
+- **Backend**: Supabase (PostgreSQL) — **71 tables, 166 RLS policies, 96 DB functions, 37 triggers, 1 view** (counts verified against production 2026-07-28)
+- **Edge Functions**: Deno (not Node.js) — **55 functions in `supabase/functions/`, all deployed**. Production also has **2 orphans that are NOT in the repo**: `persona-webhook` and `verify-identity`, leftovers from the retired Persona integration — candidates for deletion, do not redeploy.
 - **Auth**: Supabase Auth — roles: super_admin, admin, editor, viewer, leasing_agent
 - **Font**: Montserrat
 - **Design colors**: Primary #4F46E5 (indigo), Accent #ffb22c (gold), Background #f3f4f6 (cool gray). iOS 26 glass aesthetic.
@@ -109,7 +110,7 @@ Leads can be taken under manual control, pausing all AI automation. Requires man
 - `organization_settings` — Per-org config (key/value with category)
 - `leads` — Core records with scoring, status flow, human control flags
 - `agent_tasks` — Scheduled AI actions (columns: `agent_type`, `action_type`, `status`)
-- `lead_score_history` — Explainable scoring audit trail. Since 2026-07-19 the ONLY legitimate writer is the DB **milestone engine** (`triggered_by='milestone_engine'`); `log_score_change` is a neutralized no-op (ignores its delta, just recomputes)
+- `campaigns` — Email blasts. Queue rows by SQL: campaign `paused` → `INSERT…SELECT` into `email_events` (status `queued`) → flip to `in_progress`. ⚠️ **`max_per_hour` is DEAD CONFIG — no code reads it.** Real pacing = `BATCH_SIZE` in `process-email-queue` (× the 1/min cron); `send_delay_seconds` can only slow a campaign down, never speed it up. ⚠️ `sent_count` only counts rows still in status `sent`, so it collapses as Resend webhooks flip them to `delivered` — a low number is NOT a failed send
 - `consent_log` — TCPA compliance evidence
 - `email_events` — Email queue + delivery tracking (details JSONB with `status: "queued"/"sent"/"failed"`)
 - `cost_records` — Per-interaction cost attribution
@@ -142,12 +143,18 @@ const todayStart = new Date(clevelandNow.getTime() + offset).toISOString(); // U
 - Every query MUST filter by `organization_id` passed in the request body
 
 ## Critical Rules
-- **Milestone scoring (2026-07-19)**: `lead_score` is a pure function of facts — domain **{0,10,50,80,100}** (0 normal · 10 intentó · 50 agendó/confirmed · 80 asistió · 100 aplicó). NEVER write `lead_score`/`is_priority` from app code: the DB milestone engine (`compute_milestone_score`/`apply_milestone_score` + triggers on `showings`/`leads.status`) owns them. `log_score_change` is a no-op (delta ignored); `recalculate_lead_scores(p_org)` is the org-scoped recompute. Canonical hot predicate = **`is_priority`** (= score≥50 AND not lost). The ladder is duplicated in `compute_milestone_score`, the LATERAL in `recalculate_lead_scores`, `ScoreDisplay.getMilestoneLabel`, and ScoringTab `MILESTONES` — change all together. Hot-lead Telegram triggers (`trg_notify_lead_hot`, `trg_sprint2_priority_notify`) are DISABLED by owner decision.
+- **There is NO lead scoring (demolished 2026-07-26)**. `leads.lead_score`, `leads.is_priority`, `leads.priority_reason`, the `lead_score_history` table and the whole milestone engine (`compute_milestone_score`, `apply_milestone_score`, `recalculate_lead_scores`, `log_score_change` + 10 legacy RPCs) were **DROPPED**. Verified 2026-07-28: 0 of those columns and 0 of those functions exist. Do not reintroduce them, and do not write code that selects `lead_score` — the pre-demolition build still does, which is why the panel's Leads/Nurturing are broken until the next Lovable rebuild. Funnel/analytics are computed from **facts** instead: `showings` rows (booked / showed) and `leads.applied_at` (applied).
 - Edge functions use Deno imports (`https://deno.land/std@0.168.0/`, `https://esm.sh/`)
 - For cron-triggered agents, DB settings `app.settings.supabase_url` and `app.settings.service_role_key` must be set
 - Emails: sender domain should come from org's `sender_domain` setting, not hardcoded
 - Timezone: use dynamic DST-aware offset computation, never hardcode `-05:00` (see Timezone Handling section above)
 - `agent_tasks` table has NO `updated_at` column (trigger was removed) — don't add one
 
-## Edge Functions Deployed from Local Repo (36)
-invite-user, send-notification-email, pathway-webhook, agent-hemlane-parser, import-zillow-property, book-public-showing, test-integration, send-message, match-properties, generate-lead-brief, predict-conversion, agent-health-checker, process-email-queue, sync-resend-history, sync-leads-to-doorloop, agent-hourly-report, agent-rent-benchmark, send-application-invite, delete-lead, delete-user, extract-property-from-image, ai-chat, telegram-webhook, agent-system-analysis, agent-task-dispatcher, enhance-report, fetch-twilio-messages, generate-property-description, process-sms-queue, recalculate-scores, resend-webhook, send-telegram-notification, showing-reminder, sync-resend-emails, unsubscribe, resolve-lead-token
+## Edge Functions (55 in repo, all deployed — verified 2026-07-28)
+agent-daily-report, agent-doorloop-pull, agent-doorloop-push, agent-health-checker, agent-hemlane-parser, agent-hourly-report, agent-rent-benchmark, agent-sheets-backup, agent-task-dispatcher, ai-chat, book-public-showing, capture-lead, check-coming-soon, delete-lead, delete-user, enhance-report, extract-property-from-image, generate-all-investor-reports, generate-investor-report, generate-lead-brief, generate-property-description, hemlane-photo-import, hemlane-sync-listings, import-zillow-property, invite-user, leasing-report-pdf, leasing-tracker-lookup, manage-org-credentials, match-properties, paip-chat, predict-conversion, process-email-queue, reconcile-inbound-emails, resend-webhook, resolve-lead-token, send-application-invite, send-message, send-notification-email, send-telegram-notification, showing-reminder, showings-ics, submit-application, submit-business-lead, submit-demo-request, submit-inquiry, sync-leads-to-doorloop, sync-resend-emails, sync-resend-history, telegram-clean-chats, telegram-notify, telegram-webhook, test-integration, track-property-view, trigger-referral-campaign, unsubscribe
+
+⚠️ **Deployed but NOT in the repo** (orphans from the retired Persona integration): `persona-webhook`, `verify-identity`. Candidates for deletion; do not redeploy.
+
+⚠️ Functions named in older docs that **no longer exist**: `pathway-webhook`, `agent-system-analysis`, `fetch-twilio-messages`, `process-sms-queue`, `recalculate-scores`.
+
+**After deploying, verify the result by reading the deployed source** (`mcp__supabase__get_edge_function`), not the CLI's success message.
