@@ -422,6 +422,24 @@ const ShowingsList: React.FC = () => {
                 <ExternalLink className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Leasing Tracker</span>
               </Button>
+              {/* The public "How to apply" explainer — what an agent shows a
+                  prospect after a tour, before handing them to the portal. */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                title="Open the public How-to-Apply guide (screening, $59.90 fee, then the portal)"
+                onClick={() =>
+                  window.open(
+                    `${window.location.origin}/apply`,
+                    "_blank",
+                    "noopener,noreferrer",
+                  )
+                }
+              >
+                <FileText className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">How to Apply</span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
