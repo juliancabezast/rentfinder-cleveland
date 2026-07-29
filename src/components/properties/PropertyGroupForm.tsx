@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +80,67 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
   const [schoolDistrict, setSchoolDistrict] = useState(neighborhoodData.school_district || "");
   const [newBenefit, setNewBenefit] = useState("");
   const [newPlace, setNewPlace] = useState("");
+
+  // Photos already on this building's units, offered as cover choices — the
+  // shot you want is nearly always one of them, so re-uploading it is wasted
+  // work and leaves a duplicate in storage. Units are matched by group link
+  // OR by the shared address string: only about half the catalog has
+  // property_group_id backfilled, but every unit of a building shares the
+  // address (that is how the public listings group them too).
+  const [unitPhotos, setUnitPhotos] = useState<{ url: string; unit: string | null }[]>([]);
+  const [loadingUnitPhotos, setLoadingUnitPhotos] = useState(false);
+
+  useEffect(() => {
+    const gid = group?.id;
+    const gaddr = (group?.address || "").trim();
+    if (!organization?.id || (!gid && !gaddr)) return;
+    let cancelled = false;
+
+    (async () => {
+      setLoadingUnitPhotos(true);
+      try {
+        const base = () =>
+          supabase
+            .from("properties")
+            .select("id, unit_number, photos")
+            .eq("organization_id", organization.id);
+        const [byGroup, byAddr] = await Promise.all([
+          gid ? base().eq("property_group_id", gid) : Promise.resolve({ data: [] }),
+          gaddr ? base().ilike("address", gaddr) : Promise.resolve({ data: [] }),
+        ]);
+
+        const seenUnits = new Set<string>();
+        const seenUrls = new Set<string>();
+        const out: { url: string; unit: string | null }[] = [];
+        for (const row of [...(byGroup.data || []), ...(byAddr.data || [])]) {
+          const r = row as { id: string; unit_number: string | null; photos: unknown };
+          if (seenUnits.has(r.id)) continue;
+          seenUnits.add(r.id);
+          const photos = Array.isArray(r.photos) ? r.photos : [];
+          for (const p of photos) {
+            const url =
+              typeof p === "string"
+                ? p
+                : (p as Record<string, unknown> | null)?.url ??
+                  (p as Record<string, unknown> | null)?.src ??
+                  (p as Record<string, unknown> | null)?.href;
+            if (typeof url !== "string" || !url || seenUrls.has(url)) continue;
+            seenUrls.add(url);
+            out.push({ url, unit: r.unit_number ?? null });
+          }
+        }
+        if (!cancelled) setUnitPhotos(out);
+      } catch (error) {
+        console.error("Failed to load unit photos:", error);
+      } finally {
+        if (!cancelled) setLoadingUnitPhotos(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [group?.id, group?.address, organization?.id]);
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -216,7 +278,7 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
         <CardHeader className="pb-3">
           <CardTitle className="text-sm">Cover Photo</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {coverPhoto ? (
             <div className="relative aspect-video rounded-lg overflow-hidden border">
               <img
@@ -241,7 +303,7 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
                 <>
                   <ImageIcon className="h-8 w-8 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    Click to upload cover photo
+                    Click to upload a new cover photo
                   </span>
                 </>
               )}
@@ -255,9 +317,67 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
             </label>
           )}
           {!group?.id && !coverPhoto && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Save the property first, then upload a cover photo.
+            <p className="text-xs text-muted-foreground">
+              Save the property first, then choose a cover photo.
             </p>
+          )}
+
+          {/* Pick the cover from the photos this building's units already have */}
+          {group?.id && (
+            <div>
+              <Label className="text-xs text-muted-foreground">
+                Or use a photo from this building's units
+              </Label>
+              {loadingUnitPhotos ? (
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading unit photos…
+                </div>
+              ) : unitPhotos.length === 0 ? (
+                <p className="text-xs text-muted-foreground mt-2">
+                  This building's units have no photos yet.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2 max-h-72 overflow-y-auto pr-1">
+                  {unitPhotos.map((p) => {
+                    const selected = coverPhoto === p.url;
+                    return (
+                      <button
+                        key={p.url}
+                        type="button"
+                        onClick={() => setCoverPhoto(p.url)}
+                        aria-pressed={selected}
+                        aria-label={
+                          p.unit ? `Use unit ${p.unit} photo as cover` : "Use photo as cover"
+                        }
+                        className={cn(
+                          "relative aspect-video rounded-lg overflow-hidden border transition-all",
+                          selected
+                            ? "ring-2 ring-primary border-primary"
+                            : "hover:border-primary/50",
+                        )}
+                      >
+                        <img
+                          src={p.url}
+                          alt=""
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                        />
+                        {p.unit && (
+                          <span className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
+                            {p.unit}
+                          </span>
+                        )}
+                        {selected && (
+                          <span className="absolute top-1 right-1 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
+                            Cover
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
