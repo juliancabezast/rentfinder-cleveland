@@ -142,6 +142,18 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
     };
   }, [group?.id, group?.address, organization?.id]);
 
+  // A cover that was uploaded (or set before this picker existed) belongs to no
+  // unit, so it would be invisible in a grid built only from unit photos —
+  // there is no full-width preview any more to fall back on. Show it as the
+  // first choice, labelled so it is clearly not one of the unit shots.
+  const choices = React.useMemo(() => {
+    const list = unitPhotos.map((p) => ({ ...p, uploaded: false }));
+    if (coverPhoto && !list.some((p) => p.url === coverPhoto)) {
+      list.unshift({ url: coverPhoto, unit: null, uploaded: true });
+    }
+    return list;
+  }, [unitPhotos, coverPhoto]);
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !group?.id) return;
@@ -278,67 +290,29 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
         <CardHeader className="pb-3">
           <CardTitle className="text-sm">Cover Photo</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {coverPhoto ? (
-            <div className="relative aspect-video rounded-lg overflow-hidden border">
-              <img
-                src={coverPhoto}
-                alt="Cover"
-                className="w-full h-full object-cover"
-              />
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 h-7 w-7"
-                onClick={() => setCoverPhoto("")}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
-              {uploadingCover ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : (
-                <>
-                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Click to upload a new cover photo
-                  </span>
-                </>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleCoverUpload}
-                disabled={uploadingCover || !group?.id}
-              />
-            </label>
-          )}
-          {!group?.id && !coverPhoto && (
+        <CardContent className="space-y-3">
+          {/* Same grid the unit editor uses — the cover is picked by clicking a
+              thumbnail, not previewed at full width. A building can have 90+
+              unit photos, so a giant preview pushed every choice below the
+              fold and made the two editors look like different products. */}
+          {!group?.id ? (
             <p className="text-xs text-muted-foreground">
               Save the property first, then choose a cover photo.
             </p>
-          )}
-
-          {/* Pick the cover from the photos this building's units already have */}
-          {group?.id && (
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Or use a photo from this building's units
-              </Label>
-              {loadingUnitPhotos ? (
-                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading unit photos…
-                </div>
-              ) : unitPhotos.length === 0 ? (
-                <p className="text-xs text-muted-foreground mt-2">
-                  This building's units have no photos yet.
-                </p>
-              ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2 max-h-72 overflow-y-auto pr-1">
-                  {unitPhotos.map((p) => {
+          ) : loadingUnitPhotos ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading unit photos…
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-foreground">
+                {choices.length > 0
+                  ? "Click a photo to make it the one shown on the website"
+                  : "This building's units have no photos yet — upload a cover below."}
+              </p>
+              {choices.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-80 overflow-y-auto pr-1">
+                  {choices.map((p) => {
                     const selected = coverPhoto === p.url;
                     return (
                       <button
@@ -350,10 +324,8 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
                           p.unit ? `Use unit ${p.unit} photo as cover` : "Use photo as cover"
                         }
                         className={cn(
-                          "relative aspect-video rounded-lg overflow-hidden border transition-all",
-                          selected
-                            ? "ring-2 ring-primary border-primary"
-                            : "hover:border-primary/50",
+                          "relative aspect-video rounded-lg overflow-hidden border transition-all group",
+                          selected ? "ring-2 ring-primary" : "hover:border-primary/50",
                         )}
                       >
                         <img
@@ -362,14 +334,21 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
                           loading="lazy"
                           className="w-full h-full object-cover"
                         />
-                        {p.unit && (
-                          <span className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
-                            {p.unit}
+                        {!selected && (
+                          <span className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <span className="text-[11px] font-semibold text-white bg-black/50 px-2 py-1 rounded">
+                              Set as cover
+                            </span>
                           </span>
                         )}
                         {selected && (
-                          <span className="absolute top-1 right-1 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
+                          <span className="absolute top-1 left-1 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
                             Cover
+                          </span>
+                        )}
+                        {(p.unit || p.uploaded) && (
+                          <span className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
+                            {p.uploaded ? "Uploaded" : p.unit}
                           </span>
                         )}
                       </button>
@@ -377,7 +356,35 @@ export const PropertyGroupForm: React.FC<PropertyGroupFormProps> = ({
                   })}
                 </div>
               )}
-            </div>
+
+              {/* Escape hatches: a shot no unit has, or no cover at all. */}
+              <div className="flex items-center gap-3 pt-1">
+                <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                  {uploadingCover ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ImageIcon className="h-3.5 w-3.5" />
+                  )}
+                  Upload a different photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCoverUpload}
+                    disabled={uploadingCover}
+                  />
+                </label>
+                {coverPhoto && (
+                  <button
+                    type="button"
+                    onClick={() => setCoverPhoto("")}
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" /> Clear cover
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

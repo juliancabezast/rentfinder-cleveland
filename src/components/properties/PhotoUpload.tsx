@@ -204,6 +204,17 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
     setDraggedIndex(null);
   };
 
+  /** Promote a photo to position 0 — that first slot is what the public
+   *  listing shows as the card image, so this is "make this the one on the
+   *  web" without having to drag it across the grid. */
+  const makeMain = (index: number) => {
+    if (index === 0) return;
+    const next = [...photos];
+    const [picked] = next.splice(index, 1);
+    next.unshift(picked);
+    onChange(next);
+  };
+
   // Show loading state while checking permissions
   if (checkingPermission) {
     return (
@@ -298,7 +309,8 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
       {photos.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">
-            Photos ({photos.length}) - Drag to reorder, first photo is the main image
+            Photos ({photos.length}) — click a photo to make it the one shown on
+            the website, or drag to reorder
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {(dragPhotos ?? photos).map((photo, index) => (
@@ -319,10 +331,26 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
                   alt={`Property photo ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                  <GripVertical className="h-5 w-5 text-white" />
-                </div>
+                {/* Overlay — clicking it promotes the photo to Main. It sits
+                    under the remove button, so removing never selects. */}
+                <button
+                  type="button"
+                  aria-label={
+                    index === 0
+                      ? 'Already the main photo'
+                      : `Use photo ${index + 1} as the main image`
+                  }
+                  onClick={() => makeMain(index)}
+                  className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100"
+                >
+                  {index === 0 ? (
+                    <GripVertical className="h-5 w-5 text-white" />
+                  ) : (
+                    <span className="text-[11px] font-semibold text-white bg-black/50 px-2 py-1 rounded">
+                      Set as main
+                    </span>
+                  )}
+                </button>
                 {/* Main Badge */}
                 {index === 0 && (
                   <span className="absolute top-1 left-1 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
@@ -333,9 +361,12 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
                 <Button
                   variant="destructive"
                   size="icon"
-                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                   aria-label="Remove photo"
-                  onClick={() => removePhoto(index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removePhoto(index);
+                  }}
                 >
                   <X className="h-3 w-3" />
                 </Button>
