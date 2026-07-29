@@ -97,6 +97,15 @@ function firstPhoto(photos: unknown): string | null {
   return null;
 }
 
+// The photo that represents a whole building. The cover chosen in the group
+// editor (property_groups.cover_photo) wins; only when none is set does it fall
+// back to the first photo of the first unit that has one.
+function cardPhoto(units: Prop[], coverByAddr?: Map<string, string>): string | null {
+  const cover = coverByAddr?.get(addrKey(units[0]?.address || ""));
+  if (cover) return cover;
+  return units.map((u) => firstPhoto(u.photos)).find(Boolean) || null;
+}
+
 // Pick the most "open" status across a building's units for display.
 const STATUS_RANK = ["available", "coming_soon", "in_leasing_process", "rented"];
 function aggregateStatus(statuses: string[]): string {
@@ -128,16 +137,16 @@ function redactPII(text: string): string {
 const propCols =
   "id, address, unit_number, city, state, zip_code, status, rent_price, " +
   "bedrooms, bathrooms, square_feet, property_type, section_8_accepted, " +
-  "listed_date, coming_soon_date, photos, latitude, longitude";
+  "self_payment_accepted, listed_date, coming_soon_date, photos, latitude, longitude";
 
 type Prop = Record<string, any>;
 
 // Build a grouped lookup card (one per building) from its units.
-function groupCard(units: Prop[]) {
+function groupCard(units: Prop[], coverByAddr?: Map<string, string>) {
   const first = units[0];
   const [rentMin, rentMax] = range(units.map((u) => u.rent_price));
   const [bedMin, bedMax] = range(units.map((u) => u.bedrooms));
-  const photo = units.map((u) => firstPhoto(u.photos)).find(Boolean) || null;
+  const photo = cardPhoto(units, coverByAddr);
   return {
     key: addrKey(first.address),
     address: first.address,
@@ -182,12 +191,32 @@ serve(async (req) => {
     // Load the org catalog once (small). Inactive properties are hidden from
     // EVERY public surface (listings, map, search, tracker, open agenda), so
     // they are excluded here and every mode inherits the exclusion.
+    // ORDER BY is load-bearing, not cosmetic. A building's card is built from
+    // units[0] — its photo, coordinates, zip and neighborhood all come from
+    // whichever unit lands first. Without an explicit order Postgres hands back
+    // heap order, which reshuffles every time ANY unit is saved (an UPDATE
+    // rewrites the row elsewhere), so a building's cover photo and map pin
+    // silently changed on their own. Sorting by address+unit pins them.
     const { data: allProps, error: propErr } = await supabase
       .from("properties").select(propCols)
       .eq("organization_id", orgId).not("is_demo", "is", true)
-      .neq("status", "inactive");
+      .neq("status", "inactive")
+      .order("address", { ascending: true })
+      .order("unit_number", { ascending: true, nullsFirst: true });
     if (propErr) throw propErr;
     const catalog: Prop[] = allProps || [];
+
+    // Editor-chosen cover per building (property_groups.cover_photo). It wins
+    // over "first photo of the first unit" so the cover picked in the group
+    // editor is the one the public actually sees.
+    const { data: groupRows } = await supabase
+      .from("property_groups").select("address, cover_photo")
+      .eq("organization_id", orgId).not("cover_photo", "is", null);
+    const coverByAddr = new Map<string, string>();
+    for (const g of groupRows || []) {
+      const c = (g as Prop).cover_photo;
+      if (typeof c === "string" && c) coverByAddr.set(addrKey((g as Prop).address), c);
+    }
 
     // ── OPEN-AGENDA mode: city-grouped open showing availability. Public and
     // shown to every visitor (landing banner), independent of any search.
@@ -256,10 +285,10 @@ serve(async (req) => {
       });
     }
 
-    // ── LISTINGS mode: public renter marketplace. Returns available (+coming
-    // soon) buildings in Ohio as renter-facing cards, one per building, each
-    // with a representative available unit id for the "schedule a showing" link.
-    // Milwaukee/St. Louis units are out of the Cleveland-market scope.
+    // ── LISTINGS mode: public renter marketplace. Returns every available
+    // (+coming soon) building as a renter-facing card, one per building, each
+    // with a representative available unit id for the "schedule a showing"
+    // link. Cleveland-first in presentation, but not Cleveland-only in data.
     if (payload.mode === "listings") {
       const ZIP_NEIGHBORHOOD: Record<string, string> = {
         "44105": "Slavic Village", "44110": "Collinwood", "44108": "Glenville",
@@ -268,10 +297,13 @@ serve(async (req) => {
         "44113": "Ohio City / Tremont", "44128": "Lee-Harvard", "44106": "University Circle",
         "44127": "Kinsman", "44115": "Central",
       };
-      const avail = catalog.filter(
-        (p) =>
-          ["available", "coming_soon"].includes(p.status) &&
-          String(p.state || "").toUpperCase() === "OH",
+      // Status is the only gate. This used to also require state === "OH",
+      // which silently dropped the Milwaukee (WI) homes from the public home
+      // page — they were listed and active but could never be rendered, and
+      // no filter in the UI could bring them back. The portfolio is not
+      // Ohio-only, so the listings follow the data, not a hardcoded state.
+      const avail = catalog.filter((p) =>
+        ["available", "coming_soon"].includes(p.status),
       );
       const groups = new Map<string, Prop[]>();
       for (const p of avail) {
@@ -286,7 +318,7 @@ serve(async (req) => {
           const [rentMin, rentMax] = range(units.map((u) => u.rent_price));
           const [bedMin, bedMax] = range(units.map((u) => u.bedrooms));
           const [baMin, baMax] = range(units.map((u) => u.bathrooms));
-          const photo = units.map((u) => firstPhoto(u.photos)).find(Boolean) || null;
+          const photo = cardPhoto(units, coverByAddr);
           const availUnit = units.find((u) => u.status === "available") || first;
           const types = [...new Set(units.map((u) => u.property_type).filter(Boolean))];
           return {
@@ -299,6 +331,7 @@ serve(async (req) => {
             units: units.length,
             status: aggregateStatus(units.map((u) => u.status)),
             section_8_accepted: units.some((u) => u.section_8_accepted),
+            self_payment_accepted: units.some((u) => u.self_payment_accepted),
             rent_min: rentMin,
             rent_max: rentMax,
             bedrooms_min: bedMin,
@@ -352,7 +385,7 @@ serve(async (req) => {
         else groups.set(k, [p]);
       }
       const cards = [...groups.values()]
-        .map(groupCard)
+        .map((units) => groupCard(units, coverByAddr))
         .sort((a, b) => {
           const aStart = normalizeText(a.address).startsWith(tokens[0]) ? 0 : 1;
           const bStart = normalizeText(b.address).startsWith(tokens[0]) ? 0 : 1;
@@ -659,7 +692,7 @@ serve(async (req) => {
         })),
         section_8_accepted: units.some((u) => u.section_8_accepted),
         listed_date: earliestListed,
-        photo: units.map((u) => firstPhoto(u.photos)).find(Boolean) || null,
+        photo: cardPhoto(units, coverByAddr),
       },
       summary: {
         total_leads: leads.length,

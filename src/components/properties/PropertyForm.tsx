@@ -79,6 +79,7 @@ interface Property {
   investor_id?: string | null;
   property_group_id?: string | null;
   section_8_accepted?: boolean | null;
+  self_payment_accepted?: boolean | null;
   pet_policy?: string | null;
 }
 
@@ -112,6 +113,9 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
   );
   const [section8Accepted, setSection8Accepted] = useState<boolean>(
     property?.section_8_accepted ?? true
+  );
+  const [selfPaymentAccepted, setSelfPaymentAccepted] = useState<boolean>(
+    property?.self_payment_accepted ?? true
   );
   const [alternativePropertyIds, setAlternativePropertyIds] = useState<string[]>(
     Array.isArray(property?.alternative_property_ids) ? property.alternative_property_ids : []
@@ -323,6 +327,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
         organization_id: organization.id,
         photos: photos,
         section_8_accepted: section8Accepted,
+        self_payment_accepted: selfPaymentAccepted,
         alternative_property_ids: alternativePropertyIds,
         ...(propertyGroupId ? { property_group_id: propertyGroupId } : {}),
       };
@@ -665,27 +670,44 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({
               )}
             />
 
-            {/* Payment Type */}
+            {/* Payment Type — the two flags are independent, so a home can
+                take vouchers, private renters, both, or neither. This used to
+                be one either/or switch, which made "vouchers only" impossible
+                to express. Each flag drives its own badge on the public card. */}
             <div className="flex flex-col justify-center gap-3 md:col-span-2">
-              <Label htmlFor="section8-accepted" className="text-sm font-medium">Payment Type</Label>
-              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                <span className={`text-sm font-medium ${!section8Accepted ? 'text-slate-900' : 'text-slate-400'}`}>
-                  Private Rent
-                </span>
-                <Switch
-                  id="section8-accepted"
-                  aria-label="Section 8 accepted"
-                  checked={section8Accepted}
-                  onCheckedChange={setSection8Accepted}
-                />
-                <span className={`text-sm font-medium ${section8Accepted ? 'text-emerald-700' : 'text-slate-400'}`}>
-                  Section 8 Accepted
-                </span>
+              <Label className="text-sm font-medium">Payment Type</Label>
+              <div className="flex flex-col gap-3 p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="section8-accepted"
+                    aria-label="Section 8 accepted"
+                    checked={section8Accepted}
+                    onCheckedChange={setSection8Accepted}
+                  />
+                  <span className={`text-sm font-medium ${section8Accepted ? 'text-emerald-700' : 'text-slate-400'}`}>
+                    Section 8 Accepted
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="self-payment-accepted"
+                    aria-label="Self payment accepted"
+                    checked={selfPaymentAccepted}
+                    onCheckedChange={setSelfPaymentAccepted}
+                  />
+                  <span className={`text-sm font-medium ${selfPaymentAccepted ? 'text-emerald-700' : 'text-slate-400'}`}>
+                    Self Payment (private rent)
+                  </span>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                {section8Accepted
-                  ? 'This property accepts Housing Choice Vouchers (Section 8).'
-                  : 'This property only accepts private rent payments.'}
+                {section8Accepted && selfPaymentAccepted
+                  ? 'The public listing shows both badges.'
+                  : section8Accepted
+                    ? 'Voucher holders only — the public listing shows Section 8 alone.'
+                    : selfPaymentAccepted
+                      ? 'Private rent only — the public listing shows Self Payment alone.'
+                      : 'No payment badge will show on the public listing.'}
               </p>
             </div>
 

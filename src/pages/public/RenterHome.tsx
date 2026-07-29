@@ -46,6 +46,7 @@ interface Listing {
   units: number;
   status: string;
   section_8_accepted: boolean;
+  self_payment_accepted: boolean;
   rent_min: number | null;
   rent_max: number | null;
   bedrooms_min: number | null;
@@ -339,13 +340,21 @@ function ListingCard({ l }: { l: Listing }) {
             <Badge className="bg-primary text-primary-foreground">Available</Badge>
           </div>
         )}
-        {l.section_8_accepted && (
-          <div className="absolute top-3 right-3">
-            <Badge variant="secondary" className="bg-white/90 text-primary border border-primary/20">
+        {/* How the home can be paid for, stacked top-right. Both flags are
+            independent, so a home can take vouchers, private renters, or both
+            — 13671 Euclid Ave is voucher-only and shows Section 8 alone. */}
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+          {l.section_8_accepted && (
+            <Badge className="bg-emerald-600 text-white border-transparent hover:bg-emerald-600">
               <CheckCircle2 className="h-3 w-3 mr-1" /> Section 8
             </Badge>
-          </div>
-        )}
+          )}
+          {l.self_payment_accepted && (
+            <Badge className="bg-emerald-600 text-white border-transparent hover:bg-emerald-600">
+              <CheckCircle2 className="h-3 w-3 mr-1" /> Self Payment
+            </Badge>
+          )}
+        </div>
       </div>
       <div className="p-4 flex flex-col flex-1">
         {/* Address is the card header */}
@@ -479,9 +488,15 @@ export default function RenterHome() {
     if (ids.length) trackPropertyView("impression", ids);
   }, [data]);
 
-  // City defaults to Cleveland — the portfolio also has homes in East
-  // Cleveland, Milwaukee, Detroit and Akron, but the site is Cleveland-first.
-  const DEFAULT_CITY = "Cleveland";
+  // Cleveland is the primary market: it sorts first in the City dropdown and
+  // its homes sort first in the grid. It is NOT the default selection —
+  // defaulting the filter to Cleveland silently hid every other city (that is
+  // how the Milwaukee homes disappeared), so the page opens on "all" and shows
+  // the whole portfolio. The dropdown itself is faceted off the live listings,
+  // so a city appears the moment it has a listed home and vanishes when it
+  // doesn't — nothing to hardcode when a market is switched on or off.
+  const PRIMARY_CITY = "Cleveland";
+  const DEFAULT_CITY = "all";
 
   // East Cleveland is its own municipality, but it borders Cleveland and to
   // someone looking for a home it is the same market — nobody searches for
@@ -541,7 +556,7 @@ export default function RenterHome() {
         .map((l) => l.city)
         .filter(Boolean)
         .map((c) => cityGroupOf(c as string)) as string[],
-    )].sort((a, b) => (a === DEFAULT_CITY ? -1 : b === DEFAULT_CITY ? 1 : a.localeCompare(b)));
+    )].sort((a, b) => (a === PRIMARY_CITY ? -1 : b === PRIMARY_CITY ? 1 : a.localeCompare(b)));
     if (city !== "all" && !opts.includes(city)) opts.push(city);
     return opts;
   }, [listings, city, area, beds, baths, zip, priceRange, homeType]);
@@ -588,15 +603,34 @@ export default function RenterHome() {
       listings.some((l) => passes(l, "type") && typeMatches(l, v))),
   ]), [listings, city, area, beds, baths, zip, priceRange, homeType]);
 
+  // City order in the grid, on the RAW city — East Cleveland is grouped under
+  // Cleveland for searching, but it still sorts as its own block so Cleveland
+  // proper stays on top. Anything else (Milwaukee, and any market switched on
+  // later) follows, alphabetically.
+  const CITY_RANK: Record<string, number> = { Cleveland: 0, "East Cleveland": 1 };
+  const cityRank = (c: string) => CITY_RANK[c] ?? 2;
+
+  // This one building sinks to the end of its own status block — it is a
+  // 5-unit walk-up that would otherwise take over the East Cleveland block.
+  // It stays inside "available", so the Coming Soon homes still follow it.
+  // Matched on the address because there is no "sort last" flag on
+  // properties; if the address is ever edited, update this constant.
+  const PINNED_LAST_ADDRESS = "13671 euclid ave";
+  const isPinnedLast = (l: Listing) =>
+    (l.address || "").trim().toLowerCase().startsWith(PINNED_LAST_ADDRESS);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const filtered = useMemo(() => {
     return listings
       .filter((l) => passes(l))
-      // Available homes first; every "Coming Soon" sinks to the end
-      // (sort is stable, so the original order is kept within each group).
-      .sort(
-        (a, b) =>
-          (a.status === "coming_soon" ? 1 : 0) - (b.status === "coming_soon" ? 1 : 0),
+      // Available homes before "Coming Soon" → Euclid Ave last within its
+      // block → then Cleveland, East Cleveland, rest. Sort is stable, so the
+      // original order survives inside each group.
+      .sort((a, b) =>
+        (a.status === "coming_soon" ? 1 : 0) - (b.status === "coming_soon" ? 1 : 0) ||
+        (isPinnedLast(a) ? 1 : 0) - (isPinnedLast(b) ? 1 : 0) ||
+        cityRank(a.city) - cityRank(b.city) ||
+        (a.city || "").localeCompare(b.city || ""),
       );
   }, [listings, city, area, beds, baths, zip, priceRange, homeType]);
 
@@ -657,7 +691,7 @@ export default function RenterHome() {
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
   const resetFilters = () => {
-    setCity(DEFAULT_CITY); // back to the Cleveland default, not "all"
+    setCity(DEFAULT_CITY); // "all" — reset shows the whole portfolio again
     setArea("all"); setBeds("any"); setBaths("any"); setZip("all");
     setPriceRange([PRICE_MIN, PRICE_MAX]);
     setHomeType("any");
