@@ -50,6 +50,7 @@ import { ManageSlotsTab } from "@/components/showings/ManageSlotsTab";
 import { BookingPageTab } from "@/components/showings/BookingPageTab";
 import { ShowingDetailDialog } from "@/components/showings/ShowingDetailDialog";
 import { ShowingsAgenda } from "@/components/showings/ShowingsAgenda";
+import { quickReportText } from "@/lib/showingReports";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // Matches the grid's slot-visibility gate in ManageSlotsTab (bookable =
@@ -363,7 +364,7 @@ const ShowingsList: React.FC = () => {
         .from("showings").select("agent_report")
         .eq("organization_id", orgId).eq("id", showingId).maybeSingle();
       if (!cur?.agent_report) {
-        upd.agent_report = attended ? "Asistió ✅ (reporte rápido)" : "No asistió 👻 (reporte rápido)";
+        upd.agent_report = quickReportText(attended);
       }
       const { error } = await supabase
         .from("showings").update(upd).eq("organization_id", orgId).eq("id", showingId);

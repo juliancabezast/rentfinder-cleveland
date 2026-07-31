@@ -36,6 +36,7 @@ import {
 import { format, addDays, parseISO, startOfWeek } from "date-fns";
 import { buildScheduledAt, formatTimeInTimezone } from "@/lib/cityTimezone";
 import { sendNotificationEmail } from "@/lib/notificationService";
+import { quickReportText } from "@/lib/showingReports";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // ── The single "bookable" definition: a property whose slots may be shown /
@@ -591,7 +592,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         .from("showings").select("agent_report")
         .eq("organization_id", orgId).eq("id", showingId).maybeSingle();
       if (!cur?.agent_report) {
-        upd.agent_report = attended ? "Asistió ✅ (reporte rápido)" : "No asistió 👻 (reporte rápido)";
+        upd.agent_report = quickReportText(attended);
       }
       const { error } = await supabase
         .from("showings").update(upd).eq("organization_id", orgId).eq("id", showingId);

@@ -19,6 +19,7 @@ import { getTimezoneForCity, formatTimeInTimezone, todayInTimezone } from "@/lib
 import { sendNotificationEmail } from "@/lib/notificationService";
 import { renderEmailHtml, DEFAULT_CONFIGS } from "@/lib/emailTemplateDefaults";
 import type { EmailTemplatesMap } from "@/lib/emailTemplateDefaults";
+import { quickReportText } from "@/lib/showingReports";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // Day-focused, action-first list of a single day's showings — the mobile
@@ -161,7 +162,7 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
         ? { status: "completed", completed_at: nowIso, followed_up_at: nowIso }
         : { status: "no_show", followed_up_at: nowIso };
       const { data: cur } = await supabase.from("showings").select("agent_report").eq("organization_id", orgId).eq("id", s.id).maybeSingle();
-      if (!cur?.agent_report) upd.agent_report = attended ? "Asistió ✅ (reporte rápido)" : "No asistió 👻 (reporte rápido)";
+      if (!cur?.agent_report) upd.agent_report = quickReportText(attended);
       const { error } = await supabase.from("showings").update(upd).eq("organization_id", orgId).eq("id", s.id);
       if (error) throw error;
       toast({ title: attended ? "✅ Asistió" : "👻 No asistió", description: "Reporte guardado." });
