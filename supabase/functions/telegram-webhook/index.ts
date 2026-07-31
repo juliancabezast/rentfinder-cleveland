@@ -296,6 +296,10 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   // The agenda/route vocabulary (now on the field-assistant bot).
   const AG_CB =
     data.startsWith("msg:") || data.startsWith("sms:") || ["m:ag", "m:agf"].includes(data);
+  // Showing-day SMS/email off the 30-min reminder card (keyed by showing id).
+  const SHW_MSG_CB =
+    data.startsWith("ssm:") || data.startsWith("ssb:") ||
+    data.startsWith("sse:") || data.startsWith("ssp:") || data.startsWith("ssx:");
   const cbAllowed =
     ctx.bot === "leasing" ? true
     : LEAD_ACTION ? true
@@ -303,7 +307,9 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     // Funnel can ALSO schedule + create leads ("estoy con alguien: agendame").
     : ctx.bot === "funnel" ? (data.startsWith("fnl:") || data.startsWith("fl:") || data.startsWith("qa:") || data.startsWith("cap:") || SCHED_CB)
     // Showings = field assistant: post-tour, recap, showing report, agenda/ruta.
-    : ctx.bot === "showings" ? (data.startsWith("psw:") || data.startsWith("psa:") || data === "m:ps" || data.startsWith("sd:") || data.startsWith("cz:") || data.startsWith("rmd:") || SR_CB || AG_CB)
+    // `ssm:/ssb:/sse:/ssp:/ssx:` = the showing-day SMS + email pickers hanging off
+    // the 30-min reminder card. Showings-only, like `rmd:`.
+    : ctx.bot === "showings" ? (data.startsWith("psw:") || data.startsWith("psa:") || data === "m:ps" || data.startsWith("sd:") || data.startsWith("cz:") || data.startsWith("rmd:") || SHW_MSG_CB || SR_CB || AG_CB)
     : false;
   if (!cbAllowed) {
     await answer(); await redirectToLeasing(ctx, messageId); return;
@@ -326,6 +332,11 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data.startsWith("psw:")) { await answer(); await postShowingCard(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("psa:")) { await handleAttendance(ctx, cbq, data); return; }
     if (data.startsWith("rmd:")) { await handleReminderAction(ctx, cbq, data); return; }
+    if (data.startsWith("ssm:")) { await showingSmsPicker(ctx, cbq, data); return; }
+    if (data.startsWith("ssb:")) { await handleShowingSms(ctx, cbq, data); return; }
+    if (data.startsWith("sse:")) { await showingEmailPicker(ctx, cbq, data); return; }
+    if (data.startsWith("ssp:")) { await handleShowingEmailPick(ctx, cbq, data); return; }
+    if (data.startsWith("ssx:")) { await handleShowingEmailSend(ctx, cbq, data); return; }
     if (data.startsWith("cz:")) { await handleClosing(ctx, cbq, data); return; }
     if (data.startsWith("psl:")) { await answer(); await funnelLeadCard(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("msg:")) { await answer(); await chooseSmsLead(ctx, messageId, data.slice(4)); return; }
@@ -2829,6 +2840,193 @@ async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
     console.error("handleReminderAction error:", err);
     await answer("Ocurrió un error.");
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📲 Showing-day SMS + email — the messages you actually send in the 30 min
+// before a tour. Keyed by SHOWING id, not lead id: every line of copy needs the
+// time and the address, and a lead can have more than one showing. Both uuids
+// don't fit in Telegram's 64-byte callback_data, so the showing wins and the
+// lead is resolved from it.
+//
+// The SMS half never sends anything server-side — it builds the same
+// sms-redirect.html bounce the funnel SMS uses, so Messages opens prefilled on
+// the iPhone and the owner sends it from their own number.
+// ═══════════════════════════════════════════════════════════════════════════════
+type ShwCtx = { first: string; time: string; addr: string };
+const shwWhere = (c: ShwCtx) => (c.addr ? ` at ${c.addr}` : "");
+
+const SHW_SMS_TEMPLATES: { code: string; label: string; body: (c: ShwCtx) => string }[] = [
+  { code: "cf", label: "✅ Confirmar", body: (c) => `Hi ${c.first}, this is Rent Finder Cleveland — just confirming our showing today at ${c.time}${shwWhere(c)}. See you there!` },
+  { code: "om", label: "🚗 Voy en camino", body: (c) => `Hi ${c.first}, this is Rent Finder Cleveland — on my way for our ${c.time} showing${shwWhere(c)}. See you in a few minutes!` },
+  { code: "he", label: "📍 Ya llegué", body: (c) => `Hi ${c.first}, I'm here${shwWhere(c)} for our ${c.time} showing. Come on over — I'll be out front.` },
+  { code: "lt", label: "⏳ Llego tarde", body: (c) => `Hi ${c.first}, running about 10 minutes behind for our ${c.time} showing${shwWhere(c)} — sorry about that! Still on my way.` },
+  { code: "qq", label: "❓ ¿Seguís viniendo?", body: (c) => `Hi ${c.first}, are you still able to make our ${c.time} showing${shwWhere(c)}? Just let me know either way — happy to find another time.` },
+];
+
+// notification_type stays OUT of MARKETING_NOTIFICATION_TYPES on purpose: the
+// lead booked this showing, so a message about that appointment is transactional
+// (same standard as application_invite) and skips the consent/unsubscribe gate.
+const SHW_EMAIL_TEMPLATES: {
+  code: string; label: string; ntype: string;
+  subject: (c: ShwCtx) => string; text: (c: ShwCtx) => string; html: (c: ShwCtx) => string;
+}[] = [
+  {
+    code: "cf", label: "✅ Confirmar showing", ntype: "showing_reminder",
+    subject: (c) => `Confirming your showing today at ${c.time}`,
+    text: (c) => `Hi ${c.first}, just confirming our showing today at ${c.time}${shwWhere(c)}. See you there! If anything changes, reply to this email or give us a call.`,
+    html: (c) => `<p>Hi ${c.first},</p><p>Just confirming our showing <b>today at ${c.time}</b>${c.addr ? ` at <b>${c.addr}</b>` : ""}.</p><p>See you there! If anything changes, reply to this email or give us a call.</p><p>— Rent Finder Cleveland</p>`,
+  },
+  {
+    code: "dt", label: "📍 Detalles + qué llevar", ntype: "showing_reminder",
+    subject: (c) => `Showing details — today at ${c.time}`,
+    text: (c) => `Hi ${c.first}, here are the details for today's showing: ${c.time}${shwWhere(c)}. Please bring a photo ID. The tour takes about 15 minutes and you're welcome to ask anything. If you like the home, you can apply the same day: ${APPLY_URL}`,
+    html: (c) => `<p>Hi ${c.first},</p><p>Here are the details for today's showing:</p><ul><li><b>Time:</b> ${c.time}</li>${c.addr ? `<li><b>Address:</b> ${c.addr}</li>` : ""}<li><b>Bring:</b> a photo ID</li></ul><p>The tour takes about 15 minutes and you're welcome to ask anything. If you like the home, you can apply the same day:</p><p><a href="${APPLY_URL}">${APPLY_URL}</a></p><p>— Rent Finder Cleveland</p>`,
+  },
+  {
+    code: "qq", label: "❓ ¿Seguís viniendo?", ntype: "showing_reminder",
+    subject: (c) => `Are we still on for ${c.time} today?`,
+    text: (c) => `Hi ${c.first}, are you still able to make our showing today at ${c.time}${shwWhere(c)}? Just reply either way — if today doesn't work we can easily find a new time: ${MARKETPLACE_URL}`,
+    html: (c) => `<p>Hi ${c.first},</p><p>Are you still able to make our showing <b>today at ${c.time}</b>${c.addr ? ` at <b>${c.addr}</b>` : ""}?</p><p>Just reply either way — if today doesn't work we can easily find a new time:</p><p><a href="${MARKETPLACE_URL}">${MARKETPLACE_URL}</a></p><p>— Rent Finder Cleveland</p>`,
+  },
+];
+
+// One lookup shared by all five showing-day callbacks.
+async function loadShowing(ctx: Ctx, showingId: string) {
+  const { data: s } = await ctx.supabase.from("showings")
+    .select(`id, scheduled_at, status, lead_id, property_id,
+      leads:lead_id ( id, full_name, first_name, last_name, phone, email ),
+      properties:property_id ( address, unit_number )`)
+    .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
+  if (!s?.leads?.id) return null;
+  const l: any = s.leads;
+  const p: any = (s as any).properties || {};
+  const addr = p.address ? `${p.address}${p.unit_number ? ` ${p.unit_number}` : ""}` : "";
+  const time = new Date(s.scheduled_at).toLocaleTimeString("en-US", {
+    timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true,
+  });
+  const first = String(leadName(l)).split(/\s+/)[0];
+  return { s, lead: l, c: { first, time, addr } as ShwCtx };
+}
+
+// Back to the reminder card's own action set, so a picker is never a dead end.
+function shwBackRow(showingId: string, leadId: string) {
+  return [{ text: "◀️ Volver", callback_data: `act:menu:${leadId}` },
+          { text: "👤 Contacto", callback_data: `act:vc:${leadId}` }];
+}
+
+async function showingSmsPicker(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const showingId = data.slice(4);
+  const got = await loadShowing(ctx, showingId);
+  if (!got) { await answer("No encontré ese showing."); return; }
+  const tel = String(got.lead.phone ?? "").replace(/[^\d+]/g, "");
+  if (!tel) { await answer("Sin teléfono"); await send(ctx, `❌ <b>${escapeHtml(leadName(got.lead))}</b> no tiene teléfono.`); return; }
+  await answer();
+  const rows = SHW_SMS_TEMPLATES.map((t) => [{ text: t.label, callback_data: `ssb:${t.code}:${showingId}` }]);
+  rows.push(shwBackRow(showingId, got.lead.id));
+  await send(ctx,
+    `💬 <b>SMS</b> — ${escapeHtml(leadName(got.lead))} · 📞 ${escapeHtml(tel)}\n` +
+    `🕒 ${escapeHtml(got.c.time)}${got.c.addr ? ` · ${escapeHtml(got.c.addr)}` : ""}\n\nElegí el mensaje:`,
+    rows);
+}
+
+async function handleShowingSms(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, code = "", showingId = ""] = data.split(":");
+  const tmpl = SHW_SMS_TEMPLATES.find((t) => t.code === code);
+  if (!tmpl || !showingId) { await answer(); return; }
+  const got = await loadShowing(ctx, showingId);
+  if (!got) { await answer("No encontré ese showing."); return; }
+  const tel = String(got.lead.phone ?? "").replace(/[^\d+]/g, "");
+  if (!tel) { await answer("Sin teléfono"); return; }
+  await answer();
+  const body = tmpl.body(got.c);
+  // Telegram rejects sms: url-buttons — bounce through the site redirect page.
+  const url = `${MARKETPLACE_URL}/sms-redirect.html?to=${encodeURIComponent(tel)}&body=${encodeURIComponent(body)}`;
+  // The tap IS the send (Messages opens prefilled), so record it on the same
+  // standard as the funnel SMS — otherwise it leaves no trace anywhere.
+  await logLeadNote(ctx, got.lead.id, "general", `💬 SMS showing: ${tmpl.label.replace(/^[^\s]+\s/, "")}`);
+  await logActivity(ctx, "message_sent_sms", { leadId: got.lead.id, propertyId: (got.s as any).property_id ?? null, showingId: got.s.id });
+  await editOrSend(ctx, messageId,
+    `💬 <b>${escapeHtml(leadName(got.lead))}</b> · 📞 ${escapeHtml(tel)}\n\n<code>${escapeHtml(body)}</code>\n\n` +
+    `Tocá el botón y se abre Mensajes con el texto listo:`,
+    [[{ text: "📲 Abrir Mensajes", url }],
+     [{ text: "💬 Otro mensaje", callback_data: `ssm:${showingId}` }],
+     shwBackRow(showingId, got.lead.id)]);
+}
+
+async function showingEmailPicker(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const showingId = data.slice(4);
+  const got = await loadShowing(ctx, showingId);
+  if (!got) { await answer("No encontré ese showing."); return; }
+  if (!got.lead.email) { await answer("Sin email"); await send(ctx, `❌ <b>${escapeHtml(leadName(got.lead))}</b> no tiene email — mandale 💬 SMS.`); return; }
+  await answer();
+  const rows = SHW_EMAIL_TEMPLATES.map((t) => [{ text: t.label, callback_data: `ssp:${t.code}:${showingId}` }]);
+  rows.push(shwBackRow(showingId, got.lead.id));
+  await send(ctx,
+    `✉️ <b>Email</b> — ${escapeHtml(leadName(got.lead))} · ${escapeHtml(got.lead.email)}\n` +
+    `🕒 ${escapeHtml(got.c.time)}${got.c.addr ? ` · ${escapeHtml(got.c.addr)}` : ""}\n\nElegí la plantilla:`,
+    rows);
+}
+
+async function handleShowingEmailPick(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, code = "", showingId = ""] = data.split(":");
+  const t = SHW_EMAIL_TEMPLATES.find((x) => x.code === code);
+  if (!t || !showingId) { await answer(); return; }
+  const got = await loadShowing(ctx, showingId);
+  if (!got?.lead.email) { await answer("Sin email"); return; }
+  await answer();
+  await editOrSend(ctx, messageId,
+    `✉️ <b>Vista previa</b>\nPara: ${escapeHtml(got.lead.email)}\nAsunto: <b>${escapeHtml(t.subject(got.c))}</b>\n\n<i>${escapeHtml(t.text(got.c))}</i>`,
+    [[{ text: "✅ Enviar", callback_data: `ssx:${t.code}:${showingId}` },
+      { text: "❌ Cancelar", callback_data: `ssm:${showingId}` }]]);
+}
+
+async function handleShowingEmailSend(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const [, code = "", showingId = ""] = data.split(":");
+  const t = SHW_EMAIL_TEMPLATES.find((x) => x.code === code);
+  if (!t || !showingId) { await answer(); return; }
+  const got = await loadShowing(ctx, showingId);
+  if (!got?.lead.email) { await answer("Sin email"); return; }
+  await answer("Enviando…");
+  // Kill the ✅ button IMMEDIATELY — closes the double-tap window.
+  await editOrSend(ctx, messageId, "⏳ <b>Enviando…</b>");
+  const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/send-notification-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
+    body: JSON.stringify({
+      to: got.lead.email,
+      subject: t.subject(got.c),
+      html: t.html(got.c),
+      notification_type: t.ntype,
+      organization_id: ctx.organizationId,
+      related_entity_id: got.lead.id,
+      related_entity_type: "lead",
+      from_name: "Rent Finder Cleveland",
+      queue: true,
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.text().catch(() => "");
+    await editOrSend(ctx, messageId,
+      `❌ No pude enviar el email (${resp.status}). Probá de nuevo.\n<i>${escapeHtml(err.slice(0, 120))}</i>`,
+      [[{ text: "🔁 Reintentar", callback_data: `ssx:${t.code}:${showingId}` }]]);
+    return;
+  }
+  await logLeadNote(ctx, got.lead.id, "general", `✉️ Email showing: ${t.label.replace(/^[^\s]+\s/, "")}`);
+  await logActivity(ctx, "message_sent_email", { leadId: got.lead.id, propertyId: (got.s as any).property_id ?? null, showingId: got.s.id });
+  await editOrSend(ctx, messageId,
+    `✉️ <b>Enviado</b> a ${escapeHtml(got.lead.email)} ✅\n` +
+    `<i>Sale en minutos desde support@rentfindercleveland.com — quedó en el historial del lead.</i>`,
+    [[{ text: "💬 Mandar SMS", callback_data: `ssm:${showingId}` }],
+     shwBackRow(showingId, got.lead.id)]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

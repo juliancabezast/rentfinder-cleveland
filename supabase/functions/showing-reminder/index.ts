@@ -475,10 +475,24 @@ serve(async (req: Request) => {
         // The confirmation call has two outcomes — resolve it with one tap.
         // `rmd:` lives in telegram-webhook (Showings bot); `act:vc:` is the
         // shared save-contact action, allowed on every bot.
+        //
+        // The call is not always the right move 30 min out, so the card also
+        // offers the two channels that don't interrupt anyone: `ssm:` opens the
+        // showing-day SMS picker (confirm / on my way / I'm here / running late
+        // / still coming?) which bounces into Messages on the iPhone, and `sse:`
+        // the email picker. Both are keyed by SHOWING id — the copy quotes the
+        // time and address. Each button appears only when that channel actually
+        // has a destination — a dead tap is worse than a missing button.
+        const msgRow = [
+          ...(String(lead?.phone ?? "").trim()
+            ? [{ text: "💬 Mensaje de texto", callback_data: `ssm:${showing.id}` }] : []),
+          ...(leadEmail ? [{ text: "✉️ Correo", callback_data: `sse:${showing.id}` }] : []),
+        ];
         const keyboard = canAct
           ? [
               [{ text: "✅ Confirmó", callback_data: `rmd:c:${showing.id}` },
                { text: "🔄 Reagendar", callback_data: `rmd:r:${showing.id}` }],
+              ...(msgRow.length ? [msgRow] : []),
               // A lead-less showing (rare, but the FK is nullable) gets no
               // save-contact row — the callback would be a dead tap.
               ...(showing.lead_id
