@@ -60,6 +60,7 @@ import {
   Target,
   XCircle,
   FileCheck2,
+  CornerDownRight,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -144,7 +145,10 @@ interface TrackerData {
     date: string | null;
     interest_level: string | null;
     unit_number: string | null;
+    /** May be empty when the showing has only a follow-up trail and no write-up. */
     comment: string;
+    /** Typed action codes for the work done AFTER this tour. Labels render here. */
+    follow_ups?: { action: string; at: string }[];
   }[];
   // Typed action codes only — the label is rendered here, so no prospect data
   // ever reaches this page (see the leasing_activity migration).
@@ -156,6 +160,7 @@ interface TrackerData {
       showings_confirmed: number;
       nurture_emails?: number;
       applications_generated?: number;
+      campaign_emails?: number;
     };
     recent: { id: string; action: string; created_at: string }[];
     // Automated nurture rolled up per day — kept out of `recent` so thousands
@@ -171,6 +176,8 @@ interface TrackerData {
     total_leads: number;
     leads_7d: number;
     leads_prev_7d: number;
+    /** Mass invitations actually sent org-wide in the last 7 days. */
+    invites_7d?: number;
   } | null;
 }
 
@@ -273,6 +280,7 @@ const STRINGS = {
       showing_no_show: "Un prospecto no asistió",
       lead_not_interested: "Prospecto no interesado",
       stage_changed: "Se actualizó la etapa de un prospecto",
+      campaign_email_sent: "Se envió una invitación masiva",
     } as Record<string, string>,
     timeline: "Showings y notas del agente",
     timelineSub: "Próximas visitas e historial, con el comentario del agente de cada tour",
@@ -301,6 +309,10 @@ const STRINGS = {
     globalLabel: "prospectos gestionados en nuestro sistema",
     globalWeek: (n: number) => `+${n} esta semana`,
     globalVsPrev: (p: number) => `+${p}% vs. la semana anterior`,
+    globalInvites: (n: number) =>
+      `${n.toLocaleString("es")} invitaciones enviadas en los últimos 7 días`,
+    activityCampaigns: "invitaciones masivas",
+    followUps: "Seguimiento",
     poweredBy: "Con tecnología de Rent Finder Cleveland",
     langTitle: "Idioma / Language",
     stages: {
@@ -416,6 +428,7 @@ const STRINGS = {
       showing_no_show: "A prospect did not attend",
       lead_not_interested: "Prospect not interested",
       stage_changed: "A prospect's stage was updated",
+      campaign_email_sent: "A mass invitation was sent",
     } as Record<string, string>,
     timeline: "Showings & Agent Notes",
     timelineSub: "Upcoming and past tours, with the agent's note for each",
@@ -444,6 +457,10 @@ const STRINGS = {
     globalLabel: "prospects managed across our system",
     globalWeek: (n: number) => `+${n} this week`,
     globalVsPrev: (p: number) => `+${p}% vs. last week`,
+    globalInvites: (n: number) =>
+      `${n.toLocaleString("en")} invitations sent in the last 7 days`,
+    activityCampaigns: "mass invitations",
+    followUps: "Follow-up",
     poweredBy: "Powered by Rent Finder Cleveland",
     langTitle: "Language / Idioma",
     stages: {
@@ -603,6 +620,7 @@ const ACTION_STYLE: Record<
   showing_no_show: { icon: XCircle, tone: "text-slate-500 bg-slate-500/10" },
   lead_not_interested: { icon: XCircle, tone: "text-slate-500 bg-slate-500/10" },
   stage_changed: { icon: Target, tone: "text-[#4F46E5] bg-[#4F46E5]/10" },
+  campaign_email_sent: { icon: Send, tone: "text-[#4F46E5] bg-[#4F46E5]/10" },
 };
 
 function formatSlot(slot: OpenSlot, locale: string): { date: string; time: string } {
@@ -1206,6 +1224,14 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
                 {data.global.total_leads.toLocaleString(t.locale)}
               </p>
               <p className="text-sm text-white/85">{t.globalLabel}</p>
+              {/* Proof the machine is running even on a quiet week for this one
+                  property: the reach we bought across the whole market. */}
+              {!!data.global.invites_7d && data.global.invites_7d > 0 && (
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur-sm">
+                  <Send className="h-3.5 w-3.5 text-[#FFB22C]" />
+                  {t.globalInvites(data.global.invites_7d)}
+                </p>
+              )}
             </div>
             {data.global.leads_7d > 0 && (
               <div className="text-right shrink-0">
@@ -1266,6 +1292,30 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
       {/* Leasing activity — hidden entirely when there is none, rather than
           advertising a row of zeros on a property nobody has worked yet. */}
       {hasActivity && <LeasingActivityCard activity={data.leasing_activity!} tz={tz} t={t} />}
+
+      {/* Showings timeline + agent notes (merged) */}
+      <Card variant="glass">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-[#4F46E5]" /> {t.timeline}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">{t.timelineSub}</p>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {data.showings_timeline.length === 0 ? (
+            <NoData label={t.noShowings} />
+          ) : (
+            <div className="space-y-5">
+              {upcoming.length > 0 && (
+                <TimelineGroup heading={t.upcoming} items={upcoming} tz={tz} t={t} accent notes={noteById} />
+              )}
+              {history.length > 0 && (
+                <TimelineGroup heading={t.history} items={history} tz={tz} t={t} notes={noteById} />
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Charts row 1 */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -1367,59 +1417,31 @@ function Tracker({ data, t }: { data: TrackerData; t: T }) {
             </span>
           </div>
         </CardHeader>
+        {/* Compact: the count carries the message ("there is live availability"),
+            so only the next few slots are listed. The full grid used to occupy
+            a third of the page above the actual leasing work. */}
         <CardContent className="pt-0">
           {open_slots.upcoming.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-3">{t.noOpenSlots}</p>
+            <p className="text-sm text-muted-foreground py-1">{t.noOpenSlots}</p>
           ) : (
-            <>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {open_slots.upcoming.map((s) => {
-                  const f = formatSlot(s, locale);
-                  return (
-                    <div
-                      key={s.id}
-                      className="flex items-center gap-2 rounded-xl border border-[#4F46E5]/15 bg-[#4F46E5]/5 px-3 py-2"
-                    >
-                      <CalendarClock className="h-4 w-4 text-[#4F46E5] shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium capitalize truncate">{f.date}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {f.time}
-                          {s.duration_minutes ? ` · ${s.duration_minutes} ${t.minutes}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {open_slots.upcoming_count > open_slots.upcoming.length && (
-                <p className="text-xs text-muted-foreground mt-3">
-                  {t.openSlotsMore(open_slots.upcoming_count - open_slots.upcoming.length)}
-                </p>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Showings timeline + agent notes (merged) */}
-      <Card variant="glass">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-[#4F46E5]" /> {t.timeline}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">{t.timelineSub}</p>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {data.showings_timeline.length === 0 ? (
-            <NoData label={t.noShowings} />
-          ) : (
-            <div className="space-y-5">
-              {upcoming.length > 0 && (
-                <TimelineGroup heading={t.upcoming} items={upcoming} tz={tz} t={t} accent notes={noteById} />
-              )}
-              {history.length > 0 && (
-                <TimelineGroup heading={t.history} items={history} tz={tz} t={t} notes={noteById} />
+            <div className="flex flex-wrap items-center gap-2">
+              {open_slots.upcoming.slice(0, 3).map((s) => {
+                const f = formatSlot(s, locale);
+                return (
+                  <span
+                    key={s.id}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#4F46E5]/15 bg-[#4F46E5]/5 px-2.5 py-1.5 text-xs"
+                  >
+                    <CalendarClock className="h-3.5 w-3.5 text-[#4F46E5] shrink-0" />
+                    <span className="font-medium capitalize">{f.date}</span>
+                    <span className="text-muted-foreground">· {f.time}</span>
+                  </span>
+                );
+              })}
+              {open_slots.upcoming_count > 3 && (
+                <span className="text-xs text-muted-foreground">
+                  {t.openSlotsMore(open_slots.upcoming_count - 3)}
+                </span>
               )}
             </div>
           )}
@@ -1459,6 +1481,9 @@ function LeasingActivityCard({
     ...(c.applications_generated ? [{ value: c.applications_generated, label: t.activityApplications }] : []),
     // Elijah's automated cadence — only shown once it has actually run.
     ...(c.nurture_emails ? [{ value: c.nurture_emails, label: t.activityNurture }] : []),
+    // Mass invitations that reached someone with a registered interest in THIS
+    // property. City-wide sends with no interest stay in the global banner only.
+    ...(c.campaign_emails ? [{ value: c.campaign_emails, label: t.activityCampaigns }] : []),
   ];
   // Nurture is rolled up per day and merged into the timeline by date, so the
   // automated volume is visible without displacing what a person did.
@@ -1611,16 +1636,31 @@ function TimelineGroup({
                 )}
                 <StatusPill status={s.status} kind="showStatus" t={t} />
               </div>
-              {note && (
+              {note && (note.comment || (note.follow_ups?.length ?? 0) > 0) && (
                 <div className="mt-2 ml-5 flex items-start gap-2 rounded-lg border border-border/50 bg-white/60 p-2.5">
                   <MessageSquareQuote className="h-3.5 w-3.5 mt-0.5 text-[#4F46E5] shrink-0" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 w-full">
                     {note.unit_number && (
                       <Badge variant="outline" className="mb-1 text-xs text-[#4F46E5] border-[#4F46E5]/30">
                         {t.commentUnit(note.unit_number)}
                       </Badge>
                     )}
-                    <p className="text-sm leading-relaxed text-foreground/90">{note.comment}</p>
+                    {note.comment && (
+                      <p className="text-sm leading-relaxed text-foreground/90">{note.comment}</p>
+                    )}
+                    {/* What we did AFTER the tour. Without this a no-show reads as
+                        a dead end, when the re-schedule went out minutes later. */}
+                    {(note.follow_ups?.length ?? 0) > 0 && (
+                      <ul className={cn("space-y-1", note.comment && "mt-2 pt-2 border-t border-border/40")}>
+                        {note.follow_ups!.map((f, i) => (
+                          <li key={`${f.action}-${f.at}-${i}`} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <CornerDownRight className="h-3 w-3 shrink-0 text-[#4F46E5]/70" />
+                            <span className="truncate">{t.actionLabels[f.action] ?? prettifySource(f.action)}</span>
+                            <span className="shrink-0 opacity-70">· {showingDateTime(f.at, tz, t.locale)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               )}

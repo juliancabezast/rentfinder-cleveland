@@ -512,9 +512,40 @@ serve(async (req) => {
     const showingsByStatus = Object.entries(showStatus)
       .map(([status, count]) => ({ status, count }));
 
+    // Follow-up trail per showing — the SMS/emails sent ABOUT a tour. Without
+    // this the owner sees "no asistió" and nothing else, as if we shrugged and
+    // moved on, when in fact a re-schedule email went out two minutes later.
+    // Typed action codes only (no free text), same privacy rule as the rest of
+    // leasing_activity; the labels are rendered client-side.
+    const showingIds = showings.map((s) => s.id);
+    const followUpsByShowing = new Map<string, { action: string; at: string }[]>();
+    if (showingIds.length) {
+      const { data: fu } = await supabase
+        .from("leasing_activity").select("showing_id, action, created_at")
+        .eq("organization_id", orgId)
+        .in("showing_id", showingIds)
+        .in("action", [
+          "message_sent_sms", "message_sent_email",
+          "showing_reschedule_requested", "showing_confirmed", "contacted",
+        ])
+        .order("created_at", { ascending: true });
+      for (const r of (fu || []) as any[]) {
+        if (!r.showing_id) continue;
+        const list = followUpsByShowing.get(r.showing_id) || [];
+        list.push({ action: String(r.action), at: String(r.created_at) });
+        followUpsByShowing.set(r.showing_id, list);
+      }
+    }
+
     // Leasing-agent comments (post-showing reports) — visible to the owner.
+    // A showing now earns an entry if it has EITHER a write-up or a follow-up
+    // trail: work done after a tour is worth showing even when nobody typed a
+    // note about the tour itself.
     const agentComments = showings
-      .filter((s) => s.agent_report && String(s.agent_report).trim())
+      .filter((s) =>
+        (s.agent_report && String(s.agent_report).trim()) ||
+        (followUpsByShowing.get(s.id)?.length ?? 0) > 0
+      )
       .map((s) => ({
         id: s.id,
         // Date the comment by when the showing actually happened (scheduled_at),
@@ -523,7 +554,8 @@ serve(async (req) => {
         date: (s.scheduled_at as string | null) || (s.completed_at as string | null),
         interest_level: s.prospect_interest_level || null,
         unit_number: unitNumberById.get(s.property_id) || null,
-        comment: redactPII(String(s.agent_report).trim()),
+        comment: s.agent_report ? redactPII(String(s.agent_report).trim()) : "",
+        follow_ups: followUpsByShowing.get(s.id) || [],
       }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
@@ -542,7 +574,8 @@ serve(async (req) => {
       return count || 0;
     };
     const [
-      actContacts, actMessages, actFollowUps, actConfirmed, actNurture, actApplications, recentActivityRes,
+      actContacts, actMessages, actFollowUps, actConfirmed, actNurture, actApplications,
+      actCampaigns, recentActivityRes,
     ] = await Promise.all([
       actCount(["contacted", "contact_attempt"]),
       actCount(["message_sent_sms", "message_sent_email"]),
@@ -550,6 +583,10 @@ serve(async (req) => {
       actCount(["showing_confirmed"]),
       actCount(["nurture_email_sent"]),
       actCount(["application_generated"]),
+      // Mass invitations attributed to THIS property (the recipient had a
+      // registered interest in one of its units). City-wide sends with no
+      // interest land property_id NULL and only count in the global banner.
+      actCount(["campaign_email_sent"]),
       // Elijah's nurture runs at thousands of sends a day, so it is EXCLUDED
       // from the timeline — otherwise the last 15 rows would be nothing but
       // automated email and the human work would be invisible, which is the
@@ -582,6 +619,7 @@ serve(async (req) => {
         showings_confirmed: actConfirmed,
         nurture_emails: actNurture,
         applications_generated: actApplications,
+        campaign_emails: actCampaigns,
       },
       recent: ((recentActivityRes.data || []) as any[]).map((a) => ({
         id: a.id, action: a.action, created_at: a.created_at,
@@ -635,6 +673,7 @@ serve(async (req) => {
       total_leads: number;
       leads_7d: number;
       leads_prev_7d: number;
+      invites_7d: number;
     } | null = null;
     try {
       const leadCount = () =>
@@ -643,15 +682,27 @@ serve(async (req) => {
           .eq("organization_id", orgId).not("is_demo", "is", true);
       const d7 = new Date(nowMs - 7 * 86400000).toISOString();
       const d14 = new Date(nowMs - 14 * 86400000).toISOString();
-      const [tot, wk, prev] = await Promise.all([
+      // Mass invitations actually sent in the last 7 days. Counted straight off
+      // email_events (the send record) rather than leasing_activity, so a blast
+      // queued by hand — like the 5,000 that went out with no activity rows at
+      // all — still shows up, retroactively and with no backfill.
+      const inviteCount = supabase
+        .from("email_events").select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .eq("details->>notification_type", "campaign")
+        .in("details->>status", ["sent", "delivered", "opened", "clicked"])
+        .gte("created_at", d7);
+      const [tot, wk, prev, invites] = await Promise.all([
         leadCount(),
         leadCount().gte("created_at", d7),
         leadCount().gte("created_at", d14).lt("created_at", d7),
+        inviteCount,
       ]);
       globalPulse = {
         total_leads: tot.count || 0,
         leads_7d: wk.count || 0,
         leads_prev_7d: prev.count || 0,
+        invites_7d: invites.count || 0,
       };
     } catch (_) { /* keep null */ }
 

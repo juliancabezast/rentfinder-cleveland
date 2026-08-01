@@ -11,6 +11,11 @@
  *
  * Only the PRESENCE of a marker is load-bearing: the "Missing reports" chip
  * keys off `agent_report IS NULL`, so the wording is free to change.
+ *
+ * ⚠️ Duplicated as `quickReportText` in
+ * `supabase/functions/telegram-webhook/index.ts` — Deno cannot import from
+ * `src/`, and the Telegram attendance buttons write the same marker. Change one,
+ * change the other.
  */
 export const quickReportText = (attended: boolean): string =>
   attended

@@ -14,6 +14,21 @@ const SESSION_TTL_MIN = 30; // an in-flight flow older than this is treated as g
 const REPORT_TRIGGERS = new Set([
   "report", "reporte", "r", "/report", "/reporte", "/r", "informe", "/informe", "status", "/status",
 ]);
+/**
+ * Outcome marker written to `showings.agent_report` when a tour is resolved with
+ * the one-tap buttons instead of a typed write-up.
+ *
+ * ⚠️ MUST stay byte-identical to `quickReportText` in `src/lib/showingReports.ts`.
+ * Deno cannot import from `src/`, so this is a deliberate duplicate rather than a
+ * pretend-shared module. The text is owner-facing: it flows through
+ * leasing-tracker-lookup into the public Leasing Tracker verbatim. If you change
+ * one, change the other.
+ */
+const quickReportText = (attended: boolean): string =>
+  attended
+    ? "Asistió ✅"
+    : "No asistió 👻 — en seguimiento para confirmar la visita";
+
 const HELP_TRIGGERS = new Set(["help", "/help", "ayuda", "/ayuda"]);
 // Open the action menu.
 const MENU_TRIGGERS = new Set([
@@ -1782,7 +1797,9 @@ async function handleFunnelSms(ctx: Ctx, cbq: any, data: string) {
   // the owner's feed. The tap is the send (the redirect opens Messages already
   // filled in), so it's recorded on the same standard as "llamé, no contestó".
   await logLeadNote(ctx, leadId, "general", `💬 SMS enviado: ${tmpl.label.replace(/^[^\s]+\s/, "")}`);
-  await logActivity(ctx, "message_sent_sms", { leadId });
+  // Tie it to the tour it's about — that's what makes it show up under the
+  // showing in the owner's tracker instead of vanishing into a per-lead log.
+  await logActivity(ctx, "message_sent_sms", { leadId, showingId: await relatedShowingId(ctx, leadId) ?? undefined });
   // Sending a reschedule message IS the reschedule — reaching this from a lead
   // card (no showing id in the callback) must move the showing too, or the
   // system keeps claiming a tour that both sides know is off.
@@ -1824,6 +1841,26 @@ async function armRebookReminder(ctx: Ctx, leadId: string) {
 // Idempotent and guarded: only a live ('scheduled'/'confirmed') showing moves,
 // so the post-tour "re-agendar" button on an already-resolved no_show is a
 // no-op, and tapping twice does nothing the second time.
+/**
+ * The showing a follow-up message is *about*, so `leasing_activity` rows can
+ * hang off it in the owner-facing tracker.
+ *
+ * Deliberately NOT limited to live statuses: the messages that most need to be
+ * visible are the ones sent AFTER a tour went wrong — the re-schedule email
+ * following a no_show is the whole reason this exists. Window-bounded so a
+ * message months later doesn't get pinned to an ancient tour.
+ */
+async function relatedShowingId(ctx: Ctx, leadId: string): Promise<string | null> {
+  const since = new Date(Date.now() - 14 * 86400000).toISOString();
+  const { data } = await ctx.supabase.from("showings")
+    .select("id, scheduled_at")
+    .eq("organization_id", ctx.organizationId).eq("lead_id", leadId)
+    .neq("status", "cancelled")
+    .gte("scheduled_at", since)
+    .order("scheduled_at", { ascending: false }).limit(1).maybeSingle();
+  return (data as any)?.id ?? null;
+}
+
 async function markShowingRescheduled(
   ctx: Ctx, leadId: string, explicit?: { id: string; property_id?: string | null; status?: string },
 ): Promise<boolean> {
@@ -2411,7 +2448,8 @@ async function handleEmailSend(ctx: Ctx, cbq: any, data: string) {
   }
   // note_type must satisfy lead_notes_note_type_check — "general" is allowed.
   await logLeadNote(ctx, leadId, "general", `✉️ Email enviado: ${t.label.replace(/^[^\s]+\s/, "")}`);
-  await logActivity(ctx, "message_sent_email", { leadId });
+  // Same as the SMS path — attach it to the tour so the owner sees the follow-up.
+  await logActivity(ctx, "message_sent_email", { leadId, showingId: await relatedShowingId(ctx, leadId) ?? undefined });
   // Same rule as the SMS path — the reschedule email moves the showing.
   const moved = RESCHEDULE_TEMPLATES.has(code) && await markShowingRescheduled(ctx, leadId);
   await editOrSend(ctx, messageId,
@@ -2708,17 +2746,24 @@ async function handleAttendance(ctx: Ctx, cbq: any, data: string) {
   const [, showingId = "", yn = ""] = data.split(":");
   const attended = yn === "y";
   const { data: s } = await ctx.supabase.from("showings")
-    .select("id, status, lead_id, property_id, leads:lead_id(id, full_name, first_name, last_name, status)")
+    .select("id, status, lead_id, property_id, agent_report, leads:lead_id(id, full_name, first_name, last_name, status)")
     .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
   if (!s?.leads?.id) { await answer("No encontrado"); return; }
   const l = s.leads;
   await answer(attended ? "✅ Asistió" : "👻 No-show");
   // followed_up_at marks it handled → it drops off the "🏁 recientes" list.
-  await ctx.supabase.from("showings").update(
-    attended
-      ? { status: "completed", completed_at: new Date().toISOString(), followed_up_at: new Date().toISOString() }
-      : { status: "no_show", followed_up_at: new Date().toISOString() }
-  ).eq("organization_id", ctx.organizationId).eq("id", showingId);
+  const nowIso = new Date().toISOString();
+  const upd: Record<string, unknown> = attended
+    ? { status: "completed", completed_at: nowIso, followed_up_at: nowIso }
+    : { status: "no_show", followed_up_at: nowIso };
+  // Write the outcome marker too. `showings.agent_report` is the ONLY source of
+  // the owner-facing "Showings y notas del agente" section, so an attendance
+  // resolved here used to vanish from the Leasing Tracker while the identical
+  // tap in the web UI showed up — same action, different record.
+  // Only fill it when empty: a typed report always outranks the marker.
+  if (!(s as any).agent_report) upd.agent_report = quickReportText(attended);
+  await ctx.supabase.from("showings").update(upd)
+    .eq("organization_id", ctx.organizationId).eq("id", showingId);
   // Attended advances the lead lifecycle and starts the 🚀 closing cadence
   // (D+1/3/7 pushes until they apply).
   if (attended && l.status === "showing_scheduled") {

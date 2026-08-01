@@ -490,6 +490,40 @@ serve(async (req: Request) => {
               console.warn("Cost recording failed:", costErr);
             }
 
+            // Owner-facing proof of work. A campaign used to leave no trace in
+            // leasing_activity at all — 5,000 sends looked, on the investor's
+            // page, exactly like doing nothing. Attribute to the property the
+            // recipient registered interest in; a city-wide send with no
+            // interest gets property_id NULL and counts only org-wide.
+            //
+            // Strictly fire-and-forget: recording the work must never be able to
+            // stop the work. Any failure here is logged and swallowed.
+            if (isMarketingEmail(email.details)) {
+              try {
+                const campaignLeadId = email.details?.related_entity_type === "lead"
+                  ? (email.details?.related_entity_id as string | undefined)
+                  : undefined;
+                let campaignPropertyId: string | null = null;
+                if (campaignLeadId) {
+                  const { data: interest } = await supabase
+                    .from("lead_property_interests").select("property_id")
+                    .eq("organization_id", email.organization_id)
+                    .eq("lead_id", campaignLeadId)
+                    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+                  campaignPropertyId = (interest as any)?.property_id ?? null;
+                }
+                await supabase.from("leasing_activity").insert({
+                  organization_id: email.organization_id,
+                  action: "campaign_email_sent",
+                  lead_id: campaignLeadId ?? null,
+                  property_id: campaignPropertyId,
+                  source: "campaign",
+                });
+              } catch (actErr) {
+                console.warn("leasing_activity (campaign) failed:", actErr);
+              }
+            }
+
             sent++;
           } else {
             const errMsg = resendData.message || `HTTP ${resendResponse.status}`;
