@@ -14,11 +14,6 @@ const SESSION_TTL_MIN = 30; // an in-flight flow older than this is treated as g
 const REPORT_TRIGGERS = new Set([
   "report", "reporte", "r", "/report", "/reporte", "/r", "informe", "/informe", "status", "/status",
 ]);
-// Upcoming-showings agenda with full lead/form detail.
-const UPDATE_TRIGGERS = new Set([
-  "update", "u", "/update", "agenda", "/agenda", "showings", "/showings",
-  "próximos", "proximos", "citas", "/citas",
-]);
 const HELP_TRIGGERS = new Set(["help", "/help", "ayuda", "/ayuda"]);
 // Open the action menu.
 const MENU_TRIGGERS = new Set([
@@ -34,7 +29,7 @@ Comandos:
 • <b>menu</b> — Menú de acciones (agendar showing)
 • <b>help</b> — Este mensaje
 
-La <b>agenda</b> de showings vive en el bot <b>🗓️ Showings</b> (mandale <b>update</b>).
+La <b>agenda</b> de showings vive en el bot <b>🗓️ Showings</b> (mandale <b>/start</b>).
 Los reportes viven en el bot <b>📊 RFC</b> (diario 5:00 AM · digest 9:00 PM).`;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -293,9 +288,11 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   // The leasing-PDF flow's vocabulary (now on the RFC analytics bot).
   const LR_CB =
     data.startsWith("lr:") || data.startsWith("lrl:") || ["m:lr", "m:x", "m:menu"].includes(data);
-  // The agenda/route vocabulary (now on the field-assistant bot).
+  // The agenda vocabulary. `sag:` = the per-slot contact menu; the old
+  // `msg:`/`sms:` session-backed picker is gone (its targets lived in the
+  // session, so the buttons died as soon as the list expired).
   const AG_CB =
-    data.startsWith("msg:") || data.startsWith("sms:") || ["m:ag", "m:agf"].includes(data);
+    data.startsWith("sag:") || ["m:ag", "m:agf"].includes(data);
   // Showing-day SMS/email off the 30-min reminder card (keyed by showing id).
   const SHW_MSG_CB =
     data.startsWith("ssm:") || data.startsWith("ssb:") ||
@@ -339,8 +336,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data.startsWith("ssx:")) { await handleShowingEmailSend(ctx, cbq, data); return; }
     if (data.startsWith("cz:")) { await handleClosing(ctx, cbq, data); return; }
     if (data.startsWith("psl:")) { await answer(); await funnelLeadCard(ctx, messageId, data.slice(4)); return; }
-    if (data.startsWith("msg:")) { await answer(); await chooseSmsLead(ctx, messageId, data.slice(4)); return; }
-    if (data.startsWith("sms:")) { await answer(); await sendSmsTemplate(ctx, messageId, data.slice(4)); return; }
+    if (data.startsWith("sag:")) { await showAgendaSlotMenu(ctx, cbq, data); return; }
     if (data === "m:sch") { await answer(); await startSchedule(ctx, messageId); return; }
     if (data === "m:new") { await answer(); await startCreateLead(ctx, messageId, true); return; }
     if (data === "m:ag")  { await answer("Cargando agenda…"); await showAgenda(ctx); return; }
@@ -2531,12 +2527,15 @@ async function startRecentShowings(ctx: Ctx, messageId?: number) {
 // 🗓️ Showings bot — the LeasingAgent's FIELD ASSISTANT: resolves the after-tour
 // (asistió → push aplicar · no fue → re-agendar) and reports the day at 8 PM.
 // ═══════════════════════════════════════════════════════════════════════════════
+// Single root menu. /start is the ONLY registered command: everything the bot
+// does hangs off these buttons, so there is no vocabulary to memorise and the
+// 4-hourly chat wipe always leaves /start as the one thing still on screen.
 const SHW_GREETING =
-  "🗓️ Soy <b>Showings</b>, tu ayudante de calle.\n" +
-  "🏁 Resuelvo el después de cada tour y 📊 te cuento cómo fue el día.";
+  "🗓️ <b>Showings</b>\n" +
+  "Elegí una opción 👇";
 function shwMenuKeyboard() {
   return [
-    [{ text: "🗺️ Agenda / ruta de hoy", callback_data: "m:ag" }],
+    [{ text: "📅 Agenda", callback_data: "m:ag" }],
     [{ text: "🏁 Showings recientes", callback_data: "m:ps" }],
     [{ text: "📝 Reporte de showing", callback_data: "m:sr" }],
     [{ text: "📊 ¿Qué pasó hoy?", callback_data: "sd:recap" }],
@@ -2546,19 +2545,13 @@ function shwMenuKeyboard() {
 async function handleShowingsText(ctx: Ctx, rawText: string) {
   const raw = String(rawText).trim();
   const t = raw.toLowerCase();
+  // /start is the only command. /agenda, /recientes and /showing were retired
+  // into the root menu, so ANY slash — including the retired ones still sitting
+  // in someone's Telegram history — lands on the same single menu.
   if (t.startsWith("/")) {
-    const cmd = t.slice(1).split("@")[0].split(/\s/)[0];
-    if (cmd === "recientes") { await startRecentShowings(ctx); return; }
-    if (cmd === "hoy" || cmd === "recap") { await sendDayRecap(ctx); return; }
-    if (cmd === "showing" || cmd === "reporte") { await startShowingReport(ctx, undefined); return; }
-    if (cmd === "agenda" || cmd === "ruta" || cmd === "update") { await showAgenda(ctx); return; }
-    await send(ctx, SHW_GREETING, shwMenuKeyboard()); return;
+    await send(ctx, SHW_GREETING, shwMenuKeyboard());
+    return;
   }
-  const kb = t.replace(/️/g, "");
-  if (kb === "🏁 recientes") { await startRecentShowings(ctx); return; }
-  if (kb === "📊 qué pasó hoy" || kb === "📊 que paso hoy" || kb === "📊 ¿qué pasó hoy?") { await sendDayRecap(ctx); return; }
-  if (kb === "📝 reporte") { await startShowingReport(ctx, undefined); return; }
-  if (kb === "🗺 agenda" || kb === "🗺 ruta") { await showAgenda(ctx); return; }
   // In-flight showing-report steps (moved here from the Setter).
   {
     const session = await getSession(ctx);
@@ -2571,11 +2564,8 @@ async function handleShowingsText(ctx: Ctx, rawText: string) {
       }
     }
   }
-  // The agenda-refresh words ("update"/"agenda"/"showings"/…) route here — this
-  // is the bot the agenda lives on, so the "Mandá update…" recovery hints after
-  // an expired SMS-target list actually work. Checked after in-flight report
-  // steps so a report body isn't hijacked.
-  if (UPDATE_TRIGGERS.has(t)) { await showAgenda(ctx); return; }
+  // Anything else — any word, any retired command — lands on the root menu.
+  // There is deliberately no word vocabulary left to remember.
   await send(ctx, SHW_GREETING, shwMenuKeyboard());
 }
 
@@ -3762,46 +3752,41 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LeasingAgent agenda — quick SMS (opens the phone's native Messages app)
+// Agenda — ONE message: the day's slots as text, and one button per slot.
+//
+// This used to be two messages plus a wall of link-buttons: a Google Maps button
+// per stop, a "full route" button, then a separate "send a message" picker that
+// stashed its targets in the session (so the list expired and the taps died).
+// Every one of those was a different way to reach the same person.
+//
+// Now the button IS the slot — "9:30 AM · Maria Lopez · 509 E 143rd" — and it
+// opens that showing's contact menu (SMS / email / save contact). The slot's own
+// id travels in the callback, so nothing depends on session state and a button
+// tapped hours later still works.
 // ═══════════════════════════════════════════════════════════════════════════════
-async function upcomingTargets(ctx: Ctx): Promise<any[]> {
-  const nowIso = new Date().toISOString();
-  const { data } = await ctx.supabase
-    .from("showings")
-    .select(`scheduled_at, lead_id,
-      leads:lead_id ( full_name, first_name, last_name, phone ),
-      properties:property_id ( address, unit_number, city )`)
-    .eq("organization_id", ctx.organizationId)
-    .gte("scheduled_at", nowIso)
-    .not("status", "in", "(cancelled,no_show,completed,rescheduled)")
-    .order("scheduled_at", { ascending: true }).limit(20);
-  return (data || []).map((s: any) => {
-    const l = s.leads || {}; const p = s.properties || {};
-    return {
-      lead_id: s.lead_id,
-      name: l.full_name || [l.first_name, l.last_name].filter(Boolean).join(" ") || "Lead",
-      phone: String(l.phone ?? "").replace(/[^\d+]/g, ""),
-      addr: p.address ? `${p.address}${p.unit_number ? ` #${p.unit_number}` : ""}${p.city ? `, ${p.city}` : ""}` : "the property",
-      time: new Date(s.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true }),
-      day: new Date(s.scheduled_at).toLocaleDateString("en-US", { timeZone: NY, weekday: "short", month: "short", day: "numeric" }),
-    };
-  }).filter((t: any) => t.phone);
-}
-// "Ver agenda": if there are showings TODAY, show ONLY today's route (Google
-// Maps + property info + price) with a button to the full agenda; otherwise
-// fall straight through to the full upcoming agenda (old behavior).
 async function showAgenda(ctx: Ctx) {
   await typing(ctx);
   const shownToday = await sendTodayRoute(ctx);
-  if (shownToday) { await sendSmsPicker(ctx); return; }
-  await showFullAgenda(ctx);
+  if (!shownToday) await showFullAgenda(ctx);
 }
 
 async function showFullAgenda(ctx: Ctx) {
   await typing(ctx);
   const agenda = await buildShowingsAgenda(ctx.supabase, ctx.organizationId);
   await sendChunks(ctx, agenda);
-  await sendSmsPicker(ctx);
+}
+
+// One row per slot. Text is informational; the buttons are the actions.
+function agendaSlotButton(s: any, l: any, p: any): { text: string; callback_data: string } {
+  const time = new Date(s.scheduled_at).toLocaleTimeString("en-US", {
+    timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true,
+  });
+  const who = leadName(l);
+  const addr = String(p?.address ?? "").trim() || "propiedad";
+  // Telegram truncates button labels; budget the room instead of losing the
+  // address, which is what tells two same-time slots apart.
+  const label = `${time} · ${who} · ${addr}`;
+  return { text: label.length > 62 ? `${label.slice(0, 61)}…` : label, callback_data: `sag:${s.id}` };
 }
 
 // Today's route (replaces the web "My Route" tab — moved into Telegram).
@@ -3809,7 +3794,7 @@ async function sendTodayRoute(ctx: Ctx): Promise<boolean> {
   const dayStart = nyMidnightUtcIso(todayNY());
   const dayEnd = nyMidnightUtcIso(shiftDay(todayNY(), 1));
   const { data } = await ctx.supabase.from("showings")
-    .select(`scheduled_at, status, lead_id,
+    .select(`id, scheduled_at, status, lead_id,
       leads:lead_id ( id, full_name, first_name, last_name, phone, has_voucher, voucher_amount ),
       properties:property_id ( address, unit_number, city, rent_price, bedrooms, bathrooms )`)
     .eq("organization_id", ctx.organizationId)
@@ -3820,8 +3805,6 @@ async function sendTodayRoute(ctx: Ctx): Promise<boolean> {
   if (!rows.length) return false;
 
   const nowMs = Date.now();
-  const gmapsAddr = (p: any) =>
-    encodeURIComponent(`${p?.address ?? ""}${p?.unit_number ? ` ${p.unit_number}` : ""}, ${p?.city ?? "Cleveland"}, OH`);
   const NUM = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
   const lines: string[] = [
     `🗺️ <b>Ruta de hoy — ${slotDayLabel(todayNY())}</b> · ${rows.length} parada${rows.length === 1 ? "" : "s"}`,
@@ -3845,90 +3828,43 @@ async function sendTodayRoute(ctx: Ctx): Promise<boolean> {
     lines.push("");
   });
 
-  // Full route: origin = current location; stops in order (| encoded as %7C).
-  const addrs = rows.map((s) => gmapsAddr(s.properties));
-  const routeUrl = addrs.length === 1
-    ? `https://www.google.com/maps/dir/?api=1&destination=${addrs[0]}`
-    : `https://www.google.com/maps/dir/?api=1&destination=${addrs[addrs.length - 1]}&waypoints=${addrs.slice(0, -1).join("%7C")}`;
-
-  const kb: any[][] = rows.slice(0, 8).map((s, i) => {
-    const p = s.properties || {};
-    return [{
-      text: `🗺️ ${i + 1} · ${String(p.address ?? "parada").slice(0, 40)}`,
-      url: `https://www.google.com/maps/dir/?api=1&destination=${gmapsAddr(p)}`,
-    }];
-  });
-  kb.push([{ text: "🚗 Ruta completa en Google Maps", url: routeUrl }]);
+  // One button per slot → that showing's contact menu. Slots without a lead get
+  // no button: the menu's whole purpose is reaching a person.
+  const kb: any[][] = rows
+    .filter((s) => s.leads?.id)
+    .slice(0, 10)
+    .map((s) => [agendaSlotButton(s, s.leads, s.properties)]);
   kb.push([{ text: "📆 Agenda completa", callback_data: "m:agf" }]);
+  kb.push([{ text: "🏠 Menú", callback_data: "sd:menu" }]);
   await send(ctx, lines.join("\n"), kb);
   return true;
 }
 
-async function sendSmsPicker(ctx: Ctx) {
-  const targets = await upcomingTargets(ctx);
-  if (!targets.length) return;
-  // Stash targets in the session — MERGE (don't wipe an in-flight booking flow;
-  // a lingering "Ver agenda" tap must not clobber a confirm-step session).
-  const s = await getSession(ctx);
-  await setSession(ctx, s?.step ?? "idle", { ...(s?.data ?? {}), sms_targets: targets });
-  // Buttons carry the lead_id (stable), not a positional index — the target list
-  // is regenerated on every agenda refresh, so an index could point at a
-  // different lead. A UUID keeps callback_data well under Telegram's 64 bytes.
-  const rows = targets.slice(0, 10).map((t: any) => [{
-    text: `📩 ${t.name} · ${t.day} ${t.time}`.slice(0, 62), callback_data: `msg:${t.lead_id}`,
-  }]);
-  await send(ctx, "📩 <b>Enviar mensaje a un inquilino:</b>", rows);
+// The per-slot contact menu — the one place the agenda hands off to an action.
+// Reuses the showing-day pickers built for the 30-min reminder card, so there is
+// a single set of message templates instead of one per entry point.
+async function showAgendaSlotMenu(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const showingId = data.slice(4);
+  const got = await loadShowing(ctx, showingId);
+  if (!got) { await answer("No encontré ese showing."); return; }
+  await answer();
+  const tel = String(got.lead.phone ?? "").replace(/[^\d+]/g, "");
+  const kb: any[][] = [];
+  if (tel) kb.push([{ text: "💬 Mensaje de texto", callback_data: `ssm:${showingId}` }]);
+  if (got.lead.email) kb.push([{ text: "✉️ Correo", callback_data: `sse:${showingId}` }]);
+  kb.push([{ text: "👤 Agregar contacto", callback_data: `act:vc:${got.lead.id}` }]);
+  kb.push([{ text: "◀️ Volver a la agenda", callback_data: "m:ag" }]);
+  await send(ctx,
+    `👤 <b>${escapeHtml(leadName(got.lead))}</b>\n` +
+    `🕒 ${escapeHtml(got.c.time)}${got.c.addr ? `\n📍 ${escapeHtml(got.c.addr)}` : ""}\n` +
+    (tel ? `📞 ${escapeHtml(tel)}\n` : "") +
+    (got.lead.email ? `✉️ ${escapeHtml(got.lead.email)}\n` : "") +
+    `\n¿Cómo lo contactás?`,
+    kb);
 }
-async function chooseSmsLead(ctx: Ctx, messageId: number | undefined, leadId: string) {
-  const session = await getSession(ctx);
-  const t = (session?.data?.sms_targets || []).find((x: any) => x.lead_id === leadId);
-  if (!t) { await editOrSend(ctx, messageId, "⌛ Esa lista expiró. Mandá <b>update</b> para ver la agenda de nuevo."); return; }
-  const rows = [
-    [{ text: "✅ Confirmar showing (en 30 min)", callback_data: `sms:${leadId}:conf` }],
-    [{ text: "🚗 Estoy a 5 min", callback_data: `sms:${leadId}:5min` }],
-    [{ text: "📍 Ya llegué", callback_data: `sms:${leadId}:here` }],
-    [{ text: "📝 Link para aplicar (post-showing)", callback_data: `sms:${leadId}:apply` }],
-  ];
-  await editOrSend(ctx, messageId,
-    `📩 <b>Mensaje para ${escapeHtml(t.name)}</b>\n📞 ${escapeHtml(t.phone)}\n🏠 ${escapeHtml(t.addr)}\n\nElegí el mensaje:`, rows);
-}
+
 const APPLY_LINK = "https://homeguard.app.doorloop.com/tenant-portal/rental-applications/listing?source=CompanyLink";
-function smsBody(tmpl: string, t: any): string {
-  const first = String(t.name || "there").split(/\s+/)[0];
-  const addr = t.addr || "the property";
-  const time = t.time || "";
-  switch (tmpl) {
-    case "conf": return `Hi ${first}, confirming your showing today at ${time} — ${addr}. See you soon! Text me back if anything changes.`;
-    case "5min": return `Hi ${first}, I'm about 5 minutes away from ${addr}. See you shortly!`;
-    case "here": return `Hi ${first}, I'm here at ${addr} for your showing whenever you're ready.`;
-    case "apply": return `Thanks for visiting ${addr}, ${first}! Ready to apply? Start here: ${APPLY_LINK}`;
-    default: return `Hi ${first}!`;
-  }
-}
-async function sendSmsTemplate(ctx: Ctx, messageId: number | undefined, rest: string) {
-  // rest = "<lead_id>:<tmpl>" — lead_id is a UUID (no colon), so split on the first ":".
-  const sep = rest.indexOf(":");
-  const leadId = sep >= 0 ? rest.slice(0, sep) : rest;
-  const tmpl = sep >= 0 ? rest.slice(sep + 1) : "";
-  const session = await getSession(ctx);
-  const t = (session?.data?.sms_targets || []).find((x: any) => x.lead_id === leadId);
-  if (!t) { await editOrSend(ctx, messageId, "⌛ Esa lista expiró. Mandá <b>update</b> de nuevo."); return; }
-  const body = smsBody(tmpl || "", t);
-  const tel = String(t.phone).replace(/[^\d+]/g, "");
-  // Telegram treats sms: links as a call on iOS and rejects sms: in URL buttons,
-  // so the button points at a redirect page on the SITE domain (Supabase edge
-  // fns are forced to text/plain and can't serve renderable HTML). That page
-  // runs in a real browser where sms: works → opens Messages prefilled.
-  const openUrl = `https://rentfindercleveland.com/sms-redirect.html?to=${encodeURIComponent(tel)}&body=${encodeURIComponent(body)}`;
-  const msg = [
-    `📩 <b>${escapeHtml(t.name)}</b> — mensaje listo:`,
-    ``,
-    `<code>${escapeHtml(body)}</code>`,
-    ``,
-    `👇 Tocá el botón: abre <b>Mensajes</b> con el texto ya escrito.`,
-  ].join("\n");
-  await send(ctx, msg, [[{ text: "📲 Abrir Mensajes", url: openUrl }]]);
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Reporte de showing (previos): pick → text → AI enrich → optional photo → save
