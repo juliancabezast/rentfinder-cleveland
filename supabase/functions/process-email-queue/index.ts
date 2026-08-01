@@ -10,13 +10,14 @@ const corsHeaders = {
 
 // Rate limit: max emails per org per batch to stay within Resend limits.
 // The cron runs every minute, so the hourly rate is BATCH_SIZE × 60.
-// Raised to 17 (~1,020/h) for the Aug-1 Cleveland Saturday-tour campaign — the
-// chosen pace drains 5,000 in ~5h, so a "tour tomorrow" mail still lands in the
-// evening rather than after midnight. RESTORE TO 10 once it drains.
+// 10 (~600/h) is the steady-state pace. It was raised to 17 (~1,020/h) for the
+// Aug-1 Cleveland Saturday-tour campaign so a "tour tomorrow" mail would land in
+// the evening and not after midnight; restored on 2026-08-01 once that queue
+// drained.
 // If you change it, keep BATCH_SIZE × DELAY_MS under the 1-minute cron interval
-// (17 × 1.5s = 25.5s): overlapping runs claim disjoint batches
+// (10 × 1.5s = 15s): overlapping runs claim disjoint batches
 // (FOR UPDATE SKIP LOCKED) and would multiply the send rate.
-const BATCH_SIZE = 17;
+const BATCH_SIZE = 10;
 const DELAY_MS = 1500; // 1.5s between emails (safe for Resend 10/sec limit)
 
 // Resend pricing fallback (overridden by org settings.email_unit_cost when set)
