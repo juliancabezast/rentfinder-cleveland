@@ -308,7 +308,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     data.startsWith("p:") || data.startsWith("dp:") || data.startsWith("d:") ||
     data.startsWith("tp:") || data.startsWith("t:") || data.startsWith("l:") ||
     data.startsWith("os:") ||
-    ["dx", "tx", "bk", "bk2", "nl", "ok", "no", "m:sch", "m:new", "m:x", "m:menu"].includes(data);
+    ["dx", "tx", "bk", "bk2", "nl", "ok", "m:sch", "m:new", "m:x", "m:menu"].includes(data);
   // The showing-report flow's vocabulary (now on the field-assistant bot).
   const SR_CB =
     data.startsWith("srx:") || ["m:sr", "sra:show", "sra:no", "sre", "srp", "srb", "srs", "m:x", "m:menu"].includes(data);
@@ -394,7 +394,6 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data.startsWith("lr:")) { await answer(); await chooseLeasingBuilding(ctx, messageId, parseInt(data.slice(3), 10)); return; }
 
     if (data === "ok")   { await answer("Agendando…"); await confirmBooking(ctx, messageId); return; }
-    if (data === "no")   { await answer(); await clearSession(ctx); await showMenu(ctx, messageId, "❌ Listo, cancelado."); return; }
     if (data === "os:y") { await answer(); await offerScheduleYes(ctx, messageId); return; }
     if (data === "os:n") { await answer(); await clearSession(ctx); await showMenu(ctx, messageId, "✅ Lead guardado. 👍"); return; }
 
@@ -511,7 +510,8 @@ async function chooseProperty(ctx: Ctx, messageId: number | undefined, propertyI
     .eq("id", propertyId)
     .maybeSingle();
   if (!prop || prop.status !== "available") {
-    await editOrSend(ctx, messageId, "❌ Esa propiedad ya no está disponible. Manda <b>menu</b> para reiniciar.");
+    await editOrSend(ctx, messageId, "❌ Esa propiedad ya no está disponible.",
+      [[{ text: "🔍 Elegir otra", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
     return;
   }
   const session = (await getSession(ctx)) || { data: {} } as Session;
@@ -547,7 +547,7 @@ async function fetchFutureSlots(ctx: Ctx, propertyId: string): Promise<any[]> {
 async function renderDays(ctx: Ctx, messageId: number | undefined, page: number) {
   const session = await getSession(ctx);
   if (!session?.data?.property_id) {
-    await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Manda <b>menu</b> para empezar de nuevo.");
+    await editOrSend(ctx, messageId, "⌛ Esa selección expiró.", [[{ text: "📅 Empezar de nuevo", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
     return;
   }
   const slots = await fetchFutureSlots(ctx, session.data.property_id);
@@ -593,7 +593,7 @@ async function renderCustomDays(ctx: Ctx, messageId: number | undefined) {
 async function chooseDay(ctx: Ctx, messageId: number | undefined, dateStr: string) {
   const session = await getSession(ctx);
   if (!session?.data?.property_id) {
-    await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Manda <b>menu</b> para empezar de nuevo.");
+    await editOrSend(ctx, messageId, "⌛ Esa selección expiró.", [[{ text: "📅 Empezar de nuevo", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
     return;
   }
   const data = { ...(session.data || {}), slot_day: dateStr,
@@ -603,11 +603,16 @@ async function chooseDay(ctx: Ctx, messageId: number | undefined, dateStr: strin
 }
 
 // ── Step 2b: choose the TIME within the chosen day ───────────────────────────────
-async function renderTimes(ctx: Ctx, messageId: number | undefined, page: number) {
+// `notice` explains why the list is being re-offered (slot taken, time passed).
+// It rides INSIDE this message so the reason and the new options stay together —
+// the callers used to emit a separate error message and then a fresh picker,
+// leaving a stale error stranded above the live one.
+async function renderTimes(ctx: Ctx, messageId: number | undefined, page: number, notice?: string) {
   const session = await getSession(ctx);
   const day = session?.data?.slot_day;
   if (!session?.data?.property_id || !day) {
-    await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Manda <b>menu</b> para empezar de nuevo.");
+    await editOrSend(ctx, messageId, "⌛ Esa selección expiró.",
+      [[{ text: "📅 Empezar de nuevo", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
     return;
   }
   const slots = (await fetchFutureSlots(ctx, session.data.property_id)).filter((s: any) => s.slot_date === day);
@@ -628,7 +633,7 @@ async function renderTimes(ctx: Ctx, messageId: number | undefined, page: number
   const head = slots.length
     ? `🏠 <b>${escapeHtml(session.data.property_label)}</b>\n📅 <b>${slotDayLabel(day)}</b> — elige la hora:${pages > 1 ? ` <i>(pág ${p + 1}/${pages})</i>` : ""}`
     : `🏠 <b>${escapeHtml(session.data.property_label)}</b>\n📅 <b>${slotDayLabel(day)}</b> — sin horarios abiertos.\nToca <b>🕐 Otro horario</b> para abrir uno:`;
-  await editOrSend(ctx, messageId, head, rows);
+  await editOrSend(ctx, messageId, notice ? `${notice}\n\n${head}` : head, rows);
 }
 
 // Back from the custom-time prompt to the time list — must reset the step so
@@ -643,7 +648,7 @@ async function backToTimes(ctx: Ctx, messageId: number | undefined) {
 async function startCustomTime(ctx: Ctx, messageId: number | undefined) {
   const session = await getSession(ctx);
   if (!session?.data?.property_id || !session?.data?.slot_day) {
-    await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Manda <b>menu</b> para reiniciar.");
+    await editOrSend(ctx, messageId, "⌛ Esa selección expiró.", [[{ text: "📅 Empezar de nuevo", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
     return;
   }
   await setSession(ctx, "custom_time", session.data);
@@ -707,7 +712,7 @@ async function handleCustomTime(ctx: Ctx, session: Session, raw: string) {
 async function chooseSlot(ctx: Ctx, messageId: number | undefined, slotId: string) {
   const session = await getSession(ctx);
   if (!session?.data?.property_id) {
-    await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Manda <b>menu</b> para empezar de nuevo.");
+    await editOrSend(ctx, messageId, "⌛ Esa selección expiró.", [[{ text: "📅 Empezar de nuevo", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
     return;
   }
   const { data: slot } = await ctx.supabase
@@ -717,15 +722,13 @@ async function chooseSlot(ctx: Ctx, messageId: number | undefined, slotId: strin
     .eq("id", slotId)
     .maybeSingle();
   if (!slot || !slot.is_enabled || slot.is_booked) {
-    await editOrSend(ctx, messageId, "❌ Ese horario ya no está disponible. Elige otro:");
-    await renderTimes(ctx, undefined, 0);
+    await renderTimes(ctx, messageId, 0, "❌ Ese horario ya no está disponible.");
     return;
   }
   // Guard against booking a past/too-soon slot tapped from a stale message.
   const cutoffMs = await leadTimeCutoffMs(ctx.supabase, ctx.organizationId);
   if (slotToUtcMs(slot.slot_date, slot.slot_time) <= cutoffMs) {
-    await editOrSend(ctx, messageId, "⏰ Ese horario ya pasó. Te muestro los disponibles:");
-    await renderTimes(ctx, undefined, 0);
+    await renderTimes(ctx, messageId, 0, "⏰ Ese horario ya pasó.");
     return;
   }
 
@@ -819,7 +822,7 @@ async function chooseLead(ctx: Ctx, messageId: number | undefined, leadId: strin
   // A slot must be chosen — either a preset one (slot_id) or a custom time
   // (custom_slot, whose row is created lazily at confirm, so slot_id is null).
   if (!session?.data?.slot_id && !session?.data?.custom_slot) {
-    await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Manda <b>menu</b> para empezar de nuevo.");
+    await editOrSend(ctx, messageId, "⌛ Esa selección expiró.", [[{ text: "📅 Empezar de nuevo", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
     return;
   }
   const { data: lead } = await ctx.supabase
@@ -828,8 +831,18 @@ async function chooseLead(ctx: Ctx, messageId: number | undefined, leadId: strin
     .eq("organization_id", ctx.organizationId)
     .eq("id", leadId)
     .maybeSingle();
-  if (!lead) { await editOrSend(ctx, messageId, "❌ No encontré ese lead. Manda <b>menu</b> para reiniciar."); return; }
-  if (!lead.phone) { await editOrSend(ctx, messageId, "❌ Ese lead no tiene teléfono; no puedo agendarlo."); return; }
+  // Both branches abort the booking flow, so both offer the way back into it
+  // instead of leaving the agent to type "menu" from memory.
+  // bk2 = back to the time step, which is where this flow came from; from there
+  // the lead prompt comes round again.
+  const bookAgain = [[{ text: "◀️ Volver a horarios", callback_data: "bk2" },
+                      { text: "🏠 Menú", callback_data: "m:menu" }]];
+  if (!lead) { await editOrSend(ctx, messageId, "❌ No encontré ese lead.", bookAgain); return; }
+  if (!lead.phone) {
+    await editOrSend(ctx, messageId,
+      "❌ Ese lead no tiene teléfono; no puedo agendarlo.\nAgrégale el teléfono desde la web y vuelve a intentar.", bookAgain);
+    return;
+  }
 
   const data = { ...(session.data || {}), lead_id: lead.id, lead_name: leadName(lead), lead_phone: lead.phone, lead_email: lead.email || null };
   await setSession(ctx, "confirm", data);
@@ -935,7 +948,7 @@ async function confirmBooking(ctx: Ctx, messageId?: number) {
   const session = await getSession(ctx);
   const d = session?.data || {};
   if (!d.property_id || !d.slot_date || !d.slot_time || !d.lead_id || !d.lead_phone) {
-    await editOrSend(ctx, messageId, "⌛ La reserva expiró. Manda <b>menu</b> para empezar de nuevo.");
+    await editOrSend(ctx, messageId, "⌛ La reserva expiró.", [[{ text: "📅 Empezar de nuevo", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
     await clearSession(ctx);
     return;
   }
@@ -945,8 +958,7 @@ async function confirmBooking(ctx: Ctx, messageId?: number) {
   const confirmCutoffMs = await leadTimeCutoffMs(ctx.supabase, ctx.organizationId);
   if (slotToUtcMs(d.slot_date, d.slot_time) <= confirmCutoffMs) {
     await setSession(ctx, "choose_time", { ...d, slot_id: undefined, slot_time: undefined, slot_label: undefined, custom_slot: undefined });
-    await editOrSend(ctx, messageId, "⏰ Ese horario ya pasó. Elige otro:");
-    await renderTimes(ctx, undefined, 0);
+    await renderTimes(ctx, messageId, 0, "⏰ Ese horario ya pasó.");
     return;
   }
 
@@ -962,8 +974,7 @@ async function confirmBooking(ctx: Ctx, messageId?: number) {
       .eq("slot_date", d.slot_date).eq("slot_time", d.slot_time).maybeSingle();
     const reoffer = async (msg: string) => {
       await setSession(ctx, "choose_time", { ...d, slot_id: undefined, slot_time: undefined, slot_label: undefined, custom_slot: undefined });
-      await editOrSend(ctx, messageId, msg);
-      await renderTimes(ctx, undefined, 0);
+      await renderTimes(ctx, messageId, 0, msg);
     };
     const { data: ex } = await findOpen();
     if (ex?.is_booked) { await reoffer("❌ Justo se ocupó esa hora. Elige otra:"); return; }
@@ -1054,8 +1065,7 @@ async function confirmBooking(ctx: Ctx, messageId?: number) {
   if (resp.status === 409) {
     // Slot got taken (or the agent hour was booked elsewhere) — re-offer times.
     await setSession(ctx, "choose_time", { ...d, slot_id: undefined, slot_time: undefined, slot_label: undefined, custom_slot: undefined });
-    await editOrSend(ctx, messageId, "❌ Ese horario ya fue tomado. Elige otro:");
-    await renderTimes(ctx, undefined, 0);
+    await renderTimes(ctx, messageId, 0, "❌ Ese horario ya fue tomado.");
     return;
   }
 
@@ -1117,7 +1127,7 @@ async function chooseLeasingBuilding(ctx: Ctx, messageId: number | undefined, id
   const session = await getSession(ctx);
   const buildings = session?.data?.buildings as { key: string; label: string }[] | undefined;
   const b = buildings?.[idx];
-  if (!b) { await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Manda <b>menu</b> para empezar de nuevo."); return; }
+  if (!b) { await editOrSend(ctx, messageId, "⌛ Esa selección expiró.", [[{ text: "📅 Empezar de nuevo", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]); return; }
   await setSession(ctx, "leasing_lang", { group_key: b.key, group_label: b.label });
   await editOrSend(ctx, messageId,
     `📄 <b>${escapeHtml(b.label)}</b>\n\n¿En qué idioma generás el reporte?`,
@@ -1129,7 +1139,7 @@ async function generateLeasingReport(ctx: Ctx, messageId: number | undefined, la
   const session = await getSession(ctx);
   const gk = session?.data?.group_key;
   const label = session?.data?.group_label || "";
-  if (!gk) { await editOrSend(ctx, messageId, "⌛ Esa selección expiró. Manda <b>menu</b> para empezar de nuevo."); return; }
+  if (!gk) { await editOrSend(ctx, messageId, "⌛ Esa selección expiró.", [[{ text: "📅 Empezar de nuevo", callback_data: "m:sch" }, { text: "🏠 Menú", callback_data: "m:menu" }]]); return; }
   await editOrSend(ctx, messageId, `📄 Generando el reporte de <b>${escapeHtml(label)}</b>…`);
   await typing(ctx);
   const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/leasing-report-pdf`, {
@@ -1676,7 +1686,11 @@ async function funnelLeadCard(ctx: Ctx, messageId: number | undefined, leadId: s
   const { data: l } = await ctx.supabase.from("leads")
     .select("id, full_name, first_name, last_name, phone, email, status, source, has_voucher, voucher_amount, housing_authority, move_in_date, budget_min, budget_max, created_at, last_contact_at")
     .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
-  if (!l) { await editOrSend(ctx, messageId, "❌ Lead no encontrado."); return; }
+  if (!l) {
+    await editOrSend(ctx, messageId, "❌ Lead no encontrado.",
+      [[{ text: "🏠 Menú", callback_data: "m:menu" }]]);
+    return;
+  }
   const [{ data: tags }, { data: lastNote }] = await Promise.all([
     ctx.supabase.from("lead_property_interests")
       .select("properties:property_id(address, unit_number, city)")
@@ -1744,7 +1758,10 @@ async function handleStageSet(ctx: Ctx, cbq: any, data: string) {
     .eq("organization_id", ctx.organizationId).eq("id", leadId);
   if (error) {
     await answer("Error");
-    await editOrSend(ctx, messageId, "❌ No pude cambiar la etapa. Intenta de nuevo.");
+    // Retry re-sends the exact same stage change — no need to re-navigate.
+    await editOrSend(ctx, messageId, "❌ No pude cambiar la etapa.",
+      [[{ text: "🔁 Reintentar", callback_data: `ast:${leadId}:${code}` }],
+       [{ text: "◀️ Volver", callback_data: `act:menu:${leadId}` }]]);
     return;
   }
   await answer("Etapa cambiada ✅");
@@ -2748,7 +2765,11 @@ async function postShowingCard(ctx: Ctx, messageId: number | undefined, showingI
       leads:lead_id ( id, full_name, first_name, last_name, phone, email ),
       properties:property_id ( address, unit_number, city )`)
     .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
-  if (!s?.leads?.id) { await editOrSend(ctx, messageId, "❌ No encontré ese showing."); return; }
+  if (!s?.leads?.id) {
+    await editOrSend(ctx, messageId, "❌ No encontré ese showing.",
+      [[{ text: "🏁 Showings recientes", callback_data: "m:ps" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
+    return;
+  }
   const l = s.leads; const p = s.properties || {};
   const when = new Date(s.scheduled_at).toLocaleString("es-ES", {
     timeZone: NY, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true,
@@ -4028,7 +4049,7 @@ async function startShowingReport(ctx: Ctx, messageId: number | undefined) {
 async function chooseShowingToReport(ctx: Ctx, messageId: number | undefined, showingId: string) {
   const session = await getSession(ctx);
   const s = (session?.data?.sr_list || []).find((x: any) => x.id === showingId);
-  if (!s) { await editOrSend(ctx, messageId, "⌛ Esa lista expiró. Manda <b>menu</b> y intenta de nuevo."); return; }
+  if (!s) { await editOrSend(ctx, messageId, "⌛ Esa lista expiró.", [[{ text: "📝 Empezar de nuevo", callback_data: "m:sr" }, { text: "🏠 Menú", callback_data: "m:menu" }]]); return; }
   await setSession(ctx, "sr_attend", { ...session.data, sr_id: s.id, sr_lead_id: s.lead_id, sr_name: s.name, sr_addr: s.addr, sr_report: undefined, sr_photo: undefined, sr_status: undefined });
   await editOrSend(ctx, messageId,
     `📝 <b>${escapeHtml(s.name)}</b>\n🏠 ${escapeHtml(s.addr)}\n\n¿El prospecto <b>asistió</b> al showing?`,
@@ -4037,7 +4058,7 @@ async function chooseShowingToReport(ctx: Ctx, messageId: number | undefined, sh
 async function setReportAttendance(ctx: Ctx, messageId: number | undefined, attended: boolean) {
   const session = await getSession(ctx);
   const d = session?.data || {};
-  if (!d.sr_id) { await editOrSend(ctx, messageId, "⌛ Se perdió la selección. Manda <b>menu</b>."); return; }
+  if (!d.sr_id) { await editOrSend(ctx, messageId, "⌛ Se perdió la selección.", [[{ text: "📝 Empezar de nuevo", callback_data: "m:sr" }, { text: "🏠 Menú", callback_data: "m:menu" }]]); return; }
   await setSession(ctx, "sr_text", { ...d, sr_status: attended ? "completed" : "no_show" });
   const prompt = attended
     ? "✍️ Escribe cómo estuvo (interés del prospecto, objeciones, próximos pasos…)."
@@ -4055,7 +4076,7 @@ async function handleShowingReportText(ctx: Ctx, session: Session, raw: string) 
 async function showReportReview(ctx: Ctx, messageId: number | undefined) {
   const session = await getSession(ctx);
   const d = session?.data || {};
-  if (!d.sr_report) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte. Manda <b>menu</b>."); return; }
+  if (!d.sr_report) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte.", [[{ text: "📝 Empezar de nuevo", callback_data: "m:sr" }, { text: "🏠 Menú", callback_data: "m:menu" }]]); return; }
   // Centralize the step invariant so EVERY entry (incl. "◀️ Volver" from photo)
   // lands on sr_review — otherwise a stray text got the wrong nudge.
   if (session?.step !== "sr_review") await setSession(ctx, "sr_review", d);
@@ -4093,7 +4114,7 @@ async function enrichReport(ctx: Ctx, messageId: number | undefined) {
 }
 async function askForPhoto(ctx: Ctx, messageId: number | undefined) {
   const session = await getSession(ctx);
-  if (!session?.data?.sr_id) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte. Manda <b>menu</b>."); return; }
+  if (!session?.data?.sr_id) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte.", [[{ text: "📝 Empezar de nuevo", callback_data: "m:sr" }, { text: "🏠 Menú", callback_data: "m:menu" }]]); return; }
   await setSession(ctx, "sr_photo", { ...session.data });
   await editOrSend(ctx, messageId, "📷 Envía la <b>foto</b> ahora (como imagen).", [[{ text: "◀️ Volver", callback_data: "srb" }]]);
 }
@@ -4131,7 +4152,11 @@ async function handlePhoto(ctx: Ctx, message: any) {
 async function saveShowingReport(ctx: Ctx, messageId: number | undefined) {
   const session = await getSession(ctx);
   const d = session?.data || {};
-  if (!d.sr_id || !d.sr_report) { await editOrSend(ctx, messageId, "⌛ Se perdió el reporte. Manda <b>menu</b>."); return; }
+  if (!d.sr_id || !d.sr_report) {
+    await editOrSend(ctx, messageId, "⌛ Se perdió el reporte (la sesión expira a los 30 min).",
+      [[{ text: "📝 Empezar de nuevo", callback_data: "m:sr" }, { text: "🏠 Menú", callback_data: "m:menu" }]]);
+    return;
+  }
   const upd: Record<string, any> = { agent_report: d.sr_report };
   if (d.sr_photo) upd.agent_report_photo_url = d.sr_photo;
   // Flip the showing status from 'scheduled' so it stops showing as "agendado"
@@ -4142,7 +4167,16 @@ async function saveShowingReport(ctx: Ctx, messageId: number | undefined) {
   else { upd.followed_up_at = new Date().toISOString(); }
   const { error } = await ctx.supabase.from("showings").update(upd)
     .eq("organization_id", ctx.organizationId).eq("id", d.sr_id);
-  if (error) { await editOrSend(ctx, messageId, `❌ No pude guardar: ${escapeHtml(error.message)}`); return; }
+  // The session is NOT cleared until the save succeeds (below), so the report
+  // text is still there and `srs` is a genuine retry — this used to be the one
+  // failure that silently ate a write-up the agent had just typed out.
+  if (error) {
+    await editOrSend(ctx, messageId,
+      `❌ No pude guardar el reporte.\n<i>${escapeHtml(error.message)}</i>\n\nTu texto sigue guardado — puedes reintentar.`,
+      [[{ text: "🔁 Reintentar", callback_data: "srs" }],
+       [{ text: "👀 Ver el reporte", callback_data: "srb" }]]);
+    return;
+  }
   // When attended, advance the lead lifecycle out of showing_scheduled → showed
   // and start the 🚀 closing cadence (D+1/3/7 pushes until they apply).
   if (d.sr_status === "completed") {
