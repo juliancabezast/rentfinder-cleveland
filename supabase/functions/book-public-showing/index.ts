@@ -218,6 +218,7 @@ serve(async (req: Request) => {
       phone,
       email,
       has_voucher,
+      move_in_date,
       note,
       consent,
       // ── Attribution (public callers): which email/campaign drove this book. ──
@@ -229,6 +230,13 @@ serve(async (req: Request) => {
       lead_id: bodyLeadId,
       booking_source: bodyBookingSource,
     } = body;
+    // Desired move-in (required by the public form since 2026-08-01). Accepted
+    // only as a plain YYYY-MM-DD — anything else is dropped rather than handed
+    // to Postgres, so a malformed value can never fail the whole booking.
+    const moveIn =
+      typeof move_in_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(move_in_date.trim())
+        ? move_in_date.trim()
+        : null;
     const attribSrc = typeof bodySrc === "string" ? bodySrc.slice(0, 40) : null;
     const attribCampaignId =
       typeof bodyCampaignId === "string" &&
@@ -361,6 +369,9 @@ serve(async (req: Request) => {
       const upd: Record<string, any> = { updated_at: new Date().toISOString() };
       if (email && !providedLead.email) upd.email = email;
       if (has_voucher !== undefined) upd.has_voucher = !!has_voucher;
+      // The freshest stated intent wins — a returning visitor moving up their
+      // date is telling us something the old value no longer says.
+      if (moveIn) upd.move_in_date = moveIn;
       await supabase.from("leads").update(upd).eq("id", leadId);
     } else {
       let { data: existingLead } = await supabase
@@ -405,6 +416,7 @@ serve(async (req: Request) => {
         // clobber a real phone already on file.
         if (formattedPhone && !existingLead.phone) leadUpdate.phone = formattedPhone;
         if (has_voucher !== undefined) leadUpdate.has_voucher = !!has_voucher;
+        if (moveIn) leadUpdate.move_in_date = moveIn;
         await supabase.from("leads").update(leadUpdate).eq("id", leadId);
       } else {
         const { data: newLead, error: leadErr } = await supabase
@@ -417,6 +429,7 @@ serve(async (req: Request) => {
             source: "website",
             status: "new",
             has_voucher: has_voucher !== undefined ? !!has_voucher : null,
+            move_in_date: moveIn,
             sms_consent: consent?.sms_consent ?? false,
             call_consent: consent?.call_consent ?? false,
           })
@@ -917,6 +930,13 @@ serve(async (req: Request) => {
           `👤 <b>${escapeHtml(full_name.trim())}</b>`,
           `📞 ${escapeHtml(leadPhoneStr)}`,
           `✉️ ${escapeHtml(leadEmailStr)}`,
+          // Move-in and who pays: both are asked on the booking form, and both
+          // decide how the showing is worked. Shown here so the alert is the
+          // whole story and nobody has to open the panel to get it.
+          ...(moveIn ? [`📆 Move-in: ${escapeHtml(formatDateHuman(moveIn, tz).replace(/^\w+, /, ""))}`] : []),
+          `💰 ${has_voucher === undefined || has_voucher === null
+            ? "Payment not specified"
+            : has_voucher ? "Housing voucher" : "Self-pay"}`,
           ...(visitorNote ? [``, `📝 <i>${escapeHtml(visitorNote)}</i>`] : []),
           `🔗 Source: ${escapeHtml(effBookingSource === "telegram_bot" ? "Telegram bot" : "Public booking page")}`,
           ``,

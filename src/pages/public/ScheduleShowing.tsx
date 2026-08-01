@@ -667,8 +667,19 @@ const ScheduleShowing: React.FC = () => {
   const [paymentType, setPaymentType] = useState<"self" | "voucher" | "">(
     () => (localStorage.getItem("rf_payment") as "self" | "voucher") || ""
   );
+  // Desired move-in — REQUIRED (owner decision 2026-08-01). It is the single
+  // question that separates a tourist from a renter, and the agent reads it off
+  // the Telegram card before every showing, so it can't stay optional.
+  const [moveInDate, setMoveInDate] = useState(() => {
+    // A remembered date that has already passed is worse than an empty field:
+    // it looks filled in while silently failing validation.
+    const saved = localStorage.getItem("rf_movein") || "";
+    return saved && saved >= format(new Date(), "yyyy-MM-dd") ? saved : "";
+  });
   const [note, setNote] = useState("");
   const [prefilledName, setPrefilledName] = useState<string | null>(null);
+  // A move-in can't be in the past — the date picker floors at today.
+  const minMoveIn = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
 
   // Resolve ?t=<signed token> → prefill this known lead's name/phone/email so a
   // recipient who came from our email doesn't re-type anything. Best-effort:
@@ -1151,13 +1162,18 @@ const ScheduleShowing: React.FC = () => {
   // Phone is valid only with 10 digits (NANP).
   const phoneDigits = phone.replace(/\D/g, "");
   const isPhoneValid = phoneDigits.length === 10;
+  // Move-in and note are REQUIRED as of 2026-08-01: both land on the agent's
+  // Telegram card for the showing, and an empty card is the same as no card.
+  const isMoveInValid = /^\d{4}-\d{2}-\d{2}$/.test(moveInDate) && moveInDate >= minMoveIn;
+  const isNoteValid = note.trim().length >= 3;
+  const canBook = Boolean(fullName.trim()) && isPhoneValid && isMoveInValid && isNoteValid;
 
   // ---- Handle booking ----
   const handleBook = async () => {
     // Consent is OPTIONAL — never block a tour booking on it (the confirmation
-    // email is transactional). Only name + a valid phone are truly required.
+    // email is transactional). Name, phone, move-in and note are required.
     setConsentError(false);
-    if (!fullName.trim() || !isPhoneValid) return;
+    if (!canBook) return;
     if (!selectedDate || !selectedTime || !effectivePropertyId || !property) return;
 
     setSubmitting(true);
@@ -1176,6 +1192,7 @@ const ScheduleShowing: React.FC = () => {
           // Payment method is now optional — leave has_voucher unset when the
           // renter didn't pick one, rather than defaulting them to self-pay.
           has_voucher: paymentType === "" ? undefined : paymentType === "voucher",
+          move_in_date: moveInDate,
           note: note.trim() || null,
           consent: buildConsentPayload(consent),
           // Attribution (best-effort; ignored by the backend if absent).
@@ -1220,6 +1237,7 @@ const ScheduleShowing: React.FC = () => {
           if (email.trim()) localStorage.setItem("rf_email", email.trim());
           if (consent) localStorage.setItem("rf_consent", "1");
           if (paymentType) localStorage.setItem("rf_payment", paymentType);
+          if (moveInDate) localStorage.setItem("rf_movein", moveInDate);
         } catch {}
       }
     } catch (err: any) {
@@ -1298,6 +1316,7 @@ const ScheduleShowing: React.FC = () => {
           phone: phone.trim(),
           email: email.trim() || null,
           has_voucher: paymentType === "" ? undefined : paymentType === "voucher",
+          move_in_date: moveInDate || undefined,
           note: "Same-day tour",
           consent: buildConsentPayload(consent),
           src: attribSrc,
@@ -2208,6 +2227,30 @@ const ScheduleShowing: React.FC = () => {
                       />
                     </div>
 
+                    {/* Desired move-in — required */}
+                    <div>
+                      <Label htmlFor="moveIn">
+                        Desired Move-In Date <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="moveIn"
+                        type="date"
+                        min={minMoveIn}
+                        value={moveInDate}
+                        onChange={(e) => setMoveInDate(e.target.value)}
+                        className={`mt-1 ${moveInDate && !isMoveInValid ? "border-destructive" : ""}`}
+                      />
+                      {moveInDate && !isMoveInValid ? (
+                        <p className="text-xs text-destructive mt-1">
+                          Please pick a date from today onward.
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Roughly when would you want to move in? An estimate is fine.
+                        </p>
+                      )}
+                    </div>
+
                     {/* Payment type */}
                     <div>
                       <Label>Payment Method <span className="text-muted-foreground font-normal">(optional)</span></Label>
@@ -2240,18 +2283,24 @@ const ScheduleShowing: React.FC = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="note">Note (optional)</Label>
+                      <Label htmlFor="note">
+                        Anything we should know? <span className="text-destructive">*</span>
+                      </Label>
                       <Textarea
                         id="note"
-                        placeholder="Anything we should know? (move-in date, questions, etc.)"
+                        placeholder="How many people will live there? Any pets? Questions about the home?"
                         value={note}
                         onChange={(e) => setNote(e.target.value.slice(0, 500))}
                         rows={3}
-                        className="mt-1 resize-none"
+                        className={`mt-1 resize-none ${note.length > 0 && !isNoteValid ? "border-destructive" : ""}`}
                       />
-                      {note.length > 400 && (
+                      {note.length > 400 ? (
                         <p className="text-[11px] text-muted-foreground mt-1 text-right">
                           {500 - note.length} characters left
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Your agent reads this before the showing.
                         </p>
                       )}
                     </div>
@@ -2274,7 +2323,7 @@ const ScheduleShowing: React.FC = () => {
                     <Button
                       className="w-full h-12 bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white font-semibold text-base"
                       onClick={handleBook}
-                      disabled={submitting || !fullName.trim() || !isPhoneValid}
+                      disabled={submitting || !canBook}
                     >
                       {submitting ? (
                         <>

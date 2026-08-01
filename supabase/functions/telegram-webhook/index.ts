@@ -315,11 +315,13 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   // The leasing-PDF flow's vocabulary (now on the RFC analytics bot).
   const LR_CB =
     data.startsWith("lr:") || data.startsWith("lrl:") || ["m:lr", "m:x", "m:menu"].includes(data);
-  // The agenda vocabulary. `sag:` = the per-slot contact menu; the old
-  // `msg:`/`sms:` session-backed picker is gone (its targets lived in the
-  // session, so the buttons died as soon as the list expired).
+  // The agenda vocabulary. `sag:` = the per-slot contact menu; `sac:` = the
+  // contact card FROM that menu (keyed by showing, not lead, so "Volver" lands
+  // back on the slot instead of the generic action menu). The old `msg:`/`sms:`
+  // session-backed picker is gone (its targets lived in the session, so the
+  // buttons died as soon as the list expired).
   const AG_CB =
-    data.startsWith("sag:") || ["m:ag", "m:agf"].includes(data);
+    data.startsWith("sag:") || data.startsWith("sac:") || ["m:ag", "m:agf"].includes(data);
   // Showing-day SMS/email off the 30-min reminder card (keyed by showing id).
   const SHW_MSG_CB =
     data.startsWith("ssm:") || data.startsWith("ssb:") ||
@@ -363,6 +365,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data.startsWith("ssx:")) { await handleShowingEmailSend(ctx, cbq, data); return; }
     if (data.startsWith("cz:")) { await handleClosing(ctx, cbq, data); return; }
     if (data.startsWith("sag:")) { await showAgendaSlotMenu(ctx, cbq, data); return; }
+    if (data.startsWith("sac:")) { await showAgendaSlotContact(ctx, cbq, data); return; }
     if (data === "m:sch") { await answer(); await startSchedule(ctx, messageId); return; }
     if (data === "m:new") { await answer(); await startCreateLead(ctx, messageId, true); return; }
     if (data === "m:ag")  { await answer("Cargando agenda…"); await showAgenda(ctx); return; }
@@ -2502,8 +2505,11 @@ async function handleEmailSend(ctx: Ctx, cbq: any, data: string) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 👤 Save-contact — Telegram sendContact with a vCard (one tap → Add to Contacts)
 // ═══════════════════════════════════════════════════════════════════════════════
-async function sendLeadContact(ctx: Ctx, messageId: number | undefined, lead: any) {
-  const back = [[{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]];
+// `back` overrides where "Volver" lands — the agenda passes the slot it came
+// from, so backing out of a contact card returns to that slot's menu instead of
+// the generic register-an-action menu (a screen the agenda never visits).
+async function sendLeadContact(ctx: Ctx, messageId: number | undefined, lead: any, back?: any[][]) {
+  back = back ?? [[{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]];
   const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
   if (!tel) { await editOrSend(ctx, messageId, "❌ Este lead no tiene teléfono.", back); return; }
   const clean = (s: unknown) => String(s ?? "").replace(/[;\n\r]/g, " ").trim();
@@ -2532,16 +2538,24 @@ async function sendLeadContact(ctx: Ctx, messageId: number | undefined, lead: an
   const fn = [first, last].filter(Boolean).join(" ");
 
   // ORG is the line the phone shows under the name — spend it on the two things
-  // worth knowing mid-call: what the unit rents for and what the lead told us.
-  const { data: recentNotes } = await ctx.supabase.from("lead_notes")
+  // worth knowing mid-call: what the unit rents for and what the LEAD told us.
+  //
+  // Only `booking_request` (the visitor's own words at booking). This used to
+  // take the 3 newest notes of ANY type, which meant our own Telegram action
+  // log — "✉️ Email enviado · via Telegram", "👻 No asistió" — got saved into
+  // the phone book as if the prospect had said it.
+  const { data: ownNote } = await ctx.supabase.from("lead_notes")
     .select("content")
     .eq("organization_id", ctx.organizationId).eq("lead_id", lead.id)
-    .order("created_at", { ascending: false }).limit(3);
-  const noteLine = ((recentNotes || []) as any[])
-    .map((n) => clean(n.content))
-    .filter(Boolean).join(" · ").slice(0, 180);
+    .eq("note_type", "booking_request")
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const noteLine = clean((ownNote as any)?.content).slice(0, 180);
   const rentLine = pr?.rent_price ? `$${Number(pr.rent_price).toLocaleString("en-US")}/mes` : "";
   const orgLine = [rentLine, noteLine].filter(Boolean).join(" — ") || "Rent Finder Cleveland";
+  // Move-in + who pays ride in NOTE, not ORG: they're context for the call, and
+  // ORG stays the short line the phone shows under the name.
+  const moveIn = moveInLabel(lead.move_in_date);
+  const payment = paymentLabel(lead.has_voucher);
 
   // vCard escaping: backslash, semicolon and comma are structural characters.
   // An unescaped comma in a street would silently split the field into two.
@@ -2562,10 +2576,17 @@ async function sendLeadContact(ctx: Ctx, messageId: number | undefined, lead: an
       ? [`ADR;TYPE=WORK:;;${vc(street)};${vc(pr?.city ?? "")};${vc(pr?.state ?? "")};${vc(pr?.zip_code ?? "")};`]
       : []),
     // Kept as well: Notes is what shows in the contact list preview on some
-    // clients, and it carries the "why" that a bare address doesn't.
-    ...(street
-      ? [`NOTE:Interesado en ${vc(street)}${pr?.city ? `\\, ${vc(pr.city)}` : ""}`]
-      : []),
+    // clients, and it carries the "why" that a bare address doesn't — plus the
+    // two facts worth having mid-call: when they want in, and who pays.
+    ...(() => {
+      const bits = [
+        street ? `Interesado en ${vc(street)}${pr?.city ? `\\, ${vc(pr.city)}` : ""}` : "",
+        moveIn ? `Mudanza: ${vc(moveIn)}` : "",
+        payment ? vc(payment.replace(/^\S+\s/, "")) : "",
+      ].filter(Boolean);
+      // \n inside a vCard value must be the literal two characters "\n".
+      return bits.length ? [`NOTE:${bits.join("\\n")}`] : [];
+    })(),
     "END:VCARD",
   ].join("\n");
   const r = await tg(ctx, "sendContact", {
@@ -2639,6 +2660,40 @@ function shwMenuKeyboard() {
   ];
 }
 
+// ── El botón /start, fijado abajo ──────────────────────────────────────────────
+// Este bot tiene UN solo comando. Escondido detrás del botón "Menú" de Telegram
+// era una lista de un ítem; fijado abajo es un botón que siempre está ahí.
+//
+// El teclado es estado del CHAT, no del mensaje: se instala una vez y sobrevive
+// al borrado de mensajes del cron de limpieza. Por eso se recuerda qué chats ya
+// lo tienen — reinstalarlo en cada /start costaría un mensaje extra cada vez.
+const SHW_HOME_KB = { keyboard: [[{ text: "/start" }]], resize_keyboard: true, is_persistent: true };
+const HOME_KB_KEY = "telegram_showings_home_kb";
+
+async function ensureShowingsHomeKeyboard(ctx: Ctx) {
+  if (ctx.bot !== "showings") return;
+  const chat = String(ctx.chatId);
+  const { data: row } = await ctx.supabase.from("organization_settings")
+    .select("value").eq("organization_id", ctx.organizationId)
+    .eq("key", HOME_KB_KEY).maybeSingle();
+  const done = Array.isArray((row as any)?.value) ? ((row as any).value as unknown[]).map(String) : [];
+  if (done.includes(chat)) return;
+  const r = await tg(ctx, "sendMessage", {
+    chat_id: ctx.chatId, parse_mode: "HTML",
+    text: "📌 El botón <b>/start</b> queda fijado abajo — tócalo cuando quieras volver al menú.",
+    reply_markup: SHW_HOME_KB,
+  });
+  // Si Telegram lo rechazó, NO lo des por instalado: se reintenta al próximo
+  // /start en vez de dejar el chat sin botón para siempre.
+  if (!r || !r.ok) return;
+  await ctx.supabase.from("organization_settings").upsert({
+    organization_id: ctx.organizationId, category: "showings",
+    key: HOME_KB_KEY, value: [...done, chat],
+    description: "Chats del bot de Showings que ya tienen el botón /start fijado abajo.",
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "organization_id,key" });
+}
+
 async function handleShowingsText(ctx: Ctx, rawText: string) {
   const raw = String(rawText).trim();
   const t = raw.toLowerCase();
@@ -2646,6 +2701,7 @@ async function handleShowingsText(ctx: Ctx, rawText: string) {
   // into the root menu, so ANY slash — including the retired ones still sitting
   // in someone's Telegram history — lands on the same single menu.
   if (t.startsWith("/")) {
+    await ensureShowingsHomeKeyboard(ctx);
     await send(ctx, SHW_GREETING, shwMenuKeyboard());
     return;
   }
@@ -2663,6 +2719,7 @@ async function handleShowingsText(ctx: Ctx, rawText: string) {
   }
   // Anything else — any word, any retired command — lands on the root menu.
   // There is deliberately no word vocabulary left to remember.
+  await ensureShowingsHomeKeyboard(ctx);
   await send(ctx, SHW_GREETING, shwMenuKeyboard());
 }
 
@@ -2993,7 +3050,7 @@ const SHW_EMAIL_TEMPLATES: {
 async function loadShowing(ctx: Ctx, showingId: string) {
   const { data: s } = await ctx.supabase.from("showings")
     .select(`id, scheduled_at, status, lead_id, property_id,
-      leads:lead_id ( id, full_name, first_name, last_name, phone, email ),
+      leads:lead_id ( id, full_name, first_name, last_name, phone, email, has_voucher, move_in_date ),
       properties:property_id ( address, unit_number, city, rent_price )`)
     .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
   if (!s?.leads?.id) return null;
@@ -3005,20 +3062,54 @@ async function loadShowing(ctx: Ctx, showingId: string) {
   });
   const first = String(leadName(l)).split(/\s+/)[0];
   // What the prospect said when they booked. `showings` has no notes column —
-  // the booking form writes it to lead_notes as `booking_request`, and it is
-  // usually the single most useful thing to know before making contact
-  // ("move-in goal is August 20th").
-  const { data: note } = await ctx.supabase.from("lead_notes")
-    .select("content")
-    .eq("organization_id", ctx.organizationId).eq("lead_id", l.id)
-    .eq("note_type", "booking_request")
-    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  // the booking form writes it to lead_notes as `booking_request` (mandatory
+  // there since 2026-08-01) and stamps it with `related_showing_id`. Prefer the
+  // note tied to THIS showing; a lead who booked twice said different things
+  // about each home. Fall back to their latest note only if this one has none
+  // (bookings made before the stamp existed, or agent-side bookings).
+  const noteQ = (forShowing?: string) => {
+    let q = ctx.supabase.from("lead_notes")
+      .select("content")
+      .eq("organization_id", ctx.organizationId).eq("lead_id", l.id)
+      .eq("note_type", "booking_request");
+    if (forShowing) q = q.eq("related_showing_id", forShowing);
+    return q.order("created_at", { ascending: false }).limit(1).maybeSingle();
+  };
+  let { data: note } = await noteQ(showingId);
+  if (!note) ({ data: note } = await noteQ());
   const rent = p.rent_price ? `$${Number(p.rent_price).toLocaleString("en-US")}/mes` : "";
   return {
     s, lead: l, rent,
     bookingNote: String((note as any)?.content ?? "").trim(),
+    moveIn: moveInLabel(l.move_in_date),
+    payment: paymentLabel(l.has_voucher),
     c: { first, time, addr } as ShwCtx,
   };
+}
+
+// Desired move-in as the agent wants to read it: "Sáb 20 sep" plus how far off
+// it is, because "in 3 days" and "in 3 months" are different conversations.
+function moveInLabel(d: unknown): string {
+  const raw = String(d ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
+  // Parse at noon: a bare date string is UTC midnight, which renders as the
+  // PREVIOUS day in Cleveland.
+  const when = new Date(`${raw}T12:00:00Z`);
+  const pretty = when.toLocaleDateString("es-CO", {
+    timeZone: NY, weekday: "short", day: "numeric", month: "short",
+  });
+  const days = Math.round((when.getTime() - Date.now()) / 86400000);
+  const rel = days <= 0 ? "ya" : days === 1 ? "mañana" : days <= 45 ? `en ${days} días` : "";
+  return rel ? `${pretty} (${rel})` : pretty;
+}
+
+// Who pays the rent. `null` means the visitor skipped the question — say so
+// instead of guessing, because guessing self-pay on a voucher holder wastes
+// the showing.
+function paymentLabel(v: unknown): string {
+  if (v === true) return "🎟️ Voucher";
+  if (v === false) return "💳 Paga por su cuenta";
+  return "";
 }
 
 // "Volver" means the step you just came from — the slot's contact menu. It used
@@ -3026,9 +3117,9 @@ async function loadShowing(ctx: Ctx, showingId: string) {
 // screen entirely, so backing out of the SMS picker dumped you somewhere you
 // never were. Every screen in this flow edits the SAME message, so working one
 // lead leaves one message behind instead of a column of dead menus.
-function shwBackRow(showingId: string, leadId: string) {
+function shwBackRow(showingId: string) {
   return [{ text: "◀️ Volver", callback_data: `sag:${showingId}` },
-          { text: "👤 Contacto", callback_data: `act:vc:${leadId}` }];
+          { text: "👤 Contacto", callback_data: `sac:${showingId}` }];
 }
 
 async function showingSmsPicker(ctx: Ctx, cbq: any, data: string) {
@@ -3041,7 +3132,7 @@ async function showingSmsPicker(ctx: Ctx, cbq: any, data: string) {
   if (!tel) { await answer("Sin teléfono"); return; }
   await answer();
   const rows = SHW_SMS_TEMPLATES.map((t) => [{ text: t.label, callback_data: `ssb:${t.code}:${showingId}` }]);
-  rows.push(shwBackRow(showingId, got.lead.id));
+  rows.push(shwBackRow(showingId));
   await editOrSend(ctx, messageId,
     `💬 <b>SMS</b> — ${escapeHtml(leadName(got.lead))}\n` +
     `🕒 ${escapeHtml(got.c.time)}${got.c.addr ? ` · ${escapeHtml(got.c.addr)}` : ""}\n\nElige el mensaje:`,
@@ -3071,7 +3162,7 @@ async function handleShowingSms(ctx: Ctx, cbq: any, data: string) {
     `Toca el botón y se abre Mensajes con el texto listo:`,
     [[{ text: "📲 Abrir Mensajes", url }],
      [{ text: "💬 Otro mensaje", callback_data: `ssm:${showingId}` }],
-     shwBackRow(showingId, got.lead.id)]);
+     shwBackRow(showingId)]);
 }
 
 async function showingEmailPicker(ctx: Ctx, cbq: any, data: string) {
@@ -3083,7 +3174,7 @@ async function showingEmailPicker(ctx: Ctx, cbq: any, data: string) {
   if (!got.lead.email) { await answer("Sin email"); return; }
   await answer();
   const rows = SHW_EMAIL_TEMPLATES.map((t) => [{ text: t.label, callback_data: `ssp:${t.code}:${showingId}` }]);
-  rows.push(shwBackRow(showingId, got.lead.id));
+  rows.push(shwBackRow(showingId));
   await editOrSend(ctx, messageId,
     `✉️ <b>Correo</b> — ${escapeHtml(leadName(got.lead))}\n` +
     `🕒 ${escapeHtml(got.c.time)}${got.c.addr ? ` · ${escapeHtml(got.c.addr)}` : ""}\n\nElige la plantilla:`,
@@ -3144,7 +3235,7 @@ async function handleShowingEmailSend(ctx: Ctx, cbq: any, data: string) {
     `✉️ <b>Enviado</b> a ${escapeHtml(got.lead.email)} ✅\n` +
     `<i>Sale en minutos desde support@rentfindercleveland.com — quedó en el historial del lead.</i>`,
     [[{ text: "💬 Mandar SMS", callback_data: `ssm:${showingId}` }],
-     shwBackRow(showingId, got.lead.id)]);
+     shwBackRow(showingId)]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -3753,7 +3844,7 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
 
   const { data: lead } = await ctx.supabase
     .from("leads")
-    .select("id, full_name, first_name, last_name, phone, email, status")
+    .select("id, full_name, first_name, last_name, phone, email, status, has_voucher, move_in_date")
     .eq("organization_id", ctx.organizationId).eq("id", leadId).maybeSingle();
   if (!lead) { await answer("Lead no encontrado."); return; }
   const name = leadName(lead);
@@ -3968,13 +4059,27 @@ async function sendTodayRoute(ctx: Ctx): Promise<boolean> {
   return true;
 }
 
+// Contact card reached FROM the agenda. Keyed by showing so "Volver" returns to
+// that slot's menu — `act:vc:<lead>` can't carry both ids (two UUIDs blow past
+// Telegram's 64-byte callback_data limit).
+async function showAgendaSlotContact(ctx: Ctx, cbq: any, data: string) {
+  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
+  const messageId: number | undefined = cbq.message?.message_id;
+  const showingId = data.slice(4);
+  const got = await loadShowing(ctx, showingId);
+  if (!got) { await answer("No encontré ese showing."); return; }
+  await answer();
+  await sendLeadContact(ctx, messageId, got.lead,
+    [[{ text: "◀️ Volver", callback_data: `sag:${showingId}` }]]);
+}
+
 // The per-slot contact menu — the one place the agenda hands off to an action.
 // Reuses the showing-day pickers built for the 30-min reminder card, so there is
 // a single set of message templates instead of one per entry point.
 // Phone and email are deliberately NOT shown: the buttons are what you use to
 // reach the person, so printing the raw values just adds noise you can't act on.
 // What IS here is what you need in your head before making contact — who, when,
-// where, the rent, and what they said when they booked.
+// where, the rent, the move-in, who pays, and what they said when they booked.
 async function showAgendaSlotMenu(ctx: Ctx, cbq: any, data: string) {
   const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
   const messageId: number | undefined = cbq.message?.message_id;
@@ -3986,7 +4091,7 @@ async function showAgendaSlotMenu(ctx: Ctx, cbq: any, data: string) {
   const kb: any[][] = [];
   if (tel) kb.push([{ text: "💬 Mensaje de texto", callback_data: `ssm:${showingId}` }]);
   if (got.lead.email) kb.push([{ text: "✉️ Correo", callback_data: `sse:${showingId}` }]);
-  kb.push([{ text: "👤 Agregar contacto", callback_data: `act:vc:${got.lead.id}` }]);
+  kb.push([{ text: "👤 Agregar contacto", callback_data: `sac:${showingId}` }]);
   kb.push([{ text: "◀️ Volver a la agenda", callback_data: "m:ag" }]);
   await editOrSend(ctx, messageId,
     [
@@ -3994,7 +4099,13 @@ async function showAgendaSlotMenu(ctx: Ctx, cbq: any, data: string) {
       `🕒 ${escapeHtml(got.c.time)}`,
       got.c.addr ? `📍 ${escapeHtml(got.c.addr)}` : "",
       got.rent ? `💵 ${escapeHtml(got.rent)}` : "",
-      got.bookingNote ? `\n📝 <i>${escapeHtml(got.bookingNote.slice(0, 220))}</i>` : "",
+      // Mudanza y forma de pago: lo que decide si vale la pena insistir.
+      // Se muestran SIEMPRE — "sin dato" también es información.
+      `📆 Mudanza: ${got.moveIn ? escapeHtml(got.moveIn) : "<i>sin dato</i>"}`,
+      `💰 ${got.payment ? escapeHtml(got.payment) : "<i>Pago sin indicar</i>"}`,
+      got.bookingNote
+        ? `\n📝 <i>${escapeHtml(got.bookingNote.slice(0, 220))}</i>`
+        : `\n📝 <i>Sin nota al agendar</i>`,
       ``,
       `¿Cómo lo contactas?`,
     ].filter(Boolean).join("\n"),
