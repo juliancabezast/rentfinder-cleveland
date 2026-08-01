@@ -104,32 +104,121 @@ function money(n: number): string {
   return `$${n.toFixed(2)}`;
 }
 
-// ── QuickChart ──────────────────────────────────────────────────────────────
-const INDIGO = "#4F46E5";
-const GOLD = "#FFB22C";
-
-function chartUrl(cfg: Record<string, unknown>, w = 900, h = 460): string {
-  return `https://quickchart.io/chart?w=${w}&h=${h}&devicePixelRatio=2&format=png&backgroundColor=white&c=${encodeURIComponent(JSON.stringify(cfg))}`;
+// Miles con punto, como se leen en el reporte (que va en español).
+function num(n: number): string {
+  return n.toLocaleString("es-CO");
 }
+
+// Porcentaje sobre una base; sin base no hay tasa que reportar.
+function rate(part: number, whole: number): string {
+  return whole > 0 ? `${((part * 100) / whole).toFixed(1)}%` : "—";
+}
+
+// ── QuickChart ──────────────────────────────────────────────────────────────
+// Chart.js v4 (QuickChart `v=4`): barras redondeadas, eje derecho propio por
+// serie y etiquetas de valor. El eje doble es deliberado — showings y leads
+// difieren en un orden de magnitud, y en una sola escala los showings
+// desaparecían. El número exacto va SIEMPRE impreso sobre la barra para que la
+// altura relativa nunca sea la única lectura posible.
+const INDIGO = "#4F46E5";
+const GOLD = "#F59E0B";
+const GREEN = "#10B981";
+const INK = "#111827";
+const MUTED = "#6B7280";
+const GRID = "#EEF1F6";
+
+// Los formatters de datalabels son funciones JS: QuickChart las evalúa, pero
+// JSON.stringify las descarta. Se serializan como marcadores y se sustituyen
+// en la URL ya codificada.
+const FN: Record<string, string> = {
+  "@@pct": '(v)=>v+"%"',
+  // es-CO para que la imagen separe los miles igual que el texto del reporte.
+  "@@mil": '(v)=>v.toLocaleString("es-CO")',
+};
+
+function chartUrl(cfg: Record<string, unknown>, w = 1000, h = 520): string {
+  let enc = encodeURIComponent(JSON.stringify(cfg));
+  for (const [marker, fn] of Object.entries(FN)) {
+    enc = enc.split(encodeURIComponent(`"${marker}"`)).join(encodeURIComponent(fn));
+  }
+  return `https://quickchart.io/chart?v=4&w=${w}&h=${h}&devicePixelRatio=2&format=png&backgroundColor=white&c=${enc}`;
+}
+
+function frame(title: string, subtitle: string): Record<string, any> {
+  return {
+    layout: { padding: { top: 6, right: 16, bottom: 2, left: 6 } },
+    plugins: {
+      title: {
+        display: true, text: title, align: "start", color: INK,
+        font: { size: 21, weight: "bold" }, padding: { top: 4, bottom: 2 },
+      },
+      subtitle: {
+        display: true, text: subtitle, align: "start", color: MUTED,
+        font: { size: 13 }, padding: { bottom: 18 },
+      },
+      legend: {
+        position: "bottom", align: "start",
+        labels: {
+          usePointStyle: true, pointStyle: "circle", boxWidth: 8, boxHeight: 8,
+          padding: 16, color: "#374151", font: { size: 13 },
+        },
+      },
+      datalabels: { display: false },
+    },
+    scales: {
+      y: {
+        beginAtZero: true, border: { display: false }, grid: { color: GRID },
+        ticks: { precision: 0, color: INDIGO, font: { size: 12 }, padding: 6 },
+      },
+      x: {
+        border: { display: false }, grid: { display: false },
+        ticks: { color: MUTED, font: { size: 12 } },
+      },
+    },
+  };
+}
+
+function rightAxis(color: string, pct = false): Record<string, any> {
+  return {
+    position: "right", beginAtZero: true, border: { display: false },
+    grid: { display: false },
+    ticks: {
+      precision: 0, color, font: { size: 12 },
+      ...(pct ? { callback: "@@pct" } : {}),
+    },
+  };
+}
+
+const VALUE_LABEL = {
+  display: true, anchor: "end", align: "top", offset: 1,
+  color: "#4B5563", font: { size: 11, weight: "bold" },
+};
 
 function dailyChart(series: { day: string; leads: number; showings: number }[]): string {
   // Drop the partial current day (sent at 5 AM it would chart as a fake collapse).
   const rows = series.slice(0, -1).slice(-14);
-  return chartUrl({
+  const cfg: Record<string, any> = {
     type: "bar",
     data: {
       labels: rows.map((r) => fmtDayEs(r.day).replace(",", "")),
       datasets: [
-        { label: "Leads", data: rows.map((r) => r.leads), backgroundColor: INDIGO },
-        { type: "line", label: "Showings", data: rows.map((r) => r.showings), borderColor: GOLD, backgroundColor: "rgba(255,178,44,.25)", fill: false, lineTension: 0.3 },
+        {
+          label: "Leads", data: rows.map((r) => r.leads), backgroundColor: INDIGO,
+          borderRadius: 6, borderSkipped: false, maxBarThickness: 30, order: 2,
+        },
+        {
+          type: "line", label: "Showings", data: rows.map((r) => r.showings),
+          borderColor: GOLD, backgroundColor: GOLD, fill: false, tension: 0.35,
+          borderWidth: 3, pointBackgroundColor: GOLD, pointBorderColor: "#fff",
+          pointBorderWidth: 2, pointRadius: 4, yAxisID: "y1", order: 1,
+        },
       ],
     },
-    options: {
-      title: { display: true, text: "Últimos 14 días — leads y showings" },
-      legend: { position: "bottom" },
-      scales: { yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }] },
-    },
-  });
+    // 14 barras no dejan sitio para etiquetas de valor — aquí manda la forma.
+    options: frame("Últimos 14 días", "Leads captados y showings agendados, día por día"),
+  };
+  cfg.options.scales.y1 = rightAxis(GOLD);
+  return chartUrl(cfg);
 }
 
 function weeklyChart(series: { day: string; leads: number; showings: number }[]): string {
@@ -149,40 +238,103 @@ function weeklyChart(series: { day: string; leads: number; showings: number }[])
     byWeek[monday].showings += r.showings;
   }
   const rows = weeks.slice(-8);
-  return chartUrl({
+  const cfg: Record<string, any> = {
     type: "bar",
     data: {
-      labels: rows.map((r) => `Sem ${r.label}`),
+      labels: rows.map((r) => r.label),
       datasets: [
-        { label: "Leads", data: rows.map((r) => r.leads), backgroundColor: INDIGO },
-        { label: "Showings", data: rows.map((r) => r.showings), backgroundColor: GOLD },
+        {
+          label: "Leads", data: rows.map((r) => r.leads), backgroundColor: INDIGO,
+          borderRadius: 6, borderSkipped: false, maxBarThickness: 34, datalabels: VALUE_LABEL,
+        },
+        {
+          label: "Showings", data: rows.map((r) => r.showings), backgroundColor: GOLD,
+          borderRadius: 6, borderSkipped: false, maxBarThickness: 34,
+          yAxisID: "y1", datalabels: VALUE_LABEL,
+        },
       ],
     },
-    options: {
-      title: { display: true, text: "Comparación semanal — últimas 8 semanas" },
-      legend: { position: "bottom" },
-      scales: { yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }] },
-    },
-  });
+    options: frame("Últimas 8 semanas",
+      "Semanas cerradas de lunes a domingo · cada serie con su propia escala"),
+  };
+  cfg.options.scales.y1 = rightAxis(GOLD);
+  return chartUrl(cfg);
 }
 
 function monthlyChart(months: { month: string; leads: number; showings: number }[]): string {
-  return chartUrl({
+  const cfg: Record<string, any> = {
     type: "bar",
     data: {
       // The current month is in-progress — star its label.
       labels: months.map((m, i) => fmtMonthEs(m.month) + (i === months.length - 1 ? "*" : "")),
       datasets: [
-        { label: "Leads", data: months.map((m) => m.leads), backgroundColor: INDIGO },
-        { label: "Showings", data: months.map((m) => m.showings), backgroundColor: GOLD },
+        {
+          label: "Leads", data: months.map((m) => m.leads), backgroundColor: INDIGO,
+          borderRadius: 8, borderSkipped: false, maxBarThickness: 52, datalabels: VALUE_LABEL,
+        },
+        {
+          label: "Showings", data: months.map((m) => m.showings), backgroundColor: GOLD,
+          borderRadius: 8, borderSkipped: false, maxBarThickness: 52,
+          yAxisID: "y1", datalabels: VALUE_LABEL,
+        },
       ],
     },
-    options: {
-      title: { display: true, text: "Comparación mensual — últimos 6 meses" },
-      legend: { position: "bottom" },
-      scales: { yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }] },
+    options: frame("Últimos 6 meses",
+      "El mes en curso (*) va incompleto · cada serie con su propia escala"),
+  };
+  cfg.options.scales.y1 = rightAxis(GOLD);
+  return chartUrl(cfg);
+}
+
+export type CampaignStat = {
+  name: string; first_sent: string;
+  sent: number; delivered: number; opened: number; clicked: number; bounced: number;
+};
+
+// Cuarta imagen: qué correo salió y cuánto se abrió. Las barras son ENTREGADOS
+// (no enviados): un rebote nunca llegó a nadie, contarlo infla el denominador
+// y hunde la tasa de apertura sin que nadie haya hecho nada mal.
+function emailChart(rows: CampaignStat[]): string {
+  // Etiqueta en DOS líneas (Chart.js acepta un array por etiqueta): fecha
+  // arriba, campaña abajo. En una sola línea seis nombres de campaña no caben
+  // y Chart.js los rota hasta volverlos ilegibles.
+  const label = (r: CampaignStat) => {
+    const d = fmtDayEs(String(r.first_sent).slice(0, 10)).replace(/^\S+\s/, "").replace(",", "");
+    const n = r.name.length > 18 ? `${r.name.slice(0, 17)}…` : r.name;
+    return [d, n];
+  };
+  const rate = (r: CampaignStat) =>
+    r.delivered > 0 ? Math.round((r.opened / r.delivered) * 1000) / 10 : 0;
+  const cfg: Record<string, any> = {
+    type: "bar",
+    data: {
+      labels: rows.map(label),
+      datasets: [
+        {
+          label: "Entregados", data: rows.map((r) => r.delivered), backgroundColor: INDIGO,
+          borderRadius: 6, borderSkipped: false, maxBarThickness: 64, order: 2,
+          datalabels: { ...VALUE_LABEL, font: { size: 12, weight: "bold" }, formatter: "@@mil" },
+        },
+        {
+          type: "line", label: "% de apertura", data: rows.map(rate),
+          borderColor: GREEN, backgroundColor: GREEN, fill: false, tension: 0.35,
+          borderWidth: 3, pointBackgroundColor: GREEN, pointBorderColor: "#fff",
+          pointBorderWidth: 2, pointRadius: 5, yAxisID: "y1", order: 1,
+          datalabels: {
+            display: true, align: "top", offset: 7, color: GREEN,
+            backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 4, padding: 3,
+            font: { size: 12, weight: "bold" }, formatter: "@@pct",
+          },
+        },
+      ],
     },
-  });
+    options: frame("Campañas de correo — últimos 30 días",
+      "Barras: correos entregados · Línea: qué porcentaje se abrió"),
+  };
+  cfg.options.scales.y1 = rightAxis(GREEN, true);
+  cfg.options.scales.x.ticks.font = { size: 11 };
+  cfg.options.scales.x.ticks.maxRotation = 0;
+  return chartUrl(cfg, 1000, 560);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
@@ -272,8 +424,13 @@ serve(async (req: Request) => {
       const yday = shiftDateStr(today, -1);
       const ydayStartUtc = localMidnightToUtc(yday);
 
+      // 30 días, no mes-a-la-fecha: el día 1 el mes en curso está vacío y el
+      // bloque de correo saldría en blanco justo después de una campaña grande.
+      const email30Start = new Date(now.getTime() - 30 * 86400000).toISOString();
+
       const [seriesRes, monthsRes, ydaySourcesRes, ydayShowCompRes, ydayShowNSRes,
-        ydayEmailsRes, ydaySmsRes, ydayConvRes, ydayCostsRes, backlogRes] = await Promise.all([
+        ydayEmailsRes, ydaySmsRes, ydayConvRes, ydayCostsRes, backlogRes,
+        campaignsRes, emailFunnelRes] = await Promise.all([
         supabase.rpc("report_time_series", { p_org: organizationId, p_days: 70 }),
         supabase.rpc("report_monthly_series", { p_org: organizationId, p_months: 6 }),
         // Source breakdown grouped in the DB (raw selects cap at 1000 rows silently).
@@ -293,6 +450,9 @@ serve(async (req: Request) => {
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("organization_id", organizationId)
           .not("is_demo", "is", true).eq("status", "new")
           .gte("created_at", new Date(now.getTime() - 2 * 86400000).toISOString()),
+        // Correo de los últimos 30 días: campañas una por una, y el embudo total.
+        supabase.rpc("report_campaign_email_stats", { p_org: organizationId, p_since: email30Start, p_limit: 6 }),
+        supabase.rpc("report_email_funnel", { p_org: organizationId, p_since: email30Start, p_until: now.toISOString() }),
       ]);
 
       const series = (seriesRes.data || []).map((r: any) => ({
@@ -301,6 +461,27 @@ serve(async (req: Request) => {
       const months = (monthsRes.data || []).map((r: any) => ({
         month: String(r.month), leads: Number(r.leads) || 0, showings: Number(r.showings) || 0,
       }));
+      // El RPC ordena por más reciente (para que el LIMIT recorte lo viejo); el
+      // gráfico se lee de izquierda a derecha en el tiempo, así que se invierte.
+      const campaigns: CampaignStat[] = ((campaignsRes.data || []) as any[]).map((r) => ({
+        name: String(r.name || "Campaña"),
+        first_sent: String(r.first_sent || ""),
+        sent: Number(r.sent) || 0,
+        delivered: Number(r.delivered) || 0,
+        opened: Number(r.opened) || 0,
+        clicked: Number(r.clicked) || 0,
+        bounced: Number(r.bounced) || 0,
+      })).reverse();
+      const ef = (((emailFunnelRes.data || []) as any[])[0] || {}) as Record<string, unknown>;
+      const mail = {
+        sent: Number(ef.sent) || 0,
+        delivered: Number(ef.delivered) || 0,
+        opened: Number(ef.opened) || 0,
+        clicked: Number(ef.clicked) || 0,
+        bounced: Number(ef.bounced) || 0,
+        fromCampaigns: Number(ef.campaign_sent) || 0,
+      };
+
       const byDay = new Map(series.map((r: any) => [r.day, r]));
       const dayLeads = (d: string) => byDay.get(d)?.leads ?? 0;
       const dayShowings = (d: string) => byDay.get(d)?.showings ?? 0;
@@ -350,6 +531,22 @@ serve(async (req: Request) => {
         `━━ <b>MES</b> (al día ${dayOfMonth} vs mes pasado) ━━`,
         `👥 ${mtd} leads (${deltaBadge(mtd, mtdPrev)}) · 🏠 ${mtdShow} showings (${deltaBadge(mtdShow, mtdShowPrev)})`,
       ];
+      if (mail.sent > 0) {
+        // Tasas SIEMPRE sobre entregados, nunca sobre enviados: un rebote no
+        // llegó a nadie y meterlo en el denominador hunde la apertura sin que
+        // nadie haya hecho nada mal.
+        lines.push(
+          ``,
+          `━━ <b>CORREO</b> (últimos 30 días) ━━`,
+          `📤 ${num(mail.sent)} enviados · 📥 ${num(mail.delivered)} entregados (${rate(mail.delivered, mail.sent)})`,
+          `👀 ${num(mail.opened)} abiertos (${rate(mail.opened, mail.delivered)}) · ` +
+          `🖱 ${num(mail.clicked)} clics (${rate(mail.clicked, mail.delivered)}) · ` +
+          `↩️ ${num(mail.bounced)} rebotes (${rate(mail.bounced, mail.sent)})`,
+          ...(campaigns.length
+            ? [`📣 ${campaigns.length} campaña${campaigns.length === 1 ? "" : "s"} — ${num(mail.fromCampaigns)} de esos correos`]
+            : []),
+        );
+      }
       if (backlog > 0) {
         lines.push(``, `━━ <b>⚡ PARA HOY</b> ━━`);
         lines.push(`📋 ${backlog} nuevos sin primer contacto (48h)`);
@@ -365,10 +562,18 @@ serve(async (req: Request) => {
         return json({ error: `telegram send failed: ${sent.description || "unknown"}` }, 500);
       }
       // Comparison charts as an album (Telegram fetches the QuickChart URLs).
+      // La cuarta imagen solo va si hubo campañas: un gráfico vacío no informa
+      // de nada y ocupa el mismo espacio que uno que sí.
       const media = [
-        { type: "photo", media: dailyChart(series), caption: "📊 Comparación diaria, semanal y mensual (* mes en curso)" },
+        {
+          type: "photo", media: dailyChart(series),
+          caption: campaigns.length
+            ? "📊 Día, semana, mes — y el correo que salió (* período en curso)"
+            : "📊 Comparación diaria, semanal y mensual (* mes en curso)",
+        },
         { type: "photo", media: weeklyChart(series) },
         { type: "photo", media: monthlyChart(months) },
+        ...(campaigns.length ? [{ type: "photo", media: emailChart(campaigns) }] : []),
       ];
       const mg = await tg("sendMediaGroup", { chat_id: chatId, media });
       if (!mg.ok) {
