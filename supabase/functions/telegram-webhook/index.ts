@@ -145,20 +145,32 @@ serve(async (req: Request) => {
         bot = "general";
         botToken = (creds.telegram_bot_token as string) || undefined;
       } else {
-        // Legacy fallback: match by chat id (general first). All bots usually DM
-        // the same chat, so ?bot= is the reliable signal; this is best-effort.
-        if (chatId === String(creds.telegram_chat_id)) {
-          bot = "general";
-          botToken = creds.telegram_bot_token as string;
-        } else if (chatId === String(creds.telegram_showings_chat_id)) {
-          bot = "showings";
-          botToken = creds.telegram_showings_bot_token as string;
-        } else if (chatId === String(creds.telegram_funnel_chat_id)) {
-          bot = "funnel";
-          botToken = creds.telegram_funnel_bot_token as string;
-        } else if (routeChat && chatId === String(routeChat)) {
-          bot = "leasing";
-          botToken = routeToken;
+        // Legacy fallback: match by chat id. This is best-effort and, in this
+        // deployment, actively AMBIGUOUS — every bot DMs the same chat, so the
+        // first branch wins and all four collapse into "general". Since
+        // `general` only permits `rp:`/`lr:` callbacks, that silently turns
+        // every button in every bot into a redirect, with nothing in the logs
+        // saying why. `?bot=` on the webhook URL is the real signal.
+        //
+        // So: detect the ambiguity and say so, loudly, instead of guessing.
+        const chatMatches = [
+          [String(creds.telegram_chat_id), "general", creds.telegram_bot_token],
+          [String(creds.telegram_showings_chat_id), "showings", creds.telegram_showings_bot_token],
+          [String(creds.telegram_funnel_chat_id), "funnel", creds.telegram_funnel_bot_token],
+          [routeChat ? String(routeChat) : "", "leasing", routeToken],
+        ].filter(([cid, , tok]) => cid && tok && chatId === cid);
+
+        if (chatMatches.length > 1) {
+          console.error(
+            `telegram-webhook: AMBIGUOUS ROUTING — chat ${chatId} matches ${chatMatches.length} bots ` +
+            `(${chatMatches.map(([, n]) => n).join(", ")}) and the request carried no ?bot= parameter. ` +
+            `Defaulting to "${chatMatches[0][1]}"; every callback outside that bot's vocabulary will ` +
+            `silently redirect. Fix: re-register this bot's webhook with ?bot=<name>.`,
+          );
+        }
+        if (chatMatches.length) {
+          bot = chatMatches[0][1] as string;
+          botToken = chatMatches[0][2] as string;
         }
       }
     }
@@ -350,7 +362,6 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data.startsWith("ssp:")) { await handleShowingEmailPick(ctx, cbq, data); return; }
     if (data.startsWith("ssx:")) { await handleShowingEmailSend(ctx, cbq, data); return; }
     if (data.startsWith("cz:")) { await handleClosing(ctx, cbq, data); return; }
-    if (data.startsWith("psl:")) { await answer(); await funnelLeadCard(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("sag:")) { await showAgendaSlotMenu(ctx, cbq, data); return; }
     if (data === "m:sch") { await answer(); await startSchedule(ctx, messageId); return; }
     if (data === "m:new") { await answer(); await startCreateLead(ctx, messageId, true); return; }
@@ -438,7 +449,7 @@ async function startSchedule(ctx: Ctx, messageId?: number) {
     ? { lead_id: prev.data.lead_id, lead_name: prev.data.lead_name, lead_phone: prev.data.lead_phone, lead_email: prev.data.lead_email ?? null }
     : {};
   await setSession(ctx, "choose_property", data);
-  const msg = "🏠 <b>Agendar showing</b>\n\nEscribí parte de la <b>dirección</b> o <b>ciudad</b> de la propiedad (ej: <code>117th</code> o <code>Cleveland</code>):";
+  const msg = "🏠 <b>Agendar showing</b>\n\nEscribe parte de la <b>dirección</b> o <b>ciudad</b> de la propiedad (ej: <code>117th</code> o <code>Cleveland</code>):";
   await editOrSend(ctx, messageId, msg, [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
 }
 
@@ -616,7 +627,7 @@ async function renderTimes(ctx: Ctx, messageId: number | undefined, page: number
 
   const head = slots.length
     ? `🏠 <b>${escapeHtml(session.data.property_label)}</b>\n📅 <b>${slotDayLabel(day)}</b> — elige la hora:${pages > 1 ? ` <i>(pág ${p + 1}/${pages})</i>` : ""}`
-    : `🏠 <b>${escapeHtml(session.data.property_label)}</b>\n📅 <b>${slotDayLabel(day)}</b> — sin horarios abiertos.\nTocá <b>🕐 Otro horario</b> para abrir uno:`;
+    : `🏠 <b>${escapeHtml(session.data.property_label)}</b>\n📅 <b>${slotDayLabel(day)}</b> — sin horarios abiertos.\nToca <b>🕐 Otro horario</b> para abrir uno:`;
   await editOrSend(ctx, messageId, head, rows);
 }
 
@@ -637,7 +648,7 @@ async function startCustomTime(ctx: Ctx, messageId: number | undefined) {
   }
   await setSession(ctx, "custom_time", session.data);
   await editOrSend(ctx, messageId,
-    `🕐 <b>${slotDayLabel(session.data.slot_day)}</b>\nEscribí la hora del showing (solo <b>en punto</b> o <b>y media</b>).\nEj: <code>2:30 PM</code> · <code>14:30</code> · <code>10 am</code>`,
+    `🕐 <b>${slotDayLabel(session.data.slot_day)}</b>\nEscribe la hora del showing (solo <b>en punto</b> o <b>y media</b>).\nEj: <code>2:30 PM</code> · <code>14:30</code> · <code>10 am</code>`,
     [[{ text: "◀️ Volver a horarios", callback_data: "bk2" }], [{ text: "❌ Cancelar", callback_data: "m:x" }]]);
 }
 
@@ -790,7 +801,7 @@ async function handleLeadSearch(ctx: Ctx, session: Session, rawQuery: string) {
   const { data: leads } = await query;
   const list = leads || [];
   if (list.length === 0) {
-    await send(ctx, `🔎 No encontré ningún lead con teléfono para «${escapeHtml(rawQuery)}».\nProbá con otro dato, o creá el lead:`,
+    await send(ctx, `🔎 No encontré ningún lead con teléfono para «${escapeHtml(rawQuery)}».\nPrueba con otro dato, o crea el lead:`,
       [[{ text: "➕ Crear lead nuevo", callback_data: "nl" }], [{ text: "❌ Cancelar", callback_data: "m:x" }]]);
     return;
   }
@@ -831,7 +842,7 @@ async function startCreateLead(ctx: Ctx, messageId: number | undefined, fromMenu
   // From the menu: start clean. Mid-schedule (nl): keep the chosen property/slot.
   const data = fromMenu ? { from_menu_create: true } : { ...(prev?.data || {}), from_menu_create: false };
   await setSession(ctx, "create_lead", data);
-  const msg = "➕ <b>Crear lead</b>\n\nMandá los 3 datos separados por coma:\n<code>Nombre Apellido, teléfono, email</code>\n\nEj: <code>Juan Pérez, 216-555-1234, juan@mail.com</code>\n\n<i>El email es necesario para enviarle la confirmación del showing.</i>";
+  const msg = "➕ <b>Crear lead</b>\n\nManda los 3 datos separados por coma:\n<code>Nombre Apellido, teléfono, email</code>\n\nEj: <code>Juan Pérez, 216-555-1234, juan@mail.com</code>\n\n<i>El email es necesario para enviarle la confirmación del showing.</i>";
   await editOrSend(ctx, messageId, msg, [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
 }
 
@@ -1071,7 +1082,7 @@ async function runReport(ctx: Ctx) {
 async function startLeasingReport(ctx: Ctx, messageId?: number) {
   await setSession(ctx, "leasing_search", {});
   await editOrSend(ctx, messageId,
-    "📄 <b>Reporte de leasing</b>\n\nEscribí la <b>dirección</b> o <b>ciudad</b> de la propiedad (ej: <code>117th</code> o <code>Cleveland</code>):",
+    "📄 <b>Reporte de leasing</b>\n\nEscribe la <b>dirección</b> o <b>ciudad</b> de la propiedad (ej: <code>117th</code> o <code>Cleveland</code>):",
     [[{ text: "❌ Cancelar", callback_data: "m:x" }]]);
 }
 
@@ -1409,7 +1420,7 @@ async function startRfcAi(ctx: Ctx, messageId?: number) {
     "🤖 <b>Pregunta libre</b>\n\nPreguntame lo que quieras sobre tus datos, en tu idioma. Ejemplos:\n" +
     "• <i>¿Cuántos leads entraron esta semana y de dónde?</i>\n" +
     "• <i>¿Qué propiedad tiene más interesados últimamente?</i>\n" +
-    "• <i>¿Cómo viene este mes vs el pasado?</i>\n\nEscribí tu pregunta 👇 (seguimos acá hasta que vuelvas al menú)",
+    "• <i>¿Cómo viene este mes vs el pasado?</i>\n\nEscribe tu pregunta 👇 (seguimos acá hasta que vuelvas al menú)",
     RFC_BACK);
 }
 
@@ -1710,7 +1721,10 @@ async function funnelLeadCard(ctx: Ctx, messageId: number | undefined, leadId: s
 async function funnelStagePicker(ctx: Ctx, messageId: number | undefined, lead: any) {
   const rows = FNL_STAGES.map((s) => [{ text: s.label, callback_data: `ast:${lead.id}:${s.code}` }]);
   rows.push([{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]);
-  await send(ctx,
+  // Edit in place: a picker opened from the action menu REPLACES it. Sending a
+  // new message left the menu you came from sitting above, so working one lead
+  // grew a column of stale menus.
+  await editOrSend(ctx, messageId,
     `🎯 <b>Mover de etapa</b> — ${escapeHtml(leadName(lead))}\nEtapa actual: <b>${FNL_STATUS_LABEL[lead.status] || escapeHtml(lead.status || "—")}</b>`,
     rows);
 }
@@ -1769,11 +1783,15 @@ const FNL_SMS_TEMPLATES: { code: string; label: string; body: (first: string) =>
   { code: "rs2", label: "🔄 Mover el showing", body: (f) => `Hi ${f}, this is Rent Finder Cleveland about your showing today — no problem, let's find a new time. What day and time works best for you? You can also pick a new slot online: https://rentfindercleveland.com` },
 ];
 async function funnelSmsPicker(ctx: Ctx, messageId: number | undefined, lead: any) {
+  const back = [[{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]];
   const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
-  if (!tel) { await editOrSend(ctx, messageId, `❌ ${escapeHtml(leadName(lead))} no tiene teléfono.`); return; }
+  // The no-phone branch already edited in place but left no way back — a dead
+  // end. Both branches now edit AND keep the return path.
+  if (!tel) { await editOrSend(ctx, messageId, `❌ ${escapeHtml(leadName(lead))} no tiene teléfono.`, back); return; }
   const rows = FNL_SMS_TEMPLATES.map((t) => [{ text: t.label, callback_data: `asms:${lead.id}:${t.code}` }]);
-  rows.push([{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]);
-  await send(ctx, `💬 <b>Enviar SMS</b> — ${escapeHtml(leadName(lead))} · 📞 ${escapeHtml(tel)}\nElegí el mensaje:`, rows);
+  rows.push(back[0]);
+  await editOrSend(ctx, messageId,
+    `💬 <b>Enviar SMS</b> — ${escapeHtml(leadName(lead))} · 📞 ${escapeHtml(tel)}\nElige el mensaje:`, rows);
 }
 async function handleFunnelSms(ctx: Ctx, cbq: any, data: string) {
   const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
@@ -2073,7 +2091,7 @@ async function showQueuePicker(ctx: Ctx, messageId?: number) {
   rows.push([{ text: "🎯 Menú", callback_data: "fnl:menu" }]);
 
   const header = top.length
-    ? `🗂️ <b>${totalN} por gestionar</b>\n\nElegí una propiedad y te doy los leads en tandas de 3 👇`
+    ? `🗂️ <b>${totalN} por gestionar</b>\n\nElige una propiedad y te doy los leads en tandas de 3 👇`
     : `🗂️ <b>${totalN} por gestionar</b>\n\nSin propiedades disponibles con leads esperando — dale al clásico 👇`;
   await editOrSend(ctx, messageId, header, rows);
 }
@@ -2370,14 +2388,19 @@ const FNL_EMAIL_TEMPLATES: {
   },
 ];
 
-async function funnelEmailPicker(ctx: Ctx, lead: any) {
+async function funnelEmailPicker(ctx: Ctx, messageId: number | undefined, lead: any) {
+  const back = [[{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]];
   if (!lead.email) {
-    await send(ctx, `❌ <b>${escapeHtml(leadName(lead))}</b> no tiene email — mándale 💬 SMS, o agrega su email desde la web.`);
+    // Even the dead end edits in place, and keeps a way back — it used to drop a
+    // loose error message under a menu that stayed open.
+    await editOrSend(ctx, messageId,
+      `❌ <b>${escapeHtml(leadName(lead))}</b> no tiene email — mándale 💬 SMS, o agrega su email desde la web.`, back);
     return;
   }
   const rows = FNL_EMAIL_TEMPLATES.map((t) => [{ text: t.label, callback_data: `aem:${lead.id}:${t.code}` }]);
-  rows.push([{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]);
-  await send(ctx, `✉️ <b>Email para ${escapeHtml(leadName(lead))}</b> · ${escapeHtml(lead.email)}\nElegí la plantilla:`, rows);
+  rows.push(back[0]);
+  await editOrSend(ctx, messageId,
+    `✉️ <b>Email para ${escapeHtml(leadName(lead))}</b> · ${escapeHtml(lead.email)}\nElige la plantilla:`, rows);
 }
 
 async function handleEmailPick(ctx: Ctx, cbq: any, data: string) {
@@ -2462,9 +2485,10 @@ async function handleEmailSend(ctx: Ctx, cbq: any, data: string) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 👤 Save-contact — Telegram sendContact with a vCard (one tap → Add to Contacts)
 // ═══════════════════════════════════════════════════════════════════════════════
-async function sendLeadContact(ctx: Ctx, lead: any) {
+async function sendLeadContact(ctx: Ctx, messageId: number | undefined, lead: any) {
+  const back = [[{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]];
   const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
-  if (!tel) { await send(ctx, "❌ Este lead no tiene teléfono."); return; }
+  if (!tel) { await editOrSend(ctx, messageId, "❌ Este lead no tiene teléfono.", back); return; }
   const clean = (s: unknown) => String(s ?? "").replace(/[;\n\r]/g, " ").trim();
   const name = clean(leadName(lead));
   const first = clean(lead.first_name) || name.split(/\s+/)[0] || "Lead";
@@ -2532,12 +2556,16 @@ async function sendLeadContact(ctx: Ctx, lead: any) {
     last_name: last, vcard,
   });
   if (!r || !r.ok) {
-    await send(ctx, "❌ No pude enviar la tarjeta de contacto. Inténtalo de nuevo.");
+    await editOrSend(ctx, messageId, "❌ No pude enviar la tarjeta de contacto. Inténtalo de nuevo.", back);
     return;
   }
-  await send(ctx,
-    `👆 Toca el contacto y <b>Add to Contacts</b> — se guarda como <b>${escapeHtml(fn)}</b>` +
-    (orgLine !== "Rent Finder Cleveland" ? `\n💼 ${escapeHtml(orgLine.slice(0, 120))}` : "."));
+  // sendContact is necessarily a NEW message (a contact card can't be an edit),
+  // so the hint about it goes into the menu we came from instead of becoming a
+  // third message. Net: one new message, and no orphan menu left behind.
+  await editOrSend(ctx, messageId,
+    `👆 Toca el contacto de arriba y <b>Add to Contacts</b> — se guarda como <b>${escapeHtml(fn)}</b>` +
+    (orgLine !== "Rent Finder Cleveland" ? `\n💼 ${escapeHtml(orgLine.slice(0, 120))}` : "."),
+    back);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2572,7 +2600,7 @@ async function startRecentShowings(ctx: Ctx, messageId?: number) {
     return;
   }
   rows.push([menuBtn]);
-  await editOrSend(ctx, messageId, "🏁 <b>Showings pendientes de resolver</b> — marca asistencia y hacé el seguimiento. Al terminar, salen de la lista.\nTocá uno:", rows);
+  await editOrSend(ctx, messageId, "🏁 <b>Showings pendientes de resolver</b> — marca asistencia y haz el seguimiento. Al terminar, salen de la lista.\nToca uno:", rows);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2910,7 +2938,7 @@ const SHW_SMS_TEMPLATES: { code: string; label: string; body: (c: ShwCtx) => str
   { code: "om", label: "🚗 Voy en camino", body: (c) => `Hi ${c.first}, this is Rent Finder Cleveland — on my way for our ${c.time} showing${shwWhere(c)}. See you in a few minutes!` },
   { code: "he", label: "📍 Ya llegué", body: (c) => `Hi ${c.first}, I'm here${shwWhere(c)} for our ${c.time} showing. Come on over — I'll be out front.` },
   { code: "lt", label: "⏳ Llego tarde", body: (c) => `Hi ${c.first}, running about 10 minutes behind for our ${c.time} showing${shwWhere(c)} — sorry about that! Still on my way.` },
-  { code: "qq", label: "❓ ¿Seguís viniendo?", body: (c) => `Hi ${c.first}, are you still able to make our ${c.time} showing${shwWhere(c)}? Just let me know either way — happy to find another time.` },
+  { code: "qq", label: "❓ ¿Sigues viniendo?", body: (c) => `Hi ${c.first}, are you still able to make our ${c.time} showing${shwWhere(c)}? Just let me know either way — happy to find another time.` },
 ];
 
 // notification_type stays OUT of MARKETING_NOTIFICATION_TYPES on purpose: the
@@ -2933,7 +2961,7 @@ const SHW_EMAIL_TEMPLATES: {
     html: (c) => `<p>Hi ${c.first},</p><p>Here are the details for today's showing:</p><ul><li><b>Time:</b> ${c.time}</li>${c.addr ? `<li><b>Address:</b> ${c.addr}</li>` : ""}<li><b>Bring:</b> a photo ID</li></ul><p>The tour takes about 15 minutes and you're welcome to ask anything. If you like the home, you can apply the same day:</p><p><a href="${APPLY_URL}">${APPLY_URL}</a></p><p>— Rent Finder Cleveland</p>`,
   },
   {
-    code: "qq", label: "❓ ¿Seguís viniendo?", ntype: "showing_reminder",
+    code: "qq", label: "❓ ¿Sigues viniendo?", ntype: "showing_reminder",
     subject: (c) => `Are we still on for ${c.time} today?`,
     text: (c) => `Hi ${c.first}, are you still able to make our showing today at ${c.time}${shwWhere(c)}? Just reply either way — if today doesn't work we can easily find a new time: ${MARKETPLACE_URL}`,
     html: (c) => `<p>Hi ${c.first},</p><p>Are you still able to make our showing <b>today at ${c.time}</b>${c.addr ? ` at <b>${c.addr}</b>` : ""}?</p><p>Just reply either way — if today doesn't work we can easily find a new time:</p><p><a href="${MARKETPLACE_URL}">${MARKETPLACE_URL}</a></p><p>— Rent Finder Cleveland</p>`,
@@ -3793,7 +3821,7 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
         await startSchedule(ctx);
       } else {
         await editOrSend(ctx, messageId,
-          `📅 Anotado. Abre <b>Showing Setter</b> o <b>🎯 Funnel</b> → 📅 Agendar y pegá: 📞 ${escapeHtml(tel)}`, again);
+          `📅 Anotado. Abre <b>Showing Setter</b> o <b>🎯 Funnel</b> → 📅 Agendar y pega: 📞 ${escapeHtml(tel)}`, again);
       }
     } else if (verb === "done") {
       await answer("Anotado ✅");
@@ -3817,10 +3845,10 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
       await funnelStagePicker(ctx, messageId, lead);
     } else if (verb === "em") {
       await answer();
-      await funnelEmailPicker(ctx, lead);
+      await funnelEmailPicker(ctx, messageId, lead);
     } else if (verb === "vc") {
       await answer();
-      await sendLeadContact(ctx, lead);
+      await sendLeadContact(ctx, messageId, lead);
     } else {
       await answer();
     }
@@ -4097,7 +4125,7 @@ async function handlePhoto(ctx: Ctx, message: any) {
     await showReportReview(ctx, undefined);
   } catch (e) {
     console.error("handlePhoto", e);
-    await send(ctx, "❌ No pude subir la foto. Intenta de nuevo o guardá sin foto.");
+    await send(ctx, "❌ No pude subir la foto. Intenta de nuevo o guarda sin foto.");
   }
 }
 async function saveShowingReport(ctx: Ctx, messageId: number | undefined) {
