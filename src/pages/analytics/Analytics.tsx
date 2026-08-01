@@ -635,7 +635,7 @@ const Analytics: React.FC = () => {
                   ) : firstResponseMasked ? (
                     <p className="text-sm text-muted-foreground">
                       Los rangos que empiezan antes de julio 2026 mezclan blasts de campañas a
-                      leads viejos y dan tiempos sin sentido. Elegí un rango desde julio.
+                      leads viejos y dan tiempos sin sentido. Elige un rango desde julio.
                     </p>
                   ) : (
                     <div className="grid grid-cols-3 gap-3 text-center">
