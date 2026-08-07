@@ -37,6 +37,7 @@ import { format, addDays, parseISO, startOfWeek } from "date-fns";
 import { buildScheduledAt, formatTimeInTimezone, getTimezoneForCity } from "@/lib/cityTimezone";
 import { sendNotificationEmail } from "@/lib/notificationService";
 import { quickReportText } from "@/lib/showingReports";
+import { marketTone, TONED_MARKETS } from "@/lib/marketColors";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // ── The single "bookable" definition: a property whose slots may be shown /
@@ -1598,9 +1599,15 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" /> Open</div>
-        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" /> Booked</div>
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-green-100 border border-green-300" /> Completed</div>
         <div className="flex items-center gap-1.5"><span className="inline-block w-3 border-t-2 border-red-500" /> Now</div>
+        <span className="text-slate-300">|</span>
+        <span>Booked:</span>
+        {TONED_MARKETS.map((m) => (
+          <div key={m.label} className="flex items-center gap-1.5">
+            <div className={`w-3 h-3 rounded border ${m.tone.swatch}`} /> {m.label}
+          </div>
+        ))}
         <div className="ml-auto text-[10px]">Click a cell — or drag across a range — to open</div>
       </div>
 
@@ -1725,7 +1732,14 @@ const SlotCell: React.FC<{
       <Popover>
         <PopoverTrigger asChild>
           <button className="w-full rounded-md border bg-green-50 border-green-200 text-green-700 px-2 py-1 text-[10px] text-left hover:bg-green-100 transition-colors">
-            <div className="font-bold truncate">{firstName(bookings[0]?.leadName || "Done")}</div>
+            <div className="font-bold truncate">
+              {firstName(bookings[0]?.leadName || "Done")}
+              {bookedCities.length > 0 && (
+                <span className={`ml-1 px-1 py-px rounded border text-[9px] font-semibold align-middle ${marketTone(bookedCities[0]).tag}`}>
+                  {shortCity(bookedCities[0])}
+                </span>
+              )}
+            </div>
             <div className="opacity-70 truncate">
               {bookedCount > 1 ? `+${bookedCount - 1} more · ${bookings[0]?.address || ""}` : (bookings[0]?.address || "")}
             </div>
@@ -1782,9 +1796,11 @@ const SlotCell: React.FC<{
     return <span className="text-slate-400">—</span>;
   }
 
-  // Cell style
+  // Cell style. A booked cell is painted by its CITY (Cleveland blue, Milwaukee
+  // purple) so the day reads as a route at a glance; open/cancelled/closed keep
+  // their state colours, because there the city is a list, not one thing.
   let cellStyle = "bg-slate-50/60 text-slate-300 border-dashed border-slate-200 hover:border-[#4F46E5]/40 hover:text-[#4F46E5] hover:bg-[#4F46E5]/5";
-  if (isBooked) cellStyle = "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100";
+  if (isBooked) cellStyle = marketTone(bookedCities[0]).cell;
   else if (hasCancelled) cellStyle = "bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100";
   else if (isOpen) cellStyle = "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100";
 
@@ -1817,15 +1833,23 @@ const SlotCell: React.FC<{
               <div className="font-bold truncate">
                 {firstName(bookings[0]?.leadName || "Booked")}
                 {bookedCities.length > 0 && (
-                  <span className="ml-1 font-normal opacity-60">{shortCity(bookedCities[0])}</span>
+                  <span className={`ml-1 px-1 py-px rounded border text-[9px] font-semibold align-middle ${marketTone(bookedCities[0]).tag}`}>
+                    {shortCity(bookedCities[0])}
+                  </span>
                 )}
               </div>
               <div className="text-[10px] opacity-70 truncate">
                 {bookedCount > 1 ? `+${bookedCount - 1} more · ${bookings[0]?.address || ""}` : (bookings[0]?.address || "Booked")}
               </div>
               {openElsewhere.length > 0 && (
-                <div className="text-[10px] font-semibold text-emerald-700 truncate">
-                  + {openElsewhere.map(shortCity).join(", ")} open
+                <div className="flex flex-wrap justify-center items-center gap-0.5">
+                  <span className="text-[9px] font-semibold text-emerald-700">+</span>
+                  {openElsewhere.map((c) => (
+                    <span key={c} className={`px-1 rounded border text-[9px] font-semibold ${marketTone(c).tag}`}>
+                      {shortCity(c)}
+                    </span>
+                  ))}
+                  <span className="text-[9px] text-emerald-700">open</span>
                 </div>
               )}
             </>
@@ -1839,7 +1863,16 @@ const SlotCell: React.FC<{
               <div className="font-bold">Open</div>
               {(() => {
                 const cities = [...new Set(ts!.properties.map((p) => p.property_city).filter(Boolean))];
-                return cities.length > 0 ? <div className="text-[10px] opacity-70 truncate">{cities.join(", ")}</div> : null;
+                if (cities.length === 0) return null;
+                return (
+                  <div className="flex flex-wrap justify-center gap-0.5">
+                    {cities.map((c) => (
+                      <span key={c} className={`px-1 rounded border text-[9px] font-semibold ${marketTone(c).tag}`}>
+                        {shortCity(c)}
+                      </span>
+                    ))}
+                  </div>
+                );
               })()}
             </>
           ) : (

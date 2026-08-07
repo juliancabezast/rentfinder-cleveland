@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fs from "fs";
+import { marketTone, TONED_MARKETS } from "@/lib/marketColors";
 
 // Guards for the two rules the owner asked for on 2026-08-07:
 //   1. Cities schedule independently — a different person shows in each, so a
@@ -101,5 +102,31 @@ describe("daily cap: 2 self-booked showings per person", () => {
     expect(fn).toContain('dbMsg.includes("showing_daily_cap")');
     expect(fn).toContain('code: "daily_cap"');
     expect(fn).toContain('dbMsg.includes("showing_lead_conflict")');
+  });
+});
+
+describe("market colours", () => {
+  it("Cleveland is blue and East Cleveland shares it (same market, same person)", () => {
+    const cle = marketTone("Cleveland");
+    expect(cle.cell).toContain("blue");
+    expect(marketTone("East Cleveland")).toEqual(cle);
+    // Case and stray whitespace must not fall through to the neutral tone.
+    expect(marketTone("  east cleveland ")).toEqual(cle);
+  });
+
+  it("Milwaukee is purple and distinct from Cleveland", () => {
+    const mil = marketTone("Milwaukee");
+    expect(mil.cell).toContain("purple");
+    expect(mil.cell).not.toEqual(marketTone("Cleveland").cell);
+  });
+
+  it("an unmapped city stays neutral rather than borrowing a colour", () => {
+    for (const c of ["Detroit", "Akron", "", null, undefined]) {
+      expect(marketTone(c).cell).toContain("slate");
+    }
+  });
+
+  it("the legend lists exactly the toned markets", () => {
+    expect(TONED_MARKETS.map((m) => m.label)).toEqual(["Cleveland", "Milwaukee"]);
   });
 });

@@ -14,6 +14,7 @@ import {
   CalendarClock, FileText, Check, Ghost, Loader2, MapPin, CalendarDays, Plus,
 } from "lucide-react";
 import { useSlotCities } from "@/hooks/useSlotCities";
+import { marketTone } from "@/lib/marketColors";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { getTimezoneForCity, formatTimeInTimezone, todayInTimezone } from "@/lib/cityTimezone";
@@ -332,7 +333,7 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
                   <div className="flex items-start gap-2">
                   <button className="flex-1 min-w-0 flex items-start gap-3 text-left" onClick={() => onShowingClick(s.id)}>
                     <div className="text-center min-w-[3.5rem] shrink-0">
-                      <div className="text-lg font-bold text-[#4F46E5] leading-tight">{time.replace(/ ?[AP]M$/i, "")}</div>
+                      <div className={`text-lg font-bold leading-tight ${marketTone(s.property_city).text}`}>{time.replace(/ ?[AP]M$/i, "")}</div>
                       <div className="text-[10px] text-muted-foreground uppercase">{/AM/i.test(time) ? "AM" : "PM"}</div>
                     </div>
                     <div className="flex-1 min-w-0 border-l pl-3">
@@ -340,6 +341,11 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
                       <div className="text-xs text-muted-foreground flex items-start gap-1 mt-0.5">
                         <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
                         <span className="truncate">{s.property_address || "Dirección N/A"}</span>
+                        {s.property_city && (
+                          <span className={`shrink-0 px-1.5 rounded border text-[10px] font-semibold ${marketTone(s.property_city).tag}`}>
+                            {s.property_city}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <Badge variant="outline" className={`text-[10px] shrink-0 ${badge.className}`}>{badge.label}</Badge>
