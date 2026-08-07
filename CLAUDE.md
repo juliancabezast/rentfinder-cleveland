@@ -70,6 +70,16 @@ Every table has `organization_id`. All RLS policies scope by user's org. **Never
 ### Domain (Single-Domain Consolidation)
 The product now runs on a **single domain**: `rentfindercleveland.com`. The historical "3 apps / 3 domains on 1 DB" model (which also listed homeguardmanagement.com and portafoliodiversificado.com) is no longer in product scope — those brands have been removed. Still use `window.location.origin` for URLs and org settings for sender domains; never hardcode domain names (this keeps the code multi-domain-safe even though only one domain is active).
 
+### Showing Exclusivity = per MARKET, not per org (2026-08-07)
+`properties.market` is a **generated column** grouping the cities one leasing agent covers: `Cleveland` ⊇ {Cleveland, East Cleveland}; every other city is its own market. There is a different person showing in each city, so **two markets can hold the same instant**.
+- `enforce_showing_agent_slot()` only collides inside a market (group tours — same property, same instant — still allowed) and separately blocks one lead from holding two showings at the same instant.
+- Every block must be scoped by `.in("property_id", marketPropertyIds)`: `book-public-showing` (backstop, fan-out, **both** buffer loops), `ScheduleShowingDialog`, and the grid's bulk paths. Leaving one org-wide silently closes the other city.
+- **`slot_time` is naive** — each city reads it on its own clock (Milwaukee is Central). Never compare slot times across markets, and key any showings overlay by the property's own timezone (`getTimezoneForCity`), not Cleveland, or Milwaukee paints a row off.
+- Per-city open/close lives in `src/hooks/useSlotCities.ts`, shared by `ManageSlotsTab` (grid) and `ShowingsAgenda` (mobile `+`).
+
+### Showing cap: 2 per person per day
+`enforce_showing_daily_cap()` (BEFORE INSERT on `showings`) caps **self-service only** (`booking_source = 'public_link'`) at 2 per lead per Cleveland day; override per org via `organization_settings.max_showings_per_day_per_lead` (0 disables). Admin and `telegram_bot` pass through on purpose. It is a trigger because **four** paths insert into `showings`. Keep `MAX_TOUR_STOPS` in `ScheduleShowing.tsx` equal to the cap.
+
 ### Code Patterns
 - **Exports**: Components use named exports (`export const X`). Pages use `export default` (required for React.lazy).
 - **Imports**: Double quotes dominant. File-level consistent.
