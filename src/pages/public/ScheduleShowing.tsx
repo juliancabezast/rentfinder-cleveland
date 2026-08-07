@@ -65,7 +65,9 @@ interface TourHome {
   bedrooms: number | null;
   bathrooms: number | null;
 }
-const MAX_TOUR_STOPS = 3;
+// Matches the server-side cap (trg_enforce_showing_daily_cap, default 2 per
+// person per day). Offering a 3rd stop the DB will refuse just wastes a click.
+const MAX_TOUR_STOPS = 2;
 
 function formatTime(t: string) {
   const [h, m] = t.split(":");
@@ -1251,11 +1253,14 @@ const ScheduleShowing: React.FC = () => {
   };
 
   // ---- Same-day tour: find the next free back-to-back slot + its homes ----
-  // The single agent can be in one place at a time, so booking a stop blocks
-  // that time across ALL homes. The next stop is therefore the next 30-min slot
-  // where NO home is booked (agent free) and at least one OTHER bookable home is
-  // open. If that slot is taken, the tour simply ends — which is exactly the
+  // One agent per MARKET can be in one place at a time, so booking a stop
+  // blocks that time across every home in that market. The next stop is
+  // therefore the next 30-min slot where no home IN THIS MARKET is booked
+  // (that agent is free) and at least one OTHER bookable home there is open.
+  // If that slot is taken, the tour simply ends — which is exactly the
   // "only 5:00 & 5:30 free → offer just 2" rule the owner described.
+  // Other cities are deliberately excluded: a different person shows there,
+  // and nobody drives Cleveland → Milwaukee between two half-hour slots.
   const computeNextTourSlot = async (stops: TourStop[]) => {
     setTourError(null);
     if (!selectedDate || !property?.organization_id || stops.length === 0 || stops.length >= MAX_TOUR_STOPS) {
@@ -1270,21 +1275,23 @@ const ScheduleShowing: React.FC = () => {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("showing_available_slots")
-        .select("property_id, is_booked, properties:property_id(id, address, unit_number, city, rent_price, status, photos, bedrooms, bathrooms)")
+        .select("property_id, is_booked, properties:property_id(id, address, unit_number, city, market, rent_price, status, photos, bedrooms, bathrooms)")
         .eq("organization_id", property.organization_id)
         .eq("slot_date", dateStr)
         .eq("slot_time", nt)
         .eq("is_enabled", true);
 
       if (error || !data) { setNextSlot(null); setNextHomes([]); return; }
-      // Agent busy at this time if ANY property's slot is booked.
-      if (data.some((r: any) => r.is_booked)) { setNextSlot(null); setNextHomes([]); return; }
+      const propOf = (r: any) => (Array.isArray(r.properties) ? r.properties[0] : r.properties);
+      const sameMarket = (data as any[]).filter((r) => propOf(r)?.market === property.market);
+      // That agent is busy at this time if ANY home in THIS market is booked.
+      if (sameMarket.some((r: any) => r.is_booked)) { setNextSlot(null); setNextHomes([]); return; }
 
       const chosen = new Set(stops.map((s) => s.propertyId));
       const seen = new Set<string>();
       const homes: TourHome[] = [];
-      for (const r of data as any[]) {
-        const p = Array.isArray(r.properties) ? r.properties[0] : r.properties;
+      for (const r of sameMarket) {
+        const p = propOf(r);
         if (!p || p.status !== "available") continue;
         if (chosen.has(p.id) || seen.has(p.id)) continue;
         seen.add(p.id);
@@ -1316,7 +1323,9 @@ const ScheduleShowing: React.FC = () => {
           phone: phone.trim(),
           email: email.trim() || null,
           has_voucher: paymentType === "" ? undefined : paymentType === "voucher",
-          move_in_date: moveInDate || undefined,
+          // The first booking already required a valid move-in date, so send
+          // the real one rather than dropping it on the extra stops.
+          move_in_date: moveInDate,
           note: "Same-day tour",
           consent: buildConsentPayload(consent),
           src: attribSrc,

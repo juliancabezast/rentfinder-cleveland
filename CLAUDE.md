@@ -57,7 +57,7 @@ AI-powered lead management SaaS for property management. Automates the rental le
 ## Tech Stack
 - **Frontend**: React + TypeScript, Vite, Tailwind CSS, shadcn/ui (mandatory for all UI)
 - **Backend**: Supabase (PostgreSQL) — **71 tables, 166 RLS policies, 96 DB functions, 37 triggers, 1 view** (counts verified against production 2026-07-28)
-- **Edge Functions**: Deno (not Node.js) — **55 functions in `supabase/functions/`, all deployed**. Production also has **2 orphans that are NOT in the repo**: `persona-webhook` and `verify-identity`, leftovers from the retired Persona integration — candidates for deletion, do not redeploy.
+- **Edge Functions**: Deno (not Node.js) — **55 functions in `supabase/functions/`, all deployed**. Repo↔prod parity is exact: **55 = 55, `diff` empty** (verified 2026-08-07). The retired Persona orphans (`persona-webhook`, `verify-identity`) were deleted from production; do not redeploy them.
 - **Auth**: Supabase Auth — roles: super_admin, admin, editor, viewer, leasing_agent
 - **Font**: Montserrat
 - **Design colors**: Primary #4F46E5 (indigo), Accent #ffb22c (gold), Background #f3f4f6 (cool gray). iOS 26 glass aesthetic.
@@ -153,7 +153,7 @@ const todayStart = new Date(clevelandNow.getTime() + offset).toISOString(); // U
 ## Edge Functions (55 in repo, all deployed — verified 2026-07-28)
 agent-daily-report, agent-doorloop-pull, agent-doorloop-push, agent-health-checker, agent-hemlane-parser, agent-hourly-report, agent-rent-benchmark, agent-sheets-backup, agent-task-dispatcher, ai-chat, book-public-showing, capture-lead, check-coming-soon, delete-lead, delete-user, enhance-report, extract-property-from-image, generate-all-investor-reports, generate-investor-report, generate-lead-brief, generate-property-description, hemlane-photo-import, hemlane-sync-listings, import-zillow-property, invite-user, leasing-report-pdf, leasing-tracker-lookup, manage-org-credentials, match-properties, paip-chat, predict-conversion, process-email-queue, reconcile-inbound-emails, resend-webhook, resolve-lead-token, send-application-invite, send-message, send-notification-email, send-telegram-notification, showing-reminder, showings-ics, submit-application, submit-business-lead, submit-demo-request, submit-inquiry, sync-leads-to-doorloop, sync-resend-emails, sync-resend-history, telegram-clean-chats, telegram-notify, telegram-webhook, test-integration, track-property-view, trigger-referral-campaign, unsubscribe
 
-⚠️ **Deployed but NOT in the repo** (orphans from the retired Persona integration): `persona-webhook`, `verify-identity`. Candidates for deletion; do not redeploy.
+✅ **No orphans in production** — the retired Persona leftovers (`persona-webhook`, `verify-identity`) were deleted; repo↔prod parity is exact, 55 = 55 (verified 2026-08-07). Do not redeploy them.
 
 ⚠️ Functions named in older docs that **no longer exist**: `pathway-webhook`, `agent-system-analysis`, `fetch-twilio-messages`, `process-sms-queue`, `recalculate-scores`.
 

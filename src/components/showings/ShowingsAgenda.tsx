@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/sheet";
 import {
   ChevronLeft, ChevronRight, Phone, MessageSquare, Mail, Send,
-  CalendarClock, FileText, Check, Ghost, Loader2, MapPin, CalendarDays,
+  CalendarClock, FileText, Check, Ghost, Loader2, MapPin, CalendarDays, Plus,
 } from "lucide-react";
+import { useSlotCities } from "@/hooks/useSlotCities";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { getTimezoneForCity, formatTimeInTimezone, todayInTimezone } from "@/lib/cityTimezone";
@@ -94,6 +95,18 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
   const [orgName, setOrgName] = useState("Our Team");
   const [templates, setTemplates] = useState<EmailTemplatesMap>({});
 
+  // ── Per-time city control (the "+" beside a showing) ─────────────────
+  // A booking only takes its own market, so the same hour can stay open in
+  // another city. This is the mobile way to say so without walking over to the
+  // desktop grid: tap +, check the cities that should be open at that time.
+  const { cityNames, cityCounts, marketOf, bookedMarkets, setCities } = useSlotCities(orgId);
+  // slot_time -> cities currently open at that time (this day)
+  const [openByTime, setOpenByTime] = useState<Map<string, Set<string>>>(new Map());
+  const [citySheetFor, setCityFor] = useState<{ date: string; time: string; label: string } | null>(null);
+  const [sheetCities, setSheetCities] = useState<Set<string>>(new Set());
+  const [sheetLocked, setSheetLocked] = useState<string[]>([]);
+  const [sheetBusy, setSheetBusy] = useState(false);
+
   // Reset the send-in-progress guard whenever a fresh contact sheet opens, so a
   // stuck flag from a previous card never disables the next card's send button.
   useEffect(() => { if (contactFor) setSendingEmail(false); }, [contactFor]);
@@ -110,6 +123,61 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
       if (tmpl?.value) setTemplates(tmpl.value as EmailTemplatesMap);
     })();
   }, [orgId]);
+
+  // Which cities are open at each slot_time on this day. slot_time is naive —
+  // each city reads it on its own clock — so this is keyed exactly like the
+  // desktop grid's ladder rows.
+  const fetchOpenByTime = useCallback(async () => {
+    if (!orgId) return;
+    const { data } = await supabase
+      .from("showing_available_slots")
+      .select("slot_time, is_enabled, is_booked, properties!inner(city)")
+      .eq("organization_id", orgId)
+      .eq("slot_date", day)
+      .eq("is_enabled", true)
+      .eq("is_booked", false);
+    const map = new Map<string, Set<string>>();
+    for (const r of (data || []) as { slot_time: string; properties: { city: string | null } | null }[]) {
+      const city = r.properties?.city;
+      if (!city) continue;
+      if (!map.has(r.slot_time)) map.set(r.slot_time, new Set());
+      map.get(r.slot_time)!.add(city);
+    }
+    setOpenByTime(map);
+  }, [orgId, day]);
+
+  useEffect(() => { fetchOpenByTime(); }, [fetchOpenByTime]);
+
+  // Open the per-city sheet for the slot a showing sits in. The slot key is the
+  // showing's own city clock (a Milwaukee 4pm is the "16:00" row), matching the
+  // desktop grid — so opening Cleveland here opens Cleveland's own 4pm.
+  const openCitySheet = useCallback(async (sh: AgendaShowing) => {
+    const tz = getTimezoneForCity(sh.property_city);
+    const d = new Date(sh.scheduled_at);
+    const dateStr = d.toLocaleDateString("en-CA", { timeZone: tz });
+    const hm = d.toLocaleString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false });
+    const slotTime = `${hm}:00`;
+    const taken = await bookedMarkets(dateStr, slotTime);
+    const locked = cityNames.filter((c) => taken.has(marketOf(c)));
+    const openNow = openByTime.get(slotTime) || new Set<string>();
+    setSheetLocked(locked);
+    setSheetCities(new Set(cityNames.filter((c) => !locked.includes(c) && openNow.has(c))));
+    setCityFor({ date: dateStr, time: slotTime, label: formatTimeInTimezone(sh.scheduled_at, tz) });
+  }, [bookedMarkets, cityNames, marketOf, openByTime]);
+
+  const applyCitySheet = useCallback(async () => {
+    if (!citySheetFor) return;
+    setSheetBusy(true);
+    const res = await setCities(citySheetFor.date, citySheetFor.time, [...sheetCities]);
+    setSheetBusy(false);
+    if (!res.ok) {
+      toast({ title: "Error", description: res.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: `${citySheetFor.label}`, description: res.message });
+    setCityFor(null);
+    await fetchOpenByTime();
+  }, [citySheetFor, setCities, sheetCities, toast, fetchOpenByTime]);
 
   const fetchDay = useCallback(async () => {
     if (!orgId) return;
@@ -258,8 +326,11 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
             return (
               <Card key={s.id} className="overflow-hidden">
                 <CardContent className="p-3 space-y-2.5">
-                  {/* Header — tap to open the full detail dialog */}
-                  <button className="w-full flex items-start gap-3 text-left" onClick={() => onShowingClick(s.id)}>
+                  {/* Header — tap to open the full detail dialog. The + sits
+                      OUTSIDE that button (a button inside a button is invalid
+                      HTML and swallows the tap on mobile). */}
+                  <div className="flex items-start gap-2">
+                  <button className="flex-1 min-w-0 flex items-start gap-3 text-left" onClick={() => onShowingClick(s.id)}>
                     <div className="text-center min-w-[3.5rem] shrink-0">
                       <div className="text-lg font-bold text-[#4F46E5] leading-tight">{time.replace(/ ?[AP]M$/i, "")}</div>
                       <div className="text-[10px] text-muted-foreground uppercase">{/AM/i.test(time) ? "AM" : "PM"}</div>
@@ -273,6 +344,17 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
                     </div>
                     <Badge variant="outline" className={`text-[10px] shrink-0 ${badge.className}`}>{badge.label}</Badge>
                   </button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-7 w-7 shrink-0 text-[#4F46E5] border-[#4F46E5]/30 hover:bg-[#4F46E5]/5"
+                    onClick={() => openCitySheet(s)}
+                    title="Abrir o cerrar ciudades a esta hora"
+                    aria-label="Abrir o cerrar ciudades a esta hora"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                  </div>
 
                   {/* Quick attendance (past, unreported) */}
                   {showQuick && (
@@ -307,6 +389,61 @@ export const ShowingsAgenda: React.FC<ShowingsAgendaProps> = ({
           })}
         </div>
       )}
+
+      {/* Per-city open/close for one time slot (bottom sheet) */}
+      <Sheet open={!!citySheetFor} onOpenChange={(o) => !o && setCityFor(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader className="text-left">
+            <SheetTitle>Ciudades a las {citySheetFor?.label}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Marca las ciudades que quieres tener abiertas a esa hora. Una reserva
+              solo ocupa a quien muestra en su ciudad, así que las demás siguen
+              siendo tuyas para abrir o cerrar.
+            </p>
+
+            {sheetLocked.length > 0 && (
+              <p className="text-xs rounded-md bg-blue-50 border border-blue-100 px-3 py-2 text-blue-800">
+                <span className="font-medium">{sheetLocked.join(", ")}</span> ya tiene
+                reserva a esa hora — quien muestra ahí está ocupado.
+              </p>
+            )}
+
+            {cityNames.filter((c) => !sheetLocked.includes(c)).length === 0 ? (
+              <p className="text-xs text-muted-foreground">No hay otras ciudades para abrir a esa hora.</p>
+            ) : (
+              <div className="space-y-1">
+                {cityNames.filter((c) => !sheetLocked.includes(c)).map((city) => (
+                  <label key={city} className="flex items-center gap-3 py-2 text-sm cursor-pointer border-b last:border-b-0">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-300"
+                      checked={sheetCities.has(city)}
+                      onChange={(e) => {
+                        const next = new Set(sheetCities);
+                        e.target.checked ? next.add(city) : next.delete(city);
+                        setSheetCities(next);
+                      }}
+                    />
+                    <span className="flex-1">{city}</span>
+                    <span className="text-xs text-muted-foreground">{cityCounts.get(city) || 0} casas</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <Button
+              className="w-full h-11 bg-[#4F46E5] hover:bg-[#4F46E5]/90"
+              disabled={sheetBusy || cityNames.filter((c) => !sheetLocked.includes(c)).length === 0}
+              onClick={applyCitySheet}
+            >
+              {sheetBusy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Guardar
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Contact sheet (bottom) */}
       <Sheet open={!!contactFor} onOpenChange={(o) => !o && setContactFor(null)}>

@@ -3165,6 +3165,7 @@ export type Database = {
           listed_date: string | null
           longitude: number | null
           managed_by: string | null
+          market: string | null
           organization_id: string
           owner_id: string | null
           pet_policy: string | null
@@ -3210,6 +3211,7 @@ export type Database = {
           listed_date?: string | null
           longitude?: number | null
           managed_by?: string | null
+          market?: string | null
           organization_id: string
           owner_id?: string | null
           pet_policy?: string | null
@@ -3255,6 +3257,7 @@ export type Database = {
           listed_date?: string | null
           longitude?: number | null
           managed_by?: string | null
+          market?: string | null
           organization_id?: string
           owner_id?: string | null
           pet_policy?: string | null

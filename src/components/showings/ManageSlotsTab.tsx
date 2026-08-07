@@ -34,7 +34,7 @@ import {
   FileText,
 } from "lucide-react";
 import { format, addDays, parseISO, startOfWeek } from "date-fns";
-import { buildScheduledAt, formatTimeInTimezone } from "@/lib/cityTimezone";
+import { buildScheduledAt, formatTimeInTimezone, getTimezoneForCity } from "@/lib/cityTimezone";
 import { sendNotificationEmail } from "@/lib/notificationService";
 import { quickReportText } from "@/lib/showingReports";
 import type { TablesUpdate } from "@/integrations/supabase/types";
@@ -75,6 +75,7 @@ interface CancelledShowing {
   id: string;
   lead_name: string;
   property_address: string;
+  property_city: string;
   status: string;
   lead_id: string;
 }
@@ -94,6 +95,7 @@ interface BookingInfo {
   showingId: string | null;
   leadName: string;
   address: string;
+  city: string;
   status: string | null;
 }
 
@@ -128,6 +130,16 @@ function timeToMinutes(t: string) {
 // First name only (cells are tiny; full name lives in the popover)
 function firstName(name: string) {
   return (name || "").trim().split(/\s+/)[0] || name;
+}
+
+// Compact city tag for the grid cell (cells are ~90px wide):
+// "Cleveland" → CLE · "East Cleveland" → E·CLE · "Milwaukee" → MIL
+function shortCity(city: string) {
+  const parts = (city || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  const last = parts[parts.length - 1].slice(0, 3).toUpperCase();
+  const prefix = parts.slice(0, -1).map((w) => w[0].toUpperCase()).join("·");
+  return prefix ? `${prefix}·${last}` : last;
 }
 
 // Human label for a cancelled/no-show/rescheduled showing
@@ -303,6 +315,10 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
   // ── Listable properties grouped by city (the "open a city" pool) ────
   const [citiesWithProps, setCitiesWithProps] = useState<Map<string, string[]>>(new Map());
+  // City → market. A market is the set of cities ONE person covers (Cleveland +
+  // East Cleveland are one). Bookings are exclusive inside a market and
+  // independent across markets, so this is what decides whether a time is free.
+  const [cityMarket, setCityMarket] = useState<Map<string, string>>(new Map());
   const cityNames = useMemo(() => [...citiesWithProps.keys()].sort(), [citiesWithProps]);
   const cityCounts = useMemo(
     () => new Map([...citiesWithProps.entries()].map(([c, ids]) => [c, ids.length])),
@@ -313,16 +329,19 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     (async () => {
       const { data } = await supabase
         .from("properties")
-        .select("id, city, status")
+        .select("id, city, market, status")
         .eq("organization_id", orgId)
         .in("status", BOOKABLE_STATUSES);
       const map = new Map<string, string[]>();
-      for (const p of (data || []) as { id: string; city: string | null }[]) {
+      const markets = new Map<string, string>();
+      for (const p of (data || []) as { id: string; city: string | null; market: string | null }[]) {
         const city = p.city || "Other";
         if (!map.has(city)) map.set(city, []);
         map.get(city)!.push(p.id);
+        markets.set(city, p.market || city);
       }
       setCitiesWithProps(map);
+      setCityMarket(markets);
     })();
   }, [orgId]);
 
@@ -414,7 +433,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     // (the time was freed for rebooking). Only true dead-ends surface here.
     const { data: cancelledData } = await supabase
       .from("showings")
-      .select("id, scheduled_at, status, lead_id, property_id, leads(full_name), properties(address)")
+      .select("id, scheduled_at, status, lead_id, property_id, leads(full_name), properties(address, city)")
       .eq("organization_id", orgId)
       .in("status", ["cancelled", "no_show"])
       .gte("scheduled_at", startInstant)
@@ -423,8 +442,11 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     const cancelledMap = new Map<string, Map<string, CancelledShowing[]>>();
     (cancelledData || []).forEach((s: any) => {
       const d = new Date(s.scheduled_at);
-      const dateKey = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-      const h = d.toLocaleString("en-GB", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false });
+      // The ladder is a naive slot_time each city reads on its OWN clock, so a
+      // Milwaukee (Central) showing keyed to Cleveland landed a row off.
+      const tz = getTimezoneForCity(s.properties?.city || null);
+      const dateKey = d.toLocaleDateString("en-CA", { timeZone: tz });
+      const h = d.toLocaleString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false });
       const timeKey = h + ":00";
       if (!cancelledMap.has(dateKey)) cancelledMap.set(dateKey, new Map());
       const tm = cancelledMap.get(dateKey)!;
@@ -433,6 +455,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         id: s.id,
         lead_name: s.leads?.full_name || "Unknown",
         property_address: s.properties?.address || "Unknown",
+        property_city: s.properties?.city || "",
         status: s.status,
         lead_id: s.lead_id,
       });
@@ -448,15 +471,16 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     {
       const { data: activeData } = await supabase
         .from("showings")
-        .select("id, scheduled_at, status, property_id, leads(full_name), properties(address)")
+        .select("id, scheduled_at, status, property_id, leads(full_name), properties(address, city)")
         .eq("organization_id", orgId)
         .in("status", ["scheduled", "confirmed", "completed"])
         .gte("scheduled_at", startInstant)
         .lte("scheduled_at", endInstant);
       (activeData || []).forEach((s: any) => {
         const d = new Date(s.scheduled_at);
-        const dateKey = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-        const h = d.toLocaleString("en-GB", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false });
+        const tz = getTimezoneForCity(s.properties?.city || null);
+        const dateKey = d.toLocaleDateString("en-CA", { timeZone: tz });
+        const h = d.toLocaleString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false });
         const timeKey = h + ":00";
         if (!bookedMap.has(dateKey)) bookedMap.set(dateKey, new Map());
         const tm = bookedMap.get(dateKey)!;
@@ -465,6 +489,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
           showingId: s.id,
           leadName: s.leads?.full_name || "Booked",
           address: s.properties?.address || "Booked",
+          city: s.properties?.city || "",
           status: s.status,
         });
       });
@@ -508,6 +533,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
               showingId: p.booked_showing_id,
               leadName: p.lead_name!,
               address: p.property_address,
+              city: p.property_city,
               status: p.showing_status,
             }));
           // Merge in group-tour attendees (same property + time) not pointed at by
@@ -695,13 +721,16 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
       // 0. Double-booking guard: refuse if ANY spanned time is already booked
       // by anything other than THIS showing — including a null-owner manual
-      // block (is_booked=true, booked_showing_id=NULL).
+      // block (is_booked=true, booked_showing_id=NULL). Scoped to this
+      // showing's market: another city has its own person and doesn't clash.
+      const mktIds = await marketPropertyIdsFor(propertyId);
       const { data: conflictRows, error: confErr } = await supabase
         .from("showing_available_slots")
         .select("slot_time, booked_showing_id")
         .eq("organization_id", orgId)
         .eq("slot_date", newDate)
         .in("slot_time", spannedTimes)
+        .in("property_id", mktIds)
         .eq("is_booked", true);
       if (confErr) throw confErr;
       if ((conflictRows || []).some((r: any) => r.booked_showing_id !== showingId)) {
@@ -819,8 +848,8 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
         if (relErr) console.error("Release old slots failed:", relErr);
       }
       // 4. Block EVERY spanned time: materialize+book each tail half-hour for
-      // the primary property, and block still-open rows on OTHER homes (one
-      // showing blocks that time across all homes — single agent).
+      // the primary property, and block still-open rows on the OTHER homes in
+      // the SAME market (one showing blocks that agent, not the whole portfolio).
       for (const t of spannedTimes) {
         if (t !== newTime) {
           const { error: tailErr } = await supabase
@@ -835,7 +864,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
           .from("showing_available_slots")
           .update({ is_booked: true, booked_showing_id: showingId, booked_at: new Date().toISOString() })
           .eq("organization_id", orgId).eq("slot_date", newDate).eq("slot_time", t)
-          .eq("is_booked", false).neq("property_id", propertyId);
+          .eq("is_booked", false).in("property_id", mktIds).neq("property_id", propertyId);
         if (blkErr) console.error(`Block spanned slot ${t} (siblings) failed:`, blkErr);
       }
 
@@ -882,17 +911,55 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
   // fetchSlotTotals — this grid no longer writes them, so the chip can't flip
   // between two disagreeing definitions/windows as the grid mounts/navigates.)
 
-  // A booking is agent-time-scoped: one showing blocks that time across ALL
-  // homes. So a time is "taken" if ANY booked row exists for that date+time —
-  // re-opening it would insert fresh bookable rows on the other homes and let
-  // a second renter double-book the agent (review CRITICAL).
-  const timeHasBooking = async (date: string, time: string): Promise<boolean> => {
-    if (!orgId) return false;
-    const { count } = await supabase
+  // A booking is agent-time-scoped WITHIN A MARKET: one showing blocks that
+  // time across every home the same person covers, and only those. So a time
+  // is "taken" per market — re-opening a market that already has a booking
+  // would let a second renter double-book that agent (review CRITICAL), while
+  // another market at the same hour has its own person and stays free.
+  const bookedMarkets = async (date: string, time: string): Promise<Set<string>> => {
+    const taken = new Set<string>();
+    if (!orgId) return taken;
+    const { data } = await supabase
       .from("showing_available_slots")
-      .select("id", { count: "exact", head: true })
+      .select("property_id, properties!inner(market)")
       .eq("organization_id", orgId).eq("slot_date", date).eq("slot_time", time).eq("is_booked", true);
-    return (count || 0) > 0;
+    for (const row of (data || []) as { properties: { market: string | null } | null }[]) {
+      if (row.properties?.market) taken.add(row.properties.market);
+    }
+    return taken;
+  };
+
+  // The subset of `cities` whose market already has a booking at date+time.
+  const blockedCities = (cities: string[], taken: Set<string>) =>
+    cities.filter((c) => taken.has(cityMarket.get(c) || c));
+
+  // Every property the same agent covers as `propertyId` (its market).
+  const marketPropertyIdsFor = async (propertyId: string): Promise<string[]> => {
+    if (!orgId) return [propertyId];
+    const { data: prop } = await supabase
+      .from("properties").select("market").eq("id", propertyId).maybeSingle();
+    const market = prop?.market ?? null;
+    if (!market) return [propertyId];
+    const { data: rows } = await supabase
+      .from("properties").select("id").eq("organization_id", orgId).eq("market", market);
+    return rows?.length ? rows.map((r: { id: string }) => r.id) : [propertyId];
+  };
+
+  // Booked (market|date|time) keys across a set of dates. Used by the bulk
+  // paths so a Milwaukee booking no longer blocks a Cleveland day/range.
+  const bookedMarketKeys = async (dates: string[]): Promise<Set<string>> => {
+    const out = new Set<string>();
+    if (!orgId || dates.length === 0) return out;
+    const { data } = await supabase
+      .from("showing_available_slots")
+      .select("slot_date, slot_time, properties!inner(market)")
+      .eq("organization_id", orgId)
+      .in("slot_date", dates)
+      .eq("is_booked", true);
+    for (const r of (data || []) as { slot_date: string; slot_time: string; properties: { market: string | null } | null }[]) {
+      if (r.properties?.market) out.add(`${r.properties.market}|${r.slot_date}|${r.slot_time}`);
+    }
+    return out;
   };
 
   // ── OPEN a slot (date+time) for the chosen cities ───────────────────
@@ -900,13 +967,19 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     if (!orgId || cities.length === 0) return;
     const key = `${date}-${time}`;
     setBusyKey(key);
-    if (await timeHasBooking(date, time)) {
-      toast({ title: "Already booked", description: `${formatTime(time)} · ${format(parseISO(date), "MMM d")} has a booking — can't reopen it.`, variant: "destructive" });
+    const taken = await bookedMarkets(date, time);
+    const blocked = blockedCities(cities, taken);
+    const allowed = cities.filter((c) => !blocked.includes(c));
+    if (allowed.length === 0) {
+      toast({ title: "Already booked", description: `${formatTime(time)} · ${format(parseISO(date), "MMM d")} already has a booking in ${blocked.join(", ")} — that agent can't take another home.`, variant: "destructive" });
       await fetchSlots();
       setBusyKey(null);
       return;
     }
-    const propIds = cities.flatMap((c) => citiesWithProps.get(c) || []);
+    if (blocked.length) {
+      toast({ title: "Partly booked", description: `${blocked.join(", ")} already has a booking at ${formatTime(time)} — opening the rest.` });
+    }
+    const propIds = allowed.flatMap((c) => citiesWithProps.get(c) || []);
     const rows = propIds.map((property_id) => ({
       organization_id: orgId,
       property_id,
@@ -954,15 +1027,22 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     if (!orgId) return;
     const key = `${date}-${time}`;
     setBusyKey(key);
-    if (await timeHasBooking(date, time)) {
-      toast({ title: "Already booked", description: `${formatTime(time)} · ${format(parseISO(date), "MMM d")} has a booking — can't change it.`, variant: "destructive" });
-      await fetchSlots(); setBusyKey(null); return;
+    // Only OPENING is restricted: a market that already has a booking can't
+    // take a second home at that hour. Closing is always allowed (the update
+    // below never touches booked rows), and other markets are unaffected.
+    const taken = await bookedMarkets(date, time);
+    const blocked = blockedCities(targetCities, taken);
+    const target = new Set(targetCities.filter((c) => !blocked.includes(c)));
+    if (blocked.length) {
+      toast({ title: "Already booked", description: `${blocked.join(", ")} has a booking at ${formatTime(time)} — left as is.` });
     }
-    const target = new Set(targetCities);
     const enableIds: string[] = [];
     const disableIds: string[] = [];
     for (const c of cityNames) {
       const ids = citiesWithProps.get(c) || [];
+      // Never disable a market that is booked here — its rows are is_booked
+      // anyway, and touching them would fight the booking.
+      if (!target.has(c) && taken.has(cityMarket.get(c) || c)) continue;
       (target.has(c) ? enableIds : disableIds).push(...ids);
     }
     // Open the checked cities (upsert), close the unchecked ones (unbooked).
@@ -995,37 +1075,41 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     if (!orgId || cities.length === 0) return;
     const key = `day-${date}`;
     setBusyKey(key);
-    // Exclude times that already have a booking (would double-book, review
-    // CRITICAL) and times already in the past for today.
-    const { data: bookedRows } = await supabase
-      .from("showing_available_slots")
-      .select("slot_time")
-      .eq("organization_id", orgId).eq("slot_date", date).eq("is_booked", true);
-    const bookedTimes = new Set((bookedRows || []).map((r: any) => r.slot_time));
-    const times = LADDER.filter(
-      (t) => !bookedTimes.has(t) && !(date === todayStr && timeToMinutes(t) + 30 <= nowMinutes),
-    );
-    if (times.length === 0) {
+    // Exclude times already booked FOR THAT CITY'S MARKET (would double-book
+    // that agent, review CRITICAL) and times already in the past for today.
+    // A booking in another market leaves this city's day untouched.
+    const bookedKeys = await bookedMarketKeys([date]);
+    const notPast = (t: string) => !(date === todayStr && timeToMinutes(t) + 30 <= nowMinutes);
+    const rows: { organization_id: string; property_id: string; slot_date: string; slot_time: string; is_enabled: boolean }[] = [];
+    const openedTimes = new Set<string>();
+    let skippedPairs = 0;
+    for (const c of cities) {
+      const market = cityMarket.get(c) || c;
+      const times = LADDER.filter((t) => notPast(t) && !bookedKeys.has(`${market}|${date}|${t}`));
+      skippedPairs += LADDER.length - times.length;
+      for (const property_id of citiesWithProps.get(c) || []) {
+        for (const slot_time of times) {
+          rows.push({ organization_id: orgId, property_id, slot_date: date, slot_time, is_enabled: true });
+          openedTimes.add(slot_time);
+        }
+      }
+    }
+    if (rows.length === 0) {
       toast({ title: "Nothing to open", description: "All times this day are already booked or past." });
       setBusyKey(null);
       return;
     }
     const propIds = cities.flatMap((c) => citiesWithProps.get(c) || []);
-    const rows = propIds.flatMap((property_id) =>
-      times.map((slot_time) => ({
-        organization_id: orgId, property_id, slot_date: date, slot_time, is_enabled: true,
-      })),
-    );
+    const times = [...openedTimes];
     for (let i = 0; i < rows.length; i += 200) {
       const { error } = await supabase
         .from("showing_available_slots")
         .upsert(rows.slice(i, i + 200), { onConflict: "organization_id,property_id,slot_date,slot_time" });
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setBusyKey(null); return; }
     }
-    const skipped = LADDER.length - times.length;
     toast({
       title: "Day opened",
-      description: `${format(parseISO(date), "EEE MMM d")} — ${times.length} times × ${propIds.length} homes.${skipped > 0 ? ` (${skipped} already-booked/past time${skipped === 1 ? "" : "s"} left untouched.)` : ""}`,
+      description: `${format(parseISO(date), "EEE MMM d")} — ${times.length} times × ${propIds.length} homes.${skippedPairs > 0 ? ` (${skippedPairs} already-booked/past slot${skippedPairs === 1 ? "" : "s"} left untouched.)` : ""}`,
     });
     await fetchSlots();
     setBusyKey(null);
@@ -1190,41 +1274,40 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
     if (!orgId || dates.length === 0 || times.length === 0) return;
     setBusyKey("range");
     const target = new Set(cities);
-    const enableIds = cityNames.filter((c) => target.has(c)).flatMap((c) => citiesWithProps.get(c) || []);
+    const enableCities = cityNames.filter((c) => target.has(c));
     const disableIds = cityNames.filter((c) => !target.has(c)).flatMap((c) => citiesWithProps.get(c) || []);
 
-    // Booked (date,time) pairs in the range — never open OR close those.
-    const { data: bookedRows } = await supabase
-      .from("showing_available_slots")
-      .select("slot_date, slot_time")
-      .eq("organization_id", orgId)
-      .in("slot_date", dates)
-      .eq("is_booked", true);
-    const bookedSet = new Set((bookedRows || []).map((r: any) => `${r.slot_date}|${r.slot_time}`));
+    // Booked (market|date|time) keys in the range — never open those. A booking
+    // in one market leaves the same date+time open in every other market.
+    const bookedKeys = await bookedMarketKeys(dates);
 
-    // Actionable (date,time) pairs: not booked, not past.
-    const pairs: [string, string][] = [];
+    const isPastPair = (date: string, time: string) =>
+      date < todayStr || (date === todayStr && timeToMinutes(time) + 30 <= nowMinutes);
+
+    // Actionable (city,date,time) triples: that city's market is free, not past.
+    const rows: { organization_id: string; property_id: string; slot_date: string; slot_time: string; is_enabled: boolean }[] = [];
+    const touched = new Set<string>();
     let skipped = 0;
-    for (const date of dates) {
-      for (const time of times) {
-        const pastPair = date < todayStr || (date === todayStr && timeToMinutes(time) + 30 <= nowMinutes);
-        if (pastPair || bookedSet.has(`${date}|${time}`)) { skipped++; continue; }
-        pairs.push([date, time]);
+    for (const c of enableCities) {
+      const market = cityMarket.get(c) || c;
+      const ids = citiesWithProps.get(c) || [];
+      for (const date of dates) {
+        for (const time of times) {
+          if (isPastPair(date, time) || bookedKeys.has(`${market}|${date}|${time}`)) { skipped++; continue; }
+          touched.add(`${date}|${time}`);
+          for (const property_id of ids) {
+            rows.push({ organization_id: orgId, property_id, slot_date: date, slot_time: time, is_enabled: true });
+          }
+        }
       }
     }
-    if (pairs.length === 0) {
+    if (rows.length === 0 && disableIds.length === 0) {
       toast({ title: "Nothing to change", description: "Every cell in that range is booked or in the past." });
       setBusyKey(null); setRangeSel(null); return;
     }
 
-    // OPEN checked cities across the actionable pairs (upsert).
-    if (enableIds.length) {
-      const rows: any[] = [];
-      for (const [date, time] of pairs) {
-        for (const property_id of enableIds) {
-          rows.push({ organization_id: orgId, property_id, slot_date: date, slot_time: time, is_enabled: true });
-        }
-      }
+    // OPEN checked cities across their actionable triples (upsert).
+    if (rows.length) {
       for (let i = 0; i < rows.length; i += 200) {
         const { error } = await supabase
           .from("showing_available_slots")
@@ -1245,7 +1328,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
 
     toast({
       title: "Range updated",
-      description: `${pairs.length} time slots — ${target.size} ${target.size === 1 ? "city" : "cities"} open.${skipped > 0 ? ` (${skipped} booked/past left untouched.)` : ""}`,
+      description: `${touched.size} time slots — ${target.size} ${target.size === 1 ? "city" : "cities"} open.${skipped > 0 ? ` (${skipped} booked/past left untouched.)` : ""}`,
     });
     await fetchSlots();
     setBusyKey(null);
@@ -1480,6 +1563,7 @@ export const ManageSlotsTab: React.FC<ManageSlotsTabProps> = ({
                               cellBusy={cellBusy}
                               cityNames={cityNames}
                               cityCounts={cityCounts}
+                              cityMarket={cityMarket}
                               dayIdx={dIdx}
                               timeIdx={tIdx}
                               highlighted={inDrag(dIdx, tIdx)}
@@ -1591,6 +1675,7 @@ const SlotCell: React.FC<{
   cellBusy: boolean;
   cityNames: string[];
   cityCounts: Map<string, number>;
+  cityMarket: Map<string, string>;
   dayIdx: number;
   timeIdx: number;
   highlighted: boolean;
@@ -1602,7 +1687,7 @@ const SlotCell: React.FC<{
   onShowingClick?: (id: string) => void;
   onQuickReport?: (showingId: string, attended: boolean) => void;
   reportingId?: string | null;
-}> = ({ day, time, ts, past, cellBusy, cityNames, cityCounts, dayIdx, timeIdx, highlighted, movedRef, onDragBegin, onOpen, onSetCities, onClose, onShowingClick, onQuickReport, reportingId }) => {
+}> = ({ day, time, ts, past, cellBusy, cityNames, cityCounts, cityMarket, dayIdx, timeIdx, highlighted, movedRef, onDragBegin, onOpen, onSetCities, onClose, onShowingClick, onQuickReport, reportingId }) => {
   const openCount = ts?.properties.length || 0;
   const bookedCount = ts?.bookedCount || 0;
   const cancelled = ts?.cancelledShowings || [];
@@ -1616,6 +1701,22 @@ const SlotCell: React.FC<{
   const isOpen = openCount > 0;
 
   const bookings = ts?.bookings || [];
+
+  // ── Per-city state of this cell ──────────────────────────────────────
+  // A cell is no longer one thing: the same 4pm can be BOOKED in Milwaukee and
+  // OPEN in Cleveland, because a different person shows in each. Exclusivity
+  // runs per market, so only the cities sharing a market with a booking here
+  // are off-limits; the rest stay yours to open or close.
+  const marketOf = (c: string) => cityMarket.get(c) || c;
+  const openCitySet = new Set((ts?.properties || []).map((p) => p.property_city).filter(Boolean));
+  const bookedCities = [...new Set(bookings.map((b) => b.city).filter(Boolean))];
+  const bookedMarketSet = new Set(bookedCities.map(marketOf));
+  const toggleableCities = cityNames.filter((c) => !bookedMarketSet.has(marketOf(c)));
+  const lockedCities = cityNames.filter((c) => bookedMarketSet.has(marketOf(c)));
+  const openToggleable = toggleableCities.filter((c) => openCitySet.has(c));
+  // Cities that are open while this cell also holds a booking elsewhere — the
+  // case the old single-state cell could not show at all.
+  const openElsewhere = [...openCitySet].filter((c) => !bookedMarketSet.has(marketOf(c)));
 
   // Past cells: a booked one is CLICKABLE to file a one-click outcome report
   // (✅ Fue / 👻 No fue); cancelled/empty stay read-only.
@@ -1713,10 +1814,20 @@ const SlotCell: React.FC<{
             <Loader2 className="h-3 w-3 mx-auto animate-spin" />
           ) : isBooked ? (
             <>
-              <div className="font-bold truncate">{firstName(bookings[0]?.leadName || "Booked")}</div>
+              <div className="font-bold truncate">
+                {firstName(bookings[0]?.leadName || "Booked")}
+                {bookedCities.length > 0 && (
+                  <span className="ml-1 font-normal opacity-60">{shortCity(bookedCities[0])}</span>
+                )}
+              </div>
               <div className="text-[10px] opacity-70 truncate">
                 {bookedCount > 1 ? `+${bookedCount - 1} more · ${bookings[0]?.address || ""}` : (bookings[0]?.address || "Booked")}
               </div>
+              {openElsewhere.length > 0 && (
+                <div className="text-[10px] font-semibold text-emerald-700 truncate">
+                  + {openElsewhere.map(shortCity).join(", ")} open
+                </div>
+              )}
             </>
           ) : hasCancelled ? (
             <>
@@ -1798,46 +1909,46 @@ const SlotCell: React.FC<{
           )}
 
           {/* Controls: per-city on/off (checkbox tells the truth: checked =
-              currently open) + close-all. */}
-          {isOpen ? (
-            <>
-              <div className="pt-1 border-t">
-                <p className="text-[10px] text-muted-foreground font-medium mb-1.5">
-                  Cities open here — <span className="text-emerald-600">check = open</span>, uncheck to close
-                </p>
-                <CityPicker
-                  cities={cityNames}
-                  counts={cityCounts}
-                  busy={cellBusy}
-                  initialSelected={[...new Set(ts!.properties.map((p) => p.property_city).filter(Boolean))]}
-                  actionLabel="Update"
-                  onConfirm={onSetCities}
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
-                disabled={cellBusy}
-                onClick={onClose}
-              >
-                {cellBusy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <X className="h-3 w-3 mr-1" />}
-                Close this time (all cities)
-              </Button>
-            </>
-          ) : !isBooked ? (
+              currently open). A BOOKED cell gets them too — the booking only
+              takes its own market, so every other city here is still yours to
+              open or close. Cities sharing a market with the booking are
+              listed as locked instead of silently disappearing. */}
+          {lockedCities.length > 0 && (
+            <p className="text-[10px] text-muted-foreground pt-1 border-t">
+              <span className="font-medium">{lockedCities.join(", ")}</span> — booked at this time, that agent is taken.
+            </p>
+          )}
+
+          {toggleableCities.length > 0 && (
             <div className="pt-1 border-t">
-              <p className="text-[10px] text-muted-foreground font-medium mb-1.5">Open this time for…</p>
+              <p className="text-[10px] text-muted-foreground font-medium mb-1.5">
+                {isBooked ? "Other cities at this time" : "Cities open here"} — <span className="text-emerald-600">check = open</span>, uncheck to close
+              </p>
               <CityPicker
-                cities={cityNames}
+                key={`${openToggleable.join("|")}::${toggleableCities.join("|")}`}
+                cities={toggleableCities}
                 counts={cityCounts}
                 busy={cellBusy}
-                defaultAll
-                actionLabel="Open"
-                onConfirm={onOpen}
+                defaultAll={openToggleable.length === 0 && !isBooked}
+                initialSelected={openToggleable.length > 0 || isBooked ? openToggleable : undefined}
+                actionLabel={openToggleable.length === 0 ? "Open" : "Update"}
+                onConfirm={openToggleable.length === 0 && !isBooked ? onOpen : onSetCities}
               />
             </div>
-          ) : null}
+          )}
+
+          {isOpen && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+              disabled={cellBusy}
+              onClick={onClose}
+            >
+              {cellBusy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <X className="h-3 w-3 mr-1" />}
+              Close this time (all cities)
+            </Button>
+          )}
         </div>
       </PopoverContent>
     </Popover>

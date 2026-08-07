@@ -60,6 +60,27 @@ interface ScheduleShowingDialogProps {
 
 type LeadOption = LeadSearchResult;
 
+// Agent exclusivity is per MARKET, not per organization: there is a different
+// person showing in each city, so blocking a Cleveland hour must not close
+// Milwaukee. properties.market groups the cities one agent covers (Cleveland +
+// East Cleveland are one market). Queried live rather than read off the loaded
+// options, because a non-bookable home in the same market still owns slot rows.
+async function fetchMarketPropertyIds(orgId: string, propertyId: string): Promise<string[]> {
+  const { data: prop } = await supabase
+    .from("properties")
+    .select("market")
+    .eq("id", propertyId)
+    .maybeSingle();
+  const market = prop?.market ?? null;
+  if (!market) return [propertyId];
+  const { data: rows } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("market", market);
+  return rows?.length ? rows.map((r) => r.id) : [propertyId];
+}
+
 interface PropertyOption {
   id: string;
   address: string;
@@ -321,11 +342,13 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
       const propTz = getTimezoneForCity(properties.find((p) => p.id === selectedPropertyId)?.city);
       const dayStart = buildScheduledAt(dateStr, "00:00:00", propTz);
       const dayEnd = new Date(new Date(dayStart).getTime() + 24 * 60 * 60 * 1000).toISOString();
+      const marketIds = await fetchMarketPropertyIds(userRecord.organization_id, selectedPropertyId);
       const { data: dayShowings } = await supabase
         .from("showings")
         .select("scheduled_at, property_id, duration_minutes")
         .eq("organization_id", userRecord.organization_id)
         .in("status", ["scheduled", "confirmed"])
+        .in("property_id", marketIds)
         .gte("scheduled_at", dayStart)
         .lt("scheduled_at", dayEnd);
       const otherTimes = new Set<string>();
@@ -707,6 +730,13 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
         }
       }
 
+      // Every block below is confined to this market — other cities have their
+      // own person and stay bookable at the same hour.
+      const marketPropertyIds = await fetchMarketPropertyIds(
+        userRecord.organization_id,
+        selectedPropertyId,
+      );
+
       // ── Group tour: THIS property is already booked at this exact time → this
       // is a 2nd+ attendee. The slot is already booked and the agent-time already
       // blocked by the first attendee, and the DB guard permits same-property/
@@ -804,6 +834,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
             .eq("slot_date", dateStr)
             .eq("slot_time", t)
             .eq("is_booked", false)
+            .in("property_id", marketPropertyIds)
             .neq("property_id", selectedPropertyId);
           if (blockErr) console.error(`Block group-add spanned slot ${t} failed:`, blockErr);
         }
@@ -856,6 +887,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
           .eq("organization_id", userRecord.organization_id)
           .eq("slot_date", dateStr)
           .in("slot_time", spannedTimes)
+          .in("property_id", marketPropertyIds)
           .eq("is_booked", true)
           .limit(1);
         if (busyErr) console.error("Spanned-time busy check failed:", busyErr);
@@ -1009,6 +1041,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
             .eq("slot_date", dateStr)
             .eq("slot_time", t)
             .eq("is_booked", false)
+            .in("property_id", marketPropertyIds)
             .neq("property_id", selectedPropertyId);
           if (blockErr) console.error(`Block spanned slot ${t} failed:`, blockErr);
         }
@@ -1030,6 +1063,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
               .eq("organization_id", userRecord.organization_id)
               .eq("slot_date", dateStr)
               .eq("slot_time", afterTime)
+              .in("property_id", marketPropertyIds)
               .eq("is_booked", false);
           }
 
@@ -1042,6 +1076,7 @@ export const ScheduleShowingDialog: React.FC<ScheduleShowingDialogProps> = ({
               .eq("organization_id", userRecord.organization_id)
               .eq("slot_date", dateStr)
               .eq("slot_time", beforeTime)
+              .in("property_id", marketPropertyIds)
               .eq("is_booked", false);
           }
         }

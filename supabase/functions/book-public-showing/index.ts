@@ -287,10 +287,31 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Backstop: one showing blocks that agent hour across ALL homes ─
+    // ── Market scope: exclusivity is per MARKET, not per organization ─
+    // There is a different person showing in each city, so a Milwaukee
+    // booking must not close Cleveland. properties.market groups the cities
+    // one agent covers (Cleveland + East Cleveland are one market). Every
+    // block below is confined to these property ids.
+    const { data: bookedProp } = await supabase
+      .from("properties")
+      .select("market")
+      .eq("id", property_id)
+      .single();
+    const bookedMarket: string | null = bookedProp?.market ?? null;
+    let marketPropertyIds: string[] = [property_id];
+    if (bookedMarket) {
+      const { data: marketProps } = await supabase
+        .from("properties")
+        .select("id")
+        .eq("organization_id", organization_id)
+        .eq("market", bookedMarket);
+      if (marketProps?.length) marketPropertyIds = marketProps.map((p: { id: string }) => p.id);
+    }
+
+    // ── Backstop: one showing blocks that agent hour across THIS MARKET ─
     // Even if a fresh open slot row exists at this time, refuse if a live
-    // showing already occupies the same date+time (defends against a
-    // re-opened booked hour — review CRITICAL).
+    // showing already occupies the same date+time in the same market
+    // (defends against a re-opened booked hour — review CRITICAL).
     {
       const bookedSibling = await supabase
         .from("showing_available_slots")
@@ -298,6 +319,7 @@ serve(async (req: Request) => {
         .eq("organization_id", organization_id)
         .eq("slot_date", slot_date)
         .eq("slot_time", slot_time)
+        .in("property_id", marketPropertyIds)
         .eq("is_booked", true);
       if ((bookedSibling.count || 0) > 0) {
         return new Response(
@@ -512,8 +534,35 @@ serve(async (req: Request) => {
 
     if (showingErr || !showing) {
       console.error("Showing creation error:", showingErr);
-      // trg_enforce_showing_agent_slot raises 23505 when another active showing
-      // at a DIFFERENT property already holds this exact time (single agent).
+      const dbMsg = String((showingErr as any)?.message || "");
+
+      // trg_enforce_showing_daily_cap: this person already has the maximum
+      // number of showings that day. Saying "just booked" here would be a lie
+      // — the time is free, the person is the one who is full.
+      if (dbMsg.includes("showing_daily_cap")) {
+        return new Response(
+          JSON.stringify({
+            error: "You already have 2 tours booked for that day. Pick another day and we'll see you there.",
+            code: "daily_cap",
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // trg_enforce_showing_agent_slot, guard 2: the same person already holds
+      // another showing at this exact time (a different city, most likely).
+      if (dbMsg.includes("showing_lead_conflict")) {
+        return new Response(
+          JSON.stringify({
+            error: "You already have a tour booked at that time. Pick another time.",
+            code: "lead_conflict",
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // trg_enforce_showing_agent_slot, guard 1: another active showing at a
+      // DIFFERENT property in the SAME market already holds this exact time.
       if ((showingErr as any)?.code === "23505") {
         return new Response(
           JSON.stringify({ error: "This time was just booked. Please select another." }),
@@ -571,9 +620,10 @@ serve(async (req: Request) => {
       });
     }
 
-    // ── Block ALL properties at this time slot (single-agent model) ────
-    // Only one leasing agent — when a time is booked, block it across
-    // every property so no one else can book the same hour.
+    // ── Block the rest of THIS MARKET at this time slot ────────────────
+    // One agent per market — when a time is booked, block it across every
+    // property that agent covers, and only those. Other markets have their
+    // own person and stay bookable at the same hour.
     const bookingUpdate = {
       is_booked: true,
       booked_showing_id: showing.id,
@@ -581,13 +631,13 @@ serve(async (req: Request) => {
       updated_at: new Date().toISOString(),
     };
 
-    // Block the booked time on ALL properties (not just the one booked)
     await supabase
       .from("showing_available_slots")
       .update(bookingUpdate)
       .eq("organization_id", organization_id)
       .eq("slot_date", slot_date)
       .eq("slot_time", slot_time)
+      .in("property_id", marketPropertyIds)
       .eq("is_booked", false);
 
     // Read buffer setting from org settings (default 0 = no buffer)
@@ -619,6 +669,7 @@ serve(async (req: Request) => {
           .eq("organization_id", organization_id)
           .eq("slot_date", slot_date)
           .eq("slot_time", bufferTime)
+          .in("property_id", marketPropertyIds)
           .eq("is_booked", false);
       }
 
@@ -635,6 +686,7 @@ serve(async (req: Request) => {
           .eq("organization_id", organization_id)
           .eq("slot_date", slot_date)
           .eq("slot_time", bufferBefore)
+          .in("property_id", marketPropertyIds)
           .eq("is_booked", false);
       }
     }
