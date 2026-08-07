@@ -5423,6 +5423,10 @@ export type Database = {
         Returns: undefined
       }
       task_queue_insights: { Args: never; Returns: Json }
+      tenant_doc_path_allowed: {
+        Args: { _bucket: string; _name: string; _user: string }
+        Returns: boolean
+      }
       top_properties_by_interest: {
         Args: { p_limit?: number; p_range?: string }
         Returns: {
