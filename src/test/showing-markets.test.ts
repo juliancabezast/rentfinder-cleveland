@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fs from "fs";
-import { marketTone, TONED_MARKETS } from "@/lib/marketColors";
+import { marketTone, splitSurface, TONED_MARKETS } from "@/lib/marketColors";
 
 // Guards for the two rules the owner asked for on 2026-08-07:
 //   1. Cities schedule independently — a different person shows in each, so a
@@ -128,5 +128,28 @@ describe("market colours", () => {
 
   it("the legend lists exactly the toned markets", () => {
     expect(TONED_MARKETS.map((m) => m.label)).toEqual(["Cleveland", "Milwaukee"]);
+  });
+});
+
+describe("a slot booked in two cities at once", () => {
+  it("splits the cell so each market gets its own side", () => {
+    const bg = splitSurface([marketTone("Cleveland"), marketTone("Milwaukee")]);
+    expect(bg).toBeDefined();
+    expect(bg).toContain("linear-gradient(90deg");
+    // Cleveland's blue-50 on the left, Milwaukee's purple-50 on the right.
+    expect(bg!.indexOf("#EFF6FF")).toBeLessThan(bg!.indexOf("#FAF5FF"));
+    // A hairline divider, or two pale tints would blur into one another.
+    expect(bg).toContain("#CBD5E1");
+  });
+
+  it("leaves a single market to its plain class (so hover still works)", () => {
+    expect(splitSurface([marketTone("Cleveland")])).toBeUndefined();
+    expect(splitSurface([])).toBeUndefined();
+  });
+
+  it("handles three markets in equal bands", () => {
+    const bg = splitSurface([marketTone("Cleveland"), marketTone("Milwaukee"), marketTone("Detroit")]);
+    expect(bg).toContain("33.33");
+    expect(bg).toContain("66.66");
   });
 });

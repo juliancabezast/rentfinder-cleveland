@@ -37,7 +37,7 @@ import { format, addDays, parseISO, startOfWeek } from "date-fns";
 import { buildScheduledAt, formatTimeInTimezone, getTimezoneForCity } from "@/lib/cityTimezone";
 import { sendNotificationEmail } from "@/lib/notificationService";
 import { quickReportText } from "@/lib/showingReports";
-import { marketTone, TONED_MARKETS } from "@/lib/marketColors";
+import { marketTone, splitSurface, TONED_MARKETS } from "@/lib/marketColors";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // ── The single "bookable" definition: a property whose slots may be shown /
@@ -1718,6 +1718,12 @@ const SlotCell: React.FC<{
   const openCitySet = new Set((ts?.properties || []).map((p) => p.property_city).filter(Boolean));
   const bookedCities = [...new Set(bookings.map((b) => b.city).filter(Boolean))];
   const bookedMarketSet = new Set(bookedCities.map(marketOf));
+  // One entry per booked MARKET (not per city), so Cleveland + East Cleveland
+  // at the same hour stay one blue band rather than two.
+  const bookedMarketList = [...bookedMarketSet];
+  const bookedTones = bookedMarketList.map((m) => marketTone(m));
+  // Booked in two cities at once — split the cell so each market gets its side.
+  const splitBg = splitSurface(bookedTones);
   const toggleableCities = cityNames.filter((c) => !bookedMarketSet.has(marketOf(c)));
   const lockedCities = cityNames.filter((c) => bookedMarketSet.has(marketOf(c)));
   const openToggleable = toggleableCities.filter((c) => openCitySet.has(c));
@@ -1800,7 +1806,9 @@ const SlotCell: React.FC<{
   // purple) so the day reads as a route at a glance; open/cancelled/closed keep
   // their state colours, because there the city is a list, not one thing.
   let cellStyle = "bg-slate-50/60 text-slate-300 border-dashed border-slate-200 hover:border-[#4F46E5]/40 hover:text-[#4F46E5] hover:bg-[#4F46E5]/5";
-  if (isBooked) cellStyle = marketTone(bookedCities[0]).cell;
+  // Two markets booked at the same time → no single colour is true, so the
+  // surface is split (below) and the frame goes neutral. One market → its own.
+  if (isBooked) cellStyle = splitBg ? "border-slate-300 text-slate-800" : marketTone(bookedCities[0]).cell;
   else if (hasCancelled) cellStyle = "bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100";
   else if (isOpen) cellStyle = "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100";
 
@@ -1809,6 +1817,7 @@ const SlotCell: React.FC<{
       <PopoverTrigger asChild>
         <button
           className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${cellStyle} ${highlighted ? "ring-2 ring-[#4F46E5] ring-offset-1" : ""} ${isBooked && bookings[0]?.showingId ? "cursor-grab active:cursor-grabbing" : ""}`}
+          style={splitBg ? { background: splitBg } : undefined}
           // Drag a booked chip to a new cell to reschedule (desktop HTML5 DnD).
           draggable={isBooked && !!bookings[0]?.showingId}
           onDragStart={(e) => {
@@ -1832,11 +1841,11 @@ const SlotCell: React.FC<{
             <>
               <div className="font-bold truncate">
                 {firstName(bookings[0]?.leadName || "Booked")}
-                {bookedCities.length > 0 && (
-                  <span className={`ml-1 px-1 py-px rounded border text-[9px] font-semibold align-middle ${marketTone(bookedCities[0]).tag}`}>
-                    {shortCity(bookedCities[0])}
+                {bookedCities.map((c) => (
+                  <span key={c} className={`ml-1 px-1 py-px rounded border text-[9px] font-semibold align-middle ${marketTone(c).tag}`}>
+                    {shortCity(c)}
                   </span>
-                )}
+                ))}
               </div>
               <div className="text-[10px] opacity-70 truncate">
                 {bookedCount > 1 ? `+${bookedCount - 1} more · ${bookings[0]?.address || ""}` : (bookings[0]?.address || "Booked")}
