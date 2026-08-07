@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       academy_courses: {
@@ -5355,11 +5330,35 @@ export type Database = {
         }
         Returns: Json
       }
+      report_campaign_email_stats: {
+        Args: { p_limit?: number; p_org: string; p_since: string }
+        Returns: {
+          bounced: number
+          campaign_id: string
+          clicked: number
+          delivered: number
+          first_sent: string
+          name: string
+          opened: number
+          sent: number
+        }[]
+      }
       report_costs_summary: {
         Args: { p_org: string; p_since: string; p_until: string }
         Returns: {
           service: string
           total: number
+        }[]
+      }
+      report_email_funnel: {
+        Args: { p_org: string; p_since: string; p_until: string }
+        Returns: {
+          bounced: number
+          campaign_sent: number
+          clicked: number
+          delivered: number
+          opened: number
+          sent: number
         }[]
       }
       report_emails_sent: {
@@ -5424,6 +5423,10 @@ export type Database = {
         Returns: undefined
       }
       task_queue_insights: { Args: never; Returns: Json }
+      tenant_doc_path_allowed: {
+        Args: { _bucket: string; _name: string; _user: string }
+        Returns: boolean
+      }
       top_properties_by_interest: {
         Args: { p_limit?: number; p_range?: string }
         Returns: {
@@ -5580,9 +5583,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "editor", "viewer", "leasing_agent"],
