@@ -27,6 +27,26 @@ function formatTime12(isoOrSlotTime: string): string {
   });
 }
 
+// Espejo del CITY_TZ de telegram-webhook (Deno no puede importar desde src/).
+// Sin esto, esta función pinta los tours de Milwaukee una hora tarde, y lo hace
+// en la MISMA tarjeta cuyo botón de SMS ya cita la hora correcta.
+const CT_TZ = "America/Chicago";
+const CITY_TZ: Record<string, string> = {
+  "milwaukee": CT_TZ, "west allis": CT_TZ, "wauwatosa": CT_TZ, "greenfield": CT_TZ,
+  "saint louis": CT_TZ, "st louis": CT_TZ, "st. louis": CT_TZ, "chicago": CT_TZ,
+};
+function tzFor(city: unknown): string {
+  return CITY_TZ[String(city ?? "").trim().toLowerCase()] ?? "America/New_York";
+}
+function fmtTimeTz(iso: string, tz: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true,
+  });
+}
+function localDateInTz(iso: string, tz: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: tz });
+}
+
 function formatDateShort(dateStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
   return d.toLocaleDateString("en-US", {
@@ -147,9 +167,12 @@ async function dispatchLeadReminders(
         `📞 ${esc(phone)}`,
       ];
       if (attempt >= 3) lines.push(``, `Último push — si no responde, decidí abajo 👇`);
+      // El correo salió del bot de Showings (2026-08-08): en campo solo se usa
+      // el mensaje de texto. `act:vc:` va siempre — tocar a alguien y no poder
+      // guardarlo era el hueco.
       const kb: any[][] = [
-        [{ text: "✉️ Email para aplicar", callback_data: `aem:${l.id}:ap2` }],
         [{ text: "💬 SMS para aplicar", callback_data: `asms:${l.id}:ap` }],
+        [{ text: "👤 Agregar contacto", callback_data: `act:vc:${l.id}` }],
         [{ text: "📋 Más acciones", callback_data: `act:menu:${l.id}` }],
       ];
       if (attempt >= 3) {
@@ -205,15 +228,30 @@ async function dispatchLeadReminders(
           .gte("created_at", dayStart).limit(1).maybeSingle();
         if (marker) continue;
 
+        // Ventana ANCHA (±1 día) y agrupado por mercado: "hoy" no es lo mismo
+        // en Cleveland que en Milwaukee, y el `.limit(15)` con las dos ciudades
+        // intercaladas por hora se comía las últimas paradas de la segunda —
+        // el mismo bug que se arregló en la agenda del bot.
+        const wideStart = new Date(new Date(dayStart).getTime() - 86400000).toISOString();
+        const wideEnd = new Date(new Date(dayEnd).getTime() + 86400000).toISOString();
         const { data: shows } = await supabase.from("showings")
-          .select(`id, scheduled_at, status,
+          .select(`id, scheduled_at, status, followed_up_at,
             leads:lead_id ( id, full_name, first_name, last_name ),
-            properties:property_id ( address )`)
+            properties:property_id ( address, city, market )`)
           .eq("organization_id", orgId)
-          .gte("scheduled_at", dayStart).lt("scheduled_at", dayEnd)
-          .not("status", "in", "(cancelled,rescheduled)")
-          .order("scheduled_at", { ascending: true }).limit(15);
-        const rows = (shows || []) as any[];
+          .gte("scheduled_at", wideStart).lt("scheduled_at", wideEnd)
+          .not("status", "in", "(cancelled)")
+          .order("scheduled_at", { ascending: true }).limit(400);
+        const byMarket = new Map<string, any[]>();
+        for (const s of ((shows || []) as any[])) {
+          const mk = String(s.properties?.market || s.properties?.city || "Sin ciudad");
+          const tz = tzFor(mk);
+          if (localDateInTz(s.scheduled_at, tz) !== new Date().toLocaleDateString("en-CA", { timeZone: tz })) continue;
+          const b = byMarket.get(mk) ?? (byMarket.set(mk, []), byMarket.get(mk)!);
+          b.push(s);
+        }
+        const marketNames = [...byMarket.keys()].sort();
+        const rows = marketNames.flatMap((mk) => byMarket.get(mk)!);
         if (!rows.length) continue; // no showings today → no recap
 
         const { data: creds } = await supabase.from("organization_credentials")
@@ -223,24 +261,38 @@ async function dispatchLeadReminders(
 
         const nm = (l: any) => l?.full_name || [l?.first_name, l?.last_name].filter(Boolean).join(" ") || "Lead";
         const esc = (v: unknown) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        // Mismo predicado que el bot: pendiente = agendado/confirmado Y sin
+        // followed_up_at. Antes acá "sin resolver" era otra cosa, así que las
+        // dos pantallas del mismo chat daban cuentas distintas.
+        const isPend = (r: any) => ["scheduled", "confirmed"].includes(String(r.status)) && r.followed_up_at == null;
+        const glyph = (r: any) => r.status === "completed" ? "✅" : r.status === "no_show" ? "👻"
+          : r.status === "rescheduled" ? "🔄" : isPend(r) ? "🕒" : "✔️";
         const done = rows.filter((r) => r.status === "completed").length;
         const ghost = rows.filter((r) => r.status === "no_show").length;
-        const open = rows.filter((r) => !["completed", "no_show"].includes(r.status));
+        const open = rows.filter(isPend);
         const lines = [
           `📊 <b>Así terminó el día</b> — ${rows.length} showing${rows.length === 1 ? "" : "s"}`,
           `✅ ${done} asistieron · 👻 ${ghost} no fueron${open.length ? ` · 🕒 ${open.length} sin resolver` : ""}`,
-          ``,
         ];
-        for (const r of rows) {
-          const time = new Date(r.scheduled_at).toLocaleTimeString("en-US", { timeZone: TZ2, hour: "numeric", minute: "2-digit", hour12: true });
-          const st = r.status === "completed" ? "✅" : r.status === "no_show" ? "👻" : "🕒";
-          lines.push(`${st} <b>${time}</b> — ${esc(nm(r.leads))} · ${esc(r.properties?.address ?? "")}`);
+        for (const mk of marketNames) {
+          const mrows = byMarket.get(mk)!;
+          const tz = tzFor(mk);
+          lines.push(``, `📍 <b>${esc(mk)}</b> · ${mrows.length}${marketNames.length > 1 ? " <i>(hora local)</i>" : ""}`);
+          for (const r of mrows) {
+            lines.push(`${glyph(r)} <b>${fmtTimeTz(r.scheduled_at, tz)}</b> — ${esc(nm(r.leads))} · ${esc(r.properties?.address ?? "")}`);
+          }
         }
-        if (open.length) lines.push(``, `👇 Resolvé los pendientes — un tap:`);
-        const kb: any[][] = open.slice(0, 8).map((r) => [{
-          text: `🕒 ${nm(r.leads)} · ¿asistió?`.slice(0, 62), callback_data: `psw:${r.id}`,
-        }]);
-        kb.push([{ text: "🏁 Showings recientes", callback_data: "m:ps" }]);
+        if (open.length) lines.push(``, `👇 Resuelve los pendientes — un tap:`);
+        // Un botón por pendiente, sin recorte: cortar en 8 dejaba paradas
+        // inalcanzables desde la única tarjeta que el dueño lee a las 8pm.
+        const kb: any[][] = open.map((r) => {
+          const tz = tzFor(String(r.properties?.market || r.properties?.city || ""));
+          return [{
+            text: `🕒 ${fmtTimeTz(r.scheduled_at, tz)} · ${nm(r.leads)} · ¿asistió?`.slice(0, 62),
+            callback_data: `psw:${r.id}`,
+          }];
+        });
+        kb.push([{ text: "📅 Agenda", callback_data: "m:ag" }, { text: "🏁 Recientes", callback_data: "m:ps" }]);
 
         const resp = await fetch(`https://api.telegram.org/bot${creds.telegram_showings_bot_token}/sendMessage`, {
           method: "POST",
@@ -425,11 +477,11 @@ serve(async (req: Request) => {
 
         const prop = showing.properties as any;
         const lead = showing.leads as any;
-        const d = new Date(showing.scheduled_at);
-        const timeStr = formatTime12(showing.scheduled_at);
-        const dateStr = formatDateShort(
-          d.toLocaleDateString("en-CA", { timeZone: "America/New_York" })
-        );
+        // En el reloj de la propiedad, no en el de Cleveland: el agente de
+        // Milwaukee llegaba una hora tarde leyendo esta misma tarjeta.
+        const cardTz = tzFor(prop?.city);
+        const timeStr = fmtTimeTz(showing.scheduled_at, cardTz);
+        const dateStr = formatDateShort(localDateInTz(showing.scheduled_at, cardTz));
 
         const address = prop?.address || "Unknown";
         const unit = prop?.unit_number ? ` #${prop.unit_number}` : "";
@@ -445,7 +497,6 @@ serve(async (req: Request) => {
 
         const leadName = lead?.full_name || "Unknown";
         const leadPhone = lead?.phone || "—";
-        const leadEmail = lead?.email || "";
         const voucher = lead?.has_voucher === true ? "🎫 Voucher" : lead?.has_voucher === false ? "💵 Self-pay" : "";
 
         const mapsQuery = encodeURIComponent(
@@ -464,7 +515,6 @@ serve(async (req: Request) => {
           ``,
           `👤 <b>${escapeHtml(leadName)}</b>${voucher ? ` — ${voucher}` : ""}`,
           `📞 ${escapeHtml(leadPhone)}`,
-          leadEmail ? `✉️ ${escapeHtml(leadEmail)}` : "",
           ``,
           `🗺 <a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Navigate with Google Maps</a>`,
           `📱 <a href="tel:${telHref}">Call ${escapeHtml(leadName.split(" ")[0])}</a>`,
@@ -477,16 +527,17 @@ serve(async (req: Request) => {
         // shared save-contact action, allowed on every bot.
         //
         // The call is not always the right move 30 min out, so the card also
-        // offers the two channels that don't interrupt anyone: `ssm:` opens the
+        // offers the channel that doesn't interrupt anyone: `ssm:` opens the
         // showing-day SMS picker (confirm / on my way / I'm here / running late
-        // / still coming?) which bounces into Messages on the iPhone, and `sse:`
-        // the email picker. Both are keyed by SHOWING id — the copy quotes the
-        // time and address. Each button appears only when that channel actually
-        // has a destination — a dead tap is worse than a missing button.
+        // / still coming?) which bounces into Messages on the iPhone. Keyed by
+        // SHOWING id — the copy quotes the time and address. The button appears
+        // only when there is a phone — a dead tap is worse than a missing one.
+        //
+        // El correo se retiró de este bot el 2026-08-08 (decisión del owner):
+        // en campo solo se usa el mensaje de texto.
         const msgRow = [
           ...(String(lead?.phone ?? "").trim()
             ? [{ text: "💬 Mensaje de texto", callback_data: `ssm:${showing.id}` }] : []),
-          ...(leadEmail ? [{ text: "✉️ Correo", callback_data: `sse:${showing.id}` }] : []),
         ];
         const keyboard = canAct
           ? [

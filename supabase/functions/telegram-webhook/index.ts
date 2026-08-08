@@ -8,6 +8,27 @@ const corsHeaders = {
 };
 
 const NY = "America/New_York";
+const CT = "America/Chicago";
+// Cada mercado lee el reloj en SU propia hora. `scheduled_at` es un instante
+// real, pero renderizarlo en Cleveland para un tour de Milwaukee imprime una
+// hora que nadie en esa ciudad reconoce — el agente llega una hora tarde.
+// Espeja src/lib/cityTimezone.ts y el mapa reducido de book-public-showing:
+// Deno no puede importar desde src/, así que es un duplicado deliberado.
+const CITY_TZ: Record<string, string> = {
+  "cleveland": NY, "east cleveland": NY, "lakewood": NY, "parma": NY,
+  "euclid": NY, "shaker heights": NY, "cleveland heights": NY,
+  "garfield heights": NY, "maple heights": NY, "south euclid": NY,
+  "warrensville heights": NY, "bedford": NY, "elyria": NY, "lorain": NY,
+  "akron": NY, "canton": NY, "youngstown": NY, "columbus": NY,
+  "cincinnati": NY, "toledo": NY, "dayton": NY, "detroit": NY,
+  "milwaukee": CT, "west allis": CT, "wauwatosa": CT, "greenfield": CT,
+  "saint louis": CT, "st louis": CT, "st. louis": CT, "chicago": CT,
+};
+// El mercado ES un nombre de ciudad (properties.market = btrim(city), con
+// Cleveland+East Cleveland plegados), así que sirve como clave directa.
+function tzFor(city: unknown): string {
+  return CITY_TZ[String(city ?? "").trim().toLowerCase()] ?? NY;
+}
 const SESSION_TTL_MIN = 30; // an in-flight flow older than this is treated as gone
 
 // Full metrics report (hourly-report).
@@ -302,7 +323,11 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   // `act:*`/`ast:*`/`asms:*` (lead actions) run anywhere a lead card lives —
   // the Funnel bot today, plus legacy cards on older bots; `rp:*`
   // belongs to RFC; `fnl:*`/`fl:*` to the Funnel menu. Everything else redirects.
-  const LEAD_ACTION = data.startsWith("act:") || data.startsWith("ast:") || data.startsWith("asms:") || data.startsWith("aem");
+  // OJO: esta rama corta-circuita ANTES del interruptor por bot, así que es el
+  // único lugar donde se puede cerrar el correo del funnel para Showings. El
+  // prefijo pelado "aem" cubre `aem:` y `aems:`.
+  const LEAD_ACTION = data.startsWith("act:") || data.startsWith("ast:") || data.startsWith("asms:") ||
+    (data.startsWith("aem") && ctx.bot !== "showings");
   // The scheduling + create-lead flow's callback vocabulary (shared Setter/Funnel).
   const SCHED_CB =
     data.startsWith("p:") || data.startsWith("dp:") || data.startsWith("d:") ||
@@ -320,12 +345,23 @@ async function handleCallback(ctx: Ctx, cbq: any) {
   // back on the slot instead of the generic action menu). The old `msg:`/`sms:`
   // session-backed picker is gone (its targets lived in the session, so the
   // buttons died as soon as the list expired).
+  // `sgc` = el selector de ciudad; `sgd:<pág>:<mercado>` = la agenda de esa
+  // ciudad; `sgr:<mercado>` = sus showings ya resueltos. El mercado va AL FINAL
+  // para que un nombre con dos puntos no rompa el parseo.
   const AG_CB =
-    data.startsWith("sag:") || data.startsWith("sac:") || ["m:ag", "m:agf"].includes(data);
-  // Showing-day SMS/email off the 30-min reminder card (keyed by showing id).
+    data.startsWith("sag:") || data.startsWith("sac:") ||
+    data.startsWith("sgd:") || data.startsWith("sgr:") ||
+    ["m:ag", "m:agf", "sgc"].includes(data);
+  // SMS del día del showing, colgado de la tarjeta de los 30 min (keyed por
+  // showing). El correo se retiró de este bot: `sse:/ssp:/ssx:` siguen
+  // ADMITIDOS a propósito porque showing-reminder se despliega por separado y
+  // las tarjetas ya enviadas conservan el botón — se responden con un aviso en
+  // vez de dejar el toque en el vacío.
   const SHW_MSG_CB =
-    data.startsWith("ssm:") || data.startsWith("ssb:") ||
-    data.startsWith("sse:") || data.startsWith("ssp:") || data.startsWith("ssx:");
+    data.startsWith("ssm:") || data.startsWith("ssb:");
+  const SHW_RETIRED_EMAIL_CB =
+    data.startsWith("sse:") || data.startsWith("ssp:") || data.startsWith("ssx:") ||
+    data.startsWith("aem");
   const cbAllowed =
     ctx.bot === "leasing" ? true
     : LEAD_ACTION ? true
@@ -335,7 +371,7 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     // Showings = field assistant: post-tour, recap, showing report, agenda/ruta.
     // `ssm:/ssb:/sse:/ssp:/ssx:` = the showing-day SMS + email pickers hanging off
     // the 30-min reminder card. Showings-only, like `rmd:`.
-    : ctx.bot === "showings" ? (data.startsWith("psw:") || data.startsWith("psa:") || data === "m:ps" || data.startsWith("sd:") || data.startsWith("cz:") || data.startsWith("rmd:") || SHW_MSG_CB || SR_CB || AG_CB)
+    : ctx.bot === "showings" ? (data.startsWith("psw:") || data.startsWith("psa:") || data === "m:ps" || data.startsWith("sd:") || data.startsWith("cz:") || data.startsWith("rmd:") || SHW_MSG_CB || SHW_RETIRED_EMAIL_CB || SR_CB || AG_CB)
     : false;
   if (!cbAllowed) {
     await answer(); await redirectToLeasing(ctx, messageId); return;
@@ -345,6 +381,16 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data.startsWith("act:")) { await handleAction(ctx, cbq, data); return; }
     if (data.startsWith("ast:")) { await handleStageSet(ctx, cbq, data); return; }
     if (data.startsWith("asms:")) { await handleFunnelSms(ctx, cbq, data); return; }
+    if (ctx.bot === "showings" && data.startsWith("aem")) {
+      await answer("El correo ya no está en este bot");
+      const lid = data.split(":")[1] ?? "";
+      await editOrSend(ctx, messageId,
+        "✉️ <b>El correo salió del bot de Showings.</b>\nUsa el mensaje de texto.",
+        lid ? [[{ text: "💬 Enviar SMS", callback_data: `act:sms:${lid}` }],
+               [{ text: "📋 Más acciones", callback_data: `act:menu:${lid}` }]]
+            : [[{ text: "📅 Agenda", callback_data: "m:ag" }]]);
+      return;
+    }
     if (data.startsWith("aems:")) { await handleEmailSend(ctx, cbq, data); return; }
     if (data.startsWith("aem:")) { await handleEmailPick(ctx, cbq, data); return; }
     if (data.startsWith("qa:")) { await handleQueueAction(ctx, cbq, data); return; }
@@ -352,26 +398,50 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data.startsWith("fnl:")) { await handleFunnelMenuCb(ctx, cbq, data); return; }
     if (data.startsWith("fl:")) { await answer(); await funnelOpenFromList(ctx, cbq.message?.message_id, data.slice(3)); return; }
     if (data.startsWith("rp:")) { await handleRfcCallback(ctx, cbq, data); return; }
-    if (data === "sd:recap") { await answer("Armando el día…"); await sendDayRecap(ctx); return; }
-    if (data === "sd:menu")  { await answer(); await send(ctx, SHW_GREETING, shwMenuKeyboard()); return; }
-    if (data === "m:ps") { await answer(); await startRecentShowings(ctx, messageId); return; }
+    if (data === "sd:recap") { await answer("Armando el día…"); await purgeContactCard(ctx); await sendDayRecap(ctx); return; }
+    if (data === "sd:menu")  { await answer(); await purgeContactCard(ctx); await send(ctx, SHW_GREETING, shwMenuKeyboard()); return; }
+    if (data === "m:ps") { await answer(); await purgeContactCard(ctx); await startRecentShowings(ctx, messageId); return; }
     if (data.startsWith("psw:")) { await answer(); await postShowingCard(ctx, messageId, data.slice(4)); return; }
     if (data.startsWith("psa:")) { await handleAttendance(ctx, cbq, data); return; }
     if (data.startsWith("rmd:")) { await handleReminderAction(ctx, cbq, data); return; }
     if (data.startsWith("ssm:")) { await showingSmsPicker(ctx, cbq, data); return; }
     if (data.startsWith("ssb:")) { await handleShowingSms(ctx, cbq, data); return; }
-    if (data.startsWith("sse:")) { await showingEmailPicker(ctx, cbq, data); return; }
-    if (data.startsWith("ssp:")) { await handleShowingEmailPick(ctx, cbq, data); return; }
-    if (data.startsWith("ssx:")) { await handleShowingEmailSend(ctx, cbq, data); return; }
+    // Correo retirado del bot de Showings. Las tarjetas viejas de
+    // showing-reminder todavía traen el botón: se contesta, no se ignora.
+    if (data.startsWith("sse:") || data.startsWith("ssp:") || data.startsWith("ssx:")) {
+      const sid = data.startsWith("sse:") ? data.slice(4) : data.split(":")[2] ?? "";
+      await answer("El correo ya no está en este bot");
+      await editOrSend(ctx, messageId,
+        "✉️ <b>El correo salió del bot de Showings.</b>\nPara este showing usa el mensaje de texto.",
+        sid ? [[{ text: "💬 Mensaje de texto", callback_data: `ssm:${sid}` }],
+               [{ text: "◀️ Volver al showing", callback_data: `sag:${sid}` }]]
+            : [[{ text: "📅 Agenda", callback_data: "m:ag" }]]);
+      return;
+    }
     if (data.startsWith("cz:")) { await handleClosing(ctx, cbq, data); return; }
     if (data.startsWith("sag:")) { await showAgendaSlotMenu(ctx, cbq, data); return; }
     if (data.startsWith("sac:")) { await showAgendaSlotContact(ctx, cbq, data); return; }
+    if (data === "sgc") { await answer(); await purgeContactCard(ctx); await showAgenda(ctx, messageId); return; }
+    if (data.startsWith("sgd:")) {
+      await answer();
+      await purgeContactCard(ctx);
+      const rest = data.slice(4);
+      const i = rest.indexOf(":");
+      // `sgd:a:<mercado>` = página automática; `sgd:<n>:<mercado>` = esa página.
+      const pg = i < 0 ? -1 : (/^\d+$/.test(rest.slice(0, i)) ? parseInt(rest.slice(0, i), 10) : -1);
+      await renderMarketAgenda(ctx, messageId, i < 0 ? rest : rest.slice(i + 1), pg);
+      return;
+    }
+    if (data.startsWith("sgr:")) {
+      await answer(); await purgeContactCard(ctx);
+      await renderMarketResolved(ctx, messageId, data.slice(4)); return;
+    }
     if (data === "m:sch") { await answer(); await startSchedule(ctx, messageId); return; }
     if (data === "m:new") { await answer(); await startCreateLead(ctx, messageId, true); return; }
-    if (data === "m:ag")  { await answer("Cargando agenda…"); await showAgenda(ctx); return; }
+    if (data === "m:ag")  { await answer("Cargando agenda…"); await purgeContactCard(ctx); await showAgenda(ctx, messageId); return; }
     if (data === "m:agf") { await answer("Cargando agenda completa…"); await showFullAgenda(ctx); return; }
     if (data === "m:lr")  { await answer(); await startLeasingReport(ctx, messageId); return; }
-    if (data === "m:sr")  { await answer(); await startShowingReport(ctx, messageId); return; }
+    if (data === "m:sr")  { await answer(); await purgeContactCard(ctx); await startShowingReport(ctx, messageId); return; }
     if (data.startsWith("srx:")) { await answer(); await chooseShowingToReport(ctx, messageId, data.slice(4)); return; }
     if (data === "sra:show") { await answer(); await setReportAttendance(ctx, messageId, true); return; }
     if (data === "sra:no")   { await answer(); await setReportAttendance(ctx, messageId, false); return; }
@@ -379,8 +449,8 @@ async function handleCallback(ctx: Ctx, cbq: any) {
     if (data === "srp")   { await answer(); await askForPhoto(ctx, messageId); return; }
     if (data === "srb")   { await answer(); await showReportReview(ctx, messageId); return; }
     if (data === "srs")   { await answer("Guardando…"); await saveShowingReport(ctx, messageId); return; }
-    if (data === "m:menu"){ await answer(); await clearSession(ctx); await showMenu(ctx, messageId); return; }
-    if (data === "m:x")   { await answer(); await clearSession(ctx); await showMenu(ctx, messageId, "❌ Listo, cancelado."); return; }
+    if (data === "m:menu"){ await answer(); await purgeContactCard(ctx); await clearSession(ctx); await showMenu(ctx, messageId); return; }
+    if (data === "m:x")   { await answer(); await purgeContactCard(ctx); await clearSession(ctx); await showMenu(ctx, messageId, "❌ Listo, cancelado."); return; }
 
     if (data.startsWith("p:"))  { await answer(); await chooseProperty(ctx, messageId, data.slice(2)); return; }
     if (data.startsWith("dp:")) { await answer(); await renderDays(ctx, messageId, parseInt(data.slice(3), 10) || 0); return; }
@@ -1264,18 +1334,19 @@ function shiftDay(dateStr: string, days: number): string {
 // Cleveland midnight of a local date, as UTC ISO. NOT slotToUtcMs: that samples
 // the offset at noon, which is wrong for midnight on the two DST-transition
 // days (switch happens at 2 AM). Round-trip-verify the candidate instant.
-function nyMidnightUtcIso(dateStr: string): string {
+function tzMidnightUtcIso(dateStr: string, tz: string): string {
   const noon = new Date(`${dateStr}T12:00:00Z`);
-  const localNoon = new Date(noon.toLocaleString("en-US", { timeZone: NY }));
+  const localNoon = new Date(noon.toLocaleString("en-US", { timeZone: tz }));
   const guessOffset = noon.getTime() - localNoon.getTime();
   const base = new Date(`${dateStr}T00:00:00Z`).getTime();
   for (const off of [guessOffset, guessOffset - 3600000, guessOffset + 3600000]) {
     const cand = new Date(base + off);
-    const rendered = cand.toLocaleString("sv-SE", { timeZone: NY }); // "YYYY-MM-DD HH:mm:ss"
+    const rendered = cand.toLocaleString("sv-SE", { timeZone: tz }); // "YYYY-MM-DD HH:mm:ss"
     if (rendered.startsWith(`${dateStr} 00:00`)) return cand.toISOString();
   }
   return new Date(base + guessOffset).toISOString(); // unreachable fallback
 }
+function nyMidnightUtcIso(dateStr: string): string { return tzMidnightUtcIso(dateStr, NY); }
 function rfcDelta(cur: number, prev: number): string {
   if (prev === 0) return cur > 0 ? "🆙 nuevo" : "=";
   const pct = Math.round(((cur - prev) / prev) * 100);
@@ -2508,7 +2579,7 @@ async function handleEmailSend(ctx: Ctx, cbq: any, data: string) {
 // `back` overrides where "Volver" lands — the agenda passes the slot it came
 // from, so backing out of a contact card returns to that slot's menu instead of
 // the generic register-an-action menu (a screen the agenda never visits).
-async function sendLeadContact(ctx: Ctx, messageId: number | undefined, lead: any, back?: any[][]) {
+async function sendLeadContact(ctx: Ctx, messageId: number | undefined, lead: any, back?: any[][], prompt?: string) {
   back = back ?? [[{ text: "◀️ Volver", callback_data: `act:menu:${lead.id}` }]];
   const tel = String(lead.phone ?? "").replace(/[^\d+]/g, "");
   if (!tel) { await editOrSend(ctx, messageId, "❌ Este lead no tiene teléfono.", back); return; }
@@ -2589,11 +2660,14 @@ async function sendLeadContact(ctx: Ctx, messageId: number | undefined, lead: an
     })(),
     "END:VCARD",
   ].join("\n");
-  const r = await tg(ctx, "sendContact", {
+  const sent = await tgResult(ctx, "sendContact", {
     chat_id: ctx.chatId, phone_number: tel, first_name: first,
     last_name: last, vcard,
   });
-  if (!r || !r.ok) {
+  // Solo el bot de Showings limpia: en los demás la tarjeta es el final del
+  // flujo y no hay pantalla siguiente donde borrarla tenga sentido.
+  if (sent?.message_id && ctx.bot === "showings") await stashContactCard(ctx, Number(sent.message_id));
+  if (!sent) {
     await editOrSend(ctx, messageId, "❌ No pude enviar la tarjeta de contacto. Inténtalo de nuevo.", back);
     return;
   }
@@ -2602,7 +2676,8 @@ async function sendLeadContact(ctx: Ctx, messageId: number | undefined, lead: an
   // third message. Net: one new message, and no orphan menu left behind.
   await editOrSend(ctx, messageId,
     `👆 Toca el contacto de arriba y <b>Add to Contacts</b> — se guarda como <b>${escapeHtml(fn)}</b>` +
-    (orgLine !== "Rent Finder Cleveland" ? `\n💼 ${escapeHtml(orgLine.slice(0, 120))}` : "."),
+    (orgLine !== "Rent Finder Cleveland" ? `\n💼 ${escapeHtml(orgLine.slice(0, 120))}` : ".") +
+    (prompt ? `\n\n${prompt}` : ""),
     back);
 }
 
@@ -2616,16 +2691,19 @@ async function startRecentShowings(ctx: Ctx, messageId?: number) {
   // (followed_up_at set by attendance-mark or report-save). A showing
   // auto-completed by DoorLoop never sets followed_up_at, so it still surfaces.
   const { data } = await ctx.supabase.from("showings")
-    .select("id, scheduled_at, status, lead_id, leads:lead_id(id, full_name, first_name, last_name), properties:property_id(address, unit_number)")
+    .select("id, scheduled_at, status, lead_id, followed_up_at, leads:lead_id(id, full_name, first_name, last_name), properties:property_id(address, unit_number, city, market)")
     .eq("organization_id", ctx.organizationId)
     .lt("scheduled_at", nowIso).gte("scheduled_at", since)
     .not("status", "in", "(cancelled,rescheduled)")
     .is("followed_up_at", null)
-    .order("scheduled_at", { ascending: false }).limit(10);
+    .order("scheduled_at", { ascending: false }).limit(40);
   const rows = ((data || []) as any[])
-    .filter((s) => s.leads?.id)
+    // Mismo predicado que la agenda: sin esto un showing podía estar fuera de
+    // 🏁 recientes y a la vez contarse "sin resolver" en el resumen de las 8pm.
+    .filter((s) => s.leads?.id && isPendingShowing(s))
     .map((s) => {
-      const d = new Date(s.scheduled_at).toLocaleDateString("es-ES", { timeZone: NY, weekday: "short", day: "numeric" });
+      const tz = tzFor(String(s.properties?.market || s.properties?.city || ""));
+      const d = new Date(s.scheduled_at).toLocaleDateString("es-ES", { timeZone: tz, weekday: "short", day: "numeric" });
       const label = `🕒 ${leadName(s.leads)} · ${d} · ${s.properties?.address ?? ""}`.slice(0, 62);
       // Button carries the SHOWING id — attendance + follow-up need it.
       return [{ text: label, callback_data: `psw:${s.id}` }];
@@ -2726,40 +2804,44 @@ async function handleShowingsText(ctx: Ctx, rawText: string) {
 // The day, told at a glance — with one-tap resolution of unresolved showings.
 async function sendDayRecap(ctx: Ctx) {
   await typing(ctx);
-  const dayStart = nyMidnightUtcIso(todayNY());
-  const dayEnd = nyMidnightUtcIso(shiftDay(todayNY(), 1));
-  const { data } = await ctx.supabase.from("showings")
-    .select(`id, scheduled_at, status,
-      leads:lead_id ( id, full_name, first_name, last_name ),
-      properties:property_id ( address, unit_number )`)
-    .eq("organization_id", ctx.organizationId)
-    .gte("scheduled_at", dayStart).lt("scheduled_at", dayEnd)
-    .not("status", "in", "(cancelled,rescheduled)")
-    .order("scheduled_at", { ascending: true }).limit(15);
-  const rows = (data || []) as any[];
-  if (!rows.length) {
+  // Misma cirugía que la agenda: agrupado por mercado, cada uno con su reloj y
+  // su día local, y sin `.limit(15)` recortando la última ciudad.
+  const byMarket = await fetchTodayByMarket(ctx);
+  const markets = [...byMarket.keys()].sort();
+  const all = markets.flatMap((m) => byMarket.get(m)!);
+  if (!all.length) {
     await send(ctx, "📊 Hoy no hubo showings.", shwMenuKeyboard());
     return;
   }
-  const done = rows.filter((r) => r.status === "completed").length;
-  const ghost = rows.filter((r) => r.status === "no_show").length;
-  const open = rows.filter((r) => !["completed", "no_show"].includes(r.status));
-  const lines = [
-    `📊 <b>El día de hoy — ${slotDayLabel(todayNY())}</b>`,
-    `${rows.length} showing${rows.length === 1 ? "" : "s"} · ✅ ${done} asistieron · 👻 ${ghost} no fueron${open.length ? ` · 🕒 ${open.length} sin resolver` : ""}`,
-    ``,
+  const done = all.filter((r) => r.status === "completed").length;
+  const ghost = all.filter((r) => r.status === "no_show").length;
+  const open = all.filter(isPendingShowing);
+  const lines: string[] = [
+    // Sin fecha global: entre las 00:00 y las 00:59 de Cleveland, Milwaukee
+    // sigue en el día anterior y un solo encabezado mentiría para una de las dos.
+    `📊 <b>El día de hoy</b>`,
+    `${all.length} showing${all.length === 1 ? "" : "s"} · ✅ ${done} asistieron · 👻 ${ghost} no fueron${open.length ? ` · 🕒 ${open.length} sin resolver` : ""}`,
   ];
-  rows.forEach((r) => {
-    const time = new Date(r.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true });
-    const st = r.status === "completed" ? "✅" : r.status === "no_show" ? "👻" : "🕒";
-    lines.push(`${st} <b>${time}</b> — ${escapeHtml(leadName(r.leads || {}))} · ${escapeHtml(r.properties?.address ?? "")}`);
+  for (const m of markets) {
+    const rows = byMarket.get(m)!;
+    const tz = tzFor(m);
+    lines.push(``, `📍 <b>${escapeHtml(m)}</b> · ${escapeHtml(dayLabelTz(todayInTz(tz), tz))} · ${rows.length}`);
+    rows.forEach((r) => {
+      const st = isPendingShowing(r) ? "🕒" : resolvedGlyph(r);
+      lines.push(`${st} <b>${escapeHtml(fmtTimeTz(r.scheduled_at, tz))}</b> — ${escapeHtml(leadName(r.leads || {}))} · ${escapeHtml(r.properties?.address ?? "")}`);
+    });
+  }
+  if (open.length) lines.push(``, `👇 Resuelve los pendientes — un tap y salen los siguientes pasos:`);
+  // Botón SOLO para los que faltan; los ya resueltos quedan a la vista arriba
+  // pero no compiten por el pulgar.
+  const kb: any[][] = open.map((r) => {
+    const tz = tzFor(String(r.properties?.market || r.properties?.city || ""));
+    return [{
+      text: `🕒 ${fmtTimeTz(r.scheduled_at, tz)} · ${leadName(r.leads || {})} · ¿asistió?`.slice(0, 62),
+      callback_data: `psw:${r.id}`,
+    }];
   });
-  if (open.length) lines.push(``, `👇 Resolvé los pendientes — un tap y salen los siguientes pasos:`);
-  const kb: any[][] = open.slice(0, 8).map((r) => [{
-    text: `🕒 ${leadName(r.leads || {})} · ¿asistió?`.slice(0, 62),
-    callback_data: `psw:${r.id}`,
-  }]);
-  kb.push([{ text: "🏁 Showings recientes", callback_data: "m:ps" }]);
+  kb.push([{ text: "📅 Agenda", callback_data: "m:ag" }, { text: "🏁 Recientes", callback_data: "m:ps" }]);
   await send(ctx, lines.join("\n"), kb);
 }
 
@@ -2817,10 +2899,11 @@ async function handleClosing(ctx: Ctx, cbq: any, data: string) {
 // Post-showing card: attendance FIRST, then the right follow-up — apply if they
 // came, rebook if they no-showed. Everything lands in the lead's history.
 async function postShowingCard(ctx: Ctx, messageId: number | undefined, showingId: string) {
+  await purgeContactCard(ctx);
   const { data: s } = await ctx.supabase.from("showings")
     .select(`id, scheduled_at, status, lead_id,
       leads:lead_id ( id, full_name, first_name, last_name, phone, email ),
-      properties:property_id ( address, unit_number, city )`)
+      properties:property_id ( address, unit_number, city, market )`)
     .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
   if (!s?.leads?.id) {
     await editOrSend(ctx, messageId, "❌ No encontré ese showing.",
@@ -2828,41 +2911,61 @@ async function postShowingCard(ctx: Ctx, messageId: number | undefined, showingI
     return;
   }
   const l = s.leads; const p = s.properties || {};
+  // En el reloj de la propiedad: esta tarjeta se abre desde el resumen del día
+  // y desde la agenda por ciudad, las dos multi-mercado.
   const when = new Date(s.scheduled_at).toLocaleString("es-ES", {
-    timeZone: NY, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true,
+    timeZone: tzFor(String((p as any).market || (p as any).city || "")),
+    weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true,
   });
   const head = [
     `🏁 <b>${escapeHtml(leadName(l))}</b> — ${escapeHtml(p.address ?? "")}${p.unit_number ? ` ${escapeHtml(p.unit_number)}` : ""}`,
     `🕒 ${escapeHtml(when)}`,
-    `📞 ${escapeHtml(String(l.phone ?? "—"))}${l.email ? ` · ✉️ ${escapeHtml(l.email)}` : ""}`,
+    `📞 ${escapeHtml(String(l.phone ?? "—"))}`,
   ];
   if (s.status === "completed") {
     await editOrSend(ctx, messageId, [...head, "", "✅ Ya marcado como <b>asistió</b> — ¿siguiente paso?"].join("\n"),
-      postShowingFollowUpKb(l.id, true));
+      postShowingFollowUpKb(l.id, true, ctx.bot));
   } else if (s.status === "no_show") {
     await editOrSend(ctx, messageId, [...head, "", "👻 Ya marcado como <b>no fue</b> — ¿lo recuperamos?"].join("\n"),
-      postShowingFollowUpKb(l.id, false));
+      postShowingFollowUpKb(l.id, false, ctx.bot));
+  } else if (!ACTIONABLE_STATUSES.includes(String(s.status))) {
+    // Reprogramado, cancelado o cualquier estado que no sea agendable: se
+    // muestra, no se pregunta. Preguntar "¿asistió?" acá y responder que sí
+    // reescribiría el estado a "completed" y borraría la reprogramación.
+    await editOrSend(ctx, messageId,
+      [...head, "", escapeHtml(resolvedLabel(s)), "", "Este showing ya no está agendado — no hay asistencia que marcar."].join("\n"),
+      [[{ text: "👤 Agregar contacto", callback_data: `sac:${s.id}` }],
+       [{ text: "📋 Más acciones", callback_data: `act:menu:${l.id}` }],
+       [{ text: "🏁 Otro showing", callback_data: "m:ps" }]]);
   } else {
     await editOrSend(ctx, messageId, [...head, "", "¿<b>Asistió</b> al showing?"].join("\n"),
       [[{ text: "✅ Sí, fue", callback_data: `psa:${s.id}:y` }, { text: "❌ No fue", callback_data: `psa:${s.id}:n` }],
+       [{ text: "👤 Agregar contacto", callback_data: `sac:${s.id}` }],
        [{ text: "📋 Más acciones", callback_data: `act:menu:${l.id}` }],
        [{ text: "🏁 Otro showing", callback_data: "m:ps" }]]);
   }
 }
 
-function postShowingFollowUpKb(leadId: string, attended: boolean) {
-  return attended
-    ? [[{ text: "✉️ Email para aplicar", callback_data: `aem:${leadId}:ap2` }],
-       [{ text: "💬 SMS para aplicar", callback_data: `asms:${leadId}:ap` }],
-       [{ text: "📋 Más acciones", callback_data: `act:menu:${leadId}` }, { text: "🏁 Otro", callback_data: "m:ps" }]]
-    : [[{ text: "✉️ Email para re-agendar", callback_data: `aem:${leadId}:rs` }],
-       [{ text: "💬 SMS para re-agendar", callback_data: `asms:${leadId}:rs` }],
-       [{ text: "📋 Más acciones", callback_data: `act:menu:${leadId}` }, { text: "🏁 Otro", callback_data: "m:ps" }]];
+// El bot de Showings ya no manda correos: en campo la fila de email era un
+// camino muerto. Los demás bots la conservan.
+function postShowingFollowUpKb(leadId: string, attended: boolean, bot?: string) {
+  const email = bot === "showings"
+    ? []
+    : [[{ text: attended ? "✉️ Email para aplicar" : "✉️ Email para re-agendar",
+          callback_data: `aem:${leadId}:${attended ? "ap2" : "rs"}` }]];
+  return [
+    ...email,
+    [{ text: attended ? "💬 SMS para aplicar" : "💬 SMS para re-agendar",
+       callback_data: `asms:${leadId}:${attended ? "ap" : "rs"}` }],
+    [{ text: "👤 Agregar contacto", callback_data: `act:vc:${leadId}` }],
+    [{ text: "📋 Más acciones", callback_data: `act:menu:${leadId}` }, { text: "🏁 Otro", callback_data: "m:ps" }],
+  ];
 }
 
 async function handleAttendance(ctx: Ctx, cbq: any, data: string) {
   const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
   const messageId: number | undefined = cbq.message?.message_id;
+  await purgeContactCard(ctx);
   const [, showingId = "", yn = ""] = data.split(":");
   const attended = yn === "y";
   const { data: s } = await ctx.supabase.from("showings")
@@ -2870,6 +2973,15 @@ async function handleAttendance(ctx: Ctx, cbq: any, data: string) {
     .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
   if (!s?.leads?.id) { await answer("No encontrado"); return; }
   const l = s.leads;
+  // Cinturón: un botón viejo de una tarjeta ya enviada no puede resucitar un
+  // showing reprogramado ni cancelado marcándolo como asistido.
+  if (!["scheduled", "confirmed", "completed", "no_show"].includes(String((s as any).status))) {
+    await answer("Ese showing ya no está agendado");
+    await editOrSend(ctx, messageId,
+      `⚠️ El showing de <b>${escapeHtml(leadName(l))}</b> está <b>${escapeHtml(String((s as any).status))}</b> — no le marco asistencia.`,
+      [[{ text: "🏁 Showings recientes", callback_data: "m:ps" }]]);
+    return;
+  }
   await answer(attended ? "✅ Asistió" : "👻 No-show");
   // followed_up_at marks it handled → it drops off the "🏁 recientes" list.
   const nowIso = new Date().toISOString();
@@ -2899,7 +3011,7 @@ async function handleAttendance(ctx: Ctx, cbq: any, data: string) {
     attended
       ? `✅ <b>${escapeHtml(leadName(l))}</b> fue al showing — ¿siguiente paso?`
       : `👻 <b>${escapeHtml(leadName(l))}</b> no fue — ¿lo recuperamos?`,
-    postShowingFollowUpKb(l.id, attended));
+    postShowingFollowUpKb(l.id, attended, ctx.bot));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2916,7 +3028,7 @@ async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
   const { data: s } = await ctx.supabase.from("showings")
     .select(`id, scheduled_at, status, lead_id, property_id,
       leads:lead_id ( id, full_name, first_name, last_name, phone, email ),
-      properties:property_id ( address, unit_number )`)
+      properties:property_id ( address, unit_number, city, market )`)
     .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
   if (!s?.leads?.id) { await answer("No encontré ese showing."); return; }
   const l = s.leads;
@@ -2924,9 +3036,10 @@ async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
   const name = leadName(l);
   const addr = p.address ? `${p.address}${p.unit_number ? ` ${p.unit_number}` : ""}` : "";
   const where = addr ? ` · ${escapeHtml(addr)}` : "";
-  const when = new Date(s.scheduled_at).toLocaleTimeString("en-US", {
-    timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true,
-  });
+  // Hora de la ciudad de la propiedad: este texto no solo se muestra, se
+  // ESCRIBE en lead_notes ("Confirmó el showing de las …"). Una hora mal acá
+  // queda mal para siempre en el historial.
+  const when = fmtTimeTz(s.scheduled_at, tzFor(String(p.market || p.city || "")));
   const contactRow = [{ text: "👤 Agregar contacto", callback_data: `act:vc:${l.id}` }];
   const moreRow = [{ text: "📋 Más acciones", callback_data: `act:menu:${l.id}` }];
 
@@ -2978,11 +3091,10 @@ async function handleReminderAction(ctx: Ctx, cbq: any, data: string) {
         id: s.id, property_id: (s as any).property_id ?? null, status: String(s.status),
       });
       const kb: any[][] = [[{ text: "💬 SMS para mover", callback_data: `asms:${l.id}:rs2` }]];
-      if (l.email) kb.push([{ text: "✉️ Email para mover", callback_data: `aem:${l.id}:rs2` }]);
       kb.push(contactRow, moreRow);
       await editOrSend(ctx, messageId,
         `🔄 <b>Re-agendar</b> — ${escapeHtml(name)}${where}\n` +
-        `📞 ${escapeHtml(String(l.phone ?? "—"))}${l.email ? ` · ✉️ ${escapeHtml(l.email)}` : ""}\n\n` +
+        `📞 ${escapeHtml(String(l.phone ?? "—"))}\n\n` +
         (moved
           ? `<i>Showing marcado <b>Reprogramado</b> ✅ — horario liberado y te lo recuerdo mañana 9am si no se re-agenda.</i>\n\n`
           : "") +
@@ -3019,47 +3131,27 @@ const SHW_SMS_TEMPLATES: { code: string; label: string; body: (c: ShwCtx) => str
   { code: "qq", label: "❓ ¿Sigues viniendo?", body: (c) => `Hi ${c.first}, are you still able to make our ${c.time} showing${shwWhere(c)}? Just let me know either way — happy to find another time.` },
 ];
 
-// notification_type stays OUT of MARKETING_NOTIFICATION_TYPES on purpose: the
-// lead booked this showing, so a message about that appointment is transactional
-// (same standard as application_invite) and skips the consent/unsubscribe gate.
-const SHW_EMAIL_TEMPLATES: {
-  code: string; label: string; ntype: string;
-  subject: (c: ShwCtx) => string; text: (c: ShwCtx) => string; html: (c: ShwCtx) => string;
-}[] = [
-  {
-    code: "cf", label: "✅ Confirmar showing", ntype: "showing_reminder",
-    subject: (c) => `Confirming your showing today at ${c.time}`,
-    text: (c) => `Hi ${c.first}, just confirming our showing today at ${c.time}${shwWhere(c)}. See you there! If anything changes, reply to this email or give us a call.`,
-    html: (c) => `<p>Hi ${c.first},</p><p>Just confirming our showing <b>today at ${c.time}</b>${c.addr ? ` at <b>${c.addr}</b>` : ""}.</p><p>See you there! If anything changes, reply to this email or give us a call.</p><p>— Rent Finder Cleveland</p>`,
-  },
-  {
-    code: "dt", label: "📍 Detalles + qué llevar", ntype: "showing_reminder",
-    subject: (c) => `Showing details — today at ${c.time}`,
-    text: (c) => `Hi ${c.first}, here are the details for today's showing: ${c.time}${shwWhere(c)}. Please bring a photo ID. The tour takes about 15 minutes and you're welcome to ask anything. If you like the home, you can apply the same day: ${APPLY_URL}`,
-    html: (c) => `<p>Hi ${c.first},</p><p>Here are the details for today's showing:</p><ul><li><b>Time:</b> ${c.time}</li>${c.addr ? `<li><b>Address:</b> ${c.addr}</li>` : ""}<li><b>Bring:</b> a photo ID</li></ul><p>The tour takes about 15 minutes and you're welcome to ask anything. If you like the home, you can apply the same day:</p><p><a href="${APPLY_URL}">${APPLY_URL}</a></p><p>— Rent Finder Cleveland</p>`,
-  },
-  {
-    code: "qq", label: "❓ ¿Sigues viniendo?", ntype: "showing_reminder",
-    subject: (c) => `Are we still on for ${c.time} today?`,
-    text: (c) => `Hi ${c.first}, are you still able to make our showing today at ${c.time}${shwWhere(c)}? Just reply either way — if today doesn't work we can easily find a new time: ${MARKETPLACE_URL}`,
-    html: (c) => `<p>Hi ${c.first},</p><p>Are you still able to make our showing <b>today at ${c.time}</b>${c.addr ? ` at <b>${c.addr}</b>` : ""}?</p><p>Just reply either way — if today doesn't work we can easily find a new time:</p><p><a href="${MARKETPLACE_URL}">${MARKETPLACE_URL}</a></p><p>— Rent Finder Cleveland</p>`,
-  },
-];
+// El correo salió del bot de Showings por decisión del owner (2026-08-08):
+// en campo solo se usa el mensaje de texto. Se borraron SHW_EMAIL_TEMPLATES y
+// los handlers `sse:/ssp:/ssx:`; el router sigue admitiendo esos prefijos para
+// contestarle a las tarjetas viejas de showing-reminder que aún los traen.
 
 // One lookup shared by all five showing-day callbacks.
 async function loadShowing(ctx: Ctx, showingId: string) {
   const { data: s } = await ctx.supabase.from("showings")
-    .select(`id, scheduled_at, status, lead_id, property_id,
+    .select(`id, scheduled_at, status, lead_id, property_id, followed_up_at, cancelled_at, cancellation_reason,
       leads:lead_id ( id, full_name, first_name, last_name, phone, email, has_voucher, move_in_date ),
-      properties:property_id ( address, unit_number, city, rent_price )`)
+      properties:property_id ( address, unit_number, city, market, rent_price )`)
     .eq("organization_id", ctx.organizationId).eq("id", showingId).maybeSingle();
   if (!s?.leads?.id) return null;
   const l: any = s.leads;
   const p: any = (s as any).properties || {};
   const addr = p.address ? `${p.address}${p.unit_number ? ` ${p.unit_number}` : ""}` : "";
-  const time = new Date(s.scheduled_at).toLocaleTimeString("en-US", {
-    timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true,
-  });
+  // La hora SIEMPRE en el reloj de la ciudad de la propiedad. Renderizar un
+  // tour de Milwaukee en hora de Cleveland lo corre una hora.
+  const market = String(p.market || p.city || "");
+  const tz = tzFor(market);
+  const time = fmtTimeTz(s.scheduled_at, tz);
   const first = String(leadName(l)).split(/\s+/)[0];
   // What the prospect said when they booked. `showings` has no notes column —
   // the booking form writes it to lead_notes as `booking_request` (mandatory
@@ -3079,7 +3171,7 @@ async function loadShowing(ctx: Ctx, showingId: string) {
   if (!note) ({ data: note } = await noteQ());
   const rent = p.rent_price ? `$${Number(p.rent_price).toLocaleString("en-US")}/mes` : "";
   return {
-    s, lead: l, rent,
+    s, lead: l, rent, market, tz,
     bookingNote: String((note as any)?.content ?? "").trim(),
     moveIn: moveInLabel(l.move_in_date),
     payment: paymentLabel(l.has_voucher),
@@ -3125,6 +3217,7 @@ function shwBackRow(showingId: string) {
 async function showingSmsPicker(ctx: Ctx, cbq: any, data: string) {
   const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
   const messageId: number | undefined = cbq.message?.message_id;
+  await purgeContactCard(ctx);
   const showingId = data.slice(4);
   const got = await loadShowing(ctx, showingId);
   if (!got) { await answer("No encontré ese showing."); return; }
@@ -3165,78 +3258,6 @@ async function handleShowingSms(ctx: Ctx, cbq: any, data: string) {
      shwBackRow(showingId)]);
 }
 
-async function showingEmailPicker(ctx: Ctx, cbq: any, data: string) {
-  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
-  const messageId: number | undefined = cbq.message?.message_id;
-  const showingId = data.slice(4);
-  const got = await loadShowing(ctx, showingId);
-  if (!got) { await answer("No encontré ese showing."); return; }
-  if (!got.lead.email) { await answer("Sin email"); return; }
-  await answer();
-  const rows = SHW_EMAIL_TEMPLATES.map((t) => [{ text: t.label, callback_data: `ssp:${t.code}:${showingId}` }]);
-  rows.push(shwBackRow(showingId));
-  await editOrSend(ctx, messageId,
-    `✉️ <b>Correo</b> — ${escapeHtml(leadName(got.lead))}\n` +
-    `🕒 ${escapeHtml(got.c.time)}${got.c.addr ? ` · ${escapeHtml(got.c.addr)}` : ""}\n\nElige la plantilla:`,
-    rows);
-}
-
-async function handleShowingEmailPick(ctx: Ctx, cbq: any, data: string) {
-  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
-  const messageId: number | undefined = cbq.message?.message_id;
-  const [, code = "", showingId = ""] = data.split(":");
-  const t = SHW_EMAIL_TEMPLATES.find((x) => x.code === code);
-  if (!t || !showingId) { await answer(); return; }
-  const got = await loadShowing(ctx, showingId);
-  if (!got?.lead.email) { await answer("Sin email"); return; }
-  await answer();
-  await editOrSend(ctx, messageId,
-    `✉️ <b>Vista previa</b>\nPara: ${escapeHtml(got.lead.email)}\nAsunto: <b>${escapeHtml(t.subject(got.c))}</b>\n\n<i>${escapeHtml(t.text(got.c))}</i>`,
-    [[{ text: "✅ Enviar", callback_data: `ssx:${t.code}:${showingId}` },
-      { text: "❌ Cancelar", callback_data: `ssm:${showingId}` }]]);
-}
-
-async function handleShowingEmailSend(ctx: Ctx, cbq: any, data: string) {
-  const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
-  const messageId: number | undefined = cbq.message?.message_id;
-  const [, code = "", showingId = ""] = data.split(":");
-  const t = SHW_EMAIL_TEMPLATES.find((x) => x.code === code);
-  if (!t || !showingId) { await answer(); return; }
-  const got = await loadShowing(ctx, showingId);
-  if (!got?.lead.email) { await answer("Sin email"); return; }
-  await answer("Enviando…");
-  // Kill the ✅ button IMMEDIATELY — closes the double-tap window.
-  await editOrSend(ctx, messageId, "⏳ <b>Enviando…</b>");
-  const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/send-notification-email`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.serviceRoleKey}` },
-    body: JSON.stringify({
-      to: got.lead.email,
-      subject: t.subject(got.c),
-      html: t.html(got.c),
-      notification_type: t.ntype,
-      organization_id: ctx.organizationId,
-      related_entity_id: got.lead.id,
-      related_entity_type: "lead",
-      from_name: "Rent Finder Cleveland",
-      queue: true,
-    }),
-  });
-  if (!resp.ok) {
-    const err = await resp.text().catch(() => "");
-    await editOrSend(ctx, messageId,
-      `❌ No pude enviar el email (${resp.status}). Intenta de nuevo.\n<i>${escapeHtml(err.slice(0, 120))}</i>`,
-      [[{ text: "🔁 Reintentar", callback_data: `ssx:${t.code}:${showingId}` }]]);
-    return;
-  }
-  await logLeadNote(ctx, got.lead.id, "general", `✉️ Email showing: ${t.label.replace(/^[^\s]+\s/, "")}`);
-  await logActivity(ctx, "message_sent_email", { leadId: got.lead.id, propertyId: (got.s as any).property_id ?? null, showingId: got.s.id });
-  await editOrSend(ctx, messageId,
-    `✉️ <b>Enviado</b> a ${escapeHtml(got.lead.email)} ✅\n` +
-    `<i>Sale en minutos desde support@rentfindercleveland.com — quedó en el historial del lead.</i>`,
-    [[{ text: "💬 Mandar SMS", callback_data: `ssm:${showingId}` }],
-     shwBackRow(showingId)]);
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Session helpers
@@ -3301,6 +3322,55 @@ async function answerCbq(ctx: Ctx, cbqId: string, text?: string) {
 }
 async function typing(ctx: Ctx) {
   await tg(ctx, "sendChatAction", { chat_id: ctx.chatId, action: "typing" });
+}
+// tg() devuelve el Response crudo y ningún call site lo parsea. Para quedarnos
+// con el message_id de la tarjeta de contacto hay que leer el sobre {ok,result}
+// de Telegram. Se hace en un helper aparte en vez de cambiar tg(): `r.ok` es el
+// status HTTP y es lo que chequean los otros cuatro bots.
+async function tgResult(ctx: Ctx, method: string, payload: Record<string, unknown>): Promise<any | null> {
+  const r = await tg(ctx, method, payload);
+  if (!r || !r.ok) return null;
+  try { const j = await r.json(); return j?.ok ? j.result : null; } catch { return null; }
+}
+async function deleteMsg(ctx: Ctx, messageId: number) {
+  if (!messageId) return;
+  await tg(ctx, "deleteMessage", { chat_id: ctx.chatId, message_id: messageId });
+}
+// Telegram NO avisa cuándo alguien guardó un contacto — ese evento no existe.
+// Así que la tarjeta se recuerda y se borra en el SIGUIENTE toque, que es el
+// primer instante en que sabemos con certeza que ya terminó con ella. Borrarla
+// antes sería quitársela de las manos mientras la está guardando.
+// Lectura EXENTA del TTL. `getSession` esconde la fila a los 30 minutos, pero
+// Telegram acepta borrar un mensaje hasta 48 h después: leer por ahí dejaba la
+// tarjeta huérfana para siempre en cuanto el dueño se distraía media hora.
+// Una sesión vencida se lee igual, pero su `step`/`data` NO se resucitan.
+async function rawSession(ctx: Ctx): Promise<{ step: string; data: Record<string, any> }> {
+  const { data } = await ctx.supabase
+    .from("telegram_bot_sessions").select("step, data, updated_at").eq("chat_id", skey(ctx)).maybeSingle();
+  if (!data) return { step: "idle", data: {} };
+  const ageMin = (Date.now() - new Date((data as any).updated_at).getTime()) / 60000;
+  const d = ((data as any).data ?? {}) as Record<string, any>;
+  return ageMin > SESSION_TTL_MIN
+    ? { step: "idle", data: d.shw_contact_msg ? { shw_contact_msg: d.shw_contact_msg } : {} }
+    : { step: String((data as any).step ?? "idle"), data: d };
+}
+async function stashContactCard(ctx: Ctx, messageId: number) {
+  const s = await rawSession(ctx);
+  await setSession(ctx, s.step, { ...s.data, shw_contact_msg: messageId });
+}
+async function purgeContactCard(ctx: Ctx) {
+  // Solo Showings guarda tarjetas, así que solo Showings tiene que limpiarlas.
+  // El guard vive acá y no en cada call site porque handleAction —que llama a
+  // esta función— corre en los cinco bots, y ninguno de los otros debe pagar
+  // una consulta extra por cada toque.
+  if (ctx.bot !== "showings") return;
+  const s = await rawSession(ctx);
+  const id = Number(s.data.shw_contact_msg ?? 0);
+  if (!id) return;
+  await deleteMsg(ctx, id);
+  const rest = { ...s.data };
+  delete rest.shw_contact_msg;
+  await setSession(ctx, s.step, rest);
 }
 async function sendChunks(ctx: Ctx, text: string) {
   const LIMIT = 3800;
@@ -3373,6 +3443,25 @@ function cleanNameQuery(raw: string): string {
 function todayNY(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: NY });
 }
+// "Hoy" NO es lo mismo en Cleveland que en Milwaukee: a las 00:30 ET en
+// Milwaukee todavía es ayer. Cada mercado se agrupa por SU fecha local.
+function todayInTz(tz: string): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: tz });
+}
+function localDateInTz(iso: string, tz: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: tz });
+}
+function fmtTimeTz(iso: string, tz: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true,
+  });
+}
+// "YYYY-MM-DD" → "vie 8 ago" en el reloj del mercado (mediodía UTC: sin salto).
+function dayLabelTz(date: string, tz: string): string {
+  return cap(new Date(`${date}T12:00:00Z`).toLocaleDateString("es-ES", {
+    timeZone: tz, weekday: "short", day: "numeric", month: "short",
+  }));
+}
 // NY-local "YYYY-MM-DD" + "HH:MM:SS" → UTC epoch ms (DST-aware; same offset
 // method book-public-showing uses to build scheduled_at).
 function slotToUtcMs(dateStr: string, timeStr: string): number {
@@ -3396,7 +3485,9 @@ async function leadTimeCutoffMs(_supabase?: any, _organizationId?: string): Prom
 // ═══════════════════════════════════════════════════════════════════════════════
 // Lead cards — "Registrar acción" (runs on the showings bot too; stateless)
 // ═══════════════════════════════════════════════════════════════════════════════
-function actionMenuKeyboard(leadId: string) {
+function actionMenuKeyboard(leadId: string, bot?: string) {
+  const emailBtn = bot === "showings"
+    ? [] : [{ text: "✉️ Enviar email", callback_data: `act:em:${leadId}` }];
   return [
     [{ text: "📵 Llamé, no contestó", callback_data: `act:noans:${leadId}` }],
     [{ text: "🔁 Quiere seguimiento (mañana 9am)", callback_data: `act:fu:${leadId}` }],
@@ -3405,8 +3496,7 @@ function actionMenuKeyboard(leadId: string) {
     [{ text: "❌ No interesado", callback_data: `act:lost:${leadId}` }],
     [{ text: "💬 Enviar SMS", callback_data: `act:sms:${leadId}` },
      { text: "🎯 Cambiar etapa", callback_data: `act:st:${leadId}` }],
-    [{ text: "✉️ Enviar email", callback_data: `act:em:${leadId}` },
-     { text: "👤 Guardar contacto", callback_data: `act:vc:${leadId}` }],
+    [...emailBtn, { text: "👤 Guardar contacto", callback_data: `act:vc:${leadId}` }],
   ];
 }
 // Insert a lead_notes row for a Telegram-logged action (created_by is null —
@@ -3837,6 +3927,9 @@ function nextDay9amET(): string {
   return new Date(slotToUtcMs(tomorrowNy, "09:00:00")).toISOString();
 }
 async function handleAction(ctx: Ctx, cbq: any, data: string) {
+  // Cualquier acción sobre un lead cierra la tarjeta de contacto anterior —
+  // incluida `vc`, que enseguida manda una nueva.
+  await purgeContactCard(ctx);
   const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
   const messageId: number | undefined = cbq.message?.message_id;
   const [, verb = "", leadId = ""] = data.split(":");
@@ -3853,7 +3946,7 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
   // Open the action submenu as a NEW message (keeps the call-now card intact).
   if (verb === "menu") {
     await answer();
-    await send(ctx, `📋 <b>Registrar acción</b> — ${escapeHtml(name)}`, actionMenuKeyboard(leadId));
+    await send(ctx, `📋 <b>Registrar acción</b> — ${escapeHtml(name)}`, actionMenuKeyboard(leadId, ctx.bot));
     return;
   }
 
@@ -3956,11 +4049,26 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
       await answer();
       await funnelStagePicker(ctx, messageId, lead);
     } else if (verb === "em") {
+      if (ctx.bot === "showings") {
+        await answer("El correo ya no está en este bot");
+        await editOrSend(ctx, messageId,
+          "✉️ <b>El correo salió del bot de Showings.</b>\nUsa el mensaje de texto.",
+          [[{ text: "💬 Enviar SMS", callback_data: `act:sms:${leadId}` }],
+           [{ text: "◀️ Volver", callback_data: `act:menu:${leadId}` }]]);
+        return;
+      }
       await answer();
       await funnelEmailPicker(ctx, messageId, lead);
     } else if (verb === "vc") {
       await answer();
-      await sendLeadContact(ctx, messageId, lead);
+      // En Showings la tarjeta no es el final: guardado el contacto, se
+      // pregunta qué sigue con esa persona.
+      await sendLeadContact(ctx, messageId, lead,
+        ctx.bot === "showings"
+          ? [[{ text: "💬 Mandarle un mensaje de texto", callback_data: `act:sms:${leadId}` }],
+             [{ text: "◀️ Volver", callback_data: `act:menu:${leadId}` }]]
+          : undefined,
+        ctx.bot === "showings" ? `¿Qué haces con <b>${escapeHtml(name)}</b>?` : undefined);
     } else {
       await answer();
     }
@@ -3983,80 +4091,277 @@ async function handleAction(ctx: Ctx, cbq: any, data: string) {
 // id travels in the callback, so nothing depends on session state and a button
 // tapped hours later still works.
 // ═══════════════════════════════════════════════════════════════════════════════
-async function showAgenda(ctx: Ctx) {
+// ── Estado de un showing: accionable vs ya resuelto ───────────────────────────
+// Dos señales independientes y ninguna alcanza sola: `status` lleva el
+// desenlace, `followed_up_at` lleva "un humano ya lo trabajó en Telegram".
+// Se discrepan en ambos sentidos (el panel marca completed sin followed_up_at),
+// así que se exige la conjunción para considerar algo PENDIENTE.
+const ACTIONABLE_STATUSES = ["scheduled", "confirmed"];
+function isPendingShowing(s: any): boolean {
+  return ACTIONABLE_STATUSES.includes(String(s?.status)) && s?.followed_up_at == null;
+}
+// Por qué salió de los botones accionables. La distinción "enviado a
+// reprogramar" vs "reprogramado en el panel" es real y verificable:
+// markShowingRescheduled toca SOLO `status`, mientras que los dos caminos del
+// panel estampan además cancelled_at o cancellation_reason.
+function resolvedLabel(s: any): string {
+  const st = String(s?.status ?? "");
+  if (st === "rescheduled") {
+    return (s?.cancelled_at == null && s?.cancellation_reason == null)
+      ? "🔄 Enviado a reprogramar"
+      : "🔄 Reprogramado en el panel";
+  }
+  if (st === "cancelled") return "🚫 Cancelado";
+  if (st === "completed") return "✅ Ya se realizó";
+  if (st === "no_show") return "👻 No fue";
+  return "✔️ Ya resuelto";
+}
+function resolvedGlyph(s: any): string {
+  const st = String(s?.status ?? "");
+  if (st === "rescheduled") return "🔄";
+  if (st === "cancelled") return "🚫";
+  if (st === "completed") return "✅";
+  if (st === "no_show") return "👻";
+  return "✔️";
+}
+
+// `showings` NO tiene columna de ciudad ni de mercado (verificado: 25 columnas),
+// así que el agrupamiento pasa obligatoriamente por el join con properties.
+const AGENDA_SELECT = `id, scheduled_at, status, lead_id, followed_up_at, cancelled_at, cancellation_reason,
+      leads:lead_id ( id, full_name, first_name, last_name, phone, has_voucher, voucher_amount ),
+      properties:property_id ( address, unit_number, city, market, rent_price, bedrooms, bathrooms )`;
+
+// Todos los showings de HOY, agrupados por mercado. "Hoy" no es lo mismo en
+// Cleveland que en Milwaukee, así que se trae una ventana ancha y cada fila se
+// filtra contra la fecha local de SU propia ciudad.
+//
+// Sin `.limit()` chico a propósito: el límite de 12 era exactamente el bug —
+// Cleveland ordenaba primero y Milwaukee se caía de la consulta antes de
+// llegar al teclado.
+async function fetchTodayByMarket(ctx: Ctx): Promise<Map<string, any[]>> {
+  const from = tzMidnightUtcIso(shiftDay(todayNY(), -1), NY);
+  const to = tzMidnightUtcIso(shiftDay(todayNY(), 2), NY);
+  const { data } = await ctx.supabase.from("showings")
+    .select(AGENDA_SELECT)
+    .eq("organization_id", ctx.organizationId)
+    .gte("scheduled_at", from).lt("scheduled_at", to)
+    .not("status", "in", "(cancelled)")
+    .order("scheduled_at", { ascending: true })
+    .limit(400);
+  const byMarket = new Map<string, any[]>();
+  for (const s of ((data || []) as any[])) {
+    const market = String(s.properties?.market || s.properties?.city || "Sin ciudad");
+    const tz = tzFor(market);
+    if (localDateInTz(s.scheduled_at, tz) !== todayInTz(tz)) continue;
+    const bucket = byMarket.get(market) ?? (byMarket.set(market, []), byMarket.get(market)!);
+    bucket.push(s);
+  }
+  return byMarket;
+}
+
+// callback_data topa en 64 bytes y `properties.city` es texto libre sin tope.
+// Un nombre largo no da error: Telegram RECHAZA el mensaje entero y la tarjeta
+// simplemente nunca aparece. Por eso se recorta al emitir; la resolución al
+// recibir es por prefijo ÚNICO (ver resolveMarket), no por "el primero que
+// coincida".
+function marketCb(prefix: string, market: string): string {
+  const enc = new TextEncoder();
+  let m = market;
+  while (enc.encode(`${prefix}${m}`).length > 48 && m.length > 1) m = m.slice(0, -1);
+  return `${prefix}${m}`;
+}
+// Ambiguo = null, NUNCA una corazonada. Dos ciudades que compartan los primeros
+// ~42 caracteres producirían el mismo callback recortado, y elegir "la primera"
+// mandaría al agente a la ciudad equivocada sin que nada se vea mal. Ante la
+// duda, el que llama vuelve al selector.
+function resolveMarket(byMarket: Map<string, any[]>, raw: string): string | null {
+  if (byMarket.has(raw)) return raw;
+  const hits = [...byMarket.keys()].filter((k) => k.startsWith(raw));
+  return hits.length === 1 ? hits[0] : null;
+}
+
+const AGENDA_PAGE = 8;
+
+// 📅 Agenda — el menú del bot de Showings. Con una sola ciudad entra directo;
+// con dos o más pregunta cuál, porque mezclarlas era lo que escondía showings.
+async function showAgenda(ctx: Ctx, messageId?: number) {
   await typing(ctx);
-  const shownToday = await sendTodayRoute(ctx);
-  if (!shownToday) await showFullAgenda(ctx);
+  const byMarket = await fetchTodayByMarket(ctx);
+  const markets = [...byMarket.keys()].sort();
+  if (!markets.length) { await showFullAgenda(ctx); return; }
+  if (markets.length === 1) {
+    await renderMarketAgenda(ctx, messageId, markets[0], -1, byMarket);
+    return;
+  }
+  await renderMarketPicker(ctx, messageId, byMarket);
 }
 
 async function showFullAgenda(ctx: Ctx) {
   await typing(ctx);
-  const agenda = await buildShowingsAgenda(ctx.supabase, ctx.organizationId);
+  const agenda = await buildShowingsAgenda(ctx.supabase, ctx.organizationId, ctx.bot === "showings");
   await sendChunks(ctx, agenda);
 }
 
-// One row per slot. Text is informational; the buttons are the actions.
-function agendaSlotButton(s: any, l: any, p: any): { text: string; callback_data: string } {
-  const time = new Date(s.scheduled_at).toLocaleTimeString("en-US", {
-    timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true,
-  });
-  const who = leadName(l);
-  const addr = String(p?.address ?? "").trim() || "propiedad";
-  // Telegram truncates button labels; budget the room instead of losing the
-  // address, which is what tells two same-time slots apart.
-  const label = `${time} · ${who} · ${addr}`;
-  return { text: label.length > 62 ? `${label.slice(0, 61)}…` : label, callback_data: `sag:${s.id}` };
-}
-
-// Today's route (replaces the web "My Route" tab — moved into Telegram).
-async function sendTodayRoute(ctx: Ctx): Promise<boolean> {
-  const dayStart = nyMidnightUtcIso(todayNY());
-  const dayEnd = nyMidnightUtcIso(shiftDay(todayNY(), 1));
-  const { data } = await ctx.supabase.from("showings")
-    .select(`id, scheduled_at, status, lead_id,
-      leads:lead_id ( id, full_name, first_name, last_name, phone, has_voucher, voucher_amount ),
-      properties:property_id ( address, unit_number, city, rent_price, bedrooms, bathrooms )`)
-    .eq("organization_id", ctx.organizationId)
-    .gte("scheduled_at", dayStart).lt("scheduled_at", dayEnd)
-    .not("status", "in", "(cancelled,rescheduled)")
-    .order("scheduled_at", { ascending: true }).limit(12);
-  const rows = (data || []) as any[];
-  if (!rows.length) return false;
-
-  const nowMs = Date.now();
-  const NUM = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+// El selector de ciudad. Muestra cuántos hay y cuántos faltan por atender en
+// cada una, más la hora local — que es el dato que evita llegar tarde.
+async function renderMarketPicker(ctx: Ctx, messageId: number | undefined, byMarket: Map<string, any[]>) {
+  const markets = [...byMarket.keys()].sort();
+  const total = markets.reduce((n, m) => n + byMarket.get(m)!.length, 0);
   const lines: string[] = [
-    `🗺️ <b>Ruta de hoy — ${slotDayLabel(todayNY())}</b> · ${rows.length} parada${rows.length === 1 ? "" : "s"}`,
+    `🗺️ <b>Hoy tienes ${total} showing${total === 1 ? "" : "s"} en ${markets.length} ciudad${markets.length === 1 ? "" : "es"}</b>`,
     ``,
   ];
-  rows.forEach((s, i) => {
-    const l = s.leads || {}; const p = s.properties || {};
-    const time = new Date(s.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true });
-    const done = new Date(s.scheduled_at).getTime() < nowMs ? " ✔️" : "";
-    const addr = `${p.address ?? "—"}${p.unit_number ? ` ${p.unit_number}` : ""}${p.city ? `, ${p.city}` : ""}`;
-    lines.push(`${NUM[i] ?? `${i + 1}.`} <b>${time}</b>${done} — ${escapeHtml(addr)}`);
+  const kb: any[][] = [];
+  for (const m of markets) {
+    const rows = byMarket.get(m)!;
+    const pend = rows.filter(isPendingShowing).length;
+    const tz = tzFor(m);
+    lines.push(
+      `📍 <b>${escapeHtml(m)}</b> — ${rows.length} parada${rows.length === 1 ? "" : "s"}` +
+      (pend ? ` · 🕒 ${pend} por atender` : ` · ✔️ todas resueltas`),
+    );
+    lines.push(`   🕰️ allá son las ${escapeHtml(fmtTimeTz(new Date().toISOString(), tz))}`);
+    kb.push([{ text: `📍 ${m} · ${rows.length}`.slice(0, 62), callback_data: marketCb("sgd:a:", m) }]);
+  }
+  lines.push(``, `Elige la ciudad 👇`);
+  kb.push([{ text: "📆 Agenda completa", callback_data: "m:agf" }]);
+  kb.push([{ text: "🏠 Menú", callback_data: "sd:menu" }]);
+  await editOrSend(ctx, messageId, lines.join("\n"), kb);
+}
+
+// La agenda de UNA ciudad: TODAS sus paradas, en la hora de esa ciudad.
+// El texto las lista todas (incluidas las resueltas, con su marca) porque el
+// pedido era ver el día completo; los botones son solo las que faltan.
+async function renderMarketAgenda(
+  ctx: Ctx, messageId: number | undefined, marketRaw: string, page: number,
+  pre?: Map<string, any[]>,
+) {
+  const byMarket = pre ?? await fetchTodayByMarket(ctx);
+  const market = resolveMarket(byMarket, marketRaw);
+  const rows = market ? (byMarket.get(market) ?? []) : [];
+  const multi = byMarket.size > 1;
+  // Botón viejo, ciudad ya sin showings, o nombre ambiguo: al selector, que es
+  // información, en vez de a un "no hay nada" que parece un error.
+  if (!market && byMarket.size) { await renderMarketPicker(ctx, messageId, byMarket); return; }
+  if (!rows.length) {
+    await editOrSend(ctx, messageId,
+      `📭 Hoy no hay showings en <b>${escapeHtml(marketRaw)}</b>.`,
+      [...(multi ? [[{ text: "🗺️ Otra ciudad", callback_data: "sgc" }]] : []),
+       [{ text: "🏠 Menú", callback_data: "sd:menu" }]]);
+    return;
+  }
+  const tz = tzFor(market!);
+  const pending = rows.filter(isPendingShowing);
+  const resolved = rows.filter((s) => !isPendingShowing(s));
+  const pages = Math.max(1, Math.ceil(rows.length / AGENDA_PAGE));
+  // Página automática (page < 0): la que contiene el primer pendiente. Abrir
+  // siempre en la 1 repetía el bug original con otra cara — una mañana llena de
+  // showings ya resueltos empujaba el trabajo vivo de la tarde a la página 2.
+  const firstPend = rows.findIndex(isPendingShowing);
+  const auto = firstPend < 0 ? 0 : Math.floor(firstPend / AGENDA_PAGE);
+  const p = page < 0 ? Math.min(auto, pages - 1) : Math.min(Math.max(0, page), pages - 1);
+  const slice = rows.slice(p * AGENDA_PAGE, (p + 1) * AGENDA_PAGE);
+  const nowMs = Date.now();
+
+  const lines: string[] = [
+    `🗺️ <b>${escapeHtml(market!)} — ${escapeHtml(dayLabelTz(todayInTz(tz), tz))}</b>`,
+    `${rows.length} parada${rows.length === 1 ? "" : "s"} · 🕒 ${pending.length} por atender · ✔️ ${resolved.length} resuelta${resolved.length === 1 ? "" : "s"}`,
+    `<i>Horarios en la hora de ${escapeHtml(market!)}.</i>`,
+    ``,
+  ];
+  slice.forEach((s, i) => {
+    const l = s.leads || {}; const pr = s.properties || {};
+    const n = p * AGENDA_PAGE + i + 1;
+    const time = fmtTimeTz(s.scheduled_at, tz);
+    const pend = isPendingShowing(s);
+    const mark = pend
+      ? (new Date(s.scheduled_at).getTime() < nowMs ? " ⏰" : "")
+      : ` ${resolvedGlyph(s)}`;
+    const addr = `${pr.address ?? "—"}${pr.unit_number ? ` ${pr.unit_number}` : ""}${pr.city ? `, ${pr.city}` : ""}`;
+    lines.push(`${n}. <b>${escapeHtml(time)}</b>${mark} — ${escapeHtml(addr)}`);
     const specs: string[] = [];
-    if (p.bedrooms != null) specs.push(`🛏 ${p.bedrooms}`);
-    if (p.bathrooms != null) specs.push(`🛁 ${p.bathrooms}`);
-    if (p.rent_price) specs.push(`💵 $${Number(p.rent_price).toLocaleString()}/mo`);
+    if (pr.bedrooms != null) specs.push(`🛏 ${pr.bedrooms}`);
+    if (pr.bathrooms != null) specs.push(`🛁 ${pr.bathrooms}`);
+    if (pr.rent_price) specs.push(`💵 $${Number(pr.rent_price).toLocaleString()}/mes`);
     if (specs.length) lines.push(`   ${specs.join(" · ")}`);
     const who: string[] = [`👤 ${escapeHtml(leadName(l))}`];
     if (l.phone) who.push(`📞 ${escapeHtml(String(l.phone))}`);
     if (l.has_voucher) who.push(`🎟️${l.voucher_amount ? ` $${Number(l.voucher_amount).toLocaleString()}` : " Voucher"}`);
     lines.push(`   ${who.join(" · ")}`);
+    if (!pend) lines.push(`   <i>${escapeHtml(resolvedLabel(s))}</i>`);
     lines.push("");
   });
+  if (pages > 1) lines.push(`Página ${p + 1} de ${pages}`);
 
-  // One button per slot → that showing's contact menu. Slots without a lead get
-  // no button: the menu's whole purpose is reaching a person.
-  const kb: any[][] = rows
-    .filter((s) => s.leads?.id)
-    .slice(0, 10)
-    .map((s) => [agendaSlotButton(s, s.leads, s.properties)]);
+  // Solo las pendientes reciben botón: una que ya se realizó o que ya mandaste
+  // a reprogramar no debería competir por el pulgar. Las resueltas siguen
+  // alcanzables, detrás de su propio botón.
+  const kb: any[][] = slice
+    .filter((s) => isPendingShowing(s) && s.leads?.id)
+    .map((s) => [agendaSlotButton(s, s.leads, s.properties, tz)]);
+  if (pages > 1) {
+    // Sin chip del medio: re-renderizaba la MISMA página, Telegram devolvía
+    // 400 "message is not modified" y edit() caía a enviar un duplicado.
+    // "Página N de M" ya va en el texto.
+    const nav: any[] = [];
+    if (p > 0) nav.push({ text: `◀️ ${p}/${pages}`, callback_data: marketCb(`sgd:${p - 1}:`, market!) });
+    if (p < pages - 1) nav.push({ text: `${p + 2}/${pages} ▶️`, callback_data: marketCb(`sgd:${p + 1}:`, market!) });
+    if (nav.length) kb.push(nav);
+  }
+  if (resolved.length) {
+    kb.push([{ text: `✔️ Ya resueltos (${resolved.length})`, callback_data: marketCb("sgr:", market!) }]);
+  }
+  if (multi) kb.push([{ text: "🗺️ Otra ciudad", callback_data: "sgc" }]);
   kb.push([{ text: "📆 Agenda completa", callback_data: "m:agf" }]);
   kb.push([{ text: "🏠 Menú", callback_data: "sd:menu" }]);
-  await send(ctx, lines.join("\n"), kb);
-  return true;
+  await editOrSend(ctx, messageId, lines.join("\n"), kb);
+}
+
+// Los ya resueltos de una ciudad — fuera de los botones de la agenda, pero
+// elegibles acá: a veces hay que volver a uno ya reportado.
+async function renderMarketResolved(ctx: Ctx, messageId: number | undefined, marketRaw: string) {
+  const byMarket = await fetchTodayByMarket(ctx);
+  const market = resolveMarket(byMarket, marketRaw);
+  if (!market && byMarket.size) { await renderMarketPicker(ctx, messageId, byMarket); return; }
+  const rows = (market ? byMarket.get(market) ?? [] : []).filter((s) => !isPendingShowing(s));
+  const back = marketCb("sgd:a:", market ?? marketRaw);
+  if (!rows.length) {
+    await editOrSend(ctx, messageId, "✔️ No hay showings resueltos hoy en esta ciudad.",
+      [[{ text: "◀️ Volver a la agenda", callback_data: back }]]);
+    return;
+  }
+  const tz = tzFor(market!);
+  const lines: string[] = [
+    `✔️ <b>Ya resueltos — ${escapeHtml(market!)}</b> · ${rows.length}`,
+    `<i>Tócalos si necesitas volver sobre alguno.</i>`,
+    ``,
+  ];
+  const kb: any[][] = [];
+  rows.forEach((s) => {
+    const l = s.leads || {}; const pr = s.properties || {};
+    const time = fmtTimeTz(s.scheduled_at, tz);
+    lines.push(`${resolvedGlyph(s)} <b>${escapeHtml(time)}</b> — ${escapeHtml(leadName(l))} · ${escapeHtml(pr.address ?? "")}`);
+    lines.push(`   <i>${escapeHtml(resolvedLabel(s))}</i>`);
+    if (l.id) {
+      kb.push([{
+        text: `${resolvedGlyph(s)} ${time} · ${leadName(l)}`.slice(0, 62),
+        callback_data: `sag:${s.id}`,
+      }]);
+    }
+  });
+  kb.push([{ text: "◀️ Volver a la agenda", callback_data: back }]);
+  await editOrSend(ctx, messageId, lines.join("\n"), kb);
+}
+
+// Un botón por parada. El texto es informativo; el botón es la acción.
+function agendaSlotButton(s: any, l: any, p: any, tz: string): { text: string; callback_data: string } {
+  const time = fmtTimeTz(s.scheduled_at, tz);
+  const who = leadName(l);
+  const addr = String(p?.address ?? "").trim() || "propiedad";
+  // Telegram trunca las etiquetas: se presupuesta el espacio en vez de perder
+  // la dirección, que es lo que distingue dos slots a la misma hora.
+  const label = `${time} · ${who} · ${addr}`;
+  return { text: label.length > 62 ? `${label.slice(0, 61)}…` : label, callback_data: `sag:${s.id}` };
 }
 
 // Contact card reached FROM the agenda. Keyed by showing so "Volver" returns to
@@ -4066,11 +4371,24 @@ async function showAgendaSlotContact(ctx: Ctx, cbq: any, data: string) {
   const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
   const messageId: number | undefined = cbq.message?.message_id;
   const showingId = data.slice(4);
+  // Si quedó una tarjeta de un lead anterior, se va ahora: nunca dos contactos
+  // sueltos en el chat.
+  await purgeContactCard(ctx);
   const got = await loadShowing(ctx, showingId);
   if (!got) { await answer("No encontré ese showing."); return; }
   await answer();
-  await sendLeadContact(ctx, messageId, got.lead,
-    [[{ text: "◀️ Volver", callback_data: `sag:${showingId}` }]]);
+  // Guardado el contacto, la conversación sigue: el mensaje de abajo deja de
+  // ser un cartel y pasa a preguntar qué hacer con esta persona.
+  const tel = String(got.lead.phone ?? "").replace(/[^\d+]/g, "");
+  const kb: any[][] = [];
+  if (tel) kb.push([{ text: "💬 Mandarle un mensaje de texto", callback_data: `ssm:${showingId}` }]);
+  if (isPendingShowing(got.s)) {
+    kb.push([{ text: "✅ Sí fue", callback_data: `psa:${showingId}:y` },
+             { text: "❌ No fue", callback_data: `psa:${showingId}:n` }]);
+  }
+  kb.push([{ text: "◀️ Volver al showing", callback_data: `sag:${showingId}` }]);
+  await sendLeadContact(ctx, messageId, got.lead, kb,
+    `¿Qué haces con <b>${escapeHtml(leadName(got.lead))}</b>?`);
 }
 
 // The per-slot contact menu — the one place the agenda hands off to an action.
@@ -4084,30 +4402,44 @@ async function showAgendaSlotMenu(ctx: Ctx, cbq: any, data: string) {
   const answer = (t?: string) => answerCbq(ctx, cbq.id, t);
   const messageId: number | undefined = cbq.message?.message_id;
   const showingId = data.slice(4);
+  // Ya terminó con la tarjeta de contacto: se va del chat.
+  await purgeContactCard(ctx);
   const got = await loadShowing(ctx, showingId);
   if (!got) { await answer("No encontré ese showing."); return; }
   await answer();
   const tel = String(got.lead.phone ?? "").replace(/[^\d+]/g, "");
+  const pending = isPendingShowing(got.s);
   const kb: any[][] = [];
   if (tel) kb.push([{ text: "💬 Mensaje de texto", callback_data: `ssm:${showingId}` }]);
-  if (got.lead.email) kb.push([{ text: "✉️ Correo", callback_data: `sse:${showingId}` }]);
+  // Resolver la asistencia es la acción que saca este showing de los botones
+  // accionables — está acá para no tener que ir a buscarla a otra pantalla.
+  if (pending) {
+    kb.push([{ text: "✅ Sí fue", callback_data: `psa:${showingId}:y` },
+             { text: "❌ No fue", callback_data: `psa:${showingId}:n` }]);
+  } else if (["completed", "no_show"].includes(String(got.s.status))) {
+    // Solo un showing YA OCURRIDO se puede reabrir. Uno reprogramado no: la
+    // tarjeta de asistencia le sobrescribiría el estado a "completed".
+    kb.push([{ text: "📝 Reabrir / reportar", callback_data: `psw:${showingId}` }]);
+  }
+  // "Agregar contacto" va SIEMPRE, en toda pantalla que toque a una persona.
   kb.push([{ text: "👤 Agregar contacto", callback_data: `sac:${showingId}` }]);
-  kb.push([{ text: "◀️ Volver a la agenda", callback_data: "m:ag" }]);
+  kb.push([{ text: "◀️ Volver a la agenda", callback_data: marketCb("sgd:a:", got.market || "") }]);
   await editOrSend(ctx, messageId,
     [
       `👤 <b>${escapeHtml(leadName(got.lead))}</b>`,
-      `🕒 ${escapeHtml(got.c.time)}`,
+      `🕒 ${escapeHtml(got.c.time)}${got.market ? ` · hora de ${escapeHtml(got.market)}` : ""}`,
       got.c.addr ? `📍 ${escapeHtml(got.c.addr)}` : "",
       got.rent ? `💵 ${escapeHtml(got.rent)}` : "",
       // Mudanza y forma de pago: lo que decide si vale la pena insistir.
       // Se muestran SIEMPRE — "sin dato" también es información.
       `📆 Mudanza: ${got.moveIn ? escapeHtml(got.moveIn) : "<i>sin dato</i>"}`,
       `💰 ${got.payment ? escapeHtml(got.payment) : "<i>Pago sin indicar</i>"}`,
+      pending ? "" : `\n${escapeHtml(resolvedLabel(got.s))}`,
       got.bookingNote
         ? `\n📝 <i>${escapeHtml(got.bookingNote.slice(0, 220))}</i>`
         : `\n📝 <i>Sin nota al agendar</i>`,
       ``,
-      `¿Cómo lo contactas?`,
+      pending ? `¿Cómo lo contactas?` : `¿Qué haces con este showing?`,
     ].filter(Boolean).join("\n"),
     kb);
 }
@@ -4121,35 +4453,52 @@ async function startShowingReport(ctx: Ctx, messageId: number | undefined) {
   const nowIso = new Date().toISOString();
   const { data: shows } = await ctx.supabase
     .from("showings")
-    .select(`id, scheduled_at, status, lead_id,
+    .select(`id, scheduled_at, status, lead_id, followed_up_at, cancelled_at, cancellation_reason,
       leads:lead_id ( full_name, first_name, last_name ),
-      properties:property_id ( address, unit_number, city )`)
+      properties:property_id ( address, unit_number, city, market )`)
     .eq("organization_id", ctx.organizationId)
     .lt("scheduled_at", nowIso)
+    // 'rescheduled' fuera: saveShowingReport escribe status sin condiciones y
+    // convertiría una reprogramación en "asistió". Los ya reportados
+    // (completed/no_show) SÍ entran — esa es la puerta para volver sobre ellos.
     .not("status", "in", "(cancelled,rescheduled)")
     .order("scheduled_at", { ascending: false })
-    .limit(10);
+    .limit(24);
+  // Esta pantalla es a propósito la puerta a los YA reportados — por eso NO
+  // filtra por resuelto. Lo que cambia es que ahora se ve cuál ya lo está, en
+  // vez de que todos parezcan iguales.
   const list = (shows || []).map((s: any) => {
     const l = s.leads || {}; const p = s.properties || {};
+    const tz = tzFor(String(p.market || p.city || ""));
     return {
       id: s.id,
       lead_id: s.lead_id,
       name: l.full_name || [l.first_name, l.last_name].filter(Boolean).join(" ") || "Lead",
       addr: p.address ? `${p.address}${p.unit_number ? ` #${p.unit_number}` : ""}${p.city ? `, ${p.city}` : ""}` : "—",
-      when: `${new Date(s.scheduled_at).toLocaleDateString("en-US", { timeZone: NY, month: "short", day: "numeric" })} ${new Date(s.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true })}`,
+      done: !isPendingShowing(s),
+      mark: isPendingShowing(s) ? "" : ` — ${resolvedLabel(s)}`,
+      when: `${new Date(s.scheduled_at).toLocaleDateString("en-US", { timeZone: tz, month: "short", day: "numeric" })} ${fmtTimeTz(s.scheduled_at, tz)}`,
     };
   });
   if (!list.length) { await editOrSend(ctx, messageId, "📭 No hay showings previos para reportar."); return; }
-  await setSession(ctx, "sr_pick", { sr_list: list });
+  // Merge, no reemplazo: `setSession` pisa el jsonb completo y se llevaba
+  // puesto el id de la tarjeta de contacto pendiente de borrar.
+  const prev = await rawSession(ctx);
+  await setSession(ctx, "sr_pick", { ...prev.data, sr_list: list });
   // A button chip truncates the address, so full details go in the TEXT and the
   // buttons are just compact numbers (rows of 4). Address is always readable.
-  const nums = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣"];
-  const shown = list.slice(0, 8);
-  const lines = ["📝 <b>Reporte de showing</b> — elige cuál (por número):"];
+  const nums = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣"];
+  const shown = list.slice(0, nums.length);
+  const pend = shown.filter((s: any) => !s.done).length;
+  const lines = [
+    "📝 <b>Reporte de showing</b> — elige cuál (por número):",
+    `<i>${pend} sin reportar · ${shown.length - pend} ya resuelto${shown.length - pend === 1 ? "" : "s"} (también puedes volver sobre esos).</i>`,
+  ];
   const rows: any[][] = [];
   let btnRow: any[] = [];
   shown.forEach((s: any, i: number) => {
-    lines.push("", `${nums[i]} 🏠 <b>${escapeHtml(s.addr)}</b>`, `      👤 ${escapeHtml(s.name)} · 📅 ${escapeHtml(s.when)}`);
+    lines.push("", `${nums[i]} 🏠 <b>${escapeHtml(s.addr)}</b>${s.done ? " ✔️" : ""}`,
+      `      👤 ${escapeHtml(s.name)} · 📅 ${escapeHtml(s.when)}${s.mark ? ` <i>${escapeHtml(s.mark)}</i>` : ""}`);
     btnRow.push({ text: nums[i], callback_data: `srx:${s.id}` });
     if (btnRow.length === 4) { rows.push(btnRow); btnRow = []; }
   });
@@ -4296,6 +4645,7 @@ async function saveShowingReport(ctx: Ctx, messageId: number | undefined) {
       .eq("status", "showing_scheduled");
     if (d.sr_lead_id) await startClosingCadence(ctx, d.sr_lead_id);
   }
+  await purgeContactCard(ctx); // el id vive en la sesión que estamos por borrar
   await clearSession(ctx);
   const statusLine = d.sr_status === "completed" ? " · marcado ✅ asistió" : d.sr_status === "no_show" ? " · marcado ❌ no-show" : "";
   await editOrSend(ctx, messageId,
@@ -4304,7 +4654,7 @@ async function saveShowingReport(ctx: Ctx, messageId: number | undefined) {
 }
 
 // ── Existing agenda/report rendering ─────────────────────────────────────────────
-async function buildShowingsAgenda(supabase: any, organizationId: string): Promise<string> {
+async function buildShowingsAgenda(supabase: any, organizationId: string, hideEmail?: boolean): Promise<string> {
   const nowIso = new Date().toISOString();
   const { data: shows, error } = await supabase
     .from("showings")
@@ -4315,7 +4665,7 @@ async function buildShowingsAgenda(supabase: any, organizationId: string): Promi
         housing_authority, move_in_date, budget_min, budget_max, preferred_language,
         source, source_detail, intake_preferences
       ),
-      properties:property_id ( address, unit_number, city, rent_price )
+      properties:property_id ( address, unit_number, city, market, rent_price )
     `)
     .eq("organization_id", organizationId)
     .gte("scheduled_at", nowIso)
@@ -4327,20 +4677,37 @@ async function buildShowingsAgenda(supabase: any, organizationId: string): Promi
   const list = (shows as any[]) || [];
   if (list.length === 0) return await buildAvailability(supabase, organizationId);
 
-  const groups = new Map<string, any[]>();
+  // Agrupado por MERCADO y recién después por día, cada bloque en su propio
+  // reloj. Antes todo se pintaba en hora de Cleveland: esta pantalla y la
+  // agenda por ciudad daban horas distintas para el MISMO showing, a un toque
+  // de distancia. Y un slot de Milwaukee a las 11:30 PM caía bajo el
+  // encabezado de mañana, porque su fecha en Cleveland ya había cambiado.
+  const byMarket = new Map<string, any[]>();
   for (const s of list) {
-    const dayKey = new Date(s.scheduled_at).toLocaleDateString("en-CA", { timeZone: NY });
-    (groups.get(dayKey) || groups.set(dayKey, []).get(dayKey)!).push(s);
+    const m = String(s.properties?.market || s.properties?.city || "Sin ciudad");
+    const b = byMarket.get(m) ?? (byMarket.set(m, []), byMarket.get(m)!);
+    b.push(s);
   }
-
+  const multi = byMarket.size > 1;
   const out: string[] = [`📅 <b>Próximos showings (${list.length})</b>`];
-  for (const [dayKey, items] of groups) {
-    const dayLabel = new Date(`${dayKey}T12:00:00Z`).toLocaleDateString("es-ES", {
-      timeZone: NY, weekday: "long", day: "numeric", month: "long",
-    });
-    out.push(``, `━━ <b>${cap(dayLabel)}</b> ━━`);
-    // Blank line between leads within a day (they were cramped edge-to-edge).
-    items.forEach((s: any, i: number) => { if (i > 0) out.push(""); out.push(renderShowing(s)); });
+  for (const m of [...byMarket.keys()].sort()) {
+    const rows = byMarket.get(m)!;
+    const tz = tzFor(m);
+    if (multi) out.push(``, `📍 <b>${escapeHtml(m)}</b> — ${rows.length} <i>(hora de ${escapeHtml(m)})</i>`);
+    const groups = new Map<string, any[]>();
+    for (const s of rows) {
+      const dayKey = localDateInTz(s.scheduled_at, tz);
+      const g = groups.get(dayKey) ?? (groups.set(dayKey, []), groups.get(dayKey)!);
+      g.push(s);
+    }
+    for (const [dayKey, items] of groups) {
+      const dayLabel = new Date(`${dayKey}T12:00:00Z`).toLocaleDateString("es-ES", {
+        timeZone: tz, weekday: "long", day: "numeric", month: "long",
+      });
+      out.push(``, `━━ <b>${cap(dayLabel)}</b> ━━`);
+      // Blank line between leads within a day (they were cramped edge-to-edge).
+      items.forEach((s: any, i: number) => { if (i > 0) out.push(""); out.push(renderShowing(s, hideEmail, tz)); });
+    }
   }
   return out.join("\n");
 }
@@ -4419,8 +4786,8 @@ function parseTime(raw: string): string | null {
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`;
 }
 
-function renderShowing(s: any): string {
-  const time = new Date(s.scheduled_at).toLocaleTimeString("en-US", { timeZone: NY, hour: "numeric", minute: "2-digit", hour12: true });
+function renderShowing(s: any, hideEmail?: boolean, tz?: string): string {
+  const time = fmtTimeTz(s.scheduled_at, tz ?? tzFor(String(s.properties?.market || s.properties?.city || "")));
   const l = s.leads || {};
   const p = s.properties || {};
   const name = l.full_name || [l.first_name, l.last_name].filter(Boolean).join(" ") || "—";
@@ -4430,7 +4797,7 @@ function renderShowing(s: any): string {
   const lines: string[] = [];
   lines.push(`🕒 <b>${time}</b> — ${escapeHtml(addr)}${rent}`);
   lines.push(`   👤 <b>${escapeHtml(name)}</b> · 📞 ${escapeHtml(l.phone || "—")}`);
-  if (l.email) lines.push(`   ✉️ ${escapeHtml(l.email)}`);
+  if (l.email && !hideEmail) lines.push(`   ✉️ ${escapeHtml(l.email)}`);
 
   const bits: string[] = [];
   if (l.has_voucher) bits.push(`🎟️ Voucher${l.voucher_amount ? ` $${Number(l.voucher_amount).toLocaleString()}` : ""}`);
