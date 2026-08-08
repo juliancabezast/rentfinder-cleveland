@@ -1605,6 +1605,173 @@ export type Database = {
         }
         Relationships: []
       }
+      flow_runs: {
+        Row: {
+          current_position: number
+          ended_at: string | null
+          flow_id: string
+          id: string
+          last_step_at: string | null
+          lead_id: string
+          organization_id: string
+          outcome: string | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          current_position?: number
+          ended_at?: string | null
+          flow_id: string
+          id?: string
+          last_step_at?: string | null
+          lead_id: string
+          organization_id: string
+          outcome?: string | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          current_position?: number
+          ended_at?: string | null
+          flow_id?: string
+          id?: string
+          last_step_at?: string | null
+          lead_id?: string
+          organization_id?: string
+          outcome?: string | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_runs_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_runs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_steps: {
+        Row: {
+          channel: string
+          created_at: string
+          delay_anchor: string
+          delay_minutes: number
+          email_config: Json
+          exit_conditions: Json
+          flow_id: string
+          id: string
+          is_enabled: boolean
+          label: string | null
+          position: number
+          template_key: string | null
+          notification_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          delay_anchor?: string
+          delay_minutes?: number
+          email_config?: Json
+          exit_conditions?: Json
+          flow_id: string
+          id?: string
+          is_enabled?: boolean
+          label?: string | null
+          position: number
+          template_key?: string | null
+          notification_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          delay_anchor?: string
+          delay_minutes?: number
+          email_config?: Json
+          exit_conditions?: Json
+          flow_id?: string
+          id?: string
+          is_enabled?: boolean
+          label?: string | null
+          position?: number
+          template_key?: string | null
+          notification_key?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_steps_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flows: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          organization_id: string
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          organization_id: string
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          organization_id?: string
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flows_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbound_emails: {
         Row: {
           attempts: number
