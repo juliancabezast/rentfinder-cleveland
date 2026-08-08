@@ -35,6 +35,7 @@ import { RotatingHeroText } from "@/components/landing/RotatingHeroText";
 import { FloatingBackground } from "@/components/landing/FloatingBackground";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 
+import { useSeo } from "@/hooks/useSeo";
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { session, loading } = useAuth();
@@ -42,9 +43,11 @@ const LandingPage: React.FC = () => {
 
   // This page now lives at /saas (the renter marketplace owns "/"); set its own
   // title since the shared index.html <title> is renter-focused.
-  React.useEffect(() => {
-    document.title = "AI Leasing Assistant for Property Managers | Rent Finder Cleveland";
-  }, []);
+  useSeo({
+    title: "AI Leasing Assistant for Property Managers | Rent Finder Cleveland",
+    description: "Software that answers every rental lead in seconds, books the showing and keeps the follow-up going. Built by a Cleveland property manager.",
+    canonicalPath: "/saas",
+  });
 
   // Redirect authenticated users to dashboard
   React.useEffect(() => {

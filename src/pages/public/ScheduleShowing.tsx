@@ -37,6 +37,7 @@ import { createPortal } from "react-dom";
 import { format, addDays, parseISO, isSameDay } from "date-fns";
 import { getTimezoneForCity } from "@/lib/cityTimezone";
 
+import { useSeo } from "@/hooks/useSeo";
 type Property =
   import("@/integrations/supabase/types").Database["public"]["Tables"]["properties"]["Row"];
 
@@ -621,6 +622,14 @@ const UnitSelectCard: React.FC<{
 /* ================================================================ */
 
 const ScheduleShowing: React.FC = () => {
+  // Es el destino #1 de conversión y declaraba canonical al home, así que
+  // Google lo descartaba como duplicado de la portada. La variante con
+  // :propertyId lleva un id en la URL: se consolida en la genérica.
+  useSeo({
+    title: "Book a Free Showing | Rent Finder Cleveland",
+    description: "Pick a time and see a Cleveland-area rental in person. Free, no obligation, and Housing Choice Vouchers are welcome on every home.",
+    canonicalPath: "/p/book-showing",
+  });
   const { propertyId } = useParams<{ propertyId: string }>();
   const isMultiMode = !propertyId;
 

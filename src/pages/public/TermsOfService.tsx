@@ -3,6 +3,7 @@
  import { Building2, ArrowLeft } from "lucide-react";
  import { Button } from "@/components/ui/button";
  
+import { useSeo } from "@/hooks/useSeo";
  const SECTIONS = [
    { id: "agreement", title: "1. Agreement to Terms" },
    { id: "service-description", title: "2. Description of Service" },
@@ -25,6 +26,12 @@
  ];
  
  const TermsOfService: React.FC = () => {
+  // Señal de confianza: debe indexarse. Tiene alias en /p/terms-of-service.
+  useSeo({
+    title: "Terms of Service | Rent Finder Cleveland",
+    description: "The terms that govern your use of the Rent Finder Cleveland site, our listings, showing bookings and messaging.",
+    canonicalPath: "/terms-and-conditions",
+  });
    useEffect(() => {
      window.scrollTo(0, 0);
    }, []);

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import { useSeo } from "@/hooks/useSeo";
 import {
   Building2, Phone, Search, Mail, ClipboardList, CreditCard,
   BadgeDollarSign, Gauge, ShieldAlert, Gavel, ShieldCheck, Lock,
@@ -50,9 +51,13 @@ const REPORTS = [
 ];
 
 export default function ApplyGuide() {
-  useEffect(() => {
-    document.title = "How to Apply | Rent Finder Cleveland";
-  }, []);
+  // /apply y /p/apply sirven lo mismo: las dos declaran /apply como canónica
+  // para que Google consolide la señal en una sola URL.
+  useSeo({
+    title: "How to Apply for a Rental | Rent Finder Cleveland",
+    description: "How to apply for a Rent Finder Cleveland home: what you need, what it costs, and what happens after you submit. Housing Choice Vouchers welcome.",
+    canonicalPath: "/apply",
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans pb-28 sm:pb-24">

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Building2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { useSeo } from "@/hooks/useSeo";
 const SECTIONS = [
   { id: "introduction", title: "1. Introduction" },
   { id: "information-we-collect", title: "2. Information We Collect" },
@@ -21,6 +22,12 @@ const SECTIONS = [
 ];
 
 const PrivacyPolicy: React.FC = () => {
+  // Señal de confianza: debe indexarse. Tiene alias en /p/privacy-policy.
+  useSeo({
+    title: "Privacy Policy | Rent Finder Cleveland",
+    description: "How Rent Finder Cleveland collects, uses and protects the information you share when you browse homes, book a showing or apply.",
+    canonicalPath: "/privacy-policy",
+  });
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);

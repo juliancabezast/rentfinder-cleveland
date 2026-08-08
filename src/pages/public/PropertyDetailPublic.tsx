@@ -12,6 +12,7 @@ import { loadListingConfig, type ListingTemplateConfig } from "@/lib/listingTemp
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSeo, rentalsPathFor } from "@/hooks/useSeo";
 import {
   ArrowLeft, MapPin, BedDouble, Bath, Ruler, Home as HomeIcon, Clock,
   ShieldCheck, CheckCircle2, FileSignature, CalendarCheck, Share2, X,
@@ -329,6 +330,22 @@ export default function PropertyDetailPublic() {
       return () => { document.title = prev; };
     }
   }, [data?.property?.address, data?.property?.city]);
+
+  // Esta ficha sirve el HTML genérico del home antes de que corra el JS, así
+  // que no puede rankear. La que sí puede es su gemela estática en /rentals/,
+  // que genera scripts/generate-listing-pages.mjs — hacia ahí canoniza.
+  const seoProp = data?.property;
+  const seoPath = seoProp ? rentalsPathFor(seoProp) : null;
+  useSeo({
+    title: seoProp
+      ? `${seoProp.address}, ${seoProp.city} — Rent Finder Cleveland`
+      : "Rental Home | Rent Finder Cleveland",
+    description: seoProp
+      ? `Rental at ${seoProp.address}, ${seoProp.city} ${seoProp.state ?? ""}. Housing Choice Vouchers welcome. Book a free showing.`
+      : undefined,
+    canonicalPath: seoPath ?? undefined,
+    noindex: !seoPath,
+  });
 
   if (isLoading) {
     return (

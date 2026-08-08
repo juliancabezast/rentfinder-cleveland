@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Loader2, Check, Ghost, AlertTriangle } from "lucide-react";
 
+import { useSeo } from "@/hooks/useSeo";
 /**
  * Marks a showing as attended / no-show from the "Leasing Agent" calendar feed,
  * without logging into the panel.
@@ -51,6 +52,8 @@ const Header = ({ title }: { title: string }) => (
 );
 
 const ShowingAttendance = () => {
+  // Se abre desde un botón de Telegram con un token en la URL: no se indexa.
+  useSeo({ title: "Showing Attendance | Rent Finder Cleveland", noindex: true });
   const [params] = useSearchParams();
   const token = params.get("t") || "";
 

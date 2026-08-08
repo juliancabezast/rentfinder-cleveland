@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useSeo } from "@/hooks/useSeo";
 import {
   Building2, CheckCircle2, Phone, Sparkles, IdCard, FileText, DollarSign,
   PhoneCall, ClipboardCheck, ArrowRight, Home as HomeIcon, Loader2,
@@ -93,9 +94,8 @@ export default function ApplicationStarted() {
     [state.leadId],
   );
 
-  useEffect(() => {
-    document.title = "Application Started | Rent Finder Cleveland";
-  }, []);
+  // Estado intermedio de un flujo, no una página de destino.
+  useSeo({ title: "Application Started | Rent Finder Cleveland", noindex: true });
 
   // Per-question UI state
   const [selected, setSelected] = useState<Record<string, string[]>>({});

@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Phone, ArrowRight, Check } from "lucide-react";
 import { SiteFooter } from "@/components/public/SiteFooter";
 
+import { useSeo } from "@/hooks/useSeo";
 /**
  * Section 8, stress free — a landlord-facing landing page.
  *
@@ -140,11 +141,13 @@ function CallButton({ variant = "gold", className = "" }: { variant?: "gold" | "
 }
 
 const Section8StressFree: React.FC = () => {
-  useEffect(() => {
-    const prev = document.title;
-    document.title = "Section 8, stress free — Rent Finder Cleveland";
-    return () => { document.title = prev; };
-  }, []);
+  // Tiene alias en /section8stressfree y /section-8-stress-free; la canónica
+  // es la versión con guiones.
+  useSeo({
+    title: "Section 8, Stress Free — Rent Finder Cleveland",
+    description: "We run the whole Section 8 sequence for Cleveland owners: CMHA orientation, RFTA, inspection and HAP contract. Placement fee only when the home is filled.",
+    canonicalPath: "/section-8-stress-free",
+  });
 
   return (
     <div style={{ background: "#F4F5FB", color: "#1E1B4B" }} className="min-h-screen overflow-x-hidden">

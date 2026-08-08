@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SmsConsentCheckbox, buildConsentPayload } from "@/components/public/SmsConsentCheckbox";
 
+import { useSeo } from "@/hooks/useSeo";
 interface ReferralInfo {
   referrer_name: string;
   organization: {
@@ -20,6 +21,8 @@ interface ReferralInfo {
 }
 
 const ReferralPage: React.FC = () => {
+  // URL personal por código de referido: nunca se indexa.
+  useSeo({ title: "Refer a Friend | Rent Finder Cleveland", noindex: true });
   const { referralCode } = useParams<{ referralCode: string }>();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

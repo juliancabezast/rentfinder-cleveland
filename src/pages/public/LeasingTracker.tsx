@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { cn } from "@/lib/utils";
+import { useSeo } from "@/hooks/useSeo";
 import {
   ResponsiveContainer,
   BarChart,
@@ -690,6 +691,8 @@ const FEATURE_ICONS = [Users, CalendarClock, CalendarPlus, MessageSquareQuote];
 
 // ══════════════════════════════════════════════════════════════════════
 export default function LeasingTracker() {
+  // Herramienta para inversionistas, no una página de captación.
+  useSeo({ title: "Leasing Tracker | Rent Finder Cleveland", noindex: true });
   const [lang, setLang] = useState<Lang>("es");
   const [langOpen, setLangOpen] = useState(false);
   const t = STRINGS[lang] as T;
