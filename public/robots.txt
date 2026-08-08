@@ -1,9 +1,22 @@
 # rentfindercleveland.com — renters welcome, AI answer engines welcome.
-# Public content (homepage, rental guides under /cleveland-rentals/, pillars,
-# booking/apply funnels) is open; private app + auth surfaces are blocked.
+# Public content (homepage, rental guides under /cleveland-rentals/, the pillar
+# pages and the booking/apply funnels) is crawlable. The private app and auth
+# surfaces are not. Anything not listed below is allowed by default.
+#
+# Two fixes, 2026-08-08:
+#  1. Googlebot and Bingbot used to have a group containing only "Allow: /".
+#     Per RFC 9309 a crawler obeys ONLY the group matching its own name and
+#     never merges it with "*", so those two groups silently voided all 25
+#     Disallow rules for the exact crawlers they were meant to guide — the
+#     private panel was open to both. Every named group now carries the full
+#     list, so an agent-specific group can never widen access again.
+#  2. The blanket "Allow: /" is gone. Google resolves conflicts by longest
+#     match (Disallow wins), but first-match parsers read "Allow: /" first and
+#     drop every Disallow after it. Allow-by-default is the standard, so the
+#     line bought nothing and made the file mean two different things depending
+#     on who read it.
 
 User-agent: *
-Allow: /
 Disallow: /auth/
 Disallow: /dashboard
 Disallow: /dashboard/
@@ -30,41 +43,361 @@ Disallow: /analytics/
 Disallow: /starktank
 Disallow: /*?*
 
-# Explicit allow for AI search / retrieval crawlers — we want citation.
+# ── AI search / retrieval crawlers. Named groups are a deliberate opt-in:
+# we want these engines to read and cite the public guides. Same surface
+# as everyone else — the panel stays closed. ──
+
 User-agent: OAI-SearchBot
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: ChatGPT-User
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: GPTBot
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: ClaudeBot
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: Claude-Web
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: anthropic-ai
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: PerplexityBot
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: Perplexity-User
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: Google-Extended
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: Applebot-Extended
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
+
 User-agent: CCBot
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
 
-# Never slow the two indexes that also feed AI Overviews and Copilot.
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
+# ── Social card fetchers ──
 
 User-agent: Twitterbot
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
 
 User-agent: facebookexternalhit
-Allow: /
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /leads
+Disallow: /leads/
+Disallow: /showings
+Disallow: /showings/
+Disallow: /applicants
+Disallow: /campaigns
+Disallow: /communications
+Disallow: /emails
+Disallow: /reports
+Disallow: /knowledge
+Disallow: /insights
+Disallow: /documents
+Disallow: /settings
+Disallow: /users
+Disallow: /users/
+Disallow: /agents
+Disallow: /costs
+Disallow: /demo-requests
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /starktank
+Disallow: /*?*
 
 Sitemap: https://rentfindercleveland.com/sitemap.xml

@@ -237,7 +237,12 @@ serve(async (req: Request) => {
       typeof move_in_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(move_in_date.trim())
         ? move_in_date.trim()
         : null;
-    const attribSrc = typeof bodySrc === "string" ? bodySrc.slice(0, 40) : null;
+    // 120, not 40: the static SEO pages tag every CTA with `?src=seo:<slug>`
+    // so a booking says which of the 542 articles produced it. The longest
+    // slug is 87 chars ("cleveland-rentals/houses/houses-for-rent-near-case-
+    // western-reserve-university-cleveland"), so 40 truncated the slug away
+    // and every article collapsed into the same unusable "seo:cleveland-ren".
+    const attribSrc = typeof bodySrc === "string" ? bodySrc.slice(0, 120) : null;
     const attribCampaignId =
       typeof bodyCampaignId === "string" &&
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bodyCampaignId)
