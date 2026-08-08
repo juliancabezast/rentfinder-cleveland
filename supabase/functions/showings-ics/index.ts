@@ -239,8 +239,18 @@ serve(async (req: Request) => {
     const prop = s.properties || {};
     const lead = s.leads || {};
 
+    // TWO addresses on purpose.
+    // `addr` is for humans and includes the unit. `mapAddr` is what LOCATION
+    // carries, and it must NOT: a unit like "#B (Up)" makes Google Maps fail to
+    // resolve the address, so tapping the location in the calendar went nowhere.
+    // Commas matter too — Maps parses "St, City, ST 53206", not a space soup.
     const addr = [prop.address, prop.unit_number ? `#${prop.unit_number}` : "", prop.city, prop.state, prop.zip_code]
       .filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    const mapAddr = [
+      prop.address,
+      prop.city,
+      [prop.state, prop.zip_code].filter(Boolean).join(" "),
+    ].filter(Boolean).join(", ").replace(/\s+/g, " ").trim();
     const leadName = String(lead.full_name || "Lead").trim();
     const mapsQuery = encodeURIComponent(
       `${prop.address || ""}, ${prop.city || ""}, ${prop.state || ""} ${prop.zip_code || ""}`,
@@ -254,7 +264,6 @@ serve(async (req: Request) => {
 
     const moveIn = moveInLabel(lead.move_in_date);
     const note = notesByShowing.get(s.id) || "";
-    const isPast = start.getTime() < now.getTime();
     const reported = Boolean(s.agent_report);
 
     const desc: string[] = [];
@@ -264,6 +273,7 @@ serve(async (req: Request) => {
     desc.push("");
     if (specs) desc.push(`🏠 ${specs}`);
     if (prop.city) desc.push(`📍 ${addr}`);
+    if (prop.unit_number) desc.push(`🚪 Unidad ${prop.unit_number}`);
     desc.push("");
     if (moveIn) desc.push(`📆 Se muda: ${moveIn}`);
     desc.push(paymentLabel(lead.has_voucher, lead.voucher_amount));
@@ -282,13 +292,20 @@ serve(async (req: Request) => {
     desc.push("");
     desc.push(`🗺 Mapa: https://www.google.com/maps/search/?api=1&query=${mapsQuery}`);
 
-    // Attendance links — only for past showings that still have no report, and
-    // only when a signing secret exists. Emitting a link we cannot verify would
-    // be worse than emitting none.
-    if (TOKEN_SECRET && isPast && !reported && s.status !== "cancelled") {
+    // Attendance links on EVERY event, not just past-and-unreported.
+    // Google refreshes a subscribed feed on its own schedule — every 8 to 24
+    // hours — so an event that synced while it was still in the future would
+    // never gain its buttons before the owner needed them. The confirmation
+    // page is the right place to handle "too early" or "already reported", not
+    // the feed. Cancelled showings are the one exception: there is nothing to
+    // report on a visit that never happened.
+    if (TOKEN_SECRET && s.status !== "cancelled") {
       const showedTok = await signAttendance(s.id, "showed", attendanceExp);
       const noShowTok = await signAttendance(s.id, "no_show", attendanceExp);
       desc.push("");
+      // Say plainly when there is already a report, so the links don't imply
+      // the outcome is still open. The page refuses to overwrite either way.
+      desc.push(reported ? "— Ya reportado. Para corregir, entrá al panel —" : "— ¿Vino? Tocá el que corresponda —");
       desc.push(`✅ Sí asistió: ${attendanceBase}?t=${showedTok}`);
       desc.push(`👻 No asistió: ${attendanceBase}?t=${noShowTok}`);
     }
@@ -304,7 +321,7 @@ serve(async (req: Request) => {
     lines.push(`DTSTART:${icsUtc(start)}`);
     lines.push(`DTEND:${icsUtc(end)}`);
     lines.push(foldLine(`SUMMARY:${mark}${icsText(leadName)} — ${icsText(addr || "Showing")}${icsText(cityTag)}`));
-    if (addr) lines.push(foldLine(`LOCATION:${icsText(addr)}`));
+    if (mapAddr) lines.push(foldLine(`LOCATION:${icsText(mapAddr)}`));
     lines.push(foldLine(`DESCRIPTION:${icsText(desc.join("\n"))}`));
     // A cancelled showing gets a TOMBSTONE rather than vanishing from the body:
     // clients key on UID, and some (Apple, Outlook) keep an event they can no
