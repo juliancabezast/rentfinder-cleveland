@@ -1075,6 +1075,223 @@ function buildPostShowingEmail(firstName: string, address: string): string {
 }
 
 // ── Sheets backup (Apps Script webhook via agent-sheets-backup) ────────────────
+// Which legacy agent_type each flow trigger replaces. The handoff happens HERE,
+// at dispatch time, rather than by rewriting the four live DB triggers — those
+// are not even versioned in the repo, and rewriting them would put the risk on
+// the producing side where a mistake silently stops mail from being created at
+// all. This way the legacy trigger keeps producing exactly as it does, and the
+// dispatcher decides who executes it.
+const FLOW_TRIGGER_BY_AGENT: Record<string, string> = {
+  welcome_sequence: "lead_created",
+  showing_confirmation: "showing_booked",
+  post_showing: "showing_completed",
+  no_show_followup: "showing_no_show",
+  no_show_follow_up: "showing_no_show",
+  showing_nurture: "manual_enroll",
+};
+
+/**
+ * If an ACTIVE flow owns this task's trigger, open a run and return its context
+ * so the flow engine executes it instead of the legacy handler. Returns null
+ * when no flow is active — which is the state every flow ships in, so this is a
+ * no-op until someone deliberately turns one on.
+ */
+async function claimForFlow(
+  supabase: SupabaseClient,
+  task: AgentTask,
+): Promise<Record<string, unknown> | null> {
+  const trigger = FLOW_TRIGGER_BY_AGENT[task.agent_type];
+  if (!trigger || !task.lead_id) return null;
+  const ctx = (task.context || {}) as Record<string, unknown>;
+  if (ctx.flow_id) return null; // already a flow task
+
+  const { data: flow } = await supabase.from("flows")
+    .select("id").eq("organization_id", task.organization_id)
+    .eq("trigger_type", trigger).eq("is_active", true).maybeSingle();
+  if (!flow) return null;
+
+  const { data: step } = await supabase.from("flow_steps")
+    .select("position").eq("flow_id", flow.id).eq("is_enabled", true)
+    .order("position", { ascending: true }).limit(1).maybeSingle();
+  if (!step) return null;
+
+  // One live run per lead per flow — a partial unique index enforces it, so a
+  // re-entering lead resumes rather than forking a second chain.
+  const { data: run } = await supabase.from("flow_runs")
+    .insert({
+      organization_id: task.organization_id,
+      flow_id: flow.id,
+      lead_id: task.lead_id,
+      current_position: step.position,
+    })
+    .select("id").maybeSingle();
+  if (!run) {
+    const { data: existing } = await supabase.from("flow_runs")
+      .select("id, current_position").eq("flow_id", flow.id)
+      .eq("lead_id", task.lead_id).eq("status", "active").maybeSingle();
+    if (!existing) return null;
+    return { flow_id: flow.id, run_id: existing.id, position: existing.current_position };
+  }
+  return { flow_id: flow.id, run_id: run.id, position: step.position, started_at: new Date().toISOString() };
+}
+
+// ── Flow engine ───────────────────────────────────────────────────────────
+// Executes ONE step of a flow defined in the `flows` / `flow_steps` tables and
+// schedules the next. The flows table only owns the SCHEDULE; the copy for an
+// imported, unedited step is produced by delegating to the very handler that
+// sends it today. That is deliberate: activating an imported flow must send the
+// byte-identical email it already sends, or the switch is not reversible in any
+// meaningful sense. Editing a step materialises `email_config`, and from then
+// on this function renders it directly.
+async function handleFlowStep(
+  supabase: SupabaseClient,
+  task: AgentTask,
+  lead: AgentTask,
+  settings: OrgSettings,
+): Promise<string> {
+  const ctx = (task.context || {}) as Record<string, unknown>;
+  const flowId = String(ctx.flow_id || "");
+  const runId = String(ctx.run_id || "");
+  const position = Number(ctx.position) || 1;
+  if (!flowId || !runId) throw new Error("flow_step task without flow_id/run_id");
+
+  const finish = async (status: string, outcome: string | null, why: string) => {
+    await supabase.from("flow_runs").update({
+      status, outcome, ended_at: new Date().toISOString(),
+    }).eq("id", runId);
+    return `Flow ${flowId} step ${position} stopped (${outcome || status}): ${why}`;
+  };
+
+  const [{ data: flow }, { data: step }] = await Promise.all([
+    supabase.from("flows").select("id, name, is_active").eq("id", flowId).maybeSingle(),
+    supabase.from("flow_steps").select("*").eq("flow_id", flowId).eq("position", position).maybeSingle(),
+  ]);
+
+  // Deactivating a flow has to stop chains already in flight, not just prevent
+  // new ones — otherwise turning it off would still mail people for days.
+  if (!flow || !flow.is_active) return finish("stopped", "stopped", "flow is not active");
+  if (!step) return finish("done", "exhausted", "no step at this position");
+  if (!step.is_enabled) return finish("stopped", "stopped", "step disabled");
+
+  // ── Exit conditions, re-checked NOW, never at enrollment ────────────────
+  const exits: string[] = Array.isArray(step.exit_conditions) ? step.exit_conditions as string[] : [];
+  const leadId = task.lead_id;
+  if (exits.includes("unsubscribed") && lead.unsubscribed_at) {
+    return finish("stopped", "unsubscribed", "lead unsubscribed");
+  }
+  for (const st of ["lost", "converted", "in_application"]) {
+    if (exits.includes(st) && String(lead.status || "") === st) {
+      return finish("stopped", "stopped", `lead status ${st}`);
+    }
+  }
+  if (exits.includes("booked")) {
+    const { data: sh } = await supabase.from("showings").select("id")
+      .eq("lead_id", leadId).in("status", ["scheduled", "confirmed", "completed"])
+      .limit(1).maybeSingle();
+    if (sh) return finish("done", "booked", "lead booked a showing");
+  }
+  if (exits.includes("replied")) {
+    const { data: reply } = await supabase.from("inbound_emails").select("id")
+      .eq("lead_id", leadId).gte("created_at", String(ctx.started_at || task.created_at || ""))
+      .limit(1).maybeSingle();
+    if (reply) return finish("done", "replied", "lead replied by email");
+  }
+
+  // ── Send ─────────────────────────────────────────────────────────────────
+  const cfg = (step.email_config || {}) as EmailTemplateConfig & Record<string, unknown>;
+  const materialised = Object.keys(cfg).length > 0;
+  let outcomeMsg: string;
+
+  if (materialised) {
+    const firstName = String(lead.full_name || "").trim().split(/\s+/)[0] || "there";
+    const vars: Record<string, string> = {
+      "{firstName}": firstName,
+      "{fullName}": String(lead.full_name || firstName),
+      "{orgName}": settings.org_name,
+      "{senderDomain}": settings.sender_domain,
+    };
+    const html = buildEmailFromConfig(cfg, vars);
+    const subject = interpolateVars(String(cfg.subject || settings.org_name), vars);
+    const resp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-notification-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({
+        to: lead.email,
+        subject,
+        html,
+        notification_type: step.notification_key || "flow_custom",
+        organization_id: task.organization_id,
+        related_entity_id: leadId,
+        related_entity_type: "lead",
+        from_name: settings.org_name,
+        queue: true,
+      }),
+    });
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => "");
+      if (resp.status === 403) return finish("stopped", "stopped", "consent gate declined");
+      throw new Error(`Flow step ${position} failed (${resp.status}): ${body.slice(0, 160)}`);
+    }
+    outcomeMsg = `Flow "${flow.name}" step ${position} sent`;
+  } else {
+    // Imported and unedited → run the legacy handler verbatim.
+    const legacy: Record<string, (t: AgentTask) => Promise<string>> = {
+      welcome: (t) => handleWelcomeSequence(supabase, t, lead, settings),
+      showing_confirmation: (t) => handleShowingConfirmation(supabase, t, lead, settings),
+      no_show: (t) => handleNoShowFollowup(supabase, t, lead, settings),
+      post_showing: (t) => handlePostShowing(supabase, t, lead, settings),
+    };
+    const key = String(step.template_key || "");
+    if (legacy[key]) {
+      outcomeMsg = await legacy[key](task);
+    } else {
+      // No template key at all: the nurture chain, whose 7 bodies live in this
+      // file. Reuse it by position so the copy stays identical.
+      outcomeMsg = await handleShowingNurture(
+        supabase,
+        { ...task, context: { ...(task.context || {}), step: position, flow_managed: true } },
+        lead,
+        settings,
+      );
+    }
+  }
+
+  // ── Advance ──────────────────────────────────────────────────────────────
+  const { data: next } = await supabase.from("flow_steps")
+    .select("position, delay_minutes, delay_anchor")
+    .eq("flow_id", flowId).gt("position", position)
+    .order("position", { ascending: true }).limit(1).maybeSingle();
+
+  const nowIso = new Date().toISOString();
+  if (!next) {
+    await supabase.from("flow_runs").update({
+      status: "done", outcome: "exhausted", last_step_at: nowIso, ended_at: nowIso,
+    }).eq("id", runId);
+    return `${outcomeMsg} — flow complete`;
+  }
+
+  await supabase.from("flow_runs").update({
+    current_position: next.position, last_step_at: nowIso,
+  }).eq("id", runId);
+
+  await supabase.from("agent_tasks").insert({
+    organization_id: task.organization_id,
+    lead_id: leadId,
+    agent_type: "flow_step",
+    action_type: "email",
+    scheduled_for: new Date(Date.now() + (next.delay_minutes || 0) * 60_000).toISOString(),
+    attempt_number: 1,
+    max_attempts: 3,
+    status: "pending",
+    context: { ...ctx, position: next.position },
+  });
+
+  return `${outcomeMsg} — next step ${next.position} scheduled`;
+}
+
 async function handleSheetsBackup(task: AgentTask): Promise<string> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1116,6 +1333,20 @@ async function dispatchTask(
     throw new Error(`Lead not found: ${task.lead_id}`);
   }
 
+  // An active flow takes over its trigger's tasks. No flow is active by
+  // default, so this returns null and nothing changes.
+  {
+    const claimed = await claimForFlow(supabase, task);
+    if (claimed) {
+      return handleFlowStep(
+        supabase,
+        { ...task, context: { ...(task.context || {}), ...claimed } },
+        lead,
+        settings,
+      );
+    }
+  }
+
   switch (task.agent_type) {
     case "showing_confirmation":
       return handleShowingConfirmation(supabase, task, lead, settings);
@@ -1133,6 +1364,8 @@ async function dispatchTask(
       return handleNoShowFollowup(supabase, task, lead, settings);
     case "post_showing":
       return handlePostShowing(supabase, task, lead, settings);
+    case "flow_step":
+      return handleFlowStep(supabase, task, lead, settings);
     case "sheets_backup":
       return handleSheetsBackup(task);
     default:

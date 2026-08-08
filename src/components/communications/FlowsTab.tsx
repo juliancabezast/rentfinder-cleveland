@@ -9,6 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Mail, Clock, ArrowDown, Plus, Trash2, ChevronUp, ChevronDown,
   Pencil, AlertTriangle, Code2, Lock, Workflow, Check, X,
@@ -178,6 +183,7 @@ export const FlowsTab: React.FC = () => {
   const qc = useQueryClient();
   const orgId = userRecord?.organization_id;
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState<Flow | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["flows", orgId],
@@ -238,9 +244,9 @@ export const FlowsTab: React.FC = () => {
         <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
         <div className="text-xs text-amber-900 space-y-1">
           <p>
-            <span className="font-semibold">Los cinco flujos están importados del código y siguen inactivos.</span>{" "}
-            El camino actual es el que manda, así que editar acá todavía no cambia ningún envío.
-            Se hizo a propósito: la bienvenida mueve 15.754 correos y hay 196 leads dentro del nurture.
+            <span className="font-semibold">Los cinco flujos están importados del código y nacen inactivos.</span>{" "}
+            Mientras estén apagados manda el camino actual y nada cambia. Se hizo a propósito:
+            la bienvenida mueve 15.754 correos y hay 196 leads dentro del nurture.
           </p>
           <p>
             {codeBacked.length} de {steps.length} pasos toman su texto de una plantilla compartida
@@ -264,15 +270,34 @@ export const FlowsTab: React.FC = () => {
                     </Badge>
                     <Badge
                       variant="outline"
-                      className="text-[10px] border-slate-200 text-slate-400"
-                      title="El motor de flujos todavía no está conectado: activar no haría nada, así que el control está deshabilitado a propósito en vez de fingir que funciona."
+                      className={`text-[10px] ${flow.is_active
+                        ? "border-emerald-200 text-emerald-700 bg-emerald-50"
+                        : "border-slate-200 text-slate-400"}`}
                     >
-                      Inactivo · manda el camino actual
+                      {flow.is_active ? "Activo · manda este flujo" : "Inactivo · manda el camino actual"}
                     </Badge>
                   </div>
                   {flow.description && (
                     <p className="text-xs text-slate-500 mt-1 max-w-3xl">{flow.description}</p>
                   )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-slate-500">
+                    {flow.is_active ? "Activo" : "Activar"}
+                  </span>
+                  <Switch
+                    checked={flow.is_active}
+                    disabled={busy}
+                    onCheckedChange={(on) => {
+                      // Turning one ON is the moment real mail changes hands, so
+                      // it asks first. Turning OFF is a safety action and never
+                      // gets in the way.
+                      if (on) setConfirming(flow);
+                      else run("Flujo desactivado", async () =>
+                        supabase.from("flows").update({ is_active: false }).eq("id", flow.id));
+                    }}
+                  />
                 </div>
               </div>
 
@@ -329,6 +354,44 @@ export const FlowsTab: React.FC = () => {
           </Card>
         );
       })}
+
+      <AlertDialog open={!!confirming} onOpenChange={(o) => !o && setConfirming(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Activar «{confirming?.name}»?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  A partir de ahora este flujo pasa a mandar los correos de ese disparador,
+                  en vez del camino actual.
+                </p>
+                <p>
+                  Los pasos que no editaste ejecutan <strong>exactamente la misma función</strong>{" "}
+                  que hoy, así que el correo sale idéntico. Lo que cambia es el calendario:
+                  se respetan las demoras y los pasos que hayas agregado.
+                </p>
+                <p className="text-slate-500">
+                  Se puede apagar en cualquier momento, y apagarlo también corta las
+                  secuencias que ya estén en curso.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const f = confirming;
+                setConfirming(null);
+                if (f) run("Flujo activado", async () =>
+                  supabase.from("flows").update({ is_active: true }).eq("id", f.id));
+              }}
+            >
+              Activar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
