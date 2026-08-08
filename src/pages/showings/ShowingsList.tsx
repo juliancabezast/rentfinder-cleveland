@@ -12,6 +12,7 @@ import {
   ExternalLink,
   FileText,
   Eye,
+  CalendarPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +51,7 @@ import { ManageSlotsTab } from "@/components/showings/ManageSlotsTab";
 import { BookingPageTab } from "@/components/showings/BookingPageTab";
 import { ShowingDetailDialog } from "@/components/showings/ShowingDetailDialog";
 import { ShowingsAgenda } from "@/components/showings/ShowingsAgenda";
+import { LeasingAgentCalendarDialog } from "@/components/showings/LeasingAgentCalendarDialog";
 import { quickReportText } from "@/lib/showingReports";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 
@@ -87,6 +89,7 @@ const ShowingsList: React.FC = () => {
   const [calendarReload, setCalendarReload] = useState(0);
   const bumpCalendar = () => setCalendarReload((n) => n + 1);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Mount only the ACTIVE view variant. The previous CSS-only hiding
   // (lg:hidden / hidden lg:block) mounted BOTH the mobile Agenda and the
@@ -446,6 +449,16 @@ const ShowingsList: React.FC = () => {
                 variant="outline"
                 size="sm"
                 className="h-8"
+                title="Suscribir el calendario Leasing Agent en Google o Apple"
+                onClick={() => setCalendarOpen(true)}
+              >
+                <CalendarPlus className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Calendario</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
                 title="Booking settings (lead time · Call Now button)"
                 onClick={() => setSettingsOpen(true)}
               >
@@ -466,6 +479,9 @@ const ShowingsList: React.FC = () => {
           )}
         </div>
       </div>
+
+      <LeasingAgentCalendarDialog open={calendarOpen} onOpenChange={setCalendarOpen} />
+
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
         {/* One header row: the tabs, the desktop view toggle, and (portaled in

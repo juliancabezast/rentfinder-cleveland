@@ -128,3 +128,18 @@ verify_jwt = false
 # Zillow Property Import
 [functions.import-zillow-property]
 verify_jwt = false
+# "Leasing Agent" iCal feed — a calendar client fetches it with NO auth headers,
+# so it must stay reachable without a JWT. Pinned here because a redeploy that
+# forgot --no-verify-jwt would 401 every subscriber, and calendar clients fail
+# their refresh silently — you would only notice when the calendar went stale.
+[functions.showings-ics]
+verify_jwt = false
+
+# Attendance links inside the calendar events (opened from a calendar app).
+[functions.showing-attendance]
+verify_jwt = false
+
+# Signed lead-token resolver — its own header says "Public (--no-verify-jwt)"
+# but it was never pinned either.
+[functions.resolve-lead-token]
+verify_jwt = false

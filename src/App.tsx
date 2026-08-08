@@ -48,6 +48,7 @@ const ReferralPage = lazy(() => import("./pages/public/ReferralPage"));
 const TermsOfService = lazy(() => import("./pages/public/TermsOfService"));
 const SmsSignup = lazy(() => import("./pages/public/SmsSignup"));
 const ScheduleShowing = lazy(() => import("./pages/public/ScheduleShowing"));
+const ShowingAttendance = lazy(() => import("./pages/public/ShowingAttendance"));
 const PropertyDetailPublic = lazy(() => import("./pages/public/PropertyDetailPublic"));
 const ApplyGuide = lazy(() => import("./pages/public/ApplyGuide"));
 const ApplicationStarted = lazy(() => import("./pages/public/ApplicationStarted"));
@@ -98,6 +99,9 @@ const App = () => (
                 <Route path="/p/refer/:referralCode" element={<ReferralPage />} />
                 <Route path="/sms-signup" element={<SmsSignup />} />
                 <Route path="/p/book-showing" element={<ScheduleShowing />} />
+                {/* Opened from the "Leasing Agent" calendar feed. Public by
+                    design — the link itself is a signed, expiring token. */}
+                <Route path="/showing/attendance" element={<ShowingAttendance />} />
                 <Route path="/p/schedule-showing/:propertyId" element={<ScheduleShowing />} />
                 {/* Public property detail (renter-facing "view the property") */}
                 <Route path="/property/:id" element={<PropertyDetailPublic />} />
