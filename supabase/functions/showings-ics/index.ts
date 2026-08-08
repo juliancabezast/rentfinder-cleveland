@@ -310,8 +310,19 @@ serve(async (req: Request) => {
       desc.push(`👻 No asistió: ${attendanceBase}?t=${noShowTok}`);
     }
 
-    const cityTag = prop.city ? ` [${prop.city}]` : "";
-    const mark = s.status === "completed" ? "✅ " : s.status === "no_show" ? "👻 " : s.status === "cancelled" ? "❌ " : "🏠 ";
+    // Short market code up front, so a day of events reads as a route at a
+    // glance in the tiny space a calendar gives a title. East Cleveland is CLE:
+    // it is the same market and the same person covering it (see
+    // properties.market), and the full municipality is still in the address.
+    const cityCode = (() => {
+      const c = String(prop.city || "").trim().toLowerCase();
+      if (c === "cleveland" || c === "east cleveland") return "CLE";
+      if (c === "milwaukee") return "MW";
+      return c ? c.slice(0, 3).toUpperCase() : "";
+    })();
+    // Keys, not a house — the owner is going to open the door, not buy it.
+    // The status marks stay: they carry information a key icon would erase.
+    const mark = s.status === "completed" ? "✅ " : s.status === "no_show" ? "👻 " : s.status === "cancelled" ? "❌ " : "🔑 ";
 
     // NOTE: intentionally NO VALARM → subscribed calendars fire zero
     // notifications, so this never doubles up on the Telegram reminders.
@@ -320,7 +331,9 @@ serve(async (req: Request) => {
     lines.push(`DTSTAMP:${dtstamp}`);
     lines.push(`DTSTART:${icsUtc(start)}`);
     lines.push(`DTEND:${icsUtc(end)}`);
-    lines.push(foldLine(`SUMMARY:${mark}${icsText(leadName)} — ${icsText(addr || "Showing")}${icsText(cityTag)}`));
+    lines.push(foldLine(
+      `SUMMARY:${mark}${cityCode ? icsText(cityCode) + " " : ""}${icsText(leadName)} — ${icsText(addr || "Showing")}`,
+    ));
     if (mapAddr) lines.push(foldLine(`LOCATION:${icsText(mapAddr)}`));
     lines.push(foldLine(`DESCRIPTION:${icsText(desc.join("\n"))}`));
     // A cancelled showing gets a TOMBSTONE rather than vanishing from the body:
