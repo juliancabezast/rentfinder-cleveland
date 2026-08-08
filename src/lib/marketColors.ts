@@ -31,12 +31,18 @@ const CLEVELAND: MarketTone = {
   swatch: "bg-blue-100 border-blue-300",
 };
 
+// Fuchsia, not purple. The first pass used purple-600 (#9333EA) next to the
+// indigo brand colour, and the palette validator measured that pair at ΔE 0.9
+// for protanopia and 11.8 for normal vision — below the 15 floor, i.e. two
+// colours most people cannot tell apart and a red-blind reader sees as one.
+// #A21CAF (fuchsia-700) reads as the same "morado" and measures 9.5 / 18.2:
+// all six checks pass. Keep this in step with the chart series colour.
 const MILWAUKEE: MarketTone = {
-  cell: "bg-purple-50 border-purple-200 text-purple-800 hover:bg-purple-100",
-  surface: "#FAF5FF", // purple-50
-  tag: "bg-purple-100 text-purple-700 border-purple-200",
-  text: "text-purple-700",
-  swatch: "bg-purple-100 border-purple-300",
+  cell: "bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800 hover:bg-fuchsia-100",
+  surface: "#FDF4FF", // fuchsia-50
+  tag: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
+  text: "text-fuchsia-700",
+  swatch: "bg-fuchsia-100 border-fuchsia-300",
 };
 
 const OTHER: MarketTone = {

@@ -41,9 +41,16 @@ function MapController({ city }: { city: CityKey }) {
 
   useEffect(() => {
     const config = CITY_CENTERS[city];
-    if (config) {
-      map.flyTo(config.center, config.zoom, { duration: 1.2 });
-    }
+    if (!config) return;
+    // setView, NOT flyTo. Cleveland and Milwaukee are ~800 km apart, so flyTo
+    // animated a zoom-out-and-back across the whole Midwest and left the tile
+    // layer in an inconsistent state: the polygons landed on Milwaukee while
+    // the basemap kept painting Cleveland, then went blank grey. There is no
+    // continuity between two disjoint cities worth animating.
+    map.setView(config.center, config.zoom, { animate: false });
+    // The container is inside tabs/flex that can resize under the map; without
+    // this Leaflet keeps a stale size and mispositions every tile.
+    map.invalidateSize();
   }, [city, map]);
 
   return null;

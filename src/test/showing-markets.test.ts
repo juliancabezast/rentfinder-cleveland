@@ -116,7 +116,7 @@ describe("market colours", () => {
 
   it("Milwaukee is purple and distinct from Cleveland", () => {
     const mil = marketTone("Milwaukee");
-    expect(mil.cell).toContain("purple");
+    expect(mil.cell).toContain("fuchsia");
     expect(mil.cell).not.toEqual(marketTone("Cleveland").cell);
   });
 
@@ -137,7 +137,7 @@ describe("a slot booked in two cities at once", () => {
     expect(bg).toBeDefined();
     expect(bg).toContain("linear-gradient(90deg");
     // Cleveland's blue-50 on the left, Milwaukee's purple-50 on the right.
-    expect(bg!.indexOf("#EFF6FF")).toBeLessThan(bg!.indexOf("#FAF5FF"));
+    expect(bg!.indexOf("#EFF6FF")).toBeLessThan(bg!.indexOf("#FDF4FF"));
     // A hairline divider, or two pale tints would blur into one another.
     expect(bg).toContain("#CBD5E1");
   });

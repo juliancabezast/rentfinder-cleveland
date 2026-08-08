@@ -26,6 +26,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { CITY_CONFIGS, type CityKey } from "@/components/analytics/ClevelandHeatGrid";
+import {
+  CityComparison, DemandOverTime, LeadFunnel, TopZipsChart,
+  type CitySummary, type WeekPoint, type FunnelStep,
+} from "@/components/analytics/HeatMapCharts";
 import { LeadHeatMapView } from "@/components/analytics/LeadHeatMapView";
 import { fetchAllTagPairs, type TagPair } from "@/lib/leadTags";
 import { cn } from "@/lib/utils";
@@ -442,6 +446,94 @@ export const LeadHeatMap: React.FC = () => {
     return { totalLeads, activeZips, avgRentAll, totalProps };
   }, [zipStats, cityConfig, properties, filteredLeads, zipsForLead]);
 
+  // Every city at once. The old header said "Total Leads" over a number that
+  // only counted the SELECTED city's zips — 11,093 of 18,582 — so the panel
+  // under-reported the business by 40% to anyone reading the label literally.
+  const cityBreakdown = useMemo<CitySummary[]>(() => {
+    return (Object.entries(CITY_CONFIGS) as Array<[CityKey, typeof cityConfig]>).map(([key, cfg]) => {
+      const zipSet = new Set(cfg.zips.map((z) => z.zip));
+      const leads = filteredLeads.filter((l) => zipsForLead(l).some((z) => zipSet.has(z)));
+      const leadIds = new Set(leads.map((l) => l.id));
+      const rentProps = properties.filter((p) => zipSet.has(p.zip_code) && (p.rent_price ?? 0) > 0);
+      const propIdsInCity = new Set(properties.filter((p) => zipSet.has(p.zip_code)).map((p) => p.id));
+      return {
+        key,
+        leads: leads.length,
+        activeZips: cfg.zips.filter((z) => (zipStats[z.zip]?.leadCount ?? 0) > 0).length,
+        totalZips: cfg.zips.length,
+        avgRent: rentProps.length
+          ? Math.round(rentProps.reduce((a, p) => a + (p.rent_price || 0), 0) / rentProps.length)
+          : 0,
+        properties: properties.filter((p) => p.status === "available" && zipSet.has(p.zip_code)).length,
+        showings: showings.filter((sh) => propIdsInCity.has(sh.property_id)).length,
+        _leadIds: leadIds,
+      } as CitySummary & { _leadIds: Set<string> };
+    });
+  }, [filteredLeads, zipsForLead, properties, zipStats, showings, cityConfig]);
+
+  // Weekly arrivals, last 12 weeks, split by city.
+  const weeklySeries = useMemo<WeekPoint[]>(() => {
+    const byCity: Record<string, Set<string>> = {};
+    for (const c of cityBreakdown) {
+      byCity[c.key] = (c as CitySummary & { _leadIds: Set<string> })._leadIds;
+    }
+    const WEEKS = 12;
+    const now = new Date();
+    const buckets: WeekPoint[] = [];
+    const index = new Map<string, WeekPoint>();
+    for (let i = WEEKS - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 7 * 86400000);
+      // Monday-anchored key so a week is a week, not a rolling 7 days.
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      const key = monday.toISOString().slice(0, 10);
+      if (!index.has(key)) {
+        const point: WeekPoint = {
+          week: monday.toLocaleDateString("es-CO", { day: "numeric", month: "short" }),
+          cleveland: 0, milwaukee: 0,
+        };
+        index.set(key, point);
+        buckets.push(point);
+      }
+    }
+    for (const lead of filteredLeads) {
+      if (!lead.created_at) continue;
+      const d = new Date(lead.created_at);
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      const point = index.get(monday.toISOString().slice(0, 10));
+      if (!point) continue;
+      const counts = point as unknown as Record<string, number>;
+      for (const key of Object.keys(byCity)) {
+        if (byCity[key].has(lead.id)) counts[key] = (counts[key] || 0) + 1;
+      }
+    }
+    return buckets;
+  }, [filteredLeads, cityBreakdown]);
+
+  // Funnel from lead status — the statuses the system actually sets.
+  const funnelSteps = useMemo<FunnelStep[]>(() => {
+    const has = (...st: string[]) => filteredLeads.filter((l) => st.includes(String(l.status))).length;
+    const booked = has("showing_scheduled", "showed", "in_application", "converted");
+    const showed = has("showed", "in_application", "converted");
+    const applied = has("in_application", "converted");
+    return [
+      { stage: "Leads", count: filteredLeads.length, hint: "todos" },
+      { stage: "Agendaron visita", count: booked, hint: "" },
+      { stage: "Asistieron", count: showed, hint: "" },
+      { stage: "Aplicaron", count: applied, hint: "" },
+    ];
+  }, [filteredLeads]);
+
+  const topZipsSelected = useMemo(
+    () =>
+      cityConfig.zips
+        .map((z) => ({ zip: z.zip, leads: zipStats[z.zip]?.leadCount ?? 0 }))
+        .filter((r) => r.leads > 0)
+        .sort((a, b) => b.leads - a.leads),
+    [cityConfig, zipStats],
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -499,14 +591,19 @@ export const LeadHeatMap: React.FC = () => {
 
       {/* Quick stat bubbles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* The real total, with the per-city split underneath. The old card put
+            "Total Leads" over the selected city's count only. */}
         <Card variant="glass" className="p-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-              <Users className="h-5 w-5 text-purple-600" />
+            <div className="h-10 w-10 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
+              <Users className="h-5 w-5 text-[#4F46E5]" />
             </div>
-            <div>
-              <p className="text-xl font-bold text-purple-600">{summaryStats.totalLeads}</p>
-              <p className="text-[11px] text-muted-foreground">Total Leads</p>
+            <div className="min-w-0">
+              <p className="text-xl font-bold text-[#4F46E5]">{filteredLeads.length.toLocaleString()}</p>
+              <p className="text-[11px] text-muted-foreground">Leads en total</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                {cityBreakdown.map((c) => `${c.leads.toLocaleString()} ${CITY_CONFIGS[c.key as CityKey].label.split(",")[0]}`).join(" · ")}
+              </p>
             </div>
           </div>
         </Card>
@@ -562,6 +659,10 @@ export const LeadHeatMap: React.FC = () => {
           .
         </p>
       )}
+
+      {/* Both cities at once. The selector shows one at a time, which is why
+          Milwaukee's 1,870 leads were invisible until you knew to switch. */}
+      <CityComparison cities={cityBreakdown} />
 
       {/* Map + Insights grid */}
       <div className="grid gap-5 lg:grid-cols-3">
@@ -802,6 +903,13 @@ export const LeadHeatMap: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Charts last: the map answers "where", these answer "when" and "how far". */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <DemandOverTime data={weeklySeries} />
+        <LeadFunnel steps={funnelSteps} />
+      </div>
+      <TopZipsChart data={topZipsSelected} cityKey={selectedCity} />
     </div>
   );
 };
