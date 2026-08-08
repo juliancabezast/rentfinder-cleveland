@@ -5330,6 +5330,16 @@ export type Database = {
         }
         Returns: Json
       }
+      report_flow_step_stats: {
+        Args: { p_days?: number; p_org: string }
+        Returns: {
+          delivered: number
+          last_sent_at: string
+          opened: number
+          sent: number
+          step_key: string
+        }[]
+      }
       report_campaign_stats_all: {
         Args: { p_org: string; p_window_days?: number }
         Returns: {

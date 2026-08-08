@@ -757,20 +757,29 @@ describe("Campaigns Feature — Integration Tests", () => {
       const fs = await import("fs");
       const source = fs.readFileSync("src/App.tsx", "utf-8");
 
-      expect(source).toContain('lazy(() => import("./pages/campaigns/CampaignsPage"))');
+      // Campaigns is a TAB of the Communications dashboard now, so the lazy
+      // import moved into the hub and /campaigns survives as a redirect —
+      // saved links and bookmarks still have to land somewhere real.
       expect(source).toContain('path="/campaigns"');
+      expect(source).toContain('to="/communications?tab=campanas"');
+
+      const hub = fs.readFileSync("src/pages/communications/CommunicationsHub.tsx", "utf-8");
+      expect(hub).toContain('lazy(() => import("@/pages/campaigns/CampaignsPage"))');
     });
 
-    it("Sidebar has a Communications hub entry and the hub links to /campaigns", async () => {
+    it("Sidebar has a Communications hub entry and Campaigns is one of its tabs", async () => {
       const fs = await import("fs");
-      const sidebar = fs.readFileSync("src/components/layout/Sidebar.tsx", "utf-8");
+      // Nav literals live in navItems.ts, not Sidebar.tsx — this test read the
+      // wrong file and had been failing since that extraction.
+      const nav = fs.readFileSync("src/components/layout/navItems.ts", "utf-8");
       const hub = fs.readFileSync("src/pages/communications/CommunicationsHub.tsx", "utf-8");
 
       // Sidebar exposes the single hub entry…
-      expect(sidebar).toContain("title: 'Communications'");
-      expect(sidebar).toContain("href: '/communications'");
-      // …and Campaigns is reachable from the hub landing
-      expect(hub).toContain('href: "/campaigns"');
+      expect(nav).toContain("title: 'Communications'");
+      expect(nav).toContain("href: '/communications'");
+      // …and Campaigns is one of the hub's tabs, with Flows as the default.
+      expect(hub).toContain('value: "campanas"');
+      expect(hub).toContain('const DEFAULT_TAB = "flujos"');
     });
 
     it("notificationService.ts accepts campaignId in SendEmailParams", async () => {

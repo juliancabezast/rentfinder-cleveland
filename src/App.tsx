@@ -36,12 +36,9 @@ const LeadHeatMap = lazy(() => import("./pages/analytics/LeadHeatMap"));
 const CompetitorRadar = lazy(() => import("./pages/analytics/CompetitorRadar"));
 const ResponsesPlaybook = lazy(() => import("./pages/playbook/ResponsesPlaybook"));
 const BusinessPage = lazy(() => import("./pages/business/BusinessPage"));
-const EmailsPage = lazy(() => import("./pages/emails/EmailsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AgentsPage = lazy(() => import("./pages/agents/AgentsPage"));
-const CampaignsPage = lazy(() => import("./pages/campaigns/CampaignsPage"));
 const CommunicationsHub = lazy(() => import("./pages/communications/CommunicationsHub"));
-const PropertySpotlightPage = lazy(() => import("./pages/communications/PropertySpotlightPage"));
 const DemoRequests = lazy(() => import("./pages/DemoRequests"));
 const StarktankPage = lazy(() => import("./pages/starktank/StarktankPage"));
 
@@ -245,16 +242,9 @@ const App = () => (
               }
             />
 
-            <Route
-              path="/campaigns"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
-                  <MainLayout>
-                    <CampaignsPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
+            {/* Folded into the Communications dashboard — kept as a redirect
+                so saved links and bookmarks still land somewhere real. */}
+            <Route path="/campaigns" element={<Navigate to="/communications?tab=campanas" replace />} />
 
             <Route
               path="/communications"
@@ -267,30 +257,12 @@ const App = () => (
               }
             />
 
-            <Route
-              path="/communications/spotlight"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
-                  <MainLayout>
-                    <PropertySpotlightPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/communications/spotlight" element={<Navigate to="/communications?tab=spotlight" replace />} />
 
             {/* Legacy path → new Property Spotlight location */}
-            <Route path="/campaigns/featured" element={<Navigate to="/communications/spotlight" replace />} />
+            <Route path="/campaigns/featured" element={<Navigate to="/communications?tab=spotlight" replace />} />
 
-            <Route
-              path="/emails"
-              element={
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'editor']}>
-                  <MainLayout>
-                    <EmailsPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/emails" element={<Navigate to="/communications?tab=emails" replace />} />
 
 
             <Route
