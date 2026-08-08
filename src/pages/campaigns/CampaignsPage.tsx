@@ -49,6 +49,27 @@ interface Campaign {
 
 // ── Component ────────────────────────────────────────────────────────
 
+// Showings are attributed two ways and the two are NEVER summed:
+//  · by link   — exact, recorded at booking time from the ?cid= param
+//  · by window — a recipient booked within N days of their send (correlation)
+// Campaigns queued straight by SQL carry no cid, so their by-link count is 0
+// and the window is the only signal there is.
+const SHOWING_ATTRIBUTION_DAYS = 7;
+
+interface CampaignStats {
+  campaign_id: string;
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  bounced: number;
+  failed: number;
+  pending: number;
+  showings_by_link: number;
+  showings_by_window: number;
+  bookers_by_window: number;
+}
+
 const CampaignsPage = () => {
   const { userRecord } = useAuth();
   const queryClient = useQueryClient();
@@ -80,76 +101,30 @@ const CampaignsPage = () => {
   // Detect if any campaign is actively sending
   const hasSending = campaigns?.some((c) => c.status === "sending" || c.status === "in_progress");
 
-  // Fetch email stats per campaign (delivered + failed + showings)
+  // Per-campaign stats — ONE aggregate call for every campaign.
+  //
+  // This used to loop over each campaign and `select("details")` from
+  // email_events. `details` carries the fully rendered email HTML, so that
+  // pulled ~300 MB into the browser every 30s across 29 campaigns, the promise
+  // never resolved, and EVERY metric rendered 0 — which is what the owner was
+  // showing an investor. The aggregate runs in Postgres against generated
+  // columns that never touch the HTML (3.4s -> 56ms).
   const { data: campaignStats } = useQuery({
     queryKey: ["campaign-stats-all", orgId],
     queryFn: async () => {
-      if (!orgId || !campaigns?.length) return {};
-      const stats: Record<string, { delivered: number; failed: number; showings: number }> = {};
-
-      for (const c of campaigns) {
-        // Query email_events by JSONB text-path equality. The previous
-        // `.contains({ campaign_id: c.id })` was silently returning 0 rows
-        // on some Postgres + PostgREST versions (jsonb_contains type-coercion
-        // edge case), even though DB-side `details->>'campaign_id' = c.id::text`
-        // matched correctly.
-        const { data: emailRows, error: statsErr } = await supabase
-          .from("email_events")
-          .select("details")
-          .eq("organization_id", orgId)
-          .eq("details->>campaign_id", c.id);
-        if (statsErr) {
-          console.warn(`Stats query failed for campaign ${c.id}:`, statsErr.message);
-        }
-
-        let delivered = 0;
-        let failed = 0;
-        for (const row of emailRows || []) {
-          const d = row.details as Record<string, unknown> | null;
-          const status = (d?.status as string) || "queued";
-          const lastEvent = (d?.last_event as string) || "";
-          if (
-            status === "delivered" || status === "opened" || status === "clicked" ||
-            lastEvent === "delivered" || lastEvent === "opened" || lastEvent === "clicked" ||
-            (status === "sent" && lastEvent && lastEvent !== "bounced")
-          ) {
-            delivered++;
-          } else if (
-            status === "failed" || status === "bounced" ||
-            lastEvent === "bounced" || status === "complained"
-          ) {
-            failed++;
-          }
-          // else: still queued/processing — don't count as delivered
-        }
-
-        // Showings attributable to this campaign — only count showings
-        // CREATED AFTER the campaign launched, otherwise we'd be counting
-        // every showing that lead has ever had (including ones from before
-        // the campaign was sent).
-        const { data: cl } = await supabase
-          .from("campaign_leads")
-          .select("lead_id")
-          .eq("campaign_id", c.id);
-        let showings = 0;
-        if (cl && cl.length > 0) {
-          const leadIds = cl.map((r) => r.lead_id);
-          const startedAt = c.started_at || c.created_at;
-          const { count } = await supabase
-            .from("showings")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", orgId)
-            .in("lead_id", leadIds)
-            .gte("created_at", startedAt);
-          showings = count || 0;
-        }
-
-        stats[c.id] = { delivered, failed, showings };
+      if (!orgId) return {};
+      const { data, error } = await supabase.rpc("report_campaign_stats_all", {
+        p_org: orgId,
+        p_window_days: SHOWING_ATTRIBUTION_DAYS,
+      });
+      if (error) throw error;
+      const stats: Record<string, CampaignStats> = {};
+      for (const r of (data || []) as CampaignStats[]) {
+        stats[r.campaign_id] = r;
       }
-
       return stats;
     },
-    enabled: !!orgId && !!campaigns?.length,
+    enabled: !!orgId,
     refetchInterval: hasSending ? 3_000 : 30_000,
   });
 
@@ -304,18 +279,21 @@ const CampaignsPage = () => {
                   ? `${c.properties.address}${c.properties.unit_number ? ` #${c.properties.unit_number}` : ""}`
                   : "No property";
 
-                const processed = stats ? stats.delivered + stats.failed : 0;
-                const isCompletedNoTracking = c.status === "completed" && processed === 0;
-                const deliveredDisplay = stats
-                  ? (isCompletedNoTracking ? c.emails_queued : stats.delivered)
+                // Rates are ALWAYS over delivered, never over sent — a bounced
+                // address never had the chance to open.
+                const sentTotal = stats?.sent ?? 0;
+                const deliveredDisplay = stats?.delivered ?? 0;
+                const openedDisplay = stats?.opened ?? 0;
+                const bouncedDisplay = (stats?.bounced ?? 0) + (stats?.failed ?? 0);
+                const pending = stats?.pending ?? 0;
+                const openRate = deliveredDisplay > 0
+                  ? Math.round((openedDisplay / deliveredDisplay) * 1000) / 10
                   : 0;
-                const failedDisplay = stats?.failed ?? 0;
-                const emailTotal = c.emails_queued > 0 ? c.emails_queued : processed;
-                const pending = c.status !== "completed" && stats
-                  ? Math.max(0, emailTotal - stats.delivered - stats.failed)
-                  : 0;
-                const pct = emailTotal > 0
-                  ? (isCompletedNoTracking ? 100 : Math.min(100, Math.round((processed / emailTotal) * 100)))
+                const showingsWindow = stats?.showings_by_window ?? 0;
+                const showingsLink = stats?.showings_by_link ?? 0;
+                const bookers = stats?.bookers_by_window ?? 0;
+                const pct = sentTotal > 0
+                  ? Math.min(100, Math.round(((sentTotal - pending) / sentTotal) * 100))
                   : (c.status === "completed" ? 100 : 0);
 
                 return (
@@ -348,7 +326,7 @@ const CampaignsPage = () => {
                       {/* Row 2: Progress + Stats inline (stack on mobile) */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {(emailTotal > 0 || c.status === "completed") && (
+                          {(sentTotal > 0 || c.status === "completed") && (
                             <>
                               <Progress value={pct} className="h-2 flex-1" />
                               <span className="text-xs font-medium text-slate-500 tabular-nums whitespace-nowrap">
@@ -357,25 +335,35 @@ const CampaignsPage = () => {
                             </>
                           )}
                         </div>
-                        <div className="grid grid-cols-4 sm:flex sm:items-center sm:gap-5 sm:shrink-0 gap-2 mt-1 sm:mt-0 w-full sm:w-auto">
-                          <div className="text-center min-w-0 sm:w-14">
-                            <p className="text-base sm:text-lg font-bold text-slate-700 tabular-nums leading-tight">{c.total_leads}</p>
-                            <p className="text-[10px] text-slate-400">Leads</p>
+                        <div className="grid grid-cols-3 sm:flex sm:items-center sm:gap-5 sm:shrink-0 gap-2 mt-1 sm:mt-0 w-full sm:w-auto">
+                          <div className="text-center min-w-0 sm:w-16" title="Recipients this campaign was queued for">
+                            <p className="text-base sm:text-lg font-bold text-slate-700 tabular-nums leading-tight">{(sentTotal || c.total_leads).toLocaleString()}</p>
+                            <p className="text-[10px] text-slate-400">Sent</p>
                           </div>
-                          <div className="text-center min-w-0 sm:w-14">
-                            <p className="text-base sm:text-lg font-bold text-emerald-600 tabular-nums leading-tight">{deliveredDisplay}</p>
+                          <div className="text-center min-w-0 sm:w-16" title={`${bouncedDisplay} bounced or failed`}>
+                            <p className="text-base sm:text-lg font-bold text-emerald-600 tabular-nums leading-tight">{deliveredDisplay.toLocaleString()}</p>
                             <p className="text-[10px] text-slate-400">Delivered</p>
                           </div>
-                          <div className="text-center min-w-0 sm:w-14">
-                            <p className={cn("text-base sm:text-lg font-bold tabular-nums leading-tight", failedDisplay > 0 ? "text-red-600" : pending > 0 ? "text-amber-600" : "text-slate-300")}>
-                              {failedDisplay > 0 ? failedDisplay : pending > 0 ? pending : "—"}
-                            </p>
-                            <p className="text-[10px] text-slate-400">
-                              {failedDisplay > 0 ? "Failed" : pending > 0 ? "Pending" : "Failed"}
-                            </p>
+                          <div className="text-center min-w-0 sm:w-16" title="Opens over DELIVERED — a bounced address never had the chance to open">
+                            <p className="text-base sm:text-lg font-bold text-blue-600 tabular-nums leading-tight">{openedDisplay.toLocaleString()}</p>
+                            <p className="text-[10px] text-slate-400">{openRate > 0 ? `Opened ${openRate}%` : "Opened"}</p>
                           </div>
-                          <div className="text-center min-w-0 sm:w-14">
-                            <p className="text-base sm:text-lg font-bold text-purple-600 tabular-nums leading-tight">{stats?.showings ?? 0}</p>
+                          <div className="text-center min-w-0 sm:w-16" title={bouncedDisplay > 0 ? "Bounced or rejected" : "No bounces"}>
+                            <p className={cn("text-base sm:text-lg font-bold tabular-nums leading-tight", bouncedDisplay > 0 ? "text-red-600" : pending > 0 ? "text-amber-600" : "text-slate-300")}>
+                              {pending > 0 ? pending.toLocaleString() : bouncedDisplay > 0 ? bouncedDisplay.toLocaleString() : "—"}
+                            </p>
+                            <p className="text-[10px] text-slate-400">{pending > 0 ? "Pending" : "Bounced"}</p>
+                          </div>
+                          <div
+                            className="text-center min-w-0 sm:w-20"
+                            title={`${showingsLink} attributed by tracked link · ${showingsWindow} booked by ${bookers} recipient${bookers === 1 ? "" : "s"} within ${SHOWING_ATTRIBUTION_DAYS} days of their send. The two are counted differently and are not added together.`}
+                          >
+                            <p className="text-base sm:text-lg font-bold text-purple-600 tabular-nums leading-tight">
+                              {showingsWindow}
+                              {showingsLink > 0 && (
+                                <span className="text-[11px] font-semibold text-purple-400 align-super ml-0.5">{showingsLink}</span>
+                              )}
+                            </p>
                             <p className="text-[10px] text-slate-400">Showings</p>
                           </div>
                         </div>

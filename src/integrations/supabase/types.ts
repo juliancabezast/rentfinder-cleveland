@@ -5330,6 +5330,22 @@ export type Database = {
         }
         Returns: Json
       }
+      report_campaign_stats_all: {
+        Args: { p_org: string; p_window_days?: number }
+        Returns: {
+          bookers_by_window: number
+          bounced: number
+          campaign_id: string
+          clicked: number
+          delivered: number
+          failed: number
+          opened: number
+          pending: number
+          sent: number
+          showings_by_link: number
+          showings_by_window: number
+        }[]
+      }
       report_campaign_email_stats: {
         Args: { p_limit?: number; p_org: string; p_since: string }
         Returns: {
